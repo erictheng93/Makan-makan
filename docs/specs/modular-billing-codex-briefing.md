@@ -101,7 +101,7 @@ pnpm test:unit -- moduleGate subscriptions
 |---|---|
 | **DB 查詢只能用 Drizzle Layer 1（query builder）或 Layer 2（`sql` template + schema refs）**，禁止 raw string SQL | CLAUDE.md「Database Query Strategy」 |
 | **API error 一律 throw `ApiError`**（用 `notFound()`/`badRequest()`/`forbidden()` factory），route handler 不寫 try/catch 包成 response | CLAUDE.md「Error Response Format」 |
-| **測試一律用 `@makanmakan/testing-utils` factory**，禁止 CSS class assertion，每個 mock 都要 `expect.toHaveBeenCalledWith(...)` 驗證 | CLAUDE.md「Testing Standards」 |
+| **測試一律用 `@makanmasak/testing-utils` factory**，禁止 CSS class assertion，每個 mock 都要 `expect.toHaveBeenCalledWith(...)` 驗證 | CLAUDE.md「Testing Standards」 |
 | **UI 必符合 Apple-Native Soft Minimalism**（`#F2F2F7` bg、`rounded-2xl`、無硬邊框、ios-* tokens） | CLAUDE.md「UI/UX Design System」 |
 | **commit / shell 使用 repo 原生命令**（例如 `git`、`pnpm`） | AGENTS.md「Build, Test, and Development Commands」 |
 | **不寫 emoji**、不寫多段 docstring、不為「未來可能用到」加抽象 | system prompt |

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { badRequest, notFound } from "@makanmakan/utils";
+import { badRequest, notFound } from "@makanmasak/utils";
 import type { ManagementEnv, OnboardingStatus } from "../types";
 import { OnboardingService } from "../services/OnboardingService";
 

@@ -19,7 +19,7 @@ import { waitingListApi } from "@/services/waitingListApi";
 import { customerIdentityApi } from "@/services/customerIdentityApi";
 import { customerOrderApi } from "@/services/customerOrderApi";
 import customerPushService from "@/utils/push-notifications";
-import { WaitingStatus } from "@makanmakan/shared-types";
+import { WaitingStatus } from "@makanmasak/shared-types";
 
 const disabledFeatures = reactive({ value: new Set<string>() });
 

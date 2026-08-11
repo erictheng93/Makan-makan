@@ -68,7 +68,7 @@ apps/print-agent/
 
 ### 🔧 **技術整合**
 
-- **Queue-Core 整合**: 使用 `@makanmakan/queue-core` 的列印模組
+- **Queue-Core 整合**: 使用 `@makanmasak/queue-core` 的列印模組
 - **模組化設計**: 清晰的服務層分離
 - **配置管理**: 完整的環境變數和驗證
 - **錯誤處理**: 強化的錯誤處理和恢復機制

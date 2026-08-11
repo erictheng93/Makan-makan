@@ -1,4 +1,4 @@
-import type { TestDatabase } from "@makanmakan/database/testing";
+import type { TestDatabase } from "@makanmasak/database/testing";
 import {
   restaurants,
   menuItems,
@@ -6,7 +6,7 @@ import {
   categories,
   users,
   coupons,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import { eq } from "drizzle-orm";
 
 type SeedRecord = Record<string, unknown>;

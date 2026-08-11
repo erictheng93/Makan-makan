@@ -8,14 +8,14 @@ export type {
   GenerateForecastRequest,
   IngredientForecastItem,
   IngredientForecastResult,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 import type {
   ForecastResult,
   ForecastAccuracyItem,
   ForecastAlert,
   IngredientForecastResult,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // API-only types (service internals)
 

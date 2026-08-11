@@ -304,7 +304,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 🏗️ 建置內部套件
-        run: pnpm --filter @makanmakan/api^... build
+        run: pnpm --filter @makanmasak/api^... build
 
       - name: 🗄️ 執行 real-integration 測試
         run: pnpm test:real-integration

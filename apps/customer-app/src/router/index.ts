@@ -5,7 +5,7 @@ import { safeTranslate } from "@/utils/i18n";
 import {
   clearChunkRecoveryMark,
   createChunkRecovery,
-} from "@makanmakan/utils/chunk-recovery";
+} from "@makanmasak/utils/chunk-recovery";
 // Deliberately eager. Every other view is a chunk, and the failure this view
 // exists to report is "a chunk could not be fetched" — a deploy replaces the
 // hashed filenames, so a tab still holding the previous index.html asks for

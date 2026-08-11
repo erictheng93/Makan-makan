@@ -24,7 +24,7 @@ const tableServiceCtor = vi.hoisted(() =>
   }),
 );
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   TableService: tableServiceCtor,
 }));
 

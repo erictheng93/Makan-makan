@@ -1,4 +1,4 @@
-# @makanmakan/database
+# @makanmasak/database
 
 Modern, type-safe database layer built with Drizzle ORM for MakanMasak restaurant management system.
 
@@ -15,7 +15,7 @@ Modern, type-safe database layer built with Drizzle ORM for MakanMasak restauran
 
 ```bash
 # Install dependencies
-pnpm add @makanmakan/database
+pnpm add @makanmasak/database
 
 # Peer dependencies
 pnpm add drizzle-orm @cloudflare/d1
@@ -24,7 +24,7 @@ pnpm add drizzle-orm @cloudflare/d1
 ## Quick Start
 
 ```typescript
-import { createDatabase, RestaurantService } from "@makanmakan/database";
+import { createDatabase, RestaurantService } from "@makanmasak/database";
 
 // Initialize database
 const db = createDatabase(env.DB);
@@ -176,7 +176,7 @@ npx wrangler d1 execute makanmakan-prod --file=./scripts/migrate-from-legacy.sql
 ### Step 2: Data Validation
 
 ```typescript
-import { validateMigration } from "@makanmakan/database/scripts";
+import { validateMigration } from "@makanmasak/database/scripts";
 
 await validateMigration(env.DB);
 ```

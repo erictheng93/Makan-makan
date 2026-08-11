@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSignedQRUrl } from "@makanmakan/utils";
+import { buildSignedQRUrl } from "@makanmasak/utils";
 import {
   generateQRContent,
   getQRTypeDescription,

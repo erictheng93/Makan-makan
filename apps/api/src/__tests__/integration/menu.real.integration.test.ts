@@ -9,7 +9,7 @@ import {
   menuItems,
   optionChoices,
   optionGroups,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import { eq } from "drizzle-orm";
 
 /**

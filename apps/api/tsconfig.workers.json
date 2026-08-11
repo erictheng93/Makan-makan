@@ -15,9 +15,9 @@
     "skipDefaultLibCheck": true,
     "types": ["@cloudflare/workers-types"],
     "paths": {
-      "@makanmakan/database": ["../../packages/database/src"],
-      "@makanmakan/shared-types": ["../../packages/shared-types/src"],
-      "@makanmakan/queue-core": ["../../packages/queue-core/src"]
+      "@makanmasak/database": ["../../packages/database/src"],
+      "@makanmasak/shared-types": ["../../packages/shared-types/src"],
+      "@makanmasak/queue-core": ["../../packages/queue-core/src"]
     }
   },
   "include": ["src/routes/queue-modular.ts"],

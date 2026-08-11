@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { parseSignedQRUrl } from "@makanmakan/utils";
+import { parseSignedQRUrl } from "@makanmasak/utils";
 import { restaurants, seats } from "../schema";
 import {
   createTestDatabase,

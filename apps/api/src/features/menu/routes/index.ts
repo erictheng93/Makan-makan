@@ -25,8 +25,8 @@ import {
   badRequest,
 } from "../../../shared/utils/api-error";
 import { moduleGate } from "../../../middleware/moduleGate";
-import { toRequiredCents, backfillMenuItemOptions } from "@makanmakan/database";
-import { generateUUID } from "@makanmakan/utils";
+import { toRequiredCents, backfillMenuItemOptions } from "@makanmasak/database";
+import { generateUUID } from "@makanmasak/utils";
 
 // Import schemas
 import { menuSchemas } from "../schemas/validation";

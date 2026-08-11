@@ -22,8 +22,8 @@ vi.mock("./routes", () => {
 
 describe("menu feature module", () => {
   it("initializes metadata, health, diagnostics, routes, and cleanup exports", async () => {
-    // Import before installing fake timers. This pulls in @makanmakan/database
-    // and @makanmakan/shared-types, so on a cold transform cache — any change
+    // Import before installing fake timers. This pulls in @makanmasak/database
+    // and @makanmasak/shared-types, so on a cold transform cache — any change
     // to those packages — it can take well over the default 10s timeout, and
     // under fake timers that stall is unrecoverable. The clock only needs to be
     // frozen for the assertions below, not for module loading.

@@ -15,8 +15,8 @@ const cancelOrder = vi.hoisted(() => vi.fn());
 const enforceQuota = vi.hoisted(() => vi.fn());
 const meterEmit = vi.hoisted(() => vi.fn());
 
-vi.mock("@makanmakan/database", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@makanmakan/database")>()),
+vi.mock("@makanmasak/database", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@makanmasak/database")>()),
   createDatabase: databaseMocks.createDatabase,
 }));
 

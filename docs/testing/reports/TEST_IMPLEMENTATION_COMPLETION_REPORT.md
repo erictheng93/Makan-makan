@@ -184,7 +184,7 @@ FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaS
 
 ```bash
 # 分別執行各個 package 的測試
-pnpm test --filter @makanmakan/database
+pnpm test --filter @makanmasak/database
 pnpm test --filter makanmakan-admin-dashboard
 pnpm test --filter makanmakan-kitchen-display
 ```

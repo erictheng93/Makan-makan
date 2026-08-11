@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   PAYMENT_AUDIT_EVENT_TYPES,
   PLAN_DEFAULT_MODULES,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 import {
   BillingCycleService,
@@ -10,7 +10,7 @@ import {
   TrialReaperService,
 } from "./BillingCycleService";
 
-vi.mock("@makanmakan/utils", () => ({
+vi.mock("@makanmasak/utils", () => ({
   generateUUID: vi.fn(() => "generated-id"),
 }));
 

@@ -10,7 +10,7 @@ import type {
   PaginatedResponse,
   CursorPaginatedResponse,
   InfiniteScrollState,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 /**
  * Standard offset-based pagination

@@ -10,7 +10,7 @@ import {
   requireRole,
 } from "../../../middleware/auth";
 import { moduleGate } from "../../../middleware/moduleGate";
-import { WaitingListService } from "@makanmakan/database";
+import { WaitingListService } from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 import type { AuthUser } from "../../../middleware/auth";
 import {
@@ -18,7 +18,7 @@ import {
   type JoinWaitingListRequest,
   type WaitingListFilters,
   type CallWaitingRequest,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import {
   notFound,
   forbidden,

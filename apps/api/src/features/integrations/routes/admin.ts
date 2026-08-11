@@ -1,13 +1,13 @@
 import { Hono } from "hono";
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, desc } from "drizzle-orm";
-import { platformWebhookLogs } from "@makanmakan/database";
+import { platformWebhookLogs } from "@makanmasak/database";
 import type {
   PlatformType,
   ConnectPlatformRequest,
   UpdatePlatformConfigRequest,
   PlatformOrdersFilter,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import type { Env } from "../../../types/env";
 import { authMiddleware, requireRole } from "../../../shared/middleware";
 import { moduleGate } from "../../../middleware/moduleGate";

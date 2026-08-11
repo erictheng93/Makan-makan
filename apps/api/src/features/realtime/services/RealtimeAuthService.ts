@@ -8,8 +8,8 @@ import {
   restaurants,
   seats,
   tables,
-} from "@makanmakan/database";
-import { parseSignedQRUrl, verifyQRSignature } from "@makanmakan/utils";
+} from "@makanmasak/database";
+import { parseSignedQRUrl, verifyQRSignature } from "@makanmasak/utils";
 import type { Env } from "../../../shared/types";
 import type { GuestTokenData } from "../../../middleware/guestAuth";
 import { ConsoleLogger } from "../../../core/monitoring";
@@ -22,7 +22,7 @@ import type {
   RealtimeAuthTokenRequest,
   RealtimeAuthTokenResponse,
   RoomType,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import {
   TokenBlacklistService,
   type RevokeReason,

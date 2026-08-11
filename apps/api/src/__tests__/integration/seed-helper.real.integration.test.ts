@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import {
   createTestDatabase,
   type TestDatabase,
-} from "@makanmakan/database/testing";
+} from "@makanmasak/database/testing";
 import { buildSeedHelpers } from "./helpers/seed-helper";
 
 describe("buildSeedHelpers", () => {

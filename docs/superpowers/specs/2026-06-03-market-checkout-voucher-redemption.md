@@ -120,7 +120,7 @@ unified `ApiError` shape with codes (`VOUCHER_NOT_FOUND`, `VOUCHER_NOT_APPLICABL
   marks usage refunded and releases `used_count`; partial refund keeps the use
   counted until every checkout usage row is refunded; min-order / exhausted /
   vendor-scoped rejections.
-- Gates: `pnpm --filter @makanmakan/api typecheck`, lint, the market-checkout
+- Gates: `pnpm --filter @makanmasak/api typecheck`, lint, the market-checkout
   route tests, and the new voucher tests.
 
 ## Boundaries

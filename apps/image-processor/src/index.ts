@@ -15,7 +15,7 @@ import {
   imageViews,
   imageProcessingJobs,
   menuItems,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import { inArray, or } from "drizzle-orm";
 import { cronMatches } from "./utils/cron";
 import { ImageService } from "./services/image-service";

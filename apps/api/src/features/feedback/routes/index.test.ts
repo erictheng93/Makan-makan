@@ -27,7 +27,7 @@ vi.mock("../../../middleware/auth", () => ({
   }),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   FEEDBACK_CATEGORIES: [
     "bug_report",
     "feature_request",

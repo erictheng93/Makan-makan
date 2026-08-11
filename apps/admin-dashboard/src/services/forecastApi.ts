@@ -5,7 +5,7 @@ import type {
   ForecastAlert,
   GenerateForecastRequest,
   IngredientForecastResult,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 export const forecastApi = {
   async generate(

@@ -14,7 +14,7 @@ import {
   type WaitingStats,
   type WaitTimeEstimateRequest,
   type WaitTimeEstimateResult,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 export class WaitingListService {
   /**

@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { BaseService, type CloudflareEnv } from "./base";
-import type { WaitingListResponse } from "@makanmakan/shared-types";
+import type { WaitingListResponse } from "@makanmasak/shared-types";
 
 interface PushSubscriptionRow {
   id: string;

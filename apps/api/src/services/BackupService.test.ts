@@ -18,7 +18,7 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
 
-import { backupAlerts, systemAlerts } from "@makanmakan/database";
+import { backupAlerts, systemAlerts } from "@makanmasak/database";
 import { BackupService } from "./BackupService";
 
 function createService() {

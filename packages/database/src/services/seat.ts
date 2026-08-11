@@ -1,7 +1,7 @@
 import { eq, and, asc, count, inArray, isNull, sql } from "drizzle-orm";
 import { BaseService } from "./base";
 import { seats, tables, restaurants } from "../schema";
-import { buildSignedQRUrl } from "@makanmakan/utils";
+import { buildSignedQRUrl } from "@makanmasak/utils";
 import { resolveAppBaseUrl } from "./app-base-url";
 
 export interface CreateSeatData {

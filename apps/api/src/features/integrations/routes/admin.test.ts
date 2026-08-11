@@ -94,7 +94,7 @@ vi.mock("drizzle-orm", () => ({
   eq: vi.fn((column: unknown, value: unknown) => ({ op: "eq", column, value })),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   platformWebhookLogs: {
     createdAt: "created_at",
     platform: "platform",

@@ -19,7 +19,7 @@ import {
   orderItems,
   orders,
   categories,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type {
   ProductAnalysis,
   ProductCategory,

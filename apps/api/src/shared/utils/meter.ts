@@ -1,6 +1,6 @@
 import type { Context } from "hono";
-import type { MeterKey } from "@makanmakan/database";
-import { generateUUID } from "@makanmakan/utils";
+import type { MeterKey } from "@makanmasak/database";
+import { generateUUID } from "@makanmasak/utils";
 import type { Env } from "../../types/env";
 
 type MeterContext<E extends { Bindings: Env } = { Bindings: Env }> = Context<E>;

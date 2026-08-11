@@ -1,12 +1,12 @@
 import { createI18n } from "vue-i18n";
 import type { App } from "vue";
-import { LocaleManager } from "@makanmakan/i18n/locale-manager";
+import { LocaleManager } from "@makanmasak/i18n/locale-manager";
 import {
   SUPPORTED_LOCALES,
   type SupportedLocale,
   type LocaleInfo,
-} from "@makanmakan/i18n/types";
-import { getCustomerMessages } from "@makanmakan/i18n/static-messages";
+} from "@makanmasak/i18n/types";
+import { getCustomerMessages } from "@makanmasak/i18n/static-messages";
 import { waitingListEn } from "@/locales/en";
 import { waitingListZhTw } from "@/locales/zh-TW";
 import { waitingListZhCn } from "@/locales/zh-CN";

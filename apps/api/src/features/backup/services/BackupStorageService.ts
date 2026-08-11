@@ -3,7 +3,7 @@
  */
 
 import type { R2Bucket, KVNamespace } from "@cloudflare/workers-types";
-import type { BackupRecord, StorageProvider } from "@makanmakan/shared-types";
+import type { BackupRecord, StorageProvider } from "@makanmasak/shared-types";
 
 export interface StorageMetadata {
   backup_id: string;

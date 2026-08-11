@@ -6,7 +6,7 @@ import {
   SERVICE_BOOKING_PAYMENT_STATUS,
   SERVICE_BOOKING_STATUS,
   SERVICE_BOOKING_WAITLIST_STATUS,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import { CreditService } from "../../credits/services/CreditService";
 import { ServiceBookingService } from "./ServiceBookingService";
 

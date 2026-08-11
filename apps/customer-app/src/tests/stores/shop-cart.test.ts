@@ -4,7 +4,7 @@ import { useShopCartStore } from "@/stores/shopCart";
 import type {
   MenuItem,
   SelectedCustomizations,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
   return {

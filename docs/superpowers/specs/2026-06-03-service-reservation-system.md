@@ -131,7 +131,7 @@ booking flow instead of the external URL.
 - Real-D1 integration: create booking → capacity decrement → double-book past
   capacity rejected; cancel restores capacity; verify-by-code; lifecycle
   transitions; guest vs registered identity.
-- Gates: `pnpm --filter @makanmakan/api typecheck`, lint, new service/route tests.
+- Gates: `pnpm --filter @makanmasak/api typecheck`, lint, new service/route tests.
 
 ## Boundaries
 

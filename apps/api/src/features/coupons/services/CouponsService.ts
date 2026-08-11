@@ -4,8 +4,8 @@
  * Business logic for coupon management and operations
  */
 
-import { CouponService as BaseCouponService } from "@makanmakan/database";
-import { coupons, couponUsage, orderItems, orders } from "@makanmakan/database";
+import { CouponService as BaseCouponService } from "@makanmasak/database";
+import { coupons, couponUsage, orderItems, orders } from "@makanmasak/database";
 import { and, eq, gte, lte, sql } from "drizzle-orm";
 import {
   badRequest,

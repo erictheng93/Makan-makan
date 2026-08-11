@@ -59,7 +59,7 @@ const utilMocks = vi.hoisted(() => ({
   ),
 }));
 
-vi.mock("@makanmakan/utils", () => ({
+vi.mock("@makanmasak/utils", () => ({
   ...utilMocks,
   badRequest: vi.fn(
     (message = "Invalid request", code = "BAD_REQUEST", details?: unknown) =>

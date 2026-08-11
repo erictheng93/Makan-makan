@@ -19,8 +19,8 @@
     "composite": true,
     "types": ["@cloudflare/workers-types"],
     "paths": {
-      "@makanmakan/shared-types": ["../shared-types/src"],
-      "@makanmakan/queue-core/*": ["../queue-core/src/*"]
+      "@makanmasak/shared-types": ["../shared-types/src"],
+      "@makanmasak/queue-core/*": ["../queue-core/src/*"]
     }
   },
   "include": ["src/**/*"],

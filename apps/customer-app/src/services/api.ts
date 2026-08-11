@@ -3,7 +3,7 @@ import type {
   ApiResponse,
   ApiErrorCode,
   PaginatedResponse,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import { translate } from "@/utils/i18n";
 
 // API 配置

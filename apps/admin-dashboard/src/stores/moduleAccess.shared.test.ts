@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   configureModuleAccess,
   useModuleAccessStore,
-} from "@makanmakan/shared/stores/moduleAccess";
+} from "@makanmasak/shared/stores/moduleAccess";
 
 const API_BASE = "https://api.makanmasak.com/api/v1";
 

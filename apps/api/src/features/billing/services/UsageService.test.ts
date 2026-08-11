@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { UsageService } from "./UsageService";
 
-vi.mock("@makanmakan/utils", () => ({
+vi.mock("@makanmasak/utils", () => ({
   generateUUID: vi
     .fn()
     .mockReturnValueOnce("usage-event-1")

@@ -5,11 +5,11 @@ import {
   platformMenuMappings,
   orders,
   orderItems,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type {
   PlatformType,
   PlatformOrdersFilter,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import type { Env } from "../../../types/env";
 import { getAdapter } from "../adapters/PlatformAdapter";
 import { PlatformIntegrationService } from "./PlatformIntegrationService";

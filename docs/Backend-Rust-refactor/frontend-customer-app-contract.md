@@ -363,7 +363,7 @@ The restaurant-context header injection is wrapped in try/catch — a malformed
 blob just skips the two headers with a console warning, it does not fail the
 request.
 
-**Token shape assumption**: `@makanmakan/utils`'s `getRefreshDelay`/
+**Token shape assumption**: `@makanmasak/utils`'s `getRefreshDelay`/
 `isTokenExpired`/`getTimeUntilExpiry` (`packages/utils/src/token.ts`) decode
 the JWT payload **client-side** (base64url → JSON, no signature check) and
 require standard numeric `exp`/`iat` claims in **Unix seconds**. Proactive

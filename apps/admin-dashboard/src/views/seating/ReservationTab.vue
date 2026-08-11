@@ -690,7 +690,7 @@ import {
   ReservationStatus,
   type Reservation,
   type CreateReservationRequest,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 type ReservationFilterStatus = "" | ReservationStatus;
 

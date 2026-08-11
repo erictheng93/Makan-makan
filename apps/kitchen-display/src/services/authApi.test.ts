@@ -1,4 +1,4 @@
-import { createAuthenticatedApiClient } from "@makanmakan/auth-client";
+import { createAuthenticatedApiClient } from "@makanmasak/auth-client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { authApi, getKitchenApiBaseUrl } from "./authApi";
 
@@ -11,7 +11,7 @@ const mockTokens = vi.hoisted(() => ({
   setTokens: vi.fn(),
 }));
 
-vi.mock("@makanmakan/auth-client", () => ({
+vi.mock("@makanmasak/auth-client", () => ({
   createAuthenticatedApiClient: vi.fn(() => ({
     instance: mockApi,
     tokens: mockTokens,

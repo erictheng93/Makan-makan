@@ -1,4 +1,4 @@
-import { createI18n, type AppLocaleConfig } from "@makanmakan/i18n";
+import { createI18n, type AppLocaleConfig } from "@makanmasak/i18n";
 import type { Messages } from "./types";
 import zhTWMessages from "./locales/zh-TW";
 import { mergeLocaleMessages } from "./merge-locale-messages";

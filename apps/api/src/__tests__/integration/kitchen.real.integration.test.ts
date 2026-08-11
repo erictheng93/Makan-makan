@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   createTestDatabase,
   type TestDatabase,
-} from "@makanmakan/database/testing";
+} from "@makanmasak/database/testing";
 import { eq } from "drizzle-orm";
 import {
   categories,
@@ -10,7 +10,7 @@ import {
   orderItems,
   orders,
   restaurants,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type { Env } from "../../types/env";
 import { KitchenService } from "../../features/kitchen/services/KitchenService";
 

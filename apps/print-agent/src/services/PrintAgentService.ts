@@ -6,14 +6,14 @@
 import {
   PrinterService,
   PrinterDriverFactory,
-} from "@makanmakan/queue-core/print";
+} from "@makanmasak/queue-core/print";
 import type {
   PrintRequest,
   PrintResponse,
   PrintJob,
   PrinterDevice,
   PrintServiceConfig,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import { LocalPrintServiceConfig } from "../LocalPrintService";
 
 type PrintAgentEventListener = (data?: unknown) => void;

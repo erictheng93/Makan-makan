@@ -1,5 +1,5 @@
-import type { D1Database } from "@makanmakan/database";
-import { generateUUID } from "@makanmakan/utils";
+import type { D1Database } from "@makanmasak/database";
+import { generateUUID } from "@makanmasak/utils";
 import type { Env } from "../types/env";
 
 interface PendingUsageGroup {

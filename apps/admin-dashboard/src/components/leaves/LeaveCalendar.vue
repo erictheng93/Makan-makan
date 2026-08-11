@@ -70,7 +70,7 @@
 import { ref, computed } from "vue";
 import { useI18n } from "@/i18n";
 import { useDateFormatter } from "@/composables/useDateFormatter";
-import type { LeaveRequest, LeaveType } from "@makanmakan/shared-types";
+import type { LeaveRequest, LeaveType } from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 const { formatMonthYear } = useDateFormatter();

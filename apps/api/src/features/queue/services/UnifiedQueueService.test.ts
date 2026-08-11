@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { WaitingStatus } from "@makanmakan/shared-types";
+import { WaitingStatus } from "@makanmasak/shared-types";
 import { UnifiedQueueService } from "./UnifiedQueueService";
 import type { Env } from "../../../types/env";
 
@@ -24,7 +24,7 @@ const { waitingListServiceCtor, waitingServiceFns } = vi.hoisted(() => {
   };
 });
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   WaitingListService: waitingListServiceCtor,
 }));
 

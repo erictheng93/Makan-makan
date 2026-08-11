@@ -20,8 +20,8 @@ import {
   dateFromUnixMs,
   strftimeFromUnixMs,
   sumMoneyAmount,
-} from "@makanmakan/database";
-import { generateUUID } from "@makanmakan/utils";
+} from "@makanmasak/database";
+import { generateUUID } from "@makanmasak/utils";
 
 export class ReportService {
   private db;

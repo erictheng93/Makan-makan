@@ -5,7 +5,7 @@
 
 import { BackupService } from "../services/BackupService";
 import { cronMatches } from "../utils/cron";
-import type { BackupConfiguration } from "@makanmakan/shared-types";
+import type { BackupConfiguration } from "@makanmasak/shared-types";
 import type {
   D1Database,
   R2Bucket,

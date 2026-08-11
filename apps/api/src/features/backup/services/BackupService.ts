@@ -22,7 +22,7 @@ import {
   backupAuditLogs,
   backupConfigurations,
   restoreOperations,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import { notFound, conflict } from "../../../shared/utils/api-error";
 import { BackupStorageService } from "./BackupStorageService";
 import { BackupConfigService } from "./BackupConfigService";
@@ -37,8 +37,8 @@ import type {
   BackupAlert,
   BackupAuditLog,
   BackupStatus,
-} from "@makanmakan/shared-types";
-import { generateUUID } from "@makanmakan/utils";
+} from "@makanmasak/shared-types";
+import { generateUUID } from "@makanmasak/utils";
 
 type BackupManifest = {
   rowCounts: Record<string, number>;

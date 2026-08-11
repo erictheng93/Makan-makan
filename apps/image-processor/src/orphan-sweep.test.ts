@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { images, restaurants } from "@makanmakan/database";
+import { images, restaurants } from "@makanmasak/database";
 import {
   createTestDatabase,
   type TestDatabase,
-} from "@makanmakan/database/testing";
+} from "@makanmasak/database/testing";
 import { sweepOrphanedImages } from "./index";
 import type { Env } from "./types/env";
 

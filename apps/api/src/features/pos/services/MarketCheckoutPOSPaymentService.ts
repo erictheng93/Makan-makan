@@ -10,7 +10,7 @@ import {
   marketCheckoutSessions,
   orders,
   paymentTransactions,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 import {
   badRequest,
@@ -18,7 +18,7 @@ import {
   notFound,
 } from "../../../shared/utils/api-error";
 import { fromCents } from "../../../shared/utils/money";
-import { generateUUID } from "@makanmakan/utils";
+import { generateUUID } from "@makanmasak/utils";
 
 type MarketCheckoutPaymentStatus =
   | "pending"

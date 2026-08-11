@@ -66,8 +66,8 @@ vi.mock("../../../middleware/rateLimit", () => ({
   strictRateLimit: vi.fn(async (_c, next) => next()),
 }));
 
-vi.mock("@makanmakan/database", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@makanmakan/database")>();
+vi.mock("@makanmasak/database", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@makanmasak/database")>();
   return {
     ...actual,
     RealtimeBroadcastService: vi.fn(function RealtimeBroadcastService() {

@@ -20,7 +20,7 @@ import {
   type RealIntegrationTestApp,
 } from "../../../../api/src/__tests__/integration/helpers/real-test-app";
 import { buildSeedHelpers } from "../../../../api/src/__tests__/integration/helpers/seed-helper";
-import { dishSearchIndex } from "@makanmakan/database";
+import { dishSearchIndex } from "@makanmasak/database";
 // ── Shared Miniflare instance (one boot for the entire file) ──────────────────
 let testApp: RealIntegrationTestApp;
 let seed: ReturnType<typeof buildSeedHelpers>;

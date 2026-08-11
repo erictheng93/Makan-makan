@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import routes from "./index";
-import { RealtimeEventType } from "@makanmakan/shared-types";
+import { RealtimeEventType } from "@makanmasak/shared-types";
 
 const currentUser = vi.hoisted(() => ({
   value: { id: 10, role: 1, restaurantId: "restaurant-1" },
@@ -80,7 +80,7 @@ vi.mock("../services/GroupOrdersService", () => ({
   },
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   RealtimeBroadcastService: class {
     generateEventId = generateEventId;
     broadcastEvent = broadcastEvent;

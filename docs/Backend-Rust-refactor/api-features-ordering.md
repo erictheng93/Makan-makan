@@ -92,7 +92,7 @@ Mounted at `/api/v1/orders`. All paths below sit behind the blanket `staffOrUser
 
 - **D1 tables** (via Drizzle schema imports): `orders`, `order_items`, `menu_items`, `restaurants`, `tables`, `waiting_list`, `coupon_usage` (all in `packages/database/src/services/order.ts`).
 - **KV (`CACHE_KV`)**: `order:{id}:full` / `order:{id}:basic` (order cache, 5 min TTL), `analytics:{filters-json}` (15 min TTL), `popular-items:{restaurantId}:{range}` (30 min TTL, dead — always empty), `orders:batch-sync:{scope}:{userId}:{syncId|latest}` (30-day TTL, offline-sync compatibility shim), `guest_active:{restaurantId}:{phoneDigits}` / `guest_active_lookup:{orderId}` (cleared on admin cancel — cross-references the guest-orders feature's KV keys).
-- **Realtime**: `RealtimeBroadcastService` (from `@makanmakan/database`) broadcasts `NEW_ORDER`, `ORDER_STATUS_UPDATE`, `ORDER_CANCELLED` event types (see `@makanmakan/shared-types` `RealtimeEventType`) to the restaurant's room in the `REALTIME_SESSION` Durable Object.
+- **Realtime**: `RealtimeBroadcastService` (from `@makanmasak/database`) broadcasts `NEW_ORDER`, `ORDER_STATUS_UPDATE`, `ORDER_CANCELLED` event types (see `@makanmasak/shared-types` `RealtimeEventType`) to the restaurant's room in the `REALTIME_SESSION` Durable Object.
 - **Push**: `RestaurantOrderPushService` (feature `push`) sends a native push notification on new order creation.
 
 ### Cross-module dependencies
@@ -159,7 +159,7 @@ Mounted at `/api/v1/orders/group`. **Critical finding: because this is nested un
 
 - **D1 tables**: `group_orders`, `group_members`, `group_cart_items`, `split_bills`, `group_activity_logs` (all `packages/database/src/schema/group-orders.ts`), plus a read of `menu_items` (price/name lookup) and an `innerJoin` to it in `getGroupOrder`.
 - **KV**: `group_order:{id}` and `share_code:{code}` (1h TTL, set on create — `share_code` lookup key is written but the read path (`joinGroup`) actually re-queries D1 by `shareCode`, not this KV key, so the KV entry looks unused for the join flow), `group_order_summary:{id}` (5 min TTL, invalidated on every mutation).
-- **Realtime**: a local `broadcastGroupOrderEvent` helper (in the route file, not the service) constructs `GroupOrderEvent`s and calls `RealtimeBroadcastService.broadcastEvent("group_order", groupOrderId, event)` for: `GROUP_ORDER_CREATED`, `GROUP_MEMBER_JOINED`, `GROUP_CART_ITEM_ADDED`, `GROUP_CART_ITEM_UPDATED`, `GROUP_CART_ITEM_REMOVED` (from `@makanmakan/shared-types` `RealtimeEventType`). Split/payment/leave do **not** broadcast — only creation, join, and cart mutations are real-time.
+- **Realtime**: a local `broadcastGroupOrderEvent` helper (in the route file, not the service) constructs `GroupOrderEvent`s and calls `RealtimeBroadcastService.broadcastEvent("group_order", groupOrderId, event)` for: `GROUP_ORDER_CREATED`, `GROUP_MEMBER_JOINED`, `GROUP_CART_ITEM_ADDED`, `GROUP_CART_ITEM_UPDATED`, `GROUP_CART_ITEM_REMOVED` (from `@makanmasak/shared-types` `RealtimeEventType`). Split/payment/leave do **not** broadcast — only creation, join, and cart mutations are real-time.
 
 ### Cross-module dependencies
 
@@ -534,7 +534,7 @@ Mounted at `/api/v1/tables`, **no blanket middleware** — every route declares 
 
 ### Business logic (`packages/database/src/services/table.ts`, wrapped by the thin `TablesService`)
 
-- **QR codes are HMAC-signed URLs** (`buildSignedQRUrl` from `@makanmakan/utils`), keyed by `{type:"table", restaurantId, identifier: tableNumber, version}` and a server-side `QR_SIGNING_KEY` (hard-required to be ≥32 chars — the service throws rather than generating an unsigned/weak QR if the key is missing or too short). Every regenerate bumps `qrCodeVersion`; old QR codes are not tracked/invalidated anywhere except by version number no longer matching (there's no explicit "is this QR version still valid" check visible in this file — that enforcement, if any, must live in whatever consumes the signed URL).
+- **QR codes are HMAC-signed URLs** (`buildSignedQRUrl` from `@makanmasak/utils`), keyed by `{type:"table", restaurantId, identifier: tableNumber, version}` and a server-side `QR_SIGNING_KEY` (hard-required to be ≥32 chars — the service throws rather than generating an unsigned/weak QR if the key is missing or too short). Every regenerate bumps `qrCodeVersion`; old QR codes are not tracked/invalidated anywhere except by version number no longer matching (there's no explicit "is this QR version still valid" check visible in this file — that enforcement, if any, must live in whatever consumes the signed URL).
 - **Occupy/release** update `isOccupied`, `currentOrderId`, `occupiedAt`/`occupiedBy`, and (occupy only) `estimatedFreeAt = now + estimatedMinutes*60000` if provided. **Release computes a running average occupancy time** (`newAverage = (oldAverage*(totalUsage-1) + thisOccupancyMinutes) / totalUsage`, an incremental mean, not a stored sum/count pair) purely in application code from a read-then-write (no atomic increment for this specific stat, unlike `totalUsage` itself elsewhere which does use `sql\`col + 1\``).
 - **`switchQRMode`** (table↔seat mode toggle) is a substantial method — refuses to switch a currently-occupied table to seat mode, refuses to switch a seat-mode table back to table mode if any of its seats are occupied, and on table→seat creates N seats via `SeatService.createSeatsForTable` (updates `tables.qrMode/seatCount/seatNumberingStyle`); on seat→table it **hard-deletes** all seat rows (`SeatService.deleteSeatsForTable`) rather than soft-deleting. **This method is never called from any route in the reviewed codebase (confirmed via grep across `apps/api/src`) — it is dead code from the HTTP surface's perspective**, even though it's fully implemented and reads as a core product feature ("let a store manager freely convert between table mode and seat mode", per its own doc comment). Either there's a caller elsewhere not covered by this review's file list, or this is a shipped-but-unwired feature.
 - **`getTableOrderHistory`** exists on the DB-layer `TableService` but is not called from the `TablesService` wrapper or any route in this feature — another apparently-dead method.
@@ -550,7 +550,7 @@ Mounted at `/api/v1/tables`, **no blanket middleware** — every route declares 
 
 - `shared/services/order-identity.ts` (`resolveOrderIdentity`) for the occupy route's flexible order-ID acceptance.
 - `packages/database`'s `SeatService` (mode-switch only).
-- `@makanmakan/utils`'s `buildSignedQRUrl` (shared QR-signing primitive, also used by `seat.ts`).
+- `@makanmasak/utils`'s `buildSignedQRUrl` (shared QR-signing primitive, also used by `seat.ts`).
 
 ### Rust rewrite notes
 
@@ -603,7 +603,7 @@ Mounted at `/api/v1/seats`. **Blanket `authMiddleware` applied to `/seats/*` in 
 ### Cross-module dependencies
 
 - `features/tables/services/TablesService` (`ensureTableAccess` calls `TablesService.getTableById`/`validateRestaurantAccess` to authorize seat operations against the parent table's restaurant, rather than re-implementing that check) — the one place Seats reaches into Tables rather than duplicating logic.
-- `@makanmakan/utils`'s `buildSignedQRUrl` (shared with Tables).
+- `@makanmasak/utils`'s `buildSignedQRUrl` (shared with Tables).
 
 ### Rust rewrite notes
 

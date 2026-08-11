@@ -14,7 +14,7 @@ vi.mock("uuid", () => ({
   v7: mocks.uuidv7,
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   ImageService: vi.fn().mockImplementation(function ImageService() {
     return {
       createImage: mocks.createImage,

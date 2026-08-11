@@ -10,7 +10,7 @@ import { logger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
 import { cors } from "hono/cors";
 import { timing } from "hono/timing";
-import { ApiError, sanitizeApiErrorDetails } from "@makanmakan/utils";
+import { ApiError, sanitizeApiErrorDetails } from "@makanmasak/utils";
 
 import type { ManagementEnv } from "./types";
 import { managementAuthMiddleware } from "./middleware/auth";

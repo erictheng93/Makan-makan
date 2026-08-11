@@ -158,16 +158,16 @@ importers:
       '@heroicons/vue':
         specifier: ^2.0.0
         version: 2.2.0(vue@3.5.26(typescript@5.9.3))
-      '@makanmakan/ai-analytics':
+      '@makanmasak/ai-analytics':
         specifier: workspace:*
         version: link:../../packages/ai-analytics
-      '@makanmakan/auth-client':
+      '@makanmasak/auth-client':
         specifier: workspace:*
         version: link:../../packages/auth-client
-      '@makanmakan/i18n':
+      '@makanmasak/i18n':
         specifier: workspace:*
         version: link:../../packages/shared/src/i18n
-      '@makanmakan/shared-types':
+      '@makanmasak/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
       '@stripe/stripe-js':
@@ -300,19 +300,19 @@ importers:
       '@hono/zod-validator':
         specifier: ^0.2.0
         version: 0.2.2(hono@4.12.27)(zod@4.4.3)
-      '@makanmakan/ai-analytics':
+      '@makanmasak/ai-analytics':
         specifier: workspace:*
         version: link:../../packages/ai-analytics
-      '@makanmakan/database':
+      '@makanmasak/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@makanmakan/queue-core':
+      '@makanmasak/queue-core':
         specifier: workspace:*
         version: link:../../packages/queue-core
-      '@makanmakan/shared-types':
+      '@makanmasak/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
-      '@makanmakan/utils':
+      '@makanmasak/utils':
         specifier: workspace:*
         version: link:../../packages/utils
       bcryptjs:
@@ -388,13 +388,13 @@ importers:
       '@heroicons/vue':
         specifier: ^2.0.0
         version: 2.2.0(vue@3.5.26(typescript@5.9.3))
-      '@makanmakan/i18n':
+      '@makanmasak/i18n':
         specifier: workspace:*
         version: link:../../packages/shared/src/i18n
-      '@makanmakan/shared-types':
+      '@makanmasak/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
-      '@makanmakan/utils':
+      '@makanmasak/utils':
         specifier: workspace:*
         version: link:../../packages/utils
       '@tailwindcss/forms':
@@ -512,10 +512,10 @@ importers:
 
   apps/image-processor:
     dependencies:
-      '@makanmakan/database':
+      '@makanmasak/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@makanmakan/shared-types':
+      '@makanmasak/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
       drizzle-orm:
@@ -564,10 +564,10 @@ importers:
       '@headlessui/vue':
         specifier: ^1.7.0
         version: 1.7.23(vue@3.5.26(typescript@5.9.3))
-      '@makanmakan/auth-client':
+      '@makanmasak/auth-client':
         specifier: workspace:*
         version: link:../../packages/auth-client
-      '@makanmakan/i18n':
+      '@makanmasak/i18n':
         specifier: workspace:*
         version: link:../../packages/shared/src/i18n
       '@tanstack/vue-query':
@@ -658,7 +658,7 @@ importers:
       '@hono/zod-validator':
         specifier: ^0.5.0
         version: 0.5.0(hono@4.12.27)(zod@4.4.3)
-      '@makanmakan/utils':
+      '@makanmasak/utils':
         specifier: workspace:*
         version: link:../../packages/utils
       bcryptjs:
@@ -680,10 +680,10 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^5.20260804.1
         version: 5.20260804.1
-      '@makanmakan/database':
+      '@makanmasak/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@makanmakan/shared-types':
+      '@makanmasak/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
       '@types/bcryptjs':
@@ -710,10 +710,10 @@ importers:
       '@heroicons/vue':
         specifier: ^2.0.0
         version: 2.2.0(vue@3.5.26(typescript@5.9.3))
-      '@makanmakan/i18n':
+      '@makanmasak/i18n':
         specifier: workspace:*
         version: link:../../packages/shared/src/i18n
-      '@makanmakan/utils':
+      '@makanmasak/utils':
         specifier: workspace:*
         version: link:../../packages/utils
       '@tailwindcss/forms':
@@ -810,10 +810,10 @@ importers:
       '@heroicons/vue':
         specifier: ^2.0.0
         version: 2.2.0(vue@3.5.26(typescript@5.9.3))
-      '@makanmakan/i18n':
+      '@makanmasak/i18n':
         specifier: workspace:*
         version: link:../../packages/shared/src/i18n
-      '@makanmakan/utils':
+      '@makanmasak/utils':
         specifier: workspace:*
         version: link:../../packages/utils
       '@tailwindcss/forms':
@@ -865,13 +865,13 @@ importers:
 
   apps/print-agent:
     dependencies:
-      '@makanmakan/database':
+      '@makanmasak/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@makanmakan/queue-core':
+      '@makanmasak/queue-core':
         specifier: workspace:*
         version: link:../../packages/queue-core
-      '@makanmakan/shared-types':
+      '@makanmasak/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
       cors:
@@ -926,7 +926,7 @@ importers:
 
   apps/realtime:
     dependencies:
-      '@makanmakan/shared-types':
+      '@makanmasak/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
       hono:
@@ -963,10 +963,10 @@ importers:
 
   packages/ai-analytics:
     dependencies:
-      '@makanmakan/database':
+      '@makanmasak/database':
         specifier: workspace:*
         version: link:../database
-      '@makanmakan/shared-types':
+      '@makanmasak/shared-types':
         specifier: workspace:*
         version: link:../shared-types
       uuid:
@@ -979,7 +979,7 @@ importers:
 
   packages/auth-client:
     dependencies:
-      '@makanmakan/utils':
+      '@makanmasak/utils':
         specifier: workspace:*
         version: link:../utils
       axios:
@@ -995,13 +995,13 @@ importers:
 
   packages/database:
     dependencies:
-      '@makanmakan/queue-core':
+      '@makanmasak/queue-core':
         specifier: workspace:*
         version: link:../queue-core
-      '@makanmakan/shared-types':
+      '@makanmasak/shared-types':
         specifier: workspace:*
         version: link:../shared-types
-      '@makanmakan/utils':
+      '@makanmasak/utils':
         specifier: workspace:*
         version: link:../utils
       '@paralleldrive/cuid2':
@@ -1056,7 +1056,7 @@ importers:
 
   packages/queue-core:
     dependencies:
-      '@makanmakan/shared-types':
+      '@makanmasak/shared-types':
         specifier: workspace:*
         version: link:../shared-types
       zod:
@@ -1075,7 +1075,7 @@ importers:
 
   packages/queue-service:
     dependencies:
-      '@makanmakan/queue-core':
+      '@makanmasak/queue-core':
         specifier: workspace:*
         version: link:../queue-core
       zod:

@@ -12,7 +12,7 @@ import type {
   SplitBillConfig,
   GroupSplitBill,
 } from "@/composables/useGroupOrder";
-import type { GroupOrderFeeMode } from "@makanmakan/shared-types";
+import type { GroupOrderFeeMode } from "@makanmasak/shared-types";
 import { useCurrency } from "@/composables/useCurrency";
 
 // Props

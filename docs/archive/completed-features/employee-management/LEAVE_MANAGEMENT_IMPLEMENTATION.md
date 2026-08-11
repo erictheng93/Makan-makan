@@ -1089,7 +1089,7 @@ POST   /api/v1/leave/balance/rollover                # Year-end rollover (Cron j
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useUserStore } from "@/stores/user";
-import type { LeaveBalance, LeaveRequest } from "@makanmakan/shared-types";
+import type { LeaveBalance, LeaveRequest } from "@makanmasak/shared-types";
 
 const userStore = useUserStore();
 const activeTab = ref("my-leave");
@@ -1308,7 +1308,7 @@ async function rejectRequest(requestId: number) {
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import type { LeaveType } from "@makanmakan/shared-types";
+import type { LeaveType } from "@makanmasak/shared-types";
 
 const visible = defineModel<boolean>({ required: true });
 const emit = defineEmits<{
@@ -1408,7 +1408,7 @@ async function submit() {
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import type { LeaveCalendarEvent } from "@makanmakan/shared-types";
+import type { LeaveCalendarEvent } from "@makanmasak/shared-types";
 
 const props = defineProps<{
   restaurantId: number;

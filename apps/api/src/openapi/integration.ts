@@ -4,7 +4,7 @@
  */
 
 import { swaggerUI } from "@hono/swagger-ui";
-import { ORDER_STATUSES } from "@makanmakan/shared-types";
+import { ORDER_STATUSES } from "@makanmasak/shared-types";
 import { createOpenAPIApp, errorResponses } from "./config";
 import { createRoute, z } from "@hono/zod-openapi";
 import type { Hono } from "hono";

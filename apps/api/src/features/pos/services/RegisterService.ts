@@ -4,10 +4,10 @@
 
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and } from "drizzle-orm";
-import { cashRegisters, cashShifts } from "@makanmakan/database";
+import { cashRegisters, cashShifts } from "@makanmasak/database";
 import type { CashRegister, CreateRegisterRequest } from "../types";
 import { createRegisterSchema } from "../schemas";
-import { generateUUID } from "@makanmakan/utils";
+import { generateUUID } from "@makanmasak/utils";
 
 export class RegisterService {
   private db;

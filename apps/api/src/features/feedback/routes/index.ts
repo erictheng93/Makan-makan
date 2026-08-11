@@ -6,7 +6,7 @@ import {
   validateQuery,
   validateParams,
 } from "../../../middleware/validation";
-import { FeedbackService, type FeedbackFilters } from "@makanmakan/database";
+import { FeedbackService, type FeedbackFilters } from "@makanmasak/database";
 import {
   createFeedbackSchema,
   updateFeedbackSchema,

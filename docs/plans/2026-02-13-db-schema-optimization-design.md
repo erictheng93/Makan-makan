@@ -112,7 +112,7 @@ Only affects new records. Existing CUID2 IDs remain valid TEXT primary keys.
 ### Import Changes
 
 - Remove `createId` import from `@paralleldrive/cuid2`
-- Add `generateUUID` import from `@makanmakan/utils`
+- Add `generateUUID` import from `@makanmasak/utils`
 
 ---
 

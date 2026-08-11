@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getTableColumns } from "drizzle-orm";
-import { categories, menuItems } from "@makanmakan/database";
+import { categories, menuItems } from "@makanmasak/database";
 import {
   MAX_BULK_CREATE_ITEMS,
   bulkCreateMenuItemsSchema,

@@ -20,4 +20,4 @@ export type {
   CreateBackupResponse,
   ListBackupsQuery,
   RestoreBackupRequest,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";

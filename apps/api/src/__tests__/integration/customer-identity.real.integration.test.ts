@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import { sign } from "hono/jwt";
-import { markets } from "@makanmakan/database";
+import { markets } from "@makanmasak/database";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers, type SeedHelpers } from "./helpers/seed-helper";
-import { CUSTOMER_CONSENT_VERSIONS } from "@makanmakan/shared-types";
+import { CUSTOMER_CONSENT_VERSIONS } from "@makanmasak/shared-types";
 import { pruneStaleCustomerPushSubscriptions } from "../../features/customer/routes";
 
 const BASE = "https://test/api/v1/customer";

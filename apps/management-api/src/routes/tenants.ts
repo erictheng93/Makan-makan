@@ -6,7 +6,7 @@
 
 import { Hono } from "hono";
 import { z } from "zod";
-import { ApiError, badRequest, conflict, notFound } from "@makanmakan/utils";
+import { ApiError, badRequest, conflict, notFound } from "@makanmasak/utils";
 import type {
   ManagementEnv,
   Tenant,

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { PrintRequest } from "@makanmakan/shared-types";
+import type { PrintRequest } from "@makanmasak/shared-types";
 import { ReceiptFormattingService } from "./ReceiptFormattingService";
 
 const createReceiptRequest = (): PrintRequest => ({

@@ -11,7 +11,7 @@ import {
   setAuthRefreshHandler,
 } from "@/utils/errorHandler";
 import { getAuthToken } from "@/utils/authTokenProvider";
-import { useModuleAccessStore } from "@makanmakan/shared/stores/moduleAccess";
+import { useModuleAccessStore } from "@makanmasak/shared/stores/moduleAccess";
 
 type RetryableAxiosRequestConfig = AxiosRequestConfig & {
   _retry?: boolean;

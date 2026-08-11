@@ -23,12 +23,12 @@ window was needed.
 ## Commands
 
 - Focused tests:
-  `pnpm --filter @makanmakan/utils test -- src/qr-signing.test.ts`
+  `pnpm --filter @makanmasak/utils test -- src/qr-signing.test.ts`
 - API tests:
-  `pnpm --filter @makanmakan/api test --run src/features/qr-codes src/features/realtime`
+  `pnpm --filter @makanmasak/api test --run src/features/qr-codes src/features/realtime`
 - Type checks:
-  `pnpm --filter @makanmakan/utils typecheck &&
-  pnpm --filter @makanmakan/api typecheck`
+  `pnpm --filter @makanmasak/utils typecheck &&
+  pnpm --filter @makanmasak/api typecheck`
 - Repository gates:
   `pnpm lint && pnpm typecheck`
 

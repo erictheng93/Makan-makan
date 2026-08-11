@@ -31,7 +31,7 @@ vi.mock("../../../shared/middleware", async (importOriginal) => {
   };
 });
 
-vi.mock("@makanmakan/database", async (importOriginal) => {
+vi.mock("@makanmasak/database", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
 
   return {

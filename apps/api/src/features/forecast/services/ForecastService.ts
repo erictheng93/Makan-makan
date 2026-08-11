@@ -6,7 +6,7 @@ import {
   menuItems,
   orders,
   orderItems,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type {
   ForecastResult,
   ForecastItemResult,

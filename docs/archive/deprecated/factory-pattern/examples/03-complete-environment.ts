@@ -9,7 +9,7 @@ import {
   buildCompleteRestaurantData,
   resetAllFactories,
   UserRoles,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 describe("範例 3: 完整測試環境", () => {
   beforeEach(() => {

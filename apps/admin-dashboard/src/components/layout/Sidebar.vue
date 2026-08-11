@@ -129,8 +129,8 @@ import {
   useFeatureAvailability,
   type UnlaunchedFeature,
 } from "@/composables/useFeatureAvailability";
-import ModuleGate from "@makanmakan/shared/components/ModuleGate.vue";
-import type { ModuleKey } from "@makanmakan/shared/types/module-access";
+import ModuleGate from "@makanmasak/shared/components/ModuleGate.vue";
+import type { ModuleKey } from "@makanmasak/shared/types/module-access";
 import {
   Home,
   ShoppingCart,

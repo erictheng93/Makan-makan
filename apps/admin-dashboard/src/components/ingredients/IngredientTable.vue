@@ -106,7 +106,7 @@
 
 <script setup lang="ts">
 import { useI18n } from "@/i18n";
-import type { IngredientDefinitionResponse } from "@makanmakan/shared-types";
+import type { IngredientDefinitionResponse } from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 

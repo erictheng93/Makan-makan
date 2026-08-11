@@ -155,7 +155,7 @@ import { useI18n } from "vue-i18n";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useBackupStore } from "@/stores/backup";
 import { useAuthStore } from "@/stores/auth";
-import type { BackupRecord, BackupAlert as BackupAlertType } from "@makanmakan/shared-types";
+import type { BackupRecord, BackupAlert as BackupAlertType } from "@makanmasak/shared-types";
 
 import BackupListItem from "@/components/backup/BackupListItem.vue";
 import BackupAlert from "@/components/backup/BackupAlert.vue";

@@ -1,5 +1,5 @@
 import { apiClient } from "./api";
-import type { RestaurantServiceItem } from "@makanmakan/shared-types";
+import type { RestaurantServiceItem } from "@makanmasak/shared-types";
 
 export interface MessagingChannels {
   line?: string;

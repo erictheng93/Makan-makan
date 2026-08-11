@@ -18,7 +18,7 @@
  */
 
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
-import { eq, orderItems } from "@makanmakan/database";
+import { eq, orderItems } from "@makanmasak/database";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,

@@ -18,7 +18,7 @@ import {
   forbidden,
   unauthorized,
 } from "../../../shared/utils/api-error";
-import type { RealtimeAuthPayload } from "@makanmakan/shared-types";
+import type { RealtimeAuthPayload } from "@makanmasak/shared-types";
 
 // Import service and validation schemas
 import { RealtimeAuthService } from "../services/RealtimeAuthService";

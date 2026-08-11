@@ -28,7 +28,7 @@
 - [ ] 移除舊檔對 `apps/api/src/shared/types` 的 `Env` import，改為內部 `interface BroadcastEnv { REALTIME_SESSION?: DurableObjectNamespace }`
 - [ ] 移除 `ConsoleLogger` import，改用 `console.warn` / `console.error`
 - [ ] 修改 `packages/database/src/services/index.ts`：re-export `RealtimeBroadcastService`、`BroadcastResult`
-- [ ] 確認 `packages/database/package.json` 有 `@makanmakan/shared-types` 依賴（應已有）
+- [ ] 確認 `packages/database/package.json` 有 `@makanmasak/shared-types` 依賴（應已有）
 - [ ] 刪除 `apps/api/src/services/RealtimeBroadcastService.ts`
 - [ ] 更新 import path：`apps/api/src/features/orders/services/OrdersService.ts`
 - [ ] 更新 import path：`apps/api/src/features/kitchen/services/KitchenService.ts`
@@ -36,12 +36,12 @@
 - [ ] 更新 import path：`apps/api/src/__tests__/security/business-logic-security.test.ts`
 - [ ] 把 `apps/api/src/services/__tests__/RealtimeBroadcastService.test.ts` 搬到 `packages/database/src/services/__tests__/`
 - [ ] 確認 `apps/api/src/services/__tests__/broadcast.test.ts` 仍可運作（可能引用 mock）
-- [ ] 在 `@makanmakan/shared-types` 的 `RealtimeEvent` union 預留 `WaitingListEvent` 變體（也可拖到 T3）
+- [ ] 在 `@makanmasak/shared-types` 的 `RealtimeEvent` union 預留 `WaitingListEvent` 變體（也可拖到 T3）
 - [ ] grep 驗證：`rg "services/RealtimeBroadcastService" apps/` 預期 0 命中
-- [ ] `pnpm --filter @makanmakan/database typecheck` 全綠
-- [ ] `pnpm --filter @makanmakan/api typecheck` 全綠
-- [ ] `pnpm --filter @makanmakan/database test` 全綠
-- [ ] `pnpm --filter @makanmakan/api test orders` 全綠（驗證搬遷不改行為）
+- [ ] `pnpm --filter @makanmasak/database typecheck` 全綠
+- [ ] `pnpm --filter @makanmasak/api typecheck` 全綠
+- [ ] `pnpm --filter @makanmasak/database test` 全綠
+- [ ] `pnpm --filter @makanmasak/api test orders` 全綠（驗證搬遷不改行為）
 - [ ] commit
 
 ---
@@ -49,13 +49,13 @@
 ## T1b｜建 `ticket-primitives/state-machine.ts` ✅ 完成（commit bd638f40）
 
 - [x] `mkdir packages/database/src/services/ticket-primitives`
-- [ ] 確認 `ApiError` 在 packages/database 是否有等價物，若無則 import 自 `@makanmakan/shared-types` 或重新定義
+- [ ] 確認 `ApiError` 在 packages/database 是否有等價物，若無則 import 自 `@makanmasak/shared-types` 或重新定義
 - [ ] 寫 `state-machine.ts`：`WAITING_TRANSITIONS` 含 `no_show: []` + `assertWaitingTransition()` 函式
 - [ ] 寫 `index.ts` re-export
 - [ ] 寫 `__tests__/state-machine.test.ts`：7 個 from-state（含 no_show）合法路徑 + 至少 5 個非法路徑
 - [ ] 更新 `packages/database/src/services/index.ts` re-export
-- [ ] `pnpm --filter @makanmakan/database typecheck` 全綠
-- [ ] `pnpm --filter @makanmakan/database test ticket-primitives` 全綠
+- [ ] `pnpm --filter @makanmasak/database typecheck` 全綠
+- [ ] `pnpm --filter @makanmasak/database test ticket-primitives` 全綠
 - [ ] commit
 
 ---
@@ -67,7 +67,7 @@
 - [ ] `pnpm wrangler deploy --dry-run --env development` 不報錯
 - [ ] 啟動兩個 worker 順序：`pnpm dev:realtime` → `pnpm dev:api`
 - [ ] dev 體驗驗證：暫時加 `console.log(c.env.REALTIME_SESSION)` 看 binding 是否存在（驗完拿掉）
-- [ ] **副作用驗證**：`pnpm --filter @makanmakan/api test orders` 全綠（mock 仍適用）
+- [ ] **副作用驗證**：`pnpm --filter @makanmasak/api test orders` 全綠（mock 仍適用）
 - [ ] 若 dev 體驗確實需要特殊順序，更新 `CLAUDE.md` 說明
 - [ ] commit
 
@@ -94,7 +94,7 @@
 
 ## T3｜G1 廣播接 service 出口（依賴 T1a + T1c）
 
-- [ ] 在 `@makanmakan/shared-types` 加 `WaitingListEvent` union 變體（若 T1a 未做）：`type: 'waiting_list_joined' | 'waiting_list_called' | ...`
+- [ ] 在 `@makanmasak/shared-types` 加 `WaitingListEvent` union 變體（若 T1a 未做）：`type: 'waiting_list_joined' | 'waiting_list_called' | ...`
 - [ ] 修 `WaitingListService.joinWaitingList` 出口：`new RealtimeBroadcastService(env).broadcastEvent('admin', restaurantId, { type: 'waiting_list_joined', ... })`
 - [ ] 修 `WaitingListService.callWaiting` 出口：`waiting_list_called`
 - [ ] 修 `WaitingListService.confirmWaiting` 出口：`waiting_list_confirmed`
@@ -125,7 +125,7 @@
 - [ ] 加測試：同手機已 `seated` → 視為新票
 - [ ] 加測試：同手機已 `expired` → 視為新票
 - [ ] 加測試：不同餐廳同手機 → 兩張票（既有行為）
-- [ ] `pnpm --filter @makanmakan/shared-types typecheck` 全綠
+- [ ] `pnpm --filter @makanmasak/shared-types typecheck` 全綠
 - [ ] `pnpm --filter admin-dashboard typecheck` 全綠（確認新欄位不破壞前端 TS）
 - [ ] PR 描述記下 follow-up：admin-dashboard 應依 `alreadyJoined` 切換 toast
 - [ ] commit
@@ -179,7 +179,7 @@
 - [ ] `pnpm typecheck` 全綠（整個 monorepo）
 - [ ] `pnpm lint` 全綠
 - [ ] `pnpm test` 全綠（整個 monorepo）
-- [ ] `pnpm --filter @makanmakan/api test:coverage waiting-list` — 覆蓋率不低於修改前
+- [ ] `pnpm --filter @makanmasak/api test:coverage waiting-list` — 覆蓋率不低於修改前
 - [ ] 手動：wrangler dev + curl 走完完整流程，紀錄附 PR 描述
 - [ ] 整理 PR 描述（5 個缺口 before/after、T0 結論摘要、curl log、follow-up）
 - [ ] **CP3：請 user review 整體 diff**

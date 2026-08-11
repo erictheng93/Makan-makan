@@ -4,7 +4,7 @@
 
 **Goal:** Give group orders the one thing they've never had — a way to turn the merged cart into a real order the restaurant actually receives — triggered either by the host locking the cart or by the 45-minute timeout, atomically and idempotently.
 
-**Architecture:** Don't reinvent order creation. `packages/database/src/services/order.ts`'s `OrderService.createOrder` (exported from `@makanmakan/database` as `OrderService`, already used by `apps/api/src/features/orders/services/OrdersService.ts`) already does atomic multi-statement writes via `db.batch()` — the exact pattern the group-ordering design spec called for — and already has a `clientMutationId`-based idempotency backstop (`orders_client_mutation_unique` index, throws `Error("CLIENT_MUTATION_DUPLICATE")` on conflict). `GroupOrdersService.finalizeGroupOrder` becomes a thin orchestrator: claim a mutex on the group order, build the merged item list from `group_cart_items`, delegate to `OrderService.createOrder`, record `masterOrderId`, and trigger the existing (Phase D will complete it) `splitBill`. A Workers Cron sweep drives the 45-minute auto-submit/cancel and the 5-minute warning, following this repo's existing `src/scheduled/*.ts` dispatch convention.
+**Architecture:** Don't reinvent order creation. `packages/database/src/services/order.ts`'s `OrderService.createOrder` (exported from `@makanmasak/database` as `OrderService`, already used by `apps/api/src/features/orders/services/OrdersService.ts`) already does atomic multi-statement writes via `db.batch()` — the exact pattern the group-ordering design spec called for — and already has a `clientMutationId`-based idempotency backstop (`orders_client_mutation_unique` index, throws `Error("CLIENT_MUTATION_DUPLICATE")` on conflict). `GroupOrdersService.finalizeGroupOrder` becomes a thin orchestrator: claim a mutex on the group order, build the merged item list from `group_cart_items`, delegate to `OrderService.createOrder`, record `masterOrderId`, and trigger the existing (Phase D will complete it) `splitBill`. A Workers Cron sweep drives the 45-minute auto-submit/cancel and the 5-minute warning, following this repo's existing `src/scheduled/*.ts` dispatch convention.
 
 **Tech Stack:** Hono, Drizzle ORM (D1 `db.batch`), Cloudflare Workers Cron Triggers.
 
@@ -79,7 +79,7 @@ export type GroupOrderStatus =
 
 - [ ] **Step 2: Typecheck and fix any resulting call sites**
 
-Run: `pnpm --filter @makanmakan/api typecheck`
+Run: `pnpm --filter @makanmasak/api typecheck`
 Expected: any code that referenced the now-removed `"locked" | "finalized" | "expired"` values fails to compile — fix each one to use `"checkout"`/`"completed"`/`"cancelled"` per what it actually meant. If typecheck passes with no errors, that confirms nothing outside this file relied on the stale values (equally acceptable — don't invent a fix for an error that doesn't occur).
 
 - [ ] **Step 3: Commit**
@@ -94,11 +94,11 @@ git commit -m "fix(api): align GroupOrderStatus type with the status values the 
 ### Task 2: `GroupOrdersService.finalizeGroupOrder`
 
 **Files:**
-- Modify: `apps/api/src/features/group-orders/services/GroupOrdersService.ts` (add method near `splitBill`; import `OrderService` from `@makanmakan/database`)
+- Modify: `apps/api/src/features/group-orders/services/GroupOrdersService.ts` (add method near `splitBill`; import `OrderService` from `@makanmasak/database`)
 - Test: `apps/api/src/features/group-orders/services/GroupOrdersService.test.ts`
 
 **Interfaces:**
-- Consumes: `OrderService.createOrder` (`@makanmakan/database`), `groupOrders.recoveryCode`/nullable `createdBy` (Phase A), `splitBill` (existing).
+- Consumes: `OrderService.createOrder` (`@makanmasak/database`), `groupOrders.recoveryCode`/nullable `createdBy` (Phase A), `splitBill` (existing).
 - Produces: `finalizeGroupOrder(groupOrderId: string): Promise<{ success: boolean; data?: { masterOrderId: string; status: "completed" }; error?: string }>`. Consumed by Task 3's route and Task 4's cron sweep.
 
 - [ ] **Step 1: Write the failing tests**
@@ -110,7 +110,7 @@ describe("finalizeGroupOrder", () => {
     // fulfillmentType "dine_in", tableId 5, restaurantId "rest-1";
     // mocked cart items [{menuItemId: 10, quantity: 2, memberId: "m-1"}];
     // mock the claim UPDATE to report 1 row changed;
-    // mock OrderService.createOrder (vi.mock("@makanmakan/database", ...)) to
+    // mock OrderService.createOrder (vi.mock("@makanmasak/database", ...)) to
     // resolve { id: "order-1", orderNumber: "ON-1", ... }
     const result = await service.finalizeGroupOrder("go-1");
 
@@ -179,7 +179,7 @@ describe("finalizeGroupOrder", () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/group-orders/services/GroupOrdersService.test.ts -t "finalizeGroupOrder"`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/group-orders/services/GroupOrdersService.test.ts -t "finalizeGroupOrder"`
 Expected: FAIL — the method doesn't exist.
 
 - [ ] **Step 3: Implement**
@@ -187,7 +187,7 @@ Expected: FAIL — the method doesn't exist.
 Add the import at the top of `GroupOrdersService.ts`:
 
 ```typescript
-import { OrderService, orders as ordersTable } from "@makanmakan/database";
+import { OrderService, orders as ordersTable } from "@makanmasak/database";
 ```
 
 Add the method:
@@ -368,12 +368,12 @@ Phase D owns the matching half: `splitBill` must accept these fields, give every
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/group-orders/services/GroupOrdersService.test.ts`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/group-orders/services/GroupOrdersService.test.ts`
 Expected: PASS
 
 - [ ] **Step 5: Typecheck**
 
-Run: `pnpm --filter @makanmakan/api typecheck`
+Run: `pnpm --filter @makanmasak/api typecheck`
 Expected: PASS
 
 - [ ] **Step 6: Commit**
@@ -436,7 +436,7 @@ it("lets the host finalize with a matching memberToken, and rejects a non-host t
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/group-orders/routes -t "lock"`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/group-orders/routes -t "lock"`
 Expected: FAIL — route and `isHostSession` don't exist.
 
 - [ ] **Step 3: Add `GroupOrdersService.isHostSession`**
@@ -506,11 +506,11 @@ app.post(
 );
 ```
 
-Confirm `RealtimeEventType.GROUP_ORDER_FINALIZED` exists in `@makanmakan/shared-types`; if it doesn't, add it alongside the other `GROUP_*` members of that enum (same file as `GROUP_ORDER_CREATED`/`GROUP_MEMBER_JOINED`) rather than reusing an unrelated event type.
+Confirm `RealtimeEventType.GROUP_ORDER_FINALIZED` exists in `@makanmasak/shared-types`; if it doesn't, add it alongside the other `GROUP_*` members of that enum (same file as `GROUP_ORDER_CREATED`/`GROUP_MEMBER_JOINED`) rather than reusing an unrelated event type.
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/group-orders`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/group-orders`
 Expected: PASS
 
 - [ ] **Step 6: Commit**
@@ -612,7 +612,7 @@ describe("sweepExpiringGroupOrders", () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run -t "sweepExpiringGroupOrders"`
+Run: `pnpm --filter @makanmasak/api exec vitest run -t "sweepExpiringGroupOrders"`
 Expected: FAIL — neither method exists.
 
 - [ ] **Step 3: Implement `GroupOrdersService.sweepExpiringGroupOrders`**
@@ -732,8 +732,8 @@ Add `expiryWarnedAt?: number;` to `GroupOrderSettings` in `packages/shared-types
 ```typescript
 // apps/api/src/scheduled/group-order-expiry.ts
 import { GroupOrdersService } from "../features/group-orders/services/GroupOrdersService";
-import { RealtimeBroadcastService } from "@makanmakan/database";
-import { RealtimeEventType } from "@makanmakan/shared-types";
+import { RealtimeBroadcastService } from "@makanmasak/database";
+import { RealtimeEventType } from "@makanmasak/shared-types";
 import type { Env } from "../types/env";
 
 export async function sweepExpiringGroupOrders(env: Env) {
@@ -780,12 +780,12 @@ In `apps/api/src/index.ts`'s `scheduled` handler, add a dispatch branch alongsid
 
 - [ ] **Step 6: Run tests to verify they pass**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/scheduled/group-order-expiry.test.ts src/features/group-orders`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/scheduled/group-order-expiry.test.ts src/features/group-orders`
 Expected: PASS
 
 - [ ] **Step 7: Typecheck**
 
-Run: `pnpm --filter @makanmakan/api typecheck`
+Run: `pnpm --filter @makanmasak/api typecheck`
 Expected: PASS
 
 - [ ] **Step 8: Commit**

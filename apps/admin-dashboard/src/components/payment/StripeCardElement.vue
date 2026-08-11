@@ -129,7 +129,7 @@ import {
   formatCurrency,
   CURRENCY_CONFIGS,
   type CurrencyCode,
-} from "@makanmakan/utils";
+} from "@makanmasak/utils";
 
 // Props
 interface Props {

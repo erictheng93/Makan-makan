@@ -791,7 +791,7 @@ import {
   type JoinWaitingListRequest,
   type QueueStatus,
   type WaitTimeEstimateResult,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 type WaitingFilterStatus = "" | WaitingStatus;
 

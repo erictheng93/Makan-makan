@@ -13,7 +13,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import {
   createTestDatabase,
   type TestDatabase,
-} from "@makanmakan/database/testing";
+} from "@makanmasak/database/testing";
 import {
   coupons,
   couponUsage,
@@ -22,7 +22,7 @@ import {
   markets,
   orders,
   restaurants,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import { eq } from "drizzle-orm";
 import type { Env } from "../../types/env";
 import { MarketCheckoutVoucherService } from "../../features/market-checkouts/services/MarketCheckoutVoucherService";

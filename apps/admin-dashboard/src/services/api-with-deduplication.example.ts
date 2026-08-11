@@ -10,7 +10,7 @@ import {
   skipDedup,
   withDedupTTL,
   combineConfigs,
-} from "@makanmakan/utils";
+} from "@makanmasak/utils";
 
 // Create Axios instance
 const api = axios.create({

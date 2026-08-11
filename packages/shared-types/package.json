@@ -1,5 +1,5 @@
 {
-  "name": "@makanmakan/shared-types",
+  "name": "@makanmasak/shared-types",
   "version": "1.0.0",
   "description": "共用TypeScript型別定義",
   "main": "dist/index.js",

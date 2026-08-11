@@ -13,7 +13,7 @@ import type {
   Category,
   MenuItem,
   RestaurantServiceItem,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
   return {

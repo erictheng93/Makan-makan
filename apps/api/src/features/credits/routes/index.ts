@@ -29,7 +29,7 @@ import {
   setPinSchema,
   topupSchema,
 } from "../schemas/validation";
-import type { creditLedgerEntries } from "@makanmakan/database";
+import type { creditLedgerEntries } from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 
 const app = new Hono<{ Bindings: Env }>();

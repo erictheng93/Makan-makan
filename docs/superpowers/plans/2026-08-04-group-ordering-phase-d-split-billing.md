@@ -72,7 +72,7 @@ describe("splitBill — proportional", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/group-orders/services/GroupOrdersService.test.ts -t "proportional"`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/group-orders/services/GroupOrdersService.test.ts -t "proportional"`
 Expected: FAIL — falls into the `else` branch, `success: false`.
 
 - [ ] **Step 3a: Resolve shared costs once, at the top of `splitBill`**
@@ -158,12 +158,12 @@ Insert a new `else if` branch before the final `else` (i.e. between the existing
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/group-orders/services/GroupOrdersService.test.ts`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/group-orders/services/GroupOrdersService.test.ts`
 Expected: PASS
 
 - [ ] **Step 5: Typecheck**
 
-Run: `pnpm --filter @makanmakan/api typecheck`
+Run: `pnpm --filter @makanmasak/api typecheck`
 Expected: PASS
 
 - [ ] **Step 6: Commit**
@@ -207,7 +207,7 @@ it("assigns the rounding remainder to the host so member totals sum exactly to t
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/group-orders/services/GroupOrdersService.test.ts -t "rounding remainder"`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/group-orders/services/GroupOrdersService.test.ts -t "rounding remainder"`
 Expected: FAIL — $100.00 / 3 = $33.333..., each independently rounds to $33.33, summing to $99.99, one cent short.
 
 - [ ] **Step 3: Implement**
@@ -265,12 +265,12 @@ Place this before the absorb step. Failing the split loudly is the right outcome
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/group-orders/services/GroupOrdersService.test.ts`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/group-orders/services/GroupOrdersService.test.ts`
 Expected: PASS
 
 - [ ] **Step 5: Typecheck**
 
-Run: `pnpm --filter @makanmakan/api typecheck`
+Run: `pnpm --filter @makanmasak/api typecheck`
 Expected: PASS
 
 - [ ] **Step 6: Commit**
@@ -322,7 +322,7 @@ describe("processPayment — Plan A manual settlement", () => {
 
 - [ ] **Step 2: Run the test**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/group-orders/services/GroupOrdersService.test.ts -t "Plan A manual settlement"`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/group-orders/services/GroupOrdersService.test.ts -t "Plan A manual settlement"`
 Expected: PASS immediately — no implementation change needed. If it fails, that means `processPayment` doesn't actually behave as the design spec assumed, and this task becomes "fix `processPayment`" instead of "verify it" — re-read the method (line 1210) against the failure before changing anything.
 
 - [ ] **Step 3: Commit**

@@ -3,7 +3,7 @@
  */
 
 import { ref, onMounted, onErrorCaptured } from "vue";
-import { getErrorTracker, type TrackedError } from "@makanmakan/utils";
+import { getErrorTracker, type TrackedError } from "@makanmasak/utils";
 import { reportTrackedError } from "./error-reporting";
 
 export function useErrorTracking() {

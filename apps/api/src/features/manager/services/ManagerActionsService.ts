@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
-import { auditLogs, menuItems } from "@makanmakan/database";
+import { auditLogs, menuItems } from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";

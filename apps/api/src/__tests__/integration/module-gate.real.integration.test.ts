@@ -47,7 +47,7 @@ import { eq } from "drizzle-orm";
 import {
   createTestDatabase,
   type TestDatabase,
-} from "@makanmakan/database/testing";
+} from "@makanmasak/database/testing";
 import {
   restaurants,
   shopSubscriptions,
@@ -56,7 +56,7 @@ import {
   type ModuleKey,
   type ModuleMap,
   type PlanTier,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import { ApiError } from "../../shared/utils/api-error";
 import type { Env } from "../../types/env";
 import {

@@ -5,7 +5,7 @@ import type {
   MenuItem,
   SelectedCustomizations,
   CartItem,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // Zod schemas for localStorage validation (XSS prevention)
 // Using passthrough() to allow additional fields while validating critical ones

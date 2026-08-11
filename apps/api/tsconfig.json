@@ -14,15 +14,15 @@
     "types": ["@cloudflare/workers-types"],
     "skipLibCheck": true,
     "paths": {
-      "@makanmakan/database": ["../../packages/database/src"],
-      "@makanmakan/database/*": ["../../packages/database/src/*"],
-      "@makanmakan/ai-analytics": ["../../packages/ai-analytics/src"],
-      "@makanmakan/ai-analytics/*": ["../../packages/ai-analytics/src/*"],
-      "@makanmakan/shared-types": ["../../packages/shared-types/src"],
-      "@makanmakan/shared-types/*": ["../../packages/shared-types/src/*"],
-      "@makanmakan/utils": ["../../packages/utils/src"],
-      "@makanmakan/utils/*": ["../../packages/utils/src/*"],
-      "@makanmakan/queue-core": ["../../packages/queue-core/src"]
+      "@makanmasak/database": ["../../packages/database/src"],
+      "@makanmasak/database/*": ["../../packages/database/src/*"],
+      "@makanmasak/ai-analytics": ["../../packages/ai-analytics/src"],
+      "@makanmasak/ai-analytics/*": ["../../packages/ai-analytics/src/*"],
+      "@makanmasak/shared-types": ["../../packages/shared-types/src"],
+      "@makanmasak/shared-types/*": ["../../packages/shared-types/src/*"],
+      "@makanmasak/utils": ["../../packages/utils/src"],
+      "@makanmasak/utils/*": ["../../packages/utils/src/*"],
+      "@makanmasak/queue-core": ["../../packages/queue-core/src"]
     }
   },
   "include": [

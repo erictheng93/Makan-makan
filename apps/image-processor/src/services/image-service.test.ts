@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ImageService } from "./image-service";
 import type { Env } from "../types/env";
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   ImageService: vi.fn().mockImplementation(function ImageService() {
     return {};
   }),

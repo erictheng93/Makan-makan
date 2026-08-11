@@ -5,7 +5,7 @@
 import type {
   PrinterBrand,
   PrinterCapabilities,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 export interface BrandConfig {
   name: string;

@@ -11,14 +11,14 @@ import {
   receipts,
   orders,
   orderItems,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 
 type OrderRow = typeof orders.$inferSelect;
 type ReceiptRow = typeof receipts.$inferSelect;
 type OrderItemRow = typeof orderItems.$inferSelect;
 import type { Receipt, PrintReceiptRequest } from "../types";
 import { printReceiptSchema } from "../schemas";
-import { generateUUID } from "@makanmakan/utils";
+import { generateUUID } from "@makanmasak/utils";
 
 export class ReceiptService {
   private db;

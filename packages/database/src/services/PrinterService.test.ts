@@ -5,7 +5,7 @@ import type {
   PrintJob,
   PrintServiceConfig,
   PrinterDevice,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import { PrinterDriver, PrinterService } from "./PrinterService";
 
 function createConfig(): PrintServiceConfig {

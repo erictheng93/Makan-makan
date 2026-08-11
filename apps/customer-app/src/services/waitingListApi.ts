@@ -4,7 +4,7 @@ import type {
   QueueStatus,
   WaitingListResponse,
   WaitTimeEstimateResult,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 const BASE_URL = "/waiting-list";
 

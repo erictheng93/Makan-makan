@@ -11,7 +11,7 @@ import type {
   ReceiptTemplate,
   TemplateLayout,
   PrintJobType,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 import { ReceiptFormatterFactory } from "./ReceiptFormatterFactory";
 import { PrintFormattingError } from "../errors/PrintErrors";

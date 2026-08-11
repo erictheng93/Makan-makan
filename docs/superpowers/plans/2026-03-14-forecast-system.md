@@ -1668,7 +1668,7 @@ apiV1.route("/forecast", forecastFeature.routes);
 
 - [ ] **Step 3: Run typecheck**
 
-Run: `pnpm --filter @makanmakan/api typecheck`
+Run: `pnpm --filter @makanmasak/api typecheck`
 Expected: No TypeScript errors
 
 - [ ] **Step 4: Commit**

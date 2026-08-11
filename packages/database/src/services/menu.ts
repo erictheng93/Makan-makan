@@ -25,7 +25,7 @@ import type {
   MenuStructure,
   MenuItem,
   Category,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import { amountFromCents, toCents, toRequiredCents } from "../utils/money";
 import { loadAssembledMenuItemOptions } from "./menu-options";
 

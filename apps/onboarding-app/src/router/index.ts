@@ -1,7 +1,7 @@
 import {
   clearChunkRecoveryMark,
   createChunkRecovery,
-} from "@makanmakan/utils/chunk-recovery";
+} from "@makanmasak/utils/chunk-recovery";
 import {
   createRouter,
   createWebHistory,

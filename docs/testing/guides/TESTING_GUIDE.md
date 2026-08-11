@@ -93,7 +93,7 @@ pnpm test:coverage
 pnpm test
 
 # Workers 整合測試（apps/api）
-pnpm --filter @makanmakan/api test
+pnpm --filter @makanmasak/api test
 ```
 
 ### 2.5 API Contract 測試
@@ -168,7 +168,7 @@ pnpm test:performance:report
 
 所有新寫的測試必須遵守以下四條，舊測試漸進式遷移：
 
-### 1. 使用 `@makanmakan/testing-utils` 的 Factory（禁止手寫 mock 物件）
+### 1. 使用 `@makanmasak/testing-utils` 的 Factory（禁止手寫 mock 物件）
 
 ```typescript
 import {
@@ -177,7 +177,7 @@ import {
   orderFactory,
   envFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 beforeEach(() => {
   resetAllFactories();
@@ -747,7 +747,7 @@ Error: connect ECONNREFUSED
 ### 2026-04-13
 
 - ✅ 新增「強制測試規範」章節，對齊 `CLAUDE.md` → Testing Standards
-- ✅ 新增 `@makanmakan/testing-utils` Factory 使用示例（`userFactory.buildShopOwner` 等）
+- ✅ 新增 `@makanmasak/testing-utils` Factory 使用示例（`userFactory.buildShopOwner` 等）
 - ✅ 補上 API Contract 測試章節（`pnpm contract:check` / `update` / `report`）
 - ✅ 更新 `tests/e2e/` 目錄結構：補上 `journeys/`、`integration/`、`helpers/`
 - ✅ 修正 Admin E2E 數字為 15 specs / ~236 tests（舊數字 44 tests 已過時）

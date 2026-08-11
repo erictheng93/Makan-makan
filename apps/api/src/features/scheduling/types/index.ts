@@ -16,7 +16,7 @@ export type {
   BulkScheduleData,
   ClockInData,
   ClockOutData,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 
 // ── Feature-only types (not in DB layer) ──
 
@@ -26,7 +26,7 @@ import type {
   SchedulingConflict,
   ScheduleSwapRequest,
   ConflictCheckResult,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 
 /**
  * Scheduling Rule (排班規則)
@@ -306,7 +306,7 @@ export interface ISchedulingService {
   ): Promise<ShiftTemplate>;
   deleteShiftTemplate(id: number): Promise<boolean>;
   getSchedules(
-    filters: import("@makanmakan/database").ScheduleFilters,
+    filters: import("@makanmasak/database").ScheduleFilters,
   ): Promise<{ items: EmployeeScheduleWithRelations[]; total: number }>;
   getSchedule(id: number): Promise<EmployeeScheduleWithRelations | null>;
   createSchedule(data: CreateEmployeeScheduleData): Promise<EmployeeSchedule>;
@@ -316,13 +316,13 @@ export interface ISchedulingService {
   ): Promise<EmployeeSchedule>;
   deleteSchedule(id: number): Promise<boolean>;
   bulkCreateSchedules(
-    data: import("@makanmakan/database").BulkScheduleData,
+    data: import("@makanmasak/database").BulkScheduleData,
   ): Promise<number>;
   clockIn(
-    data: import("@makanmakan/database").ClockInData,
+    data: import("@makanmasak/database").ClockInData,
   ): Promise<EmployeeSchedule>;
   clockOut(
-    data: import("@makanmakan/database").ClockOutData,
+    data: import("@makanmasak/database").ClockOutData,
   ): Promise<EmployeeSchedule>;
   checkConflicts(
     schedules: CreateEmployeeScheduleData[],

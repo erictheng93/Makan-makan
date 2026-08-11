@@ -47,7 +47,7 @@ const serviceFns = vi.hoisted(() => ({
   drainBackgroundTasks: vi.fn(),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   WaitingListService: class {
     joinWaitingList = serviceFns.joinWaitingList;
     findActiveTicketByPhone = serviceFns.findActiveTicketByPhone;

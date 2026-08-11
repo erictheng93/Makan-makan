@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { sign } from "jsonwebtoken";
-import { RealtimeEventType } from "@makanmakan/shared-types";
+import { RealtimeEventType } from "@makanmasak/shared-types";
 import { RealtimeSession } from "./RealtimeSession";
 import type { Env } from "../types/env";
 

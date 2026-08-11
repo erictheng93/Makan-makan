@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { useCartStore } from "@/stores/cart";
-import type { MenuItem } from "@makanmakan/shared-types";
+import type { MenuItem } from "@makanmasak/shared-types";
 
 function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
   return {

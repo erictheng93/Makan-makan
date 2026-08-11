@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Fix CLAUDE.md test standard violations: migrate admin view tests to use `@makanmakan/testing-utils` factories, and replace all CSS class assertions with behavioral assertions.
+**Goal:** Fix CLAUDE.md test standard violations: migrate admin view tests to use `@makanmasak/testing-utils` factories, and replace all CSS class assertions with behavioral assertions.
 
 **Architecture:** Two parallel workstreams - (1) add factory imports and replace hand-crafted mock data with factory output in 29 admin view test files, (2) replace 26 CSS `.classes()` assertions across 13 files with `data-testid`/`data-status` attributes (adding attributes to Vue components where needed). Both workstreams touch test files; CSS fixes also touch Vue source files.
 
-**Tech Stack:** Vue 3, Vitest, @vue/test-utils, @makanmakan/testing-utils factories
+**Tech Stack:** Vue 3, Vitest, @vue/test-utils, @makanmasak/testing-utils factories
 
 ---
 
@@ -26,7 +26,7 @@ const mockOrders = [
 **After (factory):**
 
 ```typescript
-import { orderFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { orderFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 beforeEach(() => {
   resetAllFactories();
@@ -40,7 +40,7 @@ const mockOrders = [
 
 ### Rules
 
-1. Add `import { ...Factory, resetAllFactories } from '@makanmakan/testing-utils'` at the top
+1. Add `import { ...Factory, resetAllFactories } from '@makanmasak/testing-utils'` at the top
 2. Add `resetAllFactories()` to the existing `beforeEach()` block
 3. Replace hand-crafted data objects with factory calls WHERE the data shape matches a factory output
 4. Keep hand-crafted data for UI-specific mocks (e.g., chart data, i18n messages) that have no factory

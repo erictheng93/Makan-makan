@@ -1,5 +1,5 @@
 /**
- * @makanmakan/utils
+ * @makanmasak/utils
  *
  * Shared utilities for MakanMasak platform
  */

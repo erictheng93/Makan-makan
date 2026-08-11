@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { sign } from "hono/jwt";
 import { describe, expect, it } from "vitest";
-import { ApiError } from "@makanmakan/utils";
+import { ApiError } from "@makanmasak/utils";
 import { managementAuthMiddleware, type ManagementUser } from "./auth";
 import type { ManagementEnv } from "../types";
 

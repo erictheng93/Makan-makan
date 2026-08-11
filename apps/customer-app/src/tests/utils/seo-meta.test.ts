@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { applyMarketSeoMeta, applyShopMenuSeoMeta } from "@/utils/seoMeta";
 import type { MarketDetail } from "@/services/marketsApi";
-import type { Category, MenuItem, Restaurant } from "@makanmakan/shared-types";
+import type { Category, MenuItem, Restaurant } from "@makanmasak/shared-types";
 
 function market(overrides: Partial<MarketDetail> = {}): MarketDetail {
   return {

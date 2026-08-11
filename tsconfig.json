@@ -17,12 +17,12 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@makanmakan/shared-types": ["packages/shared-types/src"],
-      "@makanmakan/shared-types/*": ["packages/shared-types/src/*"],
-      "@makanmakan/database": ["packages/database/src"],
-      "@makanmakan/database/*": ["packages/database/src/*"],
-      "@makanmakan/utils": ["packages/utils/src"],
-      "@makanmakan/utils/*": ["packages/utils/src/*"]
+      "@makanmasak/shared-types": ["packages/shared-types/src"],
+      "@makanmasak/shared-types/*": ["packages/shared-types/src/*"],
+      "@makanmasak/database": ["packages/database/src"],
+      "@makanmasak/database/*": ["packages/database/src/*"],
+      "@makanmasak/utils": ["packages/utils/src"],
+      "@makanmasak/utils/*": ["packages/utils/src/*"]
     }
   },
   "files": [],

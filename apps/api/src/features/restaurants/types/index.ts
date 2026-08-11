@@ -11,7 +11,7 @@ import type {
   BusinessHours as SharedBusinessHours,
   Status,
   PlanType,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 export type Restaurant = SharedRestaurant;
 export type RestaurantSettings = SharedRestaurantSettings;

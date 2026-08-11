@@ -5,7 +5,7 @@
 
 import { createProvider } from "../providers";
 import { ProductAnalysisService } from "./ProductAnalysisService";
-import { getCurrentTimestamp } from "@makanmakan/database";
+import { getCurrentTimestamp } from "@makanmasak/database";
 import { v7 as uuidv7 } from "uuid";
 import type {
   LLMConfig,

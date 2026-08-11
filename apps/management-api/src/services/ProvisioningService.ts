@@ -12,7 +12,7 @@ import type {
   DeploymentType,
   DeploymentStatus,
 } from "../types";
-import { generateUUID } from "@makanmakan/utils";
+import { generateUUID } from "@makanmasak/utils";
 import { CloudflareApiClient } from "./CloudflareApiClient";
 import { BundleService } from "./BundleService";
 import { MigrationService } from "./MigrationService";

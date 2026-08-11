@@ -2,7 +2,7 @@
  * 列印服務預設配置
  */
 
-import type { PrintServiceConfig } from "@makanmakan/shared-types";
+import type { PrintServiceConfig } from "@makanmasak/shared-types";
 
 export const DEFAULT_PRINT_CONFIG: PrintServiceConfig = {
   // 預設設備

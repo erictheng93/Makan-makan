@@ -25,12 +25,12 @@ import {
 import { GroupOrdersService } from "../services/GroupOrdersService";
 import { groupOrderSchemas } from "../schemas/validation";
 import type { Env } from "../../../types/env";
-import { RealtimeBroadcastService } from "@makanmakan/database";
+import { RealtimeBroadcastService } from "@makanmasak/database";
 import {
   isValidRealtimeEvent,
   RealtimeEventType,
-} from "@makanmakan/shared-types";
-import type { GroupOrderEvent } from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
+import type { GroupOrderEvent } from "@makanmasak/shared-types";
 import {
   notFound,
   forbidden,

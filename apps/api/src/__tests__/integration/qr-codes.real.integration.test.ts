@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { markets } from "@makanmakan/database";
+import { markets } from "@makanmasak/database";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,

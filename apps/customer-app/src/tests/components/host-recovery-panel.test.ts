@@ -94,7 +94,7 @@ describe("HostRecoveryPanel", () => {
 
   it("names the fifteen minute wait in every language", async () => {
     const { getCustomerMessages } =
-      await import("@makanmakan/i18n/static-messages");
+      await import("@makanmasak/i18n/static-messages");
     const messages = getCustomerMessages() as unknown as Record<
       string,
       { group?: Record<string, string> }

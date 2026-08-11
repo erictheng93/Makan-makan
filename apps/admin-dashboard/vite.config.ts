@@ -18,17 +18,17 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),
-      "@makanmakan/shared-types": resolve(
+      "@makanmasak/shared-types": resolve(
         __dirname,
         "../../packages/shared-types/src",
       ),
-      "@makanmakan/shared": resolve(__dirname, "../../packages/shared"),
-      "@makanmakan/database": resolve(__dirname, "../../packages/database/src"),
-      "@makanmakan/utils/chunk-recovery": resolve(
+      "@makanmasak/shared": resolve(__dirname, "../../packages/shared"),
+      "@makanmasak/database": resolve(__dirname, "../../packages/database/src"),
+      "@makanmasak/utils/chunk-recovery": resolve(
         __dirname,
         "../../packages/utils/src/chunk-recovery",
       ),
-      "@makanmakan/utils": resolve(__dirname, "../../packages/utils/src"),
+      "@makanmasak/utils": resolve(__dirname, "../../packages/utils/src"),
     },
     // packages/shared/ is a path-aliased loose folder (no package.json), so
     // when Rollup walks up from files like stores/moduleAccess.ts looking for

@@ -5,9 +5,9 @@ import {
   BillingNotificationService,
   NOTIFICATION_CHANNELS,
 } from "./BillingNotificationService";
-import { NOTIFICATION_DISPATCH_STATUSES } from "@makanmakan/database";
+import { NOTIFICATION_DISPATCH_STATUSES } from "@makanmasak/database";
 
-vi.mock("@makanmakan/utils", () => ({
+vi.mock("@makanmasak/utils", () => ({
   generateUUID: vi.fn(() => "notification-id"),
 }));
 

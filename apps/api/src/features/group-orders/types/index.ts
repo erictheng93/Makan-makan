@@ -4,13 +4,13 @@
  */
 
 import type { BaseEntity } from "../../../shared/types";
-import type { SettledBy } from "@makanmakan/database";
+import type { SettledBy } from "@makanmasak/database";
 import type {
   CartItemCustomizations,
   GroupActivityMetadata,
   GroupOrderFeeMode,
   GroupOrderStatus,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // Core Group Order Types
 export interface GroupOrder extends Omit<BaseEntity, "id"> {
@@ -86,7 +86,7 @@ export interface GroupOrderCartItemWithMenu extends GroupOrderCartItem {
 // Enums
 
 /**
- * Group order status now lives in `@makanmakan/shared-types` so the customer
+ * Group order status now lives in `@makanmasak/shared-types` so the customer
  * app holds the same union instead of translating into a vocabulary of its
  * own. Re-exported here because this module is the feature's public surface
  * and every existing import already points at it.
@@ -94,8 +94,8 @@ export interface GroupOrderCartItemWithMenu extends GroupOrderCartItem {
 export {
   GROUP_ORDER_STATUSES,
   parseGroupOrderStatus,
-} from "@makanmakan/shared-types";
-export type { GroupOrderStatus } from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
+export type { GroupOrderStatus } from "@makanmasak/shared-types";
 
 export type PaymentStatus =
   | "pending" // 等待付款

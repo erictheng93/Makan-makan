@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { and, eq } from "drizzle-orm";
-import { groupActivityLogs, groupOrders } from "@makanmakan/database";
-import type { GroupOrderSettings } from "@makanmakan/shared-types";
+import { groupActivityLogs, groupOrders } from "@makanmasak/database";
+import type { GroupOrderSettings } from "@makanmasak/shared-types";
 import {
   GROUP_ORDER_EXPIRY_WARNING_MS,
   GROUP_ORDER_FINALIZING_STALE_MS,

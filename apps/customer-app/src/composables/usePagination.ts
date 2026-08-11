@@ -9,7 +9,7 @@ import type {
   PaginationParams,
   PaginatedResponse,
   InfiniteScrollState,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 /**
  * Infinite scroll pagination optimized for mobile PWA

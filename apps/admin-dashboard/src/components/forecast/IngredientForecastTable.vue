@@ -126,7 +126,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useI18n } from "@/i18n";
-import type { IngredientForecastItem } from "@makanmakan/shared-types";
+import type { IngredientForecastItem } from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 

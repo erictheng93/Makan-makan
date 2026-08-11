@@ -162,7 +162,7 @@ import { createId } from "@paralleldrive/cuid2";
 With:
 
 ```typescript
-import { generateUUID } from "@makanmakan/utils";
+import { generateUUID } from "@makanmasak/utils";
 ```
 
 Replace:

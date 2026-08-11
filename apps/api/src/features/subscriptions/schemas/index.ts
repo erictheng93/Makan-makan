@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PLAN_TIERS, MODULES } from "@makanmakan/database";
+import { PLAN_TIERS, MODULES } from "@makanmasak/database";
 
 const planTierEnum = z.enum([
   PLAN_TIERS.TRIAL,

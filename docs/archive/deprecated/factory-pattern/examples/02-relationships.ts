@@ -12,7 +12,7 @@ import {
   orderFactory,
   orderItemFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 describe("範例 2: 關聯數據生成", () => {
   beforeEach(() => {

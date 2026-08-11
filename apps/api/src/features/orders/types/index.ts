@@ -28,7 +28,7 @@ import type {
   OrderStats,
   CartItem,
   CartState,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // Re-export for use in the feature module
 export type {

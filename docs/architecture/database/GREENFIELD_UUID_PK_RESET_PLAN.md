@@ -96,7 +96,7 @@ Verified so far:
 
 - `pnpm db:reset:local`
 - `pnpm db:seed:local`
-- `pnpm --filter @makanmakan/database run typecheck`
+- `pnpm --filter @makanmasak/database run typecheck`
 - `pnpm typecheck`
 - `pnpm check:migration-dual-track`
 - `pnpm exec vitest run tests/unit/orders-pk-package-scripts.test.ts tests/unit/uuid-native-migration-sql.test.ts packages/database/src/schema/orders-public-id-bridge.test.ts packages/database/src/schema/users-public-id-bridge.test.ts`

@@ -17,8 +17,8 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@makanmakan/utils": ["../../packages/utils/src"],
-      "@makanmakan/utils/*": ["../../packages/utils/src/*"]
+      "@makanmasak/utils": ["../../packages/utils/src"],
+      "@makanmasak/utils/*": ["../../packages/utils/src/*"]
     },
     "baseUrl": "."
   },

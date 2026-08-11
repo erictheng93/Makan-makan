@@ -269,7 +269,7 @@ import { useCurrency } from "@/composables/useCurrency";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useToast } from "vue-toastification";
 import { customerOrderApi } from "@/services/customerOrderApi";
-import type { Order } from "@makanmakan/shared-types";
+import type { Order } from "@makanmasak/shared-types";
 
 const router = useRouter();
 const authStore = useAuthStore();

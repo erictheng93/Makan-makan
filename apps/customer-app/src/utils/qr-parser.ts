@@ -3,7 +3,7 @@
  * 支援多種 QR Code 格式：market, shop, table, seat
  */
 
-import { parseSignedQRUrl } from "@makanmakan/utils";
+import { parseSignedQRUrl } from "@makanmasak/utils";
 
 export type QRType = "market" | "shop" | "table" | "seat";
 

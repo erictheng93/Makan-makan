@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { PlatformType } from "@makanmakan/shared-types";
+import type { PlatformType } from "@makanmasak/shared-types";
 import {
   getAdapter,
   isPlatformAdapterSupported,

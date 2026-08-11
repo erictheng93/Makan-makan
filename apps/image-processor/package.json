@@ -1,5 +1,5 @@
 {
-  "name": "@makanmakan/image-processor",
+  "name": "@makanmasak/image-processor",
   "version": "1.0.0",
   "description": "Cloudflare Workers-based image processing service for MakanMasak",
   "main": "src/index.ts",
@@ -23,8 +23,8 @@
   "author": "MakanMasak Team",
   "license": "MIT",
   "dependencies": {
-    "@makanmakan/database": "workspace:*",
-    "@makanmakan/shared-types": "workspace:*",
+    "@makanmasak/database": "workspace:*",
+    "@makanmasak/shared-types": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.24",
     "uuid": "^14.0.0",

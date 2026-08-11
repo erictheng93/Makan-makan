@@ -1,8 +1,8 @@
 > ⚠️ **SUPERSEDED (2026-07-05)**: This guide instructs importing test data
-> builders from `@makanmakan/testing-utils` — that package does not exist
+> builders from `@makanmasak/testing-utils` — that package does not exist
 > anywhere in this repo (confirmed via repeated repo-wide search). Root
 > `CLAUDE.md`'s Testing Standards section is explicit: "Do not import
-> `@makanmakan/testing-utils`; that workspace package does not currently
+> `@makanmasak/testing-utils`; that workspace package does not currently
 > exist. Keep builders close to the owning test file or shared in an
 > existing local test helper." Follow that guidance instead — see the
 > `buildUser(overrides = {})`-style example in `CLAUDE.md`. This entire
@@ -280,7 +280,7 @@ interface ChampionRequirements {
 
 ```
 代碼庫權限：
-├─ @makanmakan/testing-utils 維護權限
+├─ @makanmasak/testing-utils 維護權限
 ├─ 文檔倉庫寫入權限
 └─ CI/CD 配置修改權限
 

@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { IngredientForecastItem } from "@makanmakan/shared-types";
+import type { IngredientForecastItem } from "@makanmasak/shared-types";
 import { AIForecastEnhancer } from "./AIForecastEnhancer";
-import { createProvider } from "@makanmakan/ai-analytics";
+import { createProvider } from "@makanmasak/ai-analytics";
 
 const chat = vi.hoisted(() => vi.fn());
 
-vi.mock("@makanmakan/ai-analytics", () => ({
+vi.mock("@makanmasak/ai-analytics", () => ({
   createProvider: vi.fn(() => ({ chat })),
 }));
 

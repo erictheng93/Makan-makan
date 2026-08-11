@@ -307,7 +307,7 @@ import { describe, it, expect, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createPinia } from "pinia";
 import OrderCard from "@/components/OrderCard.vue";
-import type { Order } from "@makanmakan/shared-types";
+import type { Order } from "@makanmasak/shared-types";
 
 describe("OrderCard.vue", () => {
   const createWrapper = (order: Partial<Order> = {}) => {
@@ -449,7 +449,7 @@ describe("OrderCard.vue", () => {
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useOrdersStore } from "@/stores/orders";
-import type { Order } from "@makanmakan/shared-types";
+import type { Order } from "@makanmasak/shared-types";
 
 describe("Orders Store", () => {
   beforeEach(() => {

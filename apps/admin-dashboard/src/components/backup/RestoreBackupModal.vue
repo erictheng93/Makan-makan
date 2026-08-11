@@ -60,7 +60,7 @@
 import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useBackupStore } from "@/stores/backup";
-import type { BackupRecord } from "@makanmakan/shared-types";
+import type { BackupRecord } from "@makanmasak/shared-types";
 
 const props = defineProps<{
   backup: BackupRecord | null;

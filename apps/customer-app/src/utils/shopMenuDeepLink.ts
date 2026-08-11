@@ -2,7 +2,7 @@ import type {
   Category,
   MenuItem,
   RestaurantServiceItem,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 export const SHOP_MENU_ITEM_QUERY_KEY = "itemId";
 export const SHOP_MENU_CATEGORY_QUERY_KEY = "categoryName";

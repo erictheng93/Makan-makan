@@ -11,12 +11,12 @@ import {
 import {
   createTestDatabase,
   type TestDatabase,
-} from "@makanmakan/database/testing";
+} from "@makanmasak/database/testing";
 import {
   aiConfigurations,
   aiUsageLogs,
   restaurants,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import { AIAnalyticsService } from "../../features/ai-analytics/services/AIAnalyticsService";
 
 const analyticsMocks = vi.hoisted(() => ({
@@ -37,7 +37,7 @@ const cryptoMocks = vi.hoisted(() => ({
   decrypt: vi.fn(),
 }));
 
-vi.mock("@makanmakan/ai-analytics", () => ({
+vi.mock("@makanmasak/ai-analytics", () => ({
   AIInsightsService: vi.fn(function AIInsightsService(...args: unknown[]) {
     analyticsMocks.insightsCtor(...args);
     return {
@@ -60,8 +60,8 @@ vi.mock("@makanmakan/ai-analytics", () => ({
   getAvailableModels: analyticsMocks.getAvailableModels,
 }));
 
-vi.mock("@makanmakan/utils", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@makanmakan/utils")>();
+vi.mock("@makanmasak/utils", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@makanmasak/utils")>();
   return {
     ...actual,
     encrypt: cryptoMocks.encrypt,

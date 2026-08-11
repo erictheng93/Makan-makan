@@ -1,4 +1,4 @@
-import { createAuthenticatedApiClient } from "@makanmakan/auth-client";
+import { createAuthenticatedApiClient } from "@makanmasak/auth-client";
 import type { ApiResponse, User } from "@/types";
 
 export function getKitchenApiBaseUrl(env = import.meta.env): string {

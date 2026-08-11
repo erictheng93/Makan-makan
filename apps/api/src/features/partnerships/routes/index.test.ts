@@ -45,7 +45,7 @@ vi.mock("../../../middleware/moduleGate", () => ({
   moduleGate: gateMocks.moduleGate,
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   PartnershipService: class {
     createPartnership = createPartnership;
     listPartnerships = listPartnerships;

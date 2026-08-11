@@ -3,7 +3,7 @@ import path from "path";
 
 export default defineConfig({
   test: {
-    name: "@makanmakan/queue-service",
+    name: "@makanmasak/queue-service",
     environment: "node",
     globals: true,
     include: ["src/**/__tests__/**/*.test.{js,ts}", "src/**/*.test.{js,ts}"],
@@ -11,7 +11,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@makanmakan/queue-core": path.resolve(
+      "@makanmasak/queue-core": path.resolve(
         __dirname,
         "../queue-core/src/index.ts",
       ),

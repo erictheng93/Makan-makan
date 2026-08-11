@@ -20,7 +20,7 @@ vi.mock("./routes", () => {
   return { default: routes };
 });
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   SchedulingService: vi.fn(),
 }));
 

@@ -1,5 +1,5 @@
 {
-  "name": "@makanmakan/ai-analytics",
+  "name": "@makanmasak/ai-analytics",
   "version": "1.0.0",
   "description": "AI-powered business analytics and insights for MakanMasak",
   "main": "dist/ai-analytics/src/index.js",
@@ -21,8 +21,8 @@
   "author": "MakanMasak Team",
   "license": "MIT",
   "dependencies": {
-    "@makanmakan/database": "workspace:*",
-    "@makanmakan/shared-types": "workspace:*",
+    "@makanmasak/database": "workspace:*",
+    "@makanmasak/shared-types": "workspace:*",
     "uuid": "^14.0.0"
   },
   "devDependencies": {

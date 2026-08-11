@@ -23,8 +23,8 @@ import {
   shopSubscriptions,
   TRIAL_DURATION_MS,
   users,
-} from "@makanmakan/database";
-import { generateUUID } from "@makanmakan/utils";
+} from "@makanmasak/database";
+import { generateUUID } from "@makanmasak/utils";
 import bcrypt from "bcryptjs";
 import { desc, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";

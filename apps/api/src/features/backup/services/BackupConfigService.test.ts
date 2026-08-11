@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { BackupConfiguration } from "@makanmakan/shared-types";
+import type { BackupConfiguration } from "@makanmasak/shared-types";
 
 const drizzleState = vi.hoisted(() => ({
   db: undefined as unknown,
@@ -7,7 +7,7 @@ const drizzleState = vi.hoisted(() => ({
 
 const uuidMocks = vi.hoisted(() => ({ generateUUID: vi.fn() }));
 
-vi.mock("@makanmakan/utils", async (importOriginal) => ({
+vi.mock("@makanmasak/utils", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   generateUUID: uuidMocks.generateUUID,
 }));

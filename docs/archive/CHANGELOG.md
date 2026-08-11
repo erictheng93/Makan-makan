@@ -1049,7 +1049,7 @@ Successfully resolved all remaining TypeScript compilation errors across the API
 ### Key Fixes Implemented
 
 1. **D1Database Import Resolution (3 errors)**:
-   - Fixed import path from `@cloudflare/workers-types` to `@makanmakan/database`
+   - Fixed import path from `@cloudflare/workers-types` to `@makanmasak/database`
    - Updated type aliases and export patterns
    - Resolved `packages/database/src/index.ts` and `packages/database/src/services/base.ts`
 
@@ -1065,7 +1065,7 @@ Successfully resolved all remaining TypeScript compilation errors across the API
    - Aligned with `QRCodeService.createAuditLog()` interface requirements
 
 4. **System Route Import Fix (1 error)**:
-   - Fixed drizzle-orm imports by importing from `@makanmakan/database`
+   - Fixed drizzle-orm imports by importing from `@makanmasak/database`
    - Updated `apps/api/src/routes/system.ts`
 
 ### Technical Impact

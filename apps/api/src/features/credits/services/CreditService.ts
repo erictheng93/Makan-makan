@@ -7,7 +7,7 @@ import {
   creditLedgerEntries,
   type CreditCardStatus,
   type CreditEntryType,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 import {
   badRequest,
@@ -16,7 +16,7 @@ import {
   notFound,
   unauthorized,
 } from "../../../shared/utils/api-error";
-import { generateUUID } from "@makanmakan/utils";
+import { generateUUID } from "@makanmasak/utils";
 
 // Spends strictly above this amount require a PIN ((b) 門檻式 PIN). Override via env.
 const DEFAULT_CREDIT_PIN_THRESHOLD_CENTS = 20000;

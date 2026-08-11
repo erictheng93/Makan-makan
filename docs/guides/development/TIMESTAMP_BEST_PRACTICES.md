@@ -45,7 +45,7 @@ Error: NOT NULL constraint failed: waiting_queue.created_at
 Generate timestamps in the application layer using the provided utility functions:
 
 ```typescript
-import { getCurrentTimestamp } from "@makanmakan/database";
+import { getCurrentTimestamp } from "@makanmasak/database";
 
 const now = getCurrentTimestamp();
 await db
@@ -82,7 +82,7 @@ await db
 
 ```typescript
 // ✅ GOOD - Works in all environments
-import { getCurrentTimestamp } from "@makanmakan/database";
+import { getCurrentTimestamp } from "@makanmasak/database";
 
 const now = getCurrentTimestamp();
 await db
@@ -111,7 +111,7 @@ import {
   formatTimestamp, // Format for display
   TIME_OFFSET, // Time constants (ms)
   TIME_OFFSET_SECONDS, // Time constants (seconds)
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 ```
 
 ### Usage Examples
@@ -339,7 +339,7 @@ module.exports = {
       {
         selector: "Literal[value=/CURRENT_TIMESTAMP/]",
         message:
-          "Use getCurrentTimestamp() from @makanmakan/database instead of CURRENT_TIMESTAMP in SQL",
+          "Use getCurrentTimestamp() from @makanmasak/database instead of CURRENT_TIMESTAMP in SQL",
       },
     ],
   },
@@ -364,7 +364,7 @@ module.exports = {
 
 1. ✅ **ALWAYS** use `getCurrentTimestamp()` for database timestamps
 2. ❌ **NEVER** use `CURRENT_TIMESTAMP` in SQL queries
-3. 📦 Import from `@makanmakan/database`
+3. 📦 Import from `@makanmasak/database`
 4. 🧪 Ensures compatibility across production and test environments
 5. 🔒 Add ESLint rule to prevent regressions
 

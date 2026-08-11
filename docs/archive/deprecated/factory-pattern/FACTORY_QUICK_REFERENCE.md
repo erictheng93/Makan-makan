@@ -1,8 +1,8 @@
 > ⚠️ **SUPERSEDED (2026-07-05)**: This guide instructs importing test data
-> builders from `@makanmakan/testing-utils` — that package does not exist
+> builders from `@makanmasak/testing-utils` — that package does not exist
 > anywhere in this repo (confirmed via repeated repo-wide search). Root
 > `CLAUDE.md`'s Testing Standards section is explicit: "Do not import
-> `@makanmakan/testing-utils`; that workspace package does not currently
+> `@makanmasak/testing-utils`; that workspace package does not currently
 > exist. Keep builders close to the owning test file or shared in an
 > existing local test helper." Follow that guidance instead — see the
 > `buildUser(overrides = {})`-style example in `CLAUDE.md`. This entire
@@ -18,7 +18,7 @@
 ## 🎯 5 秒快速開始
 
 ```typescript
-import { buildCompleteRestaurantData } from "@makanmakan/testing-utils";
+import { buildCompleteRestaurantData } from "@makanmasak/testing-utils";
 
 const testData = buildCompleteRestaurantData();
 // 一鍵生成: 餐廳、員工、菜單、訂單，所有測試數據！
@@ -47,7 +47,7 @@ import {
   UserRoles,
   RestaurantTypes,
   OrderStatus,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 ```
 
 ---
@@ -434,7 +434,7 @@ import {
   orderFactory,
   resetAllFactories,
   UserRoles,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 describe("Order Service", () => {
   beforeEach(() => {

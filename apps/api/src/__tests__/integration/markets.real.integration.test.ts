@@ -10,7 +10,7 @@ import {
   restaurants,
   restaurantServiceItems,
   restaurantMarketMemberships,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import { and, eq, isNull } from "drizzle-orm";
 
 const CSRF_HEADERS = {

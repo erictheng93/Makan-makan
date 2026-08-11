@@ -7,15 +7,15 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),
-      "@makanmakan/shared-types": resolve(
+      "@makanmasak/shared-types": resolve(
         __dirname,
         "../../packages/shared-types/src",
       ),
-      "@makanmakan/utils/chunk-recovery": resolve(
+      "@makanmasak/utils/chunk-recovery": resolve(
         __dirname,
         "../../packages/utils/src/chunk-recovery",
       ),
-      "@makanmakan/utils": resolve(__dirname, "../../packages/utils/src"),
+      "@makanmasak/utils": resolve(__dirname, "../../packages/utils/src"),
     },
   },
   define: {

@@ -3,7 +3,7 @@ import {
   NotificationService,
   type NotificationCategory,
   type NotificationPayload,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 
 type ServiceBookingNotificationType =

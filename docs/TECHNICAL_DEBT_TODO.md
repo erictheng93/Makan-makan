@@ -348,7 +348,7 @@ Traditional Chinese.
 is fully deleted (0 matches repo-wide). The remaining local `OrderStatus`
 declarations (`apps/kitchen-display/src/types/index.ts`,
 `apps/api/src/features/orders/types/index.ts`) are pure re-exports of
-`@makanmakan/shared-types`'s `OrderStatus`, not duplicate definitions — so
+`@makanmasak/shared-types`'s `OrderStatus`, not duplicate definitions — so
 this item is already effectively done, not "local definitions" in the
 problematic sense the original audit meant. Only the `.disabled` examples
 cleanup is still open: `apps/api/src/examples/StripeIntegrationExample.ts.disabled`
@@ -357,7 +357,7 @@ and `PaymentSystemUsage.ts.disabled` are still present.
 **TODO:**
 
 - [x] Finish replacing local `OrderStatus` definitions with canonical
-      `@makanmakan/shared-types`.
+      `@makanmasak/shared-types`.
 - [x] Decide whether `OrdersService.checkOrderPermissions()` should be deleted
       or wired to a real production route. (deleted)
 - [ ] **P4:** Delete stale `.disabled` examples

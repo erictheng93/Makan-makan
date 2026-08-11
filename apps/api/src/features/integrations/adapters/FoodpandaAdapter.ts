@@ -4,7 +4,7 @@ import type {
   ParsedPlatformOrder,
   MenuSyncPayload,
   MenuSyncResult,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import type { PlatformAdapter } from "./PlatformAdapter";
 
 export class FoodpandaAdapter implements PlatformAdapter {

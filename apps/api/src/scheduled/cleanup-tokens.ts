@@ -4,7 +4,7 @@
  * Cloudflare Workers Cron Trigger
  */
 
-import { VerificationService } from "@makanmakan/database";
+import { VerificationService } from "@makanmasak/database";
 import type { Env } from "../types/env";
 import { AlertService } from "../services/AlertService";
 

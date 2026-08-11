@@ -4,7 +4,7 @@
  */
 
 import { Hono, type Context } from "hono";
-import { SeatService, USER_ROLES } from "@makanmakan/database";
+import { SeatService, USER_ROLES } from "@makanmasak/database";
 import {
   authMiddleware,
   requireRole,

@@ -170,7 +170,7 @@ const { items, isLoading, hasMore, containerRef, sentinelRef, loadMore } =
 **Database Helper Example**:
 
 ```typescript
-import { paginateQuery } from "@makanmakan/database/utils/pagination-helpers";
+import { paginateQuery } from "@makanmasak/database/utils/pagination-helpers";
 
 const response = await paginateQuery(
   db,

@@ -5,7 +5,7 @@ import type {
   MenuItem,
   SelectedCustomizations,
   CartItem,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // Zod schemas for localStorage validation (XSS prevention)
 const MenuItemSchema = z

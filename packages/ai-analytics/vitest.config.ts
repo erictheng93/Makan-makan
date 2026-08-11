@@ -11,8 +11,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@makanmakan/database": path.resolve(__dirname, "../database/src"),
-      "@makanmakan/shared-types": path.resolve(
+      "@makanmasak/database": path.resolve(__dirname, "../database/src"),
+      "@makanmasak/shared-types": path.resolve(
         __dirname,
         "../shared-types/src",
       ),

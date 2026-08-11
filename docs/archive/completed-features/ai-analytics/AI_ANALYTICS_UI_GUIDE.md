@@ -295,7 +295,7 @@ import type {
   ProductAnalysis,
   AIInsight,
   LLMProvider,
-} from "@makanmakan/ai-analytics";
+} from "@makanmasak/ai-analytics";
 ```
 
 ### 錯誤處理

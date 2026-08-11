@@ -15,7 +15,7 @@
 > ⚠️ **2026-07-05 移除**：`AUTOMATION_TOOLS_GUIDE.md`、`TRACKING_DASHBOARD_GUIDE.md`，
 > 以及整個 `factory-pattern/` 資料夾已移至
 > `docs/archive/deprecated/factory-pattern/`——它們全部建立在不存在的
-> `@makanmakan/testing-utils` 套件之上，與 `CLAUDE.md` 現行 Testing
+> `@makanmasak/testing-utils` 套件之上，與 `CLAUDE.md` 現行 Testing
 > Standards（builder 應就近放在測試檔旁，不要 import 該套件）直接矛盾。
 > 詳見下方「測試撰寫規範」章節的更正內容。
 
@@ -97,12 +97,12 @@ pnpm contract:update
 
 ### 建立測試數據（就近放在測試檔旁，不要 import 不存在的套件）
 
-> ⚠️ **更正（2026-07-05）**：下方原先示範 import `@makanmakan/testing-utils`
+> ⚠️ **更正（2026-07-05）**：下方原先示範 import `@makanmasak/testing-utils`
 > 的 factory——**這個套件不存在於本 repo 中**（`packages/` 沒有
 > `testing-utils`），與本節上方示範直接矛盾。現行規範（見 `CLAUDE.md` →
 > Testing Standards）是把 builder 函式就近放在擁有它的測試檔旁，或放在
 > 現有的 local test helper 中，**不要** import 不存在的
-> `@makanmakan/testing-utils`。
+> `@makanmasak/testing-utils`。
 
 ```typescript
 // 就近放在測試檔旁的 local builder，不是共用套件
@@ -117,7 +117,7 @@ function buildUser(overrides = {}) {
 
 新增測試必須遵守以下規則，舊測試以漸進方式遷移：
 
-1. **優先使用就近放置的 local test builder/helper**（見上方範例）— 不要 import `@makanmakan/testing-utils`，該套件不存在。
+1. **優先使用就近放置的 local test builder/helper**（見上方範例）— 不要 import `@makanmasak/testing-utils`，該套件不存在。
 2. **驗證 mock 呼叫，不只驗證回傳值** — 每個 `vi.fn()` 必須有 `toHaveBeenCalledWith(...)` 檢查；用 `expect.objectContaining()` 做結構比對，禁止精確比對 timestamp / UUID 等非確定性欄位。
 3. **禁止斷言 CSS class** — 改以 `data-testid`、`data-status`、`aria-*`、文字內容或 Vue computed 狀態驗證行為。
 4. **Pre-commit 檢查** — lint-staged 目前只執行 ESLint 與 Prettier；並**沒有** `scripts/check-factory-usage.cjs` 這個 gate（該腳本不存在，先前引用它的 CI workflow 已移除）。

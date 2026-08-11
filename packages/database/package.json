@@ -1,5 +1,5 @@
 {
-  "name": "@makanmakan/database",
+  "name": "@makanmasak/database",
   "version": "1.0.0",
   "description": "Database layer with Drizzle ORM for MakanMasak",
   "main": "dist/index.js",
@@ -31,7 +31,7 @@
     "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
-    "@makanmakan/utils": "workspace:*",
+    "@makanmasak/utils": "workspace:*",
     "@paralleldrive/cuid2": "^2.2.2",
     "bcryptjs": "^2.4.3",
     "drizzle-orm": "^0.45.2",
@@ -52,7 +52,7 @@
     "vitest": "^4.1.0"
   },
   "peerDependencies": {
-    "@makanmakan/queue-core": "workspace:*",
-    "@makanmakan/shared-types": "workspace:*"
+    "@makanmasak/queue-core": "workspace:*",
+    "@makanmasak/shared-types": "workspace:*"
   }
 }

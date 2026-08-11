@@ -9,7 +9,7 @@ import { useAuthStore } from "@/stores/auth";
 import {
   configureModuleAccess,
   useModuleAccessStore,
-} from "@makanmakan/shared/stores/moduleAccess";
+} from "@makanmasak/shared/stores/moduleAccess";
 import { resolveApiBase } from "@/services/api";
 import { getAuthToken } from "@/utils/authTokenProvider";
 import Toast from "vue-toastification";

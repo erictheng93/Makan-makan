@@ -1,7 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import MenuItemCard from "@/components/MenuItemCard.vue";
-import type { MenuItem } from "@makanmakan/shared-types";
+import type { MenuItem } from "@makanmasak/shared-types";
 
 vi.mock("@/composables/useI18n", () => ({
   useI18n: () => ({

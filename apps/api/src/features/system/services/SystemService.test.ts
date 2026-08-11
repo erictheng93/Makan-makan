@@ -14,7 +14,7 @@ const databaseState = vi.hoisted(() => ({
   createDatabase: vi.fn(),
 }));
 
-vi.mock("@makanmakan/database", () => {
+vi.mock("@makanmasak/database", () => {
   function createQuery(result: unknown[], rejection: Error | null) {
     const promise = rejection
       ? Promise.reject(rejection)

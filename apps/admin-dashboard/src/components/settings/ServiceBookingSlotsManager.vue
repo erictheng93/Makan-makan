@@ -245,7 +245,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import type { RestaurantServiceItem } from "@makanmakan/shared-types";
+import type { RestaurantServiceItem } from "@makanmasak/shared-types";
 import { restaurantServiceItemsService } from "@/services/restaurantServiceItemsService";
 import {
   serviceBookingsService,

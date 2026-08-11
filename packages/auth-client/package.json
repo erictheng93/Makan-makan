@@ -1,5 +1,5 @@
 {
-  "name": "@makanmakan/auth-client",
+  "name": "@makanmasak/auth-client",
   "version": "1.0.0",
   "description": "Shared auth and API client for MakanMasak frontend apps",
   "type": "module",
@@ -15,7 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@makanmakan/utils": "workspace:*",
+    "@makanmasak/utils": "workspace:*",
     "axios": "^1.17.0"
   },
   "devDependencies": {

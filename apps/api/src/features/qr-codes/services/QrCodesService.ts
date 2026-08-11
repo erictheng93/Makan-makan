@@ -12,7 +12,7 @@ import {
 } from "../../../core/monitoring";
 import { CACHE_TTL } from "../../../shared/constants";
 import { forbidden } from "../../../shared/utils/api-error";
-import { QRCodeService } from "@makanmakan/database";
+import { QRCodeService } from "@makanmasak/database";
 import * as QRCode from "qrcode";
 import { strToU8, zipSync } from "fflate";
 

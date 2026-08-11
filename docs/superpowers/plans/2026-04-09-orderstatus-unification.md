@@ -592,7 +592,7 @@ import {
   envFactory,
   orderFactory,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 import { OrdersService } from "../services/OrdersService";
 
 const CANONICAL_ORDER_STATUSES = [
@@ -1203,7 +1203,7 @@ git commit -m "feat(realtime): lazy DO state migration v1→v2 on wakeup (Issue 
 ```typescript
 // Before: enum OrderLifecycleState with 7 divergent values
 // After: import from shared-types
-import type { OrderStatus } from "@makanmakan/shared-types";
+import type { OrderStatus } from "@makanmasak/shared-types";
 
 // Delete the local OrderLifecycleState enum entirely.
 // Replace every usage of OrderLifecycleState.X with the string literal "x".
@@ -1400,7 +1400,7 @@ Understand what the validator is protecting against and what happens when it ret
 // }
 
 // After: validate against the canonical string union
-import { ORDER_STATUSES } from "@makanmakan/shared-types";
+import { ORDER_STATUSES } from "@makanmasak/shared-types";
 
 isValid(order: unknown): boolean {
   if (typeof order !== "object" || order === null) return false;
@@ -1670,7 +1670,7 @@ git commit -m "test(contract): update fixtures to canonical string OrderStatus"
 // at least 48 hours AND the status_legacy_field_reads metric is zero.
 
 import type { MiddlewareHandler } from "hono";
-import type { OrderStatus } from "@makanmakan/shared-types";
+import type { OrderStatus } from "@makanmasak/shared-types";
 
 const STRING_TO_LEGACY_NUMBER: Record<OrderStatus, number> = {
   pending: 0,

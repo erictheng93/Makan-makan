@@ -5,8 +5,8 @@ import {
   platformMenuMappings,
   menuItems,
   categories,
-} from "@makanmakan/database";
-import type { PlatformType, MenuSyncPayload } from "@makanmakan/shared-types";
+} from "@makanmasak/database";
+import type { PlatformType, MenuSyncPayload } from "@makanmasak/shared-types";
 import type { Env } from "../../../types/env";
 import { getAdapter } from "../adapters/PlatformAdapter";
 import { PlatformIntegrationService } from "./PlatformIntegrationService";

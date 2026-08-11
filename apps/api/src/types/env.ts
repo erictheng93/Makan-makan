@@ -15,7 +15,7 @@ interface AnalyticsEngine {
   }): void;
 }
 
-import type { D1Database } from "@makanmakan/database";
+import type { D1Database } from "@makanmasak/database";
 
 /**
  * Enhanced Environment Interface for 100/100 Score

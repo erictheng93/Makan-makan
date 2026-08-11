@@ -140,7 +140,7 @@ import { ArrowPathIcon } from "@heroicons/vue/24/outline";
 import { forecastApi } from "@/services/forecastApi";
 import { ingredientApi } from "@/services/ingredientApi";
 import { useAuthStore } from "@/stores/auth";
-import { useModuleAccessStore } from "@makanmakan/shared/stores/moduleAccess";
+import { useModuleAccessStore } from "@makanmasak/shared/stores/moduleAccess";
 import ForecastDatePicker from "@/components/forecast/ForecastDatePicker.vue";
 import ForecastTable from "@/components/forecast/ForecastTable.vue";
 import ForecastAlerts from "@/components/forecast/ForecastAlerts.vue";
@@ -152,7 +152,7 @@ import type {
   ForecastAccuracyItem,
   ForecastAlert,
   IngredientForecastItem,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 const authStore = useAuthStore();

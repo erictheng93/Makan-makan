@@ -350,7 +350,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
-import type { RestaurantServiceItem } from "@makanmakan/shared-types";
+import type { RestaurantServiceItem } from "@makanmasak/shared-types";
 import { restaurantContactApi } from "@/services/restaurantContactApi";
 import { useI18n } from "@/composables/useI18n";
 import {

@@ -1,7 +1,7 @@
 import { eq, and, desc, asc, count, sql } from "drizzle-orm";
 import { BaseService } from "./base";
 import { restaurants, categories, menuItems, tables, users } from "../schema";
-import type { Restaurant } from "@makanmakan/shared-types";
+import type { Restaurant } from "@makanmasak/shared-types";
 
 export interface CreateRestaurantData {
   name: string;

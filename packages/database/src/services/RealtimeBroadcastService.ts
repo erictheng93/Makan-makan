@@ -16,7 +16,7 @@ import type {
   OrderCancelledEvent,
   KitchenItemStatusEvent,
   MenuAvailabilityUpdateEvent,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import type { DurableObjectNamespace } from "@cloudflare/workers-types";
 
 /** Minimal env shape — avoids depending on apps/api's full Env type. */

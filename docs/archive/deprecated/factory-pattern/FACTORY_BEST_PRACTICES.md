@@ -1,8 +1,8 @@
 > ⚠️ **SUPERSEDED (2026-07-05)**: This guide instructs importing test data
-> builders from `@makanmakan/testing-utils` — that package does not exist
+> builders from `@makanmasak/testing-utils` — that package does not exist
 > anywhere in this repo (confirmed via repeated repo-wide search). Root
 > `CLAUDE.md`'s Testing Standards section is explicit: "Do not import
-> `@makanmakan/testing-utils`; that workspace package does not currently
+> `@makanmasak/testing-utils`; that workspace package does not currently
 > exist. Keep builders close to the owning test file or shared in an
 > existing local test helper." Follow that guidance instead — see the
 > `buildUser(overrides = {})`-style example in `CLAUDE.md`. This entire
@@ -38,7 +38,7 @@
 
 ```typescript
 // 1️⃣ 導入 factory 和 reset 函數
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 // 2️⃣ 在 beforeEach 調用 reset
 beforeEach(() => {
@@ -583,16 +583,16 @@ test("formats user", () => {
 
 ```typescript
 // ❌ 錯誤：忘記添加依賴
-// package.json 缺少 @makanmakan/testing-utils
+// package.json 缺少 @makanmasak/testing-utils
 
-import { userFactory } from '@makanmakan/testing-utils'
+import { userFactory } from '@makanmasak/testing-utils'
 // Error: Cannot find package
 
 // ✅ 正確：聲明依賴
 // package.json
 {
   "devDependencies": {
-    "@makanmakan/testing-utils": "workspace:*"
+    "@makanmasak/testing-utils": "workspace:*"
   }
 }
 ```
@@ -626,7 +626,7 @@ beforeEach(() => {
 **症狀**:
 
 ```
-Error: Cannot find package '@makanmakan/testing-utils'
+Error: Cannot find package '@makanmasak/testing-utils'
 ```
 
 **原因**: 未聲明依賴
@@ -637,7 +637,7 @@ Error: Cannot find package '@makanmakan/testing-utils'
 // package.json
 {
   "devDependencies": {
-    "@makanmakan/testing-utils": "workspace:*"
+    "@makanmasak/testing-utils": "workspace:*"
   }
 }
 ```
@@ -688,7 +688,7 @@ Property 'buildChef' does not exist on type 'UserFactory'
 
 ```typescript
 // 確保正確導入
-import { userFactory, resetAllFactories } from '@makanmakan/testing-utils'
+import { userFactory, resetAllFactories } from '@makanmasak/testing-utils'
 
 // 運行類型檢查
 pnpm run typecheck
@@ -844,14 +844,14 @@ import {
   orderItemFactory,
   resetAllFactories,
   buildCompleteRestaurantData,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 ```
 
 ### Setup 模板
 
 ```typescript
 import { describe, test, expect, beforeEach } from "vitest";
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 describe("Feature Name", () => {
   beforeEach(() => {

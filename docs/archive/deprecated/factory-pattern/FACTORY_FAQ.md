@@ -1,8 +1,8 @@
 > ⚠️ **SUPERSEDED (2026-07-05)**: This guide instructs importing test data
-> builders from `@makanmakan/testing-utils` — that package does not exist
+> builders from `@makanmasak/testing-utils` — that package does not exist
 > anywhere in this repo (confirmed via repeated repo-wide search). Root
 > `CLAUDE.md`'s Testing Standards section is explicit: "Do not import
-> `@makanmakan/testing-utils`; that workspace package does not currently
+> `@makanmasak/testing-utils`; that workspace package does not currently
 > exist. Keep builders close to the owning test file or shared in an
 > existing local test helper." Follow that guidance instead — see the
 > `buildUser(overrides = {})`-style example in `CLAUDE.md`. This entire
@@ -121,7 +121,7 @@ describe("Performance Comparison", () => {
 
 ```typescript
 // ❌ 錯誤：在生產代碼中使用
-import { userFactory } from "@makanmakan/testing-utils";
+import { userFactory } from "@makanmasak/testing-utils";
 
 export async function createUser() {
   const user = userFactory.build(); // 絕對不要這樣做！
@@ -129,7 +129,7 @@ export async function createUser() {
 }
 
 // ✅ 正確：只在測試中使用
-import { userFactory } from "@makanmakan/testing-utils";
+import { userFactory } from "@makanmasak/testing-utils";
 
 describe("User Service", () => {
   it("should create user", () => {
@@ -365,7 +365,7 @@ const premiumUser = buildPremiumUser();
 
 ```typescript
 // 在你的測試輔助文件中
-import { UserFactory, userFactory } from "@makanmakan/testing-utils";
+import { UserFactory, userFactory } from "@makanmasak/testing-utils";
 
 class ExtendedUserFactory extends UserFactory {
   buildPremiumUser() {
@@ -488,7 +488,7 @@ describe("Error Handling", () => {
 
 ```typescript
 import { createTestDB } from "@/tests/helpers/test-utils";
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 describe("User API Integration", () => {
   let testDB: TestDatabase;
@@ -584,7 +584,7 @@ describe("Tests", () => {
 
 ```bash
 # 檢查是否安裝
-pnpm list @makanmakan/testing-utils
+pnpm list @makanmasak/testing-utils
 
 # 如果沒有，重新安裝
 pnpm install
@@ -596,7 +596,7 @@ pnpm install
 {
   "compilerOptions": {
     "paths": {
-      "@makanmakan/testing-utils": ["../../packages/testing-utils/src"]
+      "@makanmasak/testing-utils": ["../../packages/testing-utils/src"]
     }
   }
 }
@@ -607,11 +607,11 @@ pnpm install
 ```typescript
 // ✅ 在測試文件中
 // __tests__/user.test.ts
-import { userFactory } from "@makanmakan/testing-utils";
+import { userFactory } from "@makanmasak/testing-utils";
 
 // ❌ 在生產代碼中（會報錯）
 // src/services/user.ts
-import { userFactory } from "@makanmakan/testing-utils"; // 錯誤！
+import { userFactory } from "@makanmasak/testing-utils"; // 錯誤！
 ```
 
 ---
@@ -681,13 +681,13 @@ expect(user1.id).toBe(1); // 每次都是 1
 
 ```typescript
 // ✅ 正確：使用套件名稱
-import { userFactory } from "@makanmakan/testing-utils";
+import { userFactory } from "@makanmasak/testing-utils";
 
 // ❌ 錯誤：使用相對路徑
 import { userFactory } from "../../packages/testing-utils/src/factories/user.factory";
 
 // ❌ 錯誤：直接導入 factories
-import { userFactory } from "@makanmakan/testing-utils/factories";
+import { userFactory } from "@makanmasak/testing-utils/factories";
 ```
 
 ---

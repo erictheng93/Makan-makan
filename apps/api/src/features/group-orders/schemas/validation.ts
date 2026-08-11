@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { GROUP_ORDER_FEE_MODES } from "@makanmakan/shared-types";
+import { GROUP_ORDER_FEE_MODES } from "@makanmasak/shared-types";
 
 // Reusable sanitizing schema for free-text user input (C10 release gate).
 // Removes HTML metacharacters instead of trying to strip whole tags/attributes,

@@ -10,12 +10,12 @@ import { WebSocketServer, WebSocket } from "ws";
 import cors from "cors";
 import { PrintAgentService } from "./services/PrintAgentService";
 import { validateConfig } from "./config/validation";
-import { PrinterDriverFactory } from "@makanmakan/queue-core/print";
+import { PrinterDriverFactory } from "@makanmasak/queue-core/print";
 import type {
   PrintRequest,
   PrintResponse,
   PrinterEvent,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 type WebSocketClientInfo = {
   origin: string;

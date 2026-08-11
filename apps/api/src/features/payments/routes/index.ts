@@ -3,7 +3,7 @@ import type { Context } from "hono";
 import { z } from "zod";
 import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
-import { orders, paymentTransactions } from "@makanmakan/database";
+import { orders, paymentTransactions } from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 import type { AuthUser } from "../../../middleware/auth";
 import { validateBody } from "../../../shared/middleware";

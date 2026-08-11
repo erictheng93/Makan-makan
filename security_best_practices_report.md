@@ -70,7 +70,7 @@ Evidence after remediation: the shared auth client supports memory-only access t
 
 Impact: any XSS in the same origin can exfiltrate admin/customer/session tokens. The current CSP also permits `unsafe-inline`/`unsafe-eval` in frontend HTML, reducing defense-in-depth.
 
-Verification: `pnpm exec vitest run packages/auth-client/src/storage.test.ts apps/admin-dashboard/src/stores/auth.test.ts apps/admin-dashboard/src/services/realtimeService.test.ts apps/admin-dashboard/src/services/websocketService.test.ts`; `pnpm --filter @makanmakan/management-portal test -- src/services/auth.test.ts src/views/LoginView.test.ts`; customer auth/market tests.
+Verification: `pnpm exec vitest run packages/auth-client/src/storage.test.ts apps/admin-dashboard/src/stores/auth.test.ts apps/admin-dashboard/src/services/realtimeService.test.ts apps/admin-dashboard/src/services/websocketService.test.ts`; `pnpm --filter @makanmasak/management-portal test -- src/services/auth.test.ts src/views/LoginView.test.ts`; customer auth/market tests.
 
 ### R-004: Admin Payment Redirect Uses Backend URL Without Client-Side URL Validation
 
@@ -164,7 +164,7 @@ Recommended decision after remediation: report remediation is complete for the r
 ## Verification Performed
 
 - `pnpm exec vitest run apps/api/src/features/authentication/services/AuthService.test.ts apps/api/src/features/payments/routes/index.test.ts apps/admin-dashboard/src/stores/payment.test.ts apps/admin-dashboard/src/utils/safeExternalHref.test.ts apps/admin-dashboard/src/tests/production-config.test.ts apps/customer-app/src/tests/production-config.test.ts apps/kitchen-display/tests/production-config.test.ts packages/auth-client/src/storage.test.ts apps/admin-dashboard/src/stores/auth.test.ts apps/admin-dashboard/src/services/realtimeService.test.ts apps/admin-dashboard/src/services/websocketService.test.ts`
-- `pnpm --filter @makanmakan/management-portal test -- src/services/auth.test.ts src/views/LoginView.test.ts`
+- `pnpm --filter @makanmasak/management-portal test -- src/services/auth.test.ts src/views/LoginView.test.ts`
 - `pnpm exec vitest run apps/customer-app/src/tests/stores/auth.test.ts apps/customer-app/src/tests/utils/market-engagement.test.ts apps/customer-app/src/tests/views/markets-view.test.ts apps/customer-app/src/tests/views/market-detail-view.test.ts`
 - `pnpm exec vitest run tests/unit/database-primary-key-policy.test.ts apps/api/src/middleware/auth.test.ts apps/api/src/features/realtime/routes/index.test.ts apps/api/src/features/payments/schemas/validation.test.ts packages/database/src/customer-identity-preflight.test.ts packages/database/src/schema/markets.test.ts packages/database/src/services/POSService.test.ts packages/database/src/services/order.test.ts packages/database/src/services/__tests__/SchedulingService.real.test.ts apps/api/src/features/leaves/index.test.ts apps/api/src/features/scheduling/index.test.ts apps/api/src/features/system/index.test.ts apps/api/src/features/tables/index.test.ts`
 - `pnpm typecheck`

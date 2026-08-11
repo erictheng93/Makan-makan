@@ -1,11 +1,11 @@
 import { drizzle } from "drizzle-orm/d1";
 import { and, eq } from "drizzle-orm";
-import { seats, tables } from "@makanmakan/database";
+import { seats, tables } from "@makanmasak/database";
 import {
   parseSignedQRUrl,
   verifyQRSignature,
   type SignedQRUrlParams,
-} from "@makanmakan/utils";
+} from "@makanmasak/utils";
 import type { Env } from "../../../shared/types";
 
 export type SignedQrVerificationFailureReason =

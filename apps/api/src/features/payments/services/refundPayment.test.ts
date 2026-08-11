@@ -5,7 +5,7 @@ import {
   toExternalPaymentStatus,
 } from "./refundPayment";
 
-vi.mock("@makanmakan/utils", async (importOriginal) => ({
+vi.mock("@makanmasak/utils", async (importOriginal) => ({
   ...((await importOriginal()) as Record<string, unknown>),
   generateUUID: vi.fn(() => "audit-id"),
 }));

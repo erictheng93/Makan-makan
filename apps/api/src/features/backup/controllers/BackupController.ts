@@ -14,7 +14,7 @@ import type {
   ListBackupsQuery,
   RestoreBackupRequest,
   BackupConfiguration,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // Status codes this controller's ApiErrors can legitimately carry today
 // (e.g. `forbidden()` from BackupValidationService.verifyRestaurantAccess).

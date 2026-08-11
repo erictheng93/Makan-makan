@@ -344,7 +344,7 @@ import { useI18n } from "@/composables/useI18n";
 import { useAppStore } from "@/stores/app";
 import ManualInputModal from "@/components/ManualInputModal.vue";
 import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
-import type { Restaurant } from "@makanmakan/shared-types";
+import type { Restaurant } from "@makanmasak/shared-types";
 
 const router = useRouter();
 const toast = useToast();

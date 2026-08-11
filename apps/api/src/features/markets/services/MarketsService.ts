@@ -22,7 +22,7 @@ import {
   restaurantMarketMemberships,
   restaurantServiceItems,
   restaurants,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import {
   KVCacheService,
   NoopCacheService,
@@ -36,7 +36,7 @@ import {
   pointInGeoJsonBoundary,
 } from "./geo";
 import { evaluateMarketPublicReadiness } from "../utils/publicReadiness";
-import { generateUUID } from "@makanmakan/utils";
+import { generateUUID } from "@makanmasak/utils";
 
 const MARKET_CACHE_VERSION_KEY = "markets:version";
 const OPEN_NOW_VENDOR_SCAN_LIMIT = 50000;

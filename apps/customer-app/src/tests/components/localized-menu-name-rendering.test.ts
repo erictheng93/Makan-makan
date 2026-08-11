@@ -2,7 +2,7 @@ import { mount } from "@vue/test-utils";
 import { ref } from "vue";
 import { describe, expect, it, beforeEach } from "vitest";
 import MenuItemCard from "@/components/MenuItemCard.vue";
-import type { MenuItem } from "@makanmakan/shared-types";
+import type { MenuItem } from "@makanmasak/shared-types";
 import { vi } from "vitest";
 
 // #112 shipped with helper unit tests only, so nothing proved a customer ever

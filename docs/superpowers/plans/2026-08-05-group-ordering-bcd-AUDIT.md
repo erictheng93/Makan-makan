@@ -99,7 +99,7 @@ Stage 1-4 全部在 API，可以連續做、一次部署。Stage 5 走獨立整�
 - [ ] **E-3b（正式資料確認）** legacy migration 的 CHECK 約束曾允許 `'ordering'`，本機 D1 目前 `group_orders` 無資料列，無法據此排除正式環境。合併前需確認正式資料庫沒有 `status = 'ordering'` 的列：
   `wrangler d1 execute makanmasak-prod --remote --env production --config=./apps/api/wrangler.toml --command "SELECT status, count(*) FROM group_orders GROUP BY status;"`
   若確實存在該狀態的列，E-3 的刪除方案需改為先行資料遷移，不可直接縮小型別 — 否則 E-2b 的斷言會對一個實際存在的執行期值說謊。
-- [ ] **E-4** `pnpm --filter @makanmakan/api typecheck` 通過，且既有 group-orders 測試全綠。注意 E-2b：本項通過**不足以**證明 E-2b 通過。
+- [ ] **E-4** `pnpm --filter @makanmasak/api typecheck` 通過，且既有 group-orders 測試全綠。注意 E-2b：本項通過**不足以**證明 E-2b 通過。
 
 ### Gate E 稽核結果（2026-08-05）：**通過**
 
@@ -213,7 +213,7 @@ G-1 ~ G-9 全數達標。特別確認：
 - [ ] **H-6** 5 分鐘警告不會重複發送；cron 每次執行都重發等同對顧客洗版。
 - [ ] **H-7** cron 運算式已登記於 `apps/api/wrangler.toml` 的 `[triggers] crons`，且 `scheduled` handler 的 `cronMatches` 分派**逐字比對**運算式字串（Phase A 的 Rust refactor 稽核已踩過這個坑）。
 - [ ] **H-10（自 Gate G 帶入）** cron 回收陳舊的 `finalizing` claim：`status = 'finalizing'` 且 `masterOrderId IS NULL` 且 `lockedAt` 早於一個明確的門檻時，放回 `active`。Stage 3 的 claim 只在正常錯誤路徑釋放，isolate 逾時或被驅逐時狀態會永久卡在 `finalizing`，而到期掃描的 `["active","checkout"]` 查詢碰不到它，`finalizeGroupOrder` 也會一律拒絕 — 沒有回收路徑。門檻需大於 finalize 的最壞執行時間，並需有測試證明「仍在進行中的 claim 不會被誤回收」。`finalizing_failed` **不**在回收範圍內，那是刻意保留給人工處理的終態。
-- [ ] **H-8** `pnpm --filter @makanmakan/api test` 全綠、typecheck、lint 通過。
+- [ ] **H-8** `pnpm --filter @makanmasak/api test` 全綠、typecheck、lint 通過。
 - [ ] **H-9** 部署後確認 cron 已在 Cloudflare 註冊，且首次執行沒有錯誤 — 此時尚無群組單可掃，屬預期的空轉。
 
 ### Gate H 稽核結果（2026-08-06）：**不通過** — 一項阻斷，行為面全數達標
@@ -224,7 +224,7 @@ G-1 ~ G-9 全數達標。特別確認：
 
 - **H-1 做得紮實且 fail-closed**。`isHostSession` 以 Drizzle 查 `sessionId` + `role='creator'` + `isActive` + `leftAt IS NULL` 四條件，查詢異常時回 `false` 而非放行。不存在的群組單同樣回 `false`，因此拒絕訊息一致，順帶滿足 H-2 的不洩漏要求。
 - **H-7 正確**：`*/5 * * * *` 已存在於 `wrangler.toml`，未新增重複 trigger，handler 逐字比對相符。
-- **順手修好了 `apps/api` 的 test script**（原本是 `vitest` watch 模式，`pnpm --filter @makanmakan/api test` 並沒有真的跑 root api project）。這有回溯含意：先前任何以該指令為證據的驗證都比我們以為的弱。稽核方歷次 Gate 皆直接使用 `pnpm exec vitest run --project api`，故各 Gate 結論不受影響。
+- **順手修好了 `apps/api` 的 test script**（原本是 `vitest` watch 模式，`pnpm --filter @makanmasak/api test` 並沒有真的跑 root api project）。這有回溯含意：先前任何以該指令為證據的驗證都比我們以為的弱。稽核方歷次 Gate 皆直接使用 `pnpm exec vitest run --project api`，故各 Gate 結論不受影響。
 
 **阻斷項：`apps/api/src/workers/group-order-expiry.ts` 全檔使用 raw SQL**
 

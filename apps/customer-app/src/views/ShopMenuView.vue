@@ -628,7 +628,7 @@ import type {
   MenuItem,
   RestaurantServiceItem,
   SelectedCustomizations,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import { applyShopMenuSeoMeta } from "@/utils/seoMeta";
 import {
   findMenuCategoryByQuery,

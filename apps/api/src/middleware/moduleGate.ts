@@ -21,7 +21,7 @@ import {
   type ModuleKey,
   type ModuleMap,
   type PlanTier,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 
 // KV cache TTL: 5 minutes.  Short enough to make kill-switch effective quickly.
 export const CACHE_TTL_SECONDS = 300;

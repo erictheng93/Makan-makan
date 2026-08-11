@@ -6,7 +6,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { ApiError, badRequest, notFound } from "@makanmakan/utils";
+import { ApiError, badRequest, notFound } from "@makanmasak/utils";
 import type { ManagementEnv } from "../types";
 import { VersionSyncService } from "../services/VersionSyncService";
 

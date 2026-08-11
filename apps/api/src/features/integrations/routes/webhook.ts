@@ -4,7 +4,7 @@ import { eq, and } from "drizzle-orm";
 import {
   platformIntegrations,
   platformWebhookLogs,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 import { getAdapter } from "../adapters/PlatformAdapter";
 import { PlatformOrderService } from "../services/PlatformOrderService";

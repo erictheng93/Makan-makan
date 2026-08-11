@@ -7,7 +7,7 @@ import {
   createAuthenticatedApiClient,
   type ApiClient,
   type TokenStorageMode,
-} from "@makanmakan/auth-client";
+} from "@makanmasak/auth-client";
 import type { ApiResponse } from "@/types";
 import { KitchenErrorHandler } from "@/utils/errorHandler";
 import { setAuthTokenProvider } from "@/utils/authTokenProvider";

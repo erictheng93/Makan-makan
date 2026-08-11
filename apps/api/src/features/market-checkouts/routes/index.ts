@@ -8,7 +8,7 @@ import {
   markets,
   restaurantMarketMemberships,
   restaurants,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 import {
   ApiError,
@@ -56,7 +56,7 @@ import { fromCents } from "../../../shared/utils/money";
 import { toCsv } from "../../../shared/utils/csv";
 import { createMarketCheckoutSchema } from "../schemas/validation";
 import { z } from "zod";
-import { generateUUID } from "@makanmakan/utils";
+import { generateUUID } from "@makanmasak/utils";
 
 const app = new Hono<{ Bindings: Env }>();
 const MARKET_CHECKOUT_INDEX_KEY = "market_checkout:index";

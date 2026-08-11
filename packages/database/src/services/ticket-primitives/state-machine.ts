@@ -1,5 +1,5 @@
-import { ApiError } from "@makanmakan/utils";
-import { WaitingStatus } from "@makanmakan/shared-types";
+import { ApiError } from "@makanmasak/utils";
+import { WaitingStatus } from "@makanmasak/shared-types";
 
 // `called → seated` is intentional: WaitingListService.markSeated accepts
 // both `called` and `confirmed` as preconditions. Callers may skip the

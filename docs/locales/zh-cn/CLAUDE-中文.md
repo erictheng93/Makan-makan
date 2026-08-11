@@ -270,7 +270,7 @@ npx wrangler kv:key list --binding CACHE_KV
 #### 實施的關鍵修復:
 
 1. **D1Database 匯入解決（3 個錯誤）**:
-   - 將匯入路徑從 `@cloudflare/workers-types` 修正為 `@makanmakan/database`
+   - 將匯入路徑從 `@cloudflare/workers-types` 修正為 `@makanmasak/database`
    - 更新型別別名和匯出模式
    - 解決 `packages/database/src/index.ts` 和 `packages/database/src/services/base.ts`
 
@@ -286,7 +286,7 @@ npx wrangler kv:key list --binding CACHE_KV
    - 與 `QRCodeService.createAuditLog()` 介面需求對齊
 
 4. **系統路由匯入修復（1 個錯誤）**:
-   - 透過從 `@makanmakan/database` 匯入來修復 drizzle-orm 匯入
+   - 透過從 `@makanmasak/database` 匯入來修復 drizzle-orm 匯入
    - 更新 `apps/api/src/routes/system.ts`
 
 #### 技術影響:

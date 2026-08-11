@@ -405,7 +405,7 @@ middlewares applied when the router tree is built.
 ### Error handling (`app.onError`, registered once, applies globally)
 
 Single formatter for every thrown error:
-- If `err instanceof ApiError` (from `@makanmakan/utils`, re-exported via
+- If `err instanceof ApiError` (from `@makanmasak/utils`, re-exported via
   `shared/utils/api-error.ts`): responds
   `{success:false, error:{code, message: ErrorSanitizer.sanitizeMessage(err.message), details?: sanitizeApiErrorDetails(err.details)}}`
   at `err.status`, clamped through `toErrorResponseStatusCode` to a known
@@ -605,7 +605,7 @@ into `TOKEN_BLACKLIST` with a TTL derived from the token's remaining lifetime
 
 Per-restaurant SaaS feature gating keyed on a `ModuleKey` (`pos`,
 `online_ordering`, `staff_management`, `analytics`, `inventory`, etc. — see
-`@makanmakan/database` `ModuleKey`/`PLAN_DEFAULT_MODULES`). Admin (`role===0`)
+`@makanmasak/database` `ModuleKey`/`PLAN_DEFAULT_MODULES`). Admin (`role===0`)
 always bypasses. For everyone else: reads `shop_subscriptions` row (5-minute
 KV cache, key `subscription:<restaurantId>`, write-through on miss),
 resolves effective module state as `moduleOverrides[module] ?? 
@@ -711,7 +711,7 @@ should pick one model rather than porting both.
 
 ### `apps/api/src/shared/` (cross-feature shared code)
 
-- **`shared/utils/api-error.ts`** — thin re-export of `@makanmakan/utils`'s
+- **`shared/utils/api-error.ts`** — thin re-export of `@makanmasak/utils`'s
   `ApiError`/factories (Section 4). The actual implementation lives in
   `packages/utils/src/api-error.ts`.
 - **`shared/utils/response.ts`** — `createSuccessResponse(data, message?,
@@ -841,7 +841,7 @@ alongside it.
   styles, `quickchart.io` for anything needing logo/gradient/border/shadow
   — the "advanced" path is a stub that just builds a QuickChart URL without
   actually applying the custom styling parameters it computed). Delegates
-  persistence to `@makanmakan/database`'s `QRCodeService` (a **different**
+  persistence to `@makanmasak/database`'s `QRCodeService` (a **different**
   class of the same name — confusing to keep both names in Rust; rename
   one). **This top-level file is not imported anywhere in the current
   codebase** (confirmed via repo-wide grep) — `features/qr-codes` has its
@@ -867,7 +867,7 @@ alongside it.
 ### `apps/api/src/core/` — generic infra helpers, mostly thin/legacy wrappers
 
 - **`core/database/index.ts`** — re-exports `createDatabase` from
-  `@makanmakan/database`; `getDatabaseConnection(env)` convenience wrapper.
+  `@makanmasak/database`; `getDatabaseConnection(env)` convenience wrapper.
   `DatabaseOperations` interface is declared but has no implementation found
   wired to it — appears aspirational/unused.
 - **`core/cache/index.ts`** — `KVCacheService` (thin `get`/`set`/`delete`/
@@ -922,7 +922,7 @@ alongside it.
 
 | File | Cron(s) that trigger it (from `apps/api/wrangler.toml`) | What it does | Tables touched | Idempotency |
 | --- | --- | --- | --- | --- |
-| `scheduled/cleanup-tokens.ts` `cleanupExpiredTokens` | `0 2 * * *` | Delegates to `@makanmakan/database`'s `VerificationService.cleanupExpiredTokens()`; separately queries expired-token counts (password reset/email/phone) purely for reporting; sends an info-level Slack/email alert via `AlertService` on success, a `systemError` alert on failure. | `password_reset_tokens`, `email_verification_tokens`, `phone_verification_tokens` (via `VerificationService`, delete logic not in this file) | Naturally idempotent — deletes rows matching `expires_at < now`; safe to re-run. |
+| `scheduled/cleanup-tokens.ts` `cleanupExpiredTokens` | `0 2 * * *` | Delegates to `@makanmasak/database`'s `VerificationService.cleanupExpiredTokens()`; separately queries expired-token counts (password reset/email/phone) purely for reporting; sends an info-level Slack/email alert via `AlertService` on success, a `systemError` alert on failure. | `password_reset_tokens`, `email_verification_tokens`, `phone_verification_tokens` (via `VerificationService`, delete logic not in this file) | Naturally idempotent — deletes rows matching `expires_at < now`; safe to re-run. |
 | `scheduled/cleanup-tokens.ts` `cleanupOldLogs` | `0 3 * * SUN` | `DELETE FROM password_change_logs WHERE created_at < now-90d`. | `password_change_logs` | Idempotent (age-based delete). ⚠️ **Dead code today**: the dispatcher compares against `"0 3 * * 0"` (`index.ts:65`) while the trigger fires with `"0 3 * * SUN"` — the branch can never run; fix the literal in the Rust port. |
 | `workers/usage-events-ttl.ts` `cleanupExpiredUsageEvents` | `0 3 * * *` | `DELETE FROM usage_events WHERE occurred_at_ms < now-90d AND aggregated_at_ms IS NOT NULL` (only deletes events that have already been folded into `usage_meters` — never deletes unaggregated data). | `usage_events` | Idempotent; `USAGE_EVENTS_TTL_DAYS=90`. |
 | Forecast warmup (inline in `index.ts`, imports `features/forecast/services/ForecastService`) | `30 2 * * *` | For every `restaurants` row with `is_active=1 AND deleted_at_ms IS NULL`, calls `forecastService.generateForecast(id, {startDate: tomorrow, endDate: +3 days})`; per-restaurant try/catch so one failure doesn't abort the batch; logs `successCount/total`. | `restaurants` (read), forecast tables (write, inside `ForecastService`, feature-owned) | Re-running regenerates the same forecast window; assume forecast writes are upserts (verify in the forecast feature's own docs). |

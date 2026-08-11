@@ -9,7 +9,7 @@
  */
 
 import { verify } from "jsonwebtoken";
-import type { RealtimeAuthPayload } from "@makanmakan/shared-types";
+import type { RealtimeAuthPayload } from "@makanmasak/shared-types";
 
 // KV key 前綴（與 TokenBlacklistService 保持一致）
 const TOKEN_BLACKLIST_PREFIX = "token:revoked:";

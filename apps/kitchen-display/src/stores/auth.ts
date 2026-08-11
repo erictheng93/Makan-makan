@@ -3,7 +3,7 @@ import { ref, computed } from "vue";
 import type { User } from "@/types";
 import { authApi, apiClient } from "@/services/authApi";
 import { offlineService } from "@/services/offlineService";
-import { isTokenExpired } from "@makanmakan/utils";
+import { isTokenExpired } from "@makanmasak/utils";
 
 export const useAuthStore = defineStore("auth", () => {
   // State

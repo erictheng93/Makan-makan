@@ -3,7 +3,7 @@ import {
   RealtimeEventType,
   type RealtimeAuthTokenResponse,
   type RealtimeEvent,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import { apiClient } from "@/services/authApi";
 
 export type KitchenRealtimeConnectionStatus =

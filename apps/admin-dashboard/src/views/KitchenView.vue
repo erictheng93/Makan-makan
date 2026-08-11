@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ModuleGate from "@makanmakan/shared/components/ModuleGate.vue";
+import ModuleGate from "@makanmasak/shared/components/ModuleGate.vue";
 </script>
 
 <template>

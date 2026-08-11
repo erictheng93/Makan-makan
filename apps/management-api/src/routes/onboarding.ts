@@ -12,7 +12,7 @@ import {
   badRequest,
   notFound,
   unauthorized,
-} from "@makanmakan/utils";
+} from "@makanmasak/utils";
 import type { ManagementEnv } from "../types";
 import { OnboardingService } from "../services/OnboardingService";
 

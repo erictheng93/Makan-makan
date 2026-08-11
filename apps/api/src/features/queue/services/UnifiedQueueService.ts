@@ -5,12 +5,12 @@
  * and never persisted to D1; it has been replaced wholesale.
  */
 
-import { WaitingListService } from "@makanmakan/database";
+import { WaitingListService } from "@makanmasak/database";
 import {
   WaitingStatus,
   type WaitingListResponse,
   type QueueStatus as WaitingQueueStatus,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import type { Env } from "../../../types/env";
 import { ConsoleLogger } from "../../../core/monitoring";
 import type { CallNextRequest, JoinQueueRequest, ApiResponse } from "../types";

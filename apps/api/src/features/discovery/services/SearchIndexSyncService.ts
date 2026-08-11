@@ -7,7 +7,7 @@ import {
   categories,
   restaurants,
   restaurantMarketMemberships,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 import { normalizeSearchTags } from "../utils/search-normalization";
 

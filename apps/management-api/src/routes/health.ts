@@ -10,7 +10,7 @@ import {
   badRequest,
   generateUUID,
   notFound,
-} from "@makanmakan/utils";
+} from "@makanmasak/utils";
 import type {
   ManagementEnv,
   HealthStatus,

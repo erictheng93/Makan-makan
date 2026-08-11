@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { usePaymentStore } from "./payment";
 import { apiClient } from "@/services/api";
-import type { PaymentRequest } from "@makanmakan/shared-types";
+import type { PaymentRequest } from "@makanmasak/shared-types";
 
 vi.mock("@/i18n", () => ({
   t: (key: string) => key,

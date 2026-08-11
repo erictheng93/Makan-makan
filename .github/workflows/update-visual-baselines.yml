@@ -53,7 +53,7 @@ jobs:
             --filter=makanmasak-customer-app \
             --filter=makanmasak-admin-dashboard \
             --filter=makanmasak-kitchen-display \
-            --filter=@makanmakan/management-portal \
+            --filter=@makanmasak/management-portal \
             --filter=makanmasak-onboarding-app
 
       - name: 🚀 Start preview servers

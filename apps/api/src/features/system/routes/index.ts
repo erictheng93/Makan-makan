@@ -371,7 +371,7 @@ async function runBasicHealthCheck(c: Context<{ Bindings: Env }>): Promise<{
 
   let dbStatus: ServiceCheck;
   try {
-    const { createDatabase, sql } = await import("@makanmakan/database");
+    const { createDatabase, sql } = await import("@makanmasak/database");
     const db = createDatabase(c.env.DB);
     const [result] = await db
       .select({ test: sql<number>`1` })
@@ -621,7 +621,7 @@ routes.get(
       auditLogs,
       avgMoneyAmount,
       sql,
-    } = await import("@makanmakan/database");
+    } = await import("@makanmasak/database");
     const db = createDatabase(c.env.DB);
 
     // 獲取表統計
@@ -765,7 +765,7 @@ routes.get(
     const { format } = c.get("validatedQuery");
 
     const { createDatabase, count, gte, orders, sql } =
-      await import("@makanmakan/database");
+      await import("@makanmasak/database");
     const db = createDatabase(c.env.DB);
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -827,7 +827,7 @@ makanmakan_orders_preparing ${businessMetrics?.preparing_orders || 0}
 routes.get("/health/ready", async (c) => {
   try {
     // 檢查關鍵服務是否就緒
-    const { createDatabase, sql, users } = await import("@makanmakan/database");
+    const { createDatabase, sql, users } = await import("@makanmasak/database");
     const db = createDatabase(c.env.DB);
     const readyResult = await db
       .select({ test: sql<number>`1` })

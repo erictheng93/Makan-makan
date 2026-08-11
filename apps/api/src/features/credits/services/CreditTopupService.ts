@@ -4,7 +4,7 @@ import {
   creditAccounts,
   creditCards,
   creditTopupIntents,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 import { badRequest, notFound } from "../../../shared/utils/api-error";
 import { CreditService } from "./CreditService";

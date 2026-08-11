@@ -115,7 +115,7 @@ import BulkImportDialog from "@/components/ingredients/BulkImportDialog.vue";
 import type {
   IngredientDefinitionResponse,
   CreateIngredientRequest,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 const { confirm: confirmModal } = useConfirmModal();

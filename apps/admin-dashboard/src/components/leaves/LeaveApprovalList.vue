@@ -95,7 +95,7 @@ import { useI18n } from "@/i18n";
 import { getInitials } from "@/composables/useEmployeeDisplay";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import { safeExternalHref } from "@/utils/safeExternalHref";
-import type { LeaveRequest } from "@makanmakan/shared-types";
+import type { LeaveRequest } from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 const { formatShortDate } = useDateFormatter();

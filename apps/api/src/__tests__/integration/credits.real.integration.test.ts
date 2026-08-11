@@ -14,8 +14,8 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import {
   createTestDatabase,
   type TestDatabase,
-} from "@makanmakan/database/testing";
-import { creditAccounts, creditLedgerEntries } from "@makanmakan/database";
+} from "@makanmasak/database/testing";
+import { creditAccounts, creditLedgerEntries } from "@makanmasak/database";
 import { eq } from "drizzle-orm";
 import type { Env } from "../../types/env";
 import { CreditService } from "../../features/credits/services/CreditService";

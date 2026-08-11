@@ -41,11 +41,11 @@ const serviceFns = vi.hoisted(() => ({
   submitMemberVerification: vi.fn(),
 }));
 
-vi.mock("@makanmakan/database", async (importOriginal) => {
-  // moduleGate.ts also imports from "@makanmakan/database" (PLAN_DEFAULT_MODULES
+vi.mock("@makanmasak/database", async (importOriginal) => {
+  // moduleGate.ts also imports from "@makanmasak/database" (PLAN_DEFAULT_MODULES
   // etc.) and this file exercises the real moduleGate, so this mock must keep
   // every other export intact and only override PartnershipService.
-  const actual = await importOriginal<typeof import("@makanmakan/database")>();
+  const actual = await importOriginal<typeof import("@makanmasak/database")>();
   return {
     ...actual,
     PartnershipService: class {

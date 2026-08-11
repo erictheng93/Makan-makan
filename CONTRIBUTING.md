@@ -227,7 +227,7 @@ try {
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import type { Order } from "@makanmakan/shared-types";
+import type { Order } from "@makanmasak/shared-types";
 
 // Props 定義
 interface Props {
@@ -395,7 +395,7 @@ describe("POST /api/v1/orders", () => {
 
 ### 使用測試數據工廠
 
-**使用 `@makanmakan/testing-utils`**：
+**使用 `@makanmasak/testing-utils`**：
 
 ```typescript
 import {
@@ -404,7 +404,7 @@ import {
   orderFactory,
   buildCompleteRestaurantData,
   resetAllFactories,
-} from "@makanmakan/testing-utils";
+} from "@makanmasak/testing-utils";
 
 describe("Order Flow", () => {
   beforeEach(() => {

@@ -20,7 +20,7 @@ import {
   restaurants,
   restaurantMarketMemberships,
   restaurantServiceItems,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import { eq } from "drizzle-orm";
 import { SearchIndexSyncService } from "../../features/discovery/services/SearchIndexSyncService";
 

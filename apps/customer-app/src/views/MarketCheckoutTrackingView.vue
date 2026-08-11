@@ -382,7 +382,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import type { OrderPaymentStatus, OrderStatus } from "@makanmakan/shared-types";
+import type { OrderPaymentStatus, OrderStatus } from "@makanmasak/shared-types";
 import {
   orderApi,
   type MarketCheckoutProviderNextAction,

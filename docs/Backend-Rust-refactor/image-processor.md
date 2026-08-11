@@ -128,7 +128,7 @@ specific to `apps/api`, not shared by this Worker).
 | GET | `/images/jobs/:jobId` | JWT | Poll processing job status | — | `{success, data: ImageProcessingJob}` |
 | POST | `/images/bulk` | JWT, role ∈ {0,1} | Bulk delete/update_category/update_tags/generate_variants across up to 100 images | JSON `{imageIds[1..100], operation, data?}` | `{success, data:{operation, processed, successful, failed, results[]}}` |
 | GET | `/analytics/dashboard` | JWT, role ∈ {0,1} | Aggregated image analytics | query: `restaurantId?, dateFrom?, dateTo?` | `{success, data: ImageAnalytics}` |
-| GET | `/analytics/storage` | JWT, role ∈ {0,1} | Storage usage breakdown (delegates to `@makanmakan/database`'s `ImageService.getStorageAnalytics`) | same query | `{success, data}` |
+| GET | `/analytics/storage` | JWT, role ∈ {0,1} | Storage usage breakdown (delegates to `@makanmasak/database`'s `ImageService.getStorageAnalytics`) | same query | `{success, data}` |
 | GET | `/analytics/usage` | JWT, role ∈ {0,1} | Usage/view analytics (delegates to `getUsageAnalytics`) | same query | `{success, data}` |
 | GET | `/analytics/performance` | JWT, role ∈ {0,1} | Processing-job performance (delegates to `getPerformanceAnalytics`) | same query | `{success, data}` |
 | GET | `/analytics/export` | JWT, role ∈ {0,1} | **Stub only** — does not generate a file; returns a fabricated `download_url` pointing at `api.makanmakan.com` (a domain that does not match this Worker's own routes) | query: `+type, format` | `{success, data:{type, format, message:"...would generate...", download_url, expires_at}}` |
@@ -251,7 +251,7 @@ stack trace.
 - Cloudflare R2 via `IMAGES_BUCKET` — upload, public delivery, deletion, and
   orphan sweep.
 - Slack incoming webhook (`SLACK_WEBHOOK_URL`) — error notifications (global `onError` handler and scheduled-task catch block) and the daily stats report.
-- Shared `@makanmakan/database` package — `createDatabase(env.DB)` (Drizzle) for direct schema access in `index.ts`, and the package's own `ImageService` class (`services/image-service.ts` wraps/re-exports it) for CRUD/analytics against `images`, `image_views`, `image_processing_jobs`.
+- Shared `@makanmasak/database` package — `createDatabase(env.DB)` (Drizzle) for direct schema access in `index.ts`, and the package's own `ImageService` class (`services/image-service.ts` wraps/re-exports it) for CRUD/analytics against `images`, `image_views`, `image_processing_jobs`.
 
 ## 8. Rust rewrite notes
 

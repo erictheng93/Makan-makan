@@ -537,8 +537,8 @@ hasn't run yet — then checks the row) for `market`.
 
 ### Cross-module dependencies
 
-- `@makanmakan/utils`: `generateUUID`, `normalizeE164Phone`.
-- `@makanmakan/shared-types`: `CUSTOMER_CONSENT_TYPES`,
+- `@makanmasak/utils`: `generateUUID`, `normalizeE164Phone`.
+- `@makanmasak/shared-types`: `CUSTOMER_CONSENT_TYPES`,
   `isCustomerConsentVersion` (consent-version whitelist check).
 - `apps/api/src/middleware/auth.ts`: `canonicalCustomerAuthMiddleware`,
   `verifyJwtToken` (shared low-level JWT verify used for the refresh-token
@@ -728,7 +728,7 @@ Otherwise delegates entirely to `UsageService.getCurrentUsage(restaurantId)`
 - No JSON columns of its own; `moduleOverrides`/`effectiveModules` are
   `Record<ModuleKey, boolean>` maps defined by the `subscriptions`
   domain — treat as a small enum-keyed struct in Rust, not a free-form JSON
-  blob, since `ModuleKey` is a closed set (`@makanmakan/database`).
+  blob, since `ModuleKey` is a closed set (`@makanmasak/database`).
 
 ---
 

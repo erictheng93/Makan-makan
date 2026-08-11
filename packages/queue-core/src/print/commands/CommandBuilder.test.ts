@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { PrintContent } from "@makanmakan/shared-types";
+import type { PrintContent } from "@makanmasak/shared-types";
 import { CommandBuilder } from "./CommandBuilder";
 
 const createPrintContent = (): PrintContent => ({

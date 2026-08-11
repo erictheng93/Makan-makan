@@ -21,7 +21,7 @@ import {
   categories,
   restaurantMarketMemberships,
   restaurantServiceItems,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import { boundingBoxFromCircle, distanceKm } from "../../markets/services/geo";
 import type {
   DishSearchResult,

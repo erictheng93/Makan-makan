@@ -3,7 +3,7 @@ import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const repoRoot = process.cwd();
-const queueServicePackage = "@makanmakan/" + "queue-service";
+const queueServicePackage = "@makanmasak/" + "queue-service";
 
 const dependencySections = [
   "dependencies",

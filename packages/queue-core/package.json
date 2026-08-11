@@ -1,5 +1,5 @@
 {
-  "name": "@makanmakan/queue-core",
+  "name": "@makanmasak/queue-core",
   "version": "1.0.0",
   "description": "MakanMasak Queue System - Core Types and Interfaces",
   "main": "dist/index.js",
@@ -26,7 +26,7 @@
     "vitest": "^4.1.0"
   },
   "dependencies": {
-    "@makanmakan/shared-types": "workspace:*",
+    "@makanmasak/shared-types": "workspace:*",
     "zod": "^4.4.3"
   },
   "exports": {

@@ -8,7 +8,7 @@
 import { verify } from "hono/jwt";
 import type { Context, Next } from "hono";
 import type { ManagementEnv } from "../types";
-import { ApiError, unauthorized } from "@makanmakan/utils";
+import { ApiError, unauthorized } from "@makanmasak/utils";
 
 export interface ManagementUser {
   id: string;

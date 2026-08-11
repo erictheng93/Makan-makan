@@ -5,7 +5,7 @@ import {
   menuItemIngredients,
   ingredientDefinitions,
   menuItems,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type { RecipeEntryResponse } from "../types";
 
 export class RecipeService {

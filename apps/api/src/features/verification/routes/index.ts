@@ -6,7 +6,7 @@
 
 import { Hono } from "hono";
 import type { Context } from "hono";
-import { VerificationService } from "@makanmakan/database";
+import { VerificationService } from "@makanmasak/database";
 import {
   rateLimitMiddleware,
   RateLimitPresets,

@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import type { Restaurant } from "@makanmakan/shared-types";
+import type { Restaurant } from "@makanmasak/shared-types";
 import { translate } from "@/utils/i18n";
 
 export const useAppStore = defineStore("app", () => {

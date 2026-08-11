@@ -4,7 +4,7 @@
  */
 
 import { z } from "zod";
-import { RESTAURANT_SERVICE_TYPES } from "@makanmakan/database";
+import { RESTAURANT_SERVICE_TYPES } from "@makanmasak/database";
 import { VALIDATION_LIMITS } from "../../../shared/constants";
 import { httpUrlSchema } from "../../../shared/utils/url";
 

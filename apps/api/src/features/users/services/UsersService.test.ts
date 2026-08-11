@@ -21,7 +21,7 @@ const dbMocks = vi.hoisted(() => ({
   AuthServiceCtor: vi.fn(),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   USER_ROLES: {
     ADMIN: 0,
     OWNER: 1,

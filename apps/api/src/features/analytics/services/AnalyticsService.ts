@@ -3,7 +3,7 @@
  * Business logic for analytics operations within the feature module
  */
 
-import { AnalyticsService as DatabaseAnalyticsService } from "@makanmakan/database";
+import { AnalyticsService as DatabaseAnalyticsService } from "@makanmasak/database";
 import {
   KVCacheService,
   NoopCacheService,

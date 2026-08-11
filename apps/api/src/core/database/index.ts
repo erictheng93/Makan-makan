@@ -4,9 +4,9 @@
  */
 
 // Re-export existing database functionality
-import { createDatabase as createDB } from "@makanmakan/database";
+import { createDatabase as createDB } from "@makanmasak/database";
 export const createDatabase = createDB;
-export type { Database } from "@makanmakan/database";
+export type { Database } from "@makanmasak/database";
 
 // Database connection helper for features
 import type { Env } from "../../shared/types";

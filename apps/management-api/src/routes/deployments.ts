@@ -6,7 +6,7 @@
 
 import { Hono } from "hono";
 import { z } from "zod";
-import { ApiError, badRequest } from "@makanmakan/utils";
+import { ApiError, badRequest } from "@makanmasak/utils";
 import type { ManagementEnv } from "../types";
 import { ProvisioningService } from "../services/ProvisioningService";
 import { MigrationService } from "../services/MigrationService";

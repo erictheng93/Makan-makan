@@ -1843,7 +1843,7 @@ import { filterMarketJoinRequestOptions } from "@/utils/marketJoinRequestOptions
 import { formatMarketMembershipLocation } from "@/utils/marketMembershipDisplay";
 import { setRestaurantCurrency } from "@/composables/useCurrency";
 import { printQRCodeSheet, toPrintableDataUrl } from "@/utils/qrPrintSheet";
-import type { CurrencyCode } from "@makanmakan/shared-types";
+import type { CurrencyCode } from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 const toast = useToast();

@@ -22,19 +22,19 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
-      "@makanmakan/shared-types": fileURLToPath(
+      "@makanmasak/shared-types": fileURLToPath(
         new URL("../../packages/shared-types/src", import.meta.url),
       ),
-      "@makanmakan/i18n": fileURLToPath(
+      "@makanmasak/i18n": fileURLToPath(
         new URL("../../packages/shared/src/i18n/src", import.meta.url),
       ),
-      "@makanmakan/i18n/locale-manager": fileURLToPath(
+      "@makanmasak/i18n/locale-manager": fileURLToPath(
         new URL(
           "../../packages/shared/src/i18n/src/locale-manager.ts",
           import.meta.url,
         ),
       ),
-      "@makanmakan/i18n/types": fileURLToPath(
+      "@makanmasak/i18n/types": fileURLToPath(
         new URL("../../packages/shared/src/i18n/src/types.ts", import.meta.url),
       ),
     },

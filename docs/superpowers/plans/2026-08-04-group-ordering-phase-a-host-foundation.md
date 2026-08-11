@@ -15,8 +15,8 @@
 - Every schema change must be paired in both `packages/database/migrations_fresh/` (fresh baseline, used by `apps/api/wrangler.toml`) and `packages/database/migrations/` (legacy Wrangler track, used by `apps/management-api/wrangler.toml`), registered in `packages/database/migration-dual-track.json`, and verified with `pnpm check:migration-dual-track`.
 - Timestamps are `INTEGER` Unix milliseconds via Drizzle `{ mode: "timestamp_ms" }`; TypeScript code passes `Date` objects, never raw numbers.
 - No raw string SQL in application code — Drizzle query builder or `sql` + schema refs only.
-- API error responses go through `ApiError`/`badRequest`/`notFound`/`forbidden`/`conflict` from `@makanmakan/utils` (re-exported at `apps/api/src/shared/utils/api-error.ts`) — never hand-roll an error JSON shape.
-- Tests: local builder functions, not `@makanmakan/testing-utils` (doesn't exist). Verify mock calls with `expect(...).toHaveBeenCalledWith(expect.objectContaining(...))`, never exact-match generated IDs/timestamps.
+- API error responses go through `ApiError`/`badRequest`/`notFound`/`forbidden`/`conflict` from `@makanmasak/utils` (re-exported at `apps/api/src/shared/utils/api-error.ts`) — never hand-roll an error JSON shape.
+- Tests: local builder functions, not `@makanmasak/testing-utils` (doesn't exist). Verify mock calls with `expect(...).toHaveBeenCalledWith(expect.objectContaining(...))`, never exact-match generated IDs/timestamps.
 
 ---
 
@@ -145,7 +145,7 @@ describe("moduleGate guest-restaurantId fallback", () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/middleware/moduleGate.guest-fallback.test.ts`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/middleware/moduleGate.guest-fallback.test.ts`
 Expected: FAIL — `moduleGate` currently accepts only one argument, the fallback is never called, first test gets `403 NO_RESTAURANT` instead of `200`.
 
 - [ ] **Step 3: Implement the fallback parameter**
@@ -210,12 +210,12 @@ export function moduleGate(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/middleware/moduleGate.guest-fallback.test.ts`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/middleware/moduleGate.guest-fallback.test.ts`
 Expected: PASS (both tests)
 
 - [ ] **Step 5: Run the full moduleGate test suite to check for regressions**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/middleware/moduleGate`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/middleware/moduleGate`
 Expected: PASS — existing `moduleGate("x")` one-argument call sites are unaffected (`resolveGuestRestaurantId` is `undefined`, `await undefined?.()` short-circuits to `undefined`, identical to today's behavior).
 
 - [ ] **Step 6: Commit**
@@ -389,7 +389,7 @@ Expected: PASS
 
 - [ ] **Step 6: Run the existing group-orders test suite for regressions**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/group-orders`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/group-orders`
 Expected: PASS — `createGroupOrder` still inserts `createdBy: hostId` (a non-null string in every existing call site so far), so no existing behavior changes yet; this task only makes the column *capable* of being null. `recoveryCode` isn't written yet either — that's Task 4. If any test inserts a `group_orders` row directly without a `recovery_code` (bypassing the service), it will now fail NOT NULL; fix by adding a `recoveryCode` value to that test's fixture, not by loosening the schema.
 
 - [ ] **Step 7: Commit**
@@ -458,11 +458,11 @@ export interface GroupOrderSettings {
 }
 ```
 
-This is a pure type change with no runtime code — no test file needed for this step. `pnpm --filter @makanmakan/shared-types typecheck` (or the workspace-wide `pnpm typecheck`) is the verification.
+This is a pure type change with no runtime code — no test file needed for this step. `pnpm --filter @makanmasak/shared-types typecheck` (or the workspace-wide `pnpm typecheck`) is the verification.
 
 - [ ] **Step 2: Typecheck**
 
-Run: `pnpm --filter @makanmakan/shared-types typecheck`
+Run: `pnpm --filter @makanmasak/shared-types typecheck`
 Expected: PASS
 
 - [ ] **Step 3: Commit**
@@ -560,7 +560,7 @@ describe("createGroupOrder — guest host", () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/group-orders/services/GroupOrdersService.test.ts -t "guest host"`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/group-orders/services/GroupOrdersService.test.ts -t "guest host"`
 Expected: FAIL — `hostId` is typed as `string` (not nullable) so this won't even compile yet; `recoveryCode` isn't generated; the 24-hour default and lack of settings fields also fail the other assertions.
 
 - [ ] **Step 3: Implement**
@@ -741,12 +741,12 @@ Note the cache-scrubbing destructure now also strips `recoveryCode`, for the sam
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/group-orders/services/GroupOrdersService.test.ts`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/group-orders/services/GroupOrdersService.test.ts`
 Expected: PASS (new tests and all pre-existing ones in the file)
 
 - [ ] **Step 5: Typecheck**
 
-Run: `pnpm --filter @makanmakan/api typecheck`
+Run: `pnpm --filter @makanmasak/api typecheck`
 Expected: PASS
 
 - [ ] **Step 6: Commit**
@@ -810,7 +810,7 @@ it("allows an anonymous guest to create a group order without a JWT", async () =
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/group-orders/routes/anonymous-access.test.ts`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/group-orders/routes/anonymous-access.test.ts`
 Expected: FAIL — `POST /create` currently 401s with no JWT (`authMiddleware` + `requireRole` reject it before reaching the handler).
 
 - [ ] **Step 3: Update the validation schema**
@@ -919,12 +919,12 @@ import { authMiddleware, requireRole, optionalAuth } from "../../../middleware/a
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/group-orders/routes`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/group-orders/routes`
 Expected: PASS — including the pre-existing `index.test.ts` cases for `/create`, which now need their mocked auth layer adjusted from a required-JWT expectation to an `optionalAuth`-compatible one (update those fixtures to either supply a staff JWT and assert `createGroupOrder` is called with that user's id, or omit it and assert `null` — do not delete existing staff-hosted coverage, add the guest case alongside it).
 
 - [ ] **Step 6: Typecheck and lint**
 
-Run: `pnpm --filter @makanmakan/api typecheck && pnpm --filter @makanmakan/api lint`
+Run: `pnpm --filter @makanmasak/api typecheck && pnpm --filter @makanmasak/api lint`
 Expected: PASS
 
 - [ ] **Step 7: Commit**
@@ -1011,7 +1011,7 @@ it("returns a join preview without a JWT and without joining", async () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/group-orders -t "preview"`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/group-orders -t "preview"`
 Expected: FAIL — `previewGroupByShareCode` doesn't exist yet; `GET /join/:shareCode` isn't a registered route (only `POST /join/:shareCode` exists).
 
 - [ ] **Step 3: Implement the service method**
@@ -1111,12 +1111,12 @@ app.get(
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/group-orders`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/group-orders`
 Expected: PASS
 
 - [ ] **Step 6: Typecheck**
 
-Run: `pnpm --filter @makanmakan/api typecheck`
+Run: `pnpm --filter @makanmasak/api typecheck`
 Expected: PASS
 
 - [ ] **Step 7: Commit**
@@ -1202,7 +1202,7 @@ it("allows anonymous host recovery without a JWT", async () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/group-orders -t "recover"`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/group-orders -t "recover"`
 Expected: FAIL — `recoverHost` doesn't exist; the route isn't registered.
 
 - [ ] **Step 3: Implement the service method**
@@ -1320,17 +1320,17 @@ app.post(
 
 - [ ] **Step 6: Run tests to verify they pass**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/group-orders`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/group-orders`
 Expected: PASS
 
 - [ ] **Step 7: Typecheck and lint**
 
-Run: `pnpm --filter @makanmakan/api typecheck && pnpm --filter @makanmakan/api lint`
+Run: `pnpm --filter @makanmasak/api typecheck && pnpm --filter @makanmasak/api lint`
 Expected: PASS
 
 - [ ] **Step 8: Run the full API test suite once for this phase**
 
-Run: `pnpm --filter @makanmakan/api test`
+Run: `pnpm --filter @makanmasak/api test`
 Expected: PASS — this is the final task of Phase A; confirm no regressions anywhere else in the API package before moving to Phase B.
 
 - [ ] **Step 9: Commit**

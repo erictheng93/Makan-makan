@@ -1,7 +1,7 @@
 import { apiClient, unwrapApiData } from "./api";
 import type { ApiResponse } from "@/types";
 
-// 新模組化類型定義 - 對應 @makanmakan/queue-core 類型
+// 新模組化類型定義 - 對應 @makanmasak/queue-core 類型
 export interface QueueItem {
   id: string;
   queueNumber: number;

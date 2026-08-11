@@ -21,7 +21,7 @@ import {
 import {
   SERVICE_BOOKING_STATUS,
   type ServiceBookingStatus,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import {
   MAX_BATCH_SLOT_CREATION_COUNT,
   ServiceBookingService,

@@ -6,18 +6,18 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
     "paths": {
       "@/*": ["./src/*"],
-      "@makanmakan/i18n": ["../../packages/shared/src/i18n/src/index.ts"],
-      "@makanmakan/i18n/locale-manager": [
+      "@makanmasak/i18n": ["../../packages/shared/src/i18n/src/index.ts"],
+      "@makanmasak/i18n/locale-manager": [
         "../../packages/shared/src/i18n/src/locale-manager.ts"
       ],
-      "@makanmakan/i18n/static-messages": [
+      "@makanmasak/i18n/static-messages": [
         "../../packages/shared/src/i18n/src/static-messages.ts"
       ],
-      "@makanmakan/i18n/types": ["../../packages/shared/src/i18n/src/types.ts"],
-      "@makanmakan/shared-types": ["../../packages/shared-types/src"],
-      "@makanmakan/shared-types/*": ["../../packages/shared-types/src/*"],
-      "@makanmakan/utils": ["../../packages/utils/src"],
-      "@makanmakan/utils/*": ["../../packages/utils/src/*"]
+      "@makanmasak/i18n/types": ["../../packages/shared/src/i18n/src/types.ts"],
+      "@makanmasak/shared-types": ["../../packages/shared-types/src"],
+      "@makanmasak/shared-types/*": ["../../packages/shared-types/src/*"],
+      "@makanmasak/utils": ["../../packages/utils/src"],
+      "@makanmasak/utils/*": ["../../packages/utils/src/*"]
     }
   },
   "include": [

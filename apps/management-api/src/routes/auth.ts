@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { sign, verify } from "hono/jwt";
-import { badRequest, unauthorized } from "@makanmakan/utils";
+import { badRequest, unauthorized } from "@makanmasak/utils";
 import type { ManagementEnv } from "../types";
 import {
   MANAGEMENT_JWT_AUDIENCE,

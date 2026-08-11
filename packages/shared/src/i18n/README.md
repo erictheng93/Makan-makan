@@ -80,7 +80,7 @@ app.use(i18n)
 
 ```typescript
 // apps/customer-app/src/i18n/index.ts
-import { createAppI18n } from "@makanmakan/i18n";
+import { createAppI18n } from "@makanmasak/i18n";
 export const i18n = createAppI18n<CustomerAppMessages>("customer");
 ```
 
@@ -88,7 +88,7 @@ export const i18n = createAppI18n<CustomerAppMessages>("customer");
 
 ```typescript
 // apps/kitchen-display/src/i18n/index.ts
-import { createAppI18n } from "@makanmakan/i18n";
+import { createAppI18n } from "@makanmasak/i18n";
 export const i18n = createAppI18n<KitchenDisplayMessages>("kitchen");
 ```
 
@@ -160,14 +160,14 @@ rules: {
 
 ```bash
 # Root package.json workspace dependency
-"@makanmakan/i18n": "workspace:*"
+"@makanmasak/i18n": "workspace:*"
 ```
 
 ### 2. Setup App i18n
 
 ```typescript
 // apps/[app]/src/i18n/index.ts
-import { createAppI18n } from "@makanmakan/i18n";
+import { createAppI18n } from "@makanmasak/i18n";
 export const i18n = createAppI18n<AppMessages>("app-name");
 
 // apps/[app]/src/main.ts

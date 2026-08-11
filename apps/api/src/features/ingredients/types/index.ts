@@ -6,12 +6,12 @@ export type {
   BulkImportRequest,
   RecipeEntryResponse,
   SetRecipeRequest,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 import type {
   IngredientDefinitionResponse,
   RecipeEntryResponse,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // API-only types (service internals)
 

@@ -10,7 +10,7 @@ import {
   RealtimeEventType,
   type GroupOrderFeeMode,
   type GroupOrderStatus,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import {
   clearHostCredentials,
   clearMemberCredentials,

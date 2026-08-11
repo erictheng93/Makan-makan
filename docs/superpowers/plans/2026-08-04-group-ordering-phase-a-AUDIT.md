@@ -61,15 +61,15 @@
   - fallback 回傳 Promise → 正確 await（plan 原文沒測這條，必須補）
 - [ ] **A-3** `quotaGate` 亦支援 guest fallback，且新增測試證明：**無登入使用者 + fallback 提供 restaurantId 時，配額硬上限仍會擋下請求**（回應非 200）。這是 G-1 的關閉條件。
 - [ ] **A-4** 現有所有 `moduleGate("x")` / `quotaGate("x")` 單參數呼叫點行為不變。
-  證據：`grep -rn "moduleGate(\|quotaGate(" apps/api/src --include=*.ts | grep -v test` 列出的呼叫點數量，與 `pnpm --filter @makanmakan/api exec vitest run src/middleware` 全綠。
-- [ ] **A-5** `pnpm --filter @makanmakan/api typecheck` 通過。
+  證據：`grep -rn "moduleGate(\|quotaGate(" apps/api/src --include=*.ts | grep -v test` 列出的呼叫點數量，與 `pnpm --filter @makanmasak/api exec vitest run src/middleware` 全綠。
+- [ ] **A-5** `pnpm --filter @makanmasak/api typecheck` 通過。
 - [ ] **A-6** commit 為獨立且自身綠燈的 commit。
 
 ### 需提交的證據
 
 ```
-pnpm --filter @makanmakan/api exec vitest run src/middleware
-pnpm --filter @makanmakan/api typecheck
+pnpm --filter @makanmasak/api exec vitest run src/middleware
+pnpm --filter @makanmasak/api typecheck
 git log --oneline -2
 ```
 
@@ -108,7 +108,7 @@ sqlite3 "<local d1 path>" "PRAGMA table_info(group_orders);"
 sqlite3 "<local d1 path>" "SELECT type, name FROM sqlite_master WHERE tbl_name='group_orders' ORDER BY type, name;"
 pnpm check:migration-dual-track
 pnpm typecheck
-pnpm --filter @makanmakan/api exec vitest run src/features/group-orders
+pnpm --filter @makanmasak/api exec vitest run src/features/group-orders
 ```
 
 ---
@@ -135,14 +135,14 @@ pnpm --filter @makanmakan/api exec vitest run src/features/group-orders
   - 合法 JSON body → 通過驗證並進入 handler
   - body 為空／非 JSON → 回 400 驗證錯誤，**不是 500**
 - [ ] **C-11（G-1 關閉條件）** 匿名建立團購單時配額仍受檢查：mock 一個已達硬上限的 restaurant，匿名 `POST /create` 必須被擋（非 200）。
-- [ ] **C-12** `pnpm --filter @makanmakan/api typecheck && pnpm --filter @makanmakan/api lint` 通過。
+- [ ] **C-12** `pnpm --filter @makanmasak/api typecheck && pnpm --filter @makanmasak/api lint` 通過。
 
 ### 需提交的證據
 
 ```
-pnpm --filter @makanmakan/api exec vitest run src/features/group-orders
-pnpm --filter @makanmakan/api typecheck
-pnpm --filter @makanmakan/api lint
+pnpm --filter @makanmasak/api exec vitest run src/features/group-orders
+pnpm --filter @makanmasak/api typecheck
+pnpm --filter @makanmasak/api lint
 git diff --stat HEAD~4..HEAD
 ```
 
@@ -177,7 +177,7 @@ git diff --stat HEAD~4..HEAD
 
 #### Phase A 總驗收
 
-- [ ] **D-13** `pnpm --filter @makanmakan/api test` 全綠。
+- [ ] **D-13** `pnpm --filter @makanmasak/api test` 全綠。
 - [ ] **D-14** `pnpm typecheck && pnpm lint` 全綠。
 - [ ] **D-15** Stage 0 的 G-1 / G-2 / G-3 三項皆已關閉，並在稽核時說明各自的關閉方式。
 - [ ] **D-16** 全部 commit 為原子 commit，每個各自綠燈。
@@ -185,7 +185,7 @@ git diff --stat HEAD~4..HEAD
 ### 需提交的證據
 
 ```
-pnpm --filter @makanmakan/api test
+pnpm --filter @makanmasak/api test
 pnpm typecheck
 pnpm lint
 git log --oneline -10

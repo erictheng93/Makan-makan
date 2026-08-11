@@ -22,12 +22,12 @@ import type {
 } from "../types";
 import { OrdersService } from "../../orders/services/OrdersService";
 import { forbidden } from "../../../shared/utils/api-error";
-import { RealtimeBroadcastService } from "@makanmakan/database";
+import { RealtimeBroadcastService } from "@makanmasak/database";
 import {
   RealtimeEventType,
   type KitchenItemStatusEvent,
   type OrderItemStatusUpdateEvent,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 type KitchenOrderItemStatus = OrderItemStatusUpdate["status"];
 

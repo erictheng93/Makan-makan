@@ -4,11 +4,11 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { sign } from "hono/jwt";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { generateUUID, normalizeE164Phone } from "@makanmakan/utils";
+import { generateUUID, normalizeE164Phone } from "@makanmasak/utils";
 import {
   CUSTOMER_CONSENT_TYPES,
   isCustomerConsentVersion,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import type { Env } from "../../../types/env";
 import {
   canonicalCustomerAuthMiddleware,

@@ -10,7 +10,7 @@ vi.mock("@/utils/i18n", () => ({
   translate: (key: string) => key,
 }));
 
-vi.mock("@makanmakan/utils", () => ({
+vi.mock("@makanmasak/utils", () => ({
   getRefreshDelay: vi.fn(() => 0),
 }));
 

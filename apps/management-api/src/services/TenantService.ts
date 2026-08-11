@@ -13,14 +13,14 @@ import type {
   TenantStatus,
   OnboardingPlanId,
 } from "../types";
-import { generateUUID } from "@makanmakan/utils";
+import { generateUUID } from "@makanmasak/utils";
 import { generateLicenseKey, randomBase36Upper } from "../utils/random";
 import { createSubdomainBase } from "../utils/subdomain";
 import {
   DEFAULT_BILLING_CYCLE_MS,
   planIdToTier,
   TRIAL_DURATION_MS,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 
 export class TenantService {
   private env: ManagementEnv;

@@ -1,5 +1,5 @@
 {
-  "name": "@makanmakan/queue-service",
+  "name": "@makanmasak/queue-service",
   "version": "1.0.0",
   "description": "MakanMasak Queue System - Service Layer Implementation",
   "main": "dist/index.js",
@@ -23,7 +23,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@makanmakan/queue-core": "workspace:*",
+    "@makanmasak/queue-core": "workspace:*",
     "zod": "^4.4.3"
   },
   "exports": {

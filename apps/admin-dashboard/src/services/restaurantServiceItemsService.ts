@@ -3,7 +3,7 @@ import type {
   CreateRestaurantServiceItemRequest,
   RestaurantServiceItem,
   UpdateRestaurantServiceItemRequest,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 export type ServiceItemFormInput = Omit<
   CreateRestaurantServiceItemRequest,

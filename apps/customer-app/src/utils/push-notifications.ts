@@ -4,7 +4,7 @@
  */
 
 import { customerIdentityApi } from "@/services/customerIdentityApi";
-import { CUSTOMER_CONSENT_VERSIONS } from "@makanmakan/shared-types";
+import { CUSTOMER_CONSENT_VERSIONS } from "@makanmasak/shared-types";
 
 export interface NotificationSubscription {
   endpoint: string;

@@ -94,7 +94,7 @@ it("does not roll back cancellation when notification dispatch fails", async () 
 
 - [ ] **Step 2: Run tests to verify red**
 
-Run: `pnpm --filter @makanmakan/database test:run -- ReservationService.real.test.ts`
+Run: `pnpm --filter @makanmasak/database test:run -- ReservationService.real.test.ts`
 
 Expected: the new tests fail because `ReservationService` does not accept or call a notifier.
 
@@ -267,8 +267,8 @@ private async notifyReservation(
 - [ ] **Step 5: Run tests and commit**
 
 Run:
-- `pnpm --filter @makanmakan/database test:run -- ReservationService.real.test.ts`
-- `pnpm --filter @makanmakan/database typecheck`
+- `pnpm --filter @makanmasak/database test:run -- ReservationService.real.test.ts`
+- `pnpm --filter @makanmasak/database typecheck`
 
 Commit:
 
@@ -330,7 +330,7 @@ If there is no test seam for `generateExcel`, add one minimal public wrapper onl
 - [ ] **Step 3: Run tests to verify red**
 
 Run:
-- `pnpm --filter @makanmakan/database test:run -- PrinterService ExportService`
+- `pnpm --filter @makanmasak/database test:run -- PrinterService ExportService`
 
 Expected: tests fail on current fabricated stats and `.xlsx` relabeling.
 
@@ -378,8 +378,8 @@ If product requires real XLSX, add a package dependency and assert the ZIP magic
 - [ ] **Step 6: Run tests and commit**
 
 Run:
-- `pnpm --filter @makanmakan/database test:run -- PrinterService ExportService`
-- `pnpm --filter @makanmakan/database typecheck`
+- `pnpm --filter @makanmasak/database test:run -- PrinterService ExportService`
+- `pnpm --filter @makanmasak/database typecheck`
 
 Commit:
 
@@ -446,10 +446,10 @@ Keep non-security sampling uses of `Math.random()` in monitoring/performance uti
 - [ ] **Step 4: Run tests and commit**
 
 Run:
-- `pnpm --filter @makanmakan/database test:run -- qrcode POSService ReceiptFormatter`
-- `pnpm --filter @makanmakan/api test -- QrCodesService ReceiptService RefundService`
-- `pnpm --filter @makanmakan/database typecheck`
-- `pnpm --filter @makanmakan/api typecheck`
+- `pnpm --filter @makanmasak/database test:run -- qrcode POSService ReceiptFormatter`
+- `pnpm --filter @makanmasak/api test -- QrCodesService ReceiptService RefundService`
+- `pnpm --filter @makanmasak/database typecheck`
+- `pnpm --filter @makanmasak/api typecheck`
 
 Commit:
 
@@ -549,10 +549,10 @@ For Drizzle D1 services, follow the current `OrderService.createOrder` pattern: 
 - [ ] **Step 4: Run focused money-path tests**
 
 Run:
-- `pnpm --filter @makanmakan/database test:run -- order.test.ts POSService`
-- `pnpm --filter @makanmakan/api test -- refundPayment PaymentService RefundService`
-- `pnpm --filter @makanmakan/database typecheck`
-- `pnpm --filter @makanmakan/api typecheck`
+- `pnpm --filter @makanmasak/database test:run -- order.test.ts POSService`
+- `pnpm --filter @makanmasak/api test -- refundPayment PaymentService RefundService`
+- `pnpm --filter @makanmasak/database typecheck`
+- `pnpm --filter @makanmasak/api typecheck`
 
 - [ ] **Step 5: Commit**
 
@@ -606,8 +606,8 @@ it("reports isolate uptime based on service start time", async () => {
 - [ ] **Step 3: Run tests and commit**
 
 Run:
-- `pnpm --filter @makanmakan/api test -- system/routes monitoring/services/MonitoringService`
-- `pnpm --filter @makanmakan/api typecheck`
+- `pnpm --filter @makanmasak/api test -- system/routes monitoring/services/MonitoringService`
+- `pnpm --filter @makanmasak/api typecheck`
 
 Commit:
 
@@ -644,7 +644,7 @@ it("handles the weekly report cron literal configured in wrangler.toml", async (
 
 - [ ] **Step 2: Run test to verify current state**
 
-Run: `pnpm --filter @makanmakan/api test -- backup-scheduler`
+Run: `pnpm --filter @makanmasak/api test -- backup-scheduler`
 
 Expected current result: pass, because code and wrangler config both use `"0 0 * * SUN"`. If it fails, make the switch case match the exact configured cron literal.
 

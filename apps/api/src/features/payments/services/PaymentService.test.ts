@@ -18,7 +18,7 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
 
-vi.mock("@makanmakan/utils", async (importOriginal) => ({
+vi.mock("@makanmasak/utils", async (importOriginal) => ({
   ...((await importOriginal()) as Record<string, unknown>),
   generateUUID: vi.fn(() => "audit-id"),
 }));

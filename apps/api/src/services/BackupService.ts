@@ -16,7 +16,7 @@ import type {
   BackupAlert,
   BackupAuditLog,
   BackupStatus,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import type {
   D1Database,
   R2Bucket,
@@ -29,8 +29,8 @@ import {
   backupConfigurations,
   backupRecords,
   systemAlerts,
-} from "@makanmakan/database";
-import { generateUUID } from "@makanmakan/utils";
+} from "@makanmasak/database";
+import { generateUUID } from "@makanmasak/utils";
 
 /**
  * System health derivation thresholds.

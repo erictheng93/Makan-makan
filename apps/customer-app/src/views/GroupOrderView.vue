@@ -8,7 +8,7 @@ import { useGroupOrder } from "@/composables/useGroupOrder";
 import { useI18n } from "@/composables/useI18n";
 import { getGroupOrderErrorI18nKey } from "@/utils/group-order-error";
 import type { SplitBillConfig } from "@/composables/useGroupOrder";
-import type { GroupOrderFeeMode } from "@makanmakan/shared-types";
+import type { GroupOrderFeeMode } from "@makanmasak/shared-types";
 
 const props = defineProps<{
   groupOrderId: string;

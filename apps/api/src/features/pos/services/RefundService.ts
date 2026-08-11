@@ -14,11 +14,11 @@ import {
   businessNumber,
   dateFromUnixMs,
   sumMoneyAmount,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type { Refund, ProcessRefundRequest } from "../types";
 import { processRefundSchema } from "../schemas";
 import { toRequiredCents } from "../../../shared/utils/money";
-import { generateUUID } from "@makanmakan/utils";
+import { generateUUID } from "@makanmasak/utils";
 
 // K6 release gate: refunds issued while a shift is already closed must not
 // mutate the closed ledger totals or post a live cash movement. Instead the

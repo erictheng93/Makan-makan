@@ -1,7 +1,7 @@
 /**
  * Queue Core - Main Export File
  *
- * This is the main entry point for the @makanmakan/queue-core package.
+ * This is the main entry point for the @makanmasak/queue-core package.
  * It exports all types, interfaces, validators, and error classes.
  */
 

@@ -11,7 +11,7 @@ export type {
   TableFilters,
   QRCodeOptions,
   TableStats as DbTableStats,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 
 // Core table type (feature-specific, includes computed/joined fields)
 export interface Table {
@@ -76,7 +76,7 @@ export interface TableStats {
 export interface BulkQRRequest {
   restaurantId: string;
   tableIds: number[];
-  options?: import("@makanmakan/database").QRCodeOptions;
+  options?: import("@makanmasak/database").QRCodeOptions;
 }
 
 export interface QRCodeResult {
@@ -112,7 +112,7 @@ export interface BulkQRResult {
 }
 
 // Re-export shared pagination type
-export type { PaginatedResponse as PaginationResult } from "@makanmakan/shared-types";
+export type { PaginatedResponse as PaginationResult } from "@makanmasak/shared-types";
 
 export interface TableListResult {
   tables: Table[];

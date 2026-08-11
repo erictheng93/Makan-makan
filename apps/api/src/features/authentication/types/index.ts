@@ -4,7 +4,7 @@
  */
 
 // Import shared types that exist
-import type { UserRole } from "@makanmakan/shared-types";
+import type { UserRole } from "@makanmasak/shared-types";
 
 // Device and Location Information
 export interface DeviceInfo {

@@ -13,8 +13,8 @@
 import { randomUUID } from "crypto";
 import { drizzle } from "drizzle-orm/d1";
 import { and, eq, gt, isNotNull, isNull, lt, lte } from "drizzle-orm";
-import { groupActivityLogs, groupOrders } from "@makanmakan/database";
-import type { GroupOrderSettings } from "@makanmakan/shared-types";
+import { groupActivityLogs, groupOrders } from "@makanmasak/database";
+import type { GroupOrderSettings } from "@makanmasak/shared-types";
 import { GroupOrdersService } from "../features/group-orders/services/GroupOrdersService";
 import type { GroupOrderStatus } from "../features/group-orders/types";
 import type { Env } from "../types/env";

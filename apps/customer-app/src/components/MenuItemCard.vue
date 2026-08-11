@@ -381,7 +381,7 @@ import { menuItemElementId } from "@/utils/shopMenuDeepLink";
 import type {
   MenuItem,
   SelectedCustomizations,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import { useI18n } from "@/composables/useI18n";
 import { getLocalizedMenuName } from "@/utils/localized-menu-content";
 

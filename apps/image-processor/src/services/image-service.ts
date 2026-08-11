@@ -6,7 +6,7 @@ import type {
   ImageTransformation,
   StoredImageObject,
 } from "../types/env";
-import { ImageService as DatabaseImageService } from "@makanmakan/database";
+import { ImageService as DatabaseImageService } from "@makanmasak/database";
 import type { D1Database } from "@cloudflare/workers-types";
 
 type DatabaseImageServiceInstance = InstanceType<typeof DatabaseImageService>;

@@ -1,7 +1,7 @@
 > ⚠️ **SUPERSEDED (2026-07-05)**: This guide describes tooling
 > (`pnpm run factory:check`, `factory:badges`, `factory:report`,
 > `factory:usage`, `scripts/check-factory-usage.cjs`, an ESLint
-> `testing-utils` plugin) built entirely around the `@makanmakan/testing-utils`
+> `testing-utils` plugin) built entirely around the `@makanmasak/testing-utils`
 > package — which does not exist anywhere in this repo. None of the npm
 > scripts referenced here exist in `package.json`. The one CI workflow that
 > tried to run this check (`factory-usage-check.yml`) called a script that
@@ -104,7 +104,7 @@ pnpm run factory:check:ci
 ───────────────────────────────────────
 ❌ 發現 3 個錯誤，必須修復：
    1. 為使用 factory 的測試添加 resetAllFactories()
-   2. 確保正確導入 @makanmakan/testing-utils
+   2. 確保正確導入 @makanmasak/testing-utils
 
 ⚠️  發現 8 個警告，建議處理：
    1. 考慮使用 factory 替代手動數據創建
@@ -276,11 +276,11 @@ jobs:
 這些錯誤**必須修復**才能確保測試數據一致性：
 
 1. 為使用 factory 的測試添加 `resetAllFactories()`
-2. 確保正確導入 `@makanmakan/testing-utils`
+2. 確保正確導入 `@makanmasak/testing-utils`
 
 **修復範例**：
 \`\`\`typescript
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils"
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils"
 
 describe("Test Suite", () => {
 beforeEach(() => {
@@ -403,7 +403,7 @@ pnpm run factory:badges
 
 ```typescript
 // ❌ 錯誤
-import { userFactory } from "@makanmakan/testing-utils";
+import { userFactory } from "@makanmasak/testing-utils";
 
 describe("Test", () => {
   it("should work", () => {
@@ -412,7 +412,7 @@ describe("Test", () => {
 });
 
 // ✅ 正確
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 describe("Test", () => {
   beforeEach(() => {

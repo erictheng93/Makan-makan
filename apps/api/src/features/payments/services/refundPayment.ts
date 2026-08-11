@@ -8,7 +8,7 @@ import {
   orders,
   paymentTransactions,
   refundTransactions,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import {
   PAYMENT_AUDIT_EVENT_TYPES,
   PaymentAuditService,

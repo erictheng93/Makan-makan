@@ -4,7 +4,7 @@ import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useAIAnalytics } from "@/composables/useAIAnalytics";
 import { useCurrency } from "@/composables/useCurrency";
-import type { ProductAnalysis } from "@makanmakan/ai-analytics";
+import type { ProductAnalysis } from "@makanmasak/ai-analytics";
 
 // Icons
 import {

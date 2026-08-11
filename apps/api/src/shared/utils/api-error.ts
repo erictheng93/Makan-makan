@@ -10,4 +10,4 @@ export {
   forbidden,
   conflict,
   sanitizeApiErrorDetails,
-} from "@makanmakan/utils";
+} from "@makanmasak/utils";

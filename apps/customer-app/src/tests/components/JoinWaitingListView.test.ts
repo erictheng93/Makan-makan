@@ -3,7 +3,7 @@ import { mount } from "@vue/test-utils";
 import JoinWaitingListView from "@/views/waiting-list/JoinWaitingListView.vue";
 import { waitingListApi } from "@/services/waitingListApi";
 import customerPushService from "@/utils/push-notifications";
-import { WaitingStatus } from "@makanmakan/shared-types";
+import { WaitingStatus } from "@makanmasak/shared-types";
 
 vi.mock("@/composables/useI18n", () => ({
   useI18n: () => ({

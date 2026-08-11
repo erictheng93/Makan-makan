@@ -106,7 +106,7 @@ import { getLocalizedMenuName } from "@/utils/localized-menu-content";
 import type {
   CartItem,
   SelectedCustomizations,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 defineProps<{
   items: CartItem[];

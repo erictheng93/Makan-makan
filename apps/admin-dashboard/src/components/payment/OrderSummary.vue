@@ -226,12 +226,12 @@
 
 <script setup lang="ts">
 import { useI18n } from "@/i18n";
-import { formatCurrency as sharedFormatCurrency } from "@makanmakan/utils";
+import { formatCurrency as sharedFormatCurrency } from "@makanmasak/utils";
 import type {
   PaymentMethod,
   CountryCode,
   CurrencyCode,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // Types
 interface OrderItem {

@@ -3,7 +3,7 @@ import type { BatchItem } from "drizzle-orm/batch";
 import { drizzle } from "drizzle-orm/d1";
 import type { D1Database } from "@cloudflare/workers-types";
 import { v7 as uuidv7 } from "uuid";
-import type { MenuItemOptions } from "@makanmakan/shared-types";
+import type { MenuItemOptions } from "@makanmasak/shared-types";
 import {
   menuItems,
   optionChoices,

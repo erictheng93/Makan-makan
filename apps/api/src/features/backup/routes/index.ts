@@ -15,7 +15,7 @@ import type {
   KVNamespace,
 } from "@cloudflare/workers-types";
 import { validateBody, validateQuery } from "../../../middleware/validation";
-import { generateUUID } from "@makanmakan/utils";
+import { generateUUID } from "@makanmasak/utils";
 
 // Define proper Hono context with backup services
 type ContextVariableMap = {

@@ -92,7 +92,7 @@ apps/api/src/features/coupons/
 ### Existing Database Schema
 
 - **Tables Used**: `coupons`, `coupon_usage`, `coupon_distributions`, `coupon_templates`
-- **Service Base**: Extends `@makanmakan/database/CouponService`
+- **Service Base**: Extends `@makanmasak/database/CouponService`
 - **Type Imports**: Uses database types for consistency
 
 ### Enhanced Functionality

@@ -8,14 +8,14 @@ import {
   cashMovements,
   cashShifts,
   dateFromUnixMs,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type {
   CashMovement as _CashMovement,
   CashMovementRequest,
 } from "../types";
 import { cashMovementSchema } from "../schemas";
 import { toRequiredCents } from "../../../shared/utils/money";
-import { generateUUID } from "@makanmakan/utils";
+import { generateUUID } from "@makanmasak/utils";
 
 export class CashMovementService {
   private db;

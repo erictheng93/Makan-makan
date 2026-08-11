@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { ImageService } from "../services/image-service";
-import { ImageService as DatabaseImageService } from "@makanmakan/database";
+import { ImageService as DatabaseImageService } from "@makanmasak/database";
 import { authMiddleware, requireRole } from "../middleware/auth";
 import {
   validateQuery,

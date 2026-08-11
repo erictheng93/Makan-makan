@@ -46,7 +46,7 @@ const moduleAccess = vi.hoisted(() => ({
   reset: vi.fn(),
 }));
 
-vi.mock("@makanmakan/shared/stores/moduleAccess", () => ({
+vi.mock("@makanmasak/shared/stores/moduleAccess", () => ({
   useModuleAccessStore: () => moduleAccess,
 }));
 

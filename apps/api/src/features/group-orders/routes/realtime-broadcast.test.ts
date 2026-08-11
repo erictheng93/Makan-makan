@@ -32,8 +32,8 @@ vi.mock("../services/GroupOrdersService", () => ({
   }),
 }));
 
-vi.mock("@makanmakan/database", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@makanmakan/database")>();
+vi.mock("@makanmasak/database", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@makanmasak/database")>();
   return {
     ...actual,
     RealtimeBroadcastService: vi.fn(function RealtimeBroadcastService() {
@@ -49,7 +49,7 @@ vi.mock("@makanmakan/database", async (importOriginal) => {
   };
 });
 
-import { isValidRealtimeEvent } from "@makanmakan/shared-types";
+import { isValidRealtimeEvent } from "@makanmasak/shared-types";
 import groupOrdersRoutes from "./index";
 
 const RESTAURANT_ID = "rest-1";

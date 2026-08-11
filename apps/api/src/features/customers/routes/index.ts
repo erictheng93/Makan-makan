@@ -15,7 +15,7 @@ import {
 } from "../../../middleware/validation";
 import { z } from "zod";
 import type { OrderQueryFilters } from "../../orders/types";
-import type { OrderStatus as DbOrderStatus } from "@makanmakan/database";
+import type { OrderStatus as DbOrderStatus } from "@makanmasak/database";
 
 // Create router
 const app = new Hono<{ Bindings: Env }>();

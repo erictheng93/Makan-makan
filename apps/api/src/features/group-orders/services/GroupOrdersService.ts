@@ -17,9 +17,9 @@ import {
   groupActivityLogs,
   orders,
   OrderService as DatabaseOrderService,
-} from "@makanmakan/database";
-import { menuItems } from "@makanmakan/database";
-import type { SettledBy } from "@makanmakan/database";
+} from "@makanmasak/database";
+import { menuItems } from "@makanmasak/database";
+import type { SettledBy } from "@makanmasak/database";
 import type {
   CartItemCustomizations,
   GroupActivityMetadata,
@@ -27,7 +27,7 @@ import type {
   GroupOrderFinalizeFailure,
   GroupOrderSettings,
   SplitBillItem,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import { fromCents, toRequiredCents } from "../../../shared/utils/money";
 
 class ConsoleLogger {

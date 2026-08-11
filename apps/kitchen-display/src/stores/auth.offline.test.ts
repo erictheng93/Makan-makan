@@ -30,7 +30,7 @@ vi.mock("@/services/offlineService", () => ({
   },
 }));
 
-vi.mock("@makanmakan/utils", () => ({
+vi.mock("@makanmasak/utils", () => ({
   isTokenExpired: vi.fn(() => false),
 }));
 

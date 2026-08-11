@@ -194,7 +194,7 @@ separate from the Express HTTP server (`LocalPrintService.ts:572-625`).
   **hardcoded**, not read from config. (The `.my`/`.vn` domains appear only
   as fallback values for the separate footer `contactInfo.website` field,
   lines 300/413 — not in the QR code.)
-- `PrintContent` shape (from `@makanmakan/shared-types`,
+- `PrintContent` shape (from `@makanmasak/shared-types`,
   `packages/shared-types/src/printer.ts:108-234`) has four sections:
   `header` (`restaurantInfo` + `transactionInfo` + optional `logo`), `items[]`
   (name, qty, unit/total price, modifiers, tax rate), `summary`
@@ -249,7 +249,7 @@ simulated placeholder:
 - `scanUSBPrinters()` (`PrinterDriverFactory.ts:396-398`) **always returns an
   empty array** — no `usb`/`node-usb`/HID enumeration exists anywhere in the
   dependency tree (`queue-core`'s only deps are `zod` and
-  `@makanmakan/shared-types` — confirmed via `package.json`; no `usb`,
+  `@makanmasak/shared-types` — confirmed via `package.json`; no `usb`,
   `serialport`, `escpos`, or `node-hid` packages anywhere in the repo).
 - `scanNetworkPrinters()` (`PrinterDriverFactory.ts:400-430`) iterates a
   fixed set of subnets (`192.168.1.`, `192.168.0.`, `10.0.0.`) and host
@@ -343,7 +343,7 @@ in-process:
   health history, and statistics are all lost on restart; the agent starts
   from a completely empty state every time (auto-discovery, if it ever
   finds anything per §4.4, is the only way devices repopulate).
-- `@makanmakan/database` is listed as a dependency in
+- `@makanmasak/database` is listed as a dependency in
   `apps/print-agent/package.json:18` but **is not imported or used anywhere**
   in `apps/print-agent/src/**` — confirmed by reading every non-test source
   file; this appears to be a vestigial/future dependency, not a live one.
@@ -463,7 +463,7 @@ coordinated client-side change ships too:
   intent is for local agents to report status to the cloud API, that
   integration doesn't exist yet in either language and needs a design
   decision (poll vs. push, auth scheme, retry/backoff) before porting.
-- `@makanmakan/database` is an unused dependency in this app's
+- `@makanmasak/database` is an unused dependency in this app's
   `package.json` — drop it rather than pulling in a D1/Drizzle equivalent
   for the Rust build unless a real use is identified.
 - Receipt "templates" (`ReceiptTemplate`/`TemplateLayout`) are modeled but

@@ -126,7 +126,7 @@ import { waitingListApi } from "@/services/waitingListApi";
 import {
   WaitingStatus,
   type WaitingListResponse,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 const props = defineProps<{
   restaurantId: string;

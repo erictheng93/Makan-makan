@@ -36,7 +36,7 @@ vi.mock("../../../middleware/moduleGate", () => ({
   }),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   ReservationService: class {
     createReservation = createReservation;
     getReservationByCode = getReservationByCode;

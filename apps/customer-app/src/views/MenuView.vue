@@ -486,7 +486,7 @@ import { useCurrency } from "@/composables/useCurrency";
 import type {
   MenuItem,
   SelectedCustomizations,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import {
   getLocalizedMenuName,
   menuItemMatchesQuery,

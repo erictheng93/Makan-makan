@@ -401,7 +401,7 @@ import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import { XMarkIcon } from "@heroicons/vue/24/outline";
-import type { Coupon } from "@makanmakan/shared-types";
+import type { Coupon } from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 const { formatPrice, currencySymbol } = useCurrency();

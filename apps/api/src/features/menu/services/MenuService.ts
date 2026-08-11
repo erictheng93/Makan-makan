@@ -18,21 +18,21 @@ import {
   restaurants,
   categories as categoriesTable,
   amountFromCents,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type {
   OptionChoiceWithRestaurant,
   OptionGroupWithChoices,
   MenuItemOptionGroupState,
   ReplaceMenuItemOptionGroupData,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import { and, eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
-import { Status } from "@makanmakan/shared-types";
+import { Status } from "@makanmasak/shared-types";
 import type {
   MenuItem as SharedMenuItem,
   Category as SharedCategory,
   MenuStructure as SharedMenuStructure,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import type {
   MenuItem,
   Category,

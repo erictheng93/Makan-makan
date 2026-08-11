@@ -3,7 +3,7 @@ import { createApp } from "../../../app-factory";
 import {
   createTestDatabase,
   type TestDatabase,
-} from "@makanmakan/database/testing";
+} from "@makanmasak/database/testing";
 import type { Env } from "../../../types/env";
 import { buildAuthHelper, type AuthHelper } from "./issue-test-jwt";
 

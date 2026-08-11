@@ -8,7 +8,7 @@ import type {
   PrintContent,
   PrintResponse,
   PrinterStatus,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 export interface IPrinterDriver {
   /**

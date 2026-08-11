@@ -95,7 +95,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useCurrency } from "@/composables/useCurrency";
-import { type OrderItem } from "@makanmakan/shared-types";
+import { type OrderItem } from "@makanmasak/shared-types";
 import { useI18n } from "@/composables/useI18n";
 import { getLocalizedMenuName } from "@/utils/localized-menu-content";
 

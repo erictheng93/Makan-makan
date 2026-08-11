@@ -193,7 +193,7 @@ import { formatPrice } from "@/utils/format";
 import type {
   CartItem,
   SelectedCustomizations,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 defineProps<{
   items: CartItem[];

@@ -248,7 +248,7 @@ All database queries MUST use one of the two approved layers. Raw string SQL (La
 
 ```typescript
 import { eq, and } from "drizzle-orm";
-import { menuItems } from "@makanmakan/database";
+import { menuItems } from "@makanmasak/database";
 
 const results = await db
   .select()
@@ -267,7 +267,7 @@ import {
   menuItems,
   orders,
   orderItems,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 
 const result = await db
   .select({
@@ -305,7 +305,7 @@ function buildUser(overrides = {}) {
 ```
 
 Keep builders close to the owning test file or shared in an existing local
-test helper. Do not import `@makanmakan/testing-utils`; that workspace package
+test helper. Do not import `@makanmasak/testing-utils`; that workspace package
 does not currently exist.
 
 **2. Verify mock calls (not just return values):**
@@ -384,7 +384,7 @@ source) — work around them, don't re-diagnose them.
 1. **`packages[].fan_in` / `fan_out` are always `0`.** They are simply never
    computed. The `0` does **not** mean "no cross-package dependencies" — the
    underlying `IMPORTS` edges exist and workspace aliases *are* resolved
-   (`@makanmakan/database` → `packages/database/src`). Do not conclude that
+   (`@makanmasak/database` → `packages/database/src`). Do not conclude that
    tree-sitter failed on alias resolution, and do not fall back to reading
    `package.json` by hand.
 

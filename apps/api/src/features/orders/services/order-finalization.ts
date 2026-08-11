@@ -1,10 +1,10 @@
-import { RealtimeBroadcastService } from "@makanmakan/database";
+import { RealtimeBroadcastService } from "@makanmasak/database";
 import type { DurableObjectNamespace } from "@cloudflare/workers-types";
 import type {
   OrderStatus,
   OrderStatusUpdateEvent,
-} from "@makanmakan/shared-types";
-import { RealtimeEventType as EventType } from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
+import { RealtimeEventType as EventType } from "@makanmasak/shared-types";
 
 interface KVLike {
   get(key: string): Promise<unknown>;

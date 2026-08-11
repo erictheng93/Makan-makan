@@ -34,7 +34,7 @@ vi.mock("@/utils/errorHandler", () => ({
   errorHandler: { handleError: vi.fn() },
 }));
 
-vi.mock("@makanmakan/shared/stores/moduleAccess", () => ({
+vi.mock("@makanmasak/shared/stores/moduleAccess", () => ({
   configureModuleAccess: vi.fn(() => void events.push("configureModuleAccess")),
   useModuleAccessStore: () => ({ fetch: vi.fn(async () => {}) }),
 }));

@@ -3,7 +3,7 @@ import { and, desc, eq, lte, or, sql } from "drizzle-orm";
 import {
   marketCheckoutPayments,
   marketCheckoutSessions,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 import { ApiError } from "../../../shared/utils/api-error";
 import type {

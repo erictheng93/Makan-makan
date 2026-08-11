@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getTableColumns } from "drizzle-orm";
-import { categories as categoriesTable } from "@makanmakan/database";
-import { Status } from "@makanmakan/shared-types";
+import { categories as categoriesTable } from "@makanmasak/database";
+import { Status } from "@makanmasak/shared-types";
 import { MenuService } from "./MenuService";
 
 afterEach(() => {

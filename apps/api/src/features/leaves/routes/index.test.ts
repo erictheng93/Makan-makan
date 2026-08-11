@@ -52,7 +52,7 @@ vi.mock("../../../shared/middleware", async () => {
   };
 });
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   LeaveService: vi.fn(function LeaveService() {
     return {
       getLeaveTypes: mocks.getLeaveTypes,

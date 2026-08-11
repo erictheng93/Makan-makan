@@ -383,8 +383,8 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cargo audit
-pnpm --filter @makanmakan/api-rust run build
-pnpm --filter @makanmakan/api-rust run dev
+pnpm --filter @makanmasak/api-rust run build
+pnpm --filter @makanmasak/api-rust run dev
 ```
 
 Add package scripts per Rust Worker:
@@ -733,7 +733,7 @@ Exit criteria:
 - [ ] Task: Create Rust Worker spike for `/health`, `/info`, and one public
   read route.
   - Acceptance: Rust Worker runs locally and deploy dry-run succeeds.
-  - Verify: `pnpm --filter @makanmakan/api-rust run build`,
+  - Verify: `pnpm --filter @makanmasak/api-rust run build`,
     `cargo test --workspace`.
   - Files: `apps/api-rust/**`, `Cargo.toml`, `pnpm-workspace.yaml`,
     `package.json`.

@@ -27,7 +27,7 @@ import {
 import { leaveSchemas, calculateLeaveDays } from "../schemas/validation";
 
 // Import service
-import { LeaveService } from "@makanmakan/database";
+import { LeaveService } from "@makanmasak/database";
 
 const app = new Hono<{ Bindings: Env }>();
 

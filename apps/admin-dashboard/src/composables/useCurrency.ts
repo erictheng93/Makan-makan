@@ -1,10 +1,10 @@
 import { ref, computed } from "vue";
-import type { CurrencyCode } from "@makanmakan/shared-types";
+import type { CurrencyCode } from "@makanmasak/shared-types";
 import {
   formatCurrency as sharedFormatCurrency,
   getCurrencySymbol as sharedGetCurrencySymbol,
   DEFAULT_CURRENCY,
-} from "@makanmakan/utils";
+} from "@makanmasak/utils";
 
 const STORAGE_KEY = "admin_restaurant_currency";
 

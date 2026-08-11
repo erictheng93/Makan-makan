@@ -111,7 +111,7 @@ import type {
   LeaveBalance,
   LeaveType,
   LeaveRequest,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 const toast = useToast();

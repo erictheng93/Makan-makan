@@ -16,7 +16,7 @@ import {
 import { BaseService } from "./base";
 import { tables, restaurants, orders, seats } from "../schema";
 import { SeatService } from "./seat";
-import { buildSignedQRUrl } from "@makanmakan/utils";
+import { buildSignedQRUrl } from "@makanmasak/utils";
 import { resolveAppBaseUrl } from "./app-base-url";
 import { moneyAmountExpression } from "../utils/money-sql";
 

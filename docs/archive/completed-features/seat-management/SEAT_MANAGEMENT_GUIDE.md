@@ -412,7 +412,7 @@ Response:
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import type { Seat } from "@makanmakan/shared-types";
+import type { Seat } from "@makanmasak/shared-types";
 
 const props = defineProps<{
   tableId: number;
@@ -451,7 +451,7 @@ function selectSeat(seat: Seat) {
 
 <script setup lang="ts">
 import { ref } from "vue";
-import type { QRMode } from "@makanmakan/shared-types";
+import type { QRMode } from "@makanmasak/shared-types";
 
 const props = defineProps<{
   tableId: number;
@@ -549,7 +549,7 @@ async function switchMode(newMode: QRMode) {
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import SeatGrid from "./SeatGrid.vue";
-import type { SeatStats } from "@makanmakan/shared-types";
+import type { SeatStats } from "@makanmasak/shared-types";
 
 const props = defineProps<{
   tableId: number;

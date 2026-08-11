@@ -49,11 +49,11 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 ## i18n
 
-### Consolidate 3 duplicate i18n runtimes into @makanmakan/i18n shared package
+### Consolidate 3 duplicate i18n runtimes into @makanmasak/i18n shared package
 
-**Priority:** P2 **Status:** Completed 2026-05-25 **Noticed on branch:** `feat/i18n-coverage-all-apps` **Context:** v2.1.0 adds i18n to kitchen-display, onboarding-app, and management-portal. Each app had its own ~200-line copy of `src/i18n/index.ts` (identical except for a doc-comment line). The shared package `@makanmakan/i18n` at `packages/shared/src/i18n/` already exists and is used by customer-app. The completed work migrated all 4 apps (admin-dashboard, kitchen-display, onboarding-app, management-portal) to the shared package, resolving the API difference (custom composable vs vue-i18n).
+**Priority:** P2 **Status:** Completed 2026-05-25 **Noticed on branch:** `feat/i18n-coverage-all-apps` **Context:** v2.1.0 adds i18n to kitchen-display, onboarding-app, and management-portal. Each app had its own ~200-line copy of `src/i18n/index.ts` (identical except for a doc-comment line). The shared package `@makanmasak/i18n` at `packages/shared/src/i18n/` already exists and is used by customer-app. The completed work migrated all 4 apps (admin-dashboard, kitchen-display, onboarding-app, management-portal) to the shared package, resolving the API difference (custom composable vs vue-i18n).
 
-**Resolution:** Added a shared `createI18n()` runtime factory, migrated duplicate app runtimes to wrappers around `@makanmakan/i18n`, standardized locale storage on `makanmakan_locale` with legacy `locale` migration, hardened message merging, and derived app `Messages` types from each app's `zh-TW.ts`.
+**Resolution:** Added a shared `createI18n()` runtime factory, migrated duplicate app runtimes to wrappers around `@makanmasak/i18n`, standardized locale storage on `makanmakan_locale` with legacy `locale` migration, hardened message merging, and derived app `Messages` types from each app's `zh-TW.ts`.
 
 **Scope:**
 

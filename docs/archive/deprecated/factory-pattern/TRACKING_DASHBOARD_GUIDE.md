@@ -1,7 +1,7 @@
 > ⚠️ **SUPERSEDED (2026-07-05)**: This guide describes tooling
 > (`pnpm run factory:check`, `factory:badges`, `factory:report`,
 > `factory:usage`, `scripts/check-factory-usage.cjs`, an ESLint
-> `testing-utils` plugin) built entirely around the `@makanmakan/testing-utils`
+> `testing-utils` plugin) built entirely around the `@makanmasak/testing-utils`
 > package — which does not exist anywhere in this repo. None of the npm
 > scripts referenced here exist in `package.json`. The one CI workflow that
 > tried to run this check (`factory-usage-check.yml`) called a script that
@@ -446,7 +446,7 @@ modulePriorities: {
 
    ```bash
    # 驗證 factory 是否已安裝
-   pnpm list @makanmakan/testing-utils
+   pnpm list @makanmasak/testing-utils
    ```
 
 2. 掃描路徑配置錯誤
@@ -466,7 +466,7 @@ modulePriorities: {
    const user = userFactory.build(); // 會報錯
 
    // ✅ 正確導入
-   import { userFactory } from "@makanmakan/testing-utils";
+   import { userFactory } from "@makanmasak/testing-utils";
    const user = userFactory.build();
    ```
 

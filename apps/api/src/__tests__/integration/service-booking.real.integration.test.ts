@@ -19,7 +19,7 @@ import {
 import {
   createTestDatabase,
   type TestDatabase,
-} from "@makanmakan/database/testing";
+} from "@makanmasak/database/testing";
 import {
   restaurants,
   restaurantServiceItems,
@@ -30,7 +30,7 @@ import {
   SERVICE_BOOKING_STATUS,
   type ServiceBookingStatus,
   users,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import { eq } from "drizzle-orm";
 import type { Env } from "../../types/env";
 import { ServiceBookingService } from "../../features/service-bookings/services/ServiceBookingService";

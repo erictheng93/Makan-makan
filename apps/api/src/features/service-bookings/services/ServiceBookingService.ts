@@ -27,8 +27,8 @@ import {
   SERVICE_BOOKING_WAITLIST_STATUS,
   type ServiceBookingStatus,
   users,
-} from "@makanmakan/database";
-import { CouponService } from "@makanmakan/database";
+} from "@makanmasak/database";
+import { CouponService } from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 import {
   badRequest,
@@ -39,7 +39,7 @@ import {
 import { toCents } from "../../../shared/utils/money";
 import { CreditService } from "../../credits/services/CreditService";
 import { ServiceBookingNotificationService } from "./ServiceBookingNotificationService";
-import { generateUUID } from "@makanmakan/utils";
+import { generateUUID } from "@makanmasak/utils";
 
 type ServiceBookingRow = typeof serviceBookings.$inferSelect;
 type ServiceBookingSlotRow = typeof serviceBookingSlots.$inferSelect;

@@ -2,12 +2,12 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   createTestDatabase,
   type TestDatabase,
-} from "@makanmakan/database/testing";
+} from "@makanmasak/database/testing";
 import {
   restaurants,
   shopSubscriptions,
   usageEvents,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import type { Env } from "../../types/env";
 import { enforceQuota } from "../../middleware/quotaGate";
 

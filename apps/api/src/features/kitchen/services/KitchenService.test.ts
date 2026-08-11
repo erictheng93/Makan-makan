@@ -14,7 +14,7 @@ const serviceMocks = vi.hoisted(() => ({
   generateEventId: vi.fn(),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   RealtimeBroadcastService: vi.fn(function RealtimeBroadcastService() {
     return {
       broadcastOrderItemStatusUpdate:

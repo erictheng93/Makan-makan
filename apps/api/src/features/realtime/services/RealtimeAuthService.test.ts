@@ -63,10 +63,10 @@ vi.mock("./TokenBlacklistService", () => ({
   }),
 }));
 
-vi.mock("@makanmakan/utils", async () => {
+vi.mock("@makanmasak/utils", async () => {
   const actual =
-    await vi.importActual<typeof import("@makanmakan/utils")>(
-      "@makanmakan/utils",
+    await vi.importActual<typeof import("@makanmasak/utils")>(
+      "@makanmasak/utils",
     );
   return {
     ...actual,

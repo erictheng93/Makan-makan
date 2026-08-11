@@ -280,7 +280,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "@/i18n";
-import type { CountryCode } from "@makanmakan/shared-types";
+import type { CountryCode } from "@makanmasak/shared-types";
 
 // Props
 interface Props {

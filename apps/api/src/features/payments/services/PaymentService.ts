@@ -6,8 +6,8 @@ import {
   orders,
   paymentTransactions,
   tables,
-} from "@makanmakan/database";
-import type { OrderStatus } from "@makanmakan/shared-types";
+} from "@makanmasak/database";
+import type { OrderStatus } from "@makanmasak/shared-types";
 import type { Env } from "../../../types/env";
 import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";

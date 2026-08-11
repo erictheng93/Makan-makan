@@ -481,7 +481,7 @@ function disconnectRealtime() {
 }
 ```
 
-(Match `RealtimeEventType`'s actual string values from `@makanmakan/shared-types` rather than the guessed lowercase-snake-case literals above — read that enum before finalizing this switch statement's case labels.)
+(Match `RealtimeEventType`'s actual string values from `@makanmasak/shared-types` rather than the guessed lowercase-snake-case literals above — read that enum before finalizing this switch statement's case labels.)
 
 - [ ] **Step 4: Run tests to verify they pass**
 

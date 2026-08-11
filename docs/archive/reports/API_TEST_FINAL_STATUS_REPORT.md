@@ -72,7 +72,7 @@ const mockOrderServiceInstance = {
   // ...
 };
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   OrderService: vi.fn(() => mockOrderServiceInstance),
   // ...
 }));

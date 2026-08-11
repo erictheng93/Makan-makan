@@ -2,7 +2,7 @@ import { computed } from "vue";
 import {
   RealtimeEventType,
   type RealtimeEvent,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import { useWebSocketService } from "./websocketService";
 
 export interface RealtimeMessage {

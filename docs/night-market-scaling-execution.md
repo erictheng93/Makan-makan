@@ -128,7 +128,7 @@ is a multi-week migration for a problem you don't yet have.
 
 ## Verification evidence (this round)
 
-- `pnpm --filter @makanmakan/api typecheck` — clean.
+- `pnpm --filter @makanmasak/api typecheck` — clean.
 - Discovery unit tests — 13/13 pass (incl. new `SearchIndexSyncService.test.ts`).
 - `discovery.real.integration` (real D1, migrations incl. 0061) — **66/66 pass**.
 - FTS5 trigram behavior confirmed by local D1 spike (mid-string CJK match; ≥3-char

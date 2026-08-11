@@ -62,7 +62,7 @@ const serviceFns = vi.hoisted(() => ({
   getEmployeeNames: vi.fn(),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   SchedulingService: class {
     getShiftTemplates = serviceFns.getShiftTemplates;
     getShiftTemplate = serviceFns.getShiftTemplate;

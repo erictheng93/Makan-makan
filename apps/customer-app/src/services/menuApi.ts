@@ -1,5 +1,5 @@
 import { apiClient } from "./api";
-import type { Restaurant, MenuItem, Category } from "@makanmakan/shared-types";
+import type { Restaurant, MenuItem, Category } from "@makanmasak/shared-types";
 
 export interface MenuApiResponse {
   restaurant: Restaurant;

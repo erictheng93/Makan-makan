@@ -8,7 +8,7 @@ import {
   RealtimeEventType,
   type RealtimeEvent,
   type RealtimeAuthTokenResponse,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import { api } from "@/services/api";
 import { getAuthToken } from "@/utils/authTokenProvider";
 import { sanitizeForLog } from "@/utils/sanitize";

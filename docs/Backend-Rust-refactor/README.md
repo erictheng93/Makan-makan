@@ -141,7 +141,7 @@ docs.
 > - **#22** deletions were each re-verified zero-reference before removal;
 >   three candidates were intentionally **kept**: `useGroupOrder.ts`
 >   (live type-only importers), `useOptimizedWebSocket.ts` (has a real
->   behavioral test), and the `@makanmakan/queue-service` package
+>   behavioral test), and the `@makanmasak/queue-service` package
 >   (workspace-level decision deferred).
 > - **#20**: encryption/compression now wired into backup create/restore
 >   (key = existing `ENCRYPTION_KEY` secret; hard error if enabled without
@@ -209,7 +209,7 @@ docs.
     its progress endpoint reads (always 404), and `AlertService` there is
     unimported.
 22. Dead code inventory: `apps/api` top-level `LicenseService`/
-    `qrCodeService`, `KVUsageService`, `@makanmakan/queue-service` (zero
+    `qrCodeService`, `KVUsageService`, `@makanmasak/queue-service` (zero
     dependents), `BackupSchedulerService` (zero production callers — the
     real cron drives the legacy top-level `BackupService` instead, see
     api-features-platform-ops.md), `RegionFormatterFactory` in queue-core

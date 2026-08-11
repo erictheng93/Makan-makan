@@ -262,7 +262,7 @@ describe("Optimistic Locking - 樂觀鎖", () => {
 
 - [ ] **Step 4: Run tests**
 
-Run: `pnpm --filter @makanmakan/database exec vitest run src/services/__tests__/WaitingListService.test.ts --reporter=verbose`
+Run: `pnpm --filter @makanmasak/database exec vitest run src/services/__tests__/WaitingListService.test.ts --reporter=verbose`
 Expected: All tests PASS
 
 - [ ] **Step 5: Commit**
@@ -495,7 +495,7 @@ return c.json({
 
 - [ ] **Step 9: Run all waiting-list tests**
 
-Run: `pnpm --filter @makanmakan/api exec vitest run src/features/waiting-list/ --reporter=verbose`
+Run: `pnpm --filter @makanmasak/api exec vitest run src/features/waiting-list/ --reporter=verbose`
 Expected: All PASS
 
 - [ ] **Step 10: Commit**
@@ -665,7 +665,7 @@ it("通知失敗不應影響叫號操作", async () => {
 
 - [ ] **Step 8: Run all tests**
 
-Run: `pnpm --filter @makanmakan/database exec vitest run src/services/__tests__/WaitingListService.test.ts --reporter=verbose`
+Run: `pnpm --filter @makanmasak/database exec vitest run src/services/__tests__/WaitingListService.test.ts --reporter=verbose`
 Expected: All PASS
 
 - [ ] **Step 9: Commit**
@@ -837,7 +837,7 @@ describe("Error Handling", () => {
 
 - [ ] **Step 6: Run tests**
 
-Run: `pnpm --filter @makanmakan/admin-dashboard exec vitest run src/views/__tests__/WaitingListView.test.ts --reporter=verbose`
+Run: `pnpm --filter @makanmasak/admin-dashboard exec vitest run src/views/__tests__/WaitingListView.test.ts --reporter=verbose`
 Expected: All PASS
 
 - [ ] **Step 7: Commit**

@@ -15,7 +15,7 @@
 > 測試總數: 308+ files / 8,496+ tests (2026-04-03 基準，之後經歷多次遷移尚未重新統計，執行 `pnpm test` 取得最新數字)
 > Typecheck: PASS (21/21 tasks)
 > Manual QA: 6 角色 70+ 頁面實測，12 bugs fixed，118 native dialogs replaced — [完整報告](reports/manual-qa-report-2026-04-02.md)
-> 近期重大重構：Issue #9 OrderStatus string 化、`restaurantId` UUID 遷移、`@makanmakan/auth-client` 抽離
+> 近期重大重構：Issue #9 OrderStatus string 化、`restaurantId` UUID 遷移、`@makanmasak/auth-client` 抽離
 
 ---
 
@@ -181,7 +181,7 @@
 
 ### 2026-04-12 ~ 2026-04-13 (auth-client 抽離 + kitchen-display auth gating)
 
-- `refactor: extract shared auth + API client into @makanmakan/auth-client`
+- `refactor: extract shared auth + API client into @makanmasak/auth-client`
   - 新增 3 個 package 測試：`create-api-client.test.ts`、`create-token-manager.test.ts`、`storage.test.ts`
   - admin-dashboard auth store / AuthViews 測試同步遷移至共用 client
 - `fix(kitchen-display)`：掛載前等待 auth 初始化，避免啟動競態；audio toggle 測試按鍵獨立化

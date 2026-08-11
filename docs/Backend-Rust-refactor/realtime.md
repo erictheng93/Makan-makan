@@ -60,7 +60,7 @@ Same binding name/class repeated verbatim under `[env.production.durable_objects
 - `apps/realtime/src/types/env.ts` — this is the one actually imported everywhere (`index.ts`, `RealtimeSession.ts`, `rateLimiter.ts`). It declares `CACHE_KV`, `TOKEN_BLACKLIST`, `RATE_LIMIT_KV` as **required** (non-optional) `KVNamespace`.
 - `apps/realtime/src/types.ts` — a second, unused `Env` (plus `RealtimeMessage`/`ConnectionState` interfaces) with different optionality (`TOKEN_BLACKLIST?`, `RATE_LIMIT_KV?`, no `CACHE_KV` at all, an extra `ANALYTICS_ENGINE?: AnalyticsEngineDataset`). Nothing in the non-test source imports from `./types` (confirmed via grep) — treat `src/types.ts` as **dead/legacy code**, not authoritative for a Rust port.
 
-**`package.json`** (`apps/realtime/package.json`): dependencies are `hono@^4.12.24`, `jsonwebtoken@^9.0.2`, `zod@^3.25.76`, `@makanmakan/shared-types` (workspace). Dev script pins `wrangler dev --inspector-port 9233` (matching the CLAUDE.md guidance to pass inspector port via CLI, not toml). `build`/`build:prod` run `tsc && wrangler deploy --dry-run`. No runtime dependency on `ws` — `@types/ws` is dev-only (likely test tooling).
+**`package.json`** (`apps/realtime/package.json`): dependencies are `hono@^4.12.24`, `jsonwebtoken@^9.0.2`, `zod@^3.25.76`, `@makanmasak/shared-types` (workspace). Dev script pins `wrangler dev --inspector-port 9233` (matching the CLAUDE.md guidance to pass inspector port via CLI, not toml). `build`/`build:prod` run `tsc && wrangler deploy --dry-run`. No runtime dependency on `ws` — `@types/ws` is dev-only (likely test tooling).
 
 ## 3. HTTP/WS surface (`apps/realtime/src/index.ts`)
 

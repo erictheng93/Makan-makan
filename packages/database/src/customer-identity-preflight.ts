@@ -1,5 +1,5 @@
 import type { D1Database } from "@cloudflare/workers-types";
-import { normalizeE164Phone } from "@makanmakan/utils";
+import { normalizeE164Phone } from "@makanmasak/utils";
 
 export type CustomerIdentityPreflightIssueType =
   | "duplicate_phone"

@@ -1336,7 +1336,7 @@ Add rate limit configs (differentiated per endpoint group):
 
 - [ ] **Step 3: Run typecheck**
 
-Run: `pnpm typecheck --filter=@makanmakan/api`
+Run: `pnpm typecheck --filter=@makanmasak/api`
 Expected: No TypeScript errors
 
 - [ ] **Step 4: Commit**

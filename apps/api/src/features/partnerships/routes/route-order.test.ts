@@ -44,7 +44,7 @@ const serviceFns = vi.hoisted(() => ({
   getPartnership: vi.fn(),
 }));
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   PartnershipService: class {
     listPlans = serviceFns.listPlans;
     listMembers = serviceFns.listMembers;

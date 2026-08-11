@@ -159,7 +159,7 @@ import {
   WAITING_LIST_LAST_TICKET_KEY,
 } from "@/composables/useWaitingTicket";
 import { waitingListApi } from "@/services/waitingListApi";
-import { WaitingStatus } from "@makanmakan/shared-types";
+import { WaitingStatus } from "@makanmasak/shared-types";
 
 const props = defineProps<{
   restaurantId: string;

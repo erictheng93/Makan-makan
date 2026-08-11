@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BackupStorageService } from "./BackupStorageService";
-import type { BackupRecord } from "@makanmakan/shared-types";
+import type { BackupRecord } from "@makanmasak/shared-types";
 
 function createR2() {
   const objects = new Map<

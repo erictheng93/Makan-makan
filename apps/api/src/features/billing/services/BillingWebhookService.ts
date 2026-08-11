@@ -1,5 +1,5 @@
-import { PAYMENT_AUDIT_EVENT_TYPES } from "@makanmakan/database";
-import { generateUUID } from "@makanmakan/utils";
+import { PAYMENT_AUDIT_EVENT_TYPES } from "@makanmasak/database";
+import { generateUUID } from "@makanmasak/utils";
 import type { Env } from "../../../types/env";
 import { invalidateSubscriptionCacheForEnv } from "../../../middleware/moduleGate";
 import { timingSafeEqual } from "../../../shared/utils/timing-safe-equal";

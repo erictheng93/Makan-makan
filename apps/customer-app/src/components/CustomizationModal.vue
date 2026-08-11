@@ -418,7 +418,7 @@ import { useI18n } from "@/composables/useI18n";
 import type {
   MenuItem,
   SelectedCustomizations,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 const { t, tWithParams } = useI18n();
 const { formatPrice } = useCurrency();

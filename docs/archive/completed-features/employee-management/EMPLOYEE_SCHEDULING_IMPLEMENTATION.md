@@ -930,7 +930,7 @@ DELETE /api/v1/schedules/availability/:id             # Delete availability
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useScheduleStore } from "@/stores/schedule";
-import type { Schedule, Employee } from "@makanmakan/shared-types";
+import type { Schedule, Employee } from "@makanmasak/shared-types";
 
 const scheduleStore = useScheduleStore();
 const currentWeek = ref(new Date());
@@ -1063,7 +1063,7 @@ function addDays(date: Date, days: number): Date {
 
 <script setup lang="ts">
 import { computed } from "vue";
-import type { Schedule, Employee } from "@makanmakan/shared-types";
+import type { Schedule, Employee } from "@makanmasak/shared-types";
 
 const props = defineProps<{
   schedules: Schedule[];
@@ -1207,7 +1207,7 @@ function onDrop(event: DragEvent, employeeId: number, dayOffset: number) {
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import type { ShiftTemplate } from "@makanmakan/shared-types";
+import type { ShiftTemplate } from "@makanmasak/shared-types";
 
 const visible = defineModel<boolean>({ required: true });
 const templates = ref<ShiftTemplate[]>([]);
@@ -1304,7 +1304,7 @@ async function saveTemplate() {
 </template>
 
 <script setup lang="ts">
-import type { SchedulingConflict } from "@makanmakan/shared-types";
+import type { SchedulingConflict } from "@makanmasak/shared-types";
 
 defineProps<{
   conflicts: SchedulingConflict[];

@@ -2,7 +2,7 @@ import type { Router } from "vue-router";
 import {
   clearChunkRecoveryMark,
   createChunkRecovery,
-} from "@makanmakan/utils/chunk-recovery";
+} from "@makanmasak/utils/chunk-recovery";
 
 /**
  * This display is unattended for a whole shift, which decides the retry policy.

@@ -352,7 +352,7 @@ All paths relative to `/api/v1/coupons`. Source: `apps/api/src/features/coupons/
 ### 4.5 Cross-module dependencies
 
 - `market-checkouts` (`MarketCheckoutVoucherService`) reuses `coupons`/`coupon_usage` tables directly via its own Drizzle queries (not via `CouponsService`) — it re-implements platform-wide-coupon validation with multi-order splitting rather than calling into this module's service. **Two independent code paths validate/redeem coupons against the same tables** — a Rust rewrite should evaluate whether to unify them (shared discount-pricing core, module-specific redemption/splitting) since the pricing math (`computeDiscountCents`) is currently duplicated near-verbatim between `MarketCheckoutVoucherService.computeDiscountCents` and the base `CouponService`'s inline discount block.
-- `service-bookings` (`CouponService` from `@makanmakan/database` directly, via `priceVoucher`) — pricing-only reuse (`validateCoupon`), then records redemption itself via raw SQL against `coupons.used_count` (not `coupon_usage` — a booking is explicitly documented as not being an order).
+- `service-bookings` (`CouponService` from `@makanmasak/database` directly, via `priceVoucher`) — pricing-only reuse (`validateCoupon`), then records redemption itself via raw SQL against `coupons.used_count` (not `coupon_usage` — a booking is explicitly documented as not being an order).
 - `orders` (`orders` table, read-only for subtotal in `useCouponForOrder`).
 
 ### 4.6 Rust rewrite notes
@@ -477,7 +477,7 @@ The `subscriptions` module (§7) exposes `UsageService` reads under `/api/v1/adm
 
 - `payments`, `market-checkouts`, `credits` all import `PaymentAuditService`/`PAYMENT_AUDIT_EVENT_TYPES` from this module to append to the shared `payment_audit_log` — this module is a **dependency of** those three, not the reverse.
 - `subscriptions` feature imports `UsageService` directly (no HTTP hop — in-process class construction) for its admin usage-read routes.
-- `middleware/quotaGate.ts` and `middleware/moduleGate.ts` (core middleware, not a feature) both import `BillingNotificationService`/`PLAN_QUOTAS`/`PLAN_DEFAULT_MODULES` from `@makanmakan/database` and this module respectively — the quota/module enforcement gates that guard `payments`, `coupons`, and others at the route-mount level are effectively billing-module consumers.
+- `middleware/quotaGate.ts` and `middleware/moduleGate.ts` (core middleware, not a feature) both import `BillingNotificationService`/`PLAN_QUOTAS`/`PLAN_DEFAULT_MODULES` from `@makanmasak/database` and this module respectively — the quota/module enforcement gates that guard `payments`, `coupons`, and others at the route-mount level are effectively billing-module consumers.
 
 ### 6.6 Rust rewrite notes
 
@@ -629,7 +629,7 @@ All paths relative to `/api/v1/service-bookings`. Public routes are declared fir
 ### 8.5 Cross-module dependencies
 
 - `credits` feature (`CreditService.spend`) — the 代幣 payment path.
-- `coupons`/database-level `CouponService` (imported directly from `@makanmakan/database`, **not** the feature-layer `CouponsService`) — voucher pricing only (`validateCoupon`), redemption reimplemented locally via raw SQL against `coupons.used_count` (a third independent reimplementation of the same guarded-increment pattern seen in `market-checkouts` and the base `CouponService`, §4.6).
+- `coupons`/database-level `CouponService` (imported directly from `@makanmasak/database`, **not** the feature-layer `CouponsService`) — voucher pricing only (`validateCoupon`), redemption reimplemented locally via raw SQL against `coupons.used_count` (a third independent reimplementation of the same guarded-increment pattern seen in `market-checkouts` and the base `CouponService`, §4.6).
 - No dependency on `payments`, `market-checkouts`, `billing`, or `subscriptions` — this module is self-contained apart from `credits` and `coupons`.
 
 ### 8.6 Rust rewrite notes

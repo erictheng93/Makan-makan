@@ -26,7 +26,7 @@ import type {
   MenuItemOptions as WireMenuItemOptions,
   Order,
   SelectedCustomizations,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import { amountFromCents, fromCents, toRequiredCents } from "../utils/money";
 import { loadAssembledMenuItemOptions } from "./menu-options";
 

@@ -117,7 +117,7 @@ import { useI18n } from "@/i18n";
 import type {
   IngredientDefinitionResponse,
   RecipeEntryResponse,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 

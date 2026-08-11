@@ -3,7 +3,7 @@
  * TypeScript type definitions for the menu feature
  */
 
-// Import shared menu types from @makanmakan/shared-types
+// Import shared menu types from @makanmasak/shared-types
 import type {
   MenuItem as SharedMenuItem,
   Category as SharedCategory,
@@ -15,7 +15,7 @@ import type {
   UpdateCategoryRequest as SharedUpdateCategoryRequest,
   DietaryInfo as SharedDietaryInfo,
   ImageVariants as SharedImageVariants,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // Menu Item Core Types
 export interface MenuItemSize {

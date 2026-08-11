@@ -218,7 +218,7 @@ class MenuModule implements FeatureModule {
         scalability: "Horizontal via Cloudflare Workers",
       },
       dependencies: {
-        database: "@makanmakan/database - MenuService",
+        database: "@makanmasak/database - MenuService",
         cache: "Cloudflare KV (optional)",
         monitoring: "ConsoleLogger",
         validation: "Zod schemas",

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
-import { splitBills } from "@makanmakan/database";
+import { splitBills } from "@makanmasak/database";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,

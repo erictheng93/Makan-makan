@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
 
 const uuidMocks = vi.hoisted(() => ({ generateUUID: vi.fn() }));
 
-vi.mock("@makanmakan/utils", async (importOriginal) => ({
+vi.mock("@makanmasak/utils", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   generateUUID: uuidMocks.generateUUID,
 }));

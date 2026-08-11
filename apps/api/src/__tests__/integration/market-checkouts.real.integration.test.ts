@@ -12,7 +12,7 @@ import {
   orders,
   paymentTransactions,
   restaurantMarketMemberships,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,

@@ -3,7 +3,7 @@ import { waitingListApi } from "@/services/waitingListApi";
 import {
   WaitingStatus,
   type WaitingListResponse,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 const DEFAULT_POLL_MS = 10000;
 const CALLED_POLL_MS = 5000;

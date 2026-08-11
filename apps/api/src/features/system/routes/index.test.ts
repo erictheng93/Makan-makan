@@ -96,7 +96,7 @@ const database = vi.hoisted(() => {
   };
 });
 
-vi.mock("@makanmakan/database", () => database);
+vi.mock("@makanmasak/database", () => database);
 
 import app from "./index";
 import { ApiError } from "../../../shared/utils/api-error";

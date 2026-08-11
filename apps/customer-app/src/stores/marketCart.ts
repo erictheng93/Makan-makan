@@ -5,7 +5,7 @@ import type {
   CartItem,
   MenuItem,
   SelectedCustomizations,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 const STORAGE_KEY = "makanmakan_market_carts_v1";
 const CART_TTL_MS = 2 * 60 * 60 * 1000;

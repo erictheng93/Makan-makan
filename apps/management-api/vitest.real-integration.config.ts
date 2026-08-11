@@ -18,12 +18,12 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@makanmakan/database": resolve(__dirname, "../../packages/database/src"),
-      "@makanmakan/shared-types": resolve(
+      "@makanmasak/database": resolve(__dirname, "../../packages/database/src"),
+      "@makanmasak/shared-types": resolve(
         __dirname,
         "../../packages/shared-types/src",
       ),
-      "@makanmakan/utils": resolve(__dirname, "../../packages/utils/src"),
+      "@makanmasak/utils": resolve(__dirname, "../../packages/utils/src"),
     },
   },
   define: {

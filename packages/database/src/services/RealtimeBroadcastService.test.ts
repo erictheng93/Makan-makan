@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { RealtimeEventType } from "@makanmakan/shared-types";
+import { RealtimeEventType } from "@makanmasak/shared-types";
 import { RealtimeBroadcastService } from "./RealtimeBroadcastService";
 import type {
   NewOrderEvent,
   OrderStatusUpdateEvent,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 function createRealtimeEnv() {
   const fetch = vi.fn().mockImplementation(() =>

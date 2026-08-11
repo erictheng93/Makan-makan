@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed, readonly } from "vue";
 import { t } from "@/i18n";
 import { apiClient } from "@/services/api";
-import { formatCurrency } from "@makanmakan/utils";
+import { formatCurrency } from "@makanmasak/utils";
 import type {
   PaymentRequest,
   PaymentResult,
@@ -10,7 +10,7 @@ import type {
   PaymentStatus,
   CountryCode,
   CurrencyCode,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 interface PaymentState {
   // 當前支付流程

@@ -13,7 +13,7 @@ import {
   restaurantMarketMemberships,
   restaurantServiceItems,
   restaurants,
-} from "@makanmakan/database";
+} from "@makanmasak/database";
 import { KVCacheService, type CacheService } from "../../../core/cache";
 import { ConsoleLogger } from "../../../core/monitoring";
 import { CACHE_TTL } from "../../../shared/constants";

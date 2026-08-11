@@ -2,8 +2,8 @@ import { computed, readonly, ref } from "vue";
 import {
   RealtimeEventType,
   type RealtimeEvent,
-} from "@makanmakan/shared-types";
-import { isTokenExpired } from "@makanmakan/utils";
+} from "@makanmasak/shared-types";
+import { isTokenExpired } from "@makanmasak/utils";
 import { useAuthStore } from "@/stores/auth";
 import { useNotificationStore } from "@/stores/notification";
 import { useOrderStore } from "@/stores/order";

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ForecastResult } from "@makanmakan/shared-types";
+import type { ForecastResult } from "@makanmasak/shared-types";
 
 const drizzleState = vi.hoisted(() => ({
   db: {} as Record<string, unknown>,

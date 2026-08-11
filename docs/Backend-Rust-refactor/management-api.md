@@ -367,7 +367,7 @@ Owns `tenants` CRUD plus platform-restaurant provisioning glue.
 - `provisionTenantWithSubscription(data)` — creates the tenant **and** its
   `shop_subscriptions` row in a single `MANAGEMENT_DB.batch([...])` (atomic
   multi-statement D1 batch). Computes plan tier via `planIdToTier()` from
-  `@makanmakan/database`; if the resulting tier is `"trial"`,
+  `@makanmasak/database`; if the resulting tier is `"trial"`,
   `trial_ends_at_ms = now + TRIAL_DURATION_MS` (14 days) and billing-cycle
   columns are left `null`; otherwise `billing_cycle_start_at_ms = now`,
   `billing_cycle_end_at_ms = now + DEFAULT_BILLING_CYCLE_MS` (30 days).
@@ -411,7 +411,7 @@ tenant + platform owner account, with manual saga-style rollback on failure.
      `MANAGEMENT_DB` with `platform_restaurant_id`/`owner_user_id`/`owner_username`.
   4. `createCredentialDelivery()` → writes a tracking row into
      `onboarding_credential_deliveries` (via a locally-defined Drizzle
-     `sqliteTable`, not from `@makanmakan/database` — see §6 note).
+     `sqliteTable`, not from `@makanmasak/database` — see §6 note).
   5. Marks the application `"completed"` with `tenant_id`/`completed_at`.
   6. `dispatchCredentialDelivery()` → if email delivery is enabled, sends via
      MailChannels and updates delivery status; **failures here do not fail
@@ -720,7 +720,7 @@ uniform ms-integer timestamps across this database.
   `status` (default `pending`), `error_message`, timestamps; UNIQUE
   `(application_id, user_id)`. **This table's Drizzle model is defined
   inline inside `OnboardingService.ts`** (`sqliteTable("onboarding_credential_deliveries", ...)`),
-  not exported from `@makanmakan/database` alongside the other schema —
+  not exported from `@makanmasak/database` alongside the other schema —
   worth normalizing during the Rust port.
 
 ### `PLATFORM_DB` tables touched by this worker (schema owned by `packages/database`, not this app's migration track)

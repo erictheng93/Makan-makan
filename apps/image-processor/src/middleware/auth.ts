@@ -1,7 +1,7 @@
 import { Context, Next } from "hono";
 import { verify } from "hono/jwt";
 import type { Env } from "../types/env";
-import { createDatabase, eq, images } from "@makanmakan/database";
+import { createDatabase, eq, images } from "@makanmasak/database";
 
 export interface AuthUser {
   id: string;

@@ -1190,14 +1190,14 @@ npm install -g pnpm@latest
 **症狀**:
 
 ```
-error TS2307: Cannot find module '@makanmakan/shared-types'
+error TS2307: Cannot find module '@makanmasak/shared-types'
 ```
 
 **解決方案**:
 
 ```bash
 # 1. 構建依賴的 packages
-pnpm run build --filter @makanmakan/shared-types
+pnpm run build --filter @makanmasak/shared-types
 
 # 2. 或構建所有 packages
 pnpm run build

@@ -382,7 +382,7 @@ import { useRouter } from "vue-router";
 import type {
   RestaurantServiceItem,
   RestaurantServiceType,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 import { restaurantServiceItemsService } from "@/services/restaurantServiceItemsService";
 import {
   buildRestaurantServiceItemImportTemplate,

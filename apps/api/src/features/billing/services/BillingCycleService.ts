@@ -4,8 +4,8 @@ import {
   PLAN_QUOTAS,
   type ModuleMap,
   type PlanTier,
-} from "@makanmakan/database";
-import { generateUUID } from "@makanmakan/utils";
+} from "@makanmasak/database";
+import { generateUUID } from "@makanmasak/utils";
 import type { Env } from "../../../types/env";
 import { invalidateSubscriptionCacheForEnv } from "../../../middleware/moduleGate";
 import {

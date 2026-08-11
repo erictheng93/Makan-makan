@@ -24,7 +24,7 @@ remaining work is to turn those primitives into a scalable marketplace product.
 - Customer app focused tests:
   `pnpm exec vitest run apps/customer-app/src/tests`
 - Customer app typecheck:
-  `pnpm --filter @makanmakan/customer-app typecheck`
+  `pnpm --filter @makanmasak/customer-app typecheck`
 - Full pre-PR gates:
   `pnpm lint && pnpm typecheck && pnpm test`
 

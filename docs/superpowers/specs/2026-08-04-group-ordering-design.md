@@ -187,7 +187,7 @@ order total exactly.
 
 - Unit: split calculation (`equal`/`proportional` + rounding remainder),
   local builders (`buildGroupOrder(overrides)` etc.), no
-  `@makanmakan/testing-utils` import.
+  `@makanmasak/testing-utils` import.
 - Service-level: mock D1, assert `db.batch()` is called with the expected
   set of writes (not just the return value) for finalize.
 - Real-D1 integration: finalize is atomic (partial failure leaves no rows)

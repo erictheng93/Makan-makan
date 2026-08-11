@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { OnboardingService } from "../services/OnboardingService";
-import { planIdToTier } from "@makanmakan/database";
+import { planIdToTier } from "@makanmasak/database";
 import type { ManagementEnv, OnboardingApplication } from "../types";
 
 // Mirrors apps/image-processor/src/middleware/auth.ts UUID_V7_PATTERN. Any

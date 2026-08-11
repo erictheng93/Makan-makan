@@ -5,7 +5,7 @@ import { BillingWebhookService } from "./BillingWebhookService";
 const auditAppend = vi.hoisted(() => vi.fn());
 const notificationSend = vi.hoisted(() => vi.fn());
 
-vi.mock("@makanmakan/utils", () => ({
+vi.mock("@makanmasak/utils", () => ({
   generateUUID: vi.fn(() => "uuid-webhook-reconcile"),
 }));
 

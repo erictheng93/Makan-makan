@@ -365,7 +365,7 @@ import {
   RealtimeEventType,
   type OrderStatus,
   type RealtimeEvent,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 const props = defineProps<{
   restaurantId: string;

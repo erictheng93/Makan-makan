@@ -641,7 +641,7 @@ import type { CreateGuestOrderRequest } from "@/services/orderApi";
 import menuApi from "@/services/menuApi";
 import { useCurrency } from "@/composables/useCurrency";
 import { getOrderSubmitErrorI18nKey } from "@/utils/order-submit-error";
-import type { CreateOrderRequest } from "@makanmakan/shared-types";
+import type { CreateOrderRequest } from "@makanmasak/shared-types";
 
 // Props
 const props = defineProps<{

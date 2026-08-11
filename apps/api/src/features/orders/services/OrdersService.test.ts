@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { RealtimeEventType } from "@makanmakan/shared-types";
+import { RealtimeEventType } from "@makanmasak/shared-types";
 import { OrdersService } from "./OrdersService";
 
 const createBaseOrder = vi.hoisted(() => vi.fn());
@@ -16,7 +16,7 @@ const broadcastOrderStatusUpdate = vi.hoisted(() => vi.fn());
 const broadcastOrderCancelled = vi.hoisted(() => vi.fn());
 const generateEventId = vi.hoisted(() => vi.fn());
 
-vi.mock("@makanmakan/database", () => ({
+vi.mock("@makanmasak/database", () => ({
   // Must mirror the real export: the service matches base-service errors
   // against this prefix, so a missing one turns every mapping test red.
   INVALID_CUSTOMIZATION_PREFIX: "Invalid customization:",

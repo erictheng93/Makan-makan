@@ -28,28 +28,28 @@ export default defineConfig({
         replacement: path.resolve(__dirname, "./src"),
       },
       {
-        find: "@makanmakan/database/testing",
+        find: "@makanmasak/database/testing",
         replacement: path.resolve(
           __dirname,
           "../../packages/database/src/testing",
         ),
       },
       {
-        find: "@makanmakan/shared-types",
+        find: "@makanmasak/shared-types",
         replacement: path.resolve(
           __dirname,
           "../../packages/shared-types/src/index.ts",
         ),
       },
       {
-        find: "@makanmakan/database",
+        find: "@makanmasak/database",
         replacement: path.resolve(
           __dirname,
           "../../packages/database/src/index.ts",
         ),
       },
       {
-        find: "@makanmakan/utils",
+        find: "@makanmasak/utils",
         replacement: path.resolve(
           __dirname,
           "../../packages/utils/src/index.ts",

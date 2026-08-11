@@ -1,5 +1,5 @@
 {
-  "name": "@makanmakan/i18n",
+  "name": "@makanmasak/i18n",
   "version": "1.0.0",
   "description": "Shared internationalization resources for MakanMasak platform",
   "main": "dist/index.js",

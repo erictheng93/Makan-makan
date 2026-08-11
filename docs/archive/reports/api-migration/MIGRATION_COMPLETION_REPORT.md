@@ -214,7 +214,7 @@ expect(formatted).toHaveProperty("role", USER_ROLES.CHEF);
 **現象**:
 
 ```
-Error: Cannot find package '@makanmakan/testing-utils'
+Error: Cannot find package '@makanmasak/testing-utils'
 ```
 
 **原因**: testing-utils 未添加到 apps/api 的 devDependencies
@@ -225,7 +225,7 @@ Error: Cannot find package '@makanmakan/testing-utils'
 // apps/api/package.json
 {
   "devDependencies": {
-    "@makanmakan/testing-utils": "workspace:*"
+    "@makanmasak/testing-utils": "workspace:*"
   }
 }
 ```

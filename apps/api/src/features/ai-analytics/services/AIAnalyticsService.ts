@@ -9,13 +9,13 @@ import {
   testProvider as testAIProvider,
   getDefaultModel,
   getAvailableModels,
-} from "@makanmakan/ai-analytics";
+} from "@makanmasak/ai-analytics";
 import { drizzle } from "drizzle-orm/d1";
 import { eq, sql, and } from "drizzle-orm";
-import { aiConfigurations, aiUsageLogs } from "@makanmakan/database";
-import { encrypt, decrypt } from "@makanmakan/utils";
+import { aiConfigurations, aiUsageLogs } from "@makanmasak/database";
+import { encrypt, decrypt } from "@makanmasak/utils";
 import { badRequest } from "../../../shared/utils/api-error";
-import type { LLMConfig } from "@makanmakan/ai-analytics";
+import type { LLMConfig } from "@makanmasak/ai-analytics";
 import type {
   AIConfiguration,
   AIConfigInput,
@@ -26,7 +26,7 @@ import type {
 import type {
   ProductAnalysis as PackageProductAnalysis,
   AIAnalyticsReport,
-} from "@makanmakan/ai-analytics";
+} from "@makanmasak/ai-analytics";
 
 const AI_KEY_ENCRYPTION_SALT = "makanmakan-api-key-encryption-salt";
 

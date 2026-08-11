@@ -3,11 +3,11 @@ import { useAuthStore } from "@/stores/auth";
 import { UserRole } from "@/types";
 import { t } from "@/i18n";
 import type { RouteRecordRaw } from "vue-router";
-import { isTokenExpired } from "@makanmakan/utils";
+import { isTokenExpired } from "@makanmasak/utils";
 import {
   clearChunkRecoveryMark,
   createChunkRecovery,
-} from "@makanmakan/utils/chunk-recovery";
+} from "@makanmasak/utils/chunk-recovery";
 import {
   LOGIN_REDIRECT_QUERY,
   loginRouteFor,

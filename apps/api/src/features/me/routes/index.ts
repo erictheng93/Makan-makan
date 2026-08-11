@@ -8,7 +8,7 @@ import {
 } from "../../../middleware/moduleGate";
 import { SubscriptionService } from "../../subscriptions/services/SubscriptionService";
 import { UsageService } from "../../billing/services/UsageService";
-import type { ModuleKey } from "@makanmakan/database";
+import type { ModuleKey } from "@makanmasak/database";
 
 const router = new Hono<{ Bindings: Env }>();
 

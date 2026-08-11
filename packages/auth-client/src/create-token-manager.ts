@@ -1,4 +1,4 @@
-import { getRefreshDelay } from "@makanmakan/utils";
+import { getRefreshDelay } from "@makanmasak/utils";
 import type { TokenManager, TokenManagerConfig } from "./types";
 
 /**

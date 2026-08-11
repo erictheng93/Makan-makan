@@ -230,7 +230,7 @@ describe("Order Service", () => {
 **使用範例**:
 
 \`\`\`typescript
-import { buildCompleteRestaurantData } from '@makanmakan/testing-utils'
+import { buildCompleteRestaurantData } from '@makanmasak/testing-utils'
 
 const testData = buildCompleteRestaurantData({
 enableShopMode: true,
@@ -503,7 +503,7 @@ cashiers: UserTestData[] // 2 位收銀員
 **使用範例**：
 
 \`\`\`typescript
-import { userFactory } from '@makanmakan/testing-utils'
+import { userFactory } from '@makanmasak/testing-utils'
 
 const team = userFactory.buildRestaurantTeam(1)
 
@@ -646,7 +646,7 @@ createUser(data: CreateUserInput): Promise<User>
 
 ```typescript
 import { describe, it, expect, beforeEach } from "vitest";
-import { userFactory, resetAllFactories } from "@makanmakan/testing-utils";
+import { userFactory, resetAllFactories } from "@makanmasak/testing-utils";
 
 describe("User Service", () => {
   beforeEach(() => {

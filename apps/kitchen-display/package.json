@@ -19,8 +19,8 @@
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.0",
-    "@makanmakan/auth-client": "workspace:*",
-    "@makanmakan/i18n": "workspace:*",
+    "@makanmasak/auth-client": "workspace:*",
+    "@makanmasak/i18n": "workspace:*",
     "@tanstack/vue-query": "^5.17.0",
     "@vueuse/core": "^10.7.0",
     "@vueuse/integrations": "^10.7.0",

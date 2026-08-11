@@ -1,5 +1,5 @@
 import Papa from "papaparse";
-import type { RestaurantServiceType } from "@makanmakan/shared-types";
+import type { RestaurantServiceType } from "@makanmasak/shared-types";
 import type { ServiceItemFormInput } from "@/services/restaurantServiceItemsService";
 
 export interface RestaurantServiceItemImportParseResult {

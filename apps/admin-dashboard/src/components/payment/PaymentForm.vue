@@ -189,7 +189,7 @@ import type {
   PaymentMethod,
   CountryCode,
   CurrencyCode,
-} from "@makanmakan/shared-types";
+} from "@makanmasak/shared-types";
 
 // 組件引入
 import PaymentSteps from "./PaymentSteps.vue";

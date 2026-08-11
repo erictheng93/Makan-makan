@@ -1,4 +1,4 @@
-import type { TrackedError } from "@makanmakan/utils";
+import type { TrackedError } from "@makanmasak/utils";
 import { api } from "@/services/api";
 
 type SystemErrorType =

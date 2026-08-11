@@ -1,5 +1,5 @@
 import type { D1Database } from "@cloudflare/workers-types";
-import type { ReservationResponse } from "@makanmakan/shared-types";
+import type { ReservationResponse } from "@makanmasak/shared-types";
 import type { CloudflareEnv } from "./base";
 import {
   NotificationService,

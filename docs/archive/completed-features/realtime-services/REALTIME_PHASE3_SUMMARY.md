@@ -972,7 +972,7 @@ A: 測試腳本在短時間內發送多個請求觸發了速率限制。解決�
 
 A: OrdersService 整合測試的 mock 配置需要調整。這是已知問題，不影響核心功能。解決方案：
 
-- 修復 `@makanmakan/database` 的 mock 導出
+- 修復 `@makanmasak/database` 的 mock 導出
 - 正確配置 BaseOrderService mock
 - 參考已通過的測試範例
 
