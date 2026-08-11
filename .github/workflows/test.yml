@@ -171,7 +171,7 @@ jobs:
         run: pnpm run check:i18n-locales
 
       - name: 💅 Prettier 格式檢查
-        run: pnpm exec prettier --check "**/*.{ts,js,vue,json,md}"
+        run: pnpm exec prettier --check "**/*.{ts,js,cjs,mjs,vue,json,md}"
 
       - name: 🔒 整合測試白名單檢查
         run: node scripts/check-integration-allowlist.cjs

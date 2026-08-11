@@ -94,11 +94,11 @@ describe("AIAnalyticsService", () => {
   });
 
   beforeEach(async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-06-07T12:00:00.000Z"));
     vi.clearAllMocks();
     await testDb.truncateAll();
     await seedRestaurant();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T12:00:00.000Z"));
     service = new AIAnalyticsService(testDb.bindings.DB, "encryption-key");
     analyticsMocks.testProvider.mockResolvedValue({
       success: true,

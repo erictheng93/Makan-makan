@@ -103,7 +103,9 @@ async function main() {
     const dir = `${REPO}/tests/visual/${app.key}.visual.ts-snapshots`;
     let files;
     try {
-      files = (await readdir(dir)).filter((f) => f.endsWith("-linux.png")).sort();
+      files = (await readdir(dir))
+        .filter((f) => f.endsWith("-linux.png"))
+        .sort();
     } catch {
       console.warn(`[skip] ${dir} not found`);
       continue;
