@@ -41,7 +41,7 @@
 
         <form v-else class="space-y-5" @submit.prevent="handleSubmit">
           <p class="text-sm text-ios-secondary">
-            {{ t("auth.forgotPasswordDesc") }}
+            {{ t("auth.forgotPasswordHint") }}
           </p>
 
           <div>

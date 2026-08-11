@@ -49,7 +49,7 @@
 
         <form v-else class="space-y-5" @submit.prevent="handleSubmit">
           <p class="text-sm text-ios-secondary">
-            {{ t("auth.resetPasswordDesc") }}
+            {{ t("auth.resetPasswordHint") }}
           </p>
 
           <div>
@@ -67,7 +67,7 @@
               autocomplete="new-password"
               data-testid="new-password-input"
               class="w-full px-4 py-3 bg-ios-bg rounded-2xl text-ios-text placeholder:text-ios-tertiary focus:ring-2 focus:ring-ios-blue focus:bg-white transition"
-              :placeholder="t('auth.newPasswordPlaceholder')"
+              :placeholder="t('auth.enterNewPassword')"
             />
             <p v-if="errors.newPassword" class="mt-2 text-sm text-ios-red">
               {{ errors.newPassword }}
