@@ -55,6 +55,12 @@ interface CustomerAuthTokenPayload {
   nbf?: number;
 }
 
+interface CustomerBindingTokenPayload {
+  type: "customer_bind";
+  exp: number;
+  iat?: number;
+}
+
 interface SseAuthTokenPayload extends AuthTokenPayload {
   purpose: "kitchen_sse";
   aud: "kitchen_sse";
@@ -107,6 +113,19 @@ function isCustomerAuthTokenPayload(
     typeof payload.exp === "number" &&
     (payload.iat === undefined || typeof payload.iat === "number") &&
     (payload.nbf === undefined || typeof payload.nbf === "number")
+  );
+}
+
+function isCustomerBindingTokenPayload(
+  decoded: unknown,
+): decoded is CustomerBindingTokenPayload {
+  if (!decoded || typeof decoded !== "object") return false;
+
+  const payload = decoded as Record<string, unknown>;
+  return (
+    payload.type === "customer_bind" &&
+    typeof payload.exp === "number" &&
+    (payload.iat === undefined || typeof payload.iat === "number")
   );
 }
 
@@ -358,6 +377,13 @@ export const canonicalCustomerAuthMiddleware = async (
       c.env.JWT_SECRET,
       DEFER_TIME_CLAIM_VALIDATION,
     );
+
+    if (isCustomerBindingTokenPayload(decoded)) {
+      throw unauthorized(
+        "Binding tokens cannot access customer routes",
+        "TOKEN_INVALID",
+      );
+    }
 
     if (!isCustomerAuthTokenPayload(decoded)) {
       throw unauthorized("Invalid customer token claims", "TOKEN_INVALID");

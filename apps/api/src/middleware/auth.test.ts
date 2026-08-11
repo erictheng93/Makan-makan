@@ -112,6 +112,20 @@ async function customerToken(sub = "customer-1") {
   );
 }
 
+async function customerBindingToken() {
+  const now = Math.floor(Date.now() / 1000);
+  return sign(
+    {
+      type: "customer_bind",
+      provider: "line",
+      providerUid: "line-user-1",
+      iat: now,
+      exp: now + 600,
+    },
+    JWT_SECRET,
+  );
+}
+
 function strictAtob(encoded: string): string {
   if (encoded.length % 4 !== 0) {
     throw new DOMException(
@@ -495,6 +509,25 @@ describe("canonicalCustomerAuthMiddleware", () => {
     });
     expect(db.run).toHaveBeenCalledOnce();
     expect(response.status).toBe(200);
+  });
+
+  it("rejects customer binding tokens", async () => {
+    const app = new Hono();
+    app.onError(apiErrorHandler);
+    app.use("/me", canonicalCustomerAuthMiddleware);
+    app.get("/me", (c) => c.json({ customer: c.get("customer") }));
+
+    const response = await app.fetch(
+      new Request("https://api.test/me", {
+        headers: { Authorization: `Bearer ${await customerBindingToken()}` },
+      }),
+      { JWT_SECRET, DB: createCustomerDb(null) } as never,
+    );
+
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "TOKEN_INVALID" },
+    });
+    expect(response.status).toBe(401);
   });
 });
 

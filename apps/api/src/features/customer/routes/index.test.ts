@@ -83,6 +83,25 @@ vi.mock("@makanmasak/utils", () => ({
   ),
 }));
 
+// Only NotificationService is stubbed. createSmsProvider stays real so the OTP
+// tests keep exercising the actual vendor wire format through env.SMS_FETCH.
+const notificationMocks = vi.hoisted(() => ({
+  sendNotification: vi.fn(async () => ({
+    success: true,
+    errors: [] as string[],
+  })),
+}));
+
+vi.mock("@makanmasak/database", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@makanmasak/database")>();
+  return {
+    ...actual,
+    NotificationService: class {
+      sendNotification = notificationMocks.sendNotification;
+    },
+  };
+});
+
 import routes, {
   generateOtp,
   pruneStaleCustomerPushSubscriptions,
@@ -123,7 +142,13 @@ function createDb(queues: Partial<DbQueues> = {}) {
         }),
         first: vi.fn(async () => state.first.shift() ?? null),
         all: vi.fn(async () => state.all.shift() ?? { results: [] }),
-        run: vi.fn(async () => state.run.shift() ?? { meta: { changes: 1 } }),
+        run: vi.fn(async () => {
+          const result = state.run.shift();
+          if (result instanceof Error) {
+            throw result;
+          }
+          return result ?? { meta: { changes: 1 } };
+        }),
       };
       return statement;
     }),
@@ -142,6 +167,13 @@ function createKv(initial: Record<string, string> = {}) {
     delete: vi.fn(async (key: string) => {
       values.delete(key);
     }),
+    list: vi.fn(async ({ prefix }: { prefix?: string } = {}) => ({
+      keys: [...values.keys()]
+        .filter((key) => !prefix || key.startsWith(prefix))
+        .map((name) => ({ name })),
+      list_complete: true,
+      cursor: undefined,
+    })),
   };
 }
 
@@ -159,6 +191,28 @@ function customerRow(overrides: Record<string, unknown> = {}) {
     updated_at_ms: 1_780_000_000_000,
     ...overrides,
   };
+}
+
+function passwordIdentityRow(overrides: Record<string, unknown> = {}) {
+  return {
+    ...customerRow(),
+    identity_id: "identity-1",
+    customer_id: "customer-1",
+    provider_uid: "ada@example.com",
+    secret_hash: "hash:password",
+    verified_at_ms: 1_780_000_000_000,
+    ...overrides,
+  };
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
+  );
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function request(
@@ -217,6 +271,10 @@ beforeEach(() => {
   };
   bcryptMocks.compare.mockResolvedValue(true);
   utilMocks.generateUUID.mockReturnValue("uuid-1");
+  notificationMocks.sendNotification.mockResolvedValue({
+    success: true,
+    errors: [],
+  });
 });
 
 describe("generateOtp", () => {
@@ -275,6 +333,22 @@ describe("customer identity routes", () => {
     );
   });
 
+  it("skips SMS delivery outside production when no vendor is configured", async () => {
+    const smsFetch = vi.fn();
+
+    const { response } = request(
+      "/auth/request-otp",
+      "POST",
+      { phone: "+886912345678" },
+      { SMS_FETCH: smsFetch },
+    );
+    const body = await (await response).json();
+
+    expect(body.success).toBe(true);
+    expect(body.data.devOtp).toMatch(/^\d{6}$/);
+    expect(smsFetch).not.toHaveBeenCalled();
+  });
+
   it("does not echo OTPs outside explicit development and test environments", async () => {
     const { response } = request(
       "/auth/request-otp",
@@ -292,6 +366,87 @@ describe("customer identity routes", () => {
       },
     });
     expect(body.data).not.toHaveProperty("devOtp");
+  });
+
+  it("delivers the OTP through the configured SMS vendor", async () => {
+    const smsFetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response("[1]\r\nmsgid=990001\r\nstatuscode=1\r\nAccountPoint=50"),
+      );
+
+    const { response } = request(
+      "/auth/request-otp",
+      "POST",
+      { phone: "+886912345678" },
+      {
+        SMS_PROVIDER: "mitake",
+        MITAKE_USERNAME: "acct",
+        MITAKE_PASSWORD: "secret",
+        OTP_SMS_BRAND: "麻煩麻煩",
+        SMS_FETCH: smsFetch,
+      },
+    );
+    const body = await (await response).json();
+
+    expect(body.success).toBe(true);
+    expect(smsFetch).toHaveBeenCalledOnce();
+
+    const form = new URLSearchParams(
+      String((smsFetch.mock.calls[0][1] as RequestInit).body),
+    );
+    expect(form.get("dstaddr")).toBe("0912345678");
+    expect(form.get("smbody")).toContain(body.data.devOtp);
+    expect(form.get("smbody")).toContain("【麻煩麻煩】");
+  });
+
+  it("fails with 502 when the SMS vendor rejects the send", async () => {
+    const smsFetch = vi
+      .fn()
+      .mockResolvedValue(new Response("[1]\r\nstatuscode=v"));
+
+    const { response } = request(
+      "/auth/request-otp",
+      "POST",
+      { phone: "+886900000000" },
+      {
+        SMS_PROVIDER: "mitake",
+        MITAKE_USERNAME: "acct",
+        MITAKE_PASSWORD: "secret",
+        SMS_FETCH: smsFetch,
+      },
+    );
+    const rawResponse = await response;
+    const body = await rawResponse.json();
+
+    expect(rawResponse.status).toBe(502);
+    expect(body).toMatchObject({
+      success: false,
+      error: { code: "SMS_SEND_FAILED" },
+    });
+    // The vendor's own wording must not reach the client.
+    expect(JSON.stringify(body)).not.toContain("無效的手機號碼");
+  });
+
+  it("refuses OTP requests in production when no SMS vendor is configured", async () => {
+    const db = createDb();
+
+    const { response } = request(
+      "/auth/request-otp",
+      "POST",
+      { phone: "+886912345678" },
+      { DB: db, NODE_ENV: "production" },
+    );
+    const rawResponse = await response;
+    const body = await rawResponse.json();
+
+    expect(rawResponse.status).toBe(503);
+    expect(body).toMatchObject({
+      success: false,
+      error: { code: "SMS_CHANNEL_UNAVAILABLE" },
+    });
+    // No token row is written for a code that can never be delivered.
+    expect(db.state.statements).toHaveLength(0);
   });
 
   it("verifies OTPs, creates new customers, and issues tokens", async () => {
@@ -330,8 +485,8 @@ describe("customer identity routes", () => {
     expect(rawResponse.headers.get("set-cookie")).toContain("HttpOnly");
     expect(bcryptMocks.compare).toHaveBeenCalledWith("123456", "hash:123456");
     expect(tokenKv.put).toHaveBeenCalledWith(
-      expect.stringMatching(/^customer_refresh:/),
-      "customer-new",
+      expect.stringMatching(/^customer_refresh:customer-new:/),
+      "1",
       { expirationTtl: 30 * 24 * 60 * 60 },
     );
   });
@@ -358,8 +513,540 @@ describe("customer identity routes", () => {
     });
   });
 
+  it("returns identical login errors for unknown identifiers and wrong passwords while hashing both paths", async () => {
+    bcryptMocks.compare.mockResolvedValue(false);
+
+    const unknown = await request(
+      "/auth/login",
+      "POST",
+      { identifier: "missing@example.com", password: "wrong-password" },
+      { DB: createDb({ first: [null] }) },
+    ).response;
+    const wrongPassword = await request(
+      "/auth/login",
+      "POST",
+      { identifier: "ada@example.com", password: "wrong-password" },
+      { DB: createDb({ first: [passwordIdentityRow()] }) },
+    ).response;
+
+    expect(unknown.status).toBe(401);
+    expect(wrongPassword.status).toBe(401);
+    expect(await unknown.text()).toBe(await wrongPassword.text());
+    expect(bcryptMocks.compare).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects unverified password identities even when the password is correct", async () => {
+    const response = await request(
+      "/auth/login",
+      "POST",
+      { identifier: "ada@example.com", password: "long-password" },
+      {
+        DB: createDb({
+          first: [passwordIdentityRow({ verified_at_ms: null })],
+        }),
+      },
+    ).response;
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "INVALID_CREDENTIALS" },
+    });
+    expect(bcryptMocks.compare).toHaveBeenCalledWith(
+      "long-password",
+      "hash:password",
+    );
+  });
+
+  it("normalizes email identifiers for password register and login", async () => {
+    const registerDb = createDb({ first: [null] });
+
+    let response = await request(
+      "/auth/register",
+      "POST",
+      {
+        identifier: " A@X.com ",
+        password: "long-password",
+        displayName: "Ada",
+      },
+      { DB: registerDb, USE_MAILCHANNELS: "false" },
+    ).response;
+    expect(response.status).toBe(201);
+    expect(
+      registerDb.state.statements.find((statement) =>
+        statement.sql.includes("INSERT INTO customer_auth_identities"),
+      )?.args,
+    ).toEqual(expect.arrayContaining(["a@x.com"]));
+
+    response = await request(
+      "/auth/login",
+      "POST",
+      { identifier: "a@x.com", password: "long-password" },
+      {
+        DB: createDb({
+          first: [passwordIdentityRow({ provider_uid: "a@x.com" })],
+        }),
+      },
+    ).response;
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: { accessToken: "signed:customer:customer-1:access" },
+    });
+
+    response = await request(
+      "/auth/register",
+      "POST",
+      {
+        identifier: "A@x.com",
+        password: "another-password",
+        displayName: "Ada Again",
+      },
+      {
+        DB: createDb({
+          first: [passwordIdentityRow({ provider_uid: "a@x.com" })],
+        }),
+        USE_MAILCHANNELS: "false",
+      },
+    ).response;
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "IDENTITY_EXISTS" },
+    });
+  });
+
+  it("dispatches a verification email carrying the token link on email register", async () => {
+    const { response } = request(
+      "/auth/register",
+      "POST",
+      {
+        identifier: "ada@example.com",
+        password: "long-password",
+        displayName: "Ada",
+      },
+      { DB: createDb({ first: [null] }), CUSTOMER_APP_URL: "https://app.test" },
+    );
+    expect((await response).status).toBe(201);
+
+    expect(notificationMocks.sendNotification).toHaveBeenCalledOnce();
+    expect(notificationMocks.sendNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientEmail: "ada@example.com",
+        category: "email_verification",
+        type: "email",
+        data: expect.objectContaining({
+          userName: "Ada",
+          verificationLink: expect.stringContaining(
+            "https://app.test/verify-email?token=",
+          ),
+        }),
+      }),
+    );
+  });
+
+  it("sends the raw token by email while storing only its hash", async () => {
+    const db = createDb({ first: [null] });
+    await request(
+      "/auth/register",
+      "POST",
+      {
+        identifier: "ada@example.com",
+        password: "long-password",
+        displayName: "Ada",
+      },
+      { DB: db, CUSTOMER_APP_URL: "https://app.test" },
+    ).response;
+
+    const sent = notificationMocks.sendNotification.mock.calls[0][0] as {
+      data: { verificationLink: string };
+    };
+    const rawToken = decodeURIComponent(
+      new URL(sent.data.verificationLink).searchParams.get("token") ?? "",
+    );
+    expect(rawToken.length).toBeGreaterThan(20);
+
+    const insert = db.state.statements.find((statement) =>
+      statement.sql.includes("INSERT INTO customer_verification_tokens"),
+    );
+    // The raw token must never reach the database.
+    expect(insert?.args).not.toContain(rawToken);
+    expect(insert?.args).toEqual(
+      expect.arrayContaining([await sha256Hex(rawToken)]),
+    );
+  });
+
+  it("fails registration with 502 when the verification email cannot be sent", async () => {
+    notificationMocks.sendNotification.mockResolvedValue({
+      success: false,
+      errors: ["Email provider not configured"],
+    });
+
+    const { response } = request(
+      "/auth/register",
+      "POST",
+      {
+        identifier: "ada@example.com",
+        password: "long-password",
+        displayName: "Ada",
+      },
+      { DB: createDb({ first: [null] }) },
+    );
+    const raw = await response;
+
+    expect(raw.status).toBe(502);
+    await expect(raw.json()).resolves.toMatchObject({
+      success: false,
+      error: { code: "VERIFICATION_EMAIL_FAILED" },
+    });
+  });
+
+  it("keeps forgot-password uniform when the reset email cannot be sent", async () => {
+    notificationMocks.sendNotification.mockResolvedValue({
+      success: false,
+      errors: ["Email provider not configured"],
+    });
+
+    const { response } = request(
+      "/auth/forgot-password",
+      "POST",
+      { identifier: "ada@example.com" },
+      { DB: createDb({ first: [passwordIdentityRow()] }) },
+    );
+    const raw = await response;
+
+    // Surfacing the failure here would reveal that the account exists.
+    expect(raw.status).toBe(200);
+    await expect(raw.json()).resolves.toMatchObject({
+      success: true,
+      data: { sent: true },
+    });
+    expect(notificationMocks.sendNotification).toHaveBeenCalledOnce();
+  });
+
+  it("skips email dispatch entirely for phone registration", async () => {
+    // E.164 already: normalizeE164Phone is stubbed in this file and only
+    // prefixes "+", so a local 09xxxxxxxx form would not normalize here.
+    const { response } = request(
+      "/auth/register",
+      "POST",
+      {
+        identifier: "+886912345678",
+        password: "long-password",
+        displayName: "Ada",
+      },
+      { DB: createDb({ first: [null] }) },
+    );
+
+    expect((await response).status).toBe(201);
+    expect(notificationMocks.sendNotification).not.toHaveBeenCalled();
+  });
+
+  it("deletes the newly created customer when identity registration hits a unique constraint", async () => {
+    const db = createDb({
+      first: [null],
+      run: [
+        { meta: { changes: 1 } },
+        new Error("D1_ERROR: UNIQUE constraint failed"),
+        { meta: { changes: 1 } },
+      ],
+    });
+
+    const response = await request(
+      "/auth/register",
+      "POST",
+      {
+        identifier: "ada@example.com",
+        password: "long-password",
+        displayName: "Ada",
+      },
+      { DB: db, USE_MAILCHANNELS: "false" },
+    ).response;
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "IDENTITY_EXISTS" },
+    });
+    expect(
+      db.state.statements.find((statement) =>
+        statement.sql.includes("DELETE FROM customers"),
+      )?.args,
+    ).toEqual(["uuid-1"]);
+  });
+
+  it("updates password identity last-used using the identity id on login", async () => {
+    const db = createDb({
+      first: [
+        passwordIdentityRow({ id: "customer-1", identity_id: "ident-9" }),
+      ],
+    });
+
+    const response = await request(
+      "/auth/login",
+      "POST",
+      { identifier: "ada@example.com", password: "long-password" },
+      { DB: db },
+    ).response;
+
+    expect(response.status).toBe(200);
+    expect(
+      db.state.statements.find((statement) =>
+        statement.sql.includes("SET last_used_at_ms"),
+      )?.args,
+    ).toEqual([expect.any(Number), expect.any(Number), "ident-9"]);
+  });
+
+  it("starts the OTP flow for phone password registration", async () => {
+    utilMocks.generateUUID
+      .mockReturnValueOnce("customer-phone")
+      .mockReturnValueOnce("identity-phone");
+    const db = createDb({ first: [null] });
+    const rateLimitKv = createKv();
+
+    const response = await request(
+      "/auth/register",
+      "POST",
+      {
+        identifier: "+886912345678",
+        password: "long-password",
+        displayName: "Phone User",
+      },
+      { DB: db, RATE_LIMIT_KV: rateLimitKv },
+    ).response;
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(body).toMatchObject({
+      success: true,
+      data: {
+        verificationRequired: true,
+        verificationMethod: "phone",
+      },
+    });
+    expect(
+      db.state.statements.find((statement) =>
+        statement.sql.includes(
+          "INSERT INTO customer_phone_verification_tokens",
+        ),
+      )?.args,
+    ).toEqual([
+      "+886912345678",
+      expect.stringMatching(/^hash:/),
+      expect.any(Number),
+      "203.0.113.10",
+      expect.any(Number),
+    ]);
+  });
+
+  it("marks pending phone password identities verified after OTP verification", async () => {
+    const db = createDb({
+      first: [
+        { id: 10, otp_code: "hash:123456", attempts: 0 },
+        passwordIdentityRow({
+          identity_id: "identity-phone",
+          customer_id: "customer-phone",
+          provider_uid: "+886912345678",
+          verified_at_ms: null,
+          primary_phone: null,
+        }),
+      ],
+    });
+
+    const response = await request(
+      "/auth/verify-otp",
+      "POST",
+      { phone: "+886912345678", otp: "123456" },
+      { DB: db },
+    ).response;
+
+    expect(response.status).toBe(200);
+    expect(
+      db.state.statements.find((statement) =>
+        statement.sql.includes("SET verified_at_ms"),
+      )?.args,
+    ).toEqual([expect.any(Number), expect.any(Number), "identity-phone"]);
+    expect(
+      db.state.statements.find((statement) =>
+        statement.sql.includes("SET primary_phone"),
+      )?.args,
+    ).toEqual(["+886912345678", expect.any(Number), "customer-phone"]);
+  });
+
+  it("returns success for forgot-password when the identifier does not exist", async () => {
+    const response = await request(
+      "/auth/forgot-password",
+      "POST",
+      { identifier: "missing@example.com" },
+      { DB: createDb({ first: [null] }), USE_MAILCHANNELS: "false" },
+    ).response;
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: { sent: true },
+    });
+  });
+
+  it("uses customer reset tokens once, rejects expired tokens, and revokes existing refresh records", async () => {
+    const tokenHash = await sha256Hex("reset-token-value-0001");
+    const tokenKv = createKv({
+      "customer_refresh:customer-1:old-1": "1",
+      "customer_refresh:customer-2:other": "1",
+    });
+    const db = createDb({
+      first: [
+        {
+          id: "token-1",
+          customer_id: "customer-1",
+          purpose: "password_reset",
+          identifier: "ada@example.com",
+          expires_at_ms: Date.now() + 60_000,
+          used_at_ms: null,
+        },
+      ],
+    });
+
+    let response = await request(
+      "/auth/reset-password",
+      "POST",
+      { token: "reset-token-value-0001", newPassword: "new-long-password" },
+      { DB: db, TOKEN_BLACKLIST: tokenKv },
+    ).response;
+    expect(response.status).toBe(200);
+    expect(
+      db.state.statements.find((statement) =>
+        statement.sql.includes("FROM customer_verification_tokens"),
+      )?.args,
+    ).toEqual([tokenHash, "password_reset"]);
+    expect(tokenKv.list).toHaveBeenCalledWith({
+      prefix: "customer_refresh:customer-1:",
+      cursor: undefined,
+    });
+    expect(tokenKv.get).not.toHaveBeenCalled();
+    expect(tokenKv.delete).toHaveBeenCalledWith(
+      "customer_refresh:customer-1:old-1",
+    );
+    expect(tokenKv.delete).not.toHaveBeenCalledWith(
+      "customer_refresh:customer-2:other",
+    );
+
+    response = await request(
+      "/auth/reset-password",
+      "POST",
+      { token: "reset-token-value-0001", newPassword: "new-long-password" },
+      {
+        DB: createDb({
+          first: [
+            {
+              id: "token-1",
+              customer_id: "customer-1",
+              purpose: "password_reset",
+              identifier: "ada@example.com",
+              expires_at_ms: Date.now() + 60_000,
+              used_at_ms: Date.now(),
+            },
+          ],
+        }),
+      },
+    ).response;
+    expect(response.status).toBe(401);
+
+    response = await request(
+      "/auth/reset-password",
+      "POST",
+      { token: "reset-token-value-0002", newPassword: "new-long-password" },
+      {
+        DB: createDb({
+          first: [
+            {
+              id: "token-2",
+              customer_id: "customer-1",
+              purpose: "password_reset",
+              identifier: "ada@example.com",
+              expires_at_ms: Date.now() - 1,
+              used_at_ms: null,
+            },
+          ],
+        }),
+      },
+    ).response;
+    expect(response.status).toBe(401);
+  });
+
+  it("verifies email tokens once and promotes primary_email after verification", async () => {
+    const tokenHash = await sha256Hex("verify-token-value-0001");
+    const db = createDb({
+      first: [
+        {
+          id: "token-1",
+          customer_id: "customer-1",
+          purpose: "email_verify",
+          identifier: "ada@example.com",
+          expires_at_ms: Date.now() + 60_000,
+          used_at_ms: null,
+        },
+      ],
+    });
+
+    const response = await request(
+      "/auth/verify-email",
+      "POST",
+      { token: "verify-token-value-0001" },
+      { DB: db },
+    ).response;
+
+    expect(response.status).toBe(200);
+    expect(
+      db.state.statements.find((statement) =>
+        statement.sql.includes("FROM customer_verification_tokens"),
+      )?.args,
+    ).toEqual([tokenHash, "email_verify"]);
+    expect(
+      db.state.statements.find((statement) =>
+        statement.sql.includes("SET primary_email"),
+      )?.args,
+    ).toEqual(["ada@example.com", expect.any(Number), "customer-1"]);
+  });
+
+  it("returns 409 when email verification would claim an email already used by another customer", async () => {
+    const db = createDb({
+      first: [
+        {
+          id: "token-1",
+          customer_id: "customer-1",
+          purpose: "email_verify",
+          identifier: "ada@example.com",
+          expires_at_ms: Date.now() + 60_000,
+          used_at_ms: null,
+        },
+      ],
+      run: [
+        new Error(
+          "D1_ERROR: UNIQUE constraint failed: customers.primary_email",
+        ),
+      ],
+    });
+
+    const response = await request(
+      "/auth/verify-email",
+      "POST",
+      { token: "verify-token-value-0001" },
+      { DB: db },
+    ).response;
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "IDENTITY_EXISTS" },
+    });
+    expect(
+      db.state.statements.filter((statement) =>
+        statement.sql.includes("SET verified_at_ms"),
+      ),
+    ).toHaveLength(0);
+  });
+
   it("refreshes and logs out customer sessions", async () => {
-    const tokenKv = createKv({ "customer_refresh:refresh-1": "customer-1" });
+    const tokenKv = createKv({
+      "customer_refresh:customer-1:refresh-1": "1",
+    });
     const db = createDb({ first: [customerRow()] });
 
     let response = await request(
@@ -370,11 +1057,14 @@ describe("customer identity routes", () => {
       { Cookie: "__Host-mm_customer_refresh=refresh-token-value-12345" },
     ).response;
     expect(response.status).toBe(200);
+    expect(response.headers.getSetCookie()).toHaveLength(1);
     await expect(response.json()).resolves.toMatchObject({
       success: true,
       data: { accessToken: "signed:customer:customer-1:access" },
     });
-    expect(tokenKv.delete).toHaveBeenCalledWith("customer_refresh:refresh-1");
+    expect(tokenKv.delete).toHaveBeenCalledWith(
+      "customer_refresh:customer-1:refresh-1",
+    );
 
     response = await request(
       "/auth/logout",
@@ -390,6 +1080,33 @@ describe("customer identity routes", () => {
       {
         expirationTtl: 15 * 60,
       },
+    );
+  });
+
+  it("clears the refresh cookie when a rotated refresh token belongs to an inactive customer", async () => {
+    const tokenKv = createKv({
+      "customer_refresh:customer-1:refresh-1": "1",
+    });
+    const db = createDb({ first: [null] });
+
+    const response = await request(
+      "/auth/refresh",
+      "POST",
+      undefined,
+      { DB: db, TOKEN_BLACKLIST: tokenKv },
+      { Cookie: "__Host-mm_customer_refresh=refresh-token-value-12345" },
+    ).response;
+
+    expect(response.status).toBe(401);
+    expect(response.headers.getSetCookie()).toHaveLength(1);
+    expect(response.headers.getSetCookie()[0]).toContain(
+      "__Host-mm_customer_refresh=;",
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "CUSTOMER_INACTIVE" },
+    });
+    expect(tokenKv.delete).toHaveBeenCalledWith(
+      "customer_refresh:customer-1:refresh-1",
     );
   });
 

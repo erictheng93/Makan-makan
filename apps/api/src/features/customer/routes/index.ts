@@ -1,10 +1,10 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
-import { deleteCookie, getCookie, setCookie } from "hono/cookie";
-import { sign } from "hono/jwt";
+import { getCookie } from "hono/cookie";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { generateUUID, normalizeE164Phone } from "@makanmasak/utils";
+import { createSmsProvider, NotificationService } from "@makanmasak/database";
 import {
   CUSTOMER_CONSENT_TYPES,
   isCustomerConsentVersion,
@@ -15,15 +15,46 @@ import {
   verifyJwtToken,
 } from "../../../middleware/auth";
 import { validateBody, validateQuery } from "../../../middleware/validation";
-import { badRequest, unauthorized } from "../../../shared/utils/api-error";
+import {
+  ApiError,
+  badRequest,
+  conflict,
+  unauthorized,
+} from "../../../shared/utils/api-error";
+import {
+  CUSTOMER_ACCESS_TOKEN_SECONDS,
+  CUSTOMER_REFRESH_COOKIE,
+  customerRefreshRecordKey,
+  issueCustomerSession,
+  revokeCustomerSession,
+  revokeRefreshRecord,
+} from "../services/CustomerSessionService";
 
-const ACCESS_TOKEN_SECONDS = 15 * 60;
-const REFRESH_TOKEN_SECONDS = 30 * 24 * 60 * 60;
-const CUSTOMER_REFRESH_COOKIE = "__Host-mm_customer_refresh";
 const OTP_TTL_MS = 5 * 60 * 1000;
 const MAX_OTP_ATTEMPTS = 5;
 const OTP_CODE_SPACE = 1_000_000;
 const OTP_RANDOM_BOUNDARY = 4_294_000_000;
+const PASSWORD_MIN_LENGTH = 10;
+const PASSWORD_RESET_TTL_MS = 15 * 60 * 1000;
+const EMAIL_VERIFY_TTL_MS = 24 * 60 * 60 * 1000;
+const PASSWORD_RATE_LIMIT_TTL_SECONDS = 60 * 60;
+const PASSWORD_RATE_LIMIT_IDENTIFIER_MAX = 5;
+const PASSWORD_RATE_LIMIT_IP_MAX = 20;
+const DUMMY_PASSWORD_HASH =
+  "$2a$10$UGDZBxi4dnR2z5YoJLJ/V.ny1wknPCO8ncfLy1PgTOknCb8DJDmQm";
+const PASSWORD_LOGIN_ERROR_MESSAGE = "Invalid identifier or password";
+const PASSWORD_LOGIN_ERROR_CODE = "INVALID_CREDENTIALS";
+const COMMON_PASSWORDS = new Set([
+  "1234567890",
+  "password",
+  "password1",
+  "password123",
+  "qwerty12345",
+  "1111111111",
+  "iloveyou",
+  "adminadmin",
+  "makanmakan",
+]);
 type Uint32RandomValues = (values: Uint32Array) => Uint32Array;
 
 const phoneSchema = z
@@ -41,6 +72,36 @@ const requestOtpSchema = z.object({
 const verifyOtpSchema = z.object({
   phone: phoneSchema,
   otp: z.string().regex(/^\d{6}$/),
+});
+
+const passwordSchema = z.string().min(PASSWORD_MIN_LENGTH).max(256);
+
+const registerSchema = z.object({
+  identifier: z.string().trim().min(3).max(320),
+  password: passwordSchema,
+  displayName: z.string().trim().min(1).max(100),
+});
+
+const loginSchema = z.object({
+  identifier: z.string().trim().min(3).max(320),
+  password: z.string().min(1).max(256),
+});
+
+const forgotPasswordSchema = z.object({
+  identifier: z.string().trim().min(3).max(320),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().trim().min(20).max(256),
+  newPassword: passwordSchema,
+});
+
+const tokenOnlySchema = z.object({
+  token: z.string().trim().min(20).max(256),
+});
+
+const resendVerificationSchema = z.object({
+  identifier: z.string().trim().min(3).max(320),
 });
 
 const profilePatchSchema = z.object({
@@ -101,29 +162,6 @@ const recentMarketSchema = z.object({
   visitedAtMs: z.number().int().positive().optional(),
 });
 
-function setCustomerRefreshCookie<E extends { Bindings: Env }>(
-  c: Context<E>,
-  refreshToken: string,
-) {
-  setCookie(c, CUSTOMER_REFRESH_COOKIE, refreshToken, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "Lax",
-    path: "/",
-    maxAge: REFRESH_TOKEN_SECONDS,
-  });
-}
-
-function clearCustomerRefreshCookie<E extends { Bindings: Env }>(
-  c: Context<E>,
-) {
-  deleteCookie(c, CUSTOMER_REFRESH_COOKIE, {
-    secure: true,
-    sameSite: "Lax",
-    path: "/",
-  });
-}
-
 const consentSchema = z
   .object({
     consentType: z.enum(CUSTOMER_CONSENT_TYPES),
@@ -156,35 +194,323 @@ type CustomerRow = {
   updated_at_ms: number;
 };
 
+type AuthIdentifier = {
+  kind: "email" | "phone";
+  value: string;
+};
+
+type PasswordIdentityRow = CustomerRow & {
+  identity_id: string;
+  customer_id: string;
+  provider_uid: string;
+  secret_hash: string | null;
+  verified_at_ms: number | null;
+};
+
+type VerificationTokenRow = {
+  id: string;
+  customer_id: string;
+  purpose: "password_reset" | "email_verify";
+  identifier: string;
+  expires_at_ms: number;
+  used_at_ms: number | null;
+};
+
+type IssuedPhoneOtp = {
+  phone: string;
+  expiresInSeconds: number;
+  devOtp?: string;
+};
+
 const routes = new Hono<{ Bindings: Env }>();
 
 routes.post("/auth/request-otp", validateBody(requestOtpSchema), async (c) => {
   const { phone } = c.get("validatedBody");
-  const now = Date.now();
-  const canEchoDevOtp =
-    c.env.NODE_ENV === "development" || c.env.NODE_ENV === "test";
-  const otp = generateOtp();
-  const otpHash = await bcrypt.hash(otp, 10);
+  const data = await issuePhoneOtp(c, phone);
 
-  await enforceOtpRateLimit(c.env, phone, c.req.header("CF-Connecting-IP"));
+  return c.json({
+    success: true,
+    data,
+  });
+});
+
+routes.post("/auth/register", validateBody(registerSchema), async (c) => {
+  const body = c.get("validatedBody");
+  rejectWeakPassword(body.password);
+  const identifier = parseAuthIdentifier(body.identifier);
+  await enforcePasswordRateLimit(c, "register", identifier.value);
+
+  const existing = await loadPasswordIdentity(c.env, identifier.value);
+  if (existing) {
+    throw conflict("Customer identity already exists", "IDENTITY_EXISTS");
+  }
+
+  const now = Date.now();
+  const customerId = generateUUID();
+  const identityId = generateUUID();
+  const passwordHash = await bcrypt.hash(body.password, 10);
 
   await c.env.DB.prepare(
-    `INSERT INTO customer_phone_verification_tokens
-        (phone, otp_code, expires_at_ms, ip_address, created_at_ms)
-       VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO customers
+      (id, display_name, status, created_at_ms, updated_at_ms)
+     VALUES (?, ?, 'active', ?, ?)`,
   )
-    .bind(phone, otpHash, now + OTP_TTL_MS, clientIp(c), now)
+    .bind(customerId, body.displayName, now, now)
     .run();
+
+  try {
+    await c.env.DB.prepare(
+      `INSERT INTO customer_auth_identities
+        (id, customer_id, provider, provider_uid, secret_hash,
+         verified_at_ms, created_at_ms, updated_at_ms)
+       VALUES (?, ?, 'password', ?, ?, NULL, ?, ?)`,
+    )
+      .bind(identityId, customerId, identifier.value, passwordHash, now, now)
+      .run();
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      await c.env.DB.prepare(`DELETE FROM customers WHERE id = ?`)
+        .bind(customerId)
+        .run();
+      throw conflict("Customer identity already exists", "IDENTITY_EXISTS");
+    }
+    throw error;
+  }
+
+  if (identifier.kind === "email") {
+    const { delivered } = await createAndSendVerificationToken(
+      c,
+      "email_verify",
+      identifier.value,
+      customerId,
+      EMAIL_VERIFY_TTL_MS,
+      body.displayName,
+    );
+
+    // Login is blocked until the identity is verified, so an undelivered link
+    // leaves an account nobody can ever use. Say so instead of returning a
+    // 201 that implies an email is on its way. The account itself is kept —
+    // it is in a valid unverified state, and /auth/resend-verification is the
+    // recovery path (re-registering would only hit IDENTITY_EXISTS).
+    if (!delivered) {
+      throw new ApiError(
+        "VERIFICATION_EMAIL_FAILED",
+        "Account created, but the verification email could not be sent. Request a new one.",
+        502,
+      );
+    }
+  } else {
+    await issuePhoneOtp(c, identifier.value);
+  }
+
+  return c.json(
+    {
+      success: true,
+      data: {
+        customer: {
+          id: customerId,
+          displayName: body.displayName,
+          primaryPhone: null,
+          primaryEmail: null,
+          status: "active",
+        },
+        verificationRequired: true,
+        verificationMethod: identifier.kind === "email" ? "email" : "phone",
+      },
+    },
+    201,
+  );
+});
+
+routes.post("/auth/login", validateBody(loginSchema), async (c) => {
+  const body = c.get("validatedBody");
+  const identifier = parseAuthIdentifier(body.identifier);
+  await enforcePasswordRateLimit(c, "login", identifier.value);
+
+  const identity = await loadPasswordIdentity(c.env, identifier.value);
+  const passwordHash = identity?.secret_hash ?? DUMMY_PASSWORD_HASH;
+  const passwordValid = await bcrypt.compare(body.password, passwordHash);
+
+  if (!identity || !passwordValid || identity.verified_at_ms === null) {
+    throw unauthorized(PASSWORD_LOGIN_ERROR_MESSAGE, PASSWORD_LOGIN_ERROR_CODE);
+  }
+
+  await c.env.DB.prepare(
+    `UPDATE customer_auth_identities
+        SET last_used_at_ms = ?, updated_at_ms = ?
+      WHERE id = ?`,
+  )
+    .bind(Date.now(), Date.now(), identity.identity_id)
+    .run();
+
+  const session = await issueCustomerSession(
+    c as unknown as Context<{ Bindings: Env }>,
+    identity.customer_id,
+  );
 
   return c.json({
     success: true,
     data: {
-      phone,
-      expiresInSeconds: OTP_TTL_MS / 1000,
-      ...(canEchoDevOtp ? { devOtp: otp } : {}),
+      accessToken: session.accessToken,
+      expiresIn: session.expiresIn,
+      customer: toCustomerSummary(identity),
     },
   });
 });
+
+routes.post(
+  "/auth/forgot-password",
+  validateBody(forgotPasswordSchema),
+  async (c) => {
+    const { identifier: rawIdentifier } = c.get("validatedBody");
+    const identifier = parseAuthIdentifier(rawIdentifier);
+    await enforcePasswordRateLimit(c, "forgot", identifier.value);
+
+    const identity = await loadPasswordIdentity(c.env, identifier.value);
+    if (identity) {
+      // `delivered` is deliberately ignored: this endpoint answers identically
+      // whether or not the account exists, so it cannot report send failures
+      // either. The helper logs them.
+      await createAndSendVerificationToken(
+        c,
+        "password_reset",
+        identifier.value,
+        identity.customer_id,
+        PASSWORD_RESET_TTL_MS,
+        identity.display_name,
+      );
+    }
+
+    return c.json({
+      success: true,
+      data: { sent: true },
+    });
+  },
+);
+
+routes.post(
+  "/auth/reset-password",
+  validateBody(resetPasswordSchema),
+  async (c) => {
+    const body = c.get("validatedBody");
+    rejectWeakPassword(body.newPassword);
+    const tokenHash = await sha256Hex(body.token);
+    const now = Date.now();
+    const token = await loadVerificationToken(
+      c.env,
+      tokenHash,
+      "password_reset",
+    );
+
+    if (!token || token.expires_at_ms <= now || token.used_at_ms !== null) {
+      throw unauthorized("Invalid or expired token", "TOKEN_INVALID");
+    }
+
+    const passwordHash = await bcrypt.hash(body.newPassword, 10);
+    await c.env.DB.prepare(
+      `UPDATE customer_auth_identities
+          SET secret_hash = ?, updated_at_ms = ?
+        WHERE customer_id = ? AND provider = 'password'`,
+    )
+      .bind(passwordHash, now, token.customer_id)
+      .run();
+
+    await c.env.DB.prepare(
+      `UPDATE customer_verification_tokens
+          SET used_at_ms = ?
+        WHERE purpose = 'password_reset'
+          AND customer_id = ?
+          AND used_at_ms IS NULL`,
+    )
+      .bind(now, token.customer_id)
+      .run();
+
+    await revokeAllCustomerRefreshRecords(c.env, token.customer_id);
+
+    return c.json({
+      success: true,
+      data: { reset: true },
+    });
+  },
+);
+
+routes.post("/auth/verify-email", validateBody(tokenOnlySchema), async (c) => {
+  const { token: rawToken } = c.get("validatedBody");
+  const tokenHash = await sha256Hex(rawToken);
+  const now = Date.now();
+  const token = await loadVerificationToken(c.env, tokenHash, "email_verify");
+
+  if (!token || token.expires_at_ms <= now || token.used_at_ms !== null) {
+    throw unauthorized("Invalid or expired token", "TOKEN_INVALID");
+  }
+
+  try {
+    await c.env.DB.prepare(
+      `UPDATE customers
+          SET primary_email = ?, updated_at_ms = ?
+        WHERE id = ?`,
+    )
+      .bind(token.identifier, now, token.customer_id)
+      .run();
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      throw conflict("Customer identity already exists", "IDENTITY_EXISTS");
+    }
+    throw error;
+  }
+
+  await c.env.DB.prepare(
+    `UPDATE customer_auth_identities
+        SET verified_at_ms = ?, updated_at_ms = ?
+      WHERE customer_id = ? AND provider = 'password' AND provider_uid = ?`,
+  )
+    .bind(now, now, token.customer_id, token.identifier)
+    .run();
+
+  await c.env.DB.prepare(
+    `UPDATE customer_verification_tokens
+        SET used_at_ms = ?
+      WHERE token_hash = ?`,
+  )
+    .bind(now, tokenHash)
+    .run();
+
+  return c.json({
+    success: true,
+    data: { verified: true },
+  });
+});
+
+routes.post(
+  "/auth/resend-verification",
+  validateBody(resendVerificationSchema),
+  async (c) => {
+    const { identifier: rawIdentifier } = c.get("validatedBody");
+    const identifier = parseAuthIdentifier(rawIdentifier);
+    await enforcePasswordRateLimit(c, "resend_verification", identifier.value);
+
+    const identity = await loadPasswordIdentity(c.env, identifier.value);
+    if (identity && identity.verified_at_ms === null) {
+      if (identifier.kind === "email") {
+        // `delivered` ignored on purpose — same enumeration constraint as
+        // /forgot-password. See createAndSendVerificationToken.
+        await createAndSendVerificationToken(
+          c,
+          "email_verify",
+          identifier.value,
+          identity.customer_id,
+          EMAIL_VERIFY_TTL_MS,
+          identity.display_name,
+        );
+      }
+    }
+
+    return c.json({
+      success: true,
+      data: { sent: true },
+    });
+  },
+);
 
 routes.post("/auth/verify-otp", validateBody(verifyOtpSchema), async (c) => {
   const { phone, otp } = c.get("validatedBody");
@@ -217,7 +543,16 @@ routes.post("/auth/verify-otp", validateBody(verifyOtpSchema), async (c) => {
     throw unauthorized("Invalid or expired OTP", "INVALID_OTP");
   }
 
-  const customer = await findOrCreateCustomerByPhone(c.env, phone, now);
+  const pendingPasswordIdentity = await loadPasswordIdentity(c.env, phone);
+  const customer =
+    pendingPasswordIdentity && pendingPasswordIdentity.verified_at_ms === null
+      ? await verifyPendingPhonePasswordIdentity(
+          c.env,
+          pendingPasswordIdentity,
+          phone,
+          now,
+        )
+      : await findOrCreateCustomerByPhone(c.env, phone, now);
 
   await c.env.DB.prepare(
     `UPDATE customer_phone_verification_tokens
@@ -227,14 +562,16 @@ routes.post("/auth/verify-otp", validateBody(verifyOtpSchema), async (c) => {
     .bind(now, customer.id, token.id)
     .run();
 
-  const tokens = await issueCustomerTokens(c.env, customer.id);
-  setCustomerRefreshCookie(c, tokens.refreshToken);
+  const session = await issueCustomerSession(
+    c as unknown as Context<{ Bindings: Env }>,
+    customer.id,
+  );
 
   return c.json({
     success: true,
     data: {
-      accessToken: tokens.accessToken,
-      expiresIn: tokens.expiresIn,
+      accessToken: session.accessToken,
+      expiresIn: session.expiresIn,
       customer: toCustomerSummary(customer),
     },
   });
@@ -256,26 +593,27 @@ routes.post("/auth/refresh", async (c) => {
     throw unauthorized("Invalid refresh token", "TOKEN_INVALID");
   }
 
-  const refreshKey = `customer_refresh:${decoded.jti}`;
-  const customerId = await c.env.TOKEN_BLACKLIST.get(refreshKey);
-  if (customerId !== decoded.sub) {
+  const refreshRecord = await c.env.TOKEN_BLACKLIST.get(
+    customerRefreshRecordKey(decoded.sub, decoded.jti),
+  );
+  if (refreshRecord === null) {
     throw unauthorized("Refresh token has been revoked", "TOKEN_INVALID");
   }
 
-  await c.env.TOKEN_BLACKLIST.delete(refreshKey);
+  await revokeRefreshRecord(c.env, decoded.sub, decoded.jti);
   const customer = await loadCustomer(c.env, decoded.sub);
   if (!customer) {
+    await revokeCustomerSession(c, null);
     throw unauthorized("Customer not found or inactive", "CUSTOMER_INACTIVE");
   }
 
-  const tokens = await issueCustomerTokens(c.env, customer.id);
-  setCustomerRefreshCookie(c, tokens.refreshToken);
+  const session = await issueCustomerSession(c, customer.id);
 
   return c.json({
     success: true,
     data: {
-      accessToken: tokens.accessToken,
-      expiresIn: tokens.expiresIn,
+      accessToken: session.accessToken,
+      expiresIn: session.expiresIn,
     },
   });
 });
@@ -293,15 +631,15 @@ routes.post("/auth/logout", canonicalCustomerAuthMiddleware, async (c) => {
 
   if (token) {
     await c.env.TOKEN_BLACKLIST.put(`token:${token}`, "blacklisted", {
-      expirationTtl: ACCESS_TOKEN_SECONDS,
+      expirationTtl: CUSTOMER_ACCESS_TOKEN_SECONDS,
     });
   }
 
   if (refreshToken) {
-    await revokeCustomerRefreshToken(c.env, refreshToken);
+    await revokeRefreshTokenFromSession(c, refreshToken);
+  } else {
+    await revokeCustomerSession(c, null);
   }
-
-  clearCustomerRefreshCookie(c);
 
   return c.json({ success: true, data: { loggedOut: true } });
 });
@@ -726,6 +1064,85 @@ routes.post(
   },
 );
 
+/**
+ * OTP message text. Taiwanese carriers require an identifiable sender, hence
+ * the 【brand】 prefix; keeping the whole message inside one 70-character
+ * UCS-2 segment keeps it billed as a single message.
+ */
+export function buildOtpSmsBody(
+  otp: string,
+  env: Pick<Env, "OTP_SMS_BRAND">,
+): string {
+  const brand = env.OTP_SMS_BRAND?.trim() || "MakanMasak";
+  const minutes = Math.round(OTP_TTL_MS / 60_000);
+  return `【${brand}】驗證碼 ${otp}，${minutes} 分鐘內有效。請勿將此碼提供給他人。`;
+}
+
+async function issuePhoneOtp<E extends { Bindings: Env }>(
+  c: Context<E>,
+  phone: string,
+): Promise<IssuedPhoneOtp> {
+  const now = Date.now();
+  const nodeEnv = c.env.NODE_ENV;
+  const isProduction = nodeEnv === "production";
+  const canEchoDevOtp = nodeEnv === "development" || nodeEnv === "test";
+  const smsProvider = createSmsProvider(c.env);
+
+  // A production deploy with no SMS vendor cannot deliver the code to anyone.
+  // Refuse up front rather than returning success for a message that will never
+  // arrive — a silent success here is what made production login unusable.
+  if (smsProvider.name === "noop" && isProduction) {
+    throw new ApiError(
+      "SMS_CHANNEL_UNAVAILABLE",
+      "SMS delivery is not configured",
+      503,
+    );
+  }
+
+  const otp = generateOtp();
+  const otpHash = await bcrypt.hash(otp, 10);
+
+  await enforceOtpRateLimit(c.env, phone, c.req.header("CF-Connecting-IP"));
+
+  // Persist before sending: an unsent code is harmless (it expires in
+  // OTP_TTL_MS), whereas a sent code with no stored hash is unverifiable.
+  await c.env.DB.prepare(
+    `INSERT INTO customer_phone_verification_tokens
+        (phone, otp_code, expires_at_ms, ip_address, created_at_ms)
+       VALUES (?, ?, ?, ?, ?)`,
+  )
+    .bind(phone, otpHash, now + OTP_TTL_MS, clientIp(c), now)
+    .run();
+
+  if (smsProvider.name !== "noop") {
+    const sent = await smsProvider.sendSMS({
+      to: phone,
+      body: buildOtpSmsBody(otp, c.env),
+    });
+
+    if (!sent.success) {
+      // Vendor detail stays server-side: it can name the account or the
+      // failure reason, neither of which belongs in a public response.
+      console.error("[customer-otp] SMS send failed", {
+        provider: smsProvider.name,
+        providerCode: sent.providerCode,
+        error: sent.error,
+      });
+      throw new ApiError(
+        "SMS_SEND_FAILED",
+        "Could not deliver the verification code. Please try again.",
+        502,
+      );
+    }
+  }
+
+  return {
+    phone,
+    expiresInSeconds: OTP_TTL_MS / 1000,
+    ...(canEchoDevOtp ? { devOtp: otp } : {}),
+  };
+}
+
 async function enforceOtpRateLimit(
   env: Env,
   phone: string,
@@ -763,19 +1180,288 @@ async function readOptionalJson(
   }
 }
 
-async function revokeCustomerRefreshToken(
+function parseAuthIdentifier(rawIdentifier: string): AuthIdentifier {
+  const trimmed = rawIdentifier.trim();
+  if (trimmed.includes("@")) {
+    const email = trimmed.toLowerCase();
+    const parsed = z.email().safeParse(email);
+    if (!parsed.success) {
+      throw badRequest("Invalid identifier", "INVALID_IDENTIFIER");
+    }
+    return { kind: "email", value: email };
+  }
+
+  try {
+    return { kind: "phone", value: phoneSchema.parse(trimmed) };
+  } catch {
+    throw badRequest("Invalid identifier", "INVALID_IDENTIFIER");
+  }
+}
+
+function rejectWeakPassword(password: string): void {
+  if (COMMON_PASSWORDS.has(password.trim().toLowerCase())) {
+    throw badRequest("Password is too common", "WEAK_PASSWORD");
+  }
+}
+
+async function enforcePasswordRateLimit<E extends { Bindings: Env }>(
+  c: Context<E>,
+  purpose: string,
+  identifier: string,
+): Promise<void> {
+  const identifierKey = `customer_password_${purpose}_identifier:${identifier}`;
+  const ipKey = `customer_password_${purpose}_ip:${clientIp(c)}`;
+  const identifierCount = Number(
+    (await c.env.RATE_LIMIT_KV.get(identifierKey)) ?? "0",
+  );
+  const ipCount = Number((await c.env.RATE_LIMIT_KV.get(ipKey)) ?? "0");
+
+  if (
+    identifierCount >= PASSWORD_RATE_LIMIT_IDENTIFIER_MAX ||
+    ipCount >= PASSWORD_RATE_LIMIT_IP_MAX
+  ) {
+    throw badRequest("Too many requests", "PASSWORD_RATE_LIMITED");
+  }
+
+  await Promise.all([
+    c.env.RATE_LIMIT_KV.put(identifierKey, String(identifierCount + 1), {
+      expirationTtl: PASSWORD_RATE_LIMIT_TTL_SECONDS,
+    }),
+    c.env.RATE_LIMIT_KV.put(ipKey, String(ipCount + 1), {
+      expirationTtl: PASSWORD_RATE_LIMIT_TTL_SECONDS,
+    }),
+  ]);
+}
+
+async function loadPasswordIdentity(
   env: Env,
+  providerUid: string,
+): Promise<PasswordIdentityRow | null> {
+  return env.DB.prepare(
+    `SELECT
+        cai.id AS identity_id,
+        cai.customer_id,
+        cai.provider_uid,
+        cai.secret_hash,
+        cai.verified_at_ms,
+        c.id,
+        c.display_name,
+        c.primary_phone,
+        c.primary_email,
+        c.avatar_url,
+        c.locale,
+        c.status,
+        c.last_seen_at_ms,
+        c.created_at_ms,
+        c.updated_at_ms
+       FROM customer_auth_identities cai
+       JOIN customers c ON c.id = cai.customer_id
+      WHERE cai.provider = 'password'
+        AND cai.provider_uid = ?
+        AND c.status = 'active'
+      LIMIT 1`,
+  )
+    .bind(providerUid)
+    .first<PasswordIdentityRow>();
+}
+
+async function verifyPendingPhonePasswordIdentity(
+  env: Env,
+  identity: PasswordIdentityRow,
+  phone: string,
+  now: number,
+): Promise<CustomerRow> {
+  await env.DB.prepare(
+    `UPDATE customer_auth_identities
+        SET verified_at_ms = ?, updated_at_ms = ?
+      WHERE id = ?`,
+  )
+    .bind(now, now, identity.identity_id)
+    .run();
+
+  await env.DB.prepare(
+    `UPDATE customers
+        SET primary_phone = ?, updated_at_ms = ?
+      WHERE id = ?`,
+  )
+    .bind(phone, now, identity.customer_id)
+    .run();
+
+  return {
+    id: identity.customer_id,
+    display_name: identity.display_name,
+    primary_phone: phone,
+    primary_email: identity.primary_email,
+    avatar_url: identity.avatar_url,
+    locale: identity.locale,
+    status: identity.status,
+    last_seen_at_ms: identity.last_seen_at_ms,
+    created_at_ms: identity.created_at_ms,
+    updated_at_ms: now,
+  };
+}
+
+async function loadVerificationToken(
+  env: Env,
+  tokenHash: string,
+  purpose: "password_reset" | "email_verify",
+): Promise<VerificationTokenRow | null> {
+  return env.DB.prepare(
+    `SELECT id, customer_id, purpose, identifier, expires_at_ms, used_at_ms
+       FROM customer_verification_tokens
+      WHERE token_hash = ? AND purpose = ?
+      LIMIT 1`,
+  )
+    .bind(tokenHash, purpose)
+    .first<VerificationTokenRow>();
+}
+
+/**
+ * Mint a verification token and, for email identifiers, send the link.
+ *
+ * Returns whether the message actually reached the provider. Callers decide
+ * what to do with a failure, and they do NOT all decide the same thing:
+ * `/register` surfaces it, because a customer who never receives the link can
+ * never log in; `/forgot-password` and `/resend-verification` must stay silent,
+ * because varying their response would turn them into account-existence
+ * oracles.
+ *
+ * `delivered` is true for phone identifiers — there is no email to send, and
+ * the OTP is issued separately.
+ */
+async function createAndSendVerificationToken<E extends { Bindings: Env }>(
+  c: Context<E>,
+  purpose: "password_reset" | "email_verify",
+  identifier: string,
+  customerId: string,
+  ttlMs: number,
+  displayName: string,
+): Promise<{ delivered: boolean }> {
+  const token = randomToken();
+  const tokenHash = await sha256Hex(token);
+  const now = Date.now();
+  await c.env.DB.prepare(
+    `INSERT INTO customer_verification_tokens
+      (id, customer_id, purpose, identifier, token_hash, expires_at_ms,
+       ip_address, created_at_ms)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(
+      generateUUID(),
+      customerId,
+      purpose,
+      identifier,
+      tokenHash,
+      now + ttlMs,
+      clientIp(c),
+      now,
+    )
+    .run();
+
+  if (!identifier.includes("@")) return { delivered: true };
+
+  const appUrl =
+    (c.env as Env & { CUSTOMER_APP_URL?: string }).CUSTOMER_APP_URL ??
+    "https://makanmasak.com";
+  const path =
+    purpose === "password_reset" ? "/reset-password" : "/verify-email";
+  const link = `${appUrl}${path}?token=${encodeURIComponent(token)}`;
+  const service = new NotificationService(c.env.DB, c.env);
+  const result = await service.sendNotification({
+    recipientId: customerId,
+    recipientEmail: identifier,
+    category:
+      purpose === "password_reset"
+        ? "password_reset_request"
+        : "email_verification",
+    type: "email",
+    data:
+      purpose === "password_reset"
+        ? {
+            userName: displayName,
+            resetLink: link,
+            ipAddress: clientIp(c),
+            requestTime: new Date(now).toISOString(),
+          }
+        : {
+            userName: displayName,
+            verificationLink: link,
+          },
+  });
+
+  if (!result.success) {
+    console.error("[customer-auth] email notification failed", {
+      purpose,
+      errors: result.errors,
+    });
+  }
+
+  return { delivered: result.success };
+}
+
+async function revokeAllCustomerRefreshRecords(
+  env: Pick<Env, "TOKEN_BLACKLIST">,
+  customerId: string,
+): Promise<void> {
+  let cursor: string | undefined;
+  do {
+    const result = await env.TOKEN_BLACKLIST.list({
+      prefix: `customer_refresh:${customerId}:`,
+      cursor,
+    });
+    await Promise.all(
+      result.keys.map((key) => env.TOKEN_BLACKLIST.delete(key.name)),
+    );
+    cursor = result.list_complete ? undefined : result.cursor;
+  } while (cursor);
+}
+
+function randomToken(): string {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
+  );
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    /unique|constraint/i.test(`${error.name} ${error.message}`)
+  );
+}
+
+async function revokeRefreshTokenFromSession(
+  c: Context<{ Bindings: Env }>,
   refreshToken: string,
 ): Promise<void> {
   try {
-    const decoded = verifyJwtToken(refreshToken, env.JWT_SECRET);
+    const decoded = verifyJwtToken(refreshToken, c.env.JWT_SECRET);
     if (isRefreshPayload(decoded)) {
-      await env.TOKEN_BLACKLIST.delete(`customer_refresh:${decoded.jti}`);
+      await revokeCustomerSession(c, decoded.jti, decoded.sub);
+      return;
     }
   } catch {
     // Logout is best-effort: an invalid refresh token should not prevent
     // the access token from being invalidated.
   }
+
+  await revokeCustomerSession(c, null);
 }
 
 async function validateFavoriteTarget(
@@ -938,40 +1624,6 @@ async function loadPreferences(env: Env, customerId: string) {
     quietHoursStart: row?.quiet_hours_start ?? null,
     quietHoursEnd: row?.quiet_hours_end ?? null,
     updatedAtMs: row?.updated_at_ms ?? null,
-  };
-}
-
-async function issueCustomerTokens(env: Env, customerId: string) {
-  const now = Math.floor(Date.now() / 1000);
-  const refreshId = crypto.randomUUID();
-  const accessToken = await sign(
-    {
-      sub: customerId,
-      type: "customer",
-      iat: now,
-      exp: now + ACCESS_TOKEN_SECONDS,
-    },
-    env.JWT_SECRET,
-  );
-  const refreshToken = await sign(
-    {
-      sub: customerId,
-      type: "customer_refresh",
-      jti: refreshId,
-      iat: now,
-      exp: now + REFRESH_TOKEN_SECONDS,
-    },
-    env.JWT_SECRET,
-  );
-
-  await env.TOKEN_BLACKLIST.put(`customer_refresh:${refreshId}`, customerId, {
-    expirationTtl: REFRESH_TOKEN_SECONDS,
-  });
-
-  return {
-    accessToken,
-    refreshToken,
-    expiresIn: ACCESS_TOKEN_SECONDS,
   };
 }
 
