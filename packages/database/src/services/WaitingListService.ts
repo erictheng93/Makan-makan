@@ -141,15 +141,11 @@ export class WaitingListService extends BaseService {
     data: Record<string, string>,
   ): Promise<void> {
     try {
-      if (!this.env?.TWILIO_ACCOUNT_SID) return; // SMS not configured, skip
+      const { createSmsProvider } = await import("./sms");
+      const provider = createSmsProvider(this.env);
+      if (provider.name === "noop") return; // SMS not configured, skip
 
-      const { TwilioSMSProvider, notificationTemplates } =
-        await import("./NotificationService");
-      const provider = new TwilioSMSProvider(
-        this.env.TWILIO_ACCOUNT_SID as string,
-        this.env.TWILIO_AUTH_TOKEN as string,
-        this.env.TWILIO_PHONE_NUMBER as string,
-      );
+      const { notificationTemplates } = await import("./NotificationService");
       const template = notificationTemplates[category];
       if (!template?.body) return;
 

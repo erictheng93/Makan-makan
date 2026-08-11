@@ -71,10 +71,31 @@ DEPLOYMENT_MODE = "saas"
 # Email provider (Resend)
 NOTIFICATION_FROM_EMAIL = "notifications@makanmasak.com"
 # RESEND_API_KEY - Set via: wrangler secret put RESEND_API_KEY
-# SMS provider (Twilio)
-# TWILIO_ACCOUNT_SID - Set via: wrangler secret put TWILIO_ACCOUNT_SID
-# TWILIO_AUTH_TOKEN - Set via: wrangler secret put TWILIO_AUTH_TOKEN
+#
+# SMS provider — switching vendors is config only, never code.
+# SMS_PROVIDER selects the vendor: "mitake" | "every8d" | "twilio" | "noop".
+# Leave it unset (or "auto") to use the first vendor whose credentials are
+# present, in cost order: mitake -> every8d -> twilio.
+# Implementation + wire formats: packages/database/src/services/sms.ts
+#
+# SMS_PROVIDER = "mitake"
+#
+# 三竹簡訊 (Mitake) — enterprise account
+#   MITAKE_USERNAME - Set via: wrangler secret put MITAKE_USERNAME
+#   MITAKE_PASSWORD - Set via: wrangler secret put MITAKE_PASSWORD
+#   MITAKE_API_BASE - only for personal-tier accounts (https://smsb2c.mitake.com.tw)
+#
+# Every8d (互動資通) — API21
+#   EVERY8D_UID - Set via: wrangler secret put EVERY8D_UID
+#   EVERY8D_PWD - Set via: wrangler secret put EVERY8D_PWD
+#
+# Twilio
+#   TWILIO_ACCOUNT_SID - Set via: wrangler secret put TWILIO_ACCOUNT_SID
+#   TWILIO_AUTH_TOKEN - Set via: wrangler secret put TWILIO_AUTH_TOKEN
 TWILIO_PHONE_NUMBER = "+1234567890"  # Update with actual number
+
+# Brand prefix on outbound OTP messages (TW carriers require an identifiable sender)
+OTP_SMS_BRAND = "MakanMasak"
 
 # D1 Database binding
 [[d1_databases]]

@@ -44,9 +44,17 @@ export interface CloudflareEnv {
   // Notification providers
   RESEND_API_KEY?: string;
   NOTIFICATION_FROM_EMAIL?: string;
+  // SMS vendor selection — see ./sms (SmsProviderEnv)
+  SMS_PROVIDER?: string;
   TWILIO_ACCOUNT_SID?: string;
   TWILIO_AUTH_TOKEN?: string;
   TWILIO_PHONE_NUMBER?: string;
+  MITAKE_USERNAME?: string;
+  MITAKE_PASSWORD?: string;
+  MITAKE_API_BASE?: string;
+  EVERY8D_UID?: string;
+  EVERY8D_PWD?: string;
+  EVERY8D_API_BASE?: string;
   // Deployment mode configuration
   DEPLOYMENT_MODE?: DeploymentMode;
   TENANT_ID?: string;

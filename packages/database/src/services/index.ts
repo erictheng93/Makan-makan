@@ -43,6 +43,22 @@ export {
   type NotificationCategory,
   type NotificationPayload,
 } from "./NotificationService";
+
+// SMS vendors: one interface, vendor selected by SMS_PROVIDER config
+export {
+  createSmsProvider,
+  resolveSmsProviderName,
+  isSmsConfigured,
+  toTaiwanLocalPhone,
+  TwilioSmsProvider,
+  MitakeSmsProvider,
+  Every8dSmsProvider,
+  NoopSmsProvider,
+  type SmsProvider,
+  type SmsProviderName,
+  type SmsProviderEnv,
+  type SmsSendResult,
+} from "./sms";
 export { ExportService } from "./ExportService";
 export { LeaveAnalyticsService } from "./LeaveAnalyticsService";
 export { PartnershipService } from "./PartnershipService";

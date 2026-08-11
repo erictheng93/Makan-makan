@@ -143,9 +143,27 @@ export interface Env {
   // Third-party integrations
   STRIPE_SECRET_KEY?: string;
   STRIPE_PUBLISHABLE_KEY?: string;
+  /**
+   * SMS vendor selection: "mitake" | "every8d" | "twilio" | "noop" | "auto".
+   * Omit or "auto" to pick the first vendor with complete credentials, in cost
+   * order (mitake → every8d → twilio). See packages/database/src/services/sms.ts.
+   */
+  SMS_PROVIDER?: string;
   TWILIO_ACCOUNT_SID?: string;
   TWILIO_AUTH_TOKEN?: string;
   TWILIO_PHONE_NUMBER?: string;
+  /** 三竹簡訊 (Mitake) — enterprise API credentials */
+  MITAKE_USERNAME?: string;
+  MITAKE_PASSWORD?: string;
+  MITAKE_API_BASE?: string;
+  /** Every8d (互動資通) API21 credentials */
+  EVERY8D_UID?: string;
+  EVERY8D_PWD?: string;
+  EVERY8D_API_BASE?: string;
+  /** Brand prefix on outbound OTP messages; carriers require an identifiable sender. */
+  OTP_SMS_BRAND?: string;
+  /** Test seam: injected by integration tests so no vendor call is made. */
+  SMS_FETCH?: typeof fetch;
   WEB_PUSH_VAPID_PUBLIC_KEY?: string;
   WEB_PUSH_VAPID_PRIVATE_KEY?: string;
   WEB_PUSH_VAPID_SUBJECT?: string;

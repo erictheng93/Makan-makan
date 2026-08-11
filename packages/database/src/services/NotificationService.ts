@@ -4,6 +4,7 @@
  */
 
 import { BaseService, type CloudflareEnv } from "./base";
+import { createSmsProvider, TwilioSmsProvider, type SmsProvider } from "./sms";
 import type { D1Database } from "@cloudflare/workers-types";
 
 /** Strip all HTML tags from a string, looping until stable to handle nested fragments */
@@ -108,12 +109,11 @@ export interface EmailProvider {
 // SMS Provider Interface
 // ========================================
 
-export interface SMSProvider {
-  sendSMS(params: {
-    to: string;
-    body: string;
-  }): Promise<{ success: boolean; messageId?: string; error?: string }>;
-}
+/**
+ * @deprecated Use `SmsProvider` from `./sms`. Kept as an alias so existing
+ * imports of this package keep compiling.
+ */
+export type SMSProvider = SmsProvider;
 
 // ========================================
 // MailChannels Email Provider (Cloudflare Official Recommendation)
@@ -230,54 +230,14 @@ export class ResendEmailProvider implements EmailProvider {
 }
 
 // ========================================
-// Twilio SMS Provider
+// SMS Providers
 // ========================================
 
-export class TwilioSMSProvider implements SMSProvider {
-  constructor(
-    private accountSid: string,
-    private authToken: string,
-    private fromPhone: string,
-  ) {}
-
-  async sendSMS(params: { to: string; body: string }) {
-    try {
-      const auth = btoa(`${this.accountSid}:${this.authToken}`);
-
-      const response = await fetch(
-        `https://api.twilio.com/2010-04-01/Accounts/${this.accountSid}/Messages.json`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Basic ${auth}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({
-            To: params.to,
-            From: this.fromPhone,
-            Body: params.body,
-          }),
-        },
-      );
-
-      const data = (await response.json()) as {
-        message?: string;
-        sid?: string;
-      };
-
-      if (!response.ok) {
-        return { success: false, error: data.message || "SMS send failed" };
-      }
-
-      return { success: true, messageId: data.sid };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
-    }
-  }
-}
+/**
+ * @deprecated Import `TwilioSmsProvider` from `./sms` instead. SMS vendors now
+ * live in one place so the vendor is a config choice — see `createSmsProvider`.
+ */
+export const TwilioSMSProvider = TwilioSmsProvider;
 
 // ========================================
 // Notification Templates
@@ -908,18 +868,10 @@ export class NotificationService extends BaseService {
       );
     }
 
-    // Initialize SMS provider (Twilio)
-    if (
-      env.TWILIO_ACCOUNT_SID &&
-      env.TWILIO_AUTH_TOKEN &&
-      env.TWILIO_PHONE_NUMBER
-    ) {
-      this.smsProvider = new TwilioSMSProvider(
-        env.TWILIO_ACCOUNT_SID,
-        env.TWILIO_AUTH_TOKEN,
-        env.TWILIO_PHONE_NUMBER,
-      );
-    }
+    // Initialize SMS provider. The vendor is chosen by SMS_PROVIDER (or
+    // auto-detected from whichever credentials are present) — see ./sms.
+    const smsProvider = createSmsProvider(env);
+    this.smsProvider = smsProvider.name === "noop" ? null : smsProvider;
   }
 
   /**
