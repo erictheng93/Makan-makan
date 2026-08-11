@@ -5,7 +5,7 @@
         <button
           type="button"
           class="text-gray-500 hover:text-gray-700"
-          aria-label="返回服務"
+          :aria-label="t('serviceBooking.back')"
           @click="goBack"
         >
           <svg
@@ -23,9 +23,11 @@
           </svg>
         </button>
         <div class="min-w-0">
-          <h1 class="truncate text-lg font-semibold text-gray-900">服務預約</h1>
+          <h1 class="truncate text-lg font-semibold text-gray-900">
+            {{ t("serviceBooking.title") }}
+          </h1>
           <p class="truncate text-xs text-gray-500">
-            {{ serviceItem?.name || "載入中" }}
+            {{ serviceItem?.name || t("serviceBooking.loading") }}
           </p>
         </div>
       </div>
@@ -36,7 +38,7 @@
         v-if="isLoadingService"
         class="py-12 text-center text-sm text-gray-500"
       >
-        載入服務中...
+        {{ t("serviceBooking.loadingService") }}
       </div>
 
       <section
@@ -68,7 +70,11 @@
               {{ servicePriceLabel }}
             </span>
             <span v-if="serviceItem.durationMinutes" class="text-gray-500">
-              約 {{ serviceItem.durationMinutes }} 分鐘
+              {{
+                tWithParams("serviceBooking.durationMinutes", {
+                  minutes: serviceItem.durationMinutes,
+                })
+              }}
             </span>
           </div>
         </section>
@@ -77,7 +83,7 @@
           <div class="flex items-end gap-3">
             <div class="flex-1">
               <label class="mb-2 block text-sm font-medium text-gray-700">
-                預約日期
+                {{ t("serviceBooking.bookingDate") }}
               </label>
               <input
                 v-model="bookingDate"
@@ -94,7 +100,7 @@
               :disabled="isLoadingSlots"
               @click="loadAvailability"
             >
-              查時段
+              {{ t("serviceBooking.checkSlots") }}
             </button>
           </div>
 
@@ -118,7 +124,11 @@
               <span>{{ slot.timeSlot }}</span>
               <span class="ml-1 text-xs">
                 {{
-                  slot.remaining === null ? "可預約" : `剩 ${slot.remaining}`
+                  slot.remaining === null
+                    ? t("serviceBooking.slotAvailable")
+                    : tWithParams("serviceBooking.slotRemaining", {
+                        count: slot.remaining,
+                      })
                 }}
               </span>
             </button>
@@ -128,7 +138,7 @@
             data-testid="service-booking-empty-slots"
             class="mt-3 text-sm text-gray-500"
           >
-            目前沒有可顯示的時段，請選擇其他日期。
+            {{ t("serviceBooking.noSlots") }}
           </p>
         </section>
 
@@ -138,7 +148,7 @@
         >
           <div>
             <label class="mb-2 block text-sm font-medium text-gray-700">
-              姓名
+              {{ t("serviceBooking.name") }}
             </label>
             <input
               v-model="form.customerName"
@@ -151,7 +161,7 @@
           </div>
           <div>
             <label class="mb-2 block text-sm font-medium text-gray-700">
-              電話
+              {{ t("serviceBooking.phone") }}
             </label>
             <input
               v-model="form.customerPhone"
@@ -163,7 +173,7 @@
           </div>
           <div>
             <label class="mb-2 block text-sm font-medium text-gray-700">
-              Email
+              {{ t("serviceBooking.email") }}
             </label>
             <input
               v-model="form.customerEmail"
@@ -175,7 +185,7 @@
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="mb-2 block text-sm font-medium text-gray-700">
-                人數
+                {{ t("serviceBooking.partySize") }}
               </label>
               <input
                 v-model.number="form.partySize"
@@ -188,7 +198,7 @@
             </div>
             <div>
               <label class="mb-2 block text-sm font-medium text-gray-700">
-                卷碼
+                {{ t("serviceBooking.voucherCode") }}
               </label>
               <input
                 v-model="form.voucherCode"
@@ -201,7 +211,7 @@
           </div>
           <div>
             <label class="mb-2 block text-sm font-medium text-gray-700">
-              備註
+              {{ t("serviceBooking.notes") }}
             </label>
             <textarea
               v-model="form.specialRequests"
@@ -217,7 +227,7 @@
             class="w-full rounded-lg bg-ios-blue px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
             :disabled="isCreating || !selectedTime"
           >
-            建立預約
+            {{ t("serviceBooking.create") }}
           </button>
         </form>
 
@@ -226,22 +236,24 @@
           class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4"
           data-testid="service-booking-confirmation"
         >
-          <h2 class="text-base font-semibold text-emerald-900">預約已建立</h2>
+          <h2 class="text-base font-semibold text-emerald-900">
+            {{ t("serviceBooking.created") }}
+          </h2>
           <p class="mt-1 text-sm text-emerald-800">
-            確認碼：
+            {{ t("serviceBooking.confirmationCode") }}
             <span class="font-mono font-semibold">{{
               booking.confirmationCode
             }}</span>
           </p>
           <dl class="mt-3 grid grid-cols-2 gap-2 text-sm text-emerald-900">
             <div>
-              <dt>應付</dt>
+              <dt>{{ t("serviceBooking.amountDue") }}</dt>
               <dd class="font-semibold">
                 {{ formatCents(booking.amountDueCents) }}
               </dd>
             </div>
             <div>
-              <dt>狀態</dt>
+              <dt>{{ t("serviceBooking.status") }}</dt>
               <dd class="font-semibold">{{ statusLabel(booking.status) }}</dd>
             </div>
           </dl>
@@ -251,14 +263,14 @@
               data-testid="service-booking-credit-id"
               type="text"
               class="w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm"
-              placeholder="代幣卡 public id"
+              :placeholder="t('serviceBooking.creditCardPlaceholder')"
             />
             <input
               v-model="creditPin"
               data-testid="service-booking-credit-pin"
               type="password"
               class="w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm"
-              placeholder="PIN（可選）"
+              :placeholder="t('serviceBooking.creditPinPlaceholder')"
             />
             <button
               type="button"
@@ -267,27 +279,29 @@
               :disabled="isPaying || !creditCardPublicId.trim()"
               @click="payBooking"
             >
-              代幣付款
+              {{ t("serviceBooking.payWithCredits") }}
             </button>
           </div>
         </section>
 
         <section class="mt-4 rounded-xl border border-gray-200 bg-white p-4">
-          <h2 class="text-base font-semibold text-gray-900">查詢/取消預約</h2>
+          <h2 class="text-base font-semibold text-gray-900">
+            {{ t("serviceBooking.lookupTitle") }}
+          </h2>
           <div class="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
             <input
               v-model="verifyCode"
               data-testid="service-booking-verify-code"
               type="text"
               class="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
-              placeholder="輸入確認碼"
+              :placeholder="t('serviceBooking.confirmationCodePlaceholder')"
             />
             <input
               v-model="verifyContact"
               data-testid="service-booking-verify-contact"
               type="text"
               class="min-w-0 rounded-lg border border-gray-300 px-3 py-2 text-sm sm:col-start-1"
-              placeholder="預約電話或 Email（可選）"
+              :placeholder="t('serviceBooking.contactPlaceholder')"
             />
             <button
               type="button"
@@ -295,7 +309,7 @@
               class="rounded-lg border border-ios-blue px-3 py-2 text-sm font-semibold text-ios-blue sm:col-start-2 sm:row-span-2 sm:row-start-1"
               @click="verifyBooking"
             >
-              查詢
+              {{ t("serviceBooking.lookup") }}
             </button>
           </div>
           <div
@@ -317,7 +331,7 @@
               class="mt-2 block rounded-lg border border-red-300 px-3 py-2 text-sm font-semibold text-red-600"
               @click="cancelVerifiedBooking"
             >
-              取消預約
+              {{ t("serviceBooking.cancel") }}
             </button>
           </div>
         </section>
@@ -338,6 +352,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import type { RestaurantServiceItem } from "@makanmakan/shared-types";
 import { restaurantContactApi } from "@/services/restaurantContactApi";
+import { useI18n } from "@/composables/useI18n";
 import {
   serviceBookingsApi,
   type ServiceBooking,
@@ -351,6 +366,7 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
+const { t, tWithParams, currentLanguage, hasTranslation } = useI18n();
 const today = new Date().toISOString().slice(0, 10);
 
 const serviceItem = ref<RestaurantServiceItem | null>(null);
@@ -386,7 +402,7 @@ const servicePriceLabel = computed(() => {
   if (serviceItem.value.priceCents != null) {
     return formatCents(serviceItem.value.priceCents);
   }
-  return "依店家現場報價";
+  return t("serviceBooking.quoteOnSite");
 });
 
 onMounted(async () => {
@@ -404,13 +420,13 @@ async function loadService() {
     serviceItem.value =
       services.find((service) => service.id === props.serviceItemId) ?? null;
     if (!serviceItem.value) {
-      loadError.value = "找不到此服務。";
+      loadError.value = t("serviceBooking.notFound");
     } else if (!serviceItem.value.requiresBooking) {
-      loadError.value = "此服務目前不接受站內預約。";
+      loadError.value = t("serviceBooking.bookingUnavailable");
     }
   } catch (error) {
     console.error("Load service item failed:", error);
-    loadError.value = "載入服務失敗。";
+    loadError.value = t("serviceBooking.loadFailed");
   } finally {
     isLoadingService.value = false;
   }
@@ -430,7 +446,7 @@ async function loadAvailability() {
       slots.value.find((slot) => slot.isAvailable)?.timeSlot ?? "";
   } catch (error) {
     console.error("Load service booking availability failed:", error);
-    errorMessage.value = "查詢可預約時段失敗。";
+    errorMessage.value = t("serviceBooking.slotsFailed");
   } finally {
     isLoadingSlots.value = false;
   }
@@ -457,12 +473,11 @@ async function createBooking() {
     verifyCode.value = booking.value.confirmationCode;
     verifyContact.value =
       form.customerEmail.trim() || form.customerPhone.trim() || "";
-    successMessage.value = "預約已建立，請保留確認碼。";
+    successMessage.value = t("serviceBooking.createSuccess");
     await loadAvailability();
   } catch (error) {
     console.error("Create service booking failed:", error);
-    errorMessage.value =
-      error instanceof Error ? error.message : "建立預約失敗，請稍後再試。";
+    errorMessage.value = t("serviceBooking.createFailed");
   } finally {
     isCreating.value = false;
   }
@@ -480,11 +495,10 @@ async function payBooking() {
       pin: creditPin.value.trim() || undefined,
     });
     verifiedBooking.value = booking.value;
-    successMessage.value = "代幣付款完成，預約已確認。";
+    successMessage.value = t("serviceBooking.paySuccess");
   } catch (error) {
     console.error("Pay service booking failed:", error);
-    errorMessage.value =
-      error instanceof Error ? error.message : "代幣付款失敗，請稍後再試。";
+    errorMessage.value = t("serviceBooking.payFailed");
   } finally {
     isPaying.value = false;
   }
@@ -501,8 +515,7 @@ async function verifyBooking() {
     );
   } catch (error) {
     console.error("Verify service booking failed:", error);
-    errorMessage.value =
-      error instanceof Error ? error.message : "查詢預約失敗。";
+    errorMessage.value = t("serviceBooking.lookupFailed");
   }
 }
 
@@ -520,12 +533,11 @@ async function cancelVerifiedBooking() {
     ) {
       booking.value = verifiedBooking.value;
     }
-    successMessage.value = "預約已取消。";
+    successMessage.value = t("serviceBooking.cancelSuccess");
     await loadAvailability();
   } catch (error) {
     console.error("Cancel service booking failed:", error);
-    errorMessage.value =
-      error instanceof Error ? error.message : "取消預約失敗。";
+    errorMessage.value = t("serviceBooking.cancelFailed");
   }
 }
 
@@ -538,7 +550,7 @@ function goBack() {
 }
 
 function formatCents(cents: number): string {
-  return new Intl.NumberFormat("zh-TW", {
+  return new Intl.NumberFormat(currentLanguage.value, {
     style: "currency",
     currency: "TWD",
     maximumFractionDigits: 0,
@@ -546,14 +558,7 @@ function formatCents(cents: number): string {
 }
 
 function statusLabel(status: ServiceBookingStatus): string {
-  const labels: Record<ServiceBookingStatus, string> = {
-    pending: "待付款",
-    confirmed: "已確認",
-    completed: "已完成",
-    cancelled: "已取消",
-    no_show: "未到",
-  };
-  return labels[status];
+  return t(`serviceBooking.bookingStatus.${status}`);
 }
 
 function contactProofFromInput() {
@@ -565,15 +570,7 @@ function contactProofFromInput() {
 }
 
 function serviceTypeLabel(type: RestaurantServiceItem["serviceType"]): string {
-  const labels: Record<RestaurantServiceItem["serviceType"], string> = {
-    general: "一般服務",
-    booking: "預約",
-    pickup: "自取",
-    delivery: "外送",
-    consultation: "諮詢",
-    rental: "租借",
-    activity: "活動",
-  };
-  return labels[type] ?? type;
+  const key = `serviceBooking.serviceType.${type}`;
+  return hasTranslation(key) ? t(key) : type;
 }
 </script>

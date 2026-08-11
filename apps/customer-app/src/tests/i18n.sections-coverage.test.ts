@@ -1199,4 +1199,75 @@ describe("i18n Integration Tests", () => {
       assertKeysInAllLocales(keys);
     });
   });
+
+  // ---------------------------------------------------------------
+  // 25. Service booking
+  // ---------------------------------------------------------------
+  describe("ServiceBooking Section", () => {
+    const keys = [
+      "serviceBooking.back",
+      "serviceBooking.title",
+      "serviceBooking.loadingService",
+      "serviceBooking.durationMinutes",
+      "serviceBooking.bookingDate",
+      "serviceBooking.checkSlots",
+      "serviceBooking.slotAvailable",
+      "serviceBooking.slotRemaining",
+      "serviceBooking.noSlots",
+      "serviceBooking.name",
+      "serviceBooking.phone",
+      "serviceBooking.email",
+      "serviceBooking.partySize",
+      "serviceBooking.voucherCode",
+      "serviceBooking.notes",
+      "serviceBooking.create",
+      "serviceBooking.created",
+      "serviceBooking.confirmationCode",
+      "serviceBooking.amountDue",
+      "serviceBooking.status",
+      "serviceBooking.creditCardPlaceholder",
+      "serviceBooking.creditPinPlaceholder",
+      "serviceBooking.payWithCredits",
+      "serviceBooking.lookupTitle",
+      "serviceBooking.confirmationCodePlaceholder",
+      "serviceBooking.contactPlaceholder",
+      "serviceBooking.lookup",
+      "serviceBooking.cancel",
+      "serviceBooking.quoteOnSite",
+      "serviceBooking.notFound",
+      "serviceBooking.bookingUnavailable",
+      "serviceBooking.loadFailed",
+      "serviceBooking.slotsFailed",
+      "serviceBooking.createSuccess",
+      "serviceBooking.createFailed",
+      "serviceBooking.paySuccess",
+      "serviceBooking.payFailed",
+      "serviceBooking.lookupFailed",
+      "serviceBooking.cancelSuccess",
+      "serviceBooking.cancelFailed",
+    ];
+
+    it("should have all serviceBooking keys in all 6 locales", () => {
+      assertKeysInAllLocales(keys);
+    });
+
+    // The view indexes these by the raw status and type off the API, so a gap
+    // renders the key itself on a confirmation screen.
+    it("covers every booking status and service type it can be handed", () => {
+      assertKeysInAllLocales([
+        ...["pending", "confirmed", "completed", "cancelled", "no_show"].map(
+          (status) => `serviceBooking.bookingStatus.${status}`,
+        ),
+        ...[
+          "general",
+          "booking",
+          "pickup",
+          "delivery",
+          "consultation",
+          "rental",
+          "activity",
+        ].map((type) => `serviceBooking.serviceType.${type}`),
+      ]);
+    });
+  });
 });

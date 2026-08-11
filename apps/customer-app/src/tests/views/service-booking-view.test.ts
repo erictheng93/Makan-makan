@@ -1,3 +1,4 @@
+import { ref } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ServiceBookingView from "@/views/ServiceBookingView.vue";
@@ -5,6 +6,16 @@ import { restaurantContactApi } from "@/services/restaurantContactApi";
 import { serviceBookingsApi } from "@/services/serviceBookingsApi";
 
 const routerPush = vi.hoisted(() => vi.fn());
+
+vi.mock("@/composables/useI18n", () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    tWithParams: (key: string, params: Record<string, unknown>) =>
+      `${key}:${Object.values(params).join(",")}`,
+    currentLanguage: ref("zh-TW"),
+    hasTranslation: () => true,
+  }),
+}));
 
 vi.mock("vue-router", () => ({
   useRouter: () => ({
@@ -176,7 +187,7 @@ describe("ServiceBookingView", () => {
       creditCardPublicId: "credit-public-1",
       pin: "1234",
     });
-    expect(wrapper.text()).toContain("代幣付款完成");
+    expect(wrapper.text()).toContain("serviceBooking.paySuccess");
 
     await wrapper
       .get('[data-testid="service-booking-verify-code"]')
@@ -192,7 +203,7 @@ describe("ServiceBookingView", () => {
     });
     expect(
       wrapper.get('[data-testid="service-booking-verified"]').text(),
-    ).toContain("已確認");
+    ).toContain("serviceBooking.bookingStatus.confirmed");
 
     await wrapper
       .get('[data-testid="service-booking-cancel"]')
@@ -203,6 +214,6 @@ describe("ServiceBookingView", () => {
       requireContact: true,
       customerEmail: "guest@example.test",
     });
-    expect(wrapper.text()).toContain("預約已取消");
+    expect(wrapper.text()).toContain("serviceBooking.cancelSuccess");
   });
 });
