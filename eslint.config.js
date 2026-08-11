@@ -18,9 +18,9 @@ export default [
   {
     ignores: [
       // Build outputs
-      "dist/**",
-      "build/**",
-      ".output/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/.output/**",
       ".nuxt/**",
       ".next/**",
       "out/**",
@@ -40,9 +40,9 @@ export default [
       "**/*.vue.d.ts",
 
       // Test outputs
-      "coverage/**",
-      "test-results/**",
-      "playwright-report/**",
+      "**/coverage/**",
+      "**/test-results/**",
+      "**/playwright-report/**",
       ".nyc_output/**",
 
       // Cloudflare Workers
@@ -88,7 +88,10 @@ export default [
       "**/*.ts.disabled",
 
       // Turbo cache
-      ".turbo/**",
+      "**/.turbo/**",
+
+      // Vendored tool output
+      ".claude/**",
 
       // Apps have their own eslint configs
       "apps/admin-dashboard/**",
@@ -135,6 +138,13 @@ export default [
             "Use getCurrentTimestamp() from @makanmasak/database instead of CURRENT_TIMESTAMP in SQL queries. See docs/development/TIMESTAMP_BEST_PRACTICES.md for details.",
         },
       ],
+    },
+  },
+
+  {
+    files: ["eslint.config.js"],
+    rules: {
+      "no-restricted-syntax": "off",
     },
   },
 

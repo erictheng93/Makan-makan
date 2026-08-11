@@ -14,6 +14,7 @@ const repoRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 // classify a .vue component as binary so it could no longer be diffed or merged.
 // Written as escapes on purpose: a literal class here would make this file
 // the first thing its own assertion trips over.
+// eslint-disable-next-line no-control-regex
 const FORBIDDEN = /[\uFFFD\x00-\x08\x0B-\x1F]/;
 
 const TEXT_EXTENSIONS = /\.(ts|tsx|js|cjs|mjs|vue|json|md|toml|css|html|sql)$/;

@@ -8,6 +8,7 @@ node_modules/
 .pnpm-store/
 
 # Generated files
+.codebase-memory/
 packages/database/migrations_fresh/
 packages/database/drizzle/
 pnpm-lock.yaml

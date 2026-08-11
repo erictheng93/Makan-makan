@@ -387,7 +387,7 @@ function cli() {
       console.log("✅ 遷移狀態已初始化");
       break;
 
-    case "update":
+    case "update": {
       // 更新模組狀態
       const moduleName = args[1];
       const statusValue = args[2];
@@ -410,8 +410,9 @@ function cli() {
 
       console.log(`✅ ${moduleName} 已更新: ${statusValue} (${progress}%)`);
       break;
+    }
 
-    case "report":
+    case "report": {
       // 生成報告
       const migrationStatus = initMigrationStatus();
       const report = generateProgressReport(migrationStatus);
@@ -436,6 +437,7 @@ function cli() {
       console.log(`   Markdown: ${mdPath}`);
       console.log(`\n📊 整體進度: ${report.progress.overall.toFixed(1)}%`);
       break;
+    }
 
     default:
       console.log("Factory 遷移進度追踪工具");

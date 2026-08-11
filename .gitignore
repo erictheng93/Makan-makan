@@ -1,6 +1,9 @@
 # Git worktrees
 .worktrees/
 
+# Local code graph index
+.codebase-memory/
+
 # Dependencies
 node_modules/
 .pnpm-debug.log*

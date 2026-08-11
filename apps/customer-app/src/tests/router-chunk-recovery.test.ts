@@ -16,6 +16,13 @@ vi.mock("@/stores/auth", () => ({
   useAuthStore: () => ({ isAuthenticated: false, checkAuth: vi.fn() }),
 }));
 
+vi.mock("@/views/ErrorView.vue", () => ({
+  default: {
+    name: "ErrorView",
+    template: "<div />",
+  },
+}));
+
 const CHUNK_MESSAGE =
   "Failed to fetch dynamically imported module: https://makanmasak.com/assets/HomeView-Ab12Cd34.js";
 
@@ -109,7 +116,7 @@ describe("router recovery from a stale build", () => {
     sessionStorage.setItem("makanmakan_chunk_reload_path", "/scan");
     const { default: router } = await import("@/router");
 
-    await router.push("/scan");
+    await router.push("/error");
 
     expect(sessionStorage.getItem("makanmakan_chunk_reload_path")).toBeNull();
   });

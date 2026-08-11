@@ -46,6 +46,9 @@ function globToRegex(glob) {
     .replace(/[.+^${}()|[\]\\]/g, "\\$&")
     .replace(/\*\*/g, "\u0000")
     .replace(/\*/g, "[^/]*")
+    // Matches the sentinel inserted above; this script intentionally builds
+    // a regex from glob text rather than scanning source content here.
+    // eslint-disable-next-line no-control-regex
     .replace(/\u0000/g, ".*");
   return new RegExp(`^${escaped}$`);
 }

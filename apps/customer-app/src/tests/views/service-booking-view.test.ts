@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import ServiceBookingView from "@/views/ServiceBookingView.vue";
 import { restaurantContactApi } from "@/services/restaurantContactApi";
 import { serviceBookingsApi } from "@/services/serviceBookingsApi";
+import { i18n } from "@/i18n";
 
 const routerPush = vi.hoisted(() => vi.fn());
 
@@ -85,6 +86,9 @@ function mountView() {
     props: {
       restaurantId: "restaurant-1",
       serviceItemId: 10,
+    },
+    global: {
+      plugins: [i18n],
     },
   });
 }

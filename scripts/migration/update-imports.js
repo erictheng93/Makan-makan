@@ -181,7 +181,7 @@ if (isDryRun) {
     try {
       execSync("cd apps/api && npx tsc --noEmit", { stdio: "inherit" });
       console.log("✅ TypeScript check passed!");
-    } catch (error) {
+    } catch {
       console.error(
         "❌ TypeScript check failed. You may need to fix import paths manually.",
       );

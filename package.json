@@ -110,11 +110,11 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "{apps,packages}/**/*.{ts,tsx,js,jsx}": [
+    "{apps,packages}/**/*.{ts,tsx,js,jsx,cjs,mjs}": [
       "eslint --fix --no-warn-ignored --quiet",
       "prettier --write"
     ],
-    "*.{ts,tsx,js,jsx,json,md,vue}": [
+    "*.{ts,tsx,js,jsx,cjs,mjs,json,md,vue}": [
       "prettier --write"
     ]
   },

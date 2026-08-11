@@ -64,9 +64,7 @@ console.error(
 console.error("the continue-on-error workaround.");
 console.error("");
 console.error(bold("Fix:"));
-console.error(
-  "  1. Unstage these files:  git restore --staged tests/visual/",
-);
+console.error("  1. Unstage these files:  git restore --staged tests/visual/");
 console.error(
   "  2. Delete them:          find tests/visual -name '*-darwin.png' -delete",
 );

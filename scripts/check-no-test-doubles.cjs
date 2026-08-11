@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
-const self = path.relative(root, __filename);
+const thisScript = path.relative(root, __filename);
 const scanRoots = ["apps", "packages", "tests", "scripts", "package.json"];
 
 const excludedDirs = new Set([
@@ -17,10 +17,7 @@ const excludedDirs = new Set([
   "security-reports",
 ]);
 
-const excludedFiles = new Set([
-  self,
-  "pnpm-lock.yaml",
-]);
+const excludedFiles = new Set([thisScript, "pnpm-lock.yaml"]);
 
 const scannedExtensions = new Set([
   ".cjs",
@@ -133,4 +130,6 @@ if (violations.length > 0) {
   process.exit(1);
 }
 
-console.log("[check-no-test-doubles] OK: no test doubles or API interception found.");
+console.log(
+  "[check-no-test-doubles] OK: no test doubles or API interception found.",
+);

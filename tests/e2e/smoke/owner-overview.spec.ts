@@ -430,14 +430,14 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
     await waitForOverviewReady(page);
     const financeSection = sectionByHeading(page, LABELS.todayFinance);
     await expect(
-      financeSection.getByText("NT\$1,250", { exact: true }),
+      financeSection.getByText("NT$1,250", { exact: true }),
     ).toBeVisible();
     await expect(financeSection.getByText("25", { exact: true })).toBeVisible();
     await expect(
-      financeSection.getByText("NT\$50", { exact: true }),
+      financeSection.getByText("NT$50", { exact: true }),
     ).toBeVisible();
     await expect(
-      financeSection.getByText("NT\$37,500", { exact: true }),
+      financeSection.getByText("NT$37,500", { exact: true }),
     ).toBeVisible();
   });
 
@@ -469,8 +469,8 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
     ).toBeVisible();
     await expect(page.getByText("Signature Soup")).toBeVisible();
     await expect(page.getByText("Braised Noodles")).toBeVisible();
-    await expect(page.getByText("NT\$540")).toBeVisible();
-    await expect(page.getByText("NT\$360")).toBeVisible();
+    await expect(page.getByText("NT$540")).toBeVisible();
+    await expect(page.getByText("NT$360")).toBeVisible();
     await expect(page.getByText("18 sold")).toBeVisible();
     await expect(page.getByText("12 sold")).toBeVisible();
   });
@@ -554,9 +554,7 @@ test.describe("Smoke: owner overview workflows (owner role)", () => {
     await expect(page.getByRole("button", { name: LABELS.retry })).toHaveCount(
       0,
     );
-    await expect(
-      page.getByText("NT\$0", { exact: true }).first(),
-    ).toBeVisible();
+    await expect(page.getByText("NT$0", { exact: true }).first()).toBeVisible();
     expect(await page.getByText(LABELS.noData).count()).toBeGreaterThanOrEqual(
       2,
     );
