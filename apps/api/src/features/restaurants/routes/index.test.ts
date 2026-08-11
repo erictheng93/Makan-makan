@@ -293,6 +293,26 @@ describe("restaurants routes", () => {
     expect(res.status).toBe(404);
   });
 
+  it("marks and strips onboarding placeholder descriptions from public detail responses", async () => {
+    restaurantFns.getRestaurant.mockResolvedValueOnce({
+      id: "rest-1",
+      name: "Makan",
+      description:
+        "Provisioned from onboarding application APP-20260727-4OG1RRGC; owner must complete the restaurant profile before publishing.",
+    });
+
+    const res = await request("/rest-1");
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.data).toMatchObject({
+      id: "rest-1",
+      description: null,
+      isPlaceholderDescription: true,
+    });
+    expect(JSON.stringify(body)).not.toContain("Provisioned from onboarding");
+  });
+
   it("uses manage scope for contact profiles and blocks cross-restaurant owner updates", async () => {
     auth.user = { id: 7, role: 1, restaurantId: "rest-1" };
 

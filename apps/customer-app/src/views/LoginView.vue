@@ -64,9 +64,11 @@
             <p v-if="errors.otp" class="mt-1 text-sm text-red-600">
               {{ errors.otp }}
             </p>
-            <p v-if="devOtp" class="mt-2 text-xs text-gray-500">
-              Dev OTP: {{ devOtp }}
-            </p>
+            <component
+              :is="DevOtpEcho"
+              v-if="DevOtpEcho && otpEcho"
+              :otp="otpEcho"
+            />
           </div>
 
           <!-- 錯誤提示 -->
@@ -129,21 +131,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, defineAsyncComponent } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useI18n } from "@/composables/useI18n";
+
+type RequestOtpData = {
+  devOtp?: string;
+};
 
 const router = useRouter();
 const authStore = useAuthStore();
 const { t, tWithParams } = useI18n();
 // The year was hard-coded alongside the English notice; both were the same bug.
 const currentYear = new Date().getFullYear();
+const DevOtpEcho = import.meta.env.DEV
+  ? defineAsyncComponent(() => import("@/components/DevOtpEcho.vue"))
+  : null;
 
 const isLoading = ref(false);
 const error = ref("");
 const otpRequested = ref(false);
-const devOtp = ref("");
+const otpEcho = ref("");
 
 const form = reactive({
   phone: "",
@@ -183,7 +192,10 @@ const handleSubmit = async () => {
       const result = await authStore.requestOtp(form.phone);
       if (result.success) {
         otpRequested.value = true;
-        devOtp.value = result.data?.devOtp ?? "";
+        if (import.meta.env.DEV) {
+          otpEcho.value =
+            (result.data as RequestOtpData | undefined)?.devOtp ?? "";
+        }
         return;
       }
       error.value = result.error || t("auth.loginFailed");

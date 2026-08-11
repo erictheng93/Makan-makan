@@ -275,6 +275,25 @@ describe("customer identity routes", () => {
     );
   });
 
+  it("does not echo OTPs outside explicit development and test environments", async () => {
+    const { response } = request(
+      "/auth/request-otp",
+      "POST",
+      { phone: "+886912345678" },
+      { NODE_ENV: "staging" },
+    );
+    const body = await (await response).json();
+
+    expect(body).toMatchObject({
+      success: true,
+      data: {
+        phone: "+886912345678",
+        expiresInSeconds: 300,
+      },
+    });
+    expect(body.data).not.toHaveProperty("devOtp");
+  });
+
   it("verifies OTPs, creates new customers, and issues tokens", async () => {
     utilMocks.generateUUID.mockReturnValueOnce("customer-new");
     const db = createDb({

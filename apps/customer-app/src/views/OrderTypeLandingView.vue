@@ -187,6 +187,12 @@ import { menuApi } from "@/services/menuApi";
 import type { Restaurant } from "@makanmasak/shared-types";
 
 type FulfillmentType = "dine-in" | "takeaway" | "delivery";
+type RestaurantWithPlaceholderFlag = Restaurant & {
+  isPlaceholderDescription?: boolean;
+};
+
+const ONBOARDING_PLACEHOLDER_DESCRIPTION_PREFIX =
+  "Provisioned from onboarding application ";
 
 const props = defineProps<{ restaurantId: string }>();
 
@@ -196,7 +202,7 @@ const { t } = useI18n();
 const shopCartStore = useShopCartStore();
 
 const selectedType = ref<FulfillmentType | null>(null);
-const restaurant = ref<Restaurant | null>(null);
+const restaurant = ref<RestaurantWithPlaceholderFlag | null>(null);
 const isLoading = ref(true);
 const error = ref<string | null>(null);
 
@@ -217,8 +223,12 @@ const hasFulfillmentMethods = computed(
 );
 
 const restaurantDescription = computed(() => {
+  if (restaurant.value?.isPlaceholderDescription) {
+    return "";
+  }
+
   const description = restaurant.value?.description?.trim() ?? "";
-  if (description.startsWith("Provisioned from onboarding application ")) {
+  if (description.startsWith(ONBOARDING_PLACEHOLDER_DESCRIPTION_PREFIX)) {
     return "";
   }
   return description;

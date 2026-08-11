@@ -161,6 +161,8 @@ const routes = new Hono<{ Bindings: Env }>();
 routes.post("/auth/request-otp", validateBody(requestOtpSchema), async (c) => {
   const { phone } = c.get("validatedBody");
   const now = Date.now();
+  const canEchoDevOtp =
+    c.env.NODE_ENV === "development" || c.env.NODE_ENV === "test";
   const otp = generateOtp();
   const otpHash = await bcrypt.hash(otp, 10);
 
@@ -179,7 +181,7 @@ routes.post("/auth/request-otp", validateBody(requestOtpSchema), async (c) => {
     data: {
       phone,
       expiresInSeconds: OTP_TTL_MS / 1000,
-      ...(c.env.NODE_ENV === "production" ? {} : { devOtp: otp }),
+      ...(canEchoDevOtp ? { devOtp: otp } : {}),
     },
   });
 });

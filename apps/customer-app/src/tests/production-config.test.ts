@@ -56,4 +56,22 @@ describe("customer-app production config", () => {
 
     expect(drop ?? []).not.toContain("console");
   });
+
+  it("guards the development OTP echo behind Vite dev mode", () => {
+    const loginView = readFileSync(
+      resolve(appRoot, "src/views/LoginView.vue"),
+      "utf-8",
+    );
+    const devOtpEcho = readFileSync(
+      resolve(appRoot, "src/components/DevOtpEcho.vue"),
+      "utf-8",
+    );
+
+    expect(devOtpEcho).toContain("Dev OTP:");
+    expect(loginView).not.toContain("Dev OTP:");
+    expect(loginView).toMatch(
+      /const DevOtpEcho = import\.meta\.env\.DEV\s+\? defineAsyncComponent/,
+    );
+    expect(loginView).toMatch(/if \(import\.meta\.env\.DEV\)/);
+  });
 });

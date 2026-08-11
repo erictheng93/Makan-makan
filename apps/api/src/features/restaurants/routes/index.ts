@@ -36,6 +36,28 @@ const commonSchemas = {
   serviceItemParam: restaurantSchemas.serviceItemParams,
 };
 
+const ONBOARDING_PLACEHOLDER_DESCRIPTION_PREFIX =
+  "Provisioned from onboarding application ";
+
+function withPublicRestaurantDescriptionContract<
+  T extends { description?: unknown },
+>(restaurant: T): T & { isPlaceholderDescription?: boolean } {
+  const description =
+    typeof restaurant.description === "string"
+      ? restaurant.description.trim()
+      : "";
+
+  if (!description.startsWith(ONBOARDING_PLACEHOLDER_DESCRIPTION_PREFIX)) {
+    return restaurant;
+  }
+
+  return {
+    ...restaurant,
+    description: null,
+    isPlaceholderDescription: true,
+  };
+}
+
 function assertCanManageRestaurant(
   user: { role: number; restaurantId?: string | number | null },
   restaurantId: string,
@@ -479,7 +501,7 @@ app.get("/:id", validateParams(commonSchemas.idParam), async (c) => {
   return c.json(
     {
       success: true,
-      data: restaurant,
+      data: withPublicRestaurantDescriptionContract(restaurant),
     },
     HTTP_STATUS.OK,
   );

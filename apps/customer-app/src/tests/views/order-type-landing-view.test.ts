@@ -140,4 +140,30 @@ describe("OrderTypeLandingView", () => {
     expect(wrapper.text()).not.toContain("Provisioned from onboarding");
     expect(wrapper.find('[data-testid="continue-btn"]').exists()).toBe(false);
   });
+
+  it("hides descriptions explicitly marked as onboarding placeholders", async () => {
+    vi.mocked(menuApi.getRestaurant).mockResolvedValueOnce({
+      id: "restaurant-1",
+      name: "市場入口店",
+      description:
+        "Owner must complete the restaurant profile before publishing.",
+      isPlaceholderDescription: true,
+      settings: {
+        enableDineIn: true,
+        enableTakeaway: false,
+        enableDelivery: false,
+      },
+    } as never);
+
+    const wrapper = mount(OrderTypeLandingView, {
+      props: { restaurantId: "restaurant-1" },
+    });
+
+    await vi.waitFor(() => {
+      expect(wrapper.find('[data-testid="continue-btn"]').exists()).toBe(true);
+    });
+
+    expect(wrapper.text()).toContain("市場入口店");
+    expect(wrapper.text()).not.toContain("Owner must complete");
+  });
 });
