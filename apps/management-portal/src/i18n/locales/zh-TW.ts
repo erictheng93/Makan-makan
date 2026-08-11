@@ -99,7 +99,7 @@ const zhTW = {
         contactPhonePlaceholder: "02-1234-5678",
         subdomain: "子域名",
         subdomainPlaceholder: "yushenfang",
-        subdomainSuffix: ".makanmakan.app",
+        subdomainSuffix: ".makanmasak.com",
         subdomainHint: "留空將自動生成",
         selectPlan: "選擇方案",
       },

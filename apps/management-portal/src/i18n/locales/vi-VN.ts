@@ -282,7 +282,7 @@ const viVN: Messages = {
         subdomain: "Tên miền phụ",
         subdomainHint: "Để trống để tự động tạo",
         subdomainPlaceholder: "nhà bếp hoàng gia",
-        subdomainSuffix: ".makanmakan.app",
+        subdomainSuffix: ".makanmasak.com",
       },
       plan: {
         enterprise: {

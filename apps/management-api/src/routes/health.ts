@@ -306,7 +306,7 @@ router.post("/check/:tenantId", async (c) => {
     }
 
     // Determine health check URL
-    const domain = tenant.custom_domain || `${tenant.subdomain}.makanmakan.app`;
+    const domain = tenant.custom_domain || `${tenant.subdomain}.makanmasak.com`;
     const healthUrl = `https://api.${domain}/health`;
 
     // Perform health check
@@ -318,7 +318,7 @@ router.post("/check/:tenantId", async (c) => {
     try {
       const response = await fetch(healthUrl, {
         method: "GET",
-        headers: { "User-Agent": "MakanMakan-HealthCheck/1.0" },
+        headers: { "User-Agent": "MakanMasak-HealthCheck/1.0" },
       });
       responseTimeMs = Date.now() - startTime;
 

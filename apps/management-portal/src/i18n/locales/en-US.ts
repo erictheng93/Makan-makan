@@ -101,7 +101,7 @@ const enUS: Messages = {
         contactPhonePlaceholder: "+1-234-567-8900",
         subdomain: "Subdomain",
         subdomainPlaceholder: "royalkitchen",
-        subdomainSuffix: ".makanmakan.app",
+        subdomainSuffix: ".makanmasak.com",
         subdomainHint: "Leave blank to auto-generate",
         selectPlan: "Select Plan",
       },

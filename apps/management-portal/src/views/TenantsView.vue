@@ -210,7 +210,7 @@ const getStatusClass = (status: TenantStatus) => {
                 v-if="tenant.subdomain"
                 class="text-sm bg-gray-100 px-2 py-1 rounded"
               >
-                {{ tenant.subdomain }}.makanmakan.app
+                {{ tenant.subdomain }}.makanmasak.com
               </code>
               <span v-else class="text-gray-400">-</span>
             </td>

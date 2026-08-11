@@ -282,7 +282,7 @@ const idID: Messages = {
         subdomain: "Subdomain",
         subdomainHint: "Biarkan kosong untuk menghasilkan secara otomatis",
         subdomainPlaceholder: "dapur kerajaan",
-        subdomainSuffix: ".makanmakan.app",
+        subdomainSuffix: ".makanmasak.com",
       },
       plan: {
         enterprise: {

@@ -281,7 +281,7 @@ const zhCN: Messages = {
         subdomain: "子域名",
         subdomainHint: "留空将自动生成",
         subdomainPlaceholder: "yushenfang",
-        subdomainSuffix: ".makanmakan.app",
+        subdomainSuffix: ".makanmasak.com",
       },
       plan: {
         enterprise: {

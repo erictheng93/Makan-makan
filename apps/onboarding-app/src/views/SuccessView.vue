@@ -126,13 +126,13 @@ const handleStartNew = () => {
           <div class="flex justify-between items-center">
             <dt class="text-gray-500">{{ t("success.summary.subdomain") }}</dt>
             <dd class="text-gray-900 font-medium flex items-center">
-              {{ store.assignedSubdomain || "-" }}.makanmakan.app
+              {{ store.assignedSubdomain || "-" }}.makanmasak.com
               <button
                 v-if="store.assignedSubdomain"
                 type="button"
                 class="ml-2 text-gray-400 hover:text-gray-600"
                 @click="
-                  copyToClipboard(`${store.assignedSubdomain}.makanmakan.app`)
+                  copyToClipboard(`${store.assignedSubdomain}.makanmasak.com`)
                 "
               >
                 <DocumentDuplicateIcon class="h-4 w-4" />
@@ -199,10 +199,10 @@ const handleStartNew = () => {
     <div class="mt-6 text-sm text-gray-500">
       {{ t("success.contact.prompt") }}
       <a
-        href="mailto:support@makanmakan.app"
+        href="mailto:support@makanmasak.com"
         class="text-primary-600 hover:underline"
       >
-        support@makanmakan.app
+        support@makanmasak.com
       </a>
     </div>
   </div>

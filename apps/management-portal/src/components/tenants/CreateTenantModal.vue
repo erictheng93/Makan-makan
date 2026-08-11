@@ -229,7 +229,7 @@ const handleSubmit = async () => {
                 <span
                   class="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-r-md"
                 >
-                  .makanmakan.app
+                  .makanmasak.com
                 </span>
               </div>
               <p v-if="errors.subdomain" class="mt-1 text-sm text-red-600">

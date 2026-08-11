@@ -282,7 +282,7 @@ const msMY: Messages = {
         subdomain: "Subdomain",
         subdomainHint: "Biarkan kosong untuk menjana automatik",
         subdomainPlaceholder: "dapur diraja",
-        subdomainSuffix: ".makanmakan.app",
+        subdomainSuffix: ".makanmasak.com",
       },
       plan: {
         enterprise: {
