@@ -1,7 +1,7 @@
-import { eq, ne, and, desc, asc, like, or, count, gte, sql } from "drizzle-orm";
-import { BaseService } from "./base";
-import { users, USER_ROLES, type UserRole } from "../schema";
 import * as bcrypt from "bcryptjs";
+import { and, asc, count, desc, eq, gte, like, ne, or, sql } from "drizzle-orm";
+import { USER_ROLES, users, type UserRole } from "../schema";
+import { BaseService } from "./base";
 
 export interface CreateUserData {
   username: string;
@@ -511,7 +511,7 @@ export class UserService extends BaseService {
   async updateUserRole(
     id: string,
     role: number,
-    updatedBy: string,
+    _updatedBy: string,
   ): Promise<any> {
     try {
       // 驗證角色是否有效

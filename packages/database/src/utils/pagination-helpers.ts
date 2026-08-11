@@ -4,20 +4,19 @@
  * Utilities for implementing pagination in Drizzle ORM queries
  */
 
-import { sql, SQL } from "drizzle-orm";
 import type {
-  PaginationParams,
-  PaginatedResponse,
-  PaginationMeta,
   CursorPaginatedResponse,
+  PaginatedResponse,
+  PaginationParams,
 } from "@makanmasak/shared-types";
 import {
   calculatePaginationMeta,
-  normalizePaginationParams,
-  getPaginationOffsetLimit,
-  encodeCursor,
   decodeCursor,
+  encodeCursor,
+  getPaginationOffsetLimit,
+  normalizePaginationParams,
 } from "@makanmasak/shared-types";
+import { sql, SQL } from "drizzle-orm";
 
 /**
  * Apply pagination to Drizzle query
@@ -27,7 +26,7 @@ import {
  * const paginatedQuery = applyPagination(query, { page: 1, pageSize: 20 })
  * const items = await paginatedQuery
  */
-export function applyPagination<T>(query: any, params: PaginationParams): any {
+export function applyPagination(query: any, params: PaginationParams): any {
   const normalized = normalizePaginationParams(params);
   const { offset, limit } = getPaginationOffsetLimit(normalized);
 
@@ -42,7 +41,7 @@ export function applyPagination<T>(query: any, params: PaginationParams): any {
  * const sortedQuery = applySorting(query, orders, 'createdAt', 'desc')
  * const items = await sortedQuery
  */
-export function applySorting<T>(
+export function applySorting(
   query: any,
   table: any,
   sortBy: string = "createdAt",

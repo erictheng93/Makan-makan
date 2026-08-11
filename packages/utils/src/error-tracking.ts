@@ -4,7 +4,6 @@
  * Comprehensive error tracking with context, breadcrumbs, and reporting
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 declare const window: any;
 
 export type ErrorSeverity = "low" | "medium" | "high" | "critical";

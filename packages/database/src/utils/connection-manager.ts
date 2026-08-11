@@ -8,7 +8,6 @@
  * 4. Query queue management
  */
 
-import type { D1Database } from "@cloudflare/workers-types";
 import { v7 as uuidv7 } from "uuid";
 
 export interface QueryBatchItem {

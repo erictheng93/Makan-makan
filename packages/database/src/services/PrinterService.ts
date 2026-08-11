@@ -4,17 +4,16 @@
  */
 
 import type {
+  CountryCode,
+  PrintContent,
   PrinterDevice,
   PrintJob,
+  PrintJobStatus,
   PrintRequest,
   PrintResponse,
-  PrintContent,
-  PrinterEvent,
   PrintServiceConfig,
-  RegionConfig,
-  CountryCode,
-  PrintJobStatus,
   PrintStatistics,
+  RegionConfig,
 } from "@makanmasak/shared-types";
 
 type PrintJobMetricsMetadata = NonNullable<PrintJob["metadata"]> & {
@@ -143,7 +142,7 @@ export class PrintJobQueue {
     }
   }
 
-  private async processJob(job: PrintJob): Promise<void> {
+  private async processJob(_job: PrintJob): Promise<void> {
     // 這裡會被 PrinterService 覆寫
     throw new Error("processJob must be implemented by PrinterService");
   }
@@ -643,7 +642,7 @@ export class PrinterService {
   }
 
   private async generatePrintContent(
-    request: PrintRequest,
+    _request: PrintRequest,
   ): Promise<PrintContent> {
     // 這裡會根據請求數據和地區設定生成收據內容
     // 實作由 @makanmasak/queue-core/print 的 ReceiptFormattingService 提供
@@ -651,8 +650,8 @@ export class PrinterService {
   }
 
   private async generatePrintCommands(
-    content: PrintContent,
-    deviceId: string,
+    _content: PrintContent,
+    _deviceId: string,
   ): Promise<Buffer> {
     // 這裡會根據打印機品牌生成對應的命令集
     // 實作由 @makanmasak/queue-core/print 的品牌 Driver 提供

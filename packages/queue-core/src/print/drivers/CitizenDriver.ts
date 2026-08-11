@@ -4,9 +4,9 @@
  */
 
 import type {
-  PrinterDevice,
   PrintContent,
   PrintResponse,
+  PrinterDevice,
   PrinterStatus,
 } from "@makanmasak/shared-types";
 import { PrinterDriver } from "./PrinterDriver";

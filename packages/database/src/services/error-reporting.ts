@@ -1,24 +1,19 @@
-import {
-  eq,
-  and,
-  desc,
-  gte,
-  lte,
-  count,
-  sql,
-  isNull,
-  isNotNull,
-} from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
-import { BaseService } from "./base";
-import { errorReports, systemAlerts, users, restaurants } from "../schema";
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gte,
+  isNotNull,
+  isNull,
+  lte,
+  sql,
+} from "drizzle-orm";
+import { errorReports, restaurants, systemAlerts, users } from "../schema";
+import type { ErrorReport, SystemAlert } from "../schema/error-reports";
 import { paginateWithCursor } from "../utils/pagination-helpers";
-import type {
-  ErrorReport,
-  NewErrorReport,
-  SystemAlert,
-  NewSystemAlert,
-} from "../schema/error-reports";
+import { BaseService } from "./base";
 
 export interface CreateErrorReportData {
   userId: string;

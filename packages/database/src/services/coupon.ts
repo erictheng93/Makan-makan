@@ -1,20 +1,15 @@
-import { eq, and, gte, lte, sql, desc, asc, inArray } from "drizzle-orm";
-import { BaseService } from "./base";
+import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import type { DiscountType } from "../schema";
 import { coupons, couponUsage, menuItems as menuItemsTable } from "../schema";
-import type {
-  DiscountType,
-  DistributionType,
-  TargetType,
-  UsageStatus,
-} from "../schema";
 import {
   amountFromCents,
   fromCents,
   percentageFromBps,
   toCents,
-  toRequiredPercentageBps,
   toRequiredCents,
+  toRequiredPercentageBps,
 } from "../utils/money";
+import { BaseService } from "./base";
 
 // 優惠券驗證結果接口
 export interface CouponValidationResult {
@@ -841,7 +836,7 @@ export class CouponService extends BaseService {
    */
   async getAvailableCoupons(
     restaurantId: string,
-    userId?: string,
+    _userId?: string,
   ): Promise<any[]> {
     const now = new Date().toISOString();
 

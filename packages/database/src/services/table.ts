@@ -1,24 +1,23 @@
-import {
-  eq,
-  and,
-  desc,
-  asc,
-  like,
-  or,
-  count,
-  isNotNull,
-  isNull,
-  gte,
-  lte,
-  sql,
-  inArray,
-} from "drizzle-orm";
-import { BaseService } from "./base";
-import { tables, restaurants, orders, seats } from "../schema";
-import { SeatService } from "./seat";
 import { buildSignedQRUrl } from "@makanmasak/utils";
-import { resolveAppBaseUrl } from "./app-base-url";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  like,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
+import { orders, restaurants, seats, tables } from "../schema";
 import { moneyAmountExpression } from "../utils/money-sql";
+import { resolveAppBaseUrl } from "./app-base-url";
+import { BaseService } from "./base";
+import { SeatService } from "./seat";
 
 export interface CreateTableData {
   restaurantId: string;
@@ -82,7 +81,7 @@ export interface QRCodeOptions {
   size?: "small" | "medium" | "large";
   format?: "png" | "svg" | "pdf";
   includeTableInfo?: boolean;
-  customData?: any;
+  _customData?: any;
 }
 
 export interface TableStats {
@@ -703,7 +702,7 @@ export class TableService extends BaseService {
   // 重新生成 QR Code
   async regenerateQRCode(
     tableId: number,
-    customData?: any,
+    _customData?: any,
   ): Promise<{ success: boolean; qrCode?: string; error?: string }> {
     try {
       const table = await this.db
@@ -868,7 +867,7 @@ export class TableService extends BaseService {
   async generateBulkQRCodes(
     restaurantId: string,
     tableIds: number[],
-    options: QRCodeOptions = {},
+    _options: QRCodeOptions = {},
   ): Promise<{
     success: boolean;
     qrCodes?: Array<{ tableId: number; qrCode: string; tableNumber: string }>;

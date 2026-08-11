@@ -4,7 +4,6 @@
  * Track and analyze application performance metrics
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Browser-only module: declare types missing in Workers environments
 declare const window: any;
 

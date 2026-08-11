@@ -3,10 +3,27 @@
  * 特約商店服務層 - 管理院校/機構合作夥伴關係
  */
 
-import { eq, and, gte, lte, sql, desc, or, like } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
-import { BaseService } from "./base";
-import { paginateWithCursor } from "../utils/pagination-helpers";
+import { and, desc, eq, gte, like, lte, or, sql } from "drizzle-orm";
+import {
+  partnershipPlans,
+  partnerships,
+  partnershipUsageLogs,
+  verifiedMembers,
+  type MemberStatus,
+  type MemberType,
+  type NewPartnership,
+  type NewPartnershipPlan,
+  type NewPartnershipUsageLog,
+  type NewVerifiedMember,
+  type Partnership,
+  type PartnershipPlan,
+  type PartnershipStatus,
+  type PartnershipUsageLog,
+  type PartnerType,
+  type VerificationMethod,
+  type VerifiedMember,
+} from "../schema";
 import {
   fromCents,
   percentageFromBps,
@@ -14,26 +31,8 @@ import {
   toPercentageBps,
   toRequiredCents,
 } from "../utils/money";
-import {
-  partnerships,
-  partnershipPlans,
-  verifiedMembers,
-  partnershipUsageLogs,
-  type Partnership,
-  type NewPartnership,
-  type PartnershipPlan,
-  type NewPartnershipPlan,
-  type VerifiedMember,
-  type NewVerifiedMember,
-  type PartnershipUsageLog,
-  type NewPartnershipUsageLog,
-  type PartnerType,
-  type VerificationMethod,
-  type PartnershipStatus,
-  type MemberType,
-  type MemberStatus,
-  type PlanDiscountType,
-} from "../schema";
+import { paginateWithCursor } from "../utils/pagination-helpers";
+import { BaseService } from "./base";
 
 // ================================================
 // INTERFACES
@@ -686,8 +685,8 @@ export class PartnershipService extends BaseService {
     planId: string,
     memberId: string,
     orderAmount: number,
-    menuItems?: string[],
-    categories?: string[],
+    _menuItems?: string[],
+    _categories?: string[],
   ): Promise<PlanValidationResult> {
     try {
       // 獲取方案詳情

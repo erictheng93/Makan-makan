@@ -4,18 +4,18 @@
  */
 
 import type {
-  PrinterDevice,
   PrinterBrand,
   PrinterCapabilities,
   PrinterConnection,
+  PrinterDevice,
 } from "@makanmasak/shared-types";
 
-import { PrinterDriver } from "./PrinterDriver";
-import { EpsonDriver } from "./EpsonDriver";
-import { StarDriver } from "./StarDriver";
-import { CitizenDriver } from "./CitizenDriver";
-import { PrinterDriverError } from "../errors/PrintErrors";
 import { PRINTER_BRANDS } from "../config/brands";
+import { PrinterDriverError } from "../errors/PrintErrors";
+import { CitizenDriver } from "./CitizenDriver";
+import { EpsonDriver } from "./EpsonDriver";
+import { PrinterDriver } from "./PrinterDriver";
+import { StarDriver } from "./StarDriver";
 
 export interface DriverFactoryConfig {
   connectionTimeout: number;

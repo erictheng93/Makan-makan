@@ -1,14 +1,13 @@
+import { relations, sql } from "drizzle-orm";
 import {
+  index,
+  integer,
   sqliteTable,
   text,
-  integer,
-  index,
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
-import { sql } from "drizzle-orm";
-import { relations } from "drizzle-orm";
-import { tables } from "./tables";
 import { orders } from "./orders";
+import { tables } from "./tables";
 
 /**
  * 座位表 - 支持座位級別的 QR 碼管理
@@ -88,7 +87,7 @@ export const seats = sqliteTable(
 /**
  * 座位關聯定義
  */
-export const seatRelations = relations(seats, ({ one, many }) => ({
+export const seatRelations = relations(seats, ({ one, many: _many }) => ({
   // 座位所屬的桌子
   table: one(tables, {
     fields: [seats.tableId],

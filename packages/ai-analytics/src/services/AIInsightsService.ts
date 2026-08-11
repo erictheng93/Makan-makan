@@ -3,18 +3,17 @@
  * Generates business insights using LLM providers
  */
 
-import { createProvider } from "../providers";
-import { ProductAnalysisService } from "./ProductAnalysisService";
 import { getCurrentTimestamp } from "@makanmasak/database";
 import { v7 as uuidv7 } from "uuid";
+import { createProvider } from "../providers";
 import type {
-  LLMConfig,
-  BusinessMetrics,
-  AIInsight,
   AIAnalyticsReport,
+  AIInsight,
+  BusinessMetrics,
+  LLMConfig,
   TimeRangeParams,
-  ProductAnalysis,
 } from "../types";
+import { ProductAnalysisService } from "./ProductAnalysisService";
 
 interface D1Database {
   prepare(query: string): D1PreparedStatement;
@@ -294,7 +293,7 @@ export class AIInsightsService {
   private async generateInsights(
     metrics: BusinessMetrics,
     llmProvider: any,
-    llmConfig: LLMConfig,
+    _llmConfig: LLMConfig,
   ): Promise<AIInsight[]> {
     const prompt = this.buildInsightsPrompt(metrics);
 
@@ -383,7 +382,7 @@ ${insights
    */
   private async generateForecast(
     metrics: BusinessMetrics,
-    llmProvider: any,
+    _llmProvider: any,
   ): Promise<any> {
     // Simple forecasting based on recent trends
     const recentDays = metrics.dailyMetrics.slice(-7);

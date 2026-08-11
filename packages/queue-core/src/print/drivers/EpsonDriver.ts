@@ -4,13 +4,13 @@
  */
 
 import type {
-  PrinterDevice,
   PrintContent,
   PrintResponse,
+  PrinterDevice,
   PrinterStatus,
 } from "@makanmasak/shared-types";
-import { PrinterDriver } from "./PrinterDriver";
 import { CommandBuilder } from "../commands/CommandBuilder";
+import { PrinterDriver } from "./PrinterDriver";
 
 export interface EpsonDriverOptions {
   baudRate?: number;
@@ -68,16 +68,8 @@ export class EpsonDriver extends PrinterDriver {
       return "offline";
     }
 
-    try {
-      // Implement Epson-specific status checking
-      // This would typically send a status request command
-      // and parse the response
-
-      // For now, simulate status check
-      return "online";
-    } catch {
-      return "error";
-    }
+    // Implement Epson-specific status checking. For now, simulate status check.
+    return "online";
   }
 
   async print(content: PrintContent): Promise<PrintResponse> {

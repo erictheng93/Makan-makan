@@ -4,13 +4,13 @@
  */
 
 import type {
-  PrinterDevice,
   PrintContent,
   PrintResponse,
+  PrinterDevice,
   PrinterStatus,
 } from "@makanmasak/shared-types";
-import { PrinterDriver } from "./PrinterDriver";
 import { CommandBuilder } from "../commands/CommandBuilder";
+import { PrinterDriver } from "./PrinterDriver";
 
 export interface StarDriverOptions {
   baudRate?: number;

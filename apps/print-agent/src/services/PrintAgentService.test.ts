@@ -37,7 +37,6 @@ const buildPrintRequest = (overrides: Record<string, unknown> = {}) =>
       },
     },
     ...overrides,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }) as any;
 
 describe("PrintAgentService health semantics", () => {

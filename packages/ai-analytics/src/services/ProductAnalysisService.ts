@@ -10,15 +10,15 @@
  */
 
 import {
-  sql,
-  eq,
   and,
   between,
+  categories,
+  eq,
   inArray,
   menuItems,
   orderItems,
   orders,
-  categories,
+  sql,
 } from "@makanmasak/database";
 import type {
   ProductAnalysis,
@@ -57,12 +57,6 @@ interface DailyMetric {
   orders: number;
   revenue: number;
 }
-
-// Drizzle db instance type (inferred from drizzle())
-type DrizzleDb = {
-  select: (fields: Record<string, unknown>) => any;
-  all: <T>(query: any) => Promise<T[]>;
-};
 
 export class ProductAnalysisService {
   constructor(private db: any) {}

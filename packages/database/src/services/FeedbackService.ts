@@ -1,16 +1,16 @@
-import { eq, and, desc, gte, lte, count, sql, like, or } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
+import { and, count, desc, eq, gte, like, lte, or, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
-import { BaseService } from "./base";
-import { shopFeedback, feedbackResponses, users, restaurants } from "../schema";
+import { feedbackResponses, restaurants, shopFeedback, users } from "../schema";
 import type {
-  ShopFeedback,
-  FeedbackResponse,
   FeedbackCategory,
-  FeedbackPriority,
-  FeedbackStatus,
   FeedbackModule,
+  FeedbackPriority,
+  FeedbackResponse,
+  FeedbackStatus,
+  ShopFeedback,
 } from "../schema/feedback";
+import { BaseService } from "./base";
 
 export interface CreateFeedbackData {
   restaurantId: string;
@@ -156,7 +156,7 @@ export class FeedbackService extends BaseService {
     filters: FeedbackFilters = {},
     page: number = 1,
     limit: number = 20,
-    isAdmin: boolean = false,
+    _isAdmin: boolean = false,
   ) {
     try {
       const whereClause = this.buildWhereClause(filters);
@@ -235,10 +235,10 @@ export class FeedbackService extends BaseService {
     id: number,
     data: UpdateFeedbackData,
     userId: string,
-    isAdmin: boolean = false,
+    _isAdmin: boolean = false,
   ): Promise<ShopFeedback | null> {
     try {
-      const whereClause = isAdmin
+      const whereClause = _isAdmin
         ? eq(shopFeedback.id, id)
         : and(
             eq(shopFeedback.id, id),
@@ -275,17 +275,17 @@ export class FeedbackService extends BaseService {
   async deleteFeedback(
     id: number,
     userId: string,
-    isAdmin: boolean = false,
+    _isAdmin: boolean = false,
   ): Promise<boolean> {
     try {
-      const whereClause = isAdmin
+      const whereClause = _isAdmin
         ? eq(shopFeedback.id, id)
         : and(
             eq(shopFeedback.id, id),
             eq(shopFeedback.userId, userId),
             eq(shopFeedback.status, "open"),
           );
-      const authorizedFeedbackFilter = isAdmin
+      const authorizedFeedbackFilter = _isAdmin
         ? sql`id = ${id}`
         : sql`id = ${id} AND user_id = ${userId} AND status = 'open'`;
 
@@ -335,14 +335,14 @@ export class FeedbackService extends BaseService {
     }
   }
 
-  async getResponses(feedbackId: number, isAdmin: boolean = false) {
+  async getResponses(feedbackId: number, _isAdmin: boolean = false) {
     try {
       const rows = await this.db
         .select()
         .from(feedbackResponses)
         .leftJoin(users, eq(feedbackResponses.userId, users.id))
         .where(
-          isAdmin
+          _isAdmin
             ? eq(feedbackResponses.feedbackId, feedbackId)
             : and(
                 eq(feedbackResponses.feedbackId, feedbackId),
@@ -364,10 +364,10 @@ export class FeedbackService extends BaseService {
     responseId: number,
     userId: string,
     message: string,
-    isAdmin: boolean = false,
+    _isAdmin: boolean = false,
   ): Promise<FeedbackResponse | null> {
     try {
-      const whereClause = isAdmin
+      const whereClause = _isAdmin
         ? eq(feedbackResponses.id, responseId)
         : and(
             eq(feedbackResponses.id, responseId),
@@ -389,10 +389,10 @@ export class FeedbackService extends BaseService {
   async deleteResponse(
     responseId: number,
     userId: string,
-    isAdmin: boolean = false,
+    _isAdmin: boolean = false,
   ): Promise<boolean> {
     try {
-      const whereClause = isAdmin
+      const whereClause = _isAdmin
         ? eq(feedbackResponses.id, responseId)
         : and(
             eq(feedbackResponses.id, responseId),

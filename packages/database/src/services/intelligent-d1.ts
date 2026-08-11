@@ -56,7 +56,7 @@ export class IntelligentD1Service extends BaseService {
     env: import("./base").CloudflareEnv,
     cacheManager?: any,
     analyticsEngine?: any,
-    context?: ExecutionContext,
+    _context?: ExecutionContext,
   ) {
     super(d1, env);
     this.cacheManager = cacheManager;
@@ -519,7 +519,7 @@ export class IntelligentD1Service extends BaseService {
 
   private triggerPredictivePreloading(
     querySignature: string,
-    options: any,
+    _options: any,
   ): void {
     // Analyze query patterns and preload related queries
     const patterns = this.predictRelatedQueries(querySignature);
@@ -693,17 +693,17 @@ export class IntelligentD1Service extends BaseService {
 
   // Placeholder methods for complex queries - would be implemented based on schema
   private async getMenuWithCategories(
-    restaurantId: string,
-    strategy: CacheStrategy,
+    _restaurantId: string,
+    _strategy: CacheStrategy,
   ): Promise<any> {
     // Implementation would join menu_items and categories tables
     return [];
   }
 
   private async getMenuItems(
-    restaurantId: string,
-    strategy: CacheStrategy,
-    options: any,
+    _restaurantId: string,
+    _strategy: CacheStrategy,
+    _options: any,
   ): Promise<any> {
     // Implementation would query menu_items table with filters
     return [];
@@ -711,7 +711,7 @@ export class IntelligentD1Service extends BaseService {
 
   private getMenuCacheStrategy(
     restaurantId: string,
-    options: any,
+    _options: any,
   ): CacheStrategy {
     return {
       type: "standard",
@@ -725,7 +725,7 @@ export class IntelligentD1Service extends BaseService {
   private buildAnalyticsQuery(
     restaurantId: string,
     timeRange: string,
-    metrics: string[],
+    _metrics: string[],
   ): { sql: string; params: any[] } {
     // Implementation would build complex analytics query
     return {
