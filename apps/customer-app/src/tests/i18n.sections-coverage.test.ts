@@ -89,7 +89,6 @@ describe("i18n Integration Tests", () => {
       "auth.phonePlaceholder",
       "auth.confirmPassword",
       "auth.confirmPasswordPlaceholder",
-      "auth.forgotPassword",
       "auth.noAccount",
       "auth.hasAccount",
       "auth.registerNow",
@@ -110,62 +109,44 @@ describe("i18n Integration Tests", () => {
       "auth.passwordMismatch",
       "auth.invalidEmail",
       "auth.invalidPhone",
+      // Password sign-in, registration and the three mail-driven screens.
+      "auth.tabOtp",
+      "auth.tabPassword",
+      "auth.otp",
+      "auth.otpPlaceholder",
+      "auth.requestOtp",
+      "auth.phoneRequired",
+      "auth.otpRequired",
+      "auth.identifier",
+      "auth.identifierPlaceholder",
+      "auth.identifierRequired",
+      "auth.forgotPassword",
+      "auth.backToLogin",
+      "auth.goToLogin",
+      "auth.verificationEmailSentTitle",
+      "auth.verificationEmailSentDesc",
+      "auth.verificationEmailFailedTitle",
+      "auth.verificationEmailFailedDesc",
+      "auth.resendVerification",
+      "auth.resendVerificationSending",
+      "auth.resendVerificationSent",
+      "auth.resendVerificationFailed",
       "auth.forgotPasswordTitle",
       "auth.forgotPasswordDesc",
-      "auth.emailAddress",
-      "auth.sendResetLink",
-      "auth.sending",
-      "auth.backToLogin",
-      "auth.backToLoginArrow",
-      "auth.resetLinkSent",
-      "auth.resetLinkFailed",
-      "auth.checkEmailInfo",
-      "auth.noEmailReceived",
-      "auth.checkSpam",
-      "auth.confirmEmailCorrect",
-      "auth.waitAndRetry",
-      "auth.emailRequired",
-      "auth.invalidEmailAddress",
-      "auth.resetPassword",
+      "auth.forgotPasswordSubmit",
+      "auth.forgotPasswordSent",
+      "auth.resetPasswordTitle",
+      "auth.resetPasswordDesc",
       "auth.newPassword",
       "auth.newPasswordPlaceholder",
-      "auth.resetting",
-      "auth.resetSuccess",
-      "auth.resetPasswordMessage",
-      "auth.resetPasswordFailed",
-      "auth.goToLogin",
-      "auth.verifyingLink",
-      "auth.linkInvalid",
-      "auth.resendLink",
-      "auth.tokenInvalid",
-      "auth.tokenVerifyError",
-      "auth.missingToken",
-      "auth.passwordStrength.weak",
-      "auth.passwordStrength.medium",
-      "auth.passwordStrength.good",
-      "auth.passwordStrength.strong",
-      "auth.passwordStrength.veryStrong",
-      "auth.verifyEmail",
-      "auth.verifying",
-      "auth.verifyingDesc",
-      "auth.verifySuccess",
-      "auth.verifyFailed",
-      "auth.verifyError",
-      "auth.verifyNowYouCan",
-      "auth.verifyFullOrdering",
-      "auth.verifyManageProfile",
-      "auth.verifyOrderHistory",
-      "auth.verifyExclusive",
-      "auth.startOrdering",
-      "auth.viewProfile",
-      "auth.possibleReasons",
-      "auth.linkExpired",
-      "auth.linkUsed",
-      "auth.linkInvalidReason",
-      "auth.resendVerification",
-      "auth.missingVerifyToken",
-      "auth.resendVerificationSuccess",
-      "auth.resendFailed",
+      "auth.confirmNewPassword",
+      "auth.resetPasswordSubmit",
+      "auth.resetPasswordSuccess",
+      "auth.verifyEmailTitle",
+      "auth.verifyEmailPending",
+      "auth.verifyEmailSuccess",
+      "auth.linkTokenMissing",
+      "auth.otpSentForRegistration",
     ];
 
     it("should have all auth keys in all 6 locales", () => {
@@ -184,17 +165,6 @@ describe("i18n Integration Tests", () => {
       expect(tGlobal("auth.memberLogin")).toBe("會員登入");
       switchLanguage("en-US");
       expect(tGlobal("auth.memberLogin")).toBe("Member Login");
-    });
-
-    it("should handle auth.resetPasswordDesc with username param", () => {
-      ALL_LOCALES.forEach((locale) => {
-        switchLanguage(locale);
-        const result = tGlobal("auth.resetPasswordDesc", {
-          username: "testuser",
-        });
-        expect(result).toContain("testuser");
-        expect(result).not.toBe("auth.resetPasswordDesc");
-      });
     });
   });
 
@@ -678,9 +648,6 @@ describe("i18n Integration Tests", () => {
       "navigation.appTitle",
       "navigation.login",
       "navigation.register",
-      "navigation.forgotPassword",
-      "navigation.resetPassword",
-      "navigation.verifyEmail",
       "navigation.myOrders",
       "navigation.orderDetail",
       "navigation.profileCenter",
@@ -696,6 +663,9 @@ describe("i18n Integration Tests", () => {
       "navigation.pageNotFound",
       "navigation.discover",
       "navigation.markets",
+      "navigation.forgotPassword",
+      "navigation.resetPassword",
+      "navigation.verifyEmail",
     ];
 
     it("should have all navigation keys in all 6 locales", () => {

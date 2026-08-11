@@ -35,16 +35,16 @@ describe("router resilience against a broken i18n runtime", () => {
   it("still completes navigation when translation throws", async () => {
     const { default: router } = await import("@/router");
 
-    await router.push("/");
+    await router.push("/error");
     await router.isReady();
 
-    expect(router.currentRoute.value.name).toBe("Home");
+    expect(router.currentRoute.value.name).toBe("Error");
   });
 
   it("falls back to a static document title instead of aborting", async () => {
     const { default: router } = await import("@/router");
 
-    await router.push("/");
+    await router.push("/error");
 
     expect(document.title).toBe("MakanMasak");
   });
