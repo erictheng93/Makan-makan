@@ -235,10 +235,10 @@ export class FeedbackService extends BaseService {
     id: number,
     data: UpdateFeedbackData,
     userId: string,
-    _isAdmin: boolean = false,
+    isAdmin: boolean = false,
   ): Promise<ShopFeedback | null> {
     try {
-      const whereClause = _isAdmin
+      const whereClause = isAdmin
         ? eq(shopFeedback.id, id)
         : and(
             eq(shopFeedback.id, id),
@@ -275,17 +275,17 @@ export class FeedbackService extends BaseService {
   async deleteFeedback(
     id: number,
     userId: string,
-    _isAdmin: boolean = false,
+    isAdmin: boolean = false,
   ): Promise<boolean> {
     try {
-      const whereClause = _isAdmin
+      const whereClause = isAdmin
         ? eq(shopFeedback.id, id)
         : and(
             eq(shopFeedback.id, id),
             eq(shopFeedback.userId, userId),
             eq(shopFeedback.status, "open"),
           );
-      const authorizedFeedbackFilter = _isAdmin
+      const authorizedFeedbackFilter = isAdmin
         ? sql`id = ${id}`
         : sql`id = ${id} AND user_id = ${userId} AND status = 'open'`;
 
@@ -335,14 +335,14 @@ export class FeedbackService extends BaseService {
     }
   }
 
-  async getResponses(feedbackId: number, _isAdmin: boolean = false) {
+  async getResponses(feedbackId: number, isAdmin: boolean = false) {
     try {
       const rows = await this.db
         .select()
         .from(feedbackResponses)
         .leftJoin(users, eq(feedbackResponses.userId, users.id))
         .where(
-          _isAdmin
+          isAdmin
             ? eq(feedbackResponses.feedbackId, feedbackId)
             : and(
                 eq(feedbackResponses.feedbackId, feedbackId),
@@ -364,10 +364,10 @@ export class FeedbackService extends BaseService {
     responseId: number,
     userId: string,
     message: string,
-    _isAdmin: boolean = false,
+    isAdmin: boolean = false,
   ): Promise<FeedbackResponse | null> {
     try {
-      const whereClause = _isAdmin
+      const whereClause = isAdmin
         ? eq(feedbackResponses.id, responseId)
         : and(
             eq(feedbackResponses.id, responseId),
@@ -389,10 +389,10 @@ export class FeedbackService extends BaseService {
   async deleteResponse(
     responseId: number,
     userId: string,
-    _isAdmin: boolean = false,
+    isAdmin: boolean = false,
   ): Promise<boolean> {
     try {
-      const whereClause = _isAdmin
+      const whereClause = isAdmin
         ? eq(feedbackResponses.id, responseId)
         : and(
             eq(feedbackResponses.id, responseId),

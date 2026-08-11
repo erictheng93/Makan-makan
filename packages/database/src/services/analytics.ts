@@ -151,9 +151,7 @@ export interface DashboardData {
 
 export class AnalyticsService extends BaseService {
   // 取得營收分析資料
-  async getRevenueAnalytics(
-    _filters: AnalyticsFilters,
-  ): Promise<RevenueData[]> {
+  async getRevenueAnalytics(filters: AnalyticsFilters): Promise<RevenueData[]> {
     try {
       const {
         restaurantId,
@@ -162,7 +160,7 @@ export class AnalyticsService extends BaseService {
         groupBy = "day",
         includeComparison = false,
         limit = 30,
-      } = _filters;
+      } = filters;
 
       // 建構日期條件
       const conditions = [];
@@ -198,7 +196,7 @@ export class AnalyticsService extends BaseService {
 
       // 如果需要對比資料
       if (includeComparison) {
-        return await this.addComparisonData(revenueData, _filters);
+        return await this.addComparisonData(revenueData, filters);
       }
 
       return revenueData.map((item) => ({
@@ -213,9 +211,9 @@ export class AnalyticsService extends BaseService {
   }
 
   // 取得訂單分析
-  async getOrderAnalytics(_filters: AnalyticsFilters): Promise<OrderAnalytics> {
+  async getOrderAnalytics(filters: AnalyticsFilters): Promise<OrderAnalytics> {
     try {
-      const { restaurantId, dateFrom, dateTo } = _filters;
+      const { restaurantId, dateFrom, dateTo } = filters;
 
       const conditions = [];
       if (restaurantId) {
@@ -302,9 +300,9 @@ export class AnalyticsService extends BaseService {
   }
 
   // 取得菜單分析
-  async getMenuAnalytics(_filters: AnalyticsFilters): Promise<MenuAnalytics> {
+  async getMenuAnalytics(filters: AnalyticsFilters): Promise<MenuAnalytics> {
     try {
-      const { restaurantId, dateFrom, dateTo, limit = 10 } = _filters;
+      const { restaurantId, dateFrom, dateTo, limit = 10 } = filters;
 
       const conditions = [];
       if (restaurantId) {
@@ -402,10 +400,10 @@ export class AnalyticsService extends BaseService {
 
   // 取得顧客分析
   async getCustomerAnalytics(
-    _filters: AnalyticsFilters,
+    filters: AnalyticsFilters,
   ): Promise<CustomerAnalytics> {
     try {
-      const { restaurantId, dateFrom, dateTo, limit = 10 } = _filters;
+      const { restaurantId, dateFrom, dateTo, limit = 10 } = filters;
 
       const conditions = [];
       if (restaurantId) {
@@ -508,9 +506,9 @@ export class AnalyticsService extends BaseService {
   }
 
   // 取得桌子分析
-  async getTableAnalytics(_filters: AnalyticsFilters): Promise<TableAnalytics> {
+  async getTableAnalytics(filters: AnalyticsFilters): Promise<TableAnalytics> {
     try {
-      const { restaurantId, dateFrom, dateTo } = _filters;
+      const { restaurantId, dateFrom, dateTo } = filters;
 
       const conditions = [];
       if (restaurantId) {
@@ -870,7 +868,7 @@ export class AnalyticsService extends BaseService {
   }
 
   // 取得效能分析 (Referenced in API routes)
-  async getPerformanceAnalytics(_filters: AnalyticsFilters): Promise<{
+  async getPerformanceAnalytics(filters: AnalyticsFilters): Promise<{
     orderProcessingTime: number;
     kitchenEfficiency: number;
     tableUtilization: number;
@@ -878,7 +876,7 @@ export class AnalyticsService extends BaseService {
     trends: any[];
   }> {
     try {
-      const { restaurantId, dateFrom, dateTo } = _filters;
+      const { restaurantId, dateFrom, dateTo } = filters;
       const conditions = [];
       if (restaurantId) conditions.push(eq(orders.restaurantId, restaurantId));
       if (dateFrom) conditions.push(gte(orders.createdAt, new Date(dateFrom)));
@@ -889,9 +887,9 @@ export class AnalyticsService extends BaseService {
         dateTo,
       });
       const revenueData = await this.getRevenueAnalytics({
-        ..._filters,
+        ...filters,
         restaurantId,
-        groupBy: _filters.groupBy ?? "day",
+        groupBy: filters.groupBy ?? "day",
       });
 
       return {
@@ -1008,7 +1006,7 @@ export class AnalyticsService extends BaseService {
   }
 
   // 取得詳細效能分析 (Referenced in API routes)
-  async getDetailedPerformanceAnalytics(_filters: AnalyticsFilters): Promise<{
+  async getDetailedPerformanceAnalytics(filters: AnalyticsFilters): Promise<{
     overview: any;
     kitchenMetrics: any;
     serviceMetrics: any;
@@ -1016,13 +1014,13 @@ export class AnalyticsService extends BaseService {
     recommendations: string[];
   }> {
     try {
-      const { restaurantId } = _filters;
+      const { restaurantId } = filters;
       const performanceData = await this.getPerformanceReport(
         restaurantId!,
-        _filters,
+        filters,
       );
-      const orderAnalytics = await this.getOrderAnalytics(_filters);
-      const customerAnalytics = await this.getCustomerAnalytics(_filters);
+      const orderAnalytics = await this.getOrderAnalytics(filters);
+      const customerAnalytics = await this.getCustomerAnalytics(filters);
 
       return {
         overview: {
@@ -1052,7 +1050,7 @@ export class AnalyticsService extends BaseService {
   // 取得店主儀表板資料 (Referenced in API routes)
   async getOwnerDashboard(
     restaurantId: string,
-    _filters: AnalyticsFilters,
+    filters: AnalyticsFilters,
   ): Promise<{
     financialSummary: any;
     operationalMetrics: any;
@@ -1063,15 +1061,15 @@ export class AnalyticsService extends BaseService {
     try {
       const dashboardData = await this.getDashboardData(restaurantId);
       const revenueData = await this.getRevenueAnalytics({
-        ..._filters,
+        ...filters,
         restaurantId,
       });
       const customerAnalytics = await this.getCustomerAnalytics({
-        ..._filters,
+        ...filters,
         restaurantId,
       });
       const tableAnalytics = await this.getTableAnalytics({
-        ..._filters,
+        ...filters,
         restaurantId,
       });
 
@@ -1107,7 +1105,7 @@ export class AnalyticsService extends BaseService {
   }
 
   // 取得財務報告 (Referenced in API routes)
-  async getFinancialReport(_filters: AnalyticsFilters): Promise<{
+  async getFinancialReport(filters: AnalyticsFilters): Promise<{
     summary: any;
     revenueBreakdown: any;
     expenseAnalysis: any;
@@ -1115,8 +1113,8 @@ export class AnalyticsService extends BaseService {
     projections: any[];
   }> {
     try {
-      const revenueData = await this.getRevenueAnalytics(_filters);
-      const menuAnalytics = await this.getMenuAnalytics(_filters);
+      const revenueData = await this.getRevenueAnalytics(filters);
+      const menuAnalytics = await this.getMenuAnalytics(filters);
 
       const totalRevenue = revenueData.reduce(
         (sum, item) => sum + item.revenue,
@@ -1131,13 +1129,13 @@ export class AnalyticsService extends BaseService {
       // Period-over-period growth: build a same-length prior window
       // immediately preceding the current one and compare revenue.
       let growthRate = 0;
-      if (_filters.dateFrom && _filters.dateTo) {
-        const fromMs = new Date(_filters.dateFrom).getTime();
-        const toMs = new Date(_filters.dateTo).getTime();
+      if (filters.dateFrom && filters.dateTo) {
+        const fromMs = new Date(filters.dateFrom).getTime();
+        const toMs = new Date(filters.dateTo).getTime();
         const span = toMs - fromMs;
         if (span > 0) {
           const priorRevenue = await this.getRevenueAnalytics({
-            ..._filters,
+            ...filters,
             dateFrom: new Date(fromMs - span).toISOString(),
             dateTo: new Date(fromMs).toISOString(),
           });

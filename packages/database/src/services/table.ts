@@ -81,7 +81,7 @@ export interface QRCodeOptions {
   size?: "small" | "medium" | "large";
   format?: "png" | "svg" | "pdf";
   includeTableInfo?: boolean;
-  _customData?: any;
+  customData?: any;
 }
 
 export interface TableStats {

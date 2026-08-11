@@ -87,7 +87,7 @@ export const seats = sqliteTable(
 /**
  * 座位關聯定義
  */
-export const seatRelations = relations(seats, ({ one, many: _many }) => ({
+export const seatRelations = relations(seats, ({ one }) => ({
   // 座位所屬的桌子
   table: one(tables, {
     fields: [seats.tableId],
