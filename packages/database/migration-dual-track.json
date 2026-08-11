@@ -97,6 +97,10 @@
     {
       "fresh": "0083_split_bill_settled_by.sql",
       "reason": "Fresh API D1 owns split_bills; the legacy management track does not carry group orders or their split bills, so there is no paired legacy migration."
+    },
+    {
+      "fresh": "0084_customer_auth_identities.sql",
+      "reason": "Fresh API D1 owns the customer authentication domain; the legacy management D1 does not carry customers-domain auth tables, so there is no paired legacy migration."
     }
   ],
   "legacyOnly": [

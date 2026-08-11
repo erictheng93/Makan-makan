@@ -227,6 +227,73 @@ export const customerPhoneVerificationTokens = sqliteTable(
   }),
 );
 
+export const customerAuthIdentities = sqliteTable(
+  "customer_auth_identities",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    customerId: text("customer_id")
+      .notNull()
+      .references(() => customers.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    providerUid: text("provider_uid").notNull(),
+    secretHash: text("secret_hash"),
+    encryptedPayload: text("encrypted_payload"),
+    verifiedAt: integer("verified_at_ms", { mode: "timestamp_ms" }),
+    lastUsedAt: integer("last_used_at_ms", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch('now') * 1000)`),
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch('now') * 1000)`),
+  },
+  (table) => ({
+    providerUidIdx: uniqueIndex("customer_auth_identities_provider_uid_idx").on(
+      table.provider,
+      table.providerUid,
+    ),
+    customerIdx: index("customer_auth_identities_customer_idx").on(
+      table.customerId,
+    ),
+    onePasswordIdx: uniqueIndex("customer_auth_identities_one_password_idx")
+      .on(table.customerId)
+      .where(sql`${table.provider} = 'password'`),
+  }),
+);
+
+export const customerVerificationTokens = sqliteTable(
+  "customer_verification_tokens",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    customerId: text("customer_id").references(() => customers.id, {
+      onDelete: "cascade",
+    }),
+    purpose: text("purpose").notNull(),
+    identifier: text("identifier").notNull(),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: integer("expires_at_ms", { mode: "timestamp_ms" }).notNull(),
+    usedAt: integer("used_at_ms", { mode: "timestamp_ms" }),
+    ipAddress: text("ip_address"),
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
+      .notNull()
+      .default(sql`(unixepoch('now') * 1000)`),
+  },
+  (table) => ({
+    hashIdx: uniqueIndex("customer_verification_tokens_hash_idx").on(
+      table.tokenHash,
+    ),
+    lookupIdx: index("customer_verification_tokens_lookup_idx").on(
+      table.identifier,
+      table.purpose,
+      table.createdAt,
+    ),
+  }),
+);
+
 // ================================================
 // RELATIONS
 // ================================================
@@ -241,6 +308,8 @@ export const customersRelations = relations(customers, ({ one, many }) => ({
   pushSubscriptions: many(customerPushSubscriptions),
   consents: many(customerConsents),
   phoneVerificationTokens: many(customerPhoneVerificationTokens),
+  authIdentities: many(customerAuthIdentities),
+  verificationTokens: many(customerVerificationTokens),
 }));
 
 // ================================================

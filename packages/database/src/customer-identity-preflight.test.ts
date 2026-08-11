@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   createTestDatabase,
+  REAL_D1_SETUP_TIMEOUT_MS,
   type TestDatabase,
 } from "./testing/create-test-database";
 import { runCustomerIdentityPreflight } from "./customer-identity-preflight";
@@ -10,7 +11,7 @@ describe("customer identity migration preflight", () => {
 
   beforeAll(async () => {
     testDb = await createTestDatabase();
-  }, 180_000);
+  }, REAL_D1_SETUP_TIMEOUT_MS);
 
   afterAll(async () => {
     await testDb?.dispose();
@@ -50,5 +51,30 @@ describe("customer identity migration preflight", () => {
         }),
       ]),
     );
+  });
+
+  it("enforces at most one password identity per customer", async () => {
+    await testDb.bindings.DB.prepare(
+      `INSERT INTO customers
+        (id, display_name, created_at_ms, updated_at_ms)
+       VALUES ('customer-a', 'Customer A', 1, 1)`,
+    ).run();
+    await testDb.bindings.DB.prepare(
+      `INSERT INTO customer_auth_identities
+        (id, customer_id, provider, provider_uid, secret_hash,
+         created_at_ms, updated_at_ms)
+       VALUES ('identity-a', 'customer-a', 'password', 'a@example.com',
+         'hash-a', 1, 1)`,
+    ).run();
+
+    await expect(
+      testDb.bindings.DB.prepare(
+        `INSERT INTO customer_auth_identities
+          (id, customer_id, provider, provider_uid, secret_hash,
+           created_at_ms, updated_at_ms)
+         VALUES ('identity-b', 'customer-a', 'password', 'b@example.com',
+           'hash-b', 1, 1)`,
+      ).run(),
+    ).rejects.toThrow();
   });
 });

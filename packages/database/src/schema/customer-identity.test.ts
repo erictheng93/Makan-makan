@@ -1,12 +1,14 @@
 import { getTableConfig } from "drizzle-orm/sqlite-core";
 import { describe, expect, it } from "vitest";
 import {
+  customerAuthIdentities,
   customerConsents,
   customerFavorites,
   customerPhoneVerificationTokens,
   customerPreferences,
   customerPushSubscriptions,
   customerRecentMarkets,
+  customerVerificationTokens,
   customers,
   orders,
   reservations,
@@ -100,6 +102,47 @@ describe("customer identity schema", () => {
         "expires_at_ms",
         "attempts",
       ]),
+    );
+  });
+
+  it("adds customer-scoped authentication identity tables", () => {
+    expect(columnNames(customerAuthIdentities)).toEqual([
+      "id",
+      "customer_id",
+      "provider",
+      "provider_uid",
+      "secret_hash",
+      "encrypted_payload",
+      "verified_at_ms",
+      "last_used_at_ms",
+      "created_at_ms",
+      "updated_at_ms",
+    ]);
+    expect(columnSqlType(customerAuthIdentities, "id")).toBe("text");
+    expect(columnSqlType(customerAuthIdentities, "created_at_ms")).toBe(
+      "integer",
+    );
+    expect(columnSqlType(customerAuthIdentities, "updated_at_ms")).toBe(
+      "integer",
+    );
+
+    expect(columnNames(customerVerificationTokens)).toEqual([
+      "id",
+      "customer_id",
+      "purpose",
+      "identifier",
+      "token_hash",
+      "expires_at_ms",
+      "used_at_ms",
+      "ip_address",
+      "created_at_ms",
+    ]);
+    expect(columnSqlType(customerVerificationTokens, "id")).toBe("text");
+    expect(columnSqlType(customerVerificationTokens, "expires_at_ms")).toBe(
+      "integer",
+    );
+    expect(columnSqlType(customerVerificationTokens, "created_at_ms")).toBe(
+      "integer",
     );
   });
 
