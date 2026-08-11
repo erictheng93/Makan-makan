@@ -5,10 +5,10 @@
         data-testid="market-product-search-title"
         class="text-base font-semibold text-gray-900"
       >
-        搜尋商品、服務與店鋪
+        {{ t("markets.search.title") }}
       </h2>
       <p class="mt-1 text-sm text-gray-500">
-        可輸入商品、服務、店名或攤位號，在這個市場內查找。
+        {{ t("markets.search.subtitle") }}
       </p>
     </div>
 
@@ -19,14 +19,14 @@
           data-testid="market-product-search-input"
           type="search"
           class="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
-          placeholder="搜尋商品、服務、店名或攤位號"
+          :placeholder="t('markets.search.placeholder')"
         />
         <button
           type="submit"
           class="h-10 shrink-0 rounded-lg bg-ios-blue px-4 text-sm font-medium text-white disabled:bg-gray-300"
           :disabled="loading || !canSearch"
         >
-          搜尋
+          {{ t("markets.common.search") }}
         </button>
       </div>
 
@@ -61,7 +61,7 @@
           class="rounded border-gray-300 text-ios-blue focus:ring-ios-blue"
           @change="onFulfillmentFilterChange"
         />
-        只看可外帶
+        {{ t("markets.search.takeawayOnly") }}
       </label>
       <label
         class="inline-flex h-9 items-center gap-2 rounded-lg border border-gray-300 px-3 text-sm text-gray-700"
@@ -73,7 +73,7 @@
           class="rounded border-gray-300 text-ios-blue focus:ring-ios-blue"
           @change="onFulfillmentFilterChange"
         />
-        只看可外送
+        {{ t("markets.search.deliveryOnly") }}
       </label>
       <button
         type="button"
@@ -82,7 +82,9 @@
         :disabled="locating"
         @click="useCurrentLocation"
       >
-        {{ locating ? "定位中..." : "離我最近" }}
+        {{
+          locating ? t("markets.common.locating") : t("markets.common.nearest")
+        }}
       </button>
       <select
         v-if="
@@ -95,7 +97,7 @@
         class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
         @change="searchIfReady"
       >
-        <option value="">全部分類</option>
+        <option value="">{{ t("markets.search.allCategories") }}</option>
         <option
           v-for="category in categoryOptions"
           :key="category"
@@ -114,7 +116,7 @@
         class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
         @change="onServiceTypeChange"
       >
-        <option value="">全部服務</option>
+        <option value="">{{ t("markets.search.allServices") }}</option>
         <option
           v-for="option in serviceTypeOptions"
           :key="option.value"
@@ -130,12 +132,22 @@
         class="h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-700 focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
         @change="searchIfReady"
       >
-        <option value="relevance">相關性</option>
-        <option value="price_asc">價格低到高</option>
-        <option value="price_desc">價格高到低</option>
-        <option value="popular">熱門優先</option>
-        <option value="open_now">營業中優先</option>
-        <option v-if="userLocation" value="distance">離我最近</option>
+        <option value="relevance">
+          {{ t("markets.search.sort.relevance") }}
+        </option>
+        <option value="price_asc">
+          {{ t("markets.search.sort.price_asc") }}
+        </option>
+        <option value="price_desc">
+          {{ t("markets.search.sort.price_desc") }}
+        </option>
+        <option value="popular">{{ t("markets.search.sort.popular") }}</option>
+        <option value="open_now">
+          {{ t("markets.search.sort.open_now") }}
+        </option>
+        <option v-if="userLocation" value="distance">
+          {{ t("markets.search.sort.distance") }}
+        </option>
       </select>
     </form>
 
@@ -145,7 +157,9 @@
       class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2"
     >
       <div class="flex items-center justify-between gap-3">
-        <p class="text-xs font-medium text-gray-500">目前條件</p>
+        <p class="text-xs font-medium text-gray-500">
+          {{ t("markets.search.activeFilters") }}
+        </p>
         <button
           v-if="hasActiveFilters"
           type="button"
@@ -153,7 +167,7 @@
           class="h-8 shrink-0 rounded-lg border border-gray-300 px-3 text-xs font-medium text-gray-700"
           @click="clearFilters"
         >
-          清除條件
+          {{ t("markets.common.clearFilters") }}
         </button>
       </div>
       <div
@@ -168,14 +182,16 @@
           {{ label }}
         </span>
       </div>
-      <p v-else class="mt-1 text-sm text-gray-600">瀏覽此市場所有商品與服務</p>
+      <p v-else class="mt-1 text-sm text-gray-600">
+        {{ t("markets.search.browseAll") }}
+      </p>
     </section>
 
     <div
       v-if="loading && combinedResultCount === 0"
       class="py-8 text-center text-sm text-gray-500"
     >
-      搜尋商品中...
+      {{ t("markets.search.searching") }}
     </div>
     <div
       v-else-if="error && combinedResultCount === 0"
@@ -202,7 +218,7 @@
           class="h-10 rounded-lg border border-ios-blue px-3 text-sm font-medium text-ios-blue"
           @click="browseFallback('vendor')"
         >
-          查看店鋪列表
+          {{ t("markets.search.viewVendorList") }}
         </button>
         <button
           v-if="resultKind !== 'service'"
@@ -211,13 +227,18 @@
           class="h-10 rounded-lg border border-emerald-500 px-3 text-sm font-medium text-emerald-700"
           @click="browseFallback('service')"
         >
-          查看可用服務
+          {{ t("markets.search.viewAvailableServices") }}
         </button>
       </div>
     </div>
     <div v-else-if="combinedResultCount > 0" class="space-y-2">
       <p class="text-sm text-gray-500">
-        顯示 {{ combinedResultCount }} / {{ combinedTotal }} 項店鋪、商品或服務
+        {{
+          tWithParams("markets.search.resultCount", {
+            shown: combinedResultCount,
+            total: combinedTotal,
+          })
+        }}
       </p>
       <article
         v-for="vendor in vendorResults"
@@ -233,16 +254,21 @@
               <span
                 class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
               >
-                店鋪
+                {{ t("markets.search.vendorTag") }}
               </span>
             </div>
             <p class="mt-1 truncate text-sm text-gray-500">
-              {{ vendor.district || "未標示區域" }}
+              {{ vendor.district || t("markets.common.unzoned") }}
               <span
                 v-if="vendor.marketVendor?.stallNumber"
                 class="text-gray-400"
               >
-                · 攤位 {{ vendor.marketVendor.stallNumber }}
+                ·
+                {{
+                  tWithParams("markets.common.stallWithNumber", {
+                    number: vendor.marketVendor.stallNumber,
+                  })
+                }}
               </span>
               <span v-if="distanceLabel(vendor)" class="text-gray-400">
                 · {{ distanceLabel(vendor) }}
@@ -257,7 +283,11 @@
                 : 'bg-gray-100 text-gray-500'
             "
           >
-            {{ vendor.isOpen ? "營業中" : "未營業" }}
+            {{
+              vendor.isOpen
+                ? t("markets.common.open")
+                : t("markets.common.closed")
+            }}
           </span>
         </div>
         <div
@@ -268,13 +298,13 @@
             v-if="vendor.supportsTakeaway"
             class="rounded bg-ios-bg px-2 py-0.5 text-xs text-ios-secondary"
           >
-            可外帶
+            {{ t("markets.common.takeawayAvailable") }}
           </span>
           <span
             v-if="vendor.supportsDelivery"
             class="rounded bg-ios-bg px-2 py-0.5 text-xs text-ios-secondary"
           >
-            可外送
+            {{ t("markets.common.deliveryAvailable") }}
           </span>
         </div>
         <div
@@ -291,8 +321,10 @@
           >
             {{
               (vendor.availableMenuItemCount ?? 0) > 0
-                ? `菜單/商品 ${vendor.availableMenuItemCount} 項`
-                : "尚無菜單/商品"
+                ? tWithParams("markets.common.menuItemCount", {
+                    count: vendor.availableMenuItemCount,
+                  })
+                : t("markets.common.noMenuItems")
             }}
           </span>
           <span
@@ -305,8 +337,10 @@
           >
             {{
               (vendor.publicServiceItemCount ?? 0) > 0
-                ? `服務 ${vendor.publicServiceItemCount} 項`
-                : "尚無服務"
+                ? tWithParams("markets.common.serviceCount", {
+                    count: vendor.publicServiceItemCount,
+                  })
+                : t("markets.common.noServices")
             }}
           </span>
         </div>
@@ -318,7 +352,7 @@
             :disabled="(vendor.availableMenuItemCount ?? 0) <= 0"
             @click="$emit('selectVendor', vendor)"
           >
-            查看菜單/商品
+            {{ t("markets.common.viewMenu") }}
           </button>
           <button
             type="button"
@@ -327,7 +361,7 @@
             :disabled="(vendor.publicServiceItemCount ?? 0) <= 0"
             @click="$emit('selectVendorServices', vendor)"
           >
-            查看服務
+            {{ t("markets.common.viewServices") }}
           </button>
         </div>
       </article>
@@ -352,7 +386,7 @@
               <span
                 class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
               >
-                服務
+                {{ t("markets.search.serviceTag") }}
               </span>
             </div>
             <p class="mt-1 truncate text-sm text-gray-500">
@@ -361,7 +395,12 @@
                 v-if="service.marketVendor?.stallNumber"
                 class="text-gray-400"
               >
-                · 攤位 {{ service.marketVendor.stallNumber }}
+                ·
+                {{
+                  tWithParams("markets.common.stallWithNumber", {
+                    number: service.marketVendor.stallNumber,
+                  })
+                }}
               </span>
               <span v-if="distanceLabel(service)" class="text-gray-400">
                 · {{ distanceLabel(service) }}
@@ -392,7 +431,11 @@
         </div>
         <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
           <p class="text-xs text-gray-500">
-            {{ service.isOpen ? "目前營業中" : "目前未營業" }}
+            {{
+              service.isOpen
+                ? t("markets.search.openNow")
+                : t("markets.search.closedNow")
+            }}
           </p>
           <div class="flex flex-wrap justify-end gap-2">
             <button
@@ -402,7 +445,7 @@
               class="h-9 rounded-lg border border-emerald-500 px-3 text-sm font-medium text-emerald-700"
               @click="openServiceBooking(service)"
             >
-              直接預約
+              {{ t("markets.search.bookDirect") }}
             </button>
             <a
               v-else-if="safeExternalHref(service.bookingUrl)"
@@ -412,7 +455,7 @@
               data-testid="service-result-booking-url"
               class="inline-flex h-9 items-center rounded-lg border border-emerald-500 px-3 text-sm font-medium text-emerald-700"
             >
-              開啟預約
+              {{ t("markets.search.openBooking") }}
             </a>
             <button
               type="button"
@@ -420,7 +463,7 @@
               class="h-9 rounded-lg border border-ios-blue px-3 text-sm font-medium text-ios-blue"
               @click="$emit('selectService', service)"
             >
-              查看服務
+              {{ t("markets.common.viewServices") }}
             </button>
           </div>
         </div>
@@ -439,7 +482,9 @@
         :disabled="loading"
         @click="loadMore"
       >
-        {{ loading ? "載入中..." : "載入更多" }}
+        {{
+          loading ? t("markets.common.loading") : t("markets.common.loadMore")
+        }}
       </button>
     </div>
   </section>
@@ -450,6 +495,7 @@ import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import DishResultCard from "@/components/discovery/DishResultCard.vue";
 import { useCurrency } from "@/composables/useCurrency";
+import { useI18n } from "@/composables/useI18n";
 import {
   discoveryApi,
   type DishSearchResult,
@@ -515,6 +561,7 @@ const emit = defineEmits<{
 }>();
 
 const { formatPrice } = useCurrency();
+const { t, tWithParams } = useI18n();
 const router = useRouter();
 const query = ref(props.initialQuery);
 const takeawayOnly = ref(props.initialTakeaway);
@@ -574,43 +621,35 @@ type MarketProductSort =
   | "popular"
   | "open_now"
   | "distance";
-const resultKindOptions: Array<{ value: ResultKind; label: string }> = [
-  { value: "all", label: "全部" },
-  { value: "menu_item", label: "餐點" },
-  { value: "product", label: "商品" },
-  { value: "service", label: "服務" },
-  { value: "vendor", label: "店鋪" },
+const RESULT_KINDS: ResultKind[] = [
+  "all",
+  "menu_item",
+  "product",
+  "service",
+  "vendor",
 ];
-const resultKindLabels: Record<ResultKind, string> = {
-  all: "全部",
-  menu_item: "餐點",
-  product: "商品",
-  service: "服務",
-  vendor: "店鋪",
-};
-const serviceTypeDefinitions: Array<{
-  value: ServiceTypeFilter;
-  label: string;
-}> = [
-  { value: "general", label: "一般服務" },
-  { value: "booking", label: "預約" },
-  { value: "pickup", label: "自取" },
-  { value: "delivery", label: "外送" },
-  { value: "consultation", label: "諮詢" },
-  { value: "rental", label: "租借" },
-  { value: "activity", label: "活動" },
+const SERVICE_TYPES: ServiceTypeFilter[] = [
+  "general",
+  "booking",
+  "pickup",
+  "delivery",
+  "consultation",
+  "rental",
+  "activity",
 ];
-const serviceTypeLabels = new Map(
-  serviceTypeDefinitions.map((option) => [option.value, option.label]),
+const resultKindOptions = computed(() =>
+  RESULT_KINDS.map((value) => ({
+    value,
+    label: t(`markets.search.resultKind.${value}`),
+  })),
 );
-const sortLabels: Record<MarketProductSort, string> = {
-  relevance: "相關性",
-  price_asc: "價格低到高",
-  price_desc: "價格高到低",
-  popular: "熱門優先",
-  open_now: "營業中優先",
-  distance: "離我最近",
-};
+const resultKindLabel = (kind: ResultKind) =>
+  t(`markets.search.resultKind.${kind}`);
+const serviceTypeLabel = (type: ServiceTypeFilter | string) =>
+  SERVICE_TYPES.includes(type as ServiceTypeFilter)
+    ? t(`markets.serviceType.${type}`)
+    : String(type);
+const sortLabel = (sort: MarketProductSort) => t(`markets.search.sort.${sort}`);
 
 const combinedResultCount = computed(
   () =>
@@ -633,7 +672,7 @@ const categoryOptions = computed(() =>
 const serviceTypeOptions = computed(() =>
   loadedServiceTypes.value.map((facet) => ({
     value: facet.serviceType,
-    label: serviceTypeLabels.get(facet.serviceType) ?? facet.serviceType,
+    label: serviceTypeLabel(facet.serviceType),
     count: facet.count,
   })),
 );
@@ -662,20 +701,40 @@ const activeFilterLabels = computed(() => {
   const trimmed = query.value.trim();
 
   if (resultKind.value !== "all") {
-    labels.push(`類型：${resultKindLabels[resultKind.value]}`);
+    labels.push(
+      tWithParams("markets.search.filterKind", {
+        value: resultKindLabel(resultKind.value),
+      }),
+    );
   }
-  if (trimmed.length > 0) labels.push(`關鍵字：${trimmed}`);
+  if (trimmed.length > 0) {
+    labels.push(
+      tWithParams("markets.search.filterKeyword", { value: trimmed }),
+    );
+  }
   if (selectedCategory.value.length > 0) {
-    labels.push(`分類：${selectedCategory.value}`);
+    labels.push(
+      tWithParams("markets.search.filterCategory", {
+        value: selectedCategory.value,
+      }),
+    );
   }
   const serviceType = selectedServiceType.value;
   if (serviceType !== "") {
-    labels.push(`服務：${serviceTypeLabels.get(serviceType) ?? serviceType}`);
+    labels.push(
+      tWithParams("markets.search.filterService", {
+        value: serviceTypeLabel(serviceType),
+      }),
+    );
   }
-  if (takeawayOnly.value) labels.push("只看可外帶");
-  if (deliveryOnly.value) labels.push("只看可外送");
+  if (takeawayOnly.value) labels.push(t("markets.search.takeawayOnly"));
+  if (deliveryOnly.value) labels.push(t("markets.search.deliveryOnly"));
   if (resultKind.value !== "vendor" && sortBy.value !== "relevance") {
-    labels.push(`排序：${sortLabels[sortBy.value]}`);
+    labels.push(
+      tWithParams("markets.search.filterSort", {
+        value: sortLabel(sortBy.value),
+      }),
+    );
   }
 
   return labels;
@@ -686,21 +745,21 @@ const hasSyncedMarketCatalog = computed(
 );
 const emptyStateTitle = computed(() => {
   if (hasActiveFilters.value) {
-    return "沒有符合目前條件的店鋪、商品或服務";
+    return t("markets.search.emptyFiltered");
   }
   if (hasSyncedMarketCatalog.value) {
-    return "這個市場的商品與服務正在同步搜尋索引";
+    return t("markets.search.emptySyncing");
   }
-  return "這個市場尚未上架可搜尋的店鋪、商品或服務";
+  return t("markets.search.emptyNoCatalog");
 });
 const emptyStateDescription = computed(() => {
   if (hasActiveFilters.value) {
-    return "可清除條件或改用更寬的關鍵字。";
+    return t("markets.search.emptyFilteredDesc");
   }
   if (hasSyncedMarketCatalog.value) {
-    return "可先改用店名或攤位號搜尋，或稍後再試。";
+    return t("markets.search.emptySyncingDesc");
   }
-  return "店鋪補齊菜單或公開服務後，會在這裡顯示。";
+  return t("markets.search.emptyNoCatalogDesc");
 });
 
 async function submitSearch() {
@@ -803,8 +862,9 @@ async function fetchResults({ append }: { append: boolean }) {
       "scope" in serviceResponse ? serviceResponse.scope?.market : null;
     marketSearchScope.value = responseMarketScope ?? serviceMarketScope ?? null;
   } catch (searchError) {
-    error.value =
-      searchError instanceof Error ? searchError.message : "搜尋商品失敗";
+    // The server detail no longer reaches the page, so keep it in the console.
+    console.error("Market product search failed:", searchError);
+    error.value = t("markets.search.searchFailed");
     if (append) {
       page.value -= 1;
     } else {

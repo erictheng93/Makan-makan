@@ -1,3 +1,4 @@
+import { ref } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import MarketCheckoutTrackingView from "@/views/MarketCheckoutTrackingView.vue";
@@ -11,6 +12,16 @@ const recoverMarketCheckoutGuestToken = vi.hoisted(() => vi.fn());
 const windowOpen = vi.hoisted(() => vi.fn());
 
 vi.stubGlobal("open", windowOpen);
+
+vi.mock("@/composables/useI18n", () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    tWithParams: (key: string, params: Record<string, unknown>) =>
+      `${key}:${Object.values(params).join(",")}`,
+    currentLanguage: ref("zh-TW"),
+    hasTranslation: (key: string) => !key.endsWith(".undefined"),
+  }),
+}));
 
 vi.mock("vue-router", () => ({
   useRouter: () => ({
@@ -94,8 +105,8 @@ describe("MarketCheckoutTrackingView", () => {
     expect(getMarketCheckout).toHaveBeenCalledWith("checkout-1");
     const summary = wrapper.get('[data-testid="market-checkout-summary"]');
     expect(summary.text()).toContain("逢甲夜市");
-    expect(summary.text()).toContain("已送出");
-    expect(summary.text()).toContain("2 攤");
+    expect(summary.text()).toContain("markets.checkout.statusSubmitted");
+    expect(summary.text()).toContain("markets.common.stallCount:2");
     expect(summary.text()).toContain("NT$240");
 
     const childOrders = wrapper.findAll(
@@ -104,11 +115,19 @@ describe("MarketCheckoutTrackingView", () => {
     expect(childOrders).toHaveLength(2);
     expect(childOrders[0].text()).toContain("雞排攤");
     expect(childOrders[0].text()).toContain("A001");
-    expect(childOrders[0].text()).toContain("製作中");
-    expect(childOrders[0].text()).toContain("待付款");
+    expect(childOrders[0].text()).toContain(
+      "markets.checkout.orderStatus.preparing",
+    );
+    expect(childOrders[0].text()).toContain(
+      "markets.checkout.paymentStatus.pending",
+    );
     expect(childOrders[0].text()).toContain("NT$160");
-    expect(childOrders[1].text()).toContain("可取餐");
-    expect(childOrders[1].text()).toContain("已付款");
+    expect(childOrders[1].text()).toContain(
+      "markets.checkout.orderStatus.ready",
+    );
+    expect(childOrders[1].text()).toContain(
+      "markets.checkout.paymentStatus.paid",
+    );
     expect(
       localStorage.getItem("makanmakan_recent_market_checkouts"),
     ).toContain('"paymentStatus":"pending"');
@@ -211,7 +230,7 @@ describe("MarketCheckoutTrackingView", () => {
     expect(routerPush).not.toHaveBeenCalled();
     expect(
       wrapper.get('[data-testid="market-checkout-child-access-error"]').text(),
-    ).toContain("無法開啟攤位訂單");
+    ).toContain("markets.checkout.childOrderAccessFailed");
   });
 
   it("recovers a missing child order guest token before opening the order", async () => {
@@ -389,9 +408,13 @@ describe("MarketCheckoutTrackingView", () => {
     const paymentSummary = wrapper.get(
       '[data-testid="market-checkout-payment-summary"]',
     );
-    expect(paymentSummary.text()).toContain("已完成聯合付款");
+    expect(paymentSummary.text()).toContain(
+      "markets.checkout.marketPaymentStatus.paid",
+    );
     expect(paymentSummary.text()).toContain("NT$240");
-    expect(paymentSummary.text()).toContain("已完成 2 / 2 筆攤位付款");
+    expect(paymentSummary.text()).toContain(
+      "markets.checkout.paymentProgress:2,2",
+    );
     expect(
       localStorage.getItem("makanmakan_recent_market_checkouts"),
     ).toContain('"paymentStatus":"paid"');
@@ -538,7 +561,7 @@ describe("MarketCheckoutTrackingView", () => {
 
     expect(
       wrapper.get('[data-testid="market-checkout-voucher-error"]').text(),
-    ).toContain("最低消費");
+    ).toContain("markets.checkout.voucherError.VOUCHER_MIN_ORDER_NOT_MET");
   });
 
   it("redirects users when a provider payment requires an external action", async () => {
@@ -651,7 +674,7 @@ describe("MarketCheckoutTrackingView", () => {
     );
     expect(
       wrapper.get('[data-testid="market-checkout-payment-action"]').text(),
-    ).toContain("正在前往付款頁");
+    ).toContain("markets.checkout.payRedirecting");
   });
 
   it.each([
@@ -660,7 +683,7 @@ describe("MarketCheckoutTrackingView", () => {
         type: "client_secret",
         clientSecret: "pi_secret_market_1",
       },
-      expectedMessage: "付款已建立，等待金流元件完成確認。",
+      expectedMessage: "markets.checkout.payAwaitingElement",
     },
     {
       nextAction: {
@@ -670,7 +693,7 @@ describe("MarketCheckoutTrackingView", () => {
           publishableKey: "pk_test_market",
         },
       },
-      expectedMessage: "付款已建立，等待金流 SDK 完成確認。",
+      expectedMessage: "markets.checkout.payAwaitingSdk",
     },
   ])(
     "keeps provider $nextAction.type payments pending without redirecting",
@@ -776,7 +799,7 @@ describe("MarketCheckoutTrackingView", () => {
       ).toContain(expectedMessage);
       expect(
         wrapper.get('[data-testid="market-checkout-payment-summary"]').text(),
-      ).toContain("付款待處理");
+      ).toContain("markets.checkout.marketPaymentStatus.pending");
       expect(
         localStorage.getItem("makanmakan_recent_market_checkouts"),
       ).toContain('"paymentStatus":"pending"');
@@ -990,9 +1013,13 @@ describe("MarketCheckoutTrackingView", () => {
     const paymentSummary = returnedWrapper.get(
       '[data-testid="market-checkout-payment-summary"]',
     );
-    expect(paymentSummary.text()).toContain("已完成聯合付款");
+    expect(paymentSummary.text()).toContain(
+      "markets.checkout.marketPaymentStatus.paid",
+    );
     expect(paymentSummary.text()).toContain("NT$240 / NT$240");
-    expect(paymentSummary.text()).toContain("已完成 2 / 2 筆攤位付款");
+    expect(paymentSummary.text()).toContain(
+      "markets.checkout.paymentProgress:2,2",
+    );
     expect(
       returnedWrapper.find('[data-testid="market-checkout-pay"]').exists(),
     ).toBe(false);
@@ -1117,16 +1144,18 @@ describe("MarketCheckoutTrackingView", () => {
     const paymentSummary = wrapper.get(
       '[data-testid="market-checkout-payment-summary"]',
     );
-    expect(paymentSummary.text()).toContain("部分付款完成");
+    expect(paymentSummary.text()).toContain(
+      "markets.checkout.marketPaymentStatus.partial_paid",
+    );
     expect(paymentSummary.text()).toContain("NT$160 / NT$240");
     expect(
       wrapper.get('[data-testid="market-checkout-payment-failures"]').text(),
-    ).toContain("甜點攤：Gateway declined");
+    ).toContain("markets.checkout.childPaymentFailure:甜點攤,Gateway declined");
     expect(
       wrapper.get('[data-testid="market-checkout-payment-summary"]').classes(),
     ).toContain("bg-amber-50");
     expect(wrapper.get('[data-testid="market-checkout-pay"]').text()).toContain(
-      "重試未完成付款",
+      "markets.checkout.payRetryUnpaid",
     );
 
     await wrapper.get('[data-testid="market-checkout-pay"]').trigger("click");
@@ -1190,13 +1219,15 @@ describe("MarketCheckoutTrackingView", () => {
     const paymentSummary = wrapper.get(
       '[data-testid="market-checkout-payment-summary"]',
     );
-    expect(paymentSummary.text()).toContain("付款失敗");
+    expect(paymentSummary.text()).toContain(
+      "markets.checkout.marketPaymentStatus.failed",
+    );
     expect(paymentSummary.classes()).toContain("bg-red-50");
     expect(
       wrapper.get('[data-testid="market-checkout-payment-retry-hint"]').text(),
-    ).toContain("重新付款");
+    ).toContain("markets.checkout.paymentRetryHint");
     expect(wrapper.get('[data-testid="market-checkout-pay"]').text()).toContain(
-      "重新付款",
+      "markets.checkout.payAgain",
     );
     expect(
       localStorage.getItem("makanmakan_recent_market_checkouts"),
@@ -1212,9 +1243,15 @@ describe("MarketCheckoutTrackingView", () => {
     const wrapper = mountView();
     await flushPromises();
 
+    // The server's own words no longer reach the page; the reader gets the
+    // translated failure and the detail goes to the console.
     expect(
       wrapper.get('[data-testid="market-checkout-error"]').text(),
-    ).toContain("Not found");
+    ).toContain("markets.checkout.loadFailed");
+    expect(consoleError).toHaveBeenCalledWith(
+      "Failed to load market checkout:",
+      expect.objectContaining({ message: "Not found" }),
+    );
     consoleError.mockRestore();
   });
 });

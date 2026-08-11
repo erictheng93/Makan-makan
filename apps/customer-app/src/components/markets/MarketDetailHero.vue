@@ -35,7 +35,7 @@
         <span
           class="rounded-full bg-ios-blue/10 px-3 py-1 text-sm font-medium text-ios-blue"
         >
-          {{ vendorCount }} 攤
+          {{ tWithParams("markets.common.stallCount", { count: vendorCount }) }}
         </span>
       </div>
       <p v-if="market.description" class="text-sm leading-6 text-gray-700">
@@ -55,13 +55,13 @@
       <div
         v-if="galleryImages.length"
         class="grid grid-cols-3 gap-2"
-        aria-label="市場圖片"
+        :aria-label="t('markets.hero.gallery')"
       >
         <img
           v-for="imageUrl in galleryImages"
           :key="imageUrl"
           :src="imageUrl"
-          :alt="`${market.name} 圖片`"
+          :alt="tWithParams('markets.hero.galleryAlt', { name: market.name })"
           class="aspect-square rounded-lg object-cover"
           loading="lazy"
           data-testid="market-gallery-image"
@@ -69,7 +69,9 @@
       </div>
 
       <section v-if="openingHoursRows.length" class="rounded-xl bg-gray-50 p-3">
-        <h2 class="text-sm font-semibold text-gray-900">營業時間</h2>
+        <h2 class="text-sm font-semibold text-gray-900">
+          {{ t("markets.hero.openingHours") }}
+        </h2>
         <dl class="mt-2 grid grid-cols-1 gap-1 text-sm text-gray-600">
           <div
             v-for="row in openingHoursRows"
@@ -88,22 +90,15 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { MarketDetail } from "@/services/marketsApi";
-import { marketTypeLabel } from "@/utils/marketTypes";
+import { marketTypeLabelKey } from "@/utils/marketTypes";
+import { useI18n } from "@/composables/useI18n";
 
 const props = defineProps<{
   market: MarketDetail;
   vendorCount: number;
 }>();
 
-const weekdayLabels: Record<string, string> = {
-  monday: "週一",
-  tuesday: "週二",
-  wednesday: "週三",
-  thursday: "週四",
-  friday: "週五",
-  saturday: "週六",
-  sunday: "週日",
-};
+const { t, tWithParams } = useI18n();
 
 const weekdayOrder = [
   "monday",
@@ -119,7 +114,7 @@ const galleryImages = computed(() =>
   (props.market.imageUrls ?? []).filter(Boolean).slice(0, 6),
 );
 
-const typeLabel = computed(() => marketTypeLabel(props.market.type));
+const typeLabel = computed(() => t(marketTypeLabelKey(props.market.type)));
 
 const openingHoursRows = computed(() => {
   const hours = props.market.openingHours;
@@ -131,8 +126,10 @@ const openingHoursRows = computed(() => {
       const value = hours[key];
       return {
         key,
-        label: weekdayLabels[key],
-        value: value.closed ? "休息" : `${value.open}-${value.close}`,
+        label: t(`markets.weekday.long.${key}`),
+        value: value.closed
+          ? t("markets.common.closedShort")
+          : `${value.open}-${value.close}`,
       };
     });
 });

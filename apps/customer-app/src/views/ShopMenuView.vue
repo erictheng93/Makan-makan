@@ -248,7 +248,7 @@
                   :data-testid="`shop-market-type-${membership.market.slug}`"
                   class="ml-1 text-xs text-ios-blue/70"
                 >
-                  {{ marketTypeLabel(membership.market.type) }}
+                  {{ t(marketTypeLabelKey(membership.market.type)) }}
                 </span>
                 <span
                   v-if="membership.stallNumber"
@@ -640,7 +640,7 @@ import {
   serviceItemElementId,
   shouldOpenServicesSection,
 } from "@/utils/shopMenuDeepLink";
-import { marketTypeLabel } from "@/utils/marketTypes";
+import { marketTypeLabelKey } from "@/utils/marketTypes";
 import { safeExternalHref } from "@/utils/safeExternalHref";
 import {
   getLocalizedMenuName,

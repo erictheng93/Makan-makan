@@ -69,15 +69,25 @@
             <span
               class="rounded-full bg-ios-blue/10 px-2.5 py-1 font-medium text-ios-blue"
             >
-              商品 {{ catalogCoverage.searchableProductCount }}
+              {{
+                tWithParams("markets.card.productCount", {
+                  count: catalogCoverage.searchableProductCount,
+                })
+              }}
             </span>
             <span
               class="rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700"
             >
-              服務 {{ catalogCoverage.publicServiceCount }}
+              {{
+                tWithParams("markets.card.serviceCount", {
+                  count: catalogCoverage.publicServiceCount,
+                })
+              }}
             </span>
           </template>
-          <span v-else class="text-gray-500"> 店鋪補齊後可搜尋商品與服務 </span>
+          <span v-else class="text-gray-500">
+            {{ t("markets.card.catalogPending") }}
+          </span>
         </div>
         <div
           v-if="publicReadinessLabel"
@@ -105,7 +115,9 @@
           >
             {{ exploreStatusLabel }}
           </span>
-          <span class="text-xs text-gray-400">查看市場</span>
+          <span class="text-xs text-gray-400">{{
+            t("markets.card.viewMarket")
+          }}</span>
         </div>
       </div>
     </button>
@@ -115,7 +127,8 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { MarketListItem } from "@/services/marketsApi";
-import { marketTypeLabel } from "@/utils/marketTypes";
+import { marketTypeLabelKey } from "@/utils/marketTypes";
+import { useI18n } from "@/composables/useI18n";
 
 const props = defineProps<{
   market: MarketListItem & { distanceKm?: number };
@@ -125,12 +138,20 @@ defineEmits<{
   select: [market: MarketListItem];
 }>();
 
-const vendorLabel = computed(() => `${props.market.vendorCount ?? 0} 攤`);
-const typeLabel = computed(() => marketTypeLabel(props.market.type));
+const { t, tWithParams } = useI18n();
+
+const vendorLabel = computed(() =>
+  tWithParams("markets.common.stallCount", {
+    count: props.market.vendorCount ?? 0,
+  }),
+);
+const typeLabel = computed(() => t(marketTypeLabelKey(props.market.type)));
 const distanceLabel = computed(() =>
   props.market.distanceKm == null
     ? ""
-    : `離你 ${props.market.distanceKm.toFixed(1)} km`,
+    : tWithParams("markets.card.distance", {
+        km: props.market.distanceKm.toFixed(1),
+      }),
 );
 const heroImageUrl = computed(
   () =>
@@ -149,10 +170,15 @@ const publicReadinessLabel = computed(() => {
   const readiness = props.market.publicReadiness;
   if (!readiness || readiness.ready) return "";
 
-  return `資料補齊中 ${readiness.completedCount}/${readiness.totalCount}`;
+  return tWithParams("markets.card.readiness", {
+    done: readiness.completedCount,
+    total: readiness.totalCount,
+  });
 });
 const exploreStatusLabel = computed(() =>
-  hasSearchableCatalog.value ? "進入市場搜尋" : "資料補齊中",
+  hasSearchableCatalog.value
+    ? t("markets.card.enterSearch")
+    : t("markets.common.dataPending"),
 );
 
 const weekdayKeys = [
@@ -190,15 +216,17 @@ const isOpenToday = computed(() => {
 const todayStatusLabel = computed(() => {
   const hours = todayHours.value;
   if (!hours) return "";
-  if (hours.closed) return "今日休息";
-  return isOpenToday.value ? "營業中" : "未營業";
+  if (hours.closed) return t("markets.common.closedToday");
+  return isOpenToday.value
+    ? t("markets.common.open")
+    : t("markets.common.closed");
 });
 
 const todayHoursLabel = computed(() => {
   const hours = todayHours.value;
   if (!hours || hours.closed) return "";
   return isOpenToday.value
-    ? `至 ${hours.close}`
+    ? tWithParams("markets.card.until", { time: hours.close })
     : `${hours.open}-${hours.close}`;
 });
 </script>

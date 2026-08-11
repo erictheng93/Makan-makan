@@ -495,7 +495,7 @@ describe("MarketDetailView", () => {
       "fengjia",
     );
     expect(wrapper.get('[data-testid="market-favorite-toggle"]').text()).toBe(
-      "已追蹤",
+      "markets.detail.following",
     );
 
     await wrapper
@@ -504,7 +504,7 @@ describe("MarketDetailView", () => {
 
     expect(localStorage.getItem("makanmakan_favorite_markets")).toBe("[]");
     expect(wrapper.get('[data-testid="market-favorite-toggle"]').text()).toBe(
-      "追蹤",
+      "markets.detail.follow",
     );
   });
 
@@ -593,9 +593,9 @@ describe("MarketDetailView", () => {
     const wrapper = mountView();
 
     const summary = wrapper.get('[data-testid="market-cart-summary"]');
-    expect(summary.text()).toContain("市場購物籃");
-    expect(summary.text()).toContain("1 個攤位");
-    expect(summary.text()).toContain("2 項");
+    expect(summary.text()).toContain("markets.detail.cartTitle");
+    expect(summary.text()).toContain("markets.detail.cartSummary:1,");
+    expect(summary.text()).toContain("markets.detail.vendorItemCount:2");
     expect(summary.text()).toContain("章魚燒");
     expect(summary.text()).toContain("NT$160");
   });
@@ -721,7 +721,7 @@ describe("MarketDetailView", () => {
         },
       });
     });
-    expect(toastSuccess).toHaveBeenCalledWith("市場訂單已送出");
+    expect(toastSuccess).toHaveBeenCalledWith("markets.detail.checkoutSuccess");
     expect(cartStore.cartForMarket("fengjia")).toBeNull();
   });
 
@@ -809,7 +809,7 @@ describe("MarketDetailView", () => {
     ).toContain("配件");
     expect(
       wrapper.get('[data-testid="market-service-facet-pickup"]').text(),
-    ).toContain("自取");
+    ).toContain("markets.serviceType.pickup");
 
     await wrapper
       .get('[data-testid="market-dish-facet-炸物"]')
@@ -880,8 +880,8 @@ describe("MarketDetailView", () => {
     const notice = wrapper.get(
       '[data-testid="market-public-readiness-notice"]',
     );
-    expect(notice.text()).toContain("市場資料補齊中");
-    expect(notice.text()).toContain("店鋪、商品或服務資料尚未完整公開");
+    expect(notice.text()).toContain("markets.detail.readinessTitle");
+    expect(notice.text()).toContain("markets.detail.readinessDesc");
     expect(notice.text()).not.toContain("openingHours");
     expect(notice.text()).not.toContain("products");
   });
@@ -912,9 +912,9 @@ describe("MarketDetailView", () => {
     const wrapper = mountView();
 
     const notice = wrapper.get('[data-testid="market-catalog-syncing-notice"]');
-    expect(notice.text()).toContain("商品與服務同步中");
-    expect(notice.text()).toContain("4 項商品");
-    expect(notice.text()).toContain("2 項服務");
+    expect(notice.text()).toContain("markets.detail.syncingTitle");
+    expect(notice.text()).toContain("markets.detail.coverageProducts:4");
+    expect(notice.text()).toContain("markets.detail.coverageServices:2");
   });
 
   it("preserves directory return context while syncing market search state", async () => {

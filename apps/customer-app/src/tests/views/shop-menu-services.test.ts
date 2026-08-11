@@ -465,7 +465,7 @@ describe("ShopMenuView service items", () => {
     expect(marketContext.text()).toContain("精明街區");
     expect(
       wrapper.get('[data-testid="shop-market-type-jingming"]').text(),
-    ).toBe("商圈");
+    ).toBe("markets.type.commercial_district");
     expect(marketContext.text()).toContain("B-02");
   });
 

@@ -6,7 +6,9 @@
   >
     <div class="flex items-start justify-between gap-3">
       <div>
-        <h2 class="text-base font-semibold text-gray-900">市場位置</h2>
+        <h2 class="text-base font-semibold text-gray-900">
+          {{ t("markets.map.title") }}
+        </h2>
         <p
           data-testid="market-location-address"
           class="mt-1 text-sm leading-5 text-gray-500"
@@ -21,7 +23,7 @@
         rel="noopener noreferrer"
         class="shrink-0 rounded-lg bg-ios-blue px-3 py-2 text-sm font-semibold text-white"
       >
-        導航
+        {{ t("markets.map.navigate") }}
       </a>
     </div>
 
@@ -29,18 +31,22 @@
       ref="mapContainer"
       data-testid="market-location-map-canvas"
       class="h-72 overflow-hidden rounded-lg border border-gray-200 bg-gray-100"
-      aria-label="市場外部位置地圖"
+      :aria-label="t('markets.map.canvasLabel')"
     ></div>
     <p v-if="mapLoadError" class="text-sm text-gray-500">
-      地圖暫時無法載入，仍可使用導航開啟外部地圖。
+      {{ t("markets.map.loadError") }}
     </p>
 
     <div class="flex flex-wrap gap-2 text-xs text-gray-500">
       <span class="rounded bg-gray-50 px-2 py-1">
-        {{ plottedVendorCount }} 個店家座標
+        {{
+          tWithParams("markets.map.vendorCoords", {
+            count: plottedVendorCount,
+          })
+        }}
       </span>
       <span v-if="market.boundaryGeojson" class="rounded bg-gray-50 px-2 py-1">
-        已標示市場範圍
+        {{ t("markets.map.boundaryMarked") }}
       </span>
     </div>
   </section>
@@ -61,6 +67,7 @@ import type {
   MarketVendor,
 } from "@/services/marketsApi";
 import { loadMarketMapRuntime } from "./mapRuntime";
+import { useI18n } from "@/composables/useI18n";
 
 const PRODUCTION_PM_TILES_URL =
   "https://pub-2c3683e1158d4d579317f24fc66a34b3.r2.dev/taiwan.pmtiles";
@@ -74,6 +81,8 @@ const props = defineProps<{
   market: MarketDetail;
   vendors: MarketVendor[];
 }>();
+
+const { t, tWithParams } = useI18n();
 
 const mapContainer = ref<HTMLElement | null>(null);
 const mapLoadError = ref(false);
@@ -279,7 +288,10 @@ function renderMarkers(maplibregl: typeof MapLibreGL) {
       .setPopup(
         new maplibregl.Popup({ offset: 14 }).setText(
           vendor.stallNumber
-            ? `${vendor.name}｜攤位 ${vendor.stallNumber}`
+            ? tWithParams("markets.map.vendorPopup", {
+                name: vendor.name,
+                stall: vendor.stallNumber,
+              })
             : vendor.name,
         ),
       )

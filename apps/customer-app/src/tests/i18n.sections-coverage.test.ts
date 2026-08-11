@@ -1270,4 +1270,329 @@ describe("i18n Integration Tests", () => {
       ]);
     });
   });
+
+  // ---------------------------------------------------------------
+  // 26. Market surfaces
+  // ---------------------------------------------------------------
+  describe("Markets Section", () => {
+    const keys = [
+      "markets.loadListFailed",
+      "markets.loadNearbyFailed",
+      "markets.loadDetailFailed",
+      "markets.loadVendorsFailed",
+      "markets.loadContactFailed",
+    ];
+
+    it("should have all markets keys in all 6 locales", () => {
+      assertKeysInAllLocales(keys);
+    });
+  });
+
+  describe("Markets Section — shared vocabulary", () => {
+    const keys = [
+      "markets.common.open",
+      "markets.common.closed",
+      "markets.common.closedToday",
+      "markets.common.openShort",
+      "markets.common.closedShort",
+      "markets.common.stallCount",
+      "markets.common.stallWithNumber",
+      "markets.common.unzoned",
+      "markets.common.loading",
+      "markets.common.loadMore",
+      "markets.common.nearest",
+      "markets.common.locating",
+      "markets.common.takeaway",
+      "markets.common.delivery",
+      "markets.common.takeawayAvailable",
+      "markets.common.deliveryAvailable",
+      "markets.common.menuItemCount",
+      "markets.common.noMenuItems",
+      "markets.common.serviceCount",
+      "markets.common.noServices",
+      "markets.common.viewMenu",
+      "markets.common.viewServices",
+      "markets.common.dataPending",
+      "markets.common.search",
+      "markets.common.clearFilters",
+      "markets.common.back",
+      "markets.common.checkoutUnavailable",
+      "format.listSeparator",
+    ];
+
+    it("should have the shared market vocabulary in all 6 locales", () => {
+      assertKeysInAllLocales(keys);
+    });
+
+    // marketTypes.ts hands these keys straight to `t`, and every weekday key is
+    // indexed off an opening-hours object, so both sets must be complete.
+    it("covers every venue type and weekday", () => {
+      assertKeysInAllLocales([
+        ...[
+          "night_market",
+          "commercial_district",
+          "food_court",
+          "event_venue",
+          "other",
+        ].map((type) => `markets.type.${type}`),
+        ...[
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+          "sunday",
+        ].flatMap((day) => [
+          `markets.weekday.long.${day}`,
+          `markets.weekday.short.${day}`,
+        ]),
+      ]);
+    });
+  });
+
+  describe("Markets Section — screens", () => {
+    it("covers the market directory", () => {
+      assertKeysInAllLocales([
+        "markets.directory.title",
+        "markets.directory.searchPlaceholder",
+        "markets.directory.allCities",
+        "markets.directory.allDistricts",
+        "markets.directory.allTypes",
+        "markets.directory.findNearby",
+        "markets.directory.favorites",
+        "markets.directory.recentVisits",
+        "markets.directory.recentOrders",
+        "markets.directory.nearby",
+        "markets.directory.allMarkets",
+        "markets.directory.emptyFiltered",
+        "markets.directory.emptyNoData",
+        "markets.directory.emptyFilteredDesc",
+        "markets.directory.emptyNoDataDesc",
+        "markets.directory.loadMoreMarkets",
+        "markets.directory.checkoutStallCount",
+      ]);
+    });
+
+    it("covers the market card, hero, map, stall map and vendor list", () => {
+      assertKeysInAllLocales([
+        "markets.card.productCount",
+        "markets.card.serviceCount",
+        "markets.card.catalogPending",
+        "markets.card.viewMarket",
+        "markets.card.distance",
+        "markets.card.readiness",
+        "markets.card.enterSearch",
+        "markets.card.until",
+        "markets.hero.gallery",
+        "markets.hero.galleryAlt",
+        "markets.hero.openingHours",
+        "markets.map.title",
+        "markets.map.navigate",
+        "markets.map.canvasLabel",
+        "markets.map.loadError",
+        "markets.map.vendorCoords",
+        "markets.map.boundaryMarked",
+        "markets.map.vendorPopup",
+        "markets.stallMap.defaultTitle",
+        "markets.stallMap.defaultDescription",
+        "markets.stallMap.openCount",
+        "markets.stallMap.entrance",
+        "markets.stallMap.aisle",
+        "markets.stallMap.exit",
+        "markets.stallMap.positionMapLabel",
+        "markets.stallMap.laneLabel",
+        "markets.stallMap.menuCount",
+        "markets.stallMap.serviceCount",
+        "markets.vendors.searchPlaceholder",
+        "markets.vendors.loading",
+        "markets.vendors.empty",
+        "markets.vendors.noStallNumber",
+        "markets.vendors.marketHours",
+        "markets.vendors.primaryVendor",
+        "markets.vendors.contactVendor",
+        "markets.vendors.loadMoreVendors",
+      ]);
+    });
+
+    it("covers in-market product search, including its sorts and result kinds", () => {
+      assertKeysInAllLocales([
+        "markets.search.title",
+        "markets.search.subtitle",
+        "markets.search.placeholder",
+        "markets.search.takeawayOnly",
+        "markets.search.deliveryOnly",
+        "markets.search.allCategories",
+        "markets.search.allServices",
+        "markets.search.activeFilters",
+        "markets.search.browseAll",
+        "markets.search.searching",
+        "markets.search.viewVendorList",
+        "markets.search.viewAvailableServices",
+        "markets.search.resultCount",
+        "markets.search.vendorTag",
+        "markets.search.serviceTag",
+        "markets.search.openNow",
+        "markets.search.closedNow",
+        "markets.search.bookDirect",
+        "markets.search.openBooking",
+        "markets.search.searchFailed",
+        "markets.search.filterKind",
+        "markets.search.filterKeyword",
+        "markets.search.filterCategory",
+        "markets.search.filterService",
+        "markets.search.filterSort",
+        "markets.search.emptyFiltered",
+        "markets.search.emptySyncing",
+        "markets.search.emptyNoCatalog",
+        "markets.search.emptyFilteredDesc",
+        "markets.search.emptySyncingDesc",
+        "markets.search.emptyNoCatalogDesc",
+        ...["all", "menu_item", "product", "service", "vendor"].map(
+          (kind) => `markets.search.resultKind.${kind}`,
+        ),
+        ...[
+          "relevance",
+          "price_asc",
+          "price_desc",
+          "popular",
+          "open_now",
+          "distance",
+        ].map((sort) => `markets.search.sort.${sort}`),
+        ...[
+          "general",
+          "booking",
+          "pickup",
+          "delivery",
+          "consultation",
+          "rental",
+          "activity",
+        ].map((type) => `markets.serviceType.${type}`),
+      ]);
+    });
+
+    it("covers the market detail page", () => {
+      assertKeysInAllLocales([
+        "markets.detail.fallbackTitle",
+        "markets.detail.following",
+        "markets.detail.follow",
+        "markets.detail.readinessTitle",
+        "markets.detail.readinessDesc",
+        "markets.detail.syncingTitle",
+        "markets.detail.syncingDesc",
+        "markets.detail.coverageProducts",
+        "markets.detail.coverageServices",
+        "markets.detail.exploreTitle",
+        "markets.detail.popularDishes",
+        "markets.detail.popularProducts",
+        "markets.detail.stallServices",
+        "markets.detail.cartTitle",
+        "markets.detail.cartSummary",
+        "markets.detail.vendorItemCount",
+        "markets.detail.phoneLastDigits",
+        "markets.detail.submitting",
+        "markets.detail.submit",
+        "markets.detail.checkoutDisabledHint",
+        "markets.detail.checkoutMinVendors",
+        "markets.detail.checkoutSubmitted",
+        "markets.detail.contactTitle",
+        "markets.detail.close",
+        "markets.detail.contactLoading",
+        "markets.detail.faqPlaceholder",
+        "markets.detail.faqEmpty",
+        "markets.detail.faqNone",
+        "markets.detail.contactNone",
+        "markets.detail.previousPage",
+        "markets.detail.favoriteSyncFailed",
+        "markets.detail.checkoutSuccess",
+        "markets.detail.checkoutFailed",
+      ]);
+    });
+
+    it("covers market checkout tracking, including every status it maps", () => {
+      assertKeysInAllLocales([
+        "markets.checkout.back",
+        "markets.checkout.title",
+        "markets.checkout.loadingOrder",
+        "markets.checkout.loadFailedTitle",
+        "markets.checkout.reload",
+        "markets.checkout.submittedAt",
+        "markets.checkout.subtotal",
+        "markets.checkout.voucherDiscount",
+        "markets.checkout.amountDue",
+        "markets.checkout.voucherApplied",
+        "markets.checkout.removeVoucher",
+        "markets.checkout.voucherPlaceholder",
+        "markets.checkout.applyVoucher",
+        "markets.checkout.paymentRetryHint",
+        "markets.checkout.childPaymentFailure",
+        "markets.checkout.paymentFailed",
+        "markets.checkout.unavailableHint",
+        "markets.checkout.stallOrders",
+        "markets.checkout.orderNumber",
+        "markets.checkout.childOrderNote",
+        "markets.checkout.viewStallOrder",
+        "markets.checkout.statusSubmitted",
+        "markets.checkout.statusProcessing",
+        "markets.checkout.paymentProgress",
+        "markets.checkout.payProcessing",
+        "markets.checkout.payRetryUnpaid",
+        "markets.checkout.payAgain",
+        "markets.checkout.payCombined",
+        "markets.checkout.loadFailed",
+        "markets.checkout.payFailed",
+        "markets.checkout.voucherApplySuccess",
+        "markets.checkout.voucherRemoveSuccess",
+        "markets.checkout.voucherRemoveFailed",
+        "markets.checkout.payLinkInvalid",
+        "markets.checkout.payRedirecting",
+        "markets.checkout.payAwaitingElement",
+        "markets.checkout.payAwaitingSdk",
+        "markets.checkout.childOrderAccessFailed",
+        ...[
+          "pending",
+          "confirmed",
+          "preparing",
+          "ready",
+          "delivered",
+          "paid",
+          "cancelled",
+          "refunded",
+        ].map((status) => `markets.checkout.orderStatus.${status}`),
+        ...[
+          "pending",
+          "processing",
+          "paid",
+          "failed",
+          "refunded",
+          "partial_refund",
+        ].map((status) => `markets.checkout.paymentStatus.${status}`),
+        ...[
+          "pending",
+          "partial_paid",
+          "paid",
+          "failed",
+          "refunded",
+          "partial_refunded",
+        ].map((status) => `markets.checkout.marketPaymentStatus.${status}`),
+        ...[
+          "VOUCHER_NOT_FOUND",
+          "VOUCHER_NOT_APPLICABLE",
+          "VOUCHER_EXPIRED",
+          "VOUCHER_EXHAUSTED",
+          "VOUCHER_MIN_ORDER_NOT_MET",
+          "MARKET_CHECKOUT_ALREADY_PAID",
+          "default",
+        ].map((code) => `markets.checkout.voucherError.${code}`),
+        ...[
+          "pending",
+          "partial_paid",
+          "paid",
+          "failed",
+          "refunded",
+          "partial_refunded",
+        ].map((status) => `markets.checkoutStatus.${status}`),
+      ]);
+    });
+  });
 });

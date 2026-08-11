@@ -1,5 +1,15 @@
+import { ref } from "vue";
 import { mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/composables/useI18n", () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    tWithParams: (key: string, params: Record<string, unknown>) =>
+      `${key}:${Object.values(params).join(",")}`,
+    currentLanguage: ref("zh-TW"),
+  }),
+}));
 import MarketLocationMap from "@/components/markets/MarketLocationMap.vue";
 import { loadMarketMapRuntime } from "@/components/markets/mapRuntime";
 import type { MarketDetail, MarketVendor } from "@/services/marketsApi";
@@ -164,7 +174,7 @@ describe("MarketLocationMap", () => {
     });
 
     expect(wrapper.get('[data-testid="market-location-map"]').text()).toContain(
-      "市場位置",
+      "markets.map.title",
     );
     expect(wrapper.get('[data-testid="market-location-address"]').text()).toBe(
       "文華路",

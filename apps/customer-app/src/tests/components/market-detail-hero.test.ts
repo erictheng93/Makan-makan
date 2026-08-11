@@ -1,5 +1,15 @@
+import { ref } from "vue";
 import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@/composables/useI18n", () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    tWithParams: (key: string, params: Record<string, unknown>) =>
+      `${key}:${Object.values(params).join(",")}`,
+    currentLanguage: ref("zh-TW"),
+  }),
+}));
 import MarketDetailHero from "@/components/markets/MarketDetailHero.vue";
 import type { MarketDetail } from "@/services/marketsApi";
 
@@ -38,7 +48,7 @@ describe("MarketDetailHero", () => {
     });
 
     expect(wrapper.get('[data-testid="market-detail-type"]').text()).toBe(
-      "商圈",
+      "markets.type.commercial_district",
     );
   });
 
@@ -65,12 +75,12 @@ describe("MarketDetailHero", () => {
     expect(gallery[0].attributes("src")).toBe(
       "https://example.com/gallery-1.jpg",
     );
-    expect(wrapper.text()).toContain("營業時間");
-    expect(wrapper.text()).toContain("週五");
+    expect(wrapper.text()).toContain("markets.hero.openingHours");
+    expect(wrapper.text()).toContain("markets.weekday.long.friday");
     expect(wrapper.text()).toContain("17:00-23:30");
-    expect(wrapper.text()).toContain("週六");
+    expect(wrapper.text()).toContain("markets.weekday.long.saturday");
     expect(wrapper.text()).toContain("16:00-23:59");
-    expect(wrapper.text()).toContain("週日");
-    expect(wrapper.text()).toContain("休息");
+    expect(wrapper.text()).toContain("markets.weekday.long.sunday");
+    expect(wrapper.text()).toContain("markets.common.closedShort");
   });
 });

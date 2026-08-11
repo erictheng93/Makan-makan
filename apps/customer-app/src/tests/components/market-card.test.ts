@@ -1,5 +1,15 @@
+import { ref } from "vue";
 import { mount } from "@vue/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("@/composables/useI18n", () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    tWithParams: (key: string, params: Record<string, unknown>) =>
+      `${key}:${Object.values(params).join(",")}`,
+    currentLanguage: ref("zh-TW"),
+  }),
+}));
 import MarketCard from "@/components/markets/MarketCard.vue";
 import type { MarketListItem } from "@/services/marketsApi";
 
@@ -40,7 +50,9 @@ describe("MarketCard", () => {
       },
     });
 
-    expect(wrapper.get('[data-testid="market-card-type"]').text()).toBe("商圈");
+    expect(wrapper.get('[data-testid="market-card-type"]').text()).toBe(
+      "markets.type.commercial_district",
+    );
   });
 
   it("uses gallery image fallback and shows open status", () => {
@@ -62,8 +74,8 @@ describe("MarketCard", () => {
     expect(
       wrapper.get('[data-testid="market-card-image"]').attributes("src"),
     ).toBe("https://example.com/gallery.jpg");
-    expect(wrapper.text()).toContain("營業中");
-    expect(wrapper.text()).toContain("至 23:30");
+    expect(wrapper.text()).toContain("markets.common.open");
+    expect(wrapper.text()).toContain("markets.card.until:23:30");
   });
 
   it("shows closed status when today is marked closed", () => {
@@ -80,7 +92,7 @@ describe("MarketCard", () => {
       },
     });
 
-    expect(wrapper.text()).toContain("今日休息");
+    expect(wrapper.text()).toContain("markets.common.closedToday");
   });
 
   it("shows searchable product and service coverage", () => {
@@ -96,11 +108,11 @@ describe("MarketCard", () => {
     });
 
     const coverage = wrapper.get('[data-testid="market-card-catalog"]');
-    expect(coverage.text()).toContain("商品 36");
-    expect(coverage.text()).toContain("服務 5");
+    expect(coverage.text()).toContain("markets.card.productCount:36");
+    expect(coverage.text()).toContain("markets.card.serviceCount:5");
     expect(
       wrapper.get('[data-testid="market-card-explore-status"]').text(),
-    ).toContain("進入市場搜尋");
+    ).toContain("markets.card.enterSearch");
   });
 
   it("explains markets that are listed before searchable catalogs are ready", () => {
@@ -116,11 +128,11 @@ describe("MarketCard", () => {
     });
 
     expect(wrapper.get('[data-testid="market-card-catalog"]').text()).toContain(
-      "店鋪補齊後可搜尋商品與服務",
+      "markets.card.catalogPending",
     );
     expect(
       wrapper.get('[data-testid="market-card-explore-status"]').text(),
-    ).toContain("資料補齊中");
+    ).toContain("markets.common.dataPending");
   });
 
   it("surfaces public readiness issues before users enter a market", () => {
@@ -143,9 +155,9 @@ describe("MarketCard", () => {
 
     expect(
       wrapper.get('[data-testid="market-card-readiness"]').text(),
-    ).toContain("資料補齊中");
+    ).toContain("markets.card.readiness");
     expect(
       wrapper.get('[data-testid="market-card-readiness"]').text(),
-    ).toContain("5/7");
+    ).toContain("5,7");
   });
 });

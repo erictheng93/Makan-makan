@@ -1,3 +1,4 @@
+import { ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import MarketProductSearch from "@/components/markets/MarketProductSearch.vue";
@@ -16,12 +17,24 @@ vi.mock("vue-router", () => ({
   }),
 }));
 
+vi.mock("@/composables/useI18n", () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    tWithParams: (key: string, params: Record<string, unknown>) =>
+      `${key}:${Object.values(params).join(",")}`,
+    currentLanguage: ref("zh-TW"),
+  }),
+}));
+
 vi.mock("vue-i18n", async (importOriginal) => {
   const actual = await importOriginal<typeof import("vue-i18n")>();
   return {
     ...actual,
     useI18n: () => ({
       t: (key: string) => key,
+      tWithParams: (key: string, params: Record<string, unknown>) =>
+        `${key}:${Object.values(params).join(",")}`,
+      currentLanguage: ref("zh-TW"),
     }),
   };
 });
@@ -227,12 +240,12 @@ describe("MarketProductSearch", () => {
 
     expect(
       wrapper.get('[data-testid="market-product-search-title"]').text(),
-    ).toContain("搜尋商品、服務與店鋪");
+    ).toContain("markets.search.title");
     expect(
       wrapper
         .get<HTMLInputElement>('[data-testid="market-product-search-input"]')
         .attributes("placeholder"),
-    ).toContain("攤位號");
+    ).toContain("markets.search.placeholder");
 
     await wrapper
       .get('[data-testid="market-product-search-input"]')
@@ -254,7 +267,7 @@ describe("MarketProductSearch", () => {
     expect(wrapper.text()).toContain("甜點攤");
     expect(wrapper.text()).toContain("攤位 D-22");
     expect(wrapper.text()).toContain("水果攤");
-    expect(wrapper.text()).toContain("攤位 S-12");
+    expect(wrapper.text()).toContain("markets.common.stallWithNumber:S-12");
   });
 
   it("keeps keyword searches on relevance ordering by default", async () => {
@@ -319,19 +332,19 @@ describe("MarketProductSearch", () => {
       limit: 20,
     });
     expect(wrapper.text()).toContain("雞排攤");
-    expect(wrapper.text()).toContain("攤位 B-12");
+    expect(wrapper.text()).toContain("markets.common.stallWithNumber:B-12");
     expect(
       wrapper.get('[data-testid="vendor-result-access"]').text(),
-    ).toContain("菜單/商品 3 項");
+    ).toContain("markets.common.menuItemCount:3");
     expect(
       wrapper.get('[data-testid="vendor-result-access"]').text(),
-    ).toContain("服務 2 項");
+    ).toContain("markets.common.serviceCount:2");
     expect(wrapper.get('[data-testid="vendor-result-open-menu"]').text()).toBe(
-      "查看菜單/商品",
+      "markets.common.viewMenu",
     );
     expect(
       wrapper.get('[data-testid="vendor-result-open-services"]').text(),
-    ).toBe("查看服務");
+    ).toBe("markets.common.viewServices");
 
     await wrapper
       .get('[data-testid="vendor-result-open-menu"]')
@@ -375,7 +388,7 @@ describe("MarketProductSearch", () => {
 
     expect(
       wrapper.get('[data-testid="vendor-result-access"]').text(),
-    ).toContain("尚無服務");
+    ).toContain("markets.common.noServices");
 
     const servicesButton = wrapper.get(
       '[data-testid="vendor-result-open-services"]',
@@ -412,7 +425,7 @@ describe("MarketProductSearch", () => {
 
     expect(
       wrapper.get('[data-testid="vendor-result-access"]').text(),
-    ).toContain("尚無菜單/商品");
+    ).toContain("markets.common.noMenuItems");
 
     const menuButton = wrapper.get('[data-testid="vendor-result-open-menu"]');
     expect(menuButton.attributes("disabled")).toBeDefined();
@@ -452,7 +465,7 @@ describe("MarketProductSearch", () => {
     });
 
     await vi.waitFor(() => {
-      expect(wrapper.text()).toContain("外送 1");
+      expect(wrapper.text()).toContain("markets.serviceType.delivery 1");
     });
     await wrapper.get("form").trigger("submit.prevent");
 
@@ -513,7 +526,7 @@ describe("MarketProductSearch", () => {
     const openServiceButton = wrapper.get(
       '[data-testid="service-result-open"]',
     );
-    expect(openServiceButton.text()).toContain("查看服務");
+    expect(openServiceButton.text()).toContain("markets.common.viewServices");
 
     await openServiceButton.trigger("click");
 
@@ -547,7 +560,7 @@ describe("MarketProductSearch", () => {
     await wrapper.get("form").trigger("submit.prevent");
 
     const bookingButton = wrapper.get('[data-testid="service-result-booking"]');
-    expect(bookingButton.text()).toContain("直接預約");
+    expect(bookingButton.text()).toContain("markets.search.bookDirect");
     await bookingButton.trigger("click");
 
     expect(routerPush).toHaveBeenCalledWith({
@@ -558,7 +571,7 @@ describe("MarketProductSearch", () => {
       },
     });
     expect(wrapper.get('[data-testid="service-result-open"]').text()).toContain(
-      "查看服務",
+      "markets.common.viewServices",
     );
   });
 
@@ -588,7 +601,7 @@ describe("MarketProductSearch", () => {
     const bookingLink = wrapper.get(
       '[data-testid="service-result-booking-url"]',
     );
-    expect(bookingLink.text()).toContain("開啟預約");
+    expect(bookingLink.text()).toContain("markets.search.openBooking");
     expect(bookingLink.attributes("href")).toBe(
       "https://booking.example/service-10",
     );
@@ -618,7 +631,7 @@ describe("MarketProductSearch", () => {
     });
 
     await vi.waitFor(() => {
-      expect(wrapper.text()).toContain("外送 2");
+      expect(wrapper.text()).toContain("markets.serviceType.delivery 2");
     });
     await wrapper
       .get('[data-testid="market-service-type-select"]')
@@ -734,7 +747,7 @@ describe("MarketProductSearch", () => {
     });
     expect(
       wrapper.get('[data-testid="market-product-search-summary"]').text(),
-    ).toContain("排序：營業中優先");
+    ).toContain("markets.search.filterSort:markets.search.sort.open_now");
     expect(wrapper.emitted("searchStateChange")?.at(-1)?.[0]).toMatchObject({
       sortBy: "open_now",
     });
@@ -815,7 +828,7 @@ describe("MarketProductSearch", () => {
     });
     expect(
       wrapper.get('[data-testid="market-product-search-summary"]').text(),
-    ).toContain("排序：離我最近");
+    ).toContain("markets.search.filterSort:markets.search.sort.distance");
     expect(wrapper.text()).toContain("0.1 km");
     expect(wrapper.text()).toContain("0.2 km");
     expect(wrapper.text()).toContain("0.3 km");
@@ -858,7 +871,7 @@ describe("MarketProductSearch", () => {
     expect(wrapper.text()).toContain("造型手機殼");
     expect(
       wrapper.get('[data-testid="market-product-search-summary"]').text(),
-    ).toContain("類型：商品");
+    ).toContain("markets.search.filterKind:markets.search.resultKind.product");
     expect(wrapper.emitted("searchStateChange")?.at(-1)?.[0]).toEqual({
       q: "",
       categoryName: "",
@@ -899,7 +912,7 @@ describe("MarketProductSearch", () => {
     expect(wrapper.text()).toContain("代客包裝");
     expect(
       wrapper.get('[data-testid="market-product-search-summary"]').text(),
-    ).toContain("類型：服務");
+    ).toContain("markets.search.filterKind:markets.search.resultKind.service");
   });
 
   it("filters market results to vendors without querying catalog or services", async () => {
@@ -945,10 +958,10 @@ describe("MarketProductSearch", () => {
       limit: 20,
     });
     expect(wrapper.text()).toContain("修鞋攤");
-    expect(wrapper.text()).toContain("攤位 R-03");
+    expect(wrapper.text()).toContain("markets.common.stallWithNumber:R-03");
     expect(
       wrapper.get('[data-testid="market-product-search-summary"]').text(),
-    ).toContain("類型：店鋪");
+    ).toContain("markets.search.filterKind:markets.search.resultKind.vendor");
     expect(wrapper.emitted("searchStateChange")?.at(-1)?.[0]).toEqual({
       q: "",
       categoryName: "",
@@ -1053,7 +1066,7 @@ describe("MarketProductSearch", () => {
     });
 
     await vi.waitFor(() => {
-      expect(wrapper.text()).toContain("外送 2");
+      expect(wrapper.text()).toContain("markets.serviceType.delivery 2");
     });
     await wrapper
       .get('[data-testid="market-product-search-input"]')
@@ -1077,11 +1090,15 @@ describe("MarketProductSearch", () => {
       '[data-testid="market-product-search-summary"]',
     );
 
-    expect(summary.text()).toContain("關鍵字：雞排");
-    expect(summary.text()).toContain("服務：外送");
-    expect(summary.text()).toContain("只看可外帶");
-    expect(summary.text()).toContain("只看可外送");
-    expect(summary.text()).toContain("排序：熱門優先");
+    expect(summary.text()).toContain("markets.search.filterKeyword:雞排");
+    expect(summary.text()).toContain(
+      "markets.search.filterService:markets.serviceType.delivery",
+    );
+    expect(summary.text()).toContain("markets.search.takeawayOnly");
+    expect(summary.text()).toContain("markets.search.deliveryOnly");
+    expect(summary.text()).toContain(
+      "markets.search.filterSort:markets.search.sort.popular",
+    );
   });
 
   it("clears filters from an empty market search", async () => {
@@ -1106,7 +1123,7 @@ describe("MarketProductSearch", () => {
     });
 
     await vi.waitFor(() => {
-      expect(wrapper.text()).toContain("外送 1");
+      expect(wrapper.text()).toContain("markets.serviceType.delivery 1");
     });
     await wrapper
       .get('[data-testid="market-product-search-input"]')
@@ -1120,7 +1137,7 @@ describe("MarketProductSearch", () => {
     await wrapper.get('input[type="checkbox"]').setValue(true);
     await wrapper.get("form").trigger("submit.prevent");
 
-    expect(wrapper.text()).toContain("沒有符合目前條件的店鋪、商品或服務");
+    expect(wrapper.text()).toContain("markets.search.emptyFiltered");
 
     await wrapper
       .get('[data-testid="market-product-clear-filters"]')
@@ -1178,7 +1195,7 @@ describe("MarketProductSearch", () => {
 
     expect(
       wrapper.get('[data-testid="market-product-empty-state"]').text(),
-    ).toContain("這個市場尚未上架可搜尋的店鋪、商品或服務");
+    ).toContain("markets.search.emptyNoCatalog");
     expect(
       wrapper.find('[data-testid="market-product-clear-filters"]').exists(),
     ).toBe(false);
@@ -1215,7 +1232,7 @@ describe("MarketProductSearch", () => {
 
     expect(
       wrapper.get('[data-testid="market-product-empty-state"]').text(),
-    ).toContain("這個市場的商品與服務正在同步搜尋索引");
+    ).toContain("markets.search.emptySyncing");
   });
 
   it("explains filtered empty market catalog searches", async () => {
@@ -1242,7 +1259,7 @@ describe("MarketProductSearch", () => {
 
     expect(
       wrapper.get('[data-testid="market-product-empty-state"]').text(),
-    ).toContain("沒有符合目前條件的店鋪、商品或服務");
+    ).toContain("markets.search.emptyFiltered");
     expect(
       wrapper.find('[data-testid="market-product-clear-filters"]').exists(),
     ).toBe(true);
@@ -1379,8 +1396,8 @@ describe("MarketProductSearch", () => {
       expect(discoveryApi.listServiceTypes).toHaveBeenCalledWith({
         marketId: "market-1",
       });
-      expect(wrapper.text()).toContain("外送 2");
-      expect(wrapper.text()).toContain("預約 1");
+      expect(wrapper.text()).toContain("markets.serviceType.delivery 2");
+      expect(wrapper.text()).toContain("markets.serviceType.booking 1");
       expect(wrapper.text()).not.toContain("租借");
     });
   });
@@ -1425,7 +1442,7 @@ describe("MarketProductSearch", () => {
         marketId: "market-1",
         takeaway: true,
       });
-      expect(wrapper.text()).toContain("外送 1");
+      expect(wrapper.text()).toContain("markets.serviceType.delivery 1");
     });
   });
 

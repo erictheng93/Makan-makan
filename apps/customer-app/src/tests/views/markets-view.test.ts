@@ -1,3 +1,4 @@
+import { ref } from "vue";
 import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import MarketsView from "@/views/MarketsView.vue";
@@ -17,6 +18,15 @@ vi.mock("vue-router", () => ({
   useRouter: () => ({
     push: routerPush,
     replace: routerReplace,
+  }),
+}));
+
+vi.mock("@/composables/useI18n", () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    tWithParams: (key: string, params: Record<string, unknown>) =>
+      `${key}:${Object.values(params).join(",")}`,
+    currentLanguage: ref("zh-TW"),
   }),
 }));
 
@@ -250,7 +260,7 @@ describe("MarketsView", () => {
       params: { slug: "fengjia" },
       query: {
         returnPath: "/markets",
-        returnLabel: "夜市與商圈",
+        returnLabel: "markets.directory.title",
       },
     });
   });
@@ -291,11 +301,11 @@ describe("MarketsView", () => {
     const wrapper = mountView();
 
     await vi.waitFor(() => {
-      expect(wrapper.text()).toContain("追蹤的市場");
+      expect(wrapper.text()).toContain("markets.directory.favorites");
     });
-    expect(wrapper.text()).toContain("追蹤的市場");
+    expect(wrapper.text()).toContain("markets.directory.favorites");
     expect(wrapper.text()).toContain("逢甲夜市");
-    expect(wrapper.text()).toContain("最近訪問");
+    expect(wrapper.text()).toContain("markets.directory.recentVisits");
     expect(wrapper.text()).toContain("西門町商圈");
   });
 
@@ -320,7 +330,7 @@ describe("MarketsView", () => {
 
     await vi.waitFor(() => {
       expect(customerIdentityApi.listFavorites).toHaveBeenCalledWith("market");
-      expect(wrapper.text()).toContain("追蹤的市場");
+      expect(wrapper.text()).toContain("markets.directory.favorites");
     });
     expect(wrapper.text()).toContain("逢甲夜市");
     expect(localStorage.getItem("makanmakan_favorite_markets")).toContain(
@@ -347,7 +357,7 @@ describe("MarketsView", () => {
 
     await vi.waitFor(() => {
       expect(customerIdentityApi.listRecentMarkets).toHaveBeenCalledWith(8);
-      expect(wrapper.text()).toContain("最近訪問");
+      expect(wrapper.text()).toContain("markets.directory.recentVisits");
     });
     expect(wrapper.text()).toContain("逢甲夜市");
     expect(localStorage.getItem("makanmakan_recent_markets")).toContain(
@@ -380,11 +390,11 @@ describe("MarketsView", () => {
     const wrapper = mountView();
 
     await vi.waitFor(() => {
-      expect(wrapper.text()).toContain("最近市場訂單");
+      expect(wrapper.text()).toContain("markets.directory.recentOrders");
     });
     expect(
       wrapper.get('[data-testid="recent-market-checkout"]').text(),
-    ).toContain("部分付款");
+    ).toContain("markets.checkoutStatus.partial_paid");
 
     await wrapper
       .get('[data-testid="recent-market-checkout"]')
@@ -420,7 +430,7 @@ describe("MarketsView", () => {
       query: {
         returnPath:
           "/markets?q=%E9%A4%90%E8%BB%8A&city=%E5%8F%B0%E4%B8%AD%E5%B8%82&district=%E8%A5%BF%E5%B1%AF%E5%8D%80&type=commercial_district",
-        returnLabel: "夜市與商圈",
+        returnLabel: "markets.directory.title",
       },
     });
   });
@@ -453,7 +463,7 @@ describe("MarketsView", () => {
       query: {
         returnPath:
           "/markets?nearbyLat=24.1763&nearbyLng=120.6465&nearbyRadiusKm=2",
-        returnLabel: "夜市與商圈",
+        returnLabel: "markets.directory.title",
       },
     });
   });
@@ -469,7 +479,7 @@ describe("MarketsView", () => {
     const wrapper = mountView();
 
     expect(wrapper.get('[data-testid="markets-empty-state"]').text()).toContain(
-      "尚未收錄可瀏覽的夜市或商圈",
+      "markets.directory.emptyNoData",
     );
     expect(wrapper.find('[data-testid="markets-clear-filters"]').exists()).toBe(
       false,
@@ -493,7 +503,7 @@ describe("MarketsView", () => {
     const wrapper = mountView();
 
     expect(wrapper.get('[data-testid="markets-empty-state"]').text()).toContain(
-      "沒有符合目前條件的夜市或商圈",
+      "markets.directory.emptyFiltered",
     );
 
     await wrapper.get('[data-testid="markets-clear-filters"]').trigger("click");

@@ -5,7 +5,7 @@
         :value="query"
         type="search"
         class="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
-        placeholder="搜尋攤位"
+        :placeholder="t('markets.vendors.searchPlaceholder')"
         @input="
           $emit('update:query', ($event.target as HTMLInputElement).value)
         "
@@ -24,7 +24,7 @@
             )
           "
         />
-        外帶
+        {{ t("markets.common.takeaway") }}
       </label>
       <label
         class="flex h-10 shrink-0 items-center gap-2 rounded-lg border border-gray-300 px-3 text-sm text-gray-700"
@@ -41,7 +41,7 @@
             )
           "
         />
-        外送
+        {{ t("markets.common.delivery") }}
       </label>
       <button
         type="button"
@@ -49,18 +49,18 @@
         class="h-10 shrink-0 rounded-lg border border-ios-blue px-3 text-sm font-medium text-ios-blue"
         @click="$emit('useLocation')"
       >
-        離我最近
+        {{ t("markets.common.nearest") }}
       </button>
     </div>
 
     <div v-if="loading" class="py-8 text-center text-sm text-gray-500">
-      載入攤位中...
+      {{ t("markets.vendors.loading") }}
     </div>
     <div
       v-else-if="vendors.length === 0"
       class="py-8 text-center text-sm text-gray-500"
     >
-      目前沒有符合條件的攤位。
+      {{ t("markets.vendors.empty") }}
     </div>
     <div v-else class="space-y-2">
       <div
@@ -79,9 +79,13 @@
         >
           <div class="min-w-0 text-gray-500">
             <span v-if="vendor.stallNumber">
-              攤位 {{ vendor.stallNumber }}
+              {{
+                tWithParams("markets.common.stallWithNumber", {
+                  number: vendor.stallNumber,
+                })
+              }}
             </span>
-            <span v-else>未標示攤位</span>
+            <span v-else>{{ t("markets.vendors.noStallNumber") }}</span>
             <span v-if="vendor.locationLabel">
               · {{ vendor.locationLabel }}
             </span>
@@ -90,14 +94,18 @@
               data-testid="vendor-market-hours"
               class="block text-xs text-gray-400"
             >
-              夜市時段 · {{ vendorMarketHoursLabel(vendor) }}
+              {{
+                tWithParams("markets.vendors.marketHours", {
+                  hours: vendorMarketHoursLabel(vendor),
+                })
+              }}
             </span>
           </div>
           <span
             v-if="vendor.isPrimary"
             class="shrink-0 rounded bg-ios-blue/10 px-2 py-0.5 text-xs font-medium text-ios-blue"
           >
-            主要店鋪
+            {{ t("markets.vendors.primaryVendor") }}
           </span>
         </div>
         <div
@@ -114,8 +122,10 @@
           >
             {{
               vendor.availableMenuItemCount > 0
-                ? `菜單/商品 ${vendor.availableMenuItemCount} 項`
-                : "尚無菜單/商品"
+                ? tWithParams("markets.common.menuItemCount", {
+                    count: vendor.availableMenuItemCount,
+                  })
+                : t("markets.common.noMenuItems")
             }}
           </span>
           <span
@@ -128,8 +138,10 @@
           >
             {{
               vendor.publicServiceItemCount > 0
-                ? `服務 ${vendor.publicServiceItemCount} 項`
-                : "尚無服務"
+                ? tWithParams("markets.common.serviceCount", {
+                    count: vendor.publicServiceItemCount,
+                  })
+                : t("markets.common.noServices")
             }}
           </span>
         </div>
@@ -141,7 +153,7 @@
             :disabled="vendor.availableMenuItemCount <= 0"
             @click="$emit('selectVendor', vendor)"
           >
-            查看菜單/商品
+            {{ t("markets.common.viewMenu") }}
           </button>
           <button
             type="button"
@@ -150,14 +162,14 @@
             :disabled="vendor.publicServiceItemCount <= 0"
             @click="$emit('selectServices', vendor)"
           >
-            查看服務
+            {{ t("markets.common.viewServices") }}
           </button>
           <button
             type="button"
             class="col-span-2 rounded-lg border border-ios-blue px-3 py-2 text-sm font-medium text-ios-blue"
             @click="$emit('contactVendor', vendor)"
           >
-            聯絡店家
+            {{ t("markets.vendors.contactVendor") }}
           </button>
         </div>
       </div>
@@ -169,7 +181,11 @@
         :disabled="loading"
         @click="$emit('loadMore')"
       >
-        {{ loading ? "載入中..." : "載入更多店鋪" }}
+        {{
+          loading
+            ? t("markets.common.loading")
+            : t("markets.vendors.loadMoreVendors")
+        }}
       </button>
     </div>
   </section>
@@ -178,16 +194,9 @@
 <script setup lang="ts">
 import RestaurantCard from "@/components/discovery/RestaurantCard.vue";
 import type { MarketVendor } from "@/services/marketsApi";
+import { useI18n } from "@/composables/useI18n";
 
-const dayLabels: Record<string, string> = {
-  monday: "一",
-  tuesday: "二",
-  wednesday: "三",
-  thursday: "四",
-  friday: "五",
-  saturday: "六",
-  sunday: "日",
-};
+const { t, tWithParams } = useI18n();
 
 defineProps<{
   vendors: MarketVendor[];
@@ -216,10 +225,11 @@ function vendorMarketHoursLabel(vendor: MarketVendor) {
   const rows = Object.entries(vendor.marketHours)
     .filter(([, hours]) => hours && !hours.closed && hours.open && hours.close)
     .map(
-      ([day, hours]) => `${dayLabels[day] ?? day} ${hours.open}-${hours.close}`,
+      ([day, hours]) =>
+        `${t(`markets.weekday.short.${day}`)} ${hours.open}-${hours.close}`,
     );
 
-  return rows.slice(0, 2).join("、");
+  return rows.slice(0, 2).join(t("format.listSeparator"));
 }
 
 function selectPrimaryVendorEntry(vendor: MarketVendor) {

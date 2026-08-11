@@ -46,6 +46,7 @@ vi.mock("@/composables/useI18n", () => ({
     tWithParams: (key: string, params: Record<string, unknown>) =>
       `${key}:${Object.values(params).join(",")}`,
     currentLanguage: ref("zh-TW"),
+    hasTranslation: () => true,
   }),
 }));
 
@@ -255,7 +256,7 @@ describe("market checkout availability", () => {
       expect(entry.attributes("data-disabled")).toBe("true");
       expect(entry.attributes("aria-disabled")).toBe("true");
       expect(entry.attributes("disabled")).toBeDefined();
-      expect(entry.text()).toContain("尚未開放");
+      expect(entry.text()).toContain("markets.common.checkoutUnavailable");
 
       await entry.trigger("click");
       expect(routerPush).not.toHaveBeenCalled();
@@ -268,7 +269,7 @@ describe("market checkout availability", () => {
       expect(entry.attributes("data-disabled")).toBeUndefined();
       expect(entry.attributes("aria-disabled")).toBeUndefined();
       expect(entry.attributes("disabled")).toBeUndefined();
-      expect(entry.text()).not.toContain("尚未開放");
+      expect(entry.text()).not.toContain("markets.common.checkoutUnavailable");
 
       await entry.trigger("click");
       expect(routerPush).toHaveBeenCalledWith(
@@ -322,10 +323,10 @@ describe("market checkout availability", () => {
       expect(submit.attributes("data-disabled")).toBe("true");
       expect(submit.attributes("aria-disabled")).toBe("true");
       expect(submit.attributes("disabled")).toBeDefined();
-      expect(submit.text()).toContain("尚未開放");
+      expect(submit.text()).toContain("markets.common.checkoutUnavailable");
       expect(
         wrapper.get('[data-testid="market-checkout-unavailable-hint"]').text(),
-      ).toContain("尚未開放");
+      ).toContain("markets.detail.checkoutDisabledHint");
 
       await submit.trigger("click");
       await flushPromises();
@@ -396,10 +397,10 @@ describe("market checkout availability", () => {
       expect(pay.attributes("data-disabled")).toBe("true");
       expect(pay.attributes("aria-disabled")).toBe("true");
       expect(pay.attributes("disabled")).toBeDefined();
-      expect(pay.text()).toContain("尚未開放");
+      expect(pay.text()).toContain("markets.common.checkoutUnavailable");
       expect(
         wrapper.get('[data-testid="market-checkout-unavailable-hint"]').text(),
-      ).toContain("尚未開放");
+      ).toContain("markets.checkout.unavailableHint");
 
       expect(applyVoucher.attributes("data-disabled")).toBe("true");
       expect(applyVoucher.attributes("aria-disabled")).toBe("true");
@@ -428,7 +429,7 @@ describe("market checkout availability", () => {
       expect(pay.attributes("data-disabled")).toBeUndefined();
       expect(pay.attributes("aria-disabled")).toBeUndefined();
       expect(pay.attributes("disabled")).toBeUndefined();
-      expect(pay.text()).toContain("聯合付款");
+      expect(pay.text()).toContain("markets.checkout.payCombined");
       expect(
         wrapper
           .find('[data-testid="market-checkout-unavailable-hint"]')

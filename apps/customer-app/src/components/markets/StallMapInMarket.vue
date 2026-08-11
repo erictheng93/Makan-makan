@@ -17,17 +17,27 @@
         <span
           class="inline-flex rounded bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600"
         >
-          {{ mappedVendors.length }} 攤
+          {{
+            tWithParams("markets.common.stallCount", {
+              count: mappedVendors.length,
+            })
+          }}
         </span>
-        <p class="mt-1 text-xs text-gray-500">{{ openVendorCount }} 營業中</p>
+        <p class="mt-1 text-xs text-gray-500">
+          {{
+            tWithParams("markets.stallMap.openCount", {
+              count: openVendorCount,
+            })
+          }}
+        </p>
       </div>
     </div>
 
     <div class="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-3">
       <div class="flex items-center justify-between text-xs text-gray-500">
-        <span>入口</span>
-        <span>動線</span>
-        <span>出口</span>
+        <span>{{ t("markets.stallMap.entrance") }}</span>
+        <span>{{ t("markets.stallMap.aisle") }}</span>
+        <span>{{ t("markets.stallMap.exit") }}</span>
       </div>
       <div class="mt-2 h-1 rounded-full bg-gray-200">
         <div class="h-1 w-2/3 rounded-full bg-ios-blue/60"></div>
@@ -38,7 +48,7 @@
       v-if="positionedVendors.length > 0"
       data-testid="stall-position-map"
       class="relative min-h-[18rem] overflow-hidden rounded-lg border border-gray-200 bg-white bg-cover bg-center"
-      aria-label="攤位位置圖"
+      :aria-label="t('markets.stallMap.positionMapLabel')"
       :style="positionMapStyle"
     >
       <template v-if="!layout?.imageUrl">
@@ -67,13 +77,17 @@
         @click="$emit('selectVendor', vendor)"
       >
         <span class="block text-[11px] font-semibold text-ios-blue">
-          攤位 {{ vendor.stallNumber }}
+          {{
+            tWithParams("markets.common.stallWithNumber", {
+              number: vendor.stallNumber,
+            })
+          }}
         </span>
         <span class="mt-1 block truncate text-xs font-semibold text-gray-900">
           {{ vendor.name }}
         </span>
         <span class="mt-1 block text-[11px] text-gray-500">
-          {{ vendor.locationLabel || "未標示區域" }}
+          {{ vendor.locationLabel || t("markets.common.unzoned") }}
         </span>
       </button>
     </div>
@@ -89,14 +103,22 @@
           <h3 class="text-sm font-semibold text-gray-800">
             {{ group.locationLabel }}
           </h3>
-          <span class="text-xs text-gray-500"
-            >{{ group.vendors.length }} 攤</span
-          >
+          <span class="text-xs text-gray-500">
+            {{
+              tWithParams("markets.common.stallCount", {
+                count: group.vendors.length,
+              })
+            }}
+          </span>
         </div>
 
         <div
           class="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-2"
-          :aria-label="`${group.locationLabel} 攤位動線`"
+          :aria-label="
+            tWithParams('markets.stallMap.laneLabel', {
+              zone: group.locationLabel,
+            })
+          "
         >
           <div class="relative flex justify-center" aria-hidden="true">
             <div class="absolute inset-y-3 w-px bg-ios-blue/20"></div>
@@ -119,7 +141,11 @@
             >
               <span class="flex items-center justify-between gap-2">
                 <span class="text-xs font-semibold text-ios-blue">
-                  攤位 {{ vendor.stallNumber }}
+                  {{
+                    tWithParams("markets.common.stallWithNumber", {
+                      number: vendor.stallNumber,
+                    })
+                  }}
                 </span>
                 <span
                   class="rounded px-1.5 py-0.5 text-[11px] font-medium"
@@ -129,7 +155,11 @@
                       : 'bg-gray-100 text-gray-500'
                   "
                 >
-                  {{ vendor.isOpen ? "營業" : "休息" }}
+                  {{
+                    vendor.isOpen
+                      ? t("markets.common.openShort")
+                      : t("markets.common.closedShort")
+                  }}
                 </span>
               </span>
               <span
@@ -142,13 +172,21 @@
                   v-if="vendor.availableMenuItemCount > 0"
                   class="rounded bg-ios-blue/10 px-1.5 py-0.5 text-[11px] font-medium text-ios-blue"
                 >
-                  菜單 {{ vendor.availableMenuItemCount }}
+                  {{
+                    tWithParams("markets.stallMap.menuCount", {
+                      count: vendor.availableMenuItemCount,
+                    })
+                  }}
                 </span>
                 <span
                   v-if="vendor.publicServiceItemCount > 0"
                   class="rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700"
                 >
-                  服務 {{ vendor.publicServiceItemCount }}
+                  {{
+                    tWithParams("markets.stallMap.serviceCount", {
+                      count: vendor.publicServiceItemCount,
+                    })
+                  }}
                 </span>
                 <span
                   v-if="
@@ -157,7 +195,7 @@
                   "
                   class="rounded bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-500"
                 >
-                  資料補齊中
+                  {{ t("markets.common.dataPending") }}
                 </span>
               </span>
             </button>
@@ -171,6 +209,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { MarketMapLayout, MarketVendor } from "@/services/marketsApi";
+import { useI18n } from "@/composables/useI18n";
 
 const props = defineProps<{
   vendors: MarketVendor[];
@@ -180,6 +219,8 @@ const props = defineProps<{
 defineEmits<{
   selectVendor: [vendor: MarketVendor];
 }>();
+
+const { t, tWithParams } = useI18n();
 
 const mappedVendors = computed(() =>
   props.vendors
@@ -208,10 +249,14 @@ const openVendorCount = computed(
   () => mappedVendors.value.filter((vendor) => vendor.isOpen).length,
 );
 
-const mapTitle = computed(() => props.layout?.title?.trim() || "攤位示意圖");
+const mapTitle = computed(
+  () => props.layout?.title?.trim() || t("markets.stallMap.defaultTitle"),
+);
 
 const mapDescription = computed(
-  () => props.layout?.description?.trim() || "依市場區域與攤位號查看店家位置。",
+  () =>
+    props.layout?.description?.trim() ||
+    t("markets.stallMap.defaultDescription"),
 );
 
 const positionMapStyle = computed(() => {
@@ -231,7 +276,7 @@ const groupedVendors = computed(() => {
   for (const vendor of mappedVendors.value.filter(
     (vendor) => !positionedVendors.value.includes(vendor),
   )) {
-    const label = vendor.locationLabel?.trim() || "未標示區域";
+    const label = vendor.locationLabel?.trim() || t("markets.common.unzoned");
     groups.set(label, [...(groups.get(label) ?? []), vendor]);
   }
 

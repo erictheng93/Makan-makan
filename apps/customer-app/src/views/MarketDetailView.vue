@@ -6,7 +6,7 @@
           type="button"
           data-testid="market-detail-back"
           class="text-gray-500 hover:text-gray-700"
-          aria-label="返回"
+          :aria-label="t('markets.common.back')"
           @click="goBack"
         >
           <svg
@@ -24,7 +24,7 @@
           </svg>
         </button>
         <h1 class="truncate text-lg font-semibold text-gray-900">
-          {{ store.selectedMarket?.name || "市場" }}
+          {{ store.selectedMarket?.name || t("markets.detail.fallbackTitle") }}
         </h1>
         <button
           v-if="store.selectedMarket"
@@ -33,20 +33,24 @@
           class="ml-auto rounded-lg border border-ios-blue px-3 py-1.5 text-sm font-medium text-ios-blue"
           @click="toggleFavorite"
         >
-          {{ isFavorite ? "已追蹤" : "追蹤" }}
+          {{
+            isFavorite
+              ? t("markets.detail.following")
+              : t("markets.detail.follow")
+          }}
         </button>
       </div>
     </nav>
 
     <main class="mx-auto max-w-md">
       <div v-if="store.loading" class="py-12 text-center text-sm text-gray-500">
-        載入中...
+        {{ t("markets.common.loading") }}
       </div>
       <div
         v-else-if="store.error"
         class="py-8 text-center text-sm text-red-500"
       >
-        {{ store.error }}
+        {{ t(store.error) }}
       </div>
       <template v-else-if="store.selectedMarket">
         <MarketDetailHero
@@ -60,10 +64,10 @@
             class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
           >
             <h2 class="text-base font-semibold text-amber-900">
-              市場資料補齊中
+              {{ t("markets.detail.readinessTitle") }}
             </h2>
             <p class="mt-1 text-sm leading-6 text-amber-800">
-              店鋪、商品或服務資料尚未完整公開，部分內容可能暫時無法搜尋或開啟。
+              {{ t("markets.detail.readinessDesc") }}
             </p>
           </section>
 
@@ -73,13 +77,14 @@
             class="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3"
           >
             <h2 class="text-base font-semibold text-blue-900">
-              商品與服務同步中
+              {{ t("markets.detail.syncingTitle") }}
             </h2>
             <p class="mt-1 text-sm leading-6 text-blue-800">
-              已有
               {{
-                catalogCoverageLabel
-              }}，探索捷徑正在更新。可先使用搜尋欄查找店鋪、商品或服務。
+                tWithParams("markets.detail.syncingDesc", {
+                  coverage: catalogCoverageLabel,
+                })
+              }}
             </p>
           </section>
 
@@ -90,12 +95,14 @@
           >
             <div>
               <h2 class="text-base font-semibold text-gray-900">
-                探索這個市場
+                {{ t("markets.detail.exploreTitle") }}
               </h2>
             </div>
 
             <div v-if="menuItemCategoryFacets.length > 0" class="space-y-2">
-              <h3 class="text-sm font-medium text-gray-700">熱門餐點</h3>
+              <h3 class="text-sm font-medium text-gray-700">
+                {{ t("markets.detail.popularDishes") }}
+              </h3>
               <div class="flex flex-wrap gap-2">
                 <button
                   v-for="facet in menuItemCategoryFacets"
@@ -114,7 +121,9 @@
             </div>
 
             <div v-if="productCategoryFacets.length > 0" class="space-y-2">
-              <h3 class="text-sm font-medium text-gray-700">熱門商品</h3>
+              <h3 class="text-sm font-medium text-gray-700">
+                {{ t("markets.detail.popularProducts") }}
+              </h3>
               <div class="flex flex-wrap gap-2">
                 <button
                   v-for="facet in productCategoryFacets"
@@ -133,7 +142,9 @@
             </div>
 
             <div v-if="serviceTypeFacets.length > 0" class="space-y-2">
-              <h3 class="text-sm font-medium text-gray-700">店家服務</h3>
+              <h3 class="text-sm font-medium text-gray-700">
+                {{ t("markets.detail.stallServices") }}
+              </h3>
               <div class="flex flex-wrap gap-2">
                 <button
                   v-for="facet in serviceTypeFacets"
@@ -160,13 +171,15 @@
             <div class="flex items-start justify-between gap-3">
               <div>
                 <h2 class="text-base font-semibold text-emerald-950">
-                  市場購物籃
+                  {{ t("markets.detail.cartTitle") }}
                 </h2>
                 <p class="mt-1 text-sm text-emerald-800">
-                  {{ marketCart.vendors.length }} 個攤位，{{
-                    marketCartItemCount
+                  {{
+                    tWithParams("markets.detail.cartSummary", {
+                      vendors: marketCart.vendors.length,
+                      items: marketCartItemCount,
+                    })
                   }}
-                  項
                 </p>
               </div>
               <div class="text-right text-base font-semibold text-emerald-950">
@@ -185,7 +198,11 @@
                     {{ vendor.name }}
                   </h3>
                   <span class="text-xs font-medium text-gray-500">
-                    {{ vendorItemCount(vendor) }} 項
+                    {{
+                      tWithParams("markets.detail.vendorItemCount", {
+                        count: vendorItemCount(vendor),
+                      })
+                    }}
                   </span>
                 </div>
                 <p class="mt-1 truncate text-sm text-gray-600">
@@ -194,7 +211,7 @@
                       .map((item) =>
                         getLocalizedMenuName(item.menuItem, currentLanguage),
                       )
-                      .join("、")
+                      .join(t("format.listSeparator"))
                   }}
                 </p>
               </article>
@@ -205,7 +222,7 @@
                 class="block text-xs font-medium uppercase tracking-wide text-emerald-800"
                 for="market-checkout-phone"
               >
-                手機末三碼
+                {{ t("markets.detail.phoneLastDigits") }}
               </label>
               <div class="flex gap-2">
                 <input
@@ -229,7 +246,7 @@
                   :aria-disabled="marketCheckoutsDisabled ? 'true' : undefined"
                   :title="
                     marketCheckoutsDisabled
-                      ? MARKET_CHECKOUT_UNAVAILABLE_LABEL
+                      ? t('markets.common.checkoutUnavailable')
                       : undefined
                   "
                   class="rounded-lg px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed"
@@ -242,10 +259,14 @@
                   @click="submitMarketCheckout"
                 >
                   <template v-if="marketCheckoutsDisabled">
-                    {{ MARKET_CHECKOUT_UNAVAILABLE_LABEL }}
+                    {{ t("markets.common.checkoutUnavailable") }}
                   </template>
                   <template v-else>
-                    {{ isSubmittingMarketCheckout ? "送出中" : "送出" }}
+                    {{
+                      isSubmittingMarketCheckout
+                        ? t("markets.detail.submitting")
+                        : t("markets.detail.submit")
+                    }}
                   </template>
                 </button>
               </div>
@@ -254,13 +275,13 @@
                 data-testid="market-checkout-unavailable-hint"
                 class="text-xs text-emerald-800"
               >
-                多攤位結帳尚未開放，可先到各攤位分別下單。
+                {{ t("markets.detail.checkoutDisabledHint") }}
               </p>
               <p
                 v-else-if="marketCart.vendors.length < 2"
                 class="text-xs text-emerald-800"
               >
-                多攤位結帳需至少選擇 2 個攤位。
+                {{ t("markets.detail.checkoutMinVendors") }}
               </p>
             </div>
 
@@ -269,8 +290,11 @@
               data-testid="market-checkout-result"
               class="rounded-lg bg-white px-3 py-2 text-sm text-emerald-900"
             >
-              已送出 {{ marketCheckoutResult.checkout.childOrders.length }}
-              筆攤位訂單。
+              {{
+                tWithParams("markets.detail.checkoutSubmitted", {
+                  count: marketCheckoutResult.checkout.childOrders.length,
+                })
+              }}
             </div>
           </section>
 
@@ -333,19 +357,21 @@
                 <h2 class="text-base font-semibold text-gray-900">
                   {{ selectedContactVendor.name }}
                 </h2>
-                <p class="text-sm text-gray-500">常見問題與聯絡方式</p>
+                <p class="text-sm text-gray-500">
+                  {{ t("markets.detail.contactTitle") }}
+                </p>
               </div>
               <button
                 type="button"
                 class="text-sm font-medium text-gray-500"
                 @click="closeContactProfile"
               >
-                關閉
+                {{ t("markets.detail.close") }}
               </button>
             </div>
 
             <div v-if="contactLoading" class="mt-4 text-sm text-gray-500">
-              載入聯絡資訊中...
+              {{ t("markets.detail.contactLoading") }}
             </div>
             <template v-else>
               <div v-if="contactProfile?.faqs.length" class="mt-4 space-y-2">
@@ -353,7 +379,7 @@
                   v-model="faqQuery"
                   type="search"
                   class="mb-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
-                  placeholder="搜尋常見問題"
+                  :placeholder="t('markets.detail.faqPlaceholder')"
                 />
                 <details
                   v-for="faq in filteredFaqs"
@@ -371,14 +397,14 @@
                   v-if="filteredFaqs.length === 0"
                   class="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-500"
                 >
-                  沒有符合的常見問題。
+                  {{ t("markets.detail.faqEmpty") }}
                 </p>
               </div>
               <div
                 v-else
                 class="mt-4 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-500"
               >
-                尚未提供常見問題。
+                {{ t("markets.detail.faqNone") }}
               </div>
 
               <div class="mt-4 grid grid-cols-2 gap-2">
@@ -397,7 +423,7 @@
                 v-if="availableContactChannels.length === 0"
                 class="mt-3 text-sm text-gray-500"
               >
-                店家尚未設定公開聯絡方式。
+                {{ t("markets.detail.contactNone") }}
               </p>
             </template>
           </section>
@@ -454,23 +480,13 @@ import { getLocalizedMenuName } from "@/utils/localized-menu-content";
 import { useFeatureAvailability } from "@/composables/useFeatureAvailability";
 import { orderApi, type MarketCheckoutResponse } from "@/services/orderApi";
 
-/**
- * TODO(i18n): this view is entirely hard-coded zh-TW, and the customer locale
- * bundles were being edited in another branch when this landed, so no key was
- * added. Move to a shared translation key when the locales settle.
- */
-const MARKET_CHECKOUT_UNAVAILABLE_LABEL = "尚未開放";
-
 const route = useRoute();
 const router = useRouter();
 const toast = useToast();
 const store = useMarketsStore();
 const marketCartStore = useMarketCartStore();
 const { formatPrice } = useCurrency();
-// Only the locale is needed here: this view's own copy is still hard-coded
-// Chinese, but the item names in the cart summary come from the shop and must
-// follow the visitor's language like every other menu name does.
-const { currentLanguage } = useI18n();
+const { t, tWithParams, currentLanguage } = useI18n();
 const { isDisabled } = useFeatureAvailability();
 const marketCheckoutsDisabled = computed(() => isDisabled("marketCheckouts"));
 const MarketLocationMap = defineAsyncComponent(
@@ -606,7 +622,9 @@ const returnContext = computed(() => {
   const path = firstQueryString(route.query.returnPath).trim();
   if (!path || !path.startsWith("/") || path.startsWith("//")) return null;
 
-  const label = firstQueryString(route.query.returnLabel).trim() || "上一頁";
+  const label =
+    firstQueryString(route.query.returnLabel).trim() ||
+    t("markets.detail.previousPage");
   return { path, label };
 });
 const menuItemCategoryFacets = computed(
@@ -654,12 +672,20 @@ const isCatalogSyncing = computed(
 const catalogCoverageLabel = computed(() => {
   const labels: string[] = [];
   if (searchableProductCount.value > 0) {
-    labels.push(`${searchableProductCount.value} 項商品`);
+    labels.push(
+      tWithParams("markets.detail.coverageProducts", {
+        count: searchableProductCount.value,
+      }),
+    );
   }
   if (publicServiceCount.value > 0) {
-    labels.push(`${publicServiceCount.value} 項服務`);
+    labels.push(
+      tWithParams("markets.detail.coverageServices", {
+        count: publicServiceCount.value,
+      }),
+    );
   }
-  return labels.join("、");
+  return labels.join(t("format.listSeparator"));
 });
 const isPublicSetupIncomplete = computed(
   () => store.selectedMarket?.publicReadiness?.ready === false,
@@ -680,19 +706,6 @@ const canSubmitMarketCheckout = computed(
     !isSubmittingMarketCheckout.value &&
     !marketCheckoutResult.value,
 );
-
-const serviceTypeLabels: Record<
-  NonNullable<SearchFilters["serviceType"]>,
-  string
-> = {
-  general: "一般服務",
-  booking: "預約",
-  pickup: "自取",
-  delivery: "外送",
-  consultation: "諮詢",
-  rental: "租借",
-  activity: "活動",
-};
 
 const slug = () => String(route.params.slug);
 
@@ -862,7 +875,7 @@ async function startTakeawayForRestaurant(
 ) {
   const result = await discoveryApi.getTakeawayEligibility(restaurantId);
   if (!result.eligible) {
-    store.error = "目前無法從 Discovery 直接外帶。";
+    store.error = "discovery.takeawayUnavailable";
     return;
   }
   router.push({
@@ -959,13 +972,13 @@ function syncShortcutSearchState(state: MarketSearchState) {
 function serviceTypeLabel(
   serviceType: NonNullable<SearchFilters["serviceType"]>,
 ) {
-  return serviceTypeLabels[serviceType] ?? serviceType;
+  return t(`markets.serviceType.${serviceType}`);
 }
 
 function marketReturnQuery() {
   return shopMenuReturnQuery({
     path: currentMarketPath(),
-    label: store.selectedMarket?.name ?? "市場",
+    label: store.selectedMarket?.name ?? t("markets.detail.fallbackTitle"),
   });
 }
 
@@ -1018,7 +1031,7 @@ async function toggleFavorite() {
   } catch (error) {
     toggleFavoriteMarket(store.selectedMarket);
     isFavorite.value = !nextFavorite;
-    toast.error("無法同步市場追蹤狀態，請稍後再試。");
+    toast.error(t("markets.detail.favoriteSyncFailed"));
     console.error("Failed to sync market favorite:", error);
   }
 }
@@ -1050,7 +1063,7 @@ async function submitMarketCheckout() {
 
     marketCheckoutResult.value = checkout;
     marketCartStore.clearMarket(checkoutMarketSlug);
-    toast.success("市場訂單已送出");
+    toast.success(t("markets.detail.checkoutSuccess"));
     router.push({
       name: "MarketCheckoutTracking",
       params: {
@@ -1060,7 +1073,7 @@ async function submitMarketCheckout() {
     });
   } catch (error) {
     console.error("Market checkout failed:", error);
-    toast.error(error instanceof Error ? error.message : "市場訂單送出失敗");
+    toast.error(t("markets.detail.checkoutFailed"));
   } finally {
     isSubmittingMarketCheckout.value = false;
   }
@@ -1077,7 +1090,7 @@ async function openContactProfile(vendor: MarketVendor) {
     );
   } catch (error) {
     console.error("Failed to load contact profile:", error);
-    store.error = "無法載入店家聯絡資訊。";
+    store.error = "markets.loadContactFailed";
   } finally {
     contactLoading.value = false;
   }

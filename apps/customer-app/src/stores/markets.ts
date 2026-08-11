@@ -28,6 +28,10 @@ export const useMarketsStore = defineStore("markets", () => {
   const marketLimit = ref(DEFAULT_MARKET_LIMIT);
   const loading = ref(false);
   const vendorsLoading = ref(false);
+  /**
+   * An i18n key, never prose — the views render it through `t()`. A server
+   * message baked in here can only ever be in one language.
+   */
   const error = ref<string | null>(null);
 
   const hasMarkets = computed(
@@ -52,7 +56,8 @@ export const useMarketsStore = defineStore("markets", () => {
       page.value = response.page;
       marketLimit.value = response.limit;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : "Failed to load markets";
+      console.error("Market list load failed:", e);
+      error.value = "markets.loadListFailed";
     } finally {
       loading.value = false;
     }
@@ -76,7 +81,8 @@ export const useMarketsStore = defineStore("markets", () => {
       page.value = response.page;
       marketLimit.value = response.limit;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : "Failed to load markets";
+      console.error("Market list load failed:", e);
+      error.value = "markets.loadListFailed";
     } finally {
       loading.value = false;
     }
@@ -89,8 +95,8 @@ export const useMarketsStore = defineStore("markets", () => {
       const response = await marketsApi.findNearby(params);
       nearbyMarkets.value = response.markets;
     } catch (e) {
-      error.value =
-        e instanceof Error ? e.message : "Failed to load nearby markets";
+      console.error("Nearby market load failed:", e);
+      error.value = "markets.loadNearbyFailed";
     } finally {
       loading.value = false;
     }
@@ -105,7 +111,8 @@ export const useMarketsStore = defineStore("markets", () => {
       vendorCount.value = response.vendorCount;
       explorationSummary.value = response.explorationSummary ?? null;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : "Failed to load market";
+      console.error("Market detail load failed:", e);
+      error.value = "markets.loadDetailFailed";
       selectedMarket.value = null;
       explorationSummary.value = null;
     } finally {
@@ -127,7 +134,8 @@ export const useMarketsStore = defineStore("markets", () => {
       vendorPage.value = response.page;
       vendorLimit.value = response.limit;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : "Failed to load vendors";
+      console.error("Market vendor load failed:", e);
+      error.value = "markets.loadVendorsFailed";
     } finally {
       vendorsLoading.value = false;
     }
@@ -152,7 +160,8 @@ export const useMarketsStore = defineStore("markets", () => {
       vendorPage.value = response.page;
       vendorLimit.value = response.limit;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : "Failed to load vendors";
+      console.error("Market vendor load failed:", e);
+      error.value = "markets.loadVendorsFailed";
     } finally {
       vendorsLoading.value = false;
     }

@@ -1,5 +1,15 @@
+import { ref } from "vue";
 import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@/composables/useI18n", () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    tWithParams: (key: string, params: Record<string, unknown>) =>
+      `${key}:${Object.values(params).join(",")}`,
+    currentLanguage: ref("zh-TW"),
+  }),
+}));
 import StallMapInMarket from "@/components/markets/StallMapInMarket.vue";
 import type { MarketVendor } from "@/services/marketsApi";
 
@@ -45,19 +55,19 @@ describe("StallMapInMarket", () => {
       },
     });
 
-    expect(wrapper.text()).toContain("攤位示意圖");
+    expect(wrapper.text()).toContain("markets.stallMap.defaultTitle");
     expect(wrapper.text()).toContain("入口");
-    expect(wrapper.text()).toContain("動線");
-    expect(wrapper.text()).toContain("出口");
-    expect(wrapper.text()).toContain("3 攤");
-    expect(wrapper.text()).toContain("3 營業中");
+    expect(wrapper.text()).toContain("markets.stallMap.aisle");
+    expect(wrapper.text()).toContain("markets.stallMap.exit");
+    expect(wrapper.text()).toContain("markets.common.stallCount:3");
+    expect(wrapper.text()).toContain("markets.stallMap.openCount:3");
     expect(wrapper.text()).toContain("入口第一排");
     expect(wrapper.text()).toContain("文華路側");
-    expect(wrapper.text()).toContain("攤位 A-02");
-    expect(wrapper.text()).toContain("攤位 A-10");
-    expect(wrapper.text()).toContain("攤位 B-01");
-    expect(wrapper.text()).toContain("菜單 3");
-    expect(wrapper.text()).toContain("服務 1");
+    expect(wrapper.text()).toContain("markets.common.stallWithNumber:A-02");
+    expect(wrapper.text()).toContain("markets.common.stallWithNumber:A-10");
+    expect(wrapper.text()).toContain("markets.common.stallWithNumber:B-01");
+    expect(wrapper.text()).toContain("markets.stallMap.menuCount:3");
+    expect(wrapper.text()).toContain("markets.stallMap.serviceCount:1");
   });
 
   it("renders positioned vendors on the stall map when map coordinates exist", async () => {
@@ -129,9 +139,9 @@ describe("StallMapInMarket", () => {
         .findAll('[data-testid^="stall-map-vendor-"]')
         .map((node) => node.text()),
     ).toEqual([
-      expect.stringContaining("攤位 A-01"),
-      expect.stringContaining("攤位 A-02"),
-      expect.stringContaining("攤位 A-10"),
+      expect.stringContaining("markets.common.stallWithNumber:A-01"),
+      expect.stringContaining("markets.common.stallWithNumber:A-02"),
+      expect.stringContaining("markets.common.stallWithNumber:A-10"),
     ]);
   });
 
@@ -149,9 +159,9 @@ describe("StallMapInMarket", () => {
       },
     });
 
-    expect(wrapper.text()).toContain("0 營業中");
-    expect(wrapper.text()).toContain("休息");
-    expect(wrapper.text()).toContain("資料補齊中");
+    expect(wrapper.text()).toContain("markets.stallMap.openCount:0");
+    expect(wrapper.text()).toContain("markets.common.closedShort");
+    expect(wrapper.text()).toContain("markets.common.dataPending");
   });
 
   it("opens a vendor from the stall map", async () => {

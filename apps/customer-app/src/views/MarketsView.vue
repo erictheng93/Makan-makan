@@ -5,7 +5,7 @@
         <button
           type="button"
           class="text-gray-500 hover:text-gray-700"
-          aria-label="返回"
+          :aria-label="t('markets.common.back')"
           @click="$router.back()"
         >
           <svg
@@ -22,7 +22,9 @@
             />
           </svg>
         </button>
-        <h1 class="text-lg font-semibold text-gray-900">夜市與商圈</h1>
+        <h1 class="text-lg font-semibold text-gray-900">
+          {{ t("markets.directory.title") }}
+        </h1>
       </div>
     </nav>
 
@@ -38,13 +40,13 @@
             data-testid="markets-search-input"
             type="search"
             class="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
-            placeholder="搜尋夜市、商圈或標籤"
+            :placeholder="t('markets.directory.searchPlaceholder')"
           />
           <button
             type="submit"
             class="h-10 shrink-0 rounded-lg bg-ios-blue px-4 text-sm font-medium text-white"
           >
-            搜尋
+            {{ t("markets.common.search") }}
           </button>
         </form>
         <div class="flex gap-2">
@@ -54,7 +56,7 @@
             class="h-10 flex-1 rounded-lg border border-gray-300 px-3 text-sm focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
             @change="onCityChange"
           >
-            <option value="">全部城市</option>
+            <option value="">{{ t("markets.directory.allCities") }}</option>
             <option
               v-for="area in marketAreas"
               :key="area.city"
@@ -69,7 +71,7 @@
             class="h-10 flex-1 rounded-lg border border-gray-300 px-3 text-sm focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
             @change="reloadList"
           >
-            <option value="">全部區域</option>
+            <option value="">{{ t("markets.directory.allDistricts") }}</option>
             <option v-for="item in districts" :key="item" :value="item">
               {{ item }}
             </option>
@@ -81,13 +83,13 @@
           class="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:border-ios-blue focus:outline-none focus:ring-2 focus:ring-ios-blue/20"
           @change="reloadList"
         >
-          <option value="">全部類型</option>
+          <option value="">{{ t("markets.directory.allTypes") }}</option>
           <option
             v-for="option in MARKET_TYPE_OPTIONS"
             :key="option.value"
             :value="option.value"
           >
-            {{ option.label }}
+            {{ t(option.labelKey) }}
           </option>
         </select>
         <button
@@ -96,22 +98,28 @@
           :disabled="locating"
           @click="loadNearby"
         >
-          {{ locating ? "定位中..." : "找附近夜市" }}
+          {{
+            locating
+              ? t("markets.common.locating")
+              : t("markets.directory.findNearby")
+          }}
         </button>
       </section>
 
       <div v-if="store.loading" class="py-12 text-center text-sm text-gray-500">
-        載入中...
+        {{ t("markets.common.loading") }}
       </div>
       <div
         v-else-if="store.error"
         class="py-8 text-center text-sm text-red-500"
       >
-        {{ store.error }}
+        {{ t(store.error) }}
       </div>
       <template v-else>
         <section v-if="favoriteMarkets.length > 0" class="space-y-3">
-          <h2 class="text-sm font-medium text-gray-700">追蹤的市場</h2>
+          <h2 class="text-sm font-medium text-gray-700">
+            {{ t("markets.directory.favorites") }}
+          </h2>
           <MarketCard
             v-for="market in favoriteMarkets"
             :key="`favorite-${market.id}`"
@@ -121,7 +129,9 @@
         </section>
 
         <section v-if="recentMarkets.length > 0" class="space-y-3">
-          <h2 class="text-sm font-medium text-gray-700">最近訪問</h2>
+          <h2 class="text-sm font-medium text-gray-700">
+            {{ t("markets.directory.recentVisits") }}
+          </h2>
           <MarketCard
             v-for="market in recentMarkets"
             :key="`recent-${market.id}`"
@@ -131,7 +141,9 @@
         </section>
 
         <section v-if="recentCheckouts.length > 0" class="space-y-3">
-          <h2 class="text-sm font-medium text-gray-700">最近市場訂單</h2>
+          <h2 class="text-sm font-medium text-gray-700">
+            {{ t("markets.directory.recentOrders") }}
+          </h2>
           <!-- Kept visible but inert while the API has market checkouts
                switched off. The tracking screen this opens does nothing but
                read /market-checkouts, so following the link would land the
@@ -146,7 +158,7 @@
             :aria-disabled="marketCheckoutsDisabled ? 'true' : undefined"
             :title="
               marketCheckoutsDisabled
-                ? MARKET_CHECKOUT_UNAVAILABLE_LABEL
+                ? t('markets.common.checkoutUnavailable')
                 : undefined
             "
             :disabled="marketCheckoutsDisabled"
@@ -169,10 +181,14 @@
               "
             >
               <template v-if="marketCheckoutsDisabled">
-                {{ MARKET_CHECKOUT_UNAVAILABLE_LABEL }}
+                {{ t("markets.common.checkoutUnavailable") }}
               </template>
               <template v-else>
-                {{ checkout.childOrderCount }} 攤 ·
+                {{
+                  tWithParams("markets.directory.checkoutStallCount", {
+                    count: checkout.childOrderCount,
+                  })
+                }}
                 {{ marketCheckoutPaymentLabel(checkout.paymentStatus) }}
               </template>
             </span>
@@ -180,7 +196,9 @@
         </section>
 
         <section v-if="store.nearbyMarkets.length > 0" class="space-y-3">
-          <h2 class="text-sm font-medium text-gray-700">附近</h2>
+          <h2 class="text-sm font-medium text-gray-700">
+            {{ t("markets.directory.nearby") }}
+          </h2>
           <MarketCard
             v-for="market in store.nearbyMarkets"
             :key="`nearby-${market.id}`"
@@ -190,7 +208,9 @@
         </section>
 
         <section class="space-y-3">
-          <h2 class="text-sm font-medium text-gray-700">所有夜市與商圈</h2>
+          <h2 class="text-sm font-medium text-gray-700">
+            {{ t("markets.directory.allMarkets") }}
+          </h2>
           <MarketCard
             v-for="market in store.markets"
             :key="market.id"
@@ -205,15 +225,15 @@
             <span class="block text-sm font-medium text-gray-700">
               {{
                 hasDirectoryFilters
-                  ? "沒有符合目前條件的夜市或商圈"
-                  : "尚未收錄可瀏覽的夜市或商圈"
+                  ? t("markets.directory.emptyFiltered")
+                  : t("markets.directory.emptyNoData")
               }}
             </span>
             <span class="mt-1 block text-sm text-gray-500">
               {{
                 hasDirectoryFilters
-                  ? "可清除搜尋條件，或改用城市、行政區重新查找。"
-                  : "資料上架後會在這裡顯示可搜尋的夜市、商圈與店鋪。"
+                  ? t("markets.directory.emptyFilteredDesc")
+                  : t("markets.directory.emptyNoDataDesc")
               }}
             </span>
             <button
@@ -223,7 +243,7 @@
               class="mt-4 h-9 rounded-lg border border-ios-blue px-3 text-sm font-medium text-ios-blue"
               @click="clearFilters"
             >
-              清除條件
+              {{ t("markets.common.clearFilters") }}
             </button>
           </div>
           <button
@@ -234,7 +254,11 @@
             :disabled="store.loading"
             @click="loadMoreMarkets"
           >
-            {{ store.loading ? "載入中..." : "載入更多市場" }}
+            {{
+              store.loading
+                ? t("markets.common.loading")
+                : t("markets.directory.loadMoreMarkets")
+            }}
           </button>
         </section>
       </template>
@@ -264,17 +288,12 @@ import {
 } from "@/utils/marketCheckouts";
 import { isMarketType, MARKET_TYPE_OPTIONS } from "@/utils/marketTypes";
 import { useFeatureAvailability } from "@/composables/useFeatureAvailability";
-
-/**
- * TODO(i18n): this view is entirely hard-coded zh-TW, and the customer locale
- * bundles were being edited in another branch when this landed, so no key was
- * added. Move to a shared translation key when the locales settle.
- */
-const MARKET_CHECKOUT_UNAVAILABLE_LABEL = "尚未開放";
+import { useI18n } from "@/composables/useI18n";
 
 const router = useRouter();
 const route = useRoute();
 const store = useMarketsStore();
+const { t, tWithParams } = useI18n();
 const { isDisabled } = useFeatureAvailability();
 const marketCheckoutsDisabled = computed(() => isDisabled("marketCheckouts"));
 const query = ref(firstQueryString(route.query.q));
@@ -464,7 +483,7 @@ function openMarket(market: MarketListItem) {
     params: { slug: market.slug },
     query: {
       returnPath: currentDirectoryPath(),
-      returnLabel: "夜市與商圈",
+      returnLabel: t("markets.directory.title"),
     },
   });
 }
@@ -493,15 +512,7 @@ onMounted(() => {
 function marketCheckoutPaymentLabel(
   status: StoredMarketCheckout["paymentStatus"],
 ) {
-  const labels = {
-    pending: "待付款",
-    partial_paid: "部分付款",
-    paid: "已付款",
-    failed: "付款失敗",
-    refunded: "已退款",
-    partial_refunded: "部分退款",
-  };
-  return labels[status];
+  return t(`markets.checkoutStatus.${status}`);
 }
 
 function storedMarketToListItem(

@@ -1,7 +1,17 @@
+import { ref } from "vue";
 import { mount } from "@vue/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import VendorListInMarket from "@/components/markets/VendorListInMarket.vue";
 import type { MarketVendor } from "@/services/marketsApi";
+
+vi.mock("@/composables/useI18n", () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    tWithParams: (key: string, params: Record<string, unknown>) =>
+      `${key}:${Object.values(params).join(",")}`,
+    currentLanguage: ref("zh-TW"),
+  }),
+}));
 
 vi.mock("vue-i18n", async (importOriginal) => {
   const actual = await importOriginal<typeof import("vue-i18n")>();
@@ -9,6 +19,9 @@ vi.mock("vue-i18n", async (importOriginal) => {
     ...actual,
     useI18n: () => ({
       t: (key: string) => key,
+      tWithParams: (key: string, params: Record<string, unknown>) =>
+        `${key}:${Object.values(params).join(",")}`,
+      currentLanguage: ref("zh-TW"),
     }),
   };
 });
@@ -118,14 +131,14 @@ describe("VendorListInMarket", () => {
       },
     });
 
-    expect(wrapper.text()).toContain("攤位 A-01");
+    expect(wrapper.text()).toContain("markets.common.stallWithNumber:A-01");
     expect(wrapper.text()).toContain("文華路入口第一排");
     expect(
       wrapper.get('[data-testid="open-vendor-menu-restaurant-1"]').text(),
-    ).toBe("查看菜單/商品");
+    ).toBe("markets.common.viewMenu");
     expect(
       wrapper.get('[data-testid="open-vendor-services-restaurant-1"]').text(),
-    ).toBe("查看服務");
+    ).toBe("markets.common.viewServices");
 
     await wrapper
       .get('[data-testid="open-vendor-menu-restaurant-1"]')
@@ -163,9 +176,11 @@ describe("VendorListInMarket", () => {
     });
 
     expect(wrapper.get('[data-testid="vendor-market-hours"]').text()).toContain(
-      "夜市時段",
+      "markets.vendors.marketHours",
     );
-    expect(wrapper.text()).toContain("一 17:00-23:00");
+    expect(wrapper.text()).toContain(
+      "markets.weekday.short.monday 17:00-23:00",
+    );
   });
 
   it("keeps the service entry disabled when a vendor has no public services", () => {
@@ -300,9 +315,9 @@ describe("VendorListInMarket", () => {
       '[data-testid="vendor-availability-restaurant-2"]',
     );
 
-    expect(readyVendor.text()).toContain("菜單/商品 3 項");
-    expect(readyVendor.text()).toContain("服務 2 項");
-    expect(emptyVendor.text()).toContain("尚無菜單/商品");
-    expect(emptyVendor.text()).toContain("尚無服務");
+    expect(readyVendor.text()).toContain("markets.common.menuItemCount:3");
+    expect(readyVendor.text()).toContain("markets.common.serviceCount:2");
+    expect(emptyVendor.text()).toContain("markets.common.noMenuItems");
+    expect(emptyVendor.text()).toContain("markets.common.noServices");
   });
 });
