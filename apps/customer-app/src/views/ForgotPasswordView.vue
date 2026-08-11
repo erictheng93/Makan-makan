@@ -1,241 +1,135 @@
 <template>
-  <div
-    class="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 py-12 px-4 sm:px-6 lg:px-8"
-  >
-    <div class="max-w-md w-full space-y-8">
-      <!-- Logo 和標題 -->
+  <div class="min-h-screen bg-ios-bg py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full mx-auto space-y-8">
       <div class="text-center">
         <div
-          class="mx-auto w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center mb-4 shadow-lg"
+          class="mx-auto w-16 h-16 bg-ios-blue rounded-2xl flex items-center justify-center mb-4 shadow-[0_4px_16px_rgba(0,122,255,0.24)]"
         >
           <span class="text-white font-bold text-2xl">M</span>
         </div>
-        <h2 class="text-3xl font-bold text-gray-900">
+        <h2 class="text-3xl font-bold text-ios-text">
           {{ t("auth.forgotPasswordTitle") }}
         </h2>
-        <p class="mt-2 text-sm text-gray-600">
-          {{ t("auth.forgotPasswordDesc") }}
-        </p>
       </div>
 
-      <!-- 成功訊息 -->
       <div
-        v-if="success"
-        class="bg-green-50 border-l-4 border-green-400 p-4 rounded-lg"
+        class="bg-ios-card rounded-3xl shadow-[0_4px_16px_rgba(0,0,0,0.06)] p-8"
       >
-        <div class="flex items-center">
-          <svg
-            class="w-6 h-6 text-green-400 mr-3"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <!-- 送出後的答覆對「帳號存在」與否完全一致，前端不得再細分 -->
+        <div v-if="sent" data-testid="sent-panel">
+          <div
+            class="w-12 h-12 rounded-full bg-ios-green/10 flex items-center justify-center mb-4"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
+            <svg
+              class="w-6 h-6 text-ios-green"
+              fill="none"
+              stroke="currentColor"
               stroke-width="2"
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <div>
-            <p class="text-sm font-medium text-green-800">
-              {{ successMessage }}
-            </p>
-            <p class="text-xs text-green-700 mt-1">
-              {{ t("auth.checkEmailInfo") }}
-            </p>
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
+            </svg>
           </div>
+          <p class="text-sm text-ios-secondary">
+            {{ t("auth.forgotPasswordSent") }}
+          </p>
         </div>
-        <button
-          class="mt-4 w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-          @click="$router.push('/login')"
-        >
-          {{ t("auth.backToLogin") }}
-        </button>
-      </div>
 
-      <!-- 忘記密碼表單 -->
-      <div
-        v-if="!success"
-        class="bg-ios-card rounded-3xl shadow-[0_4px_16px_rgb(0,0,0,0.06)] p-8"
-      >
-        <form class="space-y-6" @submit.prevent="handleSubmit">
-          <!-- Email 輸入 -->
+        <form v-else class="space-y-5" @submit.prevent="handleSubmit">
+          <p class="text-sm text-ios-secondary">
+            {{ t("auth.forgotPasswordDesc") }}
+          </p>
+
           <div>
             <label
-              for="email"
-              class="block text-sm font-medium text-gray-700 mb-2"
+              for="identifier"
+              class="block text-sm font-medium text-ios-text mb-2"
             >
-              {{ t("auth.emailAddress") }}
+              {{ t("auth.identifier") }}
             </label>
             <input
-              id="email"
-              v-model="form.email"
-              type="email"
+              id="identifier"
+              v-model="identifier"
+              type="text"
               required
-              autocomplete="email"
-              class="w-full px-4 py-3 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
-              :class="{ 'border-red-500': errors.email }"
-              :placeholder="t('auth.emailPlaceholderForgot')"
+              autocomplete="username"
+              data-testid="identifier-input"
+              class="w-full px-4 py-3 bg-ios-bg rounded-2xl text-ios-text placeholder:text-ios-tertiary focus:ring-2 focus:ring-ios-blue focus:bg-white transition"
+              :placeholder="t('auth.identifierPlaceholder')"
             />
-            <p v-if="errors.email" class="mt-1 text-sm text-red-600">
-              {{ errors.email }}
+            <p v-if="fieldError" class="mt-2 text-sm text-ios-red">
+              {{ fieldError }}
             </p>
           </div>
 
-          <!-- 錯誤訊息 -->
           <div
             v-if="error"
-            class="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg"
+            data-testid="auth-error"
+            class="bg-ios-red/10 rounded-2xl px-4 py-3"
           >
-            <div class="flex items-center">
-              <svg
-                class="w-5 h-5 text-red-400 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <p class="text-sm text-red-800">{{ error }}</p>
-            </div>
+            <p class="text-sm text-ios-red">{{ error }}</p>
           </div>
 
-          <!-- 提交按鈕 -->
-          <div>
-            <button
-              type="submit"
-              :disabled="isLoading"
-              class="w-full flex justify-center items-center px-4 py-3.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full font-semibold shadow-md hover:shadow-lg transition-all duration-200"
-              :class="{ 'opacity-50 cursor-not-allowed': isLoading }"
-            >
-              <svg
-                v-if="isLoading"
-                class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                />
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-              <span>{{
-                isLoading ? t("auth.sending") : t("auth.sendResetLink")
-              }}</span>
-            </button>
-          </div>
-
-          <!-- 返回登入 -->
-          <div class="text-center">
-            <router-link
-              to="/login"
-              class="text-sm text-orange-600 hover:text-orange-700 font-medium"
-            >
-              {{ t("auth.backToLoginArrow") }}
-            </router-link>
-          </div>
+          <button
+            type="submit"
+            :disabled="isLoading"
+            data-testid="submit"
+            class="w-full bg-ios-blue text-white py-3.5 px-4 rounded-full font-semibold shadow-[0_4px_16px_rgba(0,122,255,0.24)] transition-all duration-200 ease-out hover:bg-ios-blue/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {{
+              isLoading ? t("common.loading") : t("auth.forgotPasswordSubmit")
+            }}
+          </button>
         </form>
-      </div>
 
-      <!-- 提示訊息 -->
-      <div class="text-center text-sm text-gray-600">
-        <p>{{ t("auth.noEmailReceived") }}</p>
-        <ul class="mt-2 space-y-1 text-xs">
-          <li>• {{ t("auth.checkSpam") }}</li>
-          <li>• {{ t("auth.confirmEmailCorrect") }}</li>
-          <li>• {{ t("auth.waitAndRetry") }}</li>
-        </ul>
+        <div class="mt-6 text-center">
+          <router-link
+            to="/login?mode=password"
+            data-testid="back-to-login"
+            class="text-sm text-ios-blue"
+          >
+            {{ t("auth.backToLogin") }}
+          </router-link>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from "vue";
-import { useRouter } from "vue-router";
+import { ref } from "vue";
+import { customerIdentityApi } from "@/services/customerIdentityApi";
 import { useI18n } from "@/composables/useI18n";
-import { apiClient } from "@/services/api";
 
-const _router = useRouter();
 const { t } = useI18n();
 
-const form = reactive({
-  email: "",
-});
-
-const errors = reactive({
-  email: "",
-});
-
-const error = ref("");
-const success = ref(false);
-const successMessage = ref("");
+const identifier = ref("");
 const isLoading = ref(false);
-
-interface PasswordResetResponse {
-  success?: boolean;
-  message?: string;
-}
-
-const validateForm = () => {
-  errors.email = "";
-  let isValid = true;
-
-  // Email 驗證
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!form.email) {
-    errors.email = t("auth.emailRequired");
-    isValid = false;
-  } else if (!emailRegex.test(form.email)) {
-    errors.email = t("auth.invalidEmailAddress");
-    isValid = false;
-  }
-
-  return isValid;
-};
+const sent = ref(false);
+const error = ref("");
+const fieldError = ref("");
 
 const handleSubmit = async () => {
   error.value = "";
+  fieldError.value = "";
 
-  if (!validateForm()) {
+  if (!identifier.value.trim()) {
+    fieldError.value = t("auth.identifierRequired");
     return;
   }
 
   isLoading.value = true;
 
   try {
-    const data = await apiClient.post<PasswordResetResponse>(
-      "/auth/forgot-password",
-      {
-        email: form.email,
-      },
-    );
-
-    if (data.success) {
-      success.value = true;
-      successMessage.value = data.message || t("auth.resetLinkSent");
-    } else {
-      error.value = t("auth.resetLinkFailed");
-    }
-  } catch (err) {
-    console.error("Forgot password error:", err);
+    await customerIdentityApi.forgotPassword(identifier.value.trim());
+    sent.value = true;
+  } catch (err: unknown) {
     error.value =
-      err instanceof Error ? err.message : t("messages.networkError");
+      (err instanceof Error && err.message) || t("messages.networkError");
   } finally {
     isLoading.value = false;
   }

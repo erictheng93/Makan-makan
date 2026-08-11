@@ -6,6 +6,20 @@ import type {
 } from "@makanmasak/shared-types";
 import { translate } from "@/utils/i18n";
 
+declare module "axios" {
+  interface AxiosRequestConfig {
+    /**
+     * Marks a request whose 401 *is* the answer — a password check, an OTP
+     * check, a reset/verification token check. For those the server's own
+     * message ("Invalid identifier or password", "Invalid or expired token")
+     * is what the diner needs to read, and there is no session to tear down.
+     * Every other 401 still means the access token died and is handled as
+     * such.
+     */
+    credentialCheck?: boolean;
+  }
+}
+
 // API 配置
 const getApiBaseUrl = (): string => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL;
@@ -145,7 +159,7 @@ class ApiClient {
         const { status, data } = error.response;
 
         // 處理認證錯誤
-        if (status === 401) {
+        if (status === 401 && !error.config?.credentialCheck) {
           await this.handleAuthError();
           throw new ApiException(
             "UNAUTHORIZED" as ApiErrorCode,

@@ -3,6 +3,7 @@ import { ref, computed, readonly } from "vue";
 import { getRefreshDelay } from "@makanmasak/utils";
 import {
   customerIdentityApi,
+  type CustomerRegistration,
   type CustomerSummary,
 } from "@/services/customerIdentityApi";
 import { translate as t } from "@/utils/i18n";
@@ -48,6 +49,19 @@ const toCustomerUser = (customer: CustomerSummary): CustomerUser => ({
   role: 5,
 });
 
+/**
+ * Both sign-in paths surface the server's own sentence. For a failed password
+ * login that sentence is deliberately identical whether the account is unknown
+ * or the password is wrong — never re-derive a more specific message here.
+ */
+const failureMessage = (err: unknown): string =>
+  (err instanceof Error && err.message) || t("messages.networkError");
+
+const failureCode = (err: unknown): string | undefined => {
+  const code = (err as { code?: unknown } | null)?.code;
+  return typeof code === "string" ? code : undefined;
+};
+
 export const useAuthStore = defineStore("auth", () => {
   // 狀態
   const user = ref<CustomerUser | null>(hydrateUser());
@@ -85,6 +99,25 @@ export const useAuthStore = defineStore("auth", () => {
     }
   };
 
+  /**
+   * The single place a customer session lands. OTP and password sign-in must
+   * not each keep their own copy — the moment they diverge one of the two
+   * starts skipping the proactive refresh or the persisted user.
+   */
+  const adoptSession = (session: {
+    accessToken: string;
+    customer: CustomerSummary;
+  }) => {
+    token.value = session.accessToken;
+    user.value = toCustomerUser(session.customer);
+
+    sessionStorage.setItem("customer_auth_token", session.accessToken);
+    localStorage.removeItem("customer_refresh_token");
+    persistUser(user.value);
+
+    scheduleProactiveRefresh(session.accessToken);
+  };
+
   const requestOtp = async (phone: string) => {
     isLoading.value = true;
     error.value = null;
@@ -108,22 +141,39 @@ export const useAuthStore = defineStore("auth", () => {
       const data = await customerIdentityApi.verifyOtp(phone, otp);
 
       if (data.accessToken && data.customer) {
-        token.value = data.accessToken;
-        user.value = toCustomerUser(data.customer);
-
-        sessionStorage.setItem("customer_auth_token", token.value!);
-        localStorage.removeItem("customer_refresh_token");
-        persistUser(user.value);
-
-        if (token.value) scheduleProactiveRefresh(token.value);
-
+        adoptSession(data);
         return { success: true };
       }
 
       error.value = t("auth.loginFailed");
       return { success: false, error: error.value };
-    } catch (err: any) {
-      error.value = err.message || t("messages.networkError");
+    } catch (err: unknown) {
+      error.value = failureMessage(err);
+      return { success: false, error: error.value };
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const loginWithPassword = async (identifier: string, password: string) => {
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      const data = await customerIdentityApi.loginWithPassword(
+        identifier,
+        password,
+      );
+
+      if (data.accessToken && data.customer) {
+        adoptSession(data);
+        return { success: true };
+      }
+
+      error.value = t("auth.loginFailed");
+      return { success: false, error: error.value };
+    } catch (err: unknown) {
+      error.value = failureMessage(err);
       return { success: false, error: error.value };
     } finally {
       isLoading.value = false;
@@ -135,17 +185,32 @@ export const useAuthStore = defineStore("auth", () => {
   // that still submit a phone + OTP pair.
   const login = async (phone: string, otp: string) => verifyOtp(phone, otp);
 
-  // Legacy password registration is retired in favor of phone OTP sign-in.
-  const register = async (_data: {
-    username: string;
+  /**
+   * Registration never yields a session — the identity has to be verified
+   * first, through whichever channel `verificationMethod` names. Callers must
+   * branch on it, and on the VERIFICATION_EMAIL_FAILED code: that one means
+   * the account exists but its only activation link never left the building.
+   */
+  const register = async (input: {
+    identifier: string;
     password: string;
-    fullName: string;
-    email?: string;
-    phone?: string;
-  }) => {
-    // A translation key — RegisterView renders whatever comes back here.
-    error.value = "auth.registerRetired";
-    return { success: false, error: error.value };
+    displayName: string;
+  }): Promise<
+    | { success: true; data: CustomerRegistration }
+    | { success: false; error: string; code?: string }
+  > => {
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      const data = await customerIdentityApi.register(input);
+      return { success: true, data };
+    } catch (err: unknown) {
+      error.value = failureMessage(err);
+      return { success: false, error: error.value, code: failureCode(err) };
+    } finally {
+      isLoading.value = false;
+    }
   };
 
   // 登出
@@ -250,6 +315,7 @@ export const useAuthStore = defineStore("auth", () => {
     login,
     requestOtp,
     verifyOtp,
+    loginWithPassword,
     register,
     logout,
     checkAuth,

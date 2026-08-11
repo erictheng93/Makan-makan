@@ -45,7 +45,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/register",
     name: "Register",
-    redirect: "/login",
+    component: () => import("@/views/RegisterView.vue"),
     meta: {
       titleKey: "navigation.register",
       requiresGuest: true,
@@ -60,6 +60,10 @@ const routes: RouteRecordRaw[] = [
       requiresGuest: true,
     },
   },
+  // The reset and verification links arrive from email, so they must open for
+  // whoever clicks them — including a diner who is already signed in on this
+  // device. No requiresGuest here: bouncing them to /orders would strand the
+  // token they came to spend.
   {
     path: "/reset-password",
     name: "ResetPassword",

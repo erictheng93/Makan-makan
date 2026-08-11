@@ -18,6 +18,8 @@ vi.mock("@/services/customerIdentityApi", () => ({
   customerIdentityApi: {
     requestOtp: vi.fn(),
     verifyOtp: vi.fn(),
+    loginWithPassword: vi.fn(),
+    register: vi.fn(),
     refresh: vi.fn(),
     logout: vi.fn(),
     getMe: vi.fn(),
@@ -38,6 +40,10 @@ const customer = (
 });
 
 beforeEach(() => {
+  // Sessions land in web storage, so without this a token from one case is
+  // still sitting there when the next one asserts on it.
+  sessionStorage.clear();
+  localStorage.clear();
   setActivePinia(createPinia());
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
   vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -166,18 +172,110 @@ describe("customer auth store", () => {
     expect(localStorage.getItem("customer_user")).toBeNull();
   });
 
-  it("keeps password registration retired", async () => {
+  it("lands a password session through the same path as an OTP session", async () => {
+    vi.mocked(customerIdentityApi.loginWithPassword).mockResolvedValue({
+      accessToken: "password-access",
+      expiresIn: 3600,
+      customer: customer(),
+    });
+    const store = useAuthStore();
+
+    await expect(
+      store.loginWithPassword("mei@example.com", "correct-horse-battery"),
+    ).resolves.toEqual({ success: true });
+
+    expect(customerIdentityApi.loginWithPassword).toHaveBeenCalledOnce();
+    expect(customerIdentityApi.loginWithPassword).toHaveBeenCalledWith(
+      "mei@example.com",
+      "correct-horse-battery",
+    );
+    expect(store.isAuthenticated).toBe(true);
+    expect(store.user).toMatchObject({ id: "customer-1", role: 5 });
+    expect(sessionStorage.getItem("customer_auth_token")).toBe(
+      "password-access",
+    );
+    expect(localStorage.getItem("customer_refresh_token")).toBeNull();
+    expect(JSON.parse(localStorage.getItem("customer_user")!)).toMatchObject({
+      id: "customer-1",
+      fullName: "Lin Mei",
+    });
+  });
+
+  it("passes the server's login failure through untouched", async () => {
+    // The API answers unknown accounts and wrong passwords with one identical
+    // sentence. The store must not enrich or replace it.
+    vi.mocked(customerIdentityApi.loginWithPassword).mockRejectedValue(
+      new Error("Invalid identifier or password"),
+    );
+    const store = useAuthStore();
+
+    await expect(
+      store.loginWithPassword("ghost@example.com", "whatever-long-enough"),
+    ).resolves.toEqual({
+      success: false,
+      error: "Invalid identifier or password",
+    });
+    expect(store.isAuthenticated).toBe(false);
+    expect(store.isLoading).toBe(false);
+  });
+
+  it("registers without issuing a session and reports the verification channel", async () => {
+    vi.mocked(customerIdentityApi.register).mockResolvedValue({
+      customer: {
+        id: "customer-2",
+        displayName: "Ah Hock",
+        primaryPhone: null,
+        primaryEmail: null,
+        status: "active",
+      },
+      verificationRequired: true,
+      verificationMethod: "email",
+    });
+    const store = useAuthStore();
+
+    const result = await store.register({
+      identifier: "hock@example.com",
+      password: "correct-horse-battery",
+      displayName: "Ah Hock",
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      data: { verificationMethod: "email", verificationRequired: true },
+    });
+    expect(customerIdentityApi.register).toHaveBeenCalledOnce();
+    expect(customerIdentityApi.register).toHaveBeenCalledWith(
+      expect.objectContaining({
+        identifier: "hock@example.com",
+        displayName: "Ah Hock",
+      }),
+    );
+    // Verification comes first — registration never signs anyone in.
+    expect(store.isAuthenticated).toBe(false);
+    expect(sessionStorage.getItem("customer_auth_token")).toBeNull();
+  });
+
+  it("surfaces the error code so callers can offer a resend", async () => {
+    const failure = Object.assign(
+      new Error(
+        "Account created, but the verification email could not be sent",
+      ),
+      { code: "VERIFICATION_EMAIL_FAILED" },
+    );
+    vi.mocked(customerIdentityApi.register).mockRejectedValue(failure);
     const store = useAuthStore();
 
     await expect(
       store.register({
-        username: "lin",
-        password: "secret",
-        fullName: "Lin Mei",
+        identifier: "hock@example.com",
+        password: "correct-horse-battery",
+        displayName: "Ah Hock",
       }),
     ).resolves.toEqual({
       success: false,
-      error: "auth.registerRetired",
+      error: "Account created, but the verification email could not be sent",
+      code: "VERIFICATION_EMAIL_FAILED",
     });
+    expect(store.isLoading).toBe(false);
   });
 });

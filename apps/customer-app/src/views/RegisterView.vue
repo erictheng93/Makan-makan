@@ -1,273 +1,203 @@
 <template>
-  <div
-    class="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 py-12 px-4 sm:px-6 lg:px-8"
-  >
-    <div class="max-w-md w-full space-y-8">
+  <div class="min-h-screen bg-ios-bg py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full mx-auto space-y-8">
       <!-- Logo 和標題 -->
       <div class="text-center">
         <div
-          class="mx-auto w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center mb-4 shadow-lg"
+          class="mx-auto w-16 h-16 bg-ios-blue rounded-2xl flex items-center justify-center mb-4 shadow-[0_4px_16px_rgba(0,122,255,0.24)]"
         >
           <span class="text-white font-bold text-2xl">M</span>
         </div>
-        <h2 class="text-3xl font-bold text-gray-900">MakanMasak</h2>
-        <p class="mt-2 text-sm text-gray-600">{{ t("auth.memberRegister") }}</p>
+        <h2 class="text-3xl font-bold text-ios-text">MakanMasak</h2>
+        <p class="mt-2 text-sm text-ios-secondary">
+          {{ t("auth.memberRegister") }}
+        </p>
       </div>
 
-      <!-- 註冊表單 -->
       <div
-        class="bg-ios-card rounded-3xl shadow-[0_4px_16px_rgb(0,0,0,0.06)] p-8"
+        class="bg-ios-card rounded-3xl shadow-[0_4px_16px_rgba(0,0,0,0.06)] p-8"
       >
-        <form class="space-y-5" @submit.prevent="handleSubmit">
-          <!-- 帳號輸入 -->
+        <!-- 驗證信已寄出 -->
+        <div v-if="outcome === 'email_sent'" data-testid="email-sent-panel">
+          <div
+            class="w-12 h-12 rounded-full bg-ios-green/10 flex items-center justify-center mb-4"
+          >
+            <svg
+              class="w-6 h-6 text-ios-green"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-ios-text">
+            {{ t("auth.verificationEmailSentTitle") }}
+          </h3>
+          <p class="mt-2 text-sm text-ios-secondary">
+            {{
+              tWithParams("auth.verificationEmailSentDesc", {
+                identifier: submittedIdentifier,
+              })
+            }}
+          </p>
+          <router-link
+            to="/login?mode=password"
+            class="mt-6 block w-full bg-ios-blue text-white py-3.5 px-4 rounded-full font-semibold text-center shadow-[0_4px_16px_rgba(0,122,255,0.24)] transition-all duration-200 ease-out hover:bg-ios-blue/90"
+          >
+            {{ t("auth.goToLogin") }}
+          </router-link>
+        </div>
+
+        <!-- 帳號建好了，但驗證信寄不出去（502 VERIFICATION_EMAIL_FAILED） -->
+        <div
+          v-else-if="outcome === 'email_failed'"
+          data-testid="email-failed-panel"
+        >
+          <div
+            class="w-12 h-12 rounded-full bg-ios-orange/10 flex items-center justify-center mb-4"
+          >
+            <svg
+              class="w-6 h-6 text-ios-orange"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+              />
+            </svg>
+          </div>
+          <h3 class="text-xl font-semibold text-ios-text">
+            {{ t("auth.verificationEmailFailedTitle") }}
+          </h3>
+          <p class="mt-2 text-sm text-ios-secondary">
+            {{ t("auth.verificationEmailFailedDesc") }}
+          </p>
+
+          <p
+            v-if="resendNotice"
+            data-testid="resend-notice"
+            class="mt-4 text-sm rounded-2xl px-4 py-3"
+            :class="
+              resendFailed
+                ? 'bg-ios-red/10 text-ios-red'
+                : 'bg-ios-green/10 text-ios-green'
+            "
+          >
+            {{ resendNotice }}
+          </p>
+
+          <button
+            type="button"
+            data-testid="resend-verification"
+            :disabled="isResending"
+            class="mt-6 w-full bg-ios-blue text-white py-3.5 px-4 rounded-full font-semibold shadow-[0_4px_16px_rgba(0,122,255,0.24)] transition-all duration-200 ease-out hover:bg-ios-blue/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            @click="handleResend"
+          >
+            {{
+              isResending
+                ? t("auth.resendVerificationSending")
+                : t("auth.resendVerification")
+            }}
+          </button>
+        </div>
+
+        <!-- 註冊表單 -->
+        <form v-else class="space-y-5" @submit.prevent="handleSubmit">
           <div>
             <label
-              for="username"
-              class="block text-sm font-medium text-gray-700 mb-2"
+              for="identifier"
+              class="block text-sm font-medium text-ios-text mb-2"
             >
-              {{ t("auth.username") }} <span class="text-red-500">*</span>
+              {{ t("auth.identifier") }}
             </label>
             <input
-              id="username"
-              v-model="form.username"
+              id="identifier"
+              v-model="form.identifier"
               type="text"
               required
               autocomplete="username"
-              class="w-full px-4 py-3 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
-              :class="{ 'border-red-500': errors.username }"
-              :placeholder="t('auth.usernamePlaceholder')"
+              data-testid="identifier-input"
+              class="w-full px-4 py-3 bg-ios-bg rounded-2xl text-ios-text placeholder:text-ios-tertiary focus:ring-2 focus:ring-ios-blue focus:bg-white transition"
+              :placeholder="t('auth.identifierPlaceholder')"
             />
-            <p v-if="errors.username" class="mt-1 text-sm text-red-600">
-              {{ errors.username }}
+            <p v-if="errors.identifier" class="mt-2 text-sm text-ios-red">
+              {{ errors.identifier }}
             </p>
           </div>
 
-          <!-- 姓名輸入 -->
           <div>
             <label
-              for="fullName"
-              class="block text-sm font-medium text-gray-700 mb-2"
+              for="displayName"
+              class="block text-sm font-medium text-ios-text mb-2"
             >
-              {{ t("auth.displayName") }} <span class="text-red-500">*</span>
+              {{ t("auth.displayName") }}
             </label>
             <input
-              id="fullName"
-              v-model="form.fullName"
+              id="displayName"
+              v-model="form.displayName"
               type="text"
               required
               autocomplete="name"
-              class="w-full px-4 py-3 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
-              :class="{ 'border-red-500': errors.fullName }"
+              data-testid="display-name-input"
+              class="w-full px-4 py-3 bg-ios-bg rounded-2xl text-ios-text placeholder:text-ios-tertiary focus:ring-2 focus:ring-ios-blue focus:bg-white transition"
               :placeholder="t('auth.displayNamePlaceholder')"
             />
-            <p v-if="errors.fullName" class="mt-1 text-sm text-red-600">
-              {{ errors.fullName }}
+            <p v-if="errors.displayName" class="mt-2 text-sm text-ios-red">
+              {{ errors.displayName }}
             </p>
           </div>
 
-          <!-- 密碼輸入 -->
           <div>
             <label
               for="password"
-              class="block text-sm font-medium text-gray-700 mb-2"
+              class="block text-sm font-medium text-ios-text mb-2"
             >
-              {{ t("auth.password") }} <span class="text-red-500">*</span>
+              {{ t("auth.password") }}
             </label>
-            <div class="relative">
-              <input
-                id="password"
-                v-model="form.password"
-                :type="showPassword ? 'text' : 'password'"
-                required
-                autocomplete="new-password"
-                class="w-full px-4 py-3 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition pr-12"
-                :class="{ 'border-red-500': errors.password }"
-                :placeholder="t('auth.passwordPlaceholderWithMin')"
-              />
-              <button
-                type="button"
-                class="absolute inset-y-0 right-0 pr-4 flex items-center"
-                @click="showPassword = !showPassword"
-              >
-                <svg
-                  v-if="showPassword"
-                  class="w-5 h-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                  />
-                </svg>
-                <svg
-                  v-else
-                  class="w-5 h-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-                  />
-                </svg>
-              </button>
-            </div>
-            <p v-if="errors.password" class="mt-1 text-sm text-red-600">
+            <input
+              id="password"
+              v-model="form.password"
+              type="password"
+              required
+              autocomplete="new-password"
+              data-testid="password-input"
+              class="w-full px-4 py-3 bg-ios-bg rounded-2xl text-ios-text placeholder:text-ios-tertiary focus:ring-2 focus:ring-ios-blue focus:bg-white transition"
+              :placeholder="t('auth.passwordPlaceholder')"
+            />
+            <p v-if="errors.password" class="mt-2 text-sm text-ios-red">
               {{ errors.password }}
             </p>
-          </div>
-
-          <!-- 確認密碼輸入 -->
-          <div>
-            <label
-              for="confirmPassword"
-              class="block text-sm font-medium text-gray-700 mb-2"
-            >
-              {{ t("auth.confirmPassword") }}
-              <span class="text-red-500">*</span>
-            </label>
-            <div class="relative">
-              <input
-                id="confirmPassword"
-                v-model="form.confirmPassword"
-                :type="showConfirmPassword ? 'text' : 'password'"
-                required
-                autocomplete="new-password"
-                class="w-full px-4 py-3 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition pr-12"
-                :class="{ 'border-red-500': errors.confirmPassword }"
-                :placeholder="t('auth.confirmPasswordPlaceholder')"
-              />
-              <button
-                type="button"
-                class="absolute inset-y-0 right-0 pr-4 flex items-center"
-                @click="showConfirmPassword = !showConfirmPassword"
-              >
-                <svg
-                  v-if="showConfirmPassword"
-                  class="w-5 h-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                  />
-                </svg>
-                <svg
-                  v-else
-                  class="w-5 h-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-                  />
-                </svg>
-              </button>
-            </div>
-            <p v-if="errors.confirmPassword" class="mt-1 text-sm text-red-600">
-              {{ errors.confirmPassword }}
+            <p v-else class="mt-2 text-sm text-ios-secondary">
+              {{ passwordRule }}
             </p>
           </div>
 
-          <!-- Email 輸入（選填） -->
-          <div>
-            <label
-              for="email"
-              class="block text-sm font-medium text-gray-700 mb-2"
-            >
-              {{ t("auth.email") }}
-            </label>
-            <input
-              id="email"
-              v-model="form.email"
-              type="email"
-              autocomplete="email"
-              class="w-full px-4 py-3 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
-              :class="{ 'border-red-500': errors.email }"
-              :placeholder="t('auth.emailPlaceholder')"
-            />
-            <p v-if="errors.email" class="mt-1 text-sm text-red-600">
-              {{ errors.email }}
-            </p>
+          <div
+            v-if="error"
+            data-testid="auth-error"
+            class="bg-ios-red/10 rounded-2xl px-4 py-3"
+          >
+            <p class="text-sm text-ios-red">{{ error }}</p>
           </div>
 
-          <!-- 手機號碼輸入（選填） -->
-          <div>
-            <label
-              for="phone"
-              class="block text-sm font-medium text-gray-700 mb-2"
-            >
-              {{ t("auth.phone") }}
-            </label>
-            <input
-              id="phone"
-              v-model="form.phone"
-              type="tel"
-              autocomplete="tel"
-              class="w-full px-4 py-3 bg-ios-bg rounded-xl focus:ring-2 focus:ring-orange-500 focus:bg-white transition"
-              :class="{ 'border-red-500': errors.phone }"
-              :placeholder="t('auth.phonePlaceholder')"
-            />
-            <p v-if="errors.phone" class="mt-1 text-sm text-red-600">
-              {{ errors.phone }}
-            </p>
-          </div>
-
-          <!-- 錯誤提示 -->
-          <div v-if="error" class="bg-ios-red/10 rounded-xl p-4">
-            <div class="flex items-center">
-              <svg
-                class="w-5 h-5 text-red-400 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <p class="text-sm text-red-800">{{ error }}</p>
-            </div>
-          </div>
-
-          <!-- 註冊按鈕 -->
           <button
             type="submit"
             :disabled="isLoading"
-            class="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-3.5 px-4 rounded-full font-semibold hover:from-orange-600 hover:to-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            data-testid="submit"
+            class="w-full bg-ios-blue text-white py-3.5 px-4 rounded-full font-semibold shadow-[0_4px_16px_rgba(0,122,255,0.24)] transition-all duration-200 ease-out hover:bg-ios-blue/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span v-if="isLoading" class="flex items-center justify-center">
-              <div
+              <span
                 class="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"
               />
               {{ t("auth.registering") }}
@@ -276,13 +206,13 @@
           </button>
         </form>
 
-        <!-- 登入連結 -->
-        <div class="mt-6 text-center">
-          <p class="text-sm text-gray-600">
+        <div v-if="outcome === 'form'" class="mt-6 text-center">
+          <p class="text-sm text-ios-secondary">
             {{ t("auth.hasAccount") }}
             <router-link
               to="/login"
-              class="font-medium text-orange-600 hover:text-orange-500"
+              data-testid="login-link"
+              class="font-medium text-ios-blue"
             >
               {{ t("auth.loginNow") }}
             </router-link>
@@ -290,19 +220,15 @@
         </div>
 
         <!-- 訪客繼續 -->
-        <div class="mt-4 text-center">
-          <router-link
-            to="/menu"
-            class="text-sm text-gray-500 hover:text-gray-700"
-          >
+        <div v-if="outcome === 'form'" class="mt-4 text-center">
+          <router-link to="/menu" class="text-sm text-ios-secondary">
             {{ t("auth.guestBrowse") }}
           </router-link>
         </div>
       </div>
 
-      <!-- 版權信息 -->
       <div class="text-center">
-        <p class="text-xs text-gray-500">
+        <p class="text-xs text-ios-tertiary">
           {{ tWithParams("footer.copyright", { year: currentYear }) }}
         </p>
       </div>
@@ -311,10 +237,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { customerIdentityApi } from "@/services/customerIdentityApi";
 import { useI18n } from "@/composables/useI18n";
+
+// Mirrors PASSWORD_MIN_LENGTH in apps/api/src/features/customer/routes.
+const PASSWORD_MIN_LENGTH = 10;
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -322,89 +252,53 @@ const { t, tWithParams } = useI18n();
 // The year was hard-coded alongside the English notice; both were the same bug.
 const currentYear = new Date().getFullYear();
 
-const showPassword = ref(false);
-const showConfirmPassword = ref(false);
+const outcome = ref<"form" | "email_sent" | "email_failed">("form");
 const isLoading = ref(false);
+const isResending = ref(false);
 const error = ref("");
+const resendNotice = ref("");
+const resendFailed = ref(false);
+const submittedIdentifier = ref("");
 
 const form = reactive({
-  username: "",
+  identifier: "",
   password: "",
-  confirmPassword: "",
-  fullName: "",
-  email: "",
-  phone: "",
+  displayName: "",
 });
 
 const errors = reactive({
-  username: "",
+  identifier: "",
   password: "",
-  confirmPassword: "",
-  fullName: "",
-  email: "",
-  phone: "",
+  displayName: "",
 });
 
+const passwordRule = computed(() =>
+  tWithParams("validation.minLength", { min: PASSWORD_MIN_LENGTH }),
+);
+
 const validateForm = () => {
-  // 重置錯誤
-  errors.username = "";
+  errors.identifier = "";
   errors.password = "";
-  errors.confirmPassword = "";
-  errors.fullName = "";
-  errors.email = "";
-  errors.phone = "";
+  errors.displayName = "";
 
   let isValid = true;
 
-  // 驗證帳號
-  if (!form.username.trim()) {
-    errors.username = t("auth.usernameRequired");
-    isValid = false;
-  } else if (form.username.length < 3) {
-    errors.username = t("auth.usernameMinLength");
+  if (!form.identifier.trim()) {
+    errors.identifier = t("auth.identifierRequired");
     isValid = false;
   }
 
-  // 驗證姓名
-  if (!form.fullName.trim()) {
-    errors.fullName = t("auth.displayNameRequired");
+  if (!form.displayName.trim()) {
+    errors.displayName = t("auth.displayNameRequired");
     isValid = false;
   }
 
-  // 驗證密碼
   if (!form.password) {
     errors.password = t("auth.passwordRequired");
     isValid = false;
-  } else if (form.password.length < 6) {
-    errors.password = t("auth.passwordMinLength");
+  } else if (form.password.length < PASSWORD_MIN_LENGTH) {
+    errors.password = passwordRule.value;
     isValid = false;
-  }
-
-  // 驗證確認密碼
-  if (!form.confirmPassword) {
-    errors.confirmPassword = t("auth.confirmPasswordRequired");
-    isValid = false;
-  } else if (form.password !== form.confirmPassword) {
-    errors.confirmPassword = t("auth.passwordMismatch");
-    isValid = false;
-  }
-
-  // 驗證 Email（如果有填寫）
-  if (form.email && form.email.trim()) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(form.email)) {
-      errors.email = t("auth.invalidEmail");
-      isValid = false;
-    }
-  }
-
-  // 驗證手機號碼（如果有填寫）
-  if (form.phone && form.phone.trim()) {
-    const phoneRegex = /^[0-9]{10,11}$/;
-    if (!phoneRegex.test(form.phone.replace(/[-\s]/g, ""))) {
-      errors.phone = t("auth.invalidPhone");
-      isValid = false;
-    }
   }
 
   return isValid;
@@ -415,28 +309,61 @@ const handleSubmit = async () => {
 
   isLoading.value = true;
   error.value = "";
+  const identifier = form.identifier.trim();
 
   try {
-    const registrationData = {
-      username: form.username.trim(),
+    const result = await authStore.register({
+      identifier,
       password: form.password,
-      fullName: form.fullName.trim(),
-      email: form.email.trim() || undefined,
-      phone: form.phone.trim() || undefined,
-    };
+      displayName: form.displayName.trim(),
+    });
 
-    const result = await authStore.register(registrationData);
+    if (!result.success) {
+      // The account was created; only its verification email failed to leave.
+      // Re-registering would just hit IDENTITY_EXISTS, so the only way forward
+      // is a resend — say so instead of showing a bare error.
+      if (result.code === "VERIFICATION_EMAIL_FAILED") {
+        submittedIdentifier.value = identifier;
+        outcome.value = "email_failed";
+        return;
+      }
 
-    if (result.success) {
-      // 註冊成功後自動登入並跳轉到訂單頁面
-      router.push("/orders");
-    } else {
       error.value = result.error || t("auth.registerFailed");
+      return;
     }
+
+    submittedIdentifier.value = identifier;
+
+    if (result.data.verificationMethod === "phone") {
+      // Registration already sent the code; go straight to entering it.
+      router.push({
+        path: "/login",
+        query: { phone: identifier, otpSent: "1" },
+      });
+      return;
+    }
+
+    outcome.value = "email_sent";
   } catch {
     error.value = t("auth.registerError");
   } finally {
     isLoading.value = false;
+  }
+};
+
+const handleResend = async () => {
+  isResending.value = true;
+  resendNotice.value = "";
+
+  try {
+    await customerIdentityApi.resendVerification(submittedIdentifier.value);
+    resendFailed.value = false;
+    resendNotice.value = t("auth.resendVerificationSent");
+  } catch {
+    resendFailed.value = true;
+    resendNotice.value = t("auth.resendVerificationFailed");
+  } finally {
+    isResending.value = false;
   }
 };
 

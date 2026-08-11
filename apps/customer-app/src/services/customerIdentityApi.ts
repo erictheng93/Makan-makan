@@ -32,6 +32,23 @@ export interface CustomerSession {
   customer: CustomerSummary;
 }
 
+/**
+ * `POST /customer/auth/register` answers 201 with the freshly created customer
+ * plus the channel the diner must verify through. It never returns a session —
+ * login stays blocked until the identity is verified.
+ */
+export interface CustomerRegistration {
+  customer: {
+    id: string;
+    displayName: string;
+    primaryPhone: string | null;
+    primaryEmail: string | null;
+    status: string;
+  };
+  verificationRequired: boolean;
+  verificationMethod: "email" | "phone";
+}
+
 export interface CustomerFavorite {
   id: number;
   targetType: "market" | "restaurant" | "dish";
@@ -61,10 +78,65 @@ export const customerIdentityApi = {
   },
 
   verifyOtp(phone: string, otp: string) {
-    return apiClient.post<CustomerSession>("/customer/auth/verify-otp", {
-      phone,
-      otp,
+    return apiClient.post<CustomerSession>(
+      "/customer/auth/verify-otp",
+      { phone, otp },
+      // A rejected code is this endpoint's answer, not an expired session.
+      { credentialCheck: true },
+    );
+  },
+
+  register(input: {
+    identifier: string;
+    password: string;
+    displayName: string;
+  }) {
+    return apiClient.post<CustomerRegistration>(
+      "/customer/auth/register",
+      input,
+    );
+  },
+
+  loginWithPassword(identifier: string, password: string) {
+    return apiClient.post<CustomerSession>(
+      "/customer/auth/login",
+      { identifier, password },
+      // The 401 here means "wrong credentials" and carries the one message the
+      // backend deliberately returns for both unknown accounts and bad
+      // passwords. Letting the client rewrite it to "session expired" would
+      // both mislead the diner and throw away that message.
+      { credentialCheck: true },
+    );
+  },
+
+  forgotPassword(identifier: string) {
+    return apiClient.post<{ sent: boolean }>("/customer/auth/forgot-password", {
+      identifier,
     });
+  },
+
+  resetPassword(token: string, newPassword: string) {
+    return apiClient.post<{ reset: boolean }>(
+      "/customer/auth/reset-password",
+      { token, newPassword },
+      // An expired reset link answers 401; it is not the diner's session.
+      { credentialCheck: true },
+    );
+  },
+
+  verifyEmail(token: string) {
+    return apiClient.post<{ verified: boolean }>(
+      "/customer/auth/verify-email",
+      { token },
+      { credentialCheck: true },
+    );
+  },
+
+  resendVerification(identifier: string) {
+    return apiClient.post<{ sent: boolean }>(
+      "/customer/auth/resend-verification",
+      { identifier },
+    );
   },
 
   refresh() {
