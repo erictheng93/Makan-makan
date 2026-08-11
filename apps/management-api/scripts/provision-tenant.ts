@@ -136,7 +136,7 @@ async function main(): Promise<void> {
 
   if (values.help) {
     console.log(`
-🏗️  MakanMakan Tenant Provisioning Script
+🏗️  MakanMasak Tenant Provisioning Script
 
 Usage:
   npx tsx scripts/provision-tenant.ts [options]

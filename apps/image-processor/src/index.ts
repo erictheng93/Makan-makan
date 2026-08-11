@@ -98,7 +98,7 @@ app.notFound((c) => {
 // 根路徑 - API 資訊
 app.get("/", (c) => {
   return c.json({
-    name: "MakanMakan Image Processing Service",
+    name: "MakanMasak Image Processing Service",
     version: c.env.API_VERSION || "v1",
     description:
       "Cloudflare Workers-based image processing and optimization service",
@@ -231,7 +231,7 @@ app.get("/health", async (c) => {
 // API 版本資訊端點
 app.get("/info", (c) => {
   return c.json({
-    service: "MakanMakan Image Processor",
+    service: "MakanMasak Image Processor",
     version: c.env.API_VERSION || "v1",
     environment: c.env.NODE_ENV || "development",
     buildTime: new Date().toISOString(),
@@ -607,7 +607,7 @@ async function sendDailyStats(env: Env) {
 
     if (env.SLACK_WEBHOOK_URL) {
       await sendSlackMessage(env.SLACK_WEBHOOK_URL, {
-        text: `📊 MakanMakan Image Service Daily Report - ${dateStr}`,
+        text: `📊 MakanMasak Image Service Daily Report - ${dateStr}`,
         blocks: [
           {
             type: "section",
@@ -663,7 +663,7 @@ async function sendErrorNotification(
 ) {
   try {
     const message: SlackMessage = {
-      text: "🚨 MakanMakan Image Service Error",
+      text: "🚨 MakanMasak Image Service Error",
       blocks: [
         {
           type: "section",

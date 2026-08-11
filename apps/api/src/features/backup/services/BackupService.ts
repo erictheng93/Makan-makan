@@ -1152,7 +1152,7 @@ export class BackupService {
       details: log.details as Record<string, unknown>,
       performedBy: log.performed_by,
       ipAddress: this.requestContext?.ipAddress ?? "0.0.0.0",
-      userAgent: this.requestContext?.userAgent ?? "MakanMakan-API",
+      userAgent: this.requestContext?.userAgent ?? "MakanMasak-API",
       timestamp: new Date(),
     });
   }

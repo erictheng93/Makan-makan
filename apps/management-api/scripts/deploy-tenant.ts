@@ -131,7 +131,7 @@ async function main(): Promise<void> {
 
   if (values.help) {
     console.log(`
-🚀 MakanMakan Tenant Deployment Script
+🚀 MakanMasak Tenant Deployment Script
 
 Usage:
   npx tsx scripts/deploy-tenant.ts [options]

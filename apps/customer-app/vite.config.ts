@@ -52,8 +52,8 @@ export default defineConfig({
       },
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
       manifest: {
-        name: "MakanMakan - 點餐系統",
-        short_name: "MakanMakan",
+        name: "MakanMasak - 點餐系統",
+        short_name: "MakanMasak",
         description: "便捷的餐廳點餐系統，掃描 QR Code 即可開始點餐",
         theme_color: "#3b82f6",
         background_color: "#ffffff",

@@ -1,6 +1,6 @@
 self.addEventListener("push", (event) => {
   const payload = parsePushPayload(event);
-  const title = payload.title || "MakanMakan";
+  const title = payload.title || "MakanMasak";
   const url = payload.url || "/";
 
   event.waitUntil(
