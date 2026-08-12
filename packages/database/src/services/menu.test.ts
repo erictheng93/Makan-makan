@@ -135,6 +135,14 @@ function mappedMenuItemColumnKeys(row: Record<string, unknown>): string[] {
   );
 }
 
+function rowWithTimestamps(columns: string[]): Record<string, unknown> {
+  return {
+    ...Object.fromEntries(columns.map((column) => [column, column])),
+    createdAt: new Date("2026-08-12T00:00:00.000Z"),
+    updatedAt: new Date("2026-08-12T01:00:00.000Z"),
+  };
+}
+
 describe("MenuService projection drift guards", () => {
   const menuItemColumns = Object.keys(getTableColumns(menuItems));
   const categoryColumns = Object.keys(getTableColumns(categories));
@@ -150,9 +158,7 @@ describe("MenuService projection drift guards", () => {
   });
 
   it("keeps mapDatabaseMenuItem explicit for every DB column", () => {
-    const row = Object.fromEntries(
-      menuItemColumns.map((column) => [column, column]),
-    );
+    const row = rowWithTimestamps(menuItemColumns);
 
     expect(
       findUncoveredProjectionColumns(
@@ -164,9 +170,7 @@ describe("MenuService projection drift guards", () => {
   });
 
   it("keeps getMenu category mapping explicit for every surfaced DB column", () => {
-    const row = Object.fromEntries(
-      categoryColumns.map((column) => [column, column]),
-    );
+    const row = rowWithTimestamps(categoryColumns);
     const mapped = mapMenuCategoryRow({
       ...row,
       isActive: true,
@@ -194,7 +198,7 @@ describe("MenuService projection drift guards", () => {
       {
         tableColumns: [...menuItemColumns, futureColumn],
         projectedColumns: mappedMenuItemColumnKeys(
-          Object.fromEntries(menuItemColumns.map((column) => [column, column])),
+          rowWithTimestamps(menuItemColumns),
         ),
         exemptColumns: ["deletedAt"],
       },
@@ -202,9 +206,7 @@ describe("MenuService projection drift guards", () => {
         tableColumns: [...categoryColumns, futureColumn],
         projectedColumns: Object.keys(
           mapMenuCategoryRow({
-            ...Object.fromEntries(
-              categoryColumns.map((column) => [column, column]),
-            ),
+            ...rowWithTimestamps(categoryColumns),
             isActive: true,
             isVisible: true,
             menuItems: [],
@@ -223,6 +225,34 @@ describe("MenuService projection drift guards", () => {
         ),
       ).toContain(futureColumn);
     }
+  });
+});
+
+describe("menu DTO timestamps", () => {
+  it("serializes database timestamps to the shared DTO contract", () => {
+    const createdAt = new Date("2026-08-12T00:00:00.000Z");
+    const updatedAt = new Date("2026-08-12T01:00:00.000Z");
+    const categoryColumns = Object.keys(getTableColumns(categories));
+    const menuItemColumns = Object.keys(getTableColumns(menuItems));
+
+    const category = mapMenuCategoryRow({
+      ...rowWithTimestamps(categoryColumns),
+      isActive: true,
+      isVisible: true,
+      menuItems: [],
+      createdAt,
+      updatedAt,
+    });
+    const item = mapDatabaseMenuItem({
+      ...rowWithTimestamps(menuItemColumns),
+      createdAt,
+      updatedAt,
+    });
+
+    expect(category.createdAt).toBe(createdAt.toISOString());
+    expect(category.updatedAt).toBe(updatedAt.toISOString());
+    expect(item.createdAt).toBe(createdAt.toISOString());
+    expect(item.updatedAt).toBe(updatedAt.toISOString());
   });
 });
 
@@ -374,6 +404,8 @@ describe("MenuService top-N rankings", () => {
         viewCount: 42,
         reviewCount: 7,
         rating: 4.5,
+        createdAt: new Date("2026-08-12T00:00:00.000Z"),
+        updatedAt: new Date("2026-08-12T01:00:00.000Z"),
       },
     ]);
 
@@ -553,8 +585,22 @@ describe("MenuService category visibility", () => {
       categoryRow({
         isVisible: false,
         menuItems: [
-          { id: 1, restaurantId: "restaurant-1", categoryId: 7, name: "A" },
-          { id: 2, restaurantId: "restaurant-1", categoryId: 7, name: "B" },
+          {
+            id: 1,
+            restaurantId: "restaurant-1",
+            categoryId: 7,
+            name: "A",
+            createdAt: new Date("2026-08-12T00:00:00.000Z"),
+            updatedAt: new Date("2026-08-12T01:00:00.000Z"),
+          },
+          {
+            id: 2,
+            restaurantId: "restaurant-1",
+            categoryId: 7,
+            name: "B",
+            createdAt: new Date("2026-08-12T00:00:00.000Z"),
+            updatedAt: new Date("2026-08-12T01:00:00.000Z"),
+          },
         ],
       }),
     ]);
@@ -630,6 +676,8 @@ describe("MenuService bulk create", () => {
             categoryId: 7,
             name: "Item 0",
             priceCents: 1000,
+            createdAt: new Date("2026-08-12T00:00:00.000Z"),
+            updatedAt: new Date("2026-08-12T01:00:00.000Z"),
           },
         ],
         [
@@ -639,6 +687,8 @@ describe("MenuService bulk create", () => {
             categoryId: 7,
             name: "Item 1",
             priceCents: 1001,
+            createdAt: new Date("2026-08-12T00:00:00.000Z"),
+            updatedAt: new Date("2026-08-12T01:00:00.000Z"),
           },
         ],
         [
@@ -648,6 +698,8 @@ describe("MenuService bulk create", () => {
             categoryId: 7,
             name: "Item 2",
             priceCents: 1002,
+            createdAt: new Date("2026-08-12T00:00:00.000Z"),
+            updatedAt: new Date("2026-08-12T01:00:00.000Z"),
           },
         ],
       ]);
@@ -985,6 +1037,8 @@ describe("MenuService menu item metadata", () => {
       priceCents: 1800,
       tags: ["spicy"],
       keywords: "noodle,coconut",
+      createdAt: new Date("2026-08-12T00:00:00.000Z"),
+      updatedAt: new Date("2026-08-12T01:00:00.000Z"),
     });
 
     expect(mapped).toMatchObject({
@@ -1005,6 +1059,8 @@ describe("MenuService menu item metadata", () => {
           name: "Laksa",
           priceCents: 1800,
           originalPriceCents: null,
+          createdAt: new Date("2026-08-12T00:00:00.000Z"),
+          updatedAt: new Date("2026-08-12T01:00:00.000Z"),
         },
       ]),
     };

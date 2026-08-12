@@ -188,8 +188,8 @@ export function mapMenuCategoryRow(cat: any): Category {
         : Array.isArray(cat.menuItems)
           ? cat.menuItems.length
           : undefined,
-    createdAt: cat.createdAt,
-    updatedAt: cat.updatedAt,
+    createdAt: cat.createdAt.toISOString(),
+    updatedAt: cat.updatedAt.toISOString(),
   };
 }
 
@@ -230,8 +230,8 @@ export function mapDatabaseMenuItem(item: any): MenuItem {
     rating: item.rating ?? 0,
     reviewCount: item.reviewCount ?? 0,
     viewCount: item.viewCount ?? 0,
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt,
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
   } as MenuItem;
 }
 
