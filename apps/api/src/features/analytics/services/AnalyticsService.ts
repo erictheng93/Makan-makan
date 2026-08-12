@@ -587,7 +587,10 @@ export class AnalyticsService implements IAnalyticsService {
         averageOrderValue: rawFinancialData.summary?.averageOrderValue || 0,
         taxAmount: rawFinancialData.summary?.taxAmount || 0,
         netRevenue: rawFinancialData.summary?.netRevenue || 0,
-        breakdown: rawFinancialData.revenueBreakdown || {},
+        breakdown: this.buildRevenueBreakdown(
+          filters.groupBy,
+          rawFinancialData.revenueBreakdown?.byDay ?? [],
+        ),
       };
 
       // Cache the result
@@ -607,6 +610,55 @@ export class AnalyticsService implements IAnalyticsService {
         filters,
       );
       throw new Error("Failed to retrieve financial report");
+    }
+  }
+
+  /**
+   * Reshape the one bucket list the database returns into the period-keyed
+   * breakdown this endpoint publishes.
+   *
+   * The database groups by `groupBy` and labels every bucket `date`; the
+   * response names the grain twice — once in the key, once in the label field
+   * — so the mapping has to follow the same filter that produced the buckets.
+   */
+  private buildRevenueBreakdown(
+    groupBy: AnalyticsFilters["groupBy"],
+    buckets: Array<{ date: string; revenue: number; orderCount: number }>,
+  ): FinancialReportData["breakdown"] {
+    switch (groupBy) {
+      case "week":
+        return {
+          weekly: buckets.map((bucket) => ({
+            week: bucket.date,
+            revenue: bucket.revenue,
+            orders: bucket.orderCount,
+          })),
+        };
+      case "month":
+        return {
+          monthly: buckets.map((bucket) => ({
+            month: bucket.date,
+            revenue: bucket.revenue,
+            orders: bucket.orderCount,
+          })),
+        };
+      case "year":
+        return {
+          yearly: buckets.map((bucket) => ({
+            year: bucket.date,
+            revenue: bucket.revenue,
+            orders: bucket.orderCount,
+          })),
+        };
+      // The database layer defaults to day grouping when none is given.
+      default:
+        return {
+          daily: buckets.map((bucket) => ({
+            date: bucket.date,
+            revenue: bucket.revenue,
+            orders: bucket.orderCount,
+          })),
+        };
     }
   }
 

@@ -212,6 +212,96 @@ describe("AnalyticsService revenue analytics", () => {
   );
 });
 
+describe("AnalyticsService financial report", () => {
+  let testDb: TestDatabase;
+
+  beforeAll(async () => {
+    testDb = await createTestDatabase();
+  }, REAL_D1_SETUP_TIMEOUT_MS);
+
+  afterAll(async () => {
+    await testDb?.dispose();
+  });
+
+  beforeEach(async () => {
+    await testDb.truncateAll();
+    await testDb.drizzle.insert(restaurants).values({
+      id: "analytics-restaurant",
+      name: "Analytics Test Restaurant",
+      type: "casual",
+      category: "testing",
+      address: "1 Test Road",
+      district: "Test District",
+      phone: "0912345678",
+    });
+  });
+
+  it("reports the tax carried in the orders and the revenue net of it", async () => {
+    await testDb.drizzle.insert(orders).values([
+      order("fin-1", "F-001", "2026-02-02T12:00:00.000Z", 21000, {
+        taxAmountCents: 1000,
+      }),
+      order("fin-2", "F-002", "2026-02-03T12:00:00.000Z", 10500, {
+        taxAmountCents: 500,
+      }),
+      order("fin-cancelled", "F-003", "2026-02-03T13:00:00.000Z", 90000, {
+        taxAmountCents: 9000,
+        status: "cancelled",
+      }),
+    ]);
+
+    const service = new AnalyticsService(testDb.bindings.DB, {} as never);
+
+    const report = await service.getFinancialReport({
+      restaurantId: "analytics-restaurant",
+      dateFrom: "2026-02-01T00:00:00.000Z",
+      dateTo: "2026-02-05T00:00:00.000Z",
+      groupBy: "day",
+    });
+
+    expect(report.summary).toMatchObject({
+      totalRevenue: 315,
+      totalOrders: 2,
+      taxAmount: 15,
+      netRevenue: 300,
+    });
+  });
+
+  it("sums tax only over the buckets the revenue total kept", async () => {
+    // getRevenueAnalytics caps its bucket list at `limit`. A range-wide tax
+    // sum would subtract the dropped day's tax from a revenue total that never
+    // included that day's revenue, dragging netRevenue below the truth.
+    await testDb.drizzle.insert(orders).values([
+      order("cap-1", "G-001", "2026-02-02T12:00:00.000Z", 21000, {
+        taxAmountCents: 1000,
+      }),
+      order("cap-2", "G-002", "2026-02-03T12:00:00.000Z", 10500, {
+        taxAmountCents: 500,
+      }),
+      order("cap-dropped", "G-003", "2026-02-04T12:00:00.000Z", 50000, {
+        taxAmountCents: 5000,
+      }),
+    ]);
+
+    const service = new AnalyticsService(testDb.bindings.DB, {} as never);
+
+    const report = await service.getFinancialReport({
+      restaurantId: "analytics-restaurant",
+      dateFrom: "2026-02-01T00:00:00.000Z",
+      dateTo: "2026-02-05T00:00:00.000Z",
+      groupBy: "day",
+      limit: 2,
+    });
+
+    expect(report.summary).toMatchObject({
+      totalRevenue: 315,
+      taxAmount: 15,
+      netRevenue: 300,
+    });
+    expect(report.summary.netRevenue).toBeGreaterThan(0);
+  });
+});
+
 function order(
   id: string,
   orderNumber: string,

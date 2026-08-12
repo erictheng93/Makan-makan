@@ -896,6 +896,50 @@ export class AnalyticsService extends BaseService {
     }));
   }
 
+  /**
+   * Sum the tax already carried inside the order totals.
+   *
+   * Scoped to the buckets `revenueData` actually holds rather than to the raw
+   * date filter: getRevenueAnalytics caps its result at `limit` buckets, so a
+   * range-wide sum would subtract tax from days the revenue total never
+   * counted and push netRevenue below the truth.
+   */
+  private async getTaxTotal(
+    filters: AnalyticsFilters,
+    revenueData: RevenueData[],
+  ): Promise<number> {
+    if (revenueData.length === 0) return 0;
+
+    const { restaurantId, dateFrom, dateTo, groupBy = "day" } = filters;
+    const conditions = [];
+    if (restaurantId) {
+      conditions.push(eq(orders.restaurantId, restaurantId));
+    }
+    if (dateFrom) {
+      conditions.push(gte(orders.createdAt, new Date(dateFrom)));
+    }
+    if (dateTo) {
+      conditions.push(lte(orders.createdAt, new Date(dateTo)));
+    }
+    // Same population as the revenue query it is netted against.
+    conditions.push(sql`${orders.status} != 'cancelled'`);
+
+    const dateGroupSql = this.getDateGroupSQL(groupBy);
+    conditions.push(
+      inArray(
+        sql<string>`${dateGroupSql}`,
+        revenueData.map((item) => item.date),
+      ),
+    );
+
+    const [row] = await this.db
+      .select({ tax: sumMoneyAmount(orders.taxAmountCents) })
+      .from(orders)
+      .where(and(...conditions));
+
+    return Number(row?.tax) || 0;
+  }
+
   private async getComparisonRevenueByDate(
     filters: AnalyticsFilters,
     revenueData: RevenueDataRow[],
@@ -1313,6 +1357,8 @@ export class AnalyticsService extends BaseService {
       totalRevenue: number;
       totalOrders: number;
       averageOrderValue: number;
+      taxAmount: number;
+      netRevenue: number;
       growthRate: number;
     };
     revenueBreakdown: {
@@ -1348,6 +1394,7 @@ export class AnalyticsService extends BaseService {
         0,
       );
       const projections = this.buildRevenueProjections(revenueData);
+      const taxAmount = await this.getTaxTotal(filters, revenueData);
 
       // Period-over-period growth: build a same-length prior window
       // immediately preceding the current one and compare revenue.
@@ -1378,6 +1425,10 @@ export class AnalyticsService extends BaseService {
           totalRevenue,
           totalOrders,
           averageOrderValue: totalRevenue / (totalOrders || 1),
+          taxAmount,
+          // totalRevenue is gross (tax_amount_cents is part of the order
+          // total), so net is what the restaurant keeps once tax is handed on.
+          netRevenue: totalRevenue - taxAmount,
           growthRate,
         },
         revenueBreakdown: {

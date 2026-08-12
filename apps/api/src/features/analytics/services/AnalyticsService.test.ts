@@ -321,8 +321,20 @@ describe("AnalyticsService", () => {
         taxAmount: 25,
         netRevenue: 475,
       },
+      // The database layer returns one `byDay` bucket list at the grain the
+      // filters asked for, labelled `date` and counting `orderCount`. This
+      // endpoint republishes it under the period-named key.
       revenueBreakdown: {
-        daily: [{ date: "2026-06-07", revenue: 500, orders: 10 }],
+        byDay: [
+          {
+            date: "2026-06-07",
+            revenue: 500,
+            orderCount: 10,
+            averageOrderValue: 50,
+          },
+        ],
+        byCategory: [],
+        topItems: [],
       },
     });
 
