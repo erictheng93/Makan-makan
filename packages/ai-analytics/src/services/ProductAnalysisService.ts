@@ -58,8 +58,34 @@ interface DailyMetric {
   revenue: number;
 }
 
+interface DrizzleQuery<TResult> extends PromiseLike<TResult[]> {
+  leftJoin(table: unknown, on: unknown): DrizzleQuery<TResult>;
+  innerJoin(table: unknown, on: unknown): DrizzleQuery<TResult>;
+  where(condition: unknown): DrizzleQuery<TResult>;
+  groupBy(...columns: unknown[]): DrizzleQuery<TResult>;
+  orderBy(...columns: unknown[]): DrizzleQuery<TResult>;
+}
+
+export interface DrizzleDb {
+  select<TResult extends object>(
+    selection: Record<string, unknown>,
+  ): {
+    from(table: unknown): DrizzleQuery<TResult>;
+  };
+}
+
+type ProductAnalysisRow = RawProductMetrics & {
+  dailyData: DailyMetric[];
+  trendScore: number;
+  growthRate: number;
+  salesRank: number;
+  revenueRank: number;
+  profitRank?: number;
+  categories: ProductCategory[];
+};
+
 export class ProductAnalysisService {
-  constructor(private db: any) {}
+  constructor(private db: DrizzleDb) {}
 
   /**
    * Analyze all products for a restaurant within a time range
@@ -241,7 +267,7 @@ export class ProductAnalysisService {
     const endMs = new Date(endDate + "T23:59:59.999Z").getTime();
 
     const result = await this.db
-      .select({
+      .select<RawProductMetrics>({
         menu_item_id: menuItems.id,
         menu_item_name: menuItems.name,
         category: sql<string>`COALESCE(${categories.name}, '')`,
@@ -277,7 +303,7 @@ export class ProductAnalysisService {
       .groupBy(menuItems.id)
       .orderBy(sql`COUNT(DISTINCT ${orders.id}) DESC`);
 
-    return result as RawProductMetrics[];
+    return result;
   }
 
   /**
@@ -292,7 +318,7 @@ export class ProductAnalysisService {
     const endMs = new Date(endDate + "T23:59:59.999Z").getTime();
 
     const result = await this.db
-      .select({
+      .select<DailyMetric>({
         date: sql<string>`DATE(${orders.createdAt} / 1000, 'unixepoch')`,
         orders: sql<number>`COUNT(*)`,
         revenue: sql<number>`COALESCE(SUM(${orderItems.totalPriceCents}), 0) / 100.0`,
@@ -309,7 +335,7 @@ export class ProductAnalysisService {
       .groupBy(sql`DATE(${orders.createdAt} / 1000, 'unixepoch')`)
       .orderBy(sql`DATE(${orders.createdAt} / 1000, 'unixepoch') ASC`);
 
-    return result as DailyMetric[];
+    return result;
   }
 
   private calculateTrendScore(dailyData: DailyMetric[]): number {
@@ -442,7 +468,9 @@ export class ProductAnalysisService {
     return categories;
   }
 
-  private toProductAnalysis = (product: any): ProductAnalysis => {
+  private toProductAnalysis = (
+    product: ProductAnalysisRow,
+  ): ProductAnalysis => {
     const profitMargin =
       product.unit_cost !== null
         ? (product.unit_price - product.unit_cost) / product.unit_price

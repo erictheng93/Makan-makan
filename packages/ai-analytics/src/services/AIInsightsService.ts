@@ -6,6 +6,7 @@
 import { getCurrentTimestamp } from "@makanmasak/database";
 import { v7 as uuidv7 } from "uuid";
 import { createProvider } from "../providers";
+import type { BaseLLMProvider } from "../providers";
 import type {
   AIAnalyticsReport,
   AIInsight,
@@ -14,6 +15,7 @@ import type {
   TimeRangeParams,
 } from "../types";
 import { ProductAnalysisService } from "./ProductAnalysisService";
+import type { DrizzleDb } from "./ProductAnalysisService";
 
 interface D1Database {
   prepare(query: string): D1PreparedStatement;
@@ -51,10 +53,12 @@ export class AIInsightsService {
 
   constructor(
     private db: D1Database,
-    drizzleDb?: any,
+    drizzleDb?: DrizzleDb,
   ) {
     // ProductAnalysisService uses Drizzle Layer 2 queries
-    this.productAnalysis = new ProductAnalysisService(drizzleDb || db);
+    this.productAnalysis = new ProductAnalysisService(
+      drizzleDb ?? (db as unknown as DrizzleDb),
+    );
   }
 
   /**
@@ -292,7 +296,7 @@ export class AIInsightsService {
    */
   private async generateInsights(
     metrics: BusinessMetrics,
-    llmProvider: any,
+    llmProvider: BaseLLMProvider,
     _llmConfig: LLMConfig,
   ): Promise<AIInsight[]> {
     const prompt = this.buildInsightsPrompt(metrics);
@@ -338,7 +342,7 @@ export class AIInsightsService {
   private async generateExecutiveSummary(
     metrics: BusinessMetrics,
     insights: AIInsight[],
-    llmProvider: any,
+    llmProvider: BaseLLMProvider,
   ): Promise<string> {
     const prompt = `
 基於以下業務數據和洞察，生成一份簡潔的執行摘要（200-300字）：
@@ -382,8 +386,8 @@ ${insights
    */
   private async generateForecast(
     metrics: BusinessMetrics,
-    _llmProvider: any,
-  ): Promise<any> {
+    _llmProvider: BaseLLMProvider,
+  ): Promise<NonNullable<AIAnalyticsReport["forecast"]>> {
     // Simple forecasting based on recent trends
     const recentDays = metrics.dailyMetrics.slice(-7);
     const avgDailyRevenue =

@@ -85,7 +85,7 @@ export type ProductCategory =
  * Product analysis metrics
  */
 export interface ProductAnalysis {
-  menuItemId: string;
+  menuItemId: number;
   menuItemName: string;
   category: string;
 

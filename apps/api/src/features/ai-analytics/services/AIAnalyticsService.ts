@@ -10,9 +10,12 @@ import {
   getDefaultModel,
   getAvailableModels,
 } from "@makanmasak/ai-analytics";
-import { drizzle } from "drizzle-orm/d1";
 import { eq, sql, and } from "drizzle-orm";
-import { aiConfigurations, aiUsageLogs } from "@makanmasak/database";
+import {
+  aiConfigurations,
+  aiUsageLogs,
+  createDatabase,
+} from "@makanmasak/database";
 import { encrypt, decrypt } from "@makanmasak/utils";
 import { badRequest } from "../../../shared/utils/api-error";
 import type { LLMConfig } from "@makanmasak/ai-analytics";
@@ -37,7 +40,7 @@ export class AIAnalyticsService {
 
   constructor(d1: D1Database, encryptionKey: string) {
     this.d1 = d1;
-    this.db = drizzle(d1);
+    this.db = createDatabase(d1);
     this.encryptionKey = encryptionKey;
   }
 
