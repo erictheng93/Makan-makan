@@ -12,6 +12,7 @@ import {
   ne,
   sql,
   sum,
+  type SQL,
 } from "drizzle-orm";
 import {
   categories,
@@ -40,6 +41,13 @@ const FULFILLED_ORDER_STATUSES: readonly string[] = [
   "delivered",
   "served",
 ];
+
+type RevenueDataRow = {
+  date: string;
+  revenue: number;
+  orderCount: number;
+  averageOrderValue: number;
+};
 
 export interface DateRange {
   dateFrom?: string;
@@ -140,8 +148,21 @@ export interface DashboardData {
       orderGrowth: number;
     };
   };
-  recentOrders: any[];
-  topSellingItems: any[];
+  recentOrders: Array<{
+    id: string;
+    orderNumber: string;
+    status: string;
+    totalAmount: number;
+    customerInfo: (typeof orders.$inferSelect)["customerInfo"];
+    tableNumber: string | null;
+    createdAt: Date;
+  }>;
+  topSellingItems: Array<{
+    itemId: number;
+    itemName: string;
+    quantity: number;
+    revenue: number;
+  }>;
   tableStatus: {
     occupied: number;
     available: number;
@@ -851,20 +872,163 @@ export class AnalyticsService extends BaseService {
 
   // 輔助函數：添加對比資料
   private async addComparisonData(
-    revenueData: any[],
-    _filters: AnalyticsFilters,
+    revenueData: RevenueDataRow[],
+    filters: AnalyticsFilters,
   ): Promise<RevenueData[]> {
-    // 這裡可以實現對比資料的邏輯，比如同期對比
+    const comparisonByDate = await this.getComparisonRevenueByDate(
+      filters,
+      revenueData,
+    );
+
     return revenueData.map((item) => ({
       date: item.date,
       revenue: Number(item.revenue) || 0,
       orderCount: item.orderCount,
       averageOrderValue: Number(item.averageOrderValue) || 0,
       comparison: {
-        previousRevenue: 0, // 實現具體的對比邏輯
-        growthRate: 0,
+        previousRevenue: comparisonByDate.get(item.date) ?? 0,
+        growthRate: this.calculateGrowthRate(
+          Number(item.revenue) || 0,
+          comparisonByDate.get(item.date) ?? 0,
+        ),
       },
     }));
+  }
+
+  private async getComparisonRevenueByDate(
+    filters: AnalyticsFilters,
+    revenueData: RevenueDataRow[],
+  ): Promise<Map<string, number>> {
+    if (revenueData.length === 0) return new Map();
+
+    const {
+      restaurantId,
+      dateFrom,
+      dateTo,
+      groupBy = "day",
+      limit = 30,
+    } = filters;
+    const conditions = [];
+    if (restaurantId) {
+      conditions.push(eq(orders.restaurantId, restaurantId));
+    }
+    conditions.push(sql`${orders.status} != 'cancelled'`);
+
+    if (dateFrom && dateTo) {
+      const dateRange = this.getPreviousDateRange(dateFrom, dateTo);
+      if (dateRange) {
+        conditions.push(gte(orders.createdAt, dateRange.dateFrom));
+        conditions.push(lte(orders.createdAt, dateRange.dateTo));
+
+        const comparisonData = await this.db
+          .select({
+            date: sql<string>`${this.getShiftedDateGroupSQL(
+              groupBy,
+              dateRange.spanMs,
+            )}`,
+            revenue: sumMoneyAmount(orders.totalAmountCents),
+          })
+          .from(orders)
+          .where(and(...conditions))
+          .groupBy(
+            sql`${this.getShiftedDateGroupSQL(groupBy, dateRange.spanMs)}`,
+          )
+          .limit(limit);
+
+        return new Map(
+          comparisonData.map((item) => [item.date, Number(item.revenue) || 0]),
+        );
+      }
+    }
+
+    const dateGroupSql = this.getDateGroupSQL(groupBy);
+    const priorBuckets = revenueData.map((item) =>
+      this.getPreviousBucketDate(item.date, groupBy),
+    );
+    conditions.push(inArray(sql<string>`${dateGroupSql}`, priorBuckets));
+
+    const comparisonData = await this.db
+      .select({
+        date: sql<string>`${dateGroupSql}`,
+        revenue: sumMoneyAmount(orders.totalAmountCents),
+      })
+      .from(orders)
+      .where(and(...conditions))
+      .groupBy(sql`${dateGroupSql}`)
+      .limit(limit);
+
+    const priorRevenueByDate = new Map(
+      comparisonData.map((item) => [item.date, Number(item.revenue) || 0]),
+    );
+
+    return new Map(
+      revenueData.map((item) => [
+        item.date,
+        priorRevenueByDate.get(
+          this.getPreviousBucketDate(item.date, groupBy),
+        ) ?? 0,
+      ]),
+    );
+  }
+
+  private getPreviousDateRange(
+    dateFrom: string,
+    dateTo: string,
+  ): { dateFrom: Date; dateTo: Date; spanMs: number } | undefined {
+    const fromMs = new Date(dateFrom).getTime();
+    const toMs = new Date(dateTo).getTime();
+    const span = toMs - fromMs;
+    if (!Number.isFinite(fromMs) || !Number.isFinite(toMs) || span < 0) {
+      return undefined;
+    }
+
+    return {
+      dateFrom: new Date(fromMs - span),
+      dateTo: new Date(fromMs),
+      spanMs: span,
+    };
+  }
+
+  private getShiftedDateGroupSQL(
+    groupBy: NonNullable<AnalyticsFilters["groupBy"]>,
+    shiftMs: number,
+  ): SQL {
+    const shiftedDateSql = sql`((${orders.createdAt} + ${shiftMs}) / 1000)`;
+
+    switch (groupBy) {
+      case "day":
+        return sql`DATE(${shiftedDateSql}, 'unixepoch')`;
+      case "week":
+        return sql`strftime('%Y-W%W', ${shiftedDateSql}, 'unixepoch')`;
+      case "month":
+        return sql`strftime('%Y-%m', ${shiftedDateSql}, 'unixepoch')`;
+      case "year":
+        return sql`strftime('%Y', ${shiftedDateSql}, 'unixepoch')`;
+    }
+  }
+
+  private getPreviousBucketDate(
+    value: string,
+    groupBy: NonNullable<AnalyticsFilters["groupBy"]>,
+  ): string {
+    const date = this.parseAnalyticsDate(value);
+
+    switch (groupBy) {
+      case "day":
+        date.setUTCDate(date.getUTCDate() - 1);
+        break;
+      case "week":
+        date.setUTCDate(date.getUTCDate() - 7);
+        break;
+      case "month":
+        date.setUTCMonth(date.getUTCMonth() - 1);
+        break;
+      case "year":
+        date.setUTCFullYear(date.getUTCFullYear() - 1);
+        break;
+    }
+
+    return this.formatAnalyticsDate(date, groupBy);
   }
 
   // 取得效能分析 (Referenced in API routes)
@@ -873,7 +1037,12 @@ export class AnalyticsService extends BaseService {
     kitchenEfficiency: number;
     tableUtilization: number;
     customerSatisfaction: number;
-    trends: any[];
+    trends: Array<{
+      date: string;
+      revenue: number;
+      orderCount: number;
+      averageOrderValue: number;
+    }>;
   }> {
     try {
       const { restaurantId, dateFrom, dateTo } = filters;
@@ -913,7 +1082,7 @@ export class AnalyticsService extends BaseService {
     averageWaitTime: number;
     occupiedTables: number;
     todayRevenue: number;
-    alerts: any[];
+    alerts: Array<{ type: string; severity: string; message: string }>;
   }> {
     try {
       const dashboardData = await this.getDashboardData(restaurantId);
@@ -1007,10 +1176,23 @@ export class AnalyticsService extends BaseService {
 
   // 取得詳細效能分析 (Referenced in API routes)
   async getDetailedPerformanceAnalytics(filters: AnalyticsFilters): Promise<{
-    overview: any;
-    kitchenMetrics: any;
-    serviceMetrics: any;
-    customerMetrics: any;
+    overview: {
+      totalOrders: number;
+      completionRate: number;
+      averageOrderValue: number;
+    };
+    kitchenMetrics: {
+      averagePreparationTime: number;
+      efficiency: number;
+    };
+    serviceMetrics: {
+      orderProcessingTime: number;
+      tableUtilization: number;
+    };
+    customerMetrics: {
+      satisfaction: number;
+      totalCustomers: number;
+    };
     recommendations: string[];
   }> {
     try {
@@ -1052,11 +1234,29 @@ export class AnalyticsService extends BaseService {
     restaurantId: string,
     filters: AnalyticsFilters,
   ): Promise<{
-    financialSummary: any;
-    operationalMetrics: any;
-    staffPerformance: any;
-    customerInsights: any;
-    businessTrends: any[];
+    financialSummary: {
+      monthRevenue: number;
+      todayRevenue: number;
+      revenueGrowth: number;
+      averageOrderValue: number;
+    };
+    operationalMetrics: {
+      totalOrders: number;
+      tableUtilization: number;
+      occupiedTables: number;
+      availableTables: number;
+    };
+    staffPerformance: {
+      averageServiceTime: number;
+      staffEfficiency: number;
+    };
+    customerInsights: {
+      totalCustomers: number;
+      newCustomers: number;
+      returningCustomers: number;
+      customerLifetimeValue: number;
+    };
+    businessTrends: RevenueData[];
   }> {
     try {
       const dashboardData = await this.getDashboardData(restaurantId);
@@ -1106,11 +1306,31 @@ export class AnalyticsService extends BaseService {
 
   // 取得財務報告 (Referenced in API routes)
   async getFinancialReport(filters: AnalyticsFilters): Promise<{
-    summary: any;
-    revenueBreakdown: any;
-    expenseAnalysis: any;
-    profitability: any;
-    projections: any[];
+    summary: {
+      totalRevenue: number;
+      totalOrders: number;
+      averageOrderValue: number;
+      growthRate: number;
+    };
+    revenueBreakdown: {
+      byDay: RevenueData[];
+      byCategory: MenuAnalytics["categoryPerformance"];
+      topItems: MenuAnalytics["popularItems"];
+    };
+    expenseAnalysis: {
+      totalExpenses: number;
+      expenseCategories: unknown[];
+    };
+    profitability: {
+      grossProfit: number;
+      netProfit: number;
+      profitMargin: number;
+    };
+    projections: Array<{
+      date: string;
+      projectedRevenue: number;
+      basis: string;
+    }>;
   }> {
     try {
       const revenueData = await this.getRevenueAnalytics(filters);
@@ -1207,15 +1427,72 @@ export class AnalyticsService extends BaseService {
   }
 
   private parseAnalyticsDate(value: string): Date {
-    const normalized = /^\d{4}-W\d{2}$/.test(value)
-      ? `${value.slice(0, 4)}-01-01`
-      : /^\d{4}$/.test(value)
-        ? `${value}-01-01`
-        : /^\d{4}-\d{2}$/.test(value)
-          ? `${value}-01`
-          : value;
+    const weekMatch = /^(?<year>\d{4})-W(?<week>\d{2})$/.exec(value);
+    if (weekMatch?.groups) {
+      return this.parseSqliteWeekDate(
+        Number(weekMatch.groups.year),
+        Number(weekMatch.groups.week),
+      );
+    }
+
+    const normalized = /^\d{4}$/.test(value)
+      ? `${value}-01-01`
+      : /^\d{4}-\d{2}$/.test(value)
+        ? `${value}-01`
+        : value;
     const parsed = new Date(normalized);
     return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  }
+
+  private parseSqliteWeekDate(year: number, week: number): Date {
+    const yearStart = new Date(Date.UTC(year, 0, 1));
+    if (week === 0) return yearStart;
+
+    const firstMonday = new Date(yearStart);
+    const day = firstMonday.getUTCDay();
+    firstMonday.setUTCDate(
+      firstMonday.getUTCDate() + (day === 1 ? 0 : (8 - day) % 7),
+    );
+    firstMonday.setUTCDate(firstMonday.getUTCDate() + (week - 1) * 7);
+    return firstMonday;
+  }
+
+  private formatAnalyticsDate(
+    date: Date,
+    groupBy: NonNullable<AnalyticsFilters["groupBy"]>,
+  ): string {
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(date.getUTCDate()).padStart(2, "0");
+
+    switch (groupBy) {
+      case "day":
+        return `${year}-${month}-${day}`;
+      case "week": {
+        const week = this.getSqliteWeekNumber(date);
+        return `${year}-W${String(week).padStart(2, "0")}`;
+      }
+      case "month":
+        return `${year}-${month}`;
+      case "year":
+        return String(year);
+    }
+  }
+
+  private getSqliteWeekNumber(date: Date): number {
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    const firstMonday = new Date(yearStart);
+    const day = firstMonday.getUTCDay();
+    firstMonday.setUTCDate(
+      firstMonday.getUTCDate() + (day === 1 ? 0 : (8 - day) % 7),
+    );
+
+    if (date < firstMonday) return 0;
+    return (
+      Math.floor(
+        (date.getTime() - firstMonday.getTime()) / (7 * 24 * 60 * 60 * 1000),
+      ) + 1
+    );
   }
 
   // 取得效能報告
