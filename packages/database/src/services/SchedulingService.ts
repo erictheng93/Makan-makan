@@ -91,6 +91,27 @@ export interface EmployeeSchedule {
   updatedAt: Date;
 }
 
+type CreateScheduleData = Pick<
+  EmployeeSchedule,
+  | "restaurantId"
+  | "employeeId"
+  | "workDate"
+  | "startTime"
+  | "endTime"
+  | "scheduledHours"
+  | "createdBy"
+> &
+  Partial<
+    Pick<
+      EmployeeSchedule,
+      | "shiftTemplateId"
+      | "breakDurationMinutes"
+      | "notes"
+      | "managerNotes"
+      | "updatedBy"
+    >
+  >;
+
 export interface SchedulingConflict {
   id: number;
   restaurantId: string;
@@ -477,16 +498,7 @@ export class SchedulingService extends BaseService {
     };
   }
 
-  async createSchedule(
-    data: Partial<EmployeeSchedule> & {
-      restaurantId: string;
-      employeeId: string;
-      workDate: string;
-      startTime: string;
-      endTime: string;
-      scheduledHours: number;
-    },
-  ): Promise<EmployeeSchedule> {
+  async createSchedule(data: CreateScheduleData): Promise<EmployeeSchedule> {
     await this.assertEmployeesInRestaurant(
       [data.employeeId],
       data.restaurantId,
@@ -520,7 +532,7 @@ export class SchedulingService extends BaseService {
           overtimeHours: 0,
           createdAt: new Date(),
           updatedAt: new Date(),
-        } as any)
+        })
         .returning() as BatchItem<"sqlite">,
     ]);
     const [newSchedule] =
