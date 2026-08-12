@@ -74,19 +74,6 @@ export const exportQuerySchema = queryWithRestaurantId({
 // Real-time dashboard query schema
 export const realtimeDashboardQuerySchema = queryWithRestaurantId({});
 
-// Detailed performance query schema
-export const detailedPerformanceQuerySchema = queryWithRestaurantId({
-  ...analyticsQueryShape,
-  includeStaffMetrics: z
-    .string()
-    .transform((val) => val === "true")
-    .prefault("false"),
-  includeItemAnalysis: z
-    .string()
-    .transform((val) => val === "true")
-    .prefault("false"),
-});
-
 // Owner dashboard query schema
 export const ownerDashboardQuerySchema = queryWithRestaurantId({});
 
@@ -127,9 +114,6 @@ export type PerformanceQuery = z.infer<typeof performanceQuerySchema>;
 export type ExportQuery = z.infer<typeof exportQuerySchema>;
 export type RealtimeDashboardQuery = z.infer<
   typeof realtimeDashboardQuerySchema
->;
-export type DetailedPerformanceQuery = z.infer<
-  typeof detailedPerformanceQuerySchema
 >;
 export type OwnerDashboardQuery = z.infer<typeof ownerDashboardQuerySchema>;
 export type FinancialReportQuery = z.infer<typeof financialReportQuerySchema>;

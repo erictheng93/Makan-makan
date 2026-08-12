@@ -15,7 +15,6 @@ import {
   performanceQuerySchema,
   exportQuerySchema,
   realtimeDashboardQuerySchema,
-  detailedPerformanceQuerySchema,
   ownerDashboardQuerySchema,
   financialReportQuerySchema,
   sseQuerySchema,
@@ -452,47 +451,6 @@ routes.get(
       success: true,
       data: realtimeData,
       timestamp: realtimeData.timestamp,
-    });
-  },
-);
-
-/**
- * Detailed performance analytics endpoint
- * GET /api/v1/analytics/detailed-performance
- */
-routes.get(
-  "/detailed-performance",
-  authMiddleware,
-  requireRole([0, 1, 2]), // Admin, Owner, Chef
-  validateQuery(detailedPerformanceQuerySchema),
-  async (c) => {
-    const query = c.get("validatedQuery");
-    const user = c.get("user");
-
-    const analyticsService: IAnalyticsService = new AnalyticsService(
-      c.env.DB,
-      c.env,
-      c.env.CACHE_KV,
-    );
-
-    // For non-admin users, only show their restaurant data
-    const filters = {
-      ...query,
-      restaurantId:
-        user.role >= 1
-          ? user.restaurantId == null
-            ? undefined
-            : String(user.restaurantId)
-          : query.restaurantId,
-    };
-
-    const detailedPerformanceData =
-      await analyticsService.getPerformanceAnalytics(filters);
-
-    return c.json({
-      success: true,
-      data: detailedPerformanceData,
-      timestamp: new Date().toISOString(),
     });
   },
 );

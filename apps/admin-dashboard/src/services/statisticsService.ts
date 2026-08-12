@@ -62,28 +62,6 @@ export interface PerformanceTrend {
   revenue: number;
 }
 
-export interface StaffMetric {
-  id: number;
-  username: string;
-  full_name: string;
-  role: number;
-  orders_handled: number;
-  orders_completed: number;
-  avg_handling_time: number;
-  completion_rate: number;
-}
-
-export interface ItemAnalysis {
-  id: number;
-  item_name: string;
-  category_name: string;
-  order_count: number;
-  avg_prep_time: number;
-  successful_orders: number;
-  success_rate: number;
-  total_revenue: number;
-}
-
 export interface StatisticsDashboardData {
   realtime_stats: RealtimeStats;
   kpis: KPIMetrics;
@@ -92,27 +70,6 @@ export interface StatisticsDashboardData {
   avg_time_by_category: CategoryTime[];
   hourly_completion_rate: HourlyCompletionRate[];
   performance_trend: PerformanceTrend[];
-}
-
-export interface DetailedPerformanceData {
-  summary: {
-    total_orders: number;
-    completed_orders: number;
-    cancelled_orders: number;
-    avg_completion_time: number;
-    fastest_completion: number;
-    slowest_completion: number;
-    median_completion_time: number;
-    total_revenue: number;
-  };
-  staff_metrics: StaffMetric[];
-  item_analysis: ItemAnalysis[];
-  trends: PerformanceTrend[];
-  period: {
-    from?: string;
-    to?: string;
-    groupBy: string;
-  };
 }
 
 class StatisticsService {
@@ -144,25 +101,6 @@ class StatisticsService {
     avg_time_by_category: [],
     hourly_completion_rate: [],
     performance_trend: [],
-  });
-
-  public detailedPerformance = reactive<DetailedPerformanceData>({
-    summary: {
-      total_orders: 0,
-      completed_orders: 0,
-      cancelled_orders: 0,
-      avg_completion_time: 0,
-      fastest_completion: 0,
-      slowest_completion: 0,
-      median_completion_time: 0,
-      total_revenue: 0,
-    },
-    staff_metrics: [],
-    item_analysis: [],
-    trends: [],
-    period: {
-      groupBy: "day",
-    },
   });
 
   public isLoading = ref(false);
@@ -212,58 +150,6 @@ class StatisticsService {
   }
 
   // Detailed performance data fetching
-  public async fetchDetailedPerformance(
-    options: {
-      restaurantId?: string;
-      dateFrom?: string;
-      dateTo?: string;
-      groupBy?: "day" | "week" | "month" | "year";
-      limit?: number;
-      includeStaffMetrics?: boolean;
-      includeItemAnalysis?: boolean;
-    } = {},
-  ): Promise<void> {
-    if (this.isLoading.value) return;
-
-    this.isLoading.value = true;
-    this.error.value = null;
-
-    try {
-      const params = new URLSearchParams({
-        groupBy: options.groupBy || "day",
-        limit: (options.limit || 30).toString(),
-        includeStaffMetrics: (options.includeStaffMetrics || false).toString(),
-        includeItemAnalysis: (options.includeItemAnalysis || false).toString(),
-      });
-
-      if (options.restaurantId)
-        params.append("restaurantId", options.restaurantId.toString());
-      if (options.dateFrom) params.append("dateFrom", options.dateFrom);
-      if (options.dateTo) params.append("dateTo", options.dateTo);
-
-      const response = await api.get(
-        `/analytics/detailed-performance?${params}`,
-      );
-
-      if (response.data.success) {
-        Object.assign(this.detailedPerformance, response.data.data);
-        this.lastUpdated.value = new Date();
-      } else {
-        const errorObj =
-          response.data.error || "Failed to fetch detailed performance data";
-        throw new Error(
-          typeof errorObj === "string" ? errorObj : JSON.stringify(errorObj),
-        );
-      }
-    } catch (error) {
-      this.error.value =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      console.error("Failed to fetch detailed performance data:", error);
-    } finally {
-      this.isLoading.value = false;
-    }
-  }
-
   // Auto refresh functionality
   public startAutoRefresh(): void {
     if (this.refreshTimer) {
@@ -404,7 +290,6 @@ class StatisticsService {
     return JSON.stringify(
       {
         dashboard_data: this.dashboardData,
-        detailed_performance: this.detailedPerformance,
         exported_at: new Date().toISOString(),
       },
       null,

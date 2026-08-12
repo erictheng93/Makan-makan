@@ -258,7 +258,7 @@ describe("analytics routes", () => {
     );
   });
 
-  it("generates exports and detailed analytics reports", async () => {
+  it("generates exports and does not expose unsupported detailed analytics", async () => {
     let response = await request(
       "/export?restaurantId=other&type=revenue&format=csv&limit=10",
     ).res;
@@ -276,14 +276,7 @@ describe("analytics routes", () => {
     response = await request(
       "/detailed-performance?restaurantId=other&includeStaffMetrics=true&includeItemAnalysis=true",
     ).res;
-    expect(response.status).toBe(200);
-    expect(serviceFns.getPerformanceAnalytics).toHaveBeenCalledWith(
-      expect.objectContaining({
-        restaurantId: "rest-1",
-        includeStaffMetrics: true,
-        includeItemAnalysis: true,
-      }),
-    );
+    expect(response.status).toBe(404);
 
     response = await request(
       "/financial-report?restaurantId=other&period=daily",

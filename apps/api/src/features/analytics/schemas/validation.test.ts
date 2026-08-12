@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   analyticsQuerySchema,
   dateRangeSchema,
-  detailedPerformanceQuerySchema,
   exportQuerySchema,
   financialReportQuerySchema,
   revenueQuerySchema,
@@ -21,19 +20,10 @@ describe("analytics validation schemas", () => {
     });
   });
 
-  it("transforms boolean-like query flags", () => {
+  it("transforms the revenue comparison flag", () => {
     expect(
       revenueQuerySchema.parse({ includeComparison: "true" }).includeComparison,
     ).toBe(true);
-    expect(
-      detailedPerformanceQuerySchema.parse({
-        includeStaffMetrics: "false",
-        includeItemAnalysis: "true",
-      }),
-    ).toMatchObject({
-      includeStaffMetrics: false,
-      includeItemAnalysis: true,
-    });
   });
 
   it("validates export and financial report query enums", () => {
