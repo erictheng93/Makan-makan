@@ -2,7 +2,7 @@
   {
     "tableName": "ai_configurations",
     "schemaFile": "packages/database/src/schema/ai-analytics.ts",
-    "line": 16,
+    "line": 15,
     "category": "leaf_local",
     "migrationPlan": "retain",
     "rationale": "Per-restaurant singleton configuration; restaurant_id is the stable external identity."
@@ -10,7 +10,7 @@
   {
     "tableName": "ai_usage_logs",
     "schemaFile": "packages/database/src/schema/ai-analytics.ts",
-    "line": 50,
+    "line": 49,
     "category": "audit_log",
     "migrationPlan": "retain",
     "rationale": "Append-only operational log with no public identifier contract."
@@ -386,7 +386,7 @@
   {
     "tableName": "seats",
     "schemaFile": "packages/database/src/schema/seats.ts",
-    "line": 20,
+    "line": 19,
     "category": "legacy_domain",
     "migrationPlan": "migrate_to_uuid_v7",
     "rationale": "Seats are floor-plan domain entities referenced by QR and table flows."
