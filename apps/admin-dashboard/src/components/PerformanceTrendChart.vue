@@ -309,7 +309,7 @@ const chartOptions = computed(() => ({
     },
     tooltip: {
       callbacks: {
-        label: (context: unknown) => {
+        label: (context: any) => {
           const label = context.dataset.label || "";
           const value = formatValue(context.parsed.y, selectedMetric.value);
           return `${label}: ${value}`;
@@ -331,7 +331,7 @@ const chartOptions = computed(() => ({
         color: "rgba(0, 0, 0, 0.05)",
       },
       ticks: {
-        callback: (value: unknown) => formatValue(value, selectedMetric.value),
+        callback: (value: any) => formatValue(value, selectedMetric.value),
       },
     },
   },

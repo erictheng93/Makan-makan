@@ -18,10 +18,7 @@ export class ExportService {
   /**
    * 主要導出方法 - 根據選項導出數據
    */
-  async exportData(
-    data: unknown[],
-    options: ExportOptions,
-  ): Promise<ExportResult> {
+  async exportData(data: any[], options: ExportOptions): Promise<ExportResult> {
     try {
       const filename = options.filename || this.generateFilename(options);
 
@@ -69,7 +66,7 @@ export class ExportService {
    * 導出為 CSV 格式
    */
   private async exportToCSV(
-    data: unknown[],
+    data: any[],
     options: ExportOptions,
   ): Promise<Blob> {
     const csvOptions = options.csvOptions || {
@@ -94,7 +91,7 @@ export class ExportService {
    * 導出為 Excel 格式
    */
   private async exportToExcel(
-    data: unknown[],
+    data: any[],
     options: ExportOptions,
   ): Promise<Blob> {
     // 格式化數據
@@ -129,7 +126,7 @@ export class ExportService {
    * 導出為 PDF 格式
    */
   private async exportToPDF(
-    data: unknown[],
+    data: any[],
     options: ExportOptions,
   ): Promise<Blob> {
     const pdfOptions = options.pdfOptions || {
@@ -239,8 +236,8 @@ export class ExportService {
   /**
    * 格式化數據行
    */
-  private formatDataRow(row: unknown, _format: ExportFormat): unknown {
-    const formatted: unknown = {};
+  private formatDataRow(row: any, _format: ExportFormat): any {
+    const formatted: any = {};
 
     for (const [key, value] of Object.entries(row)) {
       if (value instanceof Date) {
@@ -272,7 +269,7 @@ export class ExportService {
   /**
    * 計算 Excel 列寬
    */
-  private calculateColumnWidths(data: unknown[]): unknown[] {
+  private calculateColumnWidths(data: any[]): any[] {
     if (data.length === 0) return [];
 
     const keys = Object.keys(data[0]);
@@ -316,7 +313,7 @@ export class ExportService {
   /**
    * 生成摘要數據
    */
-  private generateSummaryData(data: unknown[]): unknown[] {
+  private generateSummaryData(data: any[]): any[] {
     // 讀取當前語系（在方法內呼叫，確保拿到呼叫當下的 locale）
     const { formatDateTime } = useDateFormatter();
 
@@ -330,29 +327,22 @@ export class ExportService {
   /**
    * 生成 PDF 摘要
    */
-  private generatePDFSummary(
-    data: unknown[],
-    dataType: ExportDataType,
-  ): string[] {
+  private generatePDFSummary(data: any[], dataType: ExportDataType): string[] {
     const lines: string[] = [];
 
     lines.push(`• 總記錄數: ${data.length}`);
 
     // 根據數據類型添加特定的摘要信息
     if (dataType === "alerts" || dataType === "all") {
-      const alerts = data.filter(
-        (d: unknown) => d.type === "alert" || d.severity,
-      );
+      const alerts = data.filter((d: any) => d.type === "alert" || d.severity);
       const critical = alerts.filter(
-        (a: unknown) => a.severity === "critical" || a.severity === "fatal",
+        (a: any) => a.severity === "critical" || a.severity === "fatal",
       );
       lines.push(`• 嚴重警報: ${critical.length}`);
     }
 
     if (dataType === "errors" || dataType === "all") {
-      const errors = data.filter(
-        (d: unknown) => d.type === "error" || d.errorId,
-      );
+      const errors = data.filter((d: any) => d.type === "error" || d.errorId);
       lines.push(`• 錯誤總數: ${errors.length}`);
     }
 
@@ -362,7 +352,7 @@ export class ExportService {
   /**
    * 準備表格數據
    */
-  private prepareTableData(data: unknown[], dataType: ExportDataType): unknown {
+  private prepareTableData(data: any[], dataType: ExportDataType): any {
     // 限制數據量以避免 PDF 過大
     const maxRows = 100;
     const limitedData = data.slice(0, maxRows);
@@ -432,7 +422,7 @@ export class ExportService {
   /**
    * 添加 PDF 表格
    */
-  private addPDFTable(doc: jsPDF, tableData: unknown, startY: number): void {
+  private addPDFTable(doc: jsPDF, tableData: any, startY: number): void {
     const { headers, rows } = tableData;
 
     // 簡單的表格繪製（在實際應用中可以使用 jspdf-autotable 插件）
@@ -509,7 +499,7 @@ export class ExportService {
    * 快速導出 - 使用默認選項
    */
   async quickExport(
-    data: unknown[],
+    data: any[],
     format: ExportFormat,
     dataType: ExportDataType,
   ): Promise<ExportResult> {

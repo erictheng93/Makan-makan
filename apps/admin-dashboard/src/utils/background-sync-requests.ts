@@ -3,13 +3,13 @@ import type { OfflineMenuUpdate, OfflineUserAction } from "./offline-storage";
 type MenuSyncMethod = "POST" | "PUT" | "DELETE";
 type PostSyncRequest = {
   path: string;
-  body: Record<string, unknown>;
+  body: Record<string, any>;
 };
 
 export interface MenuSyncRequest {
   path: string;
   method: MenuSyncMethod;
-  body?: Record<string, unknown>;
+  body?: Record<string, any>;
 }
 
 function normalizeRestaurantId(
@@ -19,12 +19,12 @@ function normalizeRestaurantId(
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function scopedPayload<T extends Record<string, unknown>>(
+function scopedPayload<T extends Record<string, any>>(
   payload: T,
   restaurantId?: string | number | null,
 ): T {
   const normalizedRestaurantId = normalizeRestaurantId(restaurantId);
-  const nextPayload: Record<string, unknown> = { ...payload };
+  const nextPayload: Record<string, any> = { ...payload };
 
   if (normalizedRestaurantId) {
     nextPayload.restaurant_id = normalizedRestaurantId;
@@ -85,7 +85,7 @@ export function buildAuditActionSyncRequest(
 }
 
 export function buildAnalyticsSyncRequest(
-  data: Record<string, unknown>,
+  data: Record<string, any>,
   restaurantId: string | number | null | undefined,
 ): PostSyncRequest {
   const normalizedRestaurantId = normalizeRestaurantId(restaurantId);
@@ -104,7 +104,7 @@ export function buildAnalyticsSyncRequest(
 }
 
 export function buildBackupSyncRequest(
-  data: Record<string, unknown>,
+  data: Record<string, any>,
 ): PostSyncRequest {
   return {
     path: "/backup/upload",
@@ -113,7 +113,7 @@ export function buildBackupSyncRequest(
 }
 
 export function buildSettingsSyncRequest(
-  settings: Record<string, unknown>,
+  settings: Record<string, any>,
 ): PostSyncRequest {
   return {
     path: "/admin/settings/sync",

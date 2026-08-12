@@ -372,7 +372,7 @@ async function loadAll() {
     shiftTemplates.value = templates;
     schedules.value = sched?.data ?? (Array.isArray(sched) ? sched : []);
     leaveRequests.value = leaves ?? [];
-  } catch (e: unknown) {
+  } catch (e: any) {
     loadError.value = e?.message || t("employees.scheduling.loadFailed");
   } finally {
     loading.value = false;
@@ -567,7 +567,7 @@ async function confirmAssign() {
     };
     schedules.value = [...schedules.value, enrichedSchedule];
     pendingAssignment.value = null;
-  } catch (e: unknown) {
+  } catch (e: any) {
     toast.error(e?.message || t("employees.scheduling.assignFailed"));
   } finally {
     assigning.value = false;
@@ -585,7 +585,7 @@ async function handleRemove(scheduleId: number) {
   try {
     await schedulingService.deleteSchedule(scheduleId);
     schedules.value = schedules.value.filter((s) => s.id !== scheduleId);
-  } catch (e: unknown) {
+  } catch (e: any) {
     toast.error(e?.message || t("employees.scheduling.removeFailed"));
   }
 }

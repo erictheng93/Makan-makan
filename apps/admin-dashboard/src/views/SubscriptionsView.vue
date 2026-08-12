@@ -439,7 +439,7 @@ async function loadSubscriptions() {
   errorMessage.value = null;
   try {
     subscriptions.value = await subscriptionService.getAll();
-  } catch (err: unknown) {
+  } catch (err: any) {
     errorMessage.value =
       err?.response?.data?.error?.message ?? t("subscriptions.loadError");
   } finally {
@@ -578,7 +578,7 @@ async function onCreateSubscription() {
     });
     subscriptions.value.unshift(created);
     closeCreateModal();
-  } catch (err: unknown) {
+  } catch (err: any) {
     createError.value =
       err?.response?.data?.error?.message ??
       t("subscriptions.form.createError");

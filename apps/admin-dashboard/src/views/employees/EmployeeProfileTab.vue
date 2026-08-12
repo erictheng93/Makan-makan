@@ -198,7 +198,7 @@ const recentActivity = computed(() => {
     subtitle: string;
     badge: string;
     badgeClass: string;
-    icon: unknown;
+    icon: any;
     bgClass: string;
     iconClass: string;
     date: Date;

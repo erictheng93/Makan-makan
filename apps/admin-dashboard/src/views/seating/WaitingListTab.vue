@@ -834,7 +834,7 @@ const waitingList = ref<WaitingListEntry[]>([]);
 const queueStatus = ref<QueueStatus | null>(null);
 const selectedEntry = ref<WaitingListEntry | null>(null);
 const estimatedWait = ref<WaitTimeEstimateResult | null>(null);
-const availableTables = ref<unknown[]>([]);
+const availableTables = ref<any[]>([]);
 
 // Filters
 const filters = reactive<WaitingFiltersState>({
@@ -989,7 +989,7 @@ async function addToQueue() {
     resetForm();
     await loadWaitingList();
     await loadQueueStatus();
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error("Add to queue error:", error);
     toast.error(error.response?.data?.error || t("waitingList.addError"));
   } finally {
@@ -1027,7 +1027,7 @@ async function confirmCall() {
     showCallDialog.value = false;
     await loadWaitingList();
     await loadQueueStatus();
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error("Call waiting error:", error);
     toast.error(error.response?.data?.error || t("waitingList.callError"));
   } finally {
@@ -1045,7 +1045,7 @@ async function batchCallNext() {
     toast.success(t("waitingList.callSuccess"));
     await loadWaitingList();
     await loadQueueStatus();
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error("Batch call error:", error);
     toast.error(error.response?.data?.error || t("waitingList.callError"));
   } finally {
@@ -1062,7 +1062,7 @@ async function markSeated(id: string) {
     toast.success(t("waitingList.seatSuccess"));
     await loadWaitingList();
     await loadQueueStatus();
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error("Mark seated error:", error);
     toast.error(error.response?.data?.error || t("waitingList.seatedError"));
   }
@@ -1085,7 +1085,7 @@ async function markExpired(id: string) {
     toast.success(t("waitingList.expireSuccess"));
     await loadWaitingList();
     await loadQueueStatus();
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error("Mark expired error:", error);
     toast.error(error.response?.data?.error || t("waitingList.expireError"));
   }
@@ -1108,7 +1108,7 @@ async function cancelEntry(entry: WaitingListEntry) {
     toast.success(t("waitingList.cancelSuccess"));
     await loadWaitingList();
     await loadQueueStatus();
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error("Cancel entry error:", error);
     toast.error(error.response?.data?.error || t("waitingList.cancelError"));
   }

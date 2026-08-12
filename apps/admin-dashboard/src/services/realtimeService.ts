@@ -8,7 +8,7 @@ import { useWebSocketService } from "./websocketService";
 export interface RealtimeMessage {
   id: string;
   type: string;
-  data: unknown;
+  data: any;
   timestamp: string;
   restaurantId?: string;
 }

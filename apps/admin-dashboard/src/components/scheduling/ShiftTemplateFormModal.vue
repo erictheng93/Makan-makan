@@ -387,7 +387,7 @@ const props = defineProps<Props>();
 
 const emit = defineEmits<{
   "update:modelValue": [value: boolean];
-  save: [data: unknown];
+  save: [data: any];
 }>();
 
 // State

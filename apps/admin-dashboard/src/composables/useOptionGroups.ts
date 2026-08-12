@@ -87,7 +87,7 @@ export function useOptionGroups() {
   const groups = ref<OptionGroupData[]>([]);
   const isLoading = ref(false);
 
-  const normalizeGroup = (raw: unknown): OptionGroupData => ({
+  const normalizeGroup = (raw: any): OptionGroupData => ({
     id: raw.id,
     restaurantId: String(raw.restaurantId ?? ""),
     publicId: raw.publicId,
@@ -99,7 +99,7 @@ export function useOptionGroups() {
     sortOrder: raw.sortOrder ?? 0,
     usageCount: raw.usageCount ?? 0,
     choices: (raw.choices ?? []).map(
-      (choice: unknown): OptionChoiceData => ({
+      (choice: any): OptionChoiceData => ({
         id: choice.id,
         groupId: choice.groupId,
         publicId: choice.publicId,
@@ -117,7 +117,7 @@ export function useOptionGroups() {
     if (!authStore.restaurantId) return;
     isLoading.value = true;
     try {
-      const response = await api.get<unknown>(
+      const response = await api.get<any>(
         `/menu/${authStore.restaurantId}/option-groups`,
       );
       const payload = response.data?.success ? response.data.data : undefined;
@@ -145,7 +145,7 @@ export function useOptionGroups() {
       await fetchGroups();
       toast.success(t(successKey));
       return true;
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error(failureKey, error);
       const code = error?.response?.data?.error?.code;
       toast.error(
@@ -257,18 +257,18 @@ export function useOptionGroups() {
     menuItemId: number,
   ): Promise<MenuItemOptionGroupLink[]> => {
     try {
-      const response = await api.get<unknown>(
+      const response = await api.get<any>(
         `/menu/items/${menuItemId}/option-groups`,
       );
       const payload = response.data?.success ? response.data.data : undefined;
       return (payload?.groups ?? []).map(
-        (group: unknown): MenuItemOptionGroupLink => ({
+        (group: any): MenuItemOptionGroupLink => ({
           groupId: group.groupId,
           sortOrder: group.sortOrder ?? 0,
           requiredOverride: group.requiredOverride ?? null,
           maxSelectionsOverride: group.maxSelectionsOverride ?? null,
           choiceOverrides: (group.choiceOverrides ?? []).map(
-            (override: unknown) => ({
+            (override: any) => ({
               choiceId: override.choiceId,
               isHidden: !!override.isHidden,
               priceAdjustment: override.priceAdjustment ?? null,
@@ -294,7 +294,7 @@ export function useOptionGroups() {
     try {
       await api.put(`/menu/items/${menuItemId}/option-groups`, { groups });
       return true;
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error("Failed to save item option groups:", error);
       const code = error?.response?.data?.error?.code;
       toast.error(

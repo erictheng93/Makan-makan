@@ -47,7 +47,7 @@ interface UseAIAnalyticsReturn {
   error: Ref<string | null>;
 
   // AI Configuration
-  getConfig: (restaurantId: string) => Promise<unknown>;
+  getConfig: (restaurantId: string) => Promise<any>;
   saveConfig: (
     data: ConfigureAIRequest,
   ) => Promise<{ success: boolean; message?: string }>;
@@ -89,7 +89,7 @@ interface UseAIAnalyticsReturn {
     restaurantId: string,
     startDate?: string,
     endDate?: string,
-  ) => Promise<unknown[]>;
+  ) => Promise<any[]>;
 }
 
 export function useAIAnalytics(): UseAIAnalyticsReturn {
@@ -260,8 +260,8 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
     restaurantId: string,
     startDate?: string,
     endDate?: string,
-  ): Promise<unknown[]> => {
-    const data = await requestAI<{ success: boolean; usage?: unknown[] }>(
+  ): Promise<any[]> => {
+    const data = await requestAI<{ success: boolean; usage?: any[] }>(
       "GET",
       `/usage/${restaurantId}`,
       { params: { startDate, endDate } },

@@ -39,7 +39,7 @@ export interface Widget {
   title: string;
   position: WidgetPosition;
   dimensions: WidgetDimensions;
-  config?: Record<string, unknown>; // Widget-specific configuration
+  config?: Record<string, any>; // Widget-specific configuration
   visible: boolean;
   locked: boolean; // Prevent moving/resizing
 }
@@ -84,7 +84,7 @@ export interface WidgetConfig {
   dataSource?: string;
   metrics?: string[];
   timeRange?: string;
-  filters?: unknown;
+  filters?: any;
 
   // 顯示選項
   displayMode?: "compact" | "detailed" | "minimal";

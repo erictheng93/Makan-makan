@@ -1325,7 +1325,7 @@ function getComponentDisplayName(name: string) {
   return keyMap[name] ? t(keyMap[name]) : name;
 }
 
-function calculateComponentHealthScore(component: unknown): number {
+function calculateComponentHealthScore(component: any): number {
   let score = 100;
 
   if (component.status === "critical") score -= 50;

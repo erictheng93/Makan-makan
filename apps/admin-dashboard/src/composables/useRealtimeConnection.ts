@@ -124,7 +124,7 @@ export function useRealtimeConnection() {
   };
 
   const handleOrderEvent = (event: RealtimeEvent) => {
-    const data = event.data as Record<string, unknown>;
+    const data = event.data as Record<string, any>;
     const order = data.order ?? data;
 
     if (order && (order.id || order.orderId)) {
@@ -140,7 +140,7 @@ export function useRealtimeConnection() {
     }
   };
 
-  const maybeNotifyNewOrder = (data: Record<string, unknown>) => {
+  const maybeNotifyNewOrder = (data: Record<string, any>) => {
     const userRole = authStore.userRole;
     if (userRole !== 0 && userRole !== 1 && userRole !== 2) {
       return;
@@ -154,7 +154,7 @@ export function useRealtimeConnection() {
     });
   };
 
-  const maybeNotifyReadyOrder = (data: Record<string, unknown>) => {
+  const maybeNotifyReadyOrder = (data: Record<string, any>) => {
     const userRole = authStore.userRole;
     if (
       data.status !== "ready" ||
@@ -179,7 +179,7 @@ export function useRealtimeConnection() {
     });
   };
 
-  const handleSystemNotification = (data: Record<string, unknown>) => {
+  const handleSystemNotification = (data: Record<string, any>) => {
     notificationStore.addNotification({
       type: data.level || "info",
       title: data.title || "System notification",
@@ -188,7 +188,7 @@ export function useRealtimeConnection() {
     });
   };
 
-  const handleRestaurantStatusUpdate = (data: Record<string, unknown>) => {
+  const handleRestaurantStatusUpdate = (data: Record<string, any>) => {
     notificationStore.addNotification({
       type: "info",
       title: "Restaurant status updated",

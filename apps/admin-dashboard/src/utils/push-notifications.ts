@@ -20,7 +20,7 @@ export interface AdminPushNotificationOptions {
   badge?: string;
   image?: string;
   tag?: string;
-  data?: unknown;
+  data?: any;
   actions?: Array<{
     action: string;
     title: string;
@@ -490,7 +490,7 @@ class AdminPushNotificationService {
     }
   }
 
-  private getDeviceInfo(): Record<string, unknown> {
+  private getDeviceInfo(): Record<string, any> {
     return {
       user_agent: navigator.userAgent,
       platform: navigator.platform,
@@ -544,7 +544,7 @@ class AdminPushNotificationService {
     }
   }
 
-  getNotificationSettings(): unknown {
+  getNotificationSettings(): any {
     const settings = localStorage.getItem("admin_notification_settings");
     return settings
       ? JSON.parse(settings)

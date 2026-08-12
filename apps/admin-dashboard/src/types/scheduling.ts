@@ -303,7 +303,7 @@ export interface ApiError {
   success: false;
   error: string;
   code?: string;
-  details?: unknown;
+  details?: any;
 }
 
 // ========================================

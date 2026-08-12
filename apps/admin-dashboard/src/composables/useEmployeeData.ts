@@ -23,7 +23,7 @@ export function useEmployeeData(employeeId: () => number | undefined) {
     error.value = null;
     try {
       const response = await api.get(`/users/${id}`);
-      const u: unknown = response.data?.data || response.data;
+      const u: any = response.data?.data || response.data;
       employee.value = {
         id: u.id,
         username: u.username,
@@ -37,7 +37,7 @@ export function useEmployeeData(employeeId: () => number | undefined) {
         createdAt: u.createdAt,
         profileImageUrl: u.profileImageUrl,
       };
-    } catch (e: unknown) {
+    } catch (e: any) {
       error.value = e.message || "Failed to fetch employee";
       console.error("Failed to fetch employee:", e);
     } finally {

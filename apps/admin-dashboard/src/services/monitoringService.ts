@@ -129,7 +129,7 @@ class MonitoringService {
   async getMetrics(params?: MetricsQueryParams): Promise<SystemMetrics> {
     try {
       const response = await api.get<
-        { query: unknown; summary: unknown } & SystemMetrics
+        { query: any; summary: any } & SystemMetrics
       >(`${this.baseUrl}/metrics`, params);
       return response.data.data!;
     } catch (error) {
@@ -240,13 +240,13 @@ class MonitoringService {
    * @returns List of default alert rules
    */
   async getDefaultAlertRules(): Promise<{
-    rules: readonly unknown[];
+    rules: readonly any[];
     count: number;
     description: string;
   }> {
     try {
       const response = await api.get<{
-        rules: readonly unknown[];
+        rules: readonly any[];
         count: number;
         description: string;
       }>(`${this.baseUrl}/alerts/defaults`);
@@ -338,11 +338,11 @@ class MonitoringService {
    * @param since Optional timestamp to filter alerts since
    * @returns List of recent alert notifications
    */
-  async getRecentAlerts(since?: number): Promise<unknown[]> {
+  async getRecentAlerts(since?: number): Promise<any[]> {
     try {
       const params: Record<string, string> = {};
       if (since) params.since = since.toString();
-      const response = await api.get<{ alerts: unknown[]; timestamp: number }>(
+      const response = await api.get<{ alerts: any[]; timestamp: number }>(
         `${this.baseUrl}/alerts/recent`,
         params,
       );

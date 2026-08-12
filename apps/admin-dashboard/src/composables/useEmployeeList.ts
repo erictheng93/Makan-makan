@@ -99,26 +99,24 @@ export function useEmployeeList() {
         const payload = response.data?.success
           ? response.data.data
           : response.data;
-        users.value = (Array.isArray(payload) ? payload : []).map(
-          (u: unknown) => ({
-            id: u.id,
-            username: u.username,
-            fullName: u.fullName || "",
-            email: u.email || "",
-            phone: u.phone || "",
-            role: u.role,
-            status: u.isActive
-              ? "active"
-              : u.isActive === false
-                ? "inactive"
-                : "active",
-            isActive: u.isActive !== false,
-            lastLoginAt: u.lastLoginAt,
-            createdAt: u.createdAt,
-            profileImageUrl: u.profileImageUrl,
-          }),
-        );
-      } catch (e: unknown) {
+        users.value = (Array.isArray(payload) ? payload : []).map((u: any) => ({
+          id: u.id,
+          username: u.username,
+          fullName: u.fullName || "",
+          email: u.email || "",
+          phone: u.phone || "",
+          role: u.role,
+          status: u.isActive
+            ? "active"
+            : u.isActive === false
+              ? "inactive"
+              : "active",
+          isActive: u.isActive !== false,
+          lastLoginAt: u.lastLoginAt,
+          createdAt: u.createdAt,
+          profileImageUrl: u.profileImageUrl,
+        }));
+      } catch (e: any) {
         error.value = e.message || "Failed to fetch users";
         console.error("Failed to fetch users:", e);
       } finally {
@@ -156,7 +154,7 @@ export function useEmployeeList() {
       });
       const data = response.data?.data || response.data || [];
       todayLeaveRequests.value = (Array.isArray(data) ? data : []).map(
-        (r: unknown) => ({
+        (r: any) => ({
           employeeId: r.employeeId,
           leaveTypeName: r.leaveType?.name || r.leaveTypeName || "Leave",
           endDate: r.endDate,

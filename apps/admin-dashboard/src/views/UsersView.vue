@@ -535,7 +535,7 @@ const fetchUsers = async () => {
   try {
     const response = await api.get(buildUsersUrl());
     const payload = response.data?.success ? response.data.data : response.data;
-    users.value = (Array.isArray(payload) ? payload : []).map((u: unknown) => ({
+    users.value = (Array.isArray(payload) ? payload : []).map((u: any) => ({
       id: u.id,
       username: u.username,
       fullName: u.fullName || "",
@@ -617,7 +617,7 @@ const {
 
 // 方法
 const getRoleIcon = (role: number) => {
-  const icons: Record<number, unknown> = {
+  const icons: Record<number, any> = {
     1: StarIcon,
     2: UserIcon, // ChefHatIcon placeholder
     3: ListBulletIcon,
@@ -692,7 +692,7 @@ const resetPassword = async (user: User) => {
       confirmPassword: tempPassword,
     });
     toast.success(t("users.confirm.resetPasswordSuccess"));
-  } catch (error: unknown) {
+  } catch (error: any) {
     toast.error(
       error.response?.data?.error?.message || t("users.errors.resetFailed"),
     );
@@ -718,7 +718,7 @@ const toggleUserStatus = async (user: User) => {
   try {
     await api.patch(`/users/${user.id}/status`, { isActive: newIsActive });
     await fetchUsers();
-  } catch (error: unknown) {
+  } catch (error: any) {
     toast.error(
       error.response?.data?.error?.message || t("users.errors.toggleFailed"),
     );
@@ -759,7 +759,7 @@ const saveUser = async () => {
     }
     closeUserModal();
     await fetchUsers();
-  } catch (error: unknown) {
+  } catch (error: any) {
     toast.error(
       error.response?.data?.error?.message || t("users.errors.saveFailed"),
     );

@@ -41,7 +41,7 @@ interface ChartData {
 interface Props {
   type: "bar" | "line" | "pie" | "doughnut";
   data: ChartData;
-  options?: Record<string, unknown>;
+  options?: Record<string, any>;
   height?: number;
   isLoading?: boolean;
   error?: string;

@@ -138,7 +138,7 @@ export class WaitingListService {
    * 批次叫號
    */
   static async batchCall(restaurantId: string, count: number = 1) {
-    const response = await api.post<unknown[]>(`/waiting-list/batch-call`, {
+    const response = await api.post<any[]>(`/waiting-list/batch-call`, {
       restaurantId,
       count,
     });

@@ -158,7 +158,7 @@ import { useFeedback } from "@/composables/useFeedback";
 
 const emit = defineEmits<{
   cancel: [];
-  submitted: [feedback: unknown];
+  submitted: [feedback: any];
 }>();
 
 const { t } = useI18n();

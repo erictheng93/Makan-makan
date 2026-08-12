@@ -656,7 +656,7 @@ interface ServiceOrder {
   deliveryNotes?: string;
   assignedTo?: string;
   deliveredAt?: string;
-  items: unknown[];
+  items: any[];
 }
 
 // 響應式數據
@@ -763,7 +763,7 @@ const refreshOrders = async () => {
     });
     const data = unwrapApiData<unknown[]>(response);
     if (Array.isArray(data)) {
-      orders.value = data.map((o: unknown) => ({
+      orders.value = data.map((o: any) => ({
         id: o.id,
         orderNumber: o.orderNumber || `ORD-${String(o.id).padStart(3, "0")}`,
         tableNumber: o.tableNumber || o.table?.tableNumber || "",
@@ -791,7 +791,7 @@ const refreshOrders = async () => {
     const deliveredData = unwrapApiData<unknown[]>(deliveredResponse);
     if (Array.isArray(deliveredData)) {
       todayDelivered.value = deliveredData.length;
-      todayDeliveryRecords.value = deliveredData.map((o: unknown) => {
+      todayDeliveryRecords.value = deliveredData.map((o: any) => {
         const completedAt = o.deliveredAt || o.updatedAt || o.createdAt;
         const startTime = o.deliveryStartTime || o.readyAt || o.createdAt;
         const duration =
@@ -970,7 +970,7 @@ const submitIssue = async () => {
 
 // 輔助方法
 const getStatusIcon = (status: string) => {
-  const icons: Record<string, unknown> = {
+  const icons: Record<string, any> = {
     ready: TruckIcon,
     delivering: MapIcon,
     delivered: CheckCircleIcon,

@@ -37,7 +37,7 @@ export function usePolling<T>(
       error.value = null;
       const result = await fetchFunction();
       data.value = result;
-    } catch (err: unknown) {
+    } catch (err: any) {
       error.value = err.message || "Polling failed";
       console.error("Polling error:", err);
     } finally {

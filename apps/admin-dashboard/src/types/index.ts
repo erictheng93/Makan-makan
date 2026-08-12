@@ -202,7 +202,7 @@ export interface ApiResponse<T> {
   error?: {
     code: string;
     message: string;
-    details?: unknown;
+    details?: any;
   };
   meta?: {
     total?: number;

@@ -3,7 +3,7 @@ import { ref } from "vue";
 interface DragData {
   id: string;
   type: string;
-  data: unknown;
+  data: any;
 }
 
 export function useDragAndDrop() {

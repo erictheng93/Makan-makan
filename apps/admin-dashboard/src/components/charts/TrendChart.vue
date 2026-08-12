@@ -229,7 +229,7 @@ const fetchData = async () => {
       fetchPromises.push(
         schedulingService
           .getDailyStats(restaurantId, dateStr)
-          .then((stats: unknown) => ({
+          .then((stats: any) => ({
             date: dateStr,
             value:
               selectedMetric.value === "schedules"

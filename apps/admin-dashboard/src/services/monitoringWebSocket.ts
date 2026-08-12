@@ -165,12 +165,12 @@ class MonitoringPollingService {
         // Merge new alerts (dedup by id)
         const existingIds = new Set(this.alerts.value.map((a) => a.id));
         const newAlerts = recentAlerts.filter(
-          (a: unknown) => !existingIds.has(a.id),
+          (a: any) => !existingIds.has(a.id),
         );
 
         if (newAlerts.length > 0) {
           // Map backend alert format to AlertNotification
-          const mapped: AlertNotification[] = newAlerts.map((a: unknown) => ({
+          const mapped: AlertNotification[] = newAlerts.map((a: any) => ({
             id: a.id,
             type: a.severity || "info",
             severity: a.severity || "info",

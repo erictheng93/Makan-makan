@@ -355,7 +355,7 @@ const restaurantId = computed(() => authStore.restaurantId || "");
 
 // Icon mapping for tabs
 const getIconComponent = (icon: string) => {
-  const iconMap: Record<string, unknown> = {
+  const iconMap: Record<string, any> = {
     calendar: CalendarIcon,
     list: ListBulletIcon,
     templates: CalendarIcon,
@@ -567,7 +567,7 @@ const handleDeleteSchedule = async (schedule: EmployeeSchedule) => {
   }
 };
 
-const handleSaveSchedule = async (scheduleData: unknown) => {
+const handleSaveSchedule = async (scheduleData: any) => {
   try {
     if (selectedSchedule.value?.id) {
       await schedulingService.updateSchedule(
@@ -598,7 +598,7 @@ const showCreateTemplateModal = () => {
   showTemplateFormModal.value = true;
 };
 
-const handleSaveTemplate = async (templateData: unknown) => {
+const handleSaveTemplate = async (templateData: any) => {
   try {
     if (selectedTemplate.value?.id) {
       await schedulingService.updateShiftTemplate(

@@ -191,14 +191,14 @@ class ApiServiceCompat {
 
   async get<T>(
     url: string,
-    paramsOrConfig?: unknown,
+    paramsOrConfig?: any,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
     return this.client.instance.get(url, this.toGetConfig(paramsOrConfig));
   }
 
   async post<T>(
     url: string,
-    data?: unknown,
+    data?: any,
     config?: AxiosRequestConfig,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
     return this.client.instance.post(url, data, config);
@@ -206,29 +206,26 @@ class ApiServiceCompat {
 
   async put<T>(
     url: string,
-    data?: unknown,
+    data?: any,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
     return this.client.instance.put(url, data);
   }
 
   async patch<T>(
     url: string,
-    data?: unknown,
+    data?: any,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
     return this.client.instance.patch(url, data);
   }
 
   async delete<T>(
     url: string,
-    data?: unknown,
+    data?: any,
   ): Promise<AxiosResponse<ApiResponse<T>>> {
     return this.client.instance.delete(url, data ? { data } : undefined);
   }
 
-  async upload(
-    url: string,
-    formData: FormData,
-  ): Promise<AxiosResponse<unknown>> {
+  async upload(url: string, formData: FormData): Promise<AxiosResponse<any>> {
     return this.client.instance.post(url, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
@@ -236,9 +233,7 @@ class ApiServiceCompat {
     });
   }
 
-  private toGetConfig(
-    paramsOrConfig?: unknown,
-  ): AxiosRequestConfig | undefined {
+  private toGetConfig(paramsOrConfig?: any): AxiosRequestConfig | undefined {
     if (!paramsOrConfig) {
       return undefined;
     }
@@ -250,7 +245,7 @@ class ApiServiceCompat {
     return { params: paramsOrConfig };
   }
 
-  private isAxiosConfig(value: unknown): value is AxiosRequestConfig {
+  private isAxiosConfig(value: any): value is AxiosRequestConfig {
     if (typeof value !== "object" || value === null) {
       return false;
     }

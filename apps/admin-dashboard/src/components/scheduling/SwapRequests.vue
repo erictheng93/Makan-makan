@@ -419,7 +419,7 @@ const getStatusBadgeClass = (status: string) => {
 };
 
 const getStatusIconComponent = (status: string) => {
-  const icons: Record<string, unknown> = {
+  const icons: Record<string, any> = {
     pending: ClockIcon,
     approved: CheckCircleIcon,
     rejected: XCircleIcon,

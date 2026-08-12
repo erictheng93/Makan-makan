@@ -12,7 +12,7 @@ export interface StatisticsSSEEvent {
     | "order_cancelled"
     | "statistics_update"
     | "heartbeat";
-  data: unknown;
+  data: any;
   timestamp: string;
   id?: string;
 }

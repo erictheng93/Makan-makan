@@ -483,7 +483,7 @@ async function connectUberEats() {
     showMsg("success", t("integrations.alerts.connectSuccess"));
     showConnectForm.value = false;
     await loadIntegration();
-  } catch (err: unknown) {
+  } catch (err: any) {
     showMsg(
       "error",
       err?.response?.data?.error || t("integrations.alerts.connectFailed"),
@@ -526,7 +526,7 @@ async function syncMenu() {
     await apiClient.post(`/integrations/${restaurantId}/uber_eats/menu-sync`);
     showMsg("success", t("integrations.alerts.syncTriggered"));
     await loadIntegration();
-  } catch (err: unknown) {
+  } catch (err: any) {
     showMsg(
       "error",
       err?.response?.data?.error || t("integrations.alerts.syncFailed"),

@@ -276,7 +276,7 @@ export interface RecordErrorRequest {
   type: string;
   message: string;
   severity: AlertSeverity;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, any>;
 }
 
 export interface TestAlertRequest {

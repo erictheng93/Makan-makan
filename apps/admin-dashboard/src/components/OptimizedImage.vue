@@ -120,7 +120,7 @@ interface Props {
   errorClass?: string;
 
   /** 自定義樣式 */
-  imageStyle?: Record<string, unknown>;
+  imageStyle?: Record<string, any>;
 }
 
 const props = withDefaults(defineProps<Props>(), {

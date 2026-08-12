@@ -75,7 +75,7 @@ async function bootstrap() {
   setupGlobalErrorHandler();
 
   // 全局錯誤處理 (Vue 特定錯誤)
-  app.config.errorHandler = (error: unknown, instance, info) => {
+  app.config.errorHandler = (error: any, instance, info) => {
     console.error("Vue error:", error, info);
 
     // 使用錯誤處理器處理 Vue 錯誤
