@@ -5,14 +5,84 @@
 
 import type {
   CountryCode,
+  ItemModifier,
   PrintContent,
-  PrintRequest,
   RegionConfig,
 } from "@makanmasak/shared-types";
 
+/**
+ * What the regional formatters actually read off a receipt payload.
+ *
+ * Every field is optional and every read site already falls back, because the
+ * callers hand in either a PrintRequest or an object flattened by
+ * getReceiptData. Modelling it keeps that leniency while making a misspelt
+ * field a compile error instead of an "undefined" printed on a customer's
+ * receipt.
+ */
+export interface ReceiptOrderItem {
+  name: string;
+  quantity: number;
+  price: number;
+  nameLocal?: string;
+  modifiers?: ItemModifier[];
+  category?: string;
+}
+
+export interface ReceiptData {
+  order?: {
+    id?: string;
+    tableNumber?: string;
+    createdAt?: string | number | Date;
+    items?: ReceiptOrderItem[];
+    subtotal?: number;
+    tax?: number;
+    total?: number;
+  };
+  restaurant?: {
+    name?: string;
+    nameLocal?: string;
+    address?: string;
+    addressLocal?: string;
+    phone?: string;
+    taxNumber?: string;
+    licenseNumber?: string;
+    logo?: string;
+    website?: string;
+    supportEmail?: string;
+    supportPhone?: string;
+    promotionalMessage?: string;
+  };
+  payment?: {
+    method?: string;
+    amount?: number;
+    change?: number;
+    cardLast4?: string;
+    details?: string;
+  };
+  customer?: { name?: string };
+  cashier?: string | { name?: string };
+  receiptNumber?: string;
+  restaurantId?: string;
+}
+
+/**
+ * A payload still wrapped the way PrintRequest carries it, with the fields
+ * getReceiptData lifts from the top level alongside it.
+ */
+export interface WrappedReceiptInput {
+  data?: ReceiptData;
+  restaurant?: ReceiptData["restaurant"];
+  cashier?: ReceiptData["cashier"];
+  receiptNumber?: string;
+  restaurantId?: string;
+}
+
+/** A wrapped payload, or one already flattened by an earlier caller. */
+export type ReceiptInput = WrappedReceiptInput | ReceiptData;
+
 export interface IReceiptFormatter {
-  formatReceipt(data: any): PrintContent;
-  validateData(data: any): boolean;
+  formatReceipt(data: ReceiptInput): PrintContent;
+  validateData(data: ReceiptData): boolean;
   getRequiredFields(): string[];
 }
 
@@ -25,22 +95,24 @@ export abstract class BaseReceiptFormatter implements IReceiptFormatter {
     this.countryCode = countryCode;
   }
 
-  abstract formatReceipt(data: any): PrintContent;
-  abstract validateData(data: any): boolean;
+  abstract formatReceipt(data: ReceiptInput): PrintContent;
+  abstract validateData(data: ReceiptData): boolean;
   abstract getRequiredFields(): string[];
 
-  protected getReceiptData(input: any): any {
-    if (input?.data?.order) {
+  protected getReceiptData(input: ReceiptInput): ReceiptData {
+    const wrapped = input as WrappedReceiptInput;
+
+    if (wrapped?.data?.order) {
       return {
-        ...input.data,
-        restaurant: input.data.restaurant ?? input.restaurant,
-        cashier: input.data.cashier ?? input.cashier,
-        receiptNumber: input.data.receiptNumber ?? input.receiptNumber,
-        restaurantId: input.restaurantId,
+        ...wrapped.data,
+        restaurant: wrapped.data.restaurant ?? wrapped.restaurant,
+        cashier: wrapped.data.cashier ?? wrapped.cashier,
+        receiptNumber: wrapped.data.receiptNumber ?? wrapped.receiptNumber,
+        restaurantId: wrapped.restaurantId,
       };
     }
 
-    return input ?? {};
+    return (input as ReceiptData) ?? {};
   }
 
   protected generateBusinessNumber(prefix: string, now = Date.now()): string {
@@ -53,7 +125,7 @@ export abstract class BaseReceiptFormatter implements IReceiptFormatter {
     return `${prefix}${now}-${suffix}`;
   }
 
-  protected getCashierName(data: any, fallback: string): string {
+  protected getCashierName(data: ReceiptData, fallback: string): string {
     if (typeof data.cashier === "string") {
       return data.cashier;
     }
@@ -61,12 +133,31 @@ export abstract class BaseReceiptFormatter implements IReceiptFormatter {
     return data.cashier?.name || fallback;
   }
 
-  protected getPaymentDetails(payment: any): string | undefined {
+  protected getPaymentDetails(
+    payment: ReceiptData["payment"],
+  ): string | undefined {
     if (payment?.cardLast4) {
       return `**** ${payment.cardLast4}`;
     }
 
     return payment?.details;
+  }
+
+  /**
+   * Walk a dotted required-field path without indexing a typed object by an
+   * arbitrary string. Shared by every region's validateData, which used to
+   * carry its own copy.
+   */
+  protected readFieldPath(data: ReceiptData, path: string): unknown {
+    return path
+      .split(".")
+      .reduce<unknown>(
+        (value, key) =>
+          value && typeof value === "object"
+            ? (value as Record<string, unknown>)[key]
+            : undefined,
+        data,
+      );
   }
 
   protected formatCurrency(amount: number): string {
@@ -102,7 +193,7 @@ export abstract class BaseReceiptFormatter implements IReceiptFormatter {
 }
 
 export class TWReceiptFormatter extends BaseReceiptFormatter {
-  formatReceipt(input: PrintRequest | any): PrintContent {
+  formatReceipt(input: ReceiptInput): PrintContent {
     const data = this.getReceiptData(input);
     const order = data.order;
     const restaurant = data.restaurant;
@@ -139,7 +230,7 @@ export class TWReceiptFormatter extends BaseReceiptFormatter {
           : undefined,
       },
       items:
-        order?.items?.map((item: any) => ({
+        order?.items?.map((item: ReceiptOrderItem) => ({
           name: item.name,
           nameLocal: item.nameLocal,
           quantity: item.quantity,
@@ -191,10 +282,10 @@ export class TWReceiptFormatter extends BaseReceiptFormatter {
     };
   }
 
-  validateData(data: any): boolean {
+  validateData(data: ReceiptData): boolean {
     const required = this.getRequiredFields();
     return required.every((field) => {
-      const value = field.split(".").reduce((obj, key) => obj?.[key], data);
+      const value = this.readFieldPath(data, field);
       return value !== undefined && value !== null;
     });
   }
@@ -224,7 +315,7 @@ export class TWReceiptFormatter extends BaseReceiptFormatter {
 }
 
 export class MYReceiptFormatter extends BaseReceiptFormatter {
-  formatReceipt(input: PrintRequest | any): PrintContent {
+  formatReceipt(input: ReceiptInput): PrintContent {
     const data = this.getReceiptData(input);
     const order = data.order;
     const restaurant = data.restaurant;
@@ -252,7 +343,7 @@ export class MYReceiptFormatter extends BaseReceiptFormatter {
         },
       },
       items:
-        order?.items?.map((item: any) => ({
+        order?.items?.map((item: ReceiptOrderItem) => ({
           name: item.name,
           nameLocal: item.nameLocal,
           quantity: item.quantity,
@@ -303,10 +394,10 @@ export class MYReceiptFormatter extends BaseReceiptFormatter {
     };
   }
 
-  validateData(data: any): boolean {
+  validateData(data: ReceiptData): boolean {
     const required = this.getRequiredFields();
     return required.every((field) => {
-      const value = field.split(".").reduce((obj, key) => obj?.[key], data);
+      const value = this.readFieldPath(data, field);
       return value !== undefined && value !== null;
     });
   }
@@ -336,7 +427,7 @@ export class MYReceiptFormatter extends BaseReceiptFormatter {
 }
 
 export class VNReceiptFormatter extends BaseReceiptFormatter {
-  formatReceipt(input: PrintRequest | any): PrintContent {
+  formatReceipt(input: ReceiptInput): PrintContent {
     const data = this.getReceiptData(input);
     const order = data.order;
     const restaurant = data.restaurant;
@@ -365,7 +456,7 @@ export class VNReceiptFormatter extends BaseReceiptFormatter {
         },
       },
       items:
-        order?.items?.map((item: any) => ({
+        order?.items?.map((item: ReceiptOrderItem) => ({
           name: item.name,
           nameLocal: item.nameLocal,
           quantity: item.quantity,
@@ -416,10 +507,10 @@ export class VNReceiptFormatter extends BaseReceiptFormatter {
     };
   }
 
-  validateData(data: any): boolean {
+  validateData(data: ReceiptData): boolean {
     const required = this.getRequiredFields();
     return required.every((field) => {
-      const value = field.split(".").reduce((obj, key) => obj?.[key], data);
+      const value = this.readFieldPath(data, field);
       return value !== undefined && value !== null;
     });
   }

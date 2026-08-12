@@ -40,7 +40,7 @@ export class CitizenDriver extends PrinterDriver {
       // Simulate connection logic
       this.connected = true;
       return true;
-    } catch (error) {
+    } catch {
       this.connected = false;
       return false;
     }

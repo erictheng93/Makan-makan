@@ -10,9 +10,32 @@ export interface PrinterHealth {
   averageResponseTime: number;
 }
 
+/**
+ * Events this monitor exposes.
+ *
+ * `health-changed` is the only one it emits. `device_status_changed` and
+ * `device_error` are subscribed to by PrinterService but never fired — those
+ * two subscriptions have been dead since they were written. They are declared
+ * here so the gap is visible in the contract rather than hidden behind an
+ * untyped emitter; wiring or removing them is a behaviour change tracked
+ * separately.
+ */
+export type PrinterHealthMonitorEvents = {
+  "health-changed": { deviceId: string; health: PrinterHealth };
+  device_status_changed: {
+    deviceId: string;
+    oldStatus: string;
+    newStatus: string;
+  };
+  device_error: { deviceId: string; error: unknown };
+};
+
 export class PrinterHealthMonitor {
   private healthData = new Map<string, PrinterHealth>();
-  private eventHandlers = new Map<string, ((...args: any[]) => void)[]>();
+  private eventHandlers = new Map<
+    keyof PrinterHealthMonitorEvents,
+    ((payload: never) => void)[]
+  >();
   private isInitialized = false;
 
   /**
@@ -126,20 +149,26 @@ export class PrinterHealthMonitor {
   /**
    * Add event listener
    */
-  on(event: string, handler: (...args: any[]) => void): void {
+  on<K extends keyof PrinterHealthMonitorEvents>(
+    event: K,
+    handler: (payload: PrinterHealthMonitorEvents[K]) => void,
+  ): void {
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, []);
     }
-    this.eventHandlers.get(event)!.push(handler);
+    this.eventHandlers.get(event)!.push(handler as (payload: never) => void);
   }
 
   /**
    * Remove event listener
    */
-  off(event: string, handler: (...args: any[]) => void): void {
+  off<K extends keyof PrinterHealthMonitorEvents>(
+    event: K,
+    handler: (payload: PrinterHealthMonitorEvents[K]) => void,
+  ): void {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
-      const index = handlers.indexOf(handler);
+      const index = handlers.indexOf(handler as (payload: never) => void);
       if (index > -1) {
         handlers.splice(index, 1);
       }
@@ -149,10 +178,15 @@ export class PrinterHealthMonitor {
   /**
    * Emit event
    */
-  private emit(event: string, data: any): void {
+  private emit<K extends keyof PrinterHealthMonitorEvents>(
+    event: K,
+    data: PrinterHealthMonitorEvents[K],
+  ): void {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
-      handlers.forEach((handler) => handler(data));
+      handlers.forEach((handler) =>
+        (handler as (payload: PrinterHealthMonitorEvents[K]) => void)(data),
+      );
     }
   }
 }

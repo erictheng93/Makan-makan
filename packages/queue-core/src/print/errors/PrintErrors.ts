@@ -2,12 +2,30 @@
  * 列印服務專用錯誤類型
  */
 
+/**
+ * Diagnostic payload carried alongside a print error.
+ *
+ * Open-ended by design — callers attach whatever the failure site knows —
+ * but the two fields createPrintError reads are declared, so a caller that
+ * misspells them no longer silently loses the timeout or the validation
+ * list.
+ */
+export type PrintErrorContext = {
+  timeout?: number;
+  validationErrors?: unknown[];
+  [key: string]: unknown;
+};
+
 export class PrintError extends Error {
   public readonly code: string;
   public readonly timestamp: Date;
-  public readonly context?: any;
+  public readonly context?: PrintErrorContext;
 
-  constructor(message: string, code = "PRINT_ERROR", context?: any) {
+  constructor(
+    message: string,
+    code = "PRINT_ERROR",
+    context?: PrintErrorContext,
+  ) {
     super(message);
     this.name = "PrintError";
     this.code = code;
@@ -33,42 +51,42 @@ export class PrintError extends Error {
 }
 
 export class PrinterConnectionError extends PrintError {
-  constructor(message: string, context?: any) {
+  constructor(message: string, context?: PrintErrorContext) {
     super(message, "PRINTER_CONNECTION_ERROR", context);
     this.name = "PrinterConnectionError";
   }
 }
 
 export class PrintJobError extends PrintError {
-  constructor(message: string, context?: any) {
+  constructor(message: string, context?: PrintErrorContext) {
     super(message, "PRINT_JOB_ERROR", context);
     this.name = "PrintJobError";
   }
 }
 
 export class PrintFormattingError extends PrintError {
-  constructor(message: string, context?: any) {
+  constructor(message: string, context?: PrintErrorContext) {
     super(message, "PRINT_FORMATTING_ERROR", context);
     this.name = "PrintFormattingError";
   }
 }
 
 export class PrinterDriverError extends PrintError {
-  constructor(message: string, context?: any) {
+  constructor(message: string, context?: PrintErrorContext) {
     super(message, "PRINTER_DRIVER_ERROR", context);
     this.name = "PrinterDriverError";
   }
 }
 
 export class PrintConfigurationError extends PrintError {
-  constructor(message: string, context?: any) {
+  constructor(message: string, context?: PrintErrorContext) {
     super(message, "PRINT_CONFIGURATION_ERROR", context);
     this.name = "PrintConfigurationError";
   }
 }
 
 export class PrintTimeoutError extends PrintError {
-  constructor(message: string, timeout: number, context?: any) {
+  constructor(message: string, timeout: number, context?: PrintErrorContext) {
     super(`${message} (timeout: ${timeout}ms)`, "PRINT_TIMEOUT_ERROR", {
       timeout,
       ...context,
@@ -78,7 +96,11 @@ export class PrintTimeoutError extends PrintError {
 }
 
 export class PrintValidationError extends PrintError {
-  constructor(message: string, validationErrors: any[], context?: any) {
+  constructor(
+    message: string,
+    validationErrors: unknown[],
+    context?: PrintErrorContext,
+  ) {
     super(message, "PRINT_VALIDATION_ERROR", { validationErrors, ...context });
     this.name = "PrintValidationError";
   }
@@ -95,7 +117,7 @@ export const createPrintError = (
     | "timeout"
     | "validation",
   message: string,
-  context?: any,
+  context?: PrintErrorContext,
 ): PrintError => {
   switch (type) {
     case "connection":
@@ -122,7 +144,7 @@ export const createPrintError = (
 };
 
 // 錯誤處理工具
-export const handlePrintError = (error: any): PrintError => {
+export const handlePrintError = (error: unknown): PrintError => {
   if (error instanceof PrintError) {
     return error;
   }

@@ -18,7 +18,7 @@ export interface CacheKey {
   identifier?: string;
 }
 
-export interface CacheEntry<T = any> {
+export interface CacheEntry<T = unknown> {
   data: T;
   timestamp: number;
   ttl: number;
@@ -219,15 +219,18 @@ interface CacheOwner {
   cache?: QueueCache;
 }
 
-export function cached(keyGenerator: (args: any[]) => CacheKey, ttl?: number) {
+export function cached(
+  keyGenerator: (args: unknown[]) => CacheKey,
+  ttl?: number,
+) {
   return function (
-    _target: any,
+    _target: object,
     _propertyName: string | symbol,
     descriptor: PropertyDescriptor,
   ) {
     const method = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const cache = (this as CacheOwner).cache || new QueueCache();
       const cacheKey = keyGenerator(args);
 
@@ -253,15 +256,15 @@ export function cached(keyGenerator: (args: any[]) => CacheKey, ttl?: number) {
 /**
  * Cache invalidation decorator
  */
-export function invalidateCache(tagGenerator: (args: any[]) => string[]) {
+export function invalidateCache(tagGenerator: (args: unknown[]) => string[]) {
   return function (
-    _target: any,
+    _target: object,
     _propertyName: string | symbol,
     descriptor: PropertyDescriptor,
   ) {
     const method = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const result = await method.apply(this, args);
 
       // Invalidate cache if operation was successful

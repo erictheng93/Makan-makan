@@ -6,11 +6,42 @@
 import { ESCPOSCommands } from "./ESCPOSCommands";
 import type { PrintContent } from "@makanmasak/shared-types";
 
-export interface PrintCommand {
-  type: "text" | "image" | "barcode" | "qr" | "cut" | "feed" | "raw";
-  data: any;
-  options?: any;
-}
+/**
+ * One queued command, discriminated on `type`.
+ *
+ * `data` and `options` used to be `any`, which meant buildESCPOS could read a
+ * field the builder never wrote and only fail on the printer. Each variant now
+ * states exactly what its producer pushes.
+ */
+export type PrintCommand =
+  | {
+      type: "text";
+      data: string;
+      options?: {
+        bold?: boolean;
+        underline?: boolean;
+        alignment?: "left" | "center" | "right";
+        size?: { width: number; height: number };
+      };
+    }
+  | {
+      type: "image";
+      data: string;
+      options?: {
+        width?: number;
+        height?: number;
+        alignment?: "left" | "center" | "right";
+      };
+    }
+  | {
+      type: "barcode";
+      data: string;
+      options: { type: "CODE128" | "CODE39" | "EAN13" | "EAN8" };
+    }
+  | { type: "qr"; data: string; options: { size: number } }
+  | { type: "cut"; data: null; options: { full: boolean } }
+  | { type: "feed"; data: number; options: null }
+  | { type: "raw"; data: string; options: null };
 
 export class CommandBuilder {
   private commands: PrintCommand[] = [];

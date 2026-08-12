@@ -12,26 +12,51 @@ import type {
   PrintStatistics,
   CountryCode,
   PrinterBrand,
+  PrinterCapabilities,
+  ReceiptTemplate,
+  RegionConfig,
 } from "@makanmasak/shared-types";
 
-import { PrintJobManager } from "./PrintJobManager";
+import { PrintJobManager, type PrintJobManagerEvents } from "./PrintJobManager";
+import type { PrinterDriver } from "../drivers/PrinterDriver";
+import type { PrinterConnectionParams } from "../drivers/PrinterDriverFactory";
 import { RegionManager } from "./RegionManager";
 import { PrinterDriverFactory } from "../drivers/PrinterDriverFactory";
 import { ReceiptFormattingService } from "../formatters/ReceiptFormattingService";
-import { PrinterHealthMonitor } from "../utils/PrinterHealthMonitor";
+import {
+  PrinterHealthMonitor,
+  type PrinterHealthMonitorEvents,
+} from "../utils/PrinterHealthMonitor";
 import { PrintStatisticsCollector } from "../utils/PrintStatisticsCollector";
 import { PrintError, PrinterConnectionError } from "../errors/PrintErrors";
 import { DEFAULT_PRINT_CONFIG } from "../config/defaults";
 
+/** Events this service re-publishes, with the payload each carries. */
+export type PrinterServiceEvents = {
+  service_initialized: { timestamp: Date };
+  service_shutdown: { timestamp: Date };
+  device_registered: { deviceId: string; brand: PrinterBrand; model: string };
+  device_unregistered: { deviceId: string };
+  device_status_changed: PrinterHealthMonitorEvents["device_status_changed"];
+  device_error: PrinterHealthMonitorEvents["device_error"];
+  job_started: PrintJobManagerEvents["job_started"];
+  job_completed: PrintJobManagerEvents["job_completed"];
+  job_failed: PrintJobManagerEvents["job_failed"];
+  job_retried: PrintJobManagerEvents["job_retried"];
+};
+
 export class PrinterService {
   private config: PrintServiceConfig;
-  private drivers: Map<string, any> = new Map();
+  private drivers = new Map<string, PrinterDriver>();
   private jobManager: PrintJobManager;
   private regionManager: RegionManager;
   private formattingService: ReceiptFormattingService;
   private healthMonitor: PrinterHealthMonitor;
   private statisticsCollector: PrintStatisticsCollector;
-  private eventHandlers: Map<string, ((...args: any[]) => void)[]> = new Map();
+  private eventHandlers = new Map<
+    keyof PrinterServiceEvents,
+    ((payload: never) => void)[]
+  >();
   private isInitialized = false;
 
   constructor(config: Partial<PrintServiceConfig> = {}) {
@@ -84,7 +109,7 @@ export class PrinterService {
         Array.from(this.drivers.values()).map((driver) =>
           driver
             .disconnect()
-            .catch((error: any) =>
+            .catch((error: unknown) =>
               console.warn("Driver disconnect error:", error),
             ),
         ),
@@ -113,16 +138,17 @@ export class PrinterService {
     brand: PrinterBrand;
     model: string;
     connectionType: "usb" | "network" | "bluetooth" | "serial";
-    connectionParams: any;
-    capabilities?: any;
+    connectionParams: PrinterConnectionParams;
+    capabilities?: PrinterCapabilities;
     isDefault?: boolean;
   }): Promise<void> {
     try {
       // 創建打印機驅動
+      // this.config.drivers carries service-level timeouts, which no driver
+      // declares or reads; it is no longer forwarded as driver options.
       const driver = await PrinterDriverFactory.createDriver(
         deviceConfig.brand,
         deviceConfig,
-        this.config.drivers,
       );
 
       // 測試連接
@@ -188,15 +214,17 @@ export class PrinterService {
     }
   }
 
+  // The drivers expose getDeviceInfo(); these called a getDevice() that does
+  // not exist and would have thrown at runtime. `Map<string, any>` hid it.
   getDevices(): PrinterDevice[] {
     return Array.from(this.drivers.values()).map((driver) =>
-      driver.getDevice(),
+      driver.getDeviceInfo(),
     );
   }
 
   getDevice(deviceId: string): PrinterDevice | null {
     const driver = this.drivers.get(deviceId);
-    return driver ? driver.getDevice() : null;
+    return driver ? driver.getDeviceInfo() : null;
   }
 
   getDefaultDevice(): PrinterDevice | null {
@@ -279,12 +307,12 @@ export class PrinterService {
   // 地區和格式化管理
   // =============================================
 
-  setRegion(country: CountryCode, config: any): void {
+  setRegion(country: CountryCode, config: RegionConfig): void {
     this.regionManager.setRegion(country, config);
     this.formattingService.addRegion(country, config);
   }
 
-  addReceiptTemplate(templateId: string, template: any): void {
+  addReceiptTemplate(templateId: string, template: ReceiptTemplate): void {
     this.formattingService.addTemplate(templateId, template);
   }
 
@@ -356,29 +384,38 @@ export class PrinterService {
   // 事件管理
   // =============================================
 
-  on(event: string, handler: (...args: any[]) => void): void {
+  on<K extends keyof PrinterServiceEvents>(
+    event: K,
+    handler: (payload: PrinterServiceEvents[K]) => void,
+  ): void {
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, []);
     }
-    this.eventHandlers.get(event)!.push(handler);
+    this.eventHandlers.get(event)!.push(handler as (payload: never) => void);
   }
 
-  off(event: string, handler: (...args: any[]) => void): void {
+  off<K extends keyof PrinterServiceEvents>(
+    event: K,
+    handler: (payload: PrinterServiceEvents[K]) => void,
+  ): void {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
-      const index = handlers.indexOf(handler);
+      const index = handlers.indexOf(handler as (payload: never) => void);
       if (index > -1) {
         handlers.splice(index, 1);
       }
     }
   }
 
-  private emit(event: string, data: any): void {
+  private emit<K extends keyof PrinterServiceEvents>(
+    event: K,
+    data: PrinterServiceEvents[K],
+  ): void {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
       handlers.forEach((handler) => {
         try {
-          handler(data);
+          (handler as (payload: PrinterServiceEvents[K]) => void)(data);
         } catch (error) {
           console.error(`Event handler error for ${event}:`, error);
         }
@@ -425,12 +462,16 @@ export class PrinterService {
 
     this.jobManager.on(
       "job_failed",
-      (data: { job: PrintJob; error: Error }) => {
+      // The manager emits the message, not the Error. This handler declared
+      // `error: Error` and read `.message` off it, so every failure was
+      // recorded with an undefined reason until the event map made the
+      // mismatch a compile error.
+      (data: { job: PrintJob; error: string }) => {
         this.statisticsCollector.recordJobFailed({
           deviceId: data.job.deviceId,
           jobId: data.job.id,
           duration: Date.now() - data.job.createdAt.getTime(),
-          error: data.error.message,
+          error: data.error,
         });
         this.emit("job_failed", data);
       },
@@ -463,7 +504,7 @@ export class PrinterService {
     }
   }
 
-  private handleDeviceError(data: { deviceId: string; error: any }): void {
+  private handleDeviceError(data: { deviceId: string; error: unknown }): void {
     console.error(`Device error for ${data.deviceId}:`, data.error);
     this.emit("device_error", data);
   }

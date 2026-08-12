@@ -60,7 +60,7 @@ export class ReceiptFormattingService {
 
   async formatBatch(requests: PrintRequest[]): Promise<PrintContent[]> {
     const results: PrintContent[] = [];
-    const errors: Array<{ index: number; error: any }> = [];
+    const errors: Array<{ index: number; error: unknown }> = [];
 
     for (let i = 0; i < requests.length; i++) {
       try {

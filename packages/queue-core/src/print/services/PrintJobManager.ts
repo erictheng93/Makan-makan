@@ -16,12 +16,35 @@ import { PrintJobError } from "../errors/PrintErrors";
 
 export type PrintJobManagerConfig = PrintServiceConfig["queue"];
 
+/**
+ * Every event this manager emits, with the payload it carries.
+ *
+ * Subscribers used to register `(...args: any[]) => void`, so a handler
+ * reading the wrong field compiled fine and failed at runtime. Keying the
+ * signatures off this map checks both ends.
+ */
+export type PrintJobManagerEvents = {
+  job_created: { job: PrintJob };
+  job_started: { job: PrintJob };
+  job_completed: { job: PrintJob };
+  job_cancelled: { job: PrintJob };
+  job_retried: { job: PrintJob };
+  job_failed: { job: PrintJob; error: string };
+  job_retry_scheduled: { job: PrintJob; error: string };
+  device_jobs_paused: { deviceId: string };
+  device_jobs_resumed: { deviceId: string };
+  jobs_cleaned_up: { removedCount: number; cutoffTime: Date };
+};
+
 export class PrintJobManager {
   private config: PrintJobManagerConfig;
   private jobs: Map<string, PrintJob> = new Map();
   private processing: Set<string> = new Set();
   private pausedDevices: Set<string> = new Set();
-  private eventHandlers: Map<string, ((...args: any[]) => void)[]> = new Map();
+  private eventHandlers = new Map<
+    keyof PrintJobManagerEvents,
+    ((payload: never) => void)[]
+  >();
   private processingInterval?: NodeJS.Timeout;
   private isInitialized = false;
 
@@ -338,7 +361,7 @@ export class PrintJobManager {
     );
   }
 
-  private handleJobError(job: PrintJob, error: any): void {
+  private handleJobError(job: PrintJob, error: unknown): void {
     const shouldRetry = job.attempts < job.maxAttempts;
     const errorMessage = error instanceof Error ? error.message : String(error);
 
@@ -404,29 +427,38 @@ export class PrintJobManager {
   // 事件管理
   // =============================================
 
-  on(event: string, handler: (...args: any[]) => void): void {
+  on<K extends keyof PrintJobManagerEvents>(
+    event: K,
+    handler: (payload: PrintJobManagerEvents[K]) => void,
+  ): void {
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, []);
     }
-    this.eventHandlers.get(event)!.push(handler);
+    this.eventHandlers.get(event)!.push(handler as (payload: never) => void);
   }
 
-  off(event: string, handler: (...args: any[]) => void): void {
+  off<K extends keyof PrintJobManagerEvents>(
+    event: K,
+    handler: (payload: PrintJobManagerEvents[K]) => void,
+  ): void {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
-      const index = handlers.indexOf(handler);
+      const index = handlers.indexOf(handler as (payload: never) => void);
       if (index > -1) {
         handlers.splice(index, 1);
       }
     }
   }
 
-  private emit(event: string, data: any): void {
+  private emit<K extends keyof PrintJobManagerEvents>(
+    event: K,
+    data: PrintJobManagerEvents[K],
+  ): void {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
       handlers.forEach((handler) => {
         try {
-          handler(data);
+          (handler as (payload: PrintJobManagerEvents[K]) => void)(data);
         } catch (error) {
           console.error(
             `PrintJobManager event handler error for ${event}:`,

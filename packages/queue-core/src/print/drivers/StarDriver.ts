@@ -50,7 +50,7 @@ export class StarDriver extends PrinterDriver {
       this.device.lastSeen = new Date();
 
       return true;
-    } catch (error) {
+    } catch {
       this.connected = false;
       this.device.status = "error";
       return false;

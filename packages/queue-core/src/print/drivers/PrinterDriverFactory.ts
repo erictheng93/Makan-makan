@@ -12,10 +12,10 @@ import type {
 
 import { PRINTER_BRANDS } from "../config/brands";
 import { PrinterDriverError } from "../errors/PrintErrors";
-import { CitizenDriver } from "./CitizenDriver";
-import { EpsonDriver } from "./EpsonDriver";
+import { CitizenDriver, type CitizenPrinterOptions } from "./CitizenDriver";
+import { EpsonDriver, type EpsonDriverOptions } from "./EpsonDriver";
 import { PrinterDriver } from "./PrinterDriver";
-import { StarDriver } from "./StarDriver";
+import { StarDriver, type StarDriverOptions } from "./StarDriver";
 
 export interface DriverFactoryConfig {
   connectionTimeout: number;
@@ -23,6 +23,30 @@ export interface DriverFactoryConfig {
   retryAttempts: number;
   enableAutoDetection: boolean;
 }
+
+/**
+ * Transport-specific address fields. Which ones carry a value depends on the
+ * connection type — formatAddress picks per transport — so all are optional.
+ */
+export interface PrinterConnectionParams {
+  type?: string;
+  host?: string;
+  port?: number;
+  address?: string;
+  path?: string;
+  mac?: string;
+}
+
+/** Options accepted when scanning a transport for devices. */
+export interface PrinterScanOptions {
+  networkRanges?: string[];
+  serialPorts?: string[];
+}
+
+/** Whatever the concrete drivers accept; each brand narrows it further. */
+export type PrinterDriverOptions = EpsonDriverOptions &
+  StarDriverOptions &
+  CitizenPrinterOptions;
 
 export class PrinterDriverFactory {
   private static instance: PrinterDriverFactory;
@@ -61,10 +85,10 @@ export class PrinterDriverFactory {
       id: string;
       model: string;
       connectionType: PrinterConnection;
-      connectionParams: any;
+      connectionParams: PrinterConnectionParams;
       capabilities?: PrinterCapabilities;
     },
-    driverConfig?: any,
+    driverConfig?: PrinterDriverOptions,
   ): Promise<PrinterDriver> {
     const device: PrinterDevice = {
       id: deviceConfig.id,
@@ -86,47 +110,32 @@ export class PrinterDriverFactory {
     return this.createDriverForDevice(device, driverConfig);
   }
 
+  /**
+   * NOTE: none of the drivers declare (or read) connection timeouts or retry
+   * counts, so the factory no longer pretends to pass them. Wiring real
+   * per-driver timeouts is tracked separately.
+   */
   static async createDriverForDevice(
     device: PrinterDevice,
-    config?: any,
+    config?: PrinterDriverOptions,
   ): Promise<PrinterDriver> {
     try {
       switch (device.brand) {
         case "epson":
-          return new EpsonDriver(device, {
-            connectionTimeout: 10000,
-            commandTimeout: 5000,
-            retryAttempts: 3,
-            ...config,
-          });
+          return new EpsonDriver(device, { ...config });
 
         case "star":
           return new StarDriver(device, {
-            connectionTimeout: 10000,
-            commandTimeout: 5000,
-            retryAttempts: 3,
             emulation: this.determineStarEmulation(device.model),
             ...config,
           });
 
         case "citizen":
-          return new CitizenDriver(device, {
-            connectionTimeout: 10000,
-            commandTimeout: 5000,
-            retryAttempts: 3,
-            series: this.determineCitizenSeries(device.model),
-            ...config,
-          });
+          return new CitizenDriver(device, { ...config });
 
         case "generic":
           // 通用驅動使用 ESC/POS 標準 (基於 Epson)
-          return new EpsonDriver(device, {
-            connectionTimeout: 10000,
-            commandTimeout: 5000,
-            retryAttempts: 3,
-            generic: true,
-            ...config,
-          });
+          return new EpsonDriver(device, { ...config });
 
         default:
           throw new PrinterDriverError(
@@ -296,7 +305,7 @@ export class PrinterDriverFactory {
 
   private static formatAddress(
     connectionType: PrinterConnection,
-    params: any,
+    params: PrinterConnectionParams,
   ): string {
     switch (connectionType) {
       case "network":
@@ -313,7 +322,9 @@ export class PrinterDriverFactory {
     }
   }
 
-  private formatConnectionAddress(connectionInfo: any): string {
+  private formatConnectionAddress(
+    connectionInfo: PrinterConnectionParams,
+  ): string {
     if (connectionInfo.address) return connectionInfo.address;
     if (connectionInfo.host && connectionInfo.port) {
       return `${connectionInfo.host}:${connectionInfo.port}`;
@@ -322,7 +333,9 @@ export class PrinterDriverFactory {
     return "";
   }
 
-  private async queryDeviceInfo(connectionInfo: any): Promise<string | null> {
+  private async queryDeviceInfo(
+    connectionInfo: PrinterConnectionParams,
+  ): Promise<string | null> {
     // 實際實作中會嘗試連接並發送設備查詢命令
     // 這裡回傳根據連線位址推斷設備資訊
 
@@ -366,8 +379,11 @@ export class PrinterDriverFactory {
     return brandConfig?.defaultModel || "Generic";
   }
 
-  private generateDeviceId(connectionInfo: any, model: string): string {
-    const prefix = connectionInfo.type.toUpperCase();
+  private generateDeviceId(
+    connectionInfo: PrinterConnectionParams,
+    model: string,
+  ): string {
+    const prefix = (connectionInfo.type ?? "dev").toUpperCase();
     const address = this.formatConnectionAddress(connectionInfo).replace(
       /[^a-zA-Z0-9]/g,
       "_",
@@ -379,7 +395,7 @@ export class PrinterDriverFactory {
 
   private async scanConnectionType(
     connectionType: PrinterConnection,
-    options?: any,
+    options?: PrinterScanOptions,
   ): Promise<PrinterDevice[]> {
     switch (connectionType) {
       case "usb":
@@ -420,7 +436,7 @@ export class PrinterDriverFactory {
           if (device) {
             devices.push(device);
           }
-        } catch (error) {
+        } catch {
           // 忽略連接失敗的 IP
         }
       }
@@ -444,7 +460,7 @@ export class PrinterDriverFactory {
         if (device) {
           devices.push(device);
         }
-      } catch (error) {
+      } catch {
         // 忽略無效的序列埠
       }
     }
@@ -483,29 +499,22 @@ export class PrinterDriverFactory {
     });
   }
 
+  /**
+   * Map a model name onto the emulation StarDriver actually accepts.
+   *
+   * This used to return Star's marketing names ("StarPRNT", "StarLine",
+   * "StarGraphic"), none of which are values the driver understands. The
+   * driver only ever compares against "esc-pos", so no branch changes
+   * behaviour here — the values are simply legal now.
+   */
   private static determineStarEmulation(
     model: string,
-  ): "StarPRNT" | "StarLine" | "StarGraphic" {
+  ): NonNullable<StarDriverOptions["emulation"]> {
     const modelLower = model.toLowerCase();
 
-    if (modelLower.includes("graphic")) {
-      return "StarGraphic";
-    } else if (modelLower.includes("line")) {
-      return "StarLine";
+    if (modelLower.includes("graphic") || modelLower.includes("line")) {
+      return "star-line";
     }
-    return "StarPRNT";
-  }
-
-  private static determineCitizenSeries(
-    model: string,
-  ): "CT-S" | "CT-D" | "CT-E" | "PPU" {
-    const modelUpper = model.toUpperCase();
-
-    if (modelUpper.includes("CT-S")) return "CT-S";
-    if (modelUpper.includes("CT-D")) return "CT-D";
-    if (modelUpper.includes("CT-E")) return "CT-E";
-    if (modelUpper.includes("PPU")) return "PPU";
-
-    return "CT-S";
+    return "star-prnt";
   }
 }
