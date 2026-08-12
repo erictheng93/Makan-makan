@@ -15,11 +15,28 @@ interface LazyComponentOptions {
   onError?: (error: Error, retry: () => void) => void;
 }
 
+type ComponentLoaderResult<T extends Component = Component> =
+  | { default: T }
+  | T;
+type ComponentImport<T extends Component = Component> = () => Promise<
+  ComponentLoaderResult<T>
+>;
+type FeatureImport = () => Promise<unknown>;
+
+const isComponentModule = <T extends Component>(
+  result: ComponentLoaderResult<T>,
+): result is { default: T } =>
+  typeof result === "object" && result !== null && "default" in result;
+
+const resolveComponent = <T extends Component>(
+  result: ComponentLoaderResult<T>,
+): T => (isComponentModule(result) ? result.default : result);
+
 /**
  * Enhanced lazy loading for Vue components with better error handling
  */
-export function lazyComponent(
-  loader: () => Promise<any>,
+export function lazyComponent<T extends Component = Component>(
+  loader: ComponentImport<T>,
   options: LazyComponentOptions = {},
 ): Component {
   const {
@@ -65,7 +82,7 @@ export function lazyComponent(
           }
 
           // Handle different module formats
-          component.value = result.default || result;
+          component.value = resolveComponent(result);
           loadingState.value.isLoading = false;
         } catch (err) {
           const error = err instanceof Error ? err : new Error(String(err));
@@ -126,9 +143,7 @@ export function lazyComponent(
 /**
  * Create route-based code splitting
  */
-export function createRouteComponents(
-  routes: Record<string, () => Promise<any>>,
-) {
+export function createRouteComponents(routes: Record<string, ComponentImport>) {
   return Object.fromEntries(
     Object.entries(routes).map(([name, loader]) => [
       name,
@@ -149,7 +164,7 @@ export class ComponentLoader {
   private preloadQueue = new Set<string>();
   private loadingComponents = new Set<string>();
 
-  constructor(private components: Record<string, () => Promise<any>>) {}
+  constructor(private components: Record<string, ComponentImport>) {}
 
   /**
    * Load component with caching
@@ -249,7 +264,7 @@ export class ComponentLoader {
     try {
       const loader = this.components[name];
       const result = await loader();
-      return result.default || result;
+      return resolveComponent(result);
     } catch (error) {
       this.cache.delete(name); // Remove failed load from cache
       throw error;
@@ -274,7 +289,7 @@ export class ComponentLoader {
  * Utility for progressive enhancement and feature detection
  */
 export class FeatureLoader {
-  private features = new Map<string, () => Promise<any>>();
+  private features = new Map<string, FeatureImport>();
   private loadedFeatures = new Set<string>();
   private supportCache = new Map<string, boolean>();
 
@@ -283,7 +298,7 @@ export class FeatureLoader {
    */
   register(
     name: string,
-    loader: () => Promise<any>,
+    loader: FeatureImport,
     detector?: () => boolean,
   ): void {
     this.features.set(name, loader);
