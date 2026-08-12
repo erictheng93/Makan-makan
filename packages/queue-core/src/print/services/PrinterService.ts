@@ -143,12 +143,11 @@ export class PrinterService {
     isDefault?: boolean;
   }): Promise<void> {
     try {
-      // 創建打印機驅動
-      // this.config.drivers carries service-level timeouts, which no driver
-      // declares or reads; it is no longer forwarded as driver options.
+      // Create the driver with the service-level execution policy.
       const driver = await PrinterDriverFactory.createDriver(
         deviceConfig.brand,
         deviceConfig,
+        this.config.drivers,
       );
 
       // 測試連接

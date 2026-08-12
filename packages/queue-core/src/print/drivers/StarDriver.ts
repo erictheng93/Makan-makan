@@ -11,8 +11,9 @@ import type {
 } from "@makanmasak/shared-types";
 import { CommandBuilder } from "../commands/CommandBuilder";
 import { PrinterDriver } from "./PrinterDriver";
+import type { PrinterDriverExecutionOptions } from "./PrinterDriver";
 
-export interface StarDriverOptions {
+export interface StarDriverOptions extends PrinterDriverExecutionOptions {
   baudRate?: number;
   dataBits?: number;
   stopBits?: number;
@@ -25,7 +26,7 @@ export class StarDriver extends PrinterDriver {
   private options: StarDriverOptions;
 
   constructor(device: PrinterDevice, options: StarDriverOptions = {}) {
-    super(device);
+    super(device, options);
     this.options = {
       baudRate: 9600,
       dataBits: 8,
@@ -43,13 +44,13 @@ export class StarDriver extends PrinterDriver {
       // Star printers often require specific initialization sequences
 
       // Initialize with Star commands
-      await this.initializeStarPrinter();
-
-      this.connected = true;
-      this.device.status = "online";
-      this.device.lastSeen = new Date();
-
-      return true;
+      return await this.executeConnection(async () => {
+        await this.initializeStarPrinter();
+        this.connected = true;
+        this.device.status = "online";
+        this.device.lastSeen = new Date();
+        return true;
+      });
     } catch {
       this.connected = false;
       this.device.status = "error";
@@ -100,7 +101,7 @@ export class StarDriver extends PrinterDriver {
       const commands = await this.buildStarCommands(content);
 
       // Send commands to Star printer
-      await this.sendStarCommands(commands);
+      await this.executeCommand(() => this.sendStarCommands(commands));
 
       return {
         success: true,
@@ -199,7 +200,7 @@ export class StarDriver extends PrinterDriver {
     return commands.join("");
   }
 
-  private async sendStarCommands(commands: string): Promise<void> {
+  protected async sendStarCommands(commands: string): Promise<void> {
     // Implement Star-specific command sending
     // Star printers may require specific timing or handshaking
 

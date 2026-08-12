@@ -10,8 +10,9 @@ import type {
   PrinterStatus,
 } from "@makanmasak/shared-types";
 import { PrinterDriver } from "./PrinterDriver";
+import type { PrinterDriverExecutionOptions } from "./PrinterDriver";
 
-export interface CitizenPrinterOptions {
+export interface CitizenPrinterOptions extends PrinterDriverExecutionOptions {
   baudRate?: number;
   dataBits?: number;
   stopBits?: number;
@@ -22,7 +23,7 @@ export class CitizenDriver extends PrinterDriver {
   private options: CitizenPrinterOptions;
 
   constructor(device: PrinterDevice, options: CitizenPrinterOptions = {}) {
-    super(device);
+    super(device, options);
     this.options = {
       baudRate: 9600,
       dataBits: 8,
@@ -38,8 +39,10 @@ export class CitizenDriver extends PrinterDriver {
   async connect(): Promise<boolean> {
     try {
       // Simulate connection logic
-      this.connected = true;
-      return true;
+      return await this.executeConnection(async () => {
+        this.connected = true;
+        return true;
+      });
     } catch {
       this.connected = false;
       return false;
@@ -88,7 +91,7 @@ export class CitizenDriver extends PrinterDriver {
 
     try {
       // Simulate printing logic
-      await this.sendCommands(content);
+      await this.executeCommand(() => this.sendCommands(content));
 
       return {
         success: true,
@@ -105,7 +108,7 @@ export class CitizenDriver extends PrinterDriver {
     }
   }
 
-  private async sendCommands(content: PrintContent): Promise<void> {
+  protected async sendCommands(content: PrintContent): Promise<void> {
     // Simulate sending printer commands for receipt content
 
     // Print header

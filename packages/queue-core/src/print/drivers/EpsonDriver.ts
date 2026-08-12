@@ -11,8 +11,9 @@ import type {
 } from "@makanmasak/shared-types";
 import { CommandBuilder } from "../commands/CommandBuilder";
 import { PrinterDriver } from "./PrinterDriver";
+import type { PrinterDriverExecutionOptions } from "./PrinterDriver";
 
-export interface EpsonDriverOptions {
+export interface EpsonDriverOptions extends PrinterDriverExecutionOptions {
   baudRate?: number;
   dataBits?: number;
   stopBits?: number;
@@ -24,7 +25,7 @@ export class EpsonDriver extends PrinterDriver {
   private options: EpsonDriverOptions;
 
   constructor(device: PrinterDevice, options: EpsonDriverOptions = {}) {
-    super(device);
+    super(device, options);
     this.options = {
       baudRate: 9600,
       dataBits: 8,
@@ -42,11 +43,12 @@ export class EpsonDriver extends PrinterDriver {
       // via USB, network, or serial port
 
       // For now, simulate successful connection
-      this.connected = true;
-      this.device.status = "online";
-      this.device.lastSeen = new Date();
-
-      return true;
+      return await this.executeConnection(async () => {
+        this.connected = true;
+        this.device.status = "online";
+        this.device.lastSeen = new Date();
+        return true;
+      });
     } catch {
       this.connected = false;
       this.device.status = "error";
@@ -89,7 +91,7 @@ export class EpsonDriver extends PrinterDriver {
       const commands = commandBuilder.buildESCPOS();
 
       // Send commands to printer
-      await this.sendCommands(commands);
+      await this.executeCommand(() => this.sendCommands(commands));
 
       return {
         success: true,
@@ -107,7 +109,7 @@ export class EpsonDriver extends PrinterDriver {
     }
   }
 
-  private async sendCommands(commands: string): Promise<void> {
+  protected async sendCommands(commands: string): Promise<void> {
     // Implement Epson-specific command sending
     // This would typically write the command string to the printer connection
 

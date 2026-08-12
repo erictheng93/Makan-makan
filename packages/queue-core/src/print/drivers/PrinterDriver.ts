@@ -10,6 +10,12 @@ import type {
   PrinterStatus,
 } from "@makanmasak/shared-types";
 
+export interface PrinterDriverExecutionOptions {
+  connectionTimeout?: number;
+  commandTimeout?: number;
+  retryAttempts?: number;
+}
+
 export interface IPrinterDriver {
   /**
    * Connect to the printer
@@ -55,9 +61,79 @@ export interface IPrinterDriver {
 export abstract class PrinterDriver implements IPrinterDriver {
   protected device: PrinterDevice;
   protected connected = false;
+  protected readonly executionOptions: Required<PrinterDriverExecutionOptions>;
 
-  constructor(device: PrinterDevice) {
+  constructor(
+    device: PrinterDevice,
+    options: PrinterDriverExecutionOptions = {},
+  ) {
     this.device = device;
+    this.executionOptions = {
+      connectionTimeout: 10000,
+      commandTimeout: 5000,
+      retryAttempts: 3,
+      ...options,
+    };
+  }
+
+  protected async executeConnection<T>(
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    return this.executeWithRetry(
+      operation,
+      this.executionOptions.connectionTimeout,
+    );
+  }
+
+  protected async executeCommand<T>(operation: () => Promise<T>): Promise<T> {
+    return this.executeWithRetry(
+      operation,
+      this.executionOptions.commandTimeout,
+    );
+  }
+
+  private async executeWithRetry<T>(
+    operation: () => Promise<T>,
+    timeout: number,
+  ): Promise<T> {
+    let lastError: unknown;
+
+    for (
+      let attempt = 0;
+      attempt <= this.executionOptions.retryAttempts;
+      attempt += 1
+    ) {
+      try {
+        return await this.withTimeout(operation(), timeout);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError;
+  }
+
+  private async withTimeout<T>(
+    operation: Promise<T>,
+    timeout: number,
+  ): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        operation,
+        new Promise<T>((_, reject) => {
+          timer = setTimeout(
+            () =>
+              reject(
+                new Error(`Printer operation timed out after ${timeout}ms`),
+              ),
+            timeout,
+          );
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 
   abstract connect(): Promise<boolean>;
