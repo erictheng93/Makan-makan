@@ -156,8 +156,14 @@ export class FeedbackService extends BaseService {
     filters: FeedbackFilters = {},
     page: number = 1,
     limit: number = 20,
-    _isAdmin: boolean = false,
+    isAdmin: boolean = false,
   ) {
+    if (!isAdmin && !filters.userId) {
+      throw new Error(
+        "userId filter is required when listing feedback as a non-admin",
+      );
+    }
+
     try {
       const whereClause = this.buildWhereClause(filters);
       const { offset } = this.createPagination(page, limit);
