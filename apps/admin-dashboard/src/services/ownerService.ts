@@ -34,26 +34,6 @@ interface OwnerDashboardData {
   }>;
 }
 
-interface FinancialReportData {
-  period: string;
-  revenue_summary: {
-    total_orders: number;
-    gross_revenue: number;
-    total_tax: number;
-    net_revenue: number;
-    avg_order_value: number;
-  };
-  payment_methods: Array<{
-    payment_method: string;
-    order_count: number;
-    total_amount: number;
-  }>;
-  refund_stats: {
-    refund_count: number;
-    total_refunded: number;
-  };
-}
-
 interface RealtimeOrder {
   id: number;
   order_number: string;
@@ -101,31 +81,6 @@ class OwnerService {
       return this.unwrap(response.data, "Failed to fetch dashboard data");
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
-      throw error;
-    }
-  }
-
-  async getFinancialReport(
-    options: {
-      restaurantId?: string;
-      period?: "daily" | "weekly" | "monthly" | "yearly";
-      year?: string;
-      month?: string;
-    } = {},
-  ): Promise<FinancialReportData> {
-    try {
-      const response = await api.get<FinancialReportData>(
-        "/analytics/financial-report",
-        this.buildParams({
-          restaurantId: options.restaurantId,
-          period: options.period,
-          year: options.year,
-          month: options.month,
-        }),
-      );
-      return this.unwrap(response.data, "Failed to fetch financial report");
-    } catch (error) {
-      console.error("Error fetching financial report:", error);
       throw error;
     }
   }
