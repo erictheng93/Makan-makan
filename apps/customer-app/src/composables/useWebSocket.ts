@@ -6,7 +6,7 @@ import type {
   WebSocketMessage,
 } from "@makanmasak/shared-types";
 
-interface UseWebSocketOptions {
+interface UseWebSocketOptions<TMessage = WebSocketMessage> {
   url?: string;
   getUrl?: () => Promise<string>;
   protocols?: string | string[];
@@ -14,7 +14,7 @@ interface UseWebSocketOptions {
   reconnectAttempts?: number;
   reconnectInterval?: number;
   heartbeatInterval?: number;
-  onMessage?: (data: any) => void;
+  onMessage?: (data: TMessage) => void;
   onError?: (error: Event) => void;
   onOpen?: (event: Event) => void;
   onClose?: (event: CloseEvent) => void;
@@ -23,7 +23,9 @@ interface UseWebSocketOptions {
 
 type ConnectionStatus = "connecting" | "connected" | "disconnected" | "error";
 
-export function useWebSocket(options: UseWebSocketOptions = {}) {
+export function useWebSocket<TMessage = WebSocketMessage>(
+  options: UseWebSocketOptions<TMessage> = {},
+) {
   const {
     url = "",
     getUrl,
@@ -140,7 +142,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         }
 
         try {
-          const data = JSON.parse(event.data) as WebSocketMessage;
+          const data = JSON.parse(event.data) as TMessage;
           onMessage?.(data);
         } catch (error) {
           console.error("Failed to parse WebSocket message:", error);
@@ -200,7 +202,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     await connect();
   };
 
-  const send = (data: any) => {
+  const send = (data: unknown) => {
     if (!ws.value || ws.value.readyState !== WebSocket.OPEN) {
       return false;
     }
@@ -215,7 +217,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     }
   };
 
-  const subscribe = (channel: string, data?: any) =>
+  const subscribe = (channel: string, data?: unknown) =>
     send({
       type: "subscribe",
       channel,

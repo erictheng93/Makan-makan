@@ -125,7 +125,7 @@
               >
                 {{
                   Array.isArray(category)
-                    ? category.filter((s: any) => s.enabled).length
+                    ? category.filter((s: KeyboardShortcut) => s.enabled).length
                     : 0
                 }}
               </span>
@@ -253,7 +253,7 @@
                 <div
                   class="bg-purple-500 h-1 rounded-full"
                   :style="{
-                    width: `${(usage.count / Math.max(...(shortcuts.stats.value.mostUsed?.map((u: any) => u.count) || [1]))) * 100}%`,
+                    width: `${(usage.count / Math.max(...(shortcuts.stats.value.mostUsed?.map((u: ShortcutStats['mostUsed'][number]) => u.count) || [1]))) * 100}%`,
                   }"
                 />
               </div>
@@ -374,7 +374,10 @@ import {
 } from "lucide-vue-next";
 import { useToast } from "vue-toastification";
 import { useEnhancedKeyboardShortcuts } from "@/composables/useEnhancedKeyboardShortcuts";
-import type { KeyboardShortcut } from "@/composables/useEnhancedKeyboardShortcuts";
+import type {
+  KeyboardShortcut,
+  ShortcutStats,
+} from "@/composables/useEnhancedKeyboardShortcuts";
 
 const { t, locale } = useI18n();
 const toast = useToast();

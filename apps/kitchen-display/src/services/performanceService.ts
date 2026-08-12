@@ -41,6 +41,25 @@ export interface PerformanceConfig {
   };
 }
 
+export interface PerformanceReport {
+  summary: {
+    totalMetrics: number;
+    activeAlerts: number;
+    uptime: number;
+    errorRate: number;
+    collectionEnabled: boolean;
+    lastCollection: number | null;
+  };
+  metrics: Record<string, MetricSummary>;
+  alerts: {
+    total: number;
+    active: number;
+    byType: Record<string, number>;
+  };
+  system: SystemInfo;
+  recommendations: string[];
+}
+
 export interface SystemInfo {
   userAgent: string;
   platform: string;
@@ -546,13 +565,7 @@ class PerformanceService {
   }
 
   // Report generation
-  public generateReport(): {
-    summary: any;
-    metrics: any;
-    alerts: any;
-    system: SystemInfo;
-    recommendations: string[];
-  } {
+  public generateReport(): PerformanceReport {
     const summary = {
       totalMetrics: this.metrics.value.length,
       activeAlerts: this.alerts.value.filter((a) => !a.resolved).length,

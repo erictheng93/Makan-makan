@@ -433,6 +433,16 @@ import { useI18n } from "@/composables/useI18n";
 import { useCurrency } from "@/composables/useCurrency";
 import { getLocalizedMenuName } from "@/utils/localized-menu-content";
 import { WAITING_LIST_LAST_TICKET_KEY } from "@/composables/useWaitingTicket";
+import { getErrorMessage } from "@/utils/unknown";
+
+interface SubmittedOrder {
+  id: string | number;
+}
+
+interface GuestOrderResponse {
+  guestToken?: string;
+  order: SubmittedOrder;
+}
 
 const props = defineProps<{
   show: boolean;
@@ -559,10 +569,10 @@ const handleCheckout = async () => {
 
     // Use guest endpoint if no customer auth token
     const hasCustomerToken = !!sessionStorage.getItem("customer_auth_token");
-    let orderResult: any;
+    let orderResult: SubmittedOrder;
 
     if (hasCustomerToken) {
-      orderResult = await apiClient.post("/orders", orderData);
+      orderResult = await apiClient.post<SubmittedOrder>("/orders", orderData);
     } else {
       // Guest ordering — use /guest-orders endpoint (no auth required)
       const guestOrderData = {
@@ -583,7 +593,10 @@ const handleCheckout = async () => {
         notes: orderData.deliveryInfo?.instructions,
         deliveryInfo: orderData.deliveryInfo,
       };
-      const guestResult = await apiClient.post("/guest-orders", guestOrderData);
+      const guestResult = await apiClient.post<GuestOrderResponse>(
+        "/guest-orders",
+        guestOrderData,
+      );
       // Store guest token for order tracking
       if (guestResult.guestToken) {
         localStorage.setItem("guest_auth_token", guestResult.guestToken);
@@ -614,9 +627,9 @@ const handleCheckout = async () => {
         phone: props.phoneLastDigits,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("結帳失敗:", error);
-    toast.error(error.message || t("toast.orderSendFailed"));
+    toast.error(getErrorMessage(error, t("toast.orderSendFailed")));
   } finally {
     isSubmitting.value = false;
   }

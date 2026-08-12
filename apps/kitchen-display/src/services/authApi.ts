@@ -1,5 +1,6 @@
 import { createAuthenticatedApiClient } from "@makanmasak/auth-client";
 import type { ApiResponse, User } from "@/types";
+import { getApiErrorMessage } from "@/utils/unknown";
 
 export function getKitchenApiBaseUrl(env = import.meta.env): string {
   const baseUrl = env.VITE_API_BASE_URL;
@@ -55,11 +56,10 @@ export const authApi = {
         data: response.data.data,
         timestamp: new Date().toISOString(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Login API error:", error);
 
-      const message =
-        error.response?.data?.message || error.message || "登入失敗";
+      const message = getApiErrorMessage(error, "登入失敗");
       return {
         success: false,
         error: message,
@@ -77,7 +77,7 @@ export const authApi = {
         success: true,
         timestamp: new Date().toISOString(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       // 即使登出 API 失敗，也視為成功（本地清除認證信息）
       console.error("Logout API error:", error);
 
@@ -109,12 +109,11 @@ export const authApi = {
         data: response.data.data,
         timestamp: new Date().toISOString(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Refresh token API error:", error);
       return {
         success: false,
-        error:
-          error.response?.data?.message || error.message || "Token 刷新失敗",
+        error: getApiErrorMessage(error, "Token 刷新失敗"),
         timestamp: new Date().toISOString(),
       };
     }
@@ -130,11 +129,10 @@ export const authApi = {
         data: response.data.user,
         timestamp: new Date().toISOString(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Validate token API error:", error);
 
-      const message =
-        error.response?.data?.message || error.message || "Token 驗證失敗";
+      const message = getApiErrorMessage(error, "Token 驗證失敗");
       return {
         success: false,
         error: message,
@@ -153,11 +151,10 @@ export const authApi = {
         data: response.data.user,
         timestamp: new Date().toISOString(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Get current user API error:", error);
 
-      const message =
-        error.response?.data?.message || error.message || "獲取用戶資訊失敗";
+      const message = getApiErrorMessage(error, "獲取用戶資訊失敗");
       return {
         success: false,
         error: message,

@@ -294,7 +294,7 @@ const customizations = computed((): SelectedCustomizations => {
   }
 
   // 客製化選項
-  const options: any[] = [];
+  const options: NonNullable<SelectedCustomizations["options"]> = [];
 
   if (props.item.options?.customizations) {
     for (const option of props.item.options.customizations) {
@@ -305,7 +305,9 @@ const customizations = computed((): SelectedCustomizations => {
         if (choice) {
           options.push({
             id: choice.id,
-            name: choice.name,
+            optionName: option.name,
+            choiceId: choice.id,
+            choiceName: choice.name,
             priceAdjustment: choice.priceAdjustment || 0,
           });
         }
@@ -318,7 +320,9 @@ const customizations = computed((): SelectedCustomizations => {
           if (choice) {
             options.push({
               id: choice.id,
-              name: choice.name,
+              optionName: option.name,
+              choiceId: choice.id,
+              choiceName: choice.name,
               priceAdjustment: choice.priceAdjustment || 0,
             });
           }

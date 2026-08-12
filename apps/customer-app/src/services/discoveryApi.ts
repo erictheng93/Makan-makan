@@ -190,7 +190,9 @@ export const discoveryApi = {
   },
 
   async getRestaurantMenu(restaurantId: string) {
-    return apiClient.get<any[]>(`/discovery/restaurants/${restaurantId}/menu`);
+    return apiClient.get<unknown[]>(
+      `/discovery/restaurants/${restaurantId}/menu`,
+    );
   },
 
   async getTakeawayEligibility(restaurantId: string) {

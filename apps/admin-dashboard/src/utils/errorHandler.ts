@@ -75,7 +75,7 @@ export function isDedicatedUiErrorCode(
  * api.ts 的 errorHandler 包成 ErrorDetails 再 reject，原始錯誤放在
  * originalError）。
  */
-export function extractApiErrorCode(error: any): string | undefined {
+export function extractApiErrorCode(error: unknown): string | undefined {
   for (const candidate of [error, error?.originalError]) {
     const apiError = candidate?.response?.data?.error;
     if (
@@ -118,8 +118,8 @@ export interface ErrorDetails {
   severity: ErrorSeverity;
   code?: string | number;
   message: string;
-  originalError?: any;
-  context?: Record<string, any>;
+  originalError?: unknown;
+  context?: Record<string, unknown>;
   timestamp: Date;
   userAgent?: string;
   url?: string;
@@ -131,7 +131,7 @@ export interface ErrorDetails {
 class OfflineManager {
   private isOnline = navigator.onLine;
   private callbacks: Array<(isOnline: boolean) => void> = [];
-  private pendingRequests: Array<() => Promise<any>> = [];
+  private pendingRequests: Array<() => Promise<unknown>> = [];
 
   constructor() {
     this.setupEventListeners();
@@ -174,7 +174,7 @@ class OfflineManager {
     callback(this.isOnline); // 立即回調當前狀態
   }
 
-  addPendingRequest(request: () => Promise<any>) {
+  addPendingRequest(request: () => Promise<unknown>) {
     this.pendingRequests.push(request);
   }
 
@@ -282,7 +282,7 @@ export class ErrorHandler {
   }
 
   // 處理一般錯誤
-  handleError(error: any, context?: Record<string, any>): ErrorDetails {
+  handleError(error: unknown, context?: Record<string, unknown>): ErrorDetails {
     const errorDetails = this.parseError(error, context);
 
     // 記錄錯誤
@@ -305,7 +305,10 @@ export class ErrorHandler {
   }
 
   // 解析錯誤
-  private parseError(error: any, context?: Record<string, any>): ErrorDetails {
+  private parseError(
+    error: unknown,
+    context?: Record<string, unknown>,
+  ): ErrorDetails {
     let type = ErrorType.UNKNOWN;
     let severity = ErrorSeverity.MEDIUM;
     let message = "發生了未知錯誤";
@@ -452,7 +455,7 @@ export class KitchenErrorHandler extends ErrorHandler {
     return handler.handleSSEConnectionError(error, eventSource);
   }
 
-  static handleAPIError(error: any, context?: Record<string, any>) {
+  static handleAPIError(error: unknown, context?: Record<string, unknown>) {
     const handler = ErrorHandler.getInstance();
     return handler.handleError(error, context);
   }
@@ -540,7 +543,10 @@ export class KitchenErrorHandler extends ErrorHandler {
   }
 
   // 處理 API 請求錯誤
-  handleAPIRequest(error: any, context?: Record<string, any>): Promise<any> {
+  handleAPIRequest(
+    error: unknown,
+    context?: Record<string, unknown>,
+  ): Promise<unknown> {
     const errorDetails = this.handleError(error, context);
 
     // 如果是網絡錯誤且處於離線狀態
@@ -564,14 +570,17 @@ export class KitchenErrorHandler extends ErrorHandler {
 
   // 處理離線請求
   private handleOfflineRequest(
-    _originalError: any,
-    _context?: Record<string, any>,
-  ): Promise<any> {
+    _originalError: unknown,
+    _context?: Record<string, unknown>,
+  ): Promise<unknown> {
     const toast = useToast();
     toast.warning("當前網絡不可用，請求將在網絡恢復後重新嘗試");
 
     return new Promise(
-      (_resolve: (value?: any) => void, reject: (reason?: any) => void) => {
+      (
+        _resolve: (value?: unknown) => void,
+        reject: (reason?: unknown) => void,
+      ) => {
         // 創建重試請求函數
         const retryRequest = async () => {
           try {
@@ -593,9 +602,9 @@ export class KitchenErrorHandler extends ErrorHandler {
 
   // 處理 Token 刷新
   private async handleTokenRefresh(
-    _originalError: any,
-    _context?: Record<string, any>,
-  ): Promise<any> {
+    _originalError: unknown,
+    _context?: Record<string, unknown>,
+  ): Promise<unknown> {
     try {
       const success = authRefreshHandler ? await authRefreshHandler() : false;
 

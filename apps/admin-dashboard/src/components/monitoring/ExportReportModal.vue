@@ -23,7 +23,7 @@ import {
 // Props
 interface Props {
   show: boolean;
-  data: any[];
+  data: unknown[];
   defaultDataType?: ExportDataType;
 }
 
@@ -50,7 +50,7 @@ const isExporting = ref(false);
 const exportProgress = ref(0);
 
 // Format icons
-const formatIcons: Record<ExportFormat, any> = {
+const formatIcons: Record<ExportFormat, unknown> = {
   csv: TableCellsIcon,
   excel: TableCellsIcon,
   pdf: DocumentChartBarIcon,

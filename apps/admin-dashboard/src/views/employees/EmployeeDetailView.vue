@@ -187,5 +187,5 @@ const isActiveTab = (path: string) => {
 };
 
 // Helpers
-const getInitials = (emp: any) => getInitialsHelper(emp);
+const getInitials = (emp: unknown) => getInitialsHelper(emp);
 </script>

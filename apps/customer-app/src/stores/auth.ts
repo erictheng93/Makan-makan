@@ -125,8 +125,8 @@ export const useAuthStore = defineStore("auth", () => {
     try {
       const data = await customerIdentityApi.requestOtp(phone);
       return { success: true, data };
-    } catch (err: any) {
-      error.value = err.message || t("messages.networkError");
+    } catch (err: unknown) {
+      error.value = failureMessage(err);
       return { success: false, error: error.value };
     } finally {
       isLoading.value = false;

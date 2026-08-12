@@ -278,7 +278,7 @@ async function handleSave() {
       emit("template-created", created);
     }
     resetForm();
-  } catch (e: any) {
+  } catch (e: unknown) {
     formError.value = e?.message || "操作失敗，請再試一次";
   } finally {
     saving.value = false;
@@ -297,7 +297,7 @@ async function handleDelete(id: number) {
     await schedulingService.deleteShiftTemplate(id);
     emit("template-deleted", id);
     if (editingId.value === id) resetForm();
-  } catch (e: any) {
+  } catch (e: unknown) {
     toast.error(e?.message || "刪除失敗，請再試一次");
   }
 }

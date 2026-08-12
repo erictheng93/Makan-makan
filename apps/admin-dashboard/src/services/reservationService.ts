@@ -159,7 +159,7 @@ export class ReservationService {
    * 建立時段
    */
   static async createSlot(data: CreateSlotRequest) {
-    const response = await api.post<any>(`/reservations/slots`, data);
+    const response = await api.post<unknown>(`/reservations/slots`, data);
     return response.data;
   }
 

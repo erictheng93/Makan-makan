@@ -354,6 +354,7 @@ import ConfirmationModal from "@/components/ConfirmationModal.vue";
 import { orderApi } from "@/services/orderApi";
 import { formatDateTime } from "@/utils/format";
 import { useCurrency } from "@/composables/useCurrency";
+import { getErrorMessage, isRecord } from "@/utils/unknown";
 import {
   ClockIcon,
   CheckCircleIcon,
@@ -454,8 +455,8 @@ const handleWebSocketMessage = (message: RealtimeEvent) => {
     return;
   }
 
-  queryClient.setQueryData(["order", props.orderId], (current: any) => {
-    if (!current) {
+  queryClient.setQueryData(["order", props.orderId], (current: unknown) => {
+    if (!isRecord(current)) {
       return current;
     }
 
@@ -505,8 +506,8 @@ const { mutate: cancelOrder } = useMutation({
     toast.success(t("toast.orderCancelled"));
     refetch();
   },
-  onError: (error: any) => {
-    toast.error(error?.message || t("toast.cancelOrderFailed"));
+  onError: (error: unknown) => {
+    toast.error(getErrorMessage(error, t("toast.cancelOrderFailed")));
   },
 });
 
@@ -626,7 +627,7 @@ const statusDescriptions = computed(
 );
 
 const getStatusIcon = (status: OrderStatus) => {
-  const icons: Record<string, any> = {
+  const icons: Record<string, unknown> = {
     pending: ClockIcon,
     confirmed: CheckCircleIcon,
     preparing: FireIcon,

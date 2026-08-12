@@ -310,8 +310,8 @@ const backupStore = useBackupStore();
 // Reactive data
 const isLoading = ref(false);
 const systemHealth = ref<BackupSystemHealth | null>(null);
-const performanceData = ref<any[]>([]);
-const restaurants = ref<any[]>([]);
+const performanceData = ref<unknown[]>([]);
+const restaurants = ref<unknown[]>([]);
 const criticalAlerts = ref<BackupAlert[]>([]);
 const selectedPeriod = ref("7d");
 const statusFilter = ref("all");
@@ -393,7 +393,7 @@ const formatDate = (dateString: string): string => {
   return date.toLocaleDateString();
 };
 
-const getRestaurantStatusClass = (restaurant: any) => {
+const getRestaurantStatusClass = (restaurant: unknown) => {
   return {
     "status-healthy": restaurant.status === "healthy",
     "status-warning": restaurant.status === "warning",
@@ -486,10 +486,10 @@ const loadRestaurants = async () => {
   try {
     const response = await api.get("/restaurants");
     const rawData = response.data?.data || response.data;
-    const restaurantList: any[] = Array.isArray(rawData) ? rawData : [];
+    const restaurantList: unknown[] = Array.isArray(rawData) ? rawData : [];
 
     const restaurantsWithMetrics = await Promise.all(
-      restaurantList.map(async (r: any) => {
+      restaurantList.map(async (r: unknown) => {
         try {
           const metrics = await backupStore.getRestaurantMetrics(r.id, "week");
           const successRate =

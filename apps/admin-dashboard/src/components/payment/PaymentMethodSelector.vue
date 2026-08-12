@@ -194,7 +194,7 @@ interface PaymentMethodDetails {
   displayName: string;
   description: string;
   fullDescription: string;
-  iconComponent: any;
+  iconComponent: unknown;
   processingTime: string;
   fee?: string;
   features: string[];

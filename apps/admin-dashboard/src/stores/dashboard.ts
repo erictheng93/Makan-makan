@@ -114,7 +114,7 @@ export const useDashboardStore = defineStore("dashboard", () => {
         error.value =
           response.data.error?.message || t("dashboardStore.fetchDataFailed");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       error.value =
         err.response?.data?.error?.message ||
         t("dashboardStore.fetchDashboardFailed");

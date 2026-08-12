@@ -17,7 +17,7 @@ const toastError = vi.hoisted(() => vi.fn());
 const readActiveGroupOrder = vi.hoisted(() => vi.fn());
 const clearActiveGroupOrder = vi.hoisted(() => vi.fn());
 const groupOrderMock = vi.hoisted(() => ({
-  groupOrder: { value: null as null | Record<string, any> },
+  groupOrder: { value: null as null | Record<string, unknown> },
   currentMemberId: { value: "" },
   error: { value: null as string | null },
   createGroupOrder: vi.fn(),

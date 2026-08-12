@@ -592,11 +592,11 @@ const statusFilter = ref("");
 const capacityFilter = ref("");
 const showTableModal = ref(false);
 const showQRModal = ref(false);
-const editingTable = ref<any>(null);
-const selectedTable = ref<any>(null);
+const editingTable = ref<unknown>(null);
+const selectedTable = ref<unknown>(null);
 
 /** Map API table object to the shape used by this view */
-const mapTable = (t: any) => ({
+const mapTable = (t: unknown) => ({
   id: t.id,
   tableNumber: t.number || t.tableNumber || "",
   tableName: t.name || t.tableName || "",
@@ -613,7 +613,7 @@ const mapTable = (t: any) => ({
   currentOrderId: t.currentOrderId || t.orderId || null,
 });
 
-const tables = ref<any[]>([]);
+const tables = ref<unknown[]>([]);
 
 const defaultTableForm = () => ({
   tableNumber: "",
@@ -676,10 +676,11 @@ const filteredTables = computed(() => {
 const selectedTableIds = ref<number[]>([]);
 
 const isTableSelected = (id: number) => selectedTableIds.value.includes(id);
-const printableTableQrCode = (table: any) =>
+const printableTableQrCode = (table: unknown) =>
   getPrintableQrCode(table.pendingQrCode, table.qrCode);
-const tableQrIsReady = (table: any) => isQrReady(printableTableQrCode(table));
-const tableHasPendingQr = (table: any) => Boolean(table.pendingQrCode);
+const tableQrIsReady = (table: unknown) =>
+  isQrReady(printableTableQrCode(table));
+const tableHasPendingQr = (table: unknown) => Boolean(table.pendingQrCode);
 
 const toggleTableSelection = (id: number) => {
   selectedTableIds.value = isTableSelected(id)
@@ -806,7 +807,7 @@ const generateAllQRCodes = async () => {
   }
 };
 
-const regenerateTableQRCode = async (table: any) => {
+const regenerateTableQRCode = async (table: unknown) => {
   try {
     await api.post(`/tables/${table.id}/regenerate-qr`, {});
     await fetchTables();
@@ -821,7 +822,7 @@ const regenerateTableQRCode = async (table: any) => {
   }
 };
 
-const prepareTableQRCode = async (table: any) => {
+const prepareTableQRCode = async (table: unknown) => {
   try {
     await api.post(`/tables/${table.id}/qr/prepare`);
     await fetchTables();
@@ -832,7 +833,7 @@ const prepareTableQRCode = async (table: any) => {
   }
 };
 
-const activateTableQRCode = async (table: any) => {
+const activateTableQRCode = async (table: unknown) => {
   const confirmed = await confirmModal({
     type: "warning",
     title: t("qrRotation.activate"),
@@ -851,7 +852,7 @@ const activateTableQRCode = async (table: any) => {
   }
 };
 
-const discardTableQRCode = async (table: any) => {
+const discardTableQRCode = async (table: unknown) => {
   const confirmed = await confirmModal({
     type: "warning",
     title: t("qrRotation.discard"),
@@ -915,19 +916,19 @@ const discardAllPreparedTableQRCodes = async () => {
   }
 };
 
-const viewQRCode = (table: any) => {
+const viewQRCode = (table: unknown) => {
   selectedTable.value = table;
   showQRModal.value = true;
 };
 
-const manageSeats = (table: any) => {
+const manageSeats = (table: unknown) => {
   router.push({
     name: "TableDetail",
     params: { id: table.id },
   });
 };
 
-const editTable = (table: any) => {
+const editTable = (table: unknown) => {
   editingTable.value = table;
   tableForm.value = {
     ...table,
@@ -940,10 +941,10 @@ const editTable = (table: any) => {
   showTableModal.value = true;
 };
 
-const canDeleteTable = (table: any) =>
+const canDeleteTable = (table: unknown) =>
   table.status !== "occupied" && !table.currentOrderId;
 
-const deleteTable = async (table: any) => {
+const deleteTable = async (table: unknown) => {
   if (!canDeleteTable(table)) {
     toast.error(t("tables.deleteBlocked"));
     return;
@@ -974,7 +975,7 @@ const deleteTable = async (table: any) => {
   }
 };
 
-const changeTableStatus = async (table: any) => {
+const changeTableStatus = async (table: unknown) => {
   try {
     if (table.status === "occupied") {
       await api.post(`/tables/${table.id}/release`);

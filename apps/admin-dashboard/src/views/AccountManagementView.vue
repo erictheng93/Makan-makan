@@ -285,7 +285,7 @@ async function handleOwnerSubmit() {
     toast.success(t("accountManagement.createOwnerSuccess"));
     resetOwnerForm();
     await fetchOwners();
-  } catch (e: any) {
+  } catch (e: unknown) {
     const msg =
       e?.response?.data?.error?.message ||
       e?.message ||
@@ -314,7 +314,7 @@ async function handleAdminSubmit() {
     toast.success(t("accountManagement.createAdminSuccess"));
     resetAdminForm();
     await fetchAdmins();
-  } catch (e: any) {
+  } catch (e: unknown) {
     const msg =
       e?.response?.data?.error?.message ||
       e?.message ||

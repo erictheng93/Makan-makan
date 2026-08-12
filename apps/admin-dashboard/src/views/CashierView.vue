@@ -1094,8 +1094,10 @@ const loadOrders = async () => {
       const rawOrders = unwrapApiList(payload);
       // Map API orders to CashierOrder shape, filtering unpaid
       orders.value = rawOrders
-        .filter((o: any) => o.paymentStatus === "unpaid" || !o.paymentStatus)
-        .map((o: any) => ({
+        .filter(
+          (o: unknown) => o.paymentStatus === "unpaid" || !o.paymentStatus,
+        )
+        .map((o: unknown) => ({
           id: o.id,
           orderNumber: o.orderNumber || `ORD-${o.id}`,
           tableNumber: o.tableNumber || o.tableName || "",
@@ -1110,7 +1112,7 @@ const loadOrders = async () => {
           totalAmount: o.totalAmount ?? o.total ?? o.subtotal ?? 0,
           paymentMethod: o.paymentMethod,
           couponCode: o.couponCode,
-          items: (o.items || []).map((item: any) => ({
+          items: (o.items || []).map((item: unknown) => ({
             id: item.id,
             menuItemName: item.menuItemName || item.name || "",
             quantity: item.quantity || 1,

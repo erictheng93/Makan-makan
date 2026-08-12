@@ -180,7 +180,7 @@ export function useInfiniteScroll<T>(
   /**
    * Apply filters and refresh
    */
-  const applyFilters = async (filters: Record<string, any>) => {
+  const applyFilters = async (filters: Record<string, unknown>) => {
     params.value.filters = filters;
     await refresh();
   };

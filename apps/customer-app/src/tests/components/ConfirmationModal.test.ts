@@ -3,7 +3,7 @@ import { mount, VueWrapper } from "@vue/test-utils";
 import ConfirmationModal from "@/components/ConfirmationModal.vue";
 
 describe("ConfirmationModal.vue", () => {
-  let wrapper: VueWrapper<any>;
+  let wrapper: VueWrapper<unknown>;
 
   const defaultProps = {
     show: true,

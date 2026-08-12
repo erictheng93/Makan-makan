@@ -46,7 +46,7 @@ export async function getMenu(restaurantId: number) {
 }
 
 // Example 3: Skip deduplication for specific requests
-export async function createOrder(restaurantId: number, orderData: any) {
+export async function createOrder(restaurantId: number, orderData: unknown) {
   // Don't deduplicate POST requests that create new resources
   const response = await api.post(
     `/restaurants/${restaurantId}/orders`,

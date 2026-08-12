@@ -8,7 +8,7 @@ import { apiClient } from "@/services/api";
 export interface SyncItem {
   id: string;
   type: string;
-  data: any;
+  data: unknown;
   priority: "critical" | "high" | "normal" | "low";
   timestamp: number;
   retryCount: number;
@@ -60,7 +60,7 @@ export class OptimizedBackgroundSync {
    */
   async queueForSync(
     type: string,
-    data: any,
+    data: unknown,
     priority: SyncItem["priority"] = "normal",
   ): Promise<void> {
     const item: SyncItem = {
@@ -358,8 +358,8 @@ export class OptimizedBackgroundSync {
   /**
    * 獲取隊列狀態
    */
-  getQueueStatus(): Record<string, any> {
-    const status: Record<string, any> = {};
+  getQueueStatus(): Record<string, unknown> {
+    const status: Record<string, unknown> = {};
 
     for (const [type, queue] of this.syncQueue.entries()) {
       status[type] = {
@@ -379,8 +379,8 @@ export class OptimizedBackgroundSync {
   /**
    * 獲取批次處理狀態
    */
-  getBatchStatus(): Record<string, any> {
-    const batches: Record<string, any> = {};
+  getBatchStatus(): Record<string, unknown> {
+    const batches: Record<string, unknown> = {};
 
     for (const [id, batch] of this.processingBatches.entries()) {
       batches[id] = {

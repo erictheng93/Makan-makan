@@ -1,5 +1,6 @@
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useToast } from "vue-toastification";
+import { getErrorMessage } from "@/utils/unknown";
 // Remove unused import
 
 // Keyboard shortcut configuration
@@ -190,7 +191,9 @@ export function useKeyboardShortcuts() {
   const actionQueue = ref<string[]>([]);
 
   // Action handlers registry
-  const actionHandlers = ref<Map<string, (...args: any[]) => void>>(new Map());
+  const actionHandlers = ref<Map<string, (...args: unknown[]) => void>>(
+    new Map(),
+  );
 
   // Computed
   const shortcutGroups = computed((): ShortcutGroup[] => {
@@ -360,9 +363,9 @@ export function useKeyboardShortcuts() {
 
         // Show visual feedback for some actions
         showActionFeedback(action);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(`Error executing shortcut action "${action}":`, error);
-        toast.error(`快捷鍵執行失敗: ${error.message}`);
+        toast.error(`快捷鍵執行失敗: ${getErrorMessage(error)}`);
       }
     } else {
       console.warn(`No handler found for action: ${action}`);
@@ -380,7 +383,7 @@ export function useKeyboardShortcuts() {
   // Registration methods
   const registerHandler = (
     action: string,
-    handler: (...args: any[]) => void,
+    handler: (...args: unknown[]) => void,
   ) => {
     actionHandlers.value.set(action, handler);
   };
@@ -390,7 +393,7 @@ export function useKeyboardShortcuts() {
   };
 
   const registerMultipleHandlers = (
-    handlers: Record<string, (...args: any[]) => void>,
+    handlers: Record<string, (...args: unknown[]) => void>,
   ) => {
     Object.entries(handlers).forEach(([action, handler]) => {
       registerHandler(action, handler);
@@ -534,8 +537,8 @@ export function useKeyboardShortcuts() {
           } else {
             throw new Error("Invalid shortcut configuration format");
           }
-        } catch (error: any) {
-          toast.error("導入失敗: " + error.message);
+        } catch (error: unknown) {
+          toast.error("導入失敗: " + getErrorMessage(error));
           reject(error);
         }
       };

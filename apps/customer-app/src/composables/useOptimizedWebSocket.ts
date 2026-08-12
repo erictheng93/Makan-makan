@@ -13,7 +13,7 @@
 import { ref, onMounted, onUnmounted, type Ref } from "vue";
 import type { WebSocketMessage } from "@makanmasak/shared-types";
 
-export interface OptimizedWSOptions {
+export interface OptimizedWSOptions<TMessage = WebSocketMessage> {
   url: string;
   protocols?: string | string[];
   reconnectAttempts?: number;
@@ -23,14 +23,14 @@ export interface OptimizedWSOptions {
   messageQueueSize?: number;
   enableVisibilityPause?: boolean;
   circuitBreakerThreshold?: number;
-  onMessage?: (data: any) => void;
+  onMessage?: (data: TMessage) => void;
   onError?: (error: Event) => void;
   onOpen?: (event: Event) => void;
   onClose?: (event: CloseEvent) => void;
 }
 
 interface QueuedMessage {
-  data: any;
+  data: unknown;
   timestamp: number;
   retries: number;
 }
@@ -88,7 +88,9 @@ class CircuitBreaker {
 const connectionPool = new Map<string, WebSocket>();
 const connectionSubscribers = new Map<string, Set<string>>();
 
-export function useOptimizedWebSocket(options: OptimizedWSOptions) {
+export function useOptimizedWebSocket<TMessage = WebSocketMessage>(
+  options: OptimizedWSOptions<TMessage>,
+) {
   const {
     url,
     protocols,
@@ -211,11 +213,16 @@ export function useOptimizedWebSocket(options: OptimizedWSOptions) {
         }
 
         try {
-          const data = JSON.parse(event.data) as WebSocketMessage;
+          const data = JSON.parse(event.data) as TMessage;
           metrics.value.totalMessagesReceived++;
 
           // Handle pong
-          if (data.type === "pong") {
+          if (
+            typeof data === "object" &&
+            data !== null &&
+            "type" in data &&
+            data.type === "pong"
+          ) {
             return;
           }
 
@@ -299,7 +306,7 @@ export function useOptimizedWebSocket(options: OptimizedWSOptions) {
   /**
    * Send message with queuing support
    */
-  const send = (data: any, priority = false): boolean => {
+  const send = (data: unknown, priority = false): boolean => {
     const message = typeof data === "string" ? data : JSON.stringify(data);
 
     if (ws.value?.readyState === WebSocket.OPEN) {
@@ -321,7 +328,7 @@ export function useOptimizedWebSocket(options: OptimizedWSOptions) {
   /**
    * Queue message for later delivery
    */
-  const queueMessage = (data: any, priority = false) => {
+  const queueMessage = (data: unknown, priority = false) => {
     const queuedMsg: QueuedMessage = {
       data,
       timestamp: Date.now(),

@@ -26,7 +26,7 @@ export interface Configuration {
   key: string;
   name: string;
   description: string;
-  value: any;
+  value: unknown;
   type: "string" | "number" | "boolean" | "object" | "array";
   category: "ui" | "performance" | "api" | "audio" | "system";
   validation?: {
@@ -34,7 +34,7 @@ export interface Configuration {
     max?: number;
     pattern?: string;
     required?: boolean;
-    options?: any[];
+    options?: unknown[];
   };
   metadata?: {
     version: string;
@@ -49,7 +49,7 @@ export interface ConfigProfile {
   name: string;
   description: string;
   features: Record<string, boolean>;
-  configurations: Record<string, any>;
+  configurations: Record<string, unknown>;
   active: boolean;
   metadata?: {
     version: string;
@@ -193,7 +193,7 @@ class FeatureToggleService {
   }
 
   // Configuration methods
-  public getConfiguration<T = any>(configKey: string, defaultValue?: T): T {
+  public getConfiguration<T = unknown>(configKey: string, defaultValue?: T): T {
     const config = this.configurations.value[configKey];
     if (!config) {
       return defaultValue as T;
@@ -208,7 +208,7 @@ class FeatureToggleService {
     return config.value as T;
   }
 
-  public setConfiguration<T = any>(configKey: string, value: T): boolean {
+  public setConfiguration<T = unknown>(configKey: string, value: T): boolean {
     const config = this.configurations.value[configKey];
     if (!config) return false;
 
@@ -661,7 +661,7 @@ class FeatureToggleService {
     }
   }
 
-  private validateConfigValue(config: Configuration, value: any): boolean {
+  private validateConfigValue(config: Configuration, value: unknown): boolean {
     if (!config.validation) return true;
 
     const validation = config.validation;
@@ -712,7 +712,7 @@ class FeatureToggleService {
     return true;
   }
 
-  private validateImportData(data: any): boolean {
+  private validateImportData(data: unknown): boolean {
     if (typeof data !== "object" || data === null) return false;
 
     // Basic structure validation

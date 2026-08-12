@@ -162,9 +162,13 @@ export class PWAPerformanceMonitor {
       // 監控 FID (First Input Delay)
       const fidObserver = new PerformanceObserver((list) => {
         const entries = list.getEntries();
-        entries.forEach((entry: any) => {
+        entries.forEach((entry) => {
+          const firstInput = entry as PerformanceEntry & {
+            processingStart?: number;
+          };
           this.metrics.timeToInteractive =
-            entry.processingStart - entry.startTime;
+            (firstInput.processingStart ?? firstInput.startTime) -
+            firstInput.startTime;
         });
       });
       fidObserver.observe({ entryTypes: ["first-input"] });
@@ -173,8 +177,10 @@ export class PWAPerformanceMonitor {
       // 監控導航性能
       const navObserver = new PerformanceObserver((list) => {
         const entries = list.getEntries();
-        entries.forEach((entry: any) => {
-          this.metrics.pageLoadTime = entry.loadEventEnd - entry.loadEventStart;
+        entries.forEach((entry) => {
+          const navigation = entry as PerformanceNavigationTiming;
+          this.metrics.pageLoadTime =
+            navigation.loadEventEnd - navigation.loadEventStart;
         });
       });
       navObserver.observe({ entryTypes: ["navigation"] });
@@ -265,7 +271,17 @@ export class PWAPerformanceMonitor {
   /**
    * 更新 Service Worker 性能指標
    */
-  private updateServiceWorkerMetrics(data: any): void {
+  private updateServiceWorkerMetrics(
+    data: Partial<
+      Pick<
+        PerformanceMetrics,
+        | "cacheHitRate"
+        | "averageResponseTime"
+        | "networkRequestCount"
+        | "cacheRequestCount"
+      >
+    >,
+  ): void {
     if (data.cacheHitRate !== undefined) {
       this.metrics.cacheHitRate = data.cacheHitRate;
     }

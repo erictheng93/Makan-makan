@@ -606,6 +606,7 @@ import {
 } from "lucide-vue-next";
 import { useToast } from "vue-toastification";
 import { performanceService } from "@/services/performanceService";
+import type { PerformanceReport } from "@/services/performanceService";
 
 const { t } = useI18n();
 const toast = useToast();
@@ -614,7 +615,7 @@ const toast = useToast();
 const showAllAlerts = ref(false);
 const showReportModal = ref(false);
 const selectedMetric = ref("api-response-time");
-const performanceReport = ref<any>(null);
+const performanceReport = ref<PerformanceReport | null>(null);
 
 // Update interval
 let updateInterval: NodeJS.Timeout | null = null;

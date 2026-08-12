@@ -7,11 +7,16 @@ type FlattenedMessage = {
   value: unknown;
 };
 
-const flattenMessages = (obj: any, prefix = ""): FlattenedMessage[] => {
+type MessageTree = Record<string, unknown>;
+
+const isMessageTree = (value: unknown): value is MessageTree =>
+  typeof value === "object" && value !== null;
+
+const flattenMessages = (obj: MessageTree, prefix = ""): FlattenedMessage[] => {
   let messages: FlattenedMessage[] = [];
   Object.keys(obj).forEach((key) => {
     const newKey = prefix ? `${prefix}.${key}` : key;
-    if (typeof obj[key] === "object" && obj[key] !== null) {
+    if (isMessageTree(obj[key])) {
       messages = messages.concat(flattenMessages(obj[key], newKey));
     } else {
       messages.push({ key: newKey, value: obj[key] });
@@ -20,8 +25,16 @@ const flattenMessages = (obj: any, prefix = ""): FlattenedMessage[] => {
   return messages;
 };
 
-const flattenKeys = (obj: any, prefix = ""): string[] => {
+const flattenKeys = (obj: MessageTree, prefix = ""): string[] => {
   return flattenMessages(obj, prefix).map(({ key }) => key);
+};
+
+const localeMessages = (code: string): MessageTree => {
+  const messages = i18n.global.getLocaleMessage(code);
+  if (!isMessageTree(messages)) {
+    throw new Error(`Locale ${code} did not return a message object`);
+  }
+  return messages;
 };
 
 type I18nGlobal = {
@@ -45,7 +58,7 @@ describe("Locale Consistency", () => {
   it("should have identical key count across all 6 locales", () => {
     const keyCounts: Record<string, number> = {};
     SUPPORTED_LANGUAGES.forEach(({ code }) => {
-      const messages = i18n.global.getLocaleMessage(code);
+      const messages = localeMessages(code);
       keyCounts[code] = flattenKeys(messages).length;
     });
     const counts = Object.values(keyCounts);
@@ -57,7 +70,7 @@ describe("Locale Consistency", () => {
   it("should have identical key names across all 6 locales", () => {
     const keysByLocale: Record<string, string[]> = {};
     SUPPORTED_LANGUAGES.forEach(({ code }) => {
-      const messages = i18n.global.getLocaleMessage(code);
+      const messages = localeMessages(code);
       keysByLocale[code] = flattenKeys(messages).sort();
     });
     const referenceKeys = keysByLocale["zh-TW"];
@@ -77,7 +90,7 @@ describe("Locale Consistency", () => {
 
   it("should have no empty translation values in any locale", () => {
     SUPPORTED_LANGUAGES.forEach(({ code }) => {
-      const messages = i18n.global.getLocaleMessage(code);
+      const messages = localeMessages(code);
       const flattened = flattenMessages(messages);
       flattened.forEach(({ key, value }) => {
         expect(value, `Empty value for ${key} in ${code}`).toBeTruthy();
@@ -116,7 +129,7 @@ describe("Locale Consistency", () => {
     const offenders: string[] = [];
 
     SUPPORTED_LANGUAGES.forEach(({ code }) => {
-      const messages = i18n.global.getLocaleMessage(code);
+      const messages = localeMessages(code);
       flattenMessages(messages).forEach(({ key, value }) => {
         if (typeof value === "string" && /\$\{[^}]+\}/.test(value)) {
           offenders.push(`${code}: ${key} = ${value}`);
@@ -145,7 +158,7 @@ describe("Locale Consistency", () => {
 
   it("should have each locale with at least 700 translation keys", () => {
     SUPPORTED_LANGUAGES.forEach(({ code }) => {
-      const messages = i18n.global.getLocaleMessage(code);
+      const messages = localeMessages(code);
       const keyCount = flattenKeys(messages).length;
       expect(
         keyCount,

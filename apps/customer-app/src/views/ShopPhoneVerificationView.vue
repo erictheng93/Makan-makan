@@ -253,6 +253,7 @@ import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "@/composables/useI18n";
 import { apiClient } from "@/services/api";
+import { getErrorMessage } from "@/utils/unknown";
 import type { Restaurant } from "@makanmasak/shared-types";
 
 const props = defineProps<{
@@ -316,9 +317,12 @@ const loadRestaurant = async () => {
     if (!restaurant.value?.enableShopMode) {
       throw new Error(t("toast.shopModeNotEnabled"));
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Failed to load restaurant:", error);
-    errorMessage.value = error.message || t("toast.restaurantLoadFailed");
+    errorMessage.value = getErrorMessage(
+      error,
+      t("toast.restaurantLoadFailed"),
+    );
 
     // Redirect to error page after 3 seconds
     setTimeout(() => {
@@ -382,9 +386,9 @@ const handleVerify = async () => {
         },
       });
     }, 1000);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Verification failed:", error);
-    errorMessage.value = error.message || t("errors.general");
+    errorMessage.value = getErrorMessage(error, t("errors.general"));
     isVerified.value = false;
   } finally {
     isLoading.value = false;

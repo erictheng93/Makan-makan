@@ -33,7 +33,7 @@ export interface QueueItem {
   notes: string | null;
   notificationMethods?: string[];
   checkInCode?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface QueueNotification {
@@ -57,13 +57,13 @@ export interface QueueSettings {
   autoCallInterval: number;
   noShowTimeout: number;
   queueNumberReset: "daily" | "weekly" | "monthly" | "never";
-  priorityRules: Record<string, any>;
-  tableAssignmentRules: Record<string, any>;
+  priorityRules: Record<string, unknown>;
+  tableAssignmentRules: Record<string, unknown>;
   notificationTemplates: Record<string, string>;
-  businessHours: Record<string, any>;
-  holidaySettings: Record<string, any>;
-  displaySettings: Record<string, any>;
-  integrationSettings: Record<string, any>;
+  businessHours: Record<string, unknown>;
+  holidaySettings: Record<string, unknown>;
+  displaySettings: Record<string, unknown>;
+  integrationSettings: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -87,7 +87,7 @@ function toNullableIsoString(value: string | number | null | undefined) {
   return value;
 }
 
-function mapQueueItem(entry: any): QueueItem {
+function mapQueueItem(entry: unknown): QueueItem {
   return {
     id: entry.id ?? entry.queueId,
     queueNumber: entry.queueNumber ?? 0,
@@ -118,9 +118,9 @@ function mapQueueItem(entry: any): QueueItem {
   };
 }
 
-function normalizeQueueStatus(data: any): {
-  queue: any;
-  activity: any;
+function normalizeQueueStatus(data: unknown): {
+  queue: unknown;
+  activity: unknown;
   settings: QueueSettings;
 } {
   return {
@@ -160,8 +160,8 @@ export const queueService = {
   },
 
   async getQueueStatus(restaurantId: string): Promise<{
-    queue: any;
-    activity: any;
+    queue: unknown;
+    activity: unknown;
     settings: QueueSettings;
   }> {
     const response = await apiClient.get(`/queue/${restaurantId}/status`);

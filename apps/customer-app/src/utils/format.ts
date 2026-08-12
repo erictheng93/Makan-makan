@@ -194,12 +194,21 @@ export const truncateText = (
  * @param address 地址物件或字串
  * @returns 格式化後的地址字串
  */
-export const formatAddress = (address: any): string => {
+interface AddressParts {
+  city?: string;
+  district?: string;
+  street?: string;
+  number?: string;
+}
+
+export const formatAddress = (
+  address: string | AddressParts | null | undefined,
+): string => {
   if (typeof address === "string") {
     return address;
   }
 
-  if (typeof address === "object" && address !== null) {
+  if (address) {
     const parts = [
       address.city,
       address.district,
@@ -218,7 +227,7 @@ export const formatAddress = (address: any): string => {
  * @param businessHours 營業時間物件
  * @returns 格式化後的營業時間字串
  */
-export const formatBusinessHours = (businessHours: any): string => {
+export const formatBusinessHours = (businessHours: unknown): string => {
   if (!businessHours || typeof businessHours !== "object") {
     return t("format.businessHoursNotSet");
   }

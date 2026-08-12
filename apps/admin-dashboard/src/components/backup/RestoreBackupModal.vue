@@ -111,7 +111,7 @@ const handleRestore = async () => {
 
     emit("restored", props.backup.id);
     emit("close");
-  } catch (err: any) {
+  } catch (err: unknown) {
     error.value = err.message || t("backup.restore.error");
   } finally {
     isRestoring.value = false;

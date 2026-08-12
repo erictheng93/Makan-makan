@@ -21,7 +21,7 @@ export interface PushNotificationOptions {
   badge?: string;
   image?: string;
   tag?: string;
-  data?: any;
+  data?: unknown;
   actions?: Array<{
     action: string;
     title: string;
@@ -234,7 +234,13 @@ class CustomerPushNotificationService {
     return window.btoa(binary);
   }
 
-  private getDeviceInfo(): Record<string, any> {
+  private getDeviceInfo(): {
+    user_agent: string;
+    platform: string;
+    language: string;
+    screen_resolution: string;
+    timezone: string;
+  } {
     return {
       user_agent: navigator.userAgent,
       platform: navigator.platform,
@@ -286,7 +292,7 @@ class CustomerPushNotificationService {
     }
   }
 
-  getNotificationSettings(): any {
+  getNotificationSettings(): unknown {
     const settings = localStorage.getItem("notification_settings");
     return settings
       ? JSON.parse(settings)

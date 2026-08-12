@@ -210,7 +210,7 @@ async function loadUsage() {
     currentMeters.value = usage.current.meters;
     events.value = eventPage.events;
     eventsTotal.value = eventPage.total;
-  } catch (err: any) {
+  } catch (err: unknown) {
     errorMessage.value =
       err?.response?.data?.error?.message ?? t("usage.loadError");
   } finally {

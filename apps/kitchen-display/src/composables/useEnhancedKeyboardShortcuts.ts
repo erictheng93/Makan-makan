@@ -574,7 +574,7 @@ export function useEnhancedKeyboardShortcuts(
     };
 
     try {
-      await orderStore.applyFilter(filter, filterMap[filter] || {});
+      await orderStore.applyFilter("status", filterMap[filter]?.status);
       toast.success(`已應用 ${filter} 篩選`);
       return true;
     } catch {

@@ -302,7 +302,7 @@ export const useAuthStore = defineStore("auth", () => {
         success: false,
         error: response.data.error?.message || "Login failed",
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
         error: error.response?.data?.error?.message || t("auth.loginFailed"),
@@ -346,7 +346,7 @@ export const useAuthStore = defineStore("auth", () => {
           authClient.tokens.scheduleProactiveRefresh(token.value);
         return true;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const status = error?.response?.status ?? error?.status;
 
       // Only logout on definitive auth failures (401/403).
@@ -425,7 +425,7 @@ export const useAuthStore = defineStore("auth", () => {
           authClient.tokens.scheduleProactiveRefresh(token.value!);
           return { refreshed: true, authFailure: false };
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         const status = error?.response?.status ?? error?.status;
         const authFailure = status === 400 || status === 401 || status === 403;
         if (clearOnAuthFailure && authFailure) {

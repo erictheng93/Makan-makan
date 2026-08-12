@@ -1,6 +1,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { audioService } from "@/services/audioService";
 import type { KitchenOrder, KitchenSSEEvent } from "@/types";
+import { isRecord } from "@/utils/unknown";
 
 export interface AudioNotificationConfig {
   newOrderSound: boolean;
@@ -125,7 +126,8 @@ export function useAudioNotifications() {
 
   // SSE Event Handlers
   const handleSSEEvent = async (event: KitchenSSEEvent) => {
-    const eventData = event.payload ?? event.data ?? {};
+    const rawEventData = event.payload ?? event.data;
+    const eventData = isRecord(rawEventData) ? rawEventData : {};
 
     switch (event.type) {
       case "NEW_ORDER":

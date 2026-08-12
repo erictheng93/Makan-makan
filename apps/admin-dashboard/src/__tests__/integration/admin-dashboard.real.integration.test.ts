@@ -91,7 +91,7 @@ describe("Admin Orders API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
+    const json: unknown = await res.json();
     expect(json.success).toBe(true);
     expect(Array.isArray(json.data)).toBe(true);
   });
@@ -104,7 +104,7 @@ describe("Admin Orders API — real integration", () => {
     );
 
     expect(res.status).toBe(401);
-    const json: any = await res.json();
+    const json: unknown = await res.json();
     expect(json.success).toBe(false);
     expect(json.error?.code).toBeDefined();
   });
@@ -133,7 +133,7 @@ describe("Admin Orders API — real integration", () => {
       }),
     );
     expect(postRes.status).toBe(201);
-    const created: any = (await postRes.json()).data;
+    const created: unknown = (await postRes.json()).data;
 
     // Read back
     const getRes = await testApp.app.fetch(
@@ -142,7 +142,7 @@ describe("Admin Orders API — real integration", () => {
       }),
     );
     expect(getRes.status).toBe(200);
-    const fetched: any = (await getRes.json()).data;
+    const fetched: unknown = (await getRes.json()).data;
     expect(fetched.id).toBe(created.id);
     expect(fetched.restaurantId).toBe(String(restaurant.id));
   });
@@ -168,7 +168,7 @@ describe("Admin Orders API — real integration", () => {
       }),
     );
     expect(postRes.status).toBe(201);
-    const order: any = (await postRes.json()).data;
+    const order: unknown = (await postRes.json()).data;
 
     // Update status
     const patchRes = await testApp.app.fetch(
@@ -182,7 +182,7 @@ describe("Admin Orders API — real integration", () => {
     // 200 = success; 400 = valid status but wrong transition; 404 = endpoint path differs
     expect([200, 400, 404]).toContain(patchRes.status);
     if (patchRes.status === 200) {
-      const json: any = await patchRes.json();
+      const json: unknown = await patchRes.json();
       expect(json.success).toBe(true);
     }
   });
@@ -209,7 +209,7 @@ describe("Admin Restaurant API — real integration", () => {
 
     expect([200, 404]).toContain(res.status);
     if (res.status === 200) {
-      const json: any = await res.json();
+      const json: unknown = await res.json();
       expect(json.success).toBe(true);
       expect(json.data).toBeTruthy();
     }
@@ -225,7 +225,7 @@ describe("Admin Restaurant API — real integration", () => {
     // Public restaurant info may or may not require auth; document actual behaviour
     // rather than assuming. At minimum it must not return 500.
     expect(res.status).not.toBe(500);
-    const json: any = await res.json();
+    const json: unknown = await res.json();
     if (res.status !== 200) {
       expect(json.success).toBe(false);
     }
@@ -246,7 +246,7 @@ describe("Admin Restaurant API — real integration", () => {
     );
 
     expect(res.status).not.toBe(500);
-    const json: any = await res.json();
+    const json: unknown = await res.json();
     expect(typeof json.success).toBe("boolean");
     // Whether 200 or 4xx, the envelope shape must be consistent
     if (json.success) {
@@ -281,7 +281,7 @@ describe("Admin Kitchen API — real integration", () => {
     // 200 = kitchen orders returned; 404 = endpoint path differs in this version
     expect([200, 404]).toContain(res.status);
     if (res.status === 200) {
-      const json: any = await res.json();
+      const json: unknown = await res.json();
       expect(json.success).toBe(true);
       expect(Array.isArray(json.data)).toBe(true);
     }
@@ -298,7 +298,7 @@ describe("Admin Kitchen API — real integration", () => {
 
     expect([401, 404]).toContain(res.status);
     if (res.status === 401) {
-      const json: any = await res.json();
+      const json: unknown = await res.json();
       expect(json.success).toBe(false);
     }
   });

@@ -154,7 +154,7 @@ const props = withDefaults(defineProps<Props>(), {
 interface Emits {
   (
     e: "payment-success",
-    data: { transactionId: string; paymentMethod: any },
+    data: { transactionId: string; paymentMethod: unknown },
   ): void;
   (e: "payment-error", error: string): void;
   (e: "payment-processing", isProcessing: boolean): void;
@@ -337,7 +337,7 @@ const initializeStripe = async () => {
       isCardFocused.value = false;
     });
 
-    cardElement.on("change", (event: any) => {
+    cardElement.on("change", (event: unknown) => {
       isCardComplete.value = event.complete;
       cardError.value = event.error?.message || "";
 

@@ -232,7 +232,7 @@ const handleRequestLeave = (leaveType: LeaveType | undefined) => {
 };
 
 // 提交請假申請
-const handleSubmitRequest = async (formData: any) => {
+const handleSubmitRequest = async (formData: unknown) => {
   try {
     const restaurantId = authStore.restaurantId;
     if (!restaurantId) return;

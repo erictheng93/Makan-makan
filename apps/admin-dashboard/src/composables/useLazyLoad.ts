@@ -183,7 +183,7 @@ export function useInfiniteScroll(
  * 延遲加載組件直到需要時
  */
 export function useComponentLazyLoad(
-  loadComponent: () => Promise<any>,
+  loadComponent: () => Promise<unknown>,
   options: LazyLoadOptions = {},
 ) {
   const { targetRef, isVisible, hasLoaded } = useLazyLoad({
@@ -191,7 +191,7 @@ export function useComponentLazyLoad(
     once: true,
   });
 
-  const component = ref<any>(null);
+  const component = ref<unknown>(null);
   const isLoading = ref(false);
   const hasError = ref(false);
 

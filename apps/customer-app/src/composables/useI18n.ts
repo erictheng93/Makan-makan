@@ -10,8 +10,12 @@ import type { LocaleInfo } from "@makanmasak/i18n";
 interface UseI18nReturn {
   t: (key: string) => string;
   safeT: (key: string, defaultValue?: string) => string;
-  tWithParams: (key: string, params: Record<string, any>) => string;
-  tPlural: (key: string, count: number, params?: Record<string, any>) => string;
+  tWithParams: (key: string, params: Record<string, unknown>) => string;
+  tPlural: (
+    key: string,
+    count: number,
+    params?: Record<string, unknown>,
+  ) => string;
   currentLanguage: ComputedRef<SupportedLanguage>;
   currentLanguageInfo: ComputedRef<LocaleInfo | undefined>;
   supportedLanguages: ComputedRef<typeof SUPPORTED_LANGUAGES>;
@@ -42,14 +46,14 @@ export function useI18n(): UseI18nReturn {
     return hasTranslation(key) ? t(key) : defaultValue || key;
   };
 
-  const tWithParams = (key: string, params: Record<string, any>) => {
+  const tWithParams = (key: string, params: Record<string, unknown>) => {
     return t(key, params);
   };
 
   const tPlural = (
     key: string,
     count: number,
-    params?: Record<string, any>,
+    params?: Record<string, unknown>,
   ) => {
     return t(key, { count, ...params }, count);
   };

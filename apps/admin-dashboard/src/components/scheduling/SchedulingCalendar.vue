@@ -191,7 +191,7 @@ const calendarDays = computed(() => {
   const daysInMonth = lastDay.getDate();
   const startDayOfWeek = firstDay.getDay();
 
-  const days: any[] = [];
+  const days: unknown[] = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 

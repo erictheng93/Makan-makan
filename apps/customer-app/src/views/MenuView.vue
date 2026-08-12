@@ -665,9 +665,12 @@ const error = computed(
 
 const categories = computed(() => menuStructure.value?.categories || []);
 const menuItems = computed(() => menuStructure.value?.menuItems || []);
+type MenuCategory = (typeof categories.value)[number];
 
 const featuredItems = computed(() =>
-  menuItems.value.filter((item: any) => item.isFeatured && item.isAvailable),
+  menuItems.value.filter(
+    (item: MenuItem) => item.isFeatured && item.isAvailable,
+  ),
 );
 
 const filteredCategories = computed(() => {
@@ -678,24 +681,26 @@ const filteredCategories = computed(() => {
   }
 
   const query = searchQuery.value.toLowerCase().trim();
-  return categories.value.filter((category: any) => {
+  return categories.value.filter((category: MenuCategory) => {
     const categoryItems = getItemsByCategory(category.id);
-    return categoryItems.some((item: any) => menuItemMatchesQuery(item, query));
+    return categoryItems.some((item: MenuItem) =>
+      menuItemMatchesQuery(item, query),
+    );
   });
 });
 
 // Methods
 const getItemsByCategory = (categoryId: number) => {
   let items = menuItems.value.filter(
-    (item: any) => item.categoryId === categoryId && item.isAvailable,
+    (item: MenuItem) => item.categoryId === categoryId && item.isAvailable,
   );
 
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase().trim();
-    items = items.filter((item: any) => menuItemMatchesQuery(item, query));
+    items = items.filter((item: MenuItem) => menuItemMatchesQuery(item, query));
   }
 
-  return items.sort((a: any, b: any) => a.sortOrder - b.sortOrder);
+  return items.sort((a: MenuItem, b: MenuItem) => a.sortOrder - b.sortOrder);
 };
 
 const scrollToCategory = (categoryId: number) => {
@@ -904,7 +909,7 @@ const handleViewDetails = (item: MenuItem) => {
 
 // 監聽滾動位置更新活躍分類
 const updateActiveCategoryOnScroll = () => {
-  const sections = categories.value.map((category: any) => ({
+  const sections = categories.value.map((category: MenuCategory) => ({
     id: category.id,
     element: document.getElementById(`category-${category.id}`),
   }));

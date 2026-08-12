@@ -1,11 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
-import type { RouteLocationNormalized } from "vue-router";
+import type { RouteLocationNormalized, Router } from "vue-router";
 import type { useAuthStore } from "@/stores/auth";
 import { getKitchenRouteRedirect, installKitchenRouterGuards } from "./guards";
 
 type AuthStore = ReturnType<typeof useAuthStore>;
 
-function route(overrides: Partial<any> = {}) {
+const chefUser = {
+  id: 1,
+  username: "chef",
+  name: "Chef",
+  role: 2,
+  restaurantId: 42,
+  permissions: [],
+};
+
+function route(overrides: Partial<RouteLocationNormalized> = {}) {
   return {
     fullPath: "/kitchen/42",
     meta: { requiresAuth: true, requiredRole: 2 },
@@ -14,10 +23,10 @@ function route(overrides: Partial<any> = {}) {
   } as unknown as RouteLocationNormalized;
 }
 
-function auth(overrides: Partial<any> = {}) {
+function auth(overrides: Partial<AuthStore> = {}) {
   return {
     isAuthenticated: true,
-    user: { role: 2 },
+    user: chefUser,
     restaurantId: 42,
     ...overrides,
   } as AuthStore;
@@ -44,7 +53,10 @@ describe("kitchen route guards", () => {
 
   it("blocks users without the required chef role", () => {
     expect(
-      getKitchenRouteRedirect(route(), auth({ user: { role: 1 } })),
+      getKitchenRouteRedirect(
+        route(),
+        auth({ user: { ...chefUser, role: 1 } }),
+      ),
     ).toEqual({ path: "/unauthorized" });
   });
 
@@ -61,10 +73,15 @@ describe("kitchen route guards", () => {
     const router = {
       beforeEach: vi.fn((guard) => {
         installedGuard = guard;
+        return () => {};
       }),
     };
 
-    installKitchenRouterGuards(router as any, auth(), Promise.resolve());
+    installKitchenRouterGuards(
+      router as unknown as Router,
+      auth(),
+      Promise.resolve(),
+    );
 
     expect(router.beforeEach).toHaveBeenCalledTimes(1);
     await expect(installedGuard!(route())).resolves.toBe(true);

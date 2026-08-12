@@ -269,7 +269,7 @@ function debouncedFetch() {
 }
 
 async function loadFeedback() {
-  const params: any = { page: filters.page, limit: 20 };
+  const params: unknown = { page: filters.page, limit: 20 };
   if (filters.search) params.search = filters.search;
   if (filters.status) params.status = filters.status;
   if (filters.category) params.category = filters.category;

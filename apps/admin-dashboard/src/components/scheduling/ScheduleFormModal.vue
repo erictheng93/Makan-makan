@@ -219,7 +219,7 @@ const error = ref<string | null>(null);
 const availableEmployees = ref<AvailableEmployee[]>([]);
 
 // Form Data
-const formData = reactive<any>({
+const formData = reactive<unknown>({
   employeeId: "",
   workDate: "",
   shiftTemplateId: "",

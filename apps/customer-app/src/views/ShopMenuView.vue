@@ -728,12 +728,13 @@ const error = computed(() => menuError.value?.message || null);
 
 const categories = computed(() => menuStructure.value?.categories || []);
 const menuItems = computed(() => menuStructure.value?.menuItems || []);
+type MenuCategory = (typeof categories.value)[number];
 const serviceItems = computed(() => serviceItemsData.value || []);
 const isProductCatalogItem = (item: MenuItem) => item.catalogType === "product";
 const isDishMenuItem = (item: MenuItem) =>
   !item.catalogType || item.catalogType === "menu_item";
 const hasAvailableCatalogItems = computed(() =>
-  menuItems.value.some((item: any) => item.isAvailable),
+  menuItems.value.some((item: MenuItem) => item.isAvailable),
 );
 const visibleCategories = computed(() =>
   categories.value.filter(
@@ -842,9 +843,11 @@ const filteredCategories = computed(() => {
   }
 
   const query = searchQuery.value.toLowerCase().trim();
-  return categories.value.filter((category: any) => {
+  return categories.value.filter((category: MenuCategory) => {
     const categoryItems = getItemsByCategory(category.id);
-    return categoryItems.some((item: any) => menuItemMatchesQuery(item, query));
+    return categoryItems.some((item: MenuItem) =>
+      menuItemMatchesQuery(item, query),
+    );
   });
 });
 
@@ -862,7 +865,7 @@ const getItemsByCategory = (categoryId: number) => {
     items = items.filter((item: MenuItem) => menuItemMatchesQuery(item, query));
   }
 
-  return items.sort((a: any, b: any) => a.sortOrder - b.sortOrder);
+  return items.sort((a: MenuItem, b: MenuItem) => a.sortOrder - b.sortOrder);
 };
 
 const serviceTypeLabel = (type: RestaurantServiceItem["serviceType"]) => {
@@ -1058,7 +1061,7 @@ const scrollToLinkedServicesSection = async () => {
 
 // 監聽滾動位置更新活躍分類
 const updateActiveCategoryOnScroll = () => {
-  const sections = visibleCategories.value.map((category: any) => ({
+  const sections = visibleCategories.value.map((category: MenuCategory) => ({
     id: category.id,
     element: document.getElementById(menuCategoryElementId(category.id)),
   }));

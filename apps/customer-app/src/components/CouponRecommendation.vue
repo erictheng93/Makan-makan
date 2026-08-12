@@ -60,20 +60,21 @@
 import { computed } from "vue";
 import { useI18n } from "@/composables/useI18n";
 import { useCurrency } from "@/composables/useCurrency";
+import type { CustomerCoupon } from "@/types/coupon";
 
 const { t } = useI18n();
 const { currencySymbol } = useCurrency();
 
 const props = defineProps<{
-  coupons: any[];
+  coupons: CustomerCoupon[];
   orderAmount: number;
 }>();
 
 defineEmits<{
-  "select-coupon": [coupon: any];
+  "select-coupon": [coupon: CustomerCoupon];
 }>();
 
-const computeSaving = (coupon: any): number => {
+const computeSaving = (coupon: CustomerCoupon): number => {
   let saving = 0;
   if (coupon.discountType === "percentage") {
     saving = Math.round(props.orderAmount * (coupon.discountValue / 100));
@@ -99,7 +100,7 @@ const recommendedCoupons = computed(() => {
     .map(({ coupon }) => coupon);
 });
 
-const formatDiscount = (coupon: any) => {
+const formatDiscount = (coupon: CustomerCoupon) => {
   if (coupon.discountType === "percentage") {
     return `${coupon.discountValue}% ${t("common.off")}`;
   } else {
@@ -107,7 +108,7 @@ const formatDiscount = (coupon: any) => {
   }
 };
 
-const calculatePotentialSaving = (coupon: any): string => {
+const calculatePotentialSaving = (coupon: CustomerCoupon): string => {
   return computeSaving(coupon).toFixed(2);
 };
 </script>

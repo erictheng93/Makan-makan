@@ -153,6 +153,7 @@ import KanbanBoard from "@/components/orders/KanbanBoard.vue";
 import OrderDetailsModal from "@/components/orders/OrderDetailsModal.vue";
 import ConnectionStatus from "@/components/common/ConnectionStatus.vue";
 import OfflineStatus from "@/components/offline/OfflineStatus.vue";
+import { getErrorMessage } from "@/utils/unknown";
 
 // Props
 const props = defineProps<{
@@ -261,9 +262,9 @@ const fetchOrders = async () => {
     if (ordersError.value) {
       toast.error(t("kitchen.loadOrdersFailed") + ordersError.value);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Failed to fetch orders:", error);
-    toast.error(t("kitchen.loadOrdersFailed") + error.message);
+    toast.error(t("kitchen.loadOrdersFailed") + getErrorMessage(error));
   }
 };
 
@@ -272,8 +273,8 @@ const handleStartCooking = async (orderId: number, itemId: number) => {
     await ordersStore.startCooking(restaurantIdNum.value, orderId, itemId);
     await audioNotifications.handleOrderStartCooking();
     toast.success(t("kitchen.startedPreparing"));
-  } catch (error: any) {
-    toast.error(t("kitchen.operationFailed") + error.message);
+  } catch (error: unknown) {
+    toast.error(t("kitchen.operationFailed") + getErrorMessage(error));
   }
 };
 
@@ -282,8 +283,8 @@ const handleMarkReady = async (orderId: number, itemId: number) => {
     await ordersStore.markReady(restaurantIdNum.value, orderId, itemId);
     await audioNotifications.handleOrderMarkReady();
     toast.success(t("kitchen.orderCompleted"));
-  } catch (error: any) {
-    toast.error(t("kitchen.operationFailed") + error.message);
+  } catch (error: unknown) {
+    toast.error(t("kitchen.operationFailed") + getErrorMessage(error));
   }
 };
 
@@ -298,8 +299,8 @@ const handleOrderStatusChanged = async (
 ) => {
   try {
     await fetchOrders();
-  } catch (error: any) {
-    toast.error(t("kitchen.statusUpdateFailed") + error.message);
+  } catch (error: unknown) {
+    toast.error(t("kitchen.statusUpdateFailed") + getErrorMessage(error));
   }
 };
 
@@ -313,8 +314,8 @@ const handleBatchStartOrder = async (orderId: number) => {
       }
     }
     await fetchOrders();
-  } catch (error: any) {
-    toast.error(t("kitchen.batchStartFailed") + error.message);
+  } catch (error: unknown) {
+    toast.error(t("kitchen.batchStartFailed") + getErrorMessage(error));
   }
 };
 
@@ -328,8 +329,8 @@ const handleBatchCompleteOrder = async (orderId: number) => {
       }
     }
     await fetchOrders();
-  } catch (error: any) {
-    toast.error(t("kitchen.batchCompleteFailed") + error.message);
+  } catch (error: unknown) {
+    toast.error(t("kitchen.batchCompleteFailed") + getErrorMessage(error));
   }
 };
 
@@ -346,8 +347,8 @@ const handleUpdateOrderStatus = async (
     }
 
     await fetchOrders();
-  } catch (error: any) {
-    toast.error(t("kitchen.updateStatusFailed") + error.message);
+  } catch (error: unknown) {
+    toast.error(t("kitchen.updateStatusFailed") + getErrorMessage(error));
   }
 };
 
@@ -356,8 +357,8 @@ const handleLogout = async () => {
     await authStore.logout();
     await router.push("/login");
     toast.success(t("kitchen.loggedOut"));
-  } catch (error: any) {
-    toast.error(t("kitchen.logoutFailed") + error.message);
+  } catch (error: unknown) {
+    toast.error(t("kitchen.logoutFailed") + getErrorMessage(error));
   }
 };
 

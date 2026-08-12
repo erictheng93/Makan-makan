@@ -178,6 +178,7 @@ import { useSortable } from "@vueuse/integrations/useSortable";
 import { useToast } from "vue-toastification";
 import { Clock, Flame, CheckCircle } from "lucide-vue-next";
 import { useI18n } from "@/i18n";
+import { getErrorMessage } from "@/utils/unknown";
 
 const { t } = useI18n();
 import { useOrderManagementStore } from "@/stores/orderManagement";
@@ -295,9 +296,9 @@ const handleStatusChange = async (
     } else if (oldStatus === "preparing" && newStatus === "pending") {
       toast.info(t("kanban.orderMovedToPending"));
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Status change failed:", error);
-    toast.error(t("kanban.statusUpdateFailed") + error.message);
+    toast.error(t("kanban.statusUpdateFailed") + getErrorMessage(error));
   }
 };
 

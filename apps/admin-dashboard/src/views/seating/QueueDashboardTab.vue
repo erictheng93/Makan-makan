@@ -703,7 +703,7 @@ const autoAssignment = ref(true);
 const queueItems = ref<QueueItem[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
-const queueStatus = ref<any>(null);
+const queueStatus = ref<unknown>(null);
 
 // 統計數據 - 從新 API 即時數據獲取
 const currentWaiting = computed(() => {
@@ -938,7 +938,7 @@ const fetchTables = async () => {
     });
     const data = unwrapApiData<unknown[]>(response);
     if (Array.isArray(data)) {
-      tables.value = data.map((t: any) => ({
+      tables.value = data.map((t: unknown) => ({
         id: String(t.id),
         number: t.tableNumber || t.number || `T${t.id}`,
         capacity: t.capacity ?? t.seats ?? 4,

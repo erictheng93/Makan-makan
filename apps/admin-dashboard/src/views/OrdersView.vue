@@ -670,10 +670,10 @@ const getSourceText = (source: string) => {
   };
   return texts[source] || source;
 };
-const getMenuItemName = (item: any) =>
+const getMenuItemName = (item: unknown) =>
   item.menuItem?.name || `#${item.menuItemId}`;
 
-const navigateToMenuItem = (item: any) => {
+const navigateToMenuItem = (item: unknown) => {
   if (item.menuItemId) {
     selectedOrder.value = null;
     router.push({

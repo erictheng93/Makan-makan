@@ -279,7 +279,7 @@ const markAsRead = (id: string) => {
   notificationStore.markAsRead(id);
 };
 
-const handleNotificationClick = (notification: any) => {
+const handleNotificationClick = (notification: unknown) => {
   if (!notification.read) {
     markAsRead(notification.id);
   }
@@ -301,7 +301,7 @@ const handleNotificationClick = (notification: any) => {
   }
 };
 
-const handleOrderAction = (notification: any, action: string) => {
+const handleOrderAction = (notification: unknown, action: string) => {
   console.log("Handle order action:", action, notification);
 
   if (action === "deliver") {
@@ -317,7 +317,7 @@ const showAllNotifications = () => {
   router.push("/dashboard/notifications");
 };
 
-const hasActionButtons = (notification: any) => {
+const hasActionButtons = (notification: unknown) => {
   return ["order_ready", "order_urgent"].includes(notification.type);
 };
 

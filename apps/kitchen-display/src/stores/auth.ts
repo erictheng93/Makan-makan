@@ -48,7 +48,7 @@ export const useAuthStore = defineStore("auth", () => {
       } else {
         throw new Error(response.message || "登入失敗");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Login error:", error);
       throw error;
     } finally {

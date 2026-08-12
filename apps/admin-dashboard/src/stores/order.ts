@@ -78,7 +78,7 @@ export const useOrderStore = defineStore("order", () => {
         const payload = response.data.data;
         orders.value = unwrapApiList<Order>(payload);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       error.value =
         err.response?.data?.error?.message || t("orderStore.fetchFailed");
     } finally {
@@ -103,7 +103,7 @@ export const useOrderStore = defineStore("order", () => {
         return true;
       }
       return false;
-    } catch (err: any) {
+    } catch (err: unknown) {
       error.value =
         err.response?.data?.error?.message ||
         t("orderStore.updateStatusFailed");
@@ -195,7 +195,7 @@ export const useOrderStore = defineStore("order", () => {
         return true;
       }
       return false;
-    } catch (err: any) {
+    } catch (err: unknown) {
       error.value =
         err.response?.data?.error?.message || t("orderStore.cancelFailed");
       return false;

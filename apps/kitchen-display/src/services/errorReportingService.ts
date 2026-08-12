@@ -107,7 +107,7 @@ class ErrorReportingService {
     return report.id;
   }
 
-  public async submitErrorReport(customReport: any): Promise<boolean> {
+  public async submitErrorReport(customReport: unknown): Promise<boolean> {
     try {
       await apiClient.post(this.ERROR_REPORT_ENDPOINT, customReport);
       return true;
@@ -436,7 +436,7 @@ class ErrorReportingService {
     // Handle console errors for development
     if (import.meta.env.DEV) {
       const originalError = console.error;
-      console.error = (...args: any[]) => {
+      console.error = (...args: unknown[]) => {
         if (args[0] instanceof Error) {
           this.reportError(args[0], { component: "console" });
         }

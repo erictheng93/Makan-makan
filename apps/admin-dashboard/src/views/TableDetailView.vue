@@ -267,7 +267,7 @@ const table = ref({
   totalUsage: 0,
 });
 
-const seats = ref<any[]>([]);
+const seats = ref<unknown[]>([]);
 const showEditModal = ref(false);
 const showModeSwitchModal = ref(false);
 

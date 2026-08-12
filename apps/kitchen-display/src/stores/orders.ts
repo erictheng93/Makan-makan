@@ -9,6 +9,7 @@ import type {
   OrderStatus,
   ItemStatus,
 } from "@/types";
+import { getErrorMessage } from "@/utils/unknown";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -202,7 +203,7 @@ export const useOrdersStore = defineStore("orders", () => {
       } else {
         throw new Error(response.error || "載入訂單失敗");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       const cachedOrders = offlineService.getCachedOrders(restaurantId);
       if (shouldQueueOfflineAction() && cachedOrders.length > 0) {
         orders.value = cachedOrders;
@@ -212,7 +213,7 @@ export const useOrdersStore = defineStore("orders", () => {
         return;
       }
 
-      error.value = err.message;
+      error.value = getErrorMessage(err);
       console.error("Failed to fetch orders:", err);
     } finally {
       loading.value = false;
@@ -345,14 +346,20 @@ export const useOrdersStore = defineStore("orders", () => {
    * 處理優先級更新事件
    */
   const handlePriorityUpdate = (event: KitchenSSEEvent) => {
-    if (event.orderId && event.payload) {
+    if (event.orderId && isRecord(event.payload)) {
       const orderId = event.orderId;
       const { priority } = event.payload;
 
       const orderIndex = orders.value.findIndex((o) => o.id === orderId);
       if (orderIndex !== -1) {
-        orders.value[orderIndex].priority = priority;
-        console.log(`Order ${orderId} priority updated to ${priority}`);
+        if (
+          priority === "normal" ||
+          priority === "high" ||
+          priority === "urgent"
+        ) {
+          orders.value[orderIndex].priority = priority;
+          console.log(`Order ${orderId} priority updated to ${priority}`);
+        }
       }
     }
   };
@@ -500,7 +507,7 @@ export const useOrdersStore = defineStore("orders", () => {
       } else {
         throw new Error(response.error || "開始製作失敗");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to start cooking:", error);
       throw error;
     }
@@ -537,7 +544,7 @@ export const useOrdersStore = defineStore("orders", () => {
       } else {
         throw new Error(response.error || "標記完成失敗");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to mark ready:", error);
       throw error;
     }
@@ -582,7 +589,7 @@ export const useOrdersStore = defineStore("orders", () => {
       if (!response.success) {
         throw new Error(response.error || "批量開始製作失敗");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to start all items:", error);
       throw error;
     }
@@ -627,7 +634,7 @@ export const useOrdersStore = defineStore("orders", () => {
       if (!response.success) {
         throw new Error(response.error || "批量標記完成失敗");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to mark all ready:", error);
       throw error;
     }

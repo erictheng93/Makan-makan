@@ -152,8 +152,8 @@ const filteredRequests = computed(() => {
 });
 
 const parseApprovalChain = (
-  chain: string | Array<any> | undefined,
-): Array<any> => {
+  chain: string | unknown[] | undefined,
+): unknown[] => {
   if (!chain) return [];
   if (Array.isArray(chain)) return chain;
   try {

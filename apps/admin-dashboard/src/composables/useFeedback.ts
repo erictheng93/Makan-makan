@@ -83,7 +83,7 @@ export function useFeedback() {
       const res = await api.post("/feedback", payload);
       toast.success(t("feedback.submitSuccess"));
       return res.data.data as FeedbackItem;
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(
         err?.response?.data?.error?.message ?? t("feedback.submitError"),
       );
@@ -109,7 +109,7 @@ export function useFeedback() {
         };
       }>("/feedback", { params: filters });
       return res.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(
         err?.response?.data?.error?.message ?? t("feedback.loadError"),
       );
@@ -124,7 +124,7 @@ export function useFeedback() {
     try {
       const res = await api.get(`/feedback/${id}`);
       return res.data.data as FeedbackItem;
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(
         err?.response?.data?.error?.message ?? t("feedback.loadError"),
       );
@@ -139,7 +139,7 @@ export function useFeedback() {
       const res = await api.put(`/feedback/${id}/status`, { status });
       toast.success(t("feedback.statusUpdated"));
       return res.data.data as FeedbackItem;
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(
         err?.response?.data?.error?.message ?? t("feedback.updateError"),
       );
@@ -159,7 +159,7 @@ export function useFeedback() {
       });
       toast.success(t("feedback.replySuccess"));
       return res.data.data as FeedbackResponseItem;
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(
         err?.response?.data?.error?.message ?? t("feedback.replyError"),
       );
@@ -178,7 +178,7 @@ export function useFeedback() {
         { message },
       );
       return res.data.data as FeedbackResponseItem;
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(
         err?.response?.data?.error?.message ?? t("feedback.updateError"),
       );
@@ -190,7 +190,7 @@ export function useFeedback() {
     try {
       await api.delete(`/feedback/${feedbackId}/responses/${responseId}`);
       toast.success(t("feedback.replyDeleted"));
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(
         err?.response?.data?.error?.message ?? t("feedback.updateError"),
       );
@@ -203,7 +203,7 @@ export function useFeedback() {
       const res = await api.patch(`/feedback/${id}`, payload);
       toast.success(t("feedback.editSuccess"));
       return res.data.data as FeedbackItem;
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(
         err?.response?.data?.error?.message ?? t("feedback.updateError"),
       );
@@ -215,7 +215,7 @@ export function useFeedback() {
     try {
       await api.delete(`/feedback/${id}`);
       toast.success(t("feedback.deleteSuccess"));
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(
         err?.response?.data?.error?.message ?? t("feedback.updateError"),
       );
@@ -227,7 +227,7 @@ export function useFeedback() {
     try {
       const res = await api.get("/feedback/stats");
       return res.data.data as FeedbackStats;
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(
         err?.response?.data?.error?.message ?? t("feedback.loadError"),
       );

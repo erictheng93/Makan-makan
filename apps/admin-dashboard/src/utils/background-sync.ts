@@ -28,7 +28,7 @@ export interface AdminSyncEvent {
     | "analytics_sync"
     | "backup_sync"
     | "settings_sync";
-  data: any;
+  data: unknown;
   timestamp: string;
   retryCount: number;
   maxRetries: number;
@@ -300,7 +300,7 @@ class AdminBackgroundSyncService {
   // Analytics data synchronization
   async queueAnalyticsSync(
     restaurantId: string,
-    analyticsData: any,
+    analyticsData: unknown,
   ): Promise<void> {
     const syncEvent: AdminSyncEvent = {
       id: `analytics_${restaurantId}_${Date.now()}`,
@@ -318,7 +318,7 @@ class AdminBackgroundSyncService {
   }
 
   private async syncAnalyticsData(
-    data: any,
+    data: unknown,
     restaurantId: string,
   ): Promise<void> {
     try {
@@ -335,7 +335,7 @@ class AdminBackgroundSyncService {
   }
 
   // Backup synchronization
-  async queueBackupSync(backupData: any): Promise<void> {
+  async queueBackupSync(backupData: unknown): Promise<void> {
     const syncEvent: AdminSyncEvent = {
       id: `backup_${Date.now()}`,
       type: "backup_sync",
@@ -355,7 +355,7 @@ class AdminBackgroundSyncService {
     }
   }
 
-  private async syncBackupData(data: any): Promise<void> {
+  private async syncBackupData(data: unknown): Promise<void> {
     try {
       const request = buildBackupSyncRequest(data);
       await apiClient.post(request.path, request.body);
@@ -371,7 +371,7 @@ class AdminBackgroundSyncService {
   }
 
   // Settings synchronization
-  async queueSettingsSync(settings: any): Promise<void> {
+  async queueSettingsSync(settings: unknown): Promise<void> {
     const syncEvent: AdminSyncEvent = {
       id: `settings_${Date.now()}`,
       type: "settings_sync",
@@ -387,7 +387,7 @@ class AdminBackgroundSyncService {
     await this.registerBackgroundSync("admin-settings-sync");
   }
 
-  private async syncSettings(settings: any): Promise<void> {
+  private async syncSettings(settings: unknown): Promise<void> {
     try {
       const request = buildSettingsSyncRequest(settings);
       await apiClient.post(request.path, request.body);

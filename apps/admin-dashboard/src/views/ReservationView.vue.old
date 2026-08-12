@@ -390,7 +390,7 @@ async function createReservation() {
       await loadReservations();
       await loadStats();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Create reservation error:', error);
     ElMessage.error(error.response?.data?.error || t('reservation.createError'));
   } finally {
@@ -413,7 +413,7 @@ async function confirmReservation(id: string) {
       await loadReservations();
       await loadStats();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error !== 'cancel') {
       console.error('Confirm reservation error:', error);
       ElMessage.error(error.response?.data?.error || t('reservation.confirmError'));
@@ -432,7 +432,7 @@ async function markArrived(id: string) {
       await loadReservations();
       await loadStats();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Mark arrived error:', error);
     ElMessage.error(error.response?.data?.error || t('reservation.arrivedError'));
   }
@@ -449,7 +449,7 @@ async function markSeated(id: string) {
       await loadReservations();
       await loadStats();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Mark seated error:', error);
     ElMessage.error(error.response?.data?.error || t('reservation.seatedError'));
   }
@@ -470,7 +470,7 @@ async function cancelReservation(id: string) {
       await loadReservations();
       await loadStats();
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error !== 'cancel') {
       console.error('Cancel reservation error:', error);
       ElMessage.error(error.response?.data?.error || t('reservation.cancelError'));

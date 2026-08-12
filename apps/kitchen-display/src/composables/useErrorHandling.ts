@@ -6,6 +6,11 @@ import {
   type ErrorReport,
 } from "@/services/errorReportingService";
 import { performanceService } from "@/services/performanceService";
+import {
+  getApiErrorStatus,
+  getApiErrorStatusText,
+  getErrorMessage as getUnknownErrorMessage,
+} from "@/utils/unknown";
 
 const getResourceUrl = (target: EventTarget): string | undefined => {
   if (
@@ -77,7 +82,7 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
   // Handle error with configurable behavior
   const handleError = (
     error: Error | string,
-    context: Record<string, any> = {},
+    context: Record<string, unknown> = {},
   ) => {
     const errorObj = typeof error === "string" ? new Error(error) : error;
 
@@ -124,7 +129,7 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
   // Async error handler with proper error boundaries
   const handleAsyncError = async <T>(
     asyncFn: () => Promise<T>,
-    context: Record<string, any> = {},
+    context: Record<string, unknown> = {},
   ): Promise<T | null> => {
     try {
       const startTime = performance.now();
@@ -140,10 +145,15 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
 
       return result;
     } catch (error) {
-      handleError(error as Error, {
-        operation: "async",
-        ...context,
-      });
+      handleError(
+        error instanceof Error
+          ? error
+          : new Error(getUnknownErrorMessage(error)),
+        {
+          operation: "async",
+          ...context,
+        },
+      );
       return null;
     }
   };
@@ -151,7 +161,7 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
   // Retry mechanism for failed operations
   const retryOperation = async <T>(
     operation: () => Promise<T>,
-    context: Record<string, any> = {},
+    context: Record<string, unknown> = {},
   ): Promise<T | null> => {
     if (!retryable) {
       throw new Error("Operation is not retryable");
@@ -172,10 +182,15 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
 
       if (errorState.value.retryCount >= errorState.value.maxRetries) {
         toast.error("重試次數已達上限");
-        handleError(error as Error, {
-          retryAttempt: errorState.value.retryCount,
-          ...context,
-        });
+        handleError(
+          error instanceof Error
+            ? error
+            : new Error(getUnknownErrorMessage(error)),
+          {
+            retryAttempt: errorState.value.retryCount,
+            ...context,
+          },
+        );
       } else {
         toast.warning(
           `操作失敗，正在重試 (${errorState.value.retryCount}/${errorState.value.maxRetries})`,
@@ -232,7 +247,9 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
   };
 
   // Error boundary for components
-  const withErrorBoundary = <T extends (...args: any[]) => any>(fn: T): T => {
+  const withErrorBoundary = <T extends (...args: unknown[]) => unknown>(
+    fn: T,
+  ): T => {
     return ((...args: Parameters<T>) => {
       try {
         const result = fn(...args);
@@ -240,14 +257,24 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
         // Handle promise-returning functions
         if (result instanceof Promise) {
           return result.catch((error: Error) => {
-            handleError(error, { function: fn.name });
+            handleError(
+              error instanceof Error
+                ? error
+                : new Error(getUnknownErrorMessage(error)),
+              { function: fn.name },
+            );
             throw error;
           });
         }
 
         return result;
       } catch (error) {
-        handleError(error as Error, { function: fn.name });
+        handleError(
+          error instanceof Error
+            ? error
+            : new Error(getUnknownErrorMessage(error)),
+          { function: fn.name },
+        );
         throw error;
       }
     }) as T;
@@ -266,11 +293,11 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
   };
 
   // API error handler with status code handling
-  const handleApiError = (error: any, endpoint?: string) => {
+  const handleApiError = (error: unknown, endpoint?: string) => {
     let message = "網路請求失敗";
 
-    if (error.response) {
-      const status = error.response.status;
+    const status = getApiErrorStatus(error);
+    if (status !== undefined) {
       switch (status) {
         case 400:
           message = "請求參數錯誤";
@@ -300,8 +327,8 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
     handleError(new Error(message), {
       type: "api",
       endpoint,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
+      status,
+      statusText: getApiErrorStatusText(error),
     });
   };
 

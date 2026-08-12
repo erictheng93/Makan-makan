@@ -808,7 +808,7 @@ async function createReservation() {
     showCreateDialog.value = false;
     resetForm();
     await loadReservations();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Create reservation error:", error);
     toast.error(error.response?.data?.error || t("reservation.createError"));
   } finally {
@@ -832,7 +832,7 @@ async function confirmReservation(id: string) {
     await ReservationService.confirmReservation(id);
     toast.success(t("reservation.confirmSuccess"));
     await loadReservations();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Confirm reservation error:", error);
     toast.error(error.response?.data?.error || t("reservation.confirmError"));
   }
@@ -846,7 +846,7 @@ async function markArrived(id: string) {
     await ReservationService.markArrived(id);
     toast.success(t("reservation.arrivedSuccess"));
     await loadReservations();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Mark arrived error:", error);
     toast.error(error.response?.data?.error || t("reservation.arrivedError"));
   }
@@ -860,7 +860,7 @@ async function markSeated(id: string) {
     await ReservationService.markSeated(id);
     toast.success(t("reservation.seatedSuccess"));
     await loadReservations();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Mark seated error:", error);
     toast.error(error.response?.data?.error || t("reservation.seatedError"));
   }
@@ -882,7 +882,7 @@ async function cancelReservation(id: string) {
     await ReservationService.cancelReservation(id);
     toast.success(t("reservation.cancelSuccess"));
     await loadReservations();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Cancel reservation error:", error);
     toast.error(error.response?.data?.error || t("reservation.cancelError"));
   }

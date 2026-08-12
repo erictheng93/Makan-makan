@@ -2441,7 +2441,9 @@ const loadShopQRInfo = async () => {
   try {
     const restaurantId = authStore.restaurantId;
     if (!restaurantId) return;
-    const response = await api.get<any>(`/restaurants/${restaurantId}/qr/shop`);
+    const response = await api.get<unknown>(
+      `/restaurants/${restaurantId}/qr/shop`,
+    );
 
     const data = response.data?.data ?? response.data;
     if (data) {
@@ -2513,7 +2515,7 @@ const generateShopQR = async () => {
     isGeneratingQR.value = true;
     const restaurantId = authStore.restaurantId;
     if (!restaurantId) return;
-    const response = await api.post<any>(
+    const response = await api.post<unknown>(
       `/restaurants/${restaurantId}/qr/shop/generate`,
     );
 
@@ -2545,7 +2547,7 @@ const regenerateShopQR = async () => {
     isRegeneratingQR.value = true;
     const restaurantId = authStore.restaurantId;
     if (!restaurantId) return;
-    const response = await api.post<any>(
+    const response = await api.post<unknown>(
       `/restaurants/${restaurantId}/qr/shop/regenerate`,
     );
 

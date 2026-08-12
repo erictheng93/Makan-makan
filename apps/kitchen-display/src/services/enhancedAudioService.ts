@@ -495,7 +495,10 @@ class EnhancedAudioNotificationService {
     return (frequencyFactor + timeFactor) / 2;
   }
 
-  private calculateContextualVolume(type: SoundType, options: any): number {
+  private calculateContextualVolume(
+    type: SoundType,
+    options: { priority?: string },
+  ): number {
     let baseVolume = 1;
 
     // Ambient noise adjustment

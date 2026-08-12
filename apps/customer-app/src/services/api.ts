@@ -44,7 +44,7 @@ export class ApiException extends Error {
   constructor(
     public code: ApiErrorCode,
     message: string,
-    public details?: any,
+    public details?: unknown,
     public status?: number,
   ) {
     super(message);
@@ -185,7 +185,7 @@ class ApiClient {
   private normalizeApiError(
     error: unknown,
     status: number,
-  ): { code: ApiErrorCode; message: string; details?: any } {
+  ): { code: ApiErrorCode; message: string; details?: unknown } {
     if (typeof error === "string" && error.trim()) {
       return {
         code: "INVALID_REQUEST" as ApiErrorCode,
@@ -198,7 +198,7 @@ class ApiClient {
         code?: unknown;
         message?: unknown;
         error?: unknown;
-        details?: any;
+        details?: unknown;
       };
 
       return {
@@ -247,7 +247,7 @@ class ApiClient {
   }
 
   // 通用請求方法
-  async request<T = any>(config: AxiosRequestConfig): Promise<T> {
+  async request<T = unknown>(config: AxiosRequestConfig): Promise<T> {
     try {
       const response = await this.instance.request<ApiResponse<T>>(config);
       return "data" in response.data
@@ -266,39 +266,39 @@ class ApiClient {
   }
 
   // GET 請求
-  async get<T = any>(url: string, params?: any): Promise<T> {
+  async get<T = unknown>(url: string, params?: unknown): Promise<T> {
     return this.request<T>({ method: "GET", url, params });
   }
 
   // POST 請求
-  async post<T = any>(
+  async post<T = unknown>(
     url: string,
-    data?: any,
+    data?: unknown,
     config?: AxiosRequestConfig,
   ): Promise<T> {
     return this.request<T>({ method: "POST", url, data, ...config });
   }
 
   // PUT 請求
-  async put<T = any>(url: string, data?: any): Promise<T> {
+  async put<T = unknown>(url: string, data?: unknown): Promise<T> {
     return this.request<T>({ method: "PUT", url, data });
   }
 
   // DELETE 請求
   // 允許帶 body：群組購物車的刪除需要送出呼叫者的成員憑證
-  async delete<T = any>(url: string, data?: any): Promise<T> {
+  async delete<T = unknown>(url: string, data?: unknown): Promise<T> {
     return this.request<T>({ method: "DELETE", url, data });
   }
 
   // PATCH 請求
-  async patch<T = any>(url: string, data?: any): Promise<T> {
+  async patch<T = unknown>(url: string, data?: unknown): Promise<T> {
     return this.request<T>({ method: "PATCH", url, data });
   }
 
   // 分頁請求
-  async getPaginated<T = any>(
+  async getPaginated<T = unknown>(
     url: string,
-    params?: any,
+    params?: unknown,
   ): Promise<PaginatedResponse<T>> {
     const response = await this.instance.get<PaginatedResponse<T>>(url, {
       params,
@@ -311,7 +311,7 @@ class ApiClient {
     url: string,
     file: File,
     onProgress?: (progress: number) => void,
-  ): Promise<any> {
+  ): Promise<unknown> {
     const formData = new FormData();
     formData.append("file", file);
 

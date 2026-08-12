@@ -49,8 +49,8 @@ export function useRequestDeduplication(options?: RequestDeduplicationOptions) {
      * Deduplicate with auto-generated key from arguments
      */
     dedupeByArgs: <T>(
-      requestFn: (...args: any[]) => Promise<T>,
-      ...args: any[]
+      requestFn: (...args: unknown[]) => Promise<T>,
+      ...args: unknown[]
     ) => deduplicator.dedupeByArgs(requestFn, ...args),
 
     /**
@@ -100,7 +100,9 @@ export function useRequestDeduplication(options?: RequestDeduplicationOptions) {
  *   getUser(1)
  * ])
  */
-export function useDeduplicated<T extends (...args: any[]) => Promise<any>>(
+export function useDeduplicated<
+  T extends (...args: unknown[]) => Promise<unknown>,
+>(
   fn: T,
   keyGenerator: (...args: Parameters<T>) => string,
   options?: RequestDeduplicationOptions,
@@ -126,7 +128,7 @@ export function useDeduplicated<T extends (...args: any[]) => Promise<any>>(
  * const { user, posts } = await execute()
  */
 export function useRequestBatch() {
-  const requests = new Map<string, () => Promise<any>>();
+  const requests = new Map<string, () => Promise<unknown>>();
   const deduplicator = new RequestDeduplicator();
 
   return {
@@ -141,7 +143,7 @@ export function useRequestBatch() {
      * Execute all batched requests (deduplicated)
      */
     execute: async () => {
-      const results: Record<string, any> = {};
+      const results: Record<string, unknown> = {};
 
       await Promise.all(
         Array.from(requests.entries()).map(async ([key, requestFn]) => {

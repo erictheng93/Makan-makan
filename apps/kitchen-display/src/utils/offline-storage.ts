@@ -63,7 +63,7 @@ export interface OfflineKitchenAction {
   restaurant_id: string;
   action_type: "order_update" | "timer_action" | "status_change" | "note_added";
   target_id: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   user_id: string;
   timestamp: string;
   synced: boolean;
@@ -383,7 +383,7 @@ class KitchenOfflineStorageManager {
   }
 
   // Settings Management
-  async saveSetting(key: string, value: any): Promise<void> {
+  async saveSetting(key: string, value: unknown): Promise<void> {
     const store = this.getStore("kitchenSettings", "readwrite");
     return new Promise((resolve, reject) => {
       const request = store.put({
@@ -396,7 +396,7 @@ class KitchenOfflineStorageManager {
     });
   }
 
-  async getSetting(key: string): Promise<any> {
+  async getSetting(key: string): Promise<unknown> {
     const store = this.getStore("kitchenSettings");
     return new Promise((resolve, reject) => {
       const request = store.get(key);
@@ -406,7 +406,7 @@ class KitchenOfflineStorageManager {
   }
 
   // Sound Settings Management
-  async saveSoundSetting(type: string, settings: any): Promise<void> {
+  async saveSoundSetting(type: string, settings: unknown): Promise<void> {
     const store = this.getStore("soundSettings", "readwrite");
     return new Promise((resolve, reject) => {
       const request = store.put({
@@ -419,7 +419,7 @@ class KitchenOfflineStorageManager {
     });
   }
 
-  async getSoundSetting(type: string): Promise<any> {
+  async getSoundSetting(type: string): Promise<unknown> {
     const store = this.getStore("soundSettings");
     return new Promise((resolve, reject) => {
       const request = store.get(type);

@@ -141,6 +141,7 @@ import {
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
 import { useI18n } from "@/i18n";
+import { getErrorMessage } from "@/utils/unknown";
 
 // Composables
 const router = useRouter();
@@ -190,9 +191,9 @@ const handleLogin = async () => {
     } else {
       throw new Error(t("login.fetchRestaurantError"));
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Login failed:", error);
-    errorMessage.value = error.message || t("login.loginError");
+    errorMessage.value = getErrorMessage(error, t("login.loginError"));
 
     // 清除密碼欄位
     credentials.value.password = "";

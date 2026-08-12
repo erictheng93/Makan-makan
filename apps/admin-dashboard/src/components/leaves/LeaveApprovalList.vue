@@ -115,7 +115,7 @@ const pendingRequests = computed(() => {
   return props.requests.filter((r) => r.status === "pending");
 });
 
-const getEmployeeName = (request: any): string => {
+const getEmployeeName = (request: unknown): string => {
   return (
     request.employeeName ||
     request.employee?.fullName ||

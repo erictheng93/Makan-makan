@@ -213,6 +213,7 @@ import {
 } from "@/utils/qr-parser";
 import { signedQrApi } from "@/services/signedQrApi";
 import { useI18n } from "@/composables/useI18n";
+import { isRecord } from "@/utils/unknown";
 
 interface RecentRestaurant {
   id: string;
@@ -488,14 +489,16 @@ const toggleFlash = async () => {
   }
 };
 
-const handleCameraError = (err: any) => {
+const handleCameraError = (err: unknown) => {
   let message = t("toast.cameraAccessFailed");
+  const errorName =
+    isRecord(err) && typeof err.name === "string" ? err.name : "";
 
-  if (err.name === "NotAllowedError") {
+  if (errorName === "NotAllowedError") {
     message = t("toast.cameraPermissionRequired");
-  } else if (err.name === "NotFoundError") {
+  } else if (errorName === "NotFoundError") {
     message = t("toast.noCameraFound");
-  } else if (err.name === "NotSupportedError") {
+  } else if (errorName === "NotSupportedError") {
     message = t("toast.browserNoCamera");
   }
 

@@ -154,7 +154,7 @@ class WebSocketService {
       this.ws = new WebSocket(this.wsUrl);
 
       this.setupWebSocketHandlers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to connect to WebSocket:", error);
       this.connectionStatus.value = "error";
       // Don't retry on client errors that won't resolve with retries
@@ -304,7 +304,7 @@ class WebSocketService {
   /**
    * 發送訊息
    */
-  send(data: any): void {
+  send(data: unknown): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(typeof data === "string" ? data : JSON.stringify(data));
     } else {

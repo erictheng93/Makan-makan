@@ -97,19 +97,20 @@ export function useMenuManagement() {
     if (!authStore.restaurantId) return;
     isLoading.value = true;
     try {
-      const response = await api.get<{ categories: any[]; menuItems: any[] }>(
-        `/menu/${authStore.restaurantId}?includeAll=true`,
-      );
+      const response = await api.get<{
+        categories: unknown[];
+        menuItems: unknown[];
+      }>(`/menu/${authStore.restaurantId}?includeAll=true`);
       const payload = response.data?.success ? response.data.data : undefined;
       if (payload) {
-        categories.value = payload.categories.map((c: any) => ({
+        categories.value = payload.categories.map((c: unknown) => ({
           ...c,
           nameEn: c.nameEn || "",
         }));
         // No client-side deleted-item filter: soft-deleted items carry
         // deleted_at_ms and the API excludes them at the source (#80). The old
         // sortOrder !== -1 convention is retired.
-        menuItems.value = payload.menuItems.map((item: any) => ({
+        menuItems.value = payload.menuItems.map((item: unknown) => ({
           ...item,
           nameEn: item.nameEn || "",
           catalogType: item.catalogType ?? "menu_item",
@@ -158,7 +159,7 @@ export function useMenuManagement() {
         toast.success(t("menu.toast.categoryCreated"));
       }
       await fetchMenu();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to save category:", error);
       toast.error(
         error.response?.data?.error?.message || t("menu.errors.saveFailed"),
@@ -179,7 +180,7 @@ export function useMenuManagement() {
         selectedCategoryId.value = null;
       }
       await fetchMenu();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to delete category:", error);
       toast.error(
         error.response?.data?.error?.message || t("menu.errors.deleteFailed"),
@@ -267,7 +268,7 @@ export function useMenuManagement() {
       }
       await fetchMenu();
       return "saved";
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to save menu item:", error);
       if (error.response?.data?.error?.code === "MENU_ITEM_MODIFIED") {
         return "conflict";
@@ -285,10 +286,10 @@ export function useMenuManagement() {
    * issue naming the offending key — the one piece of information the owner
    * needed to fix it. Same source `describeImportFailure` reads for CSV rows.
    */
-  const describeSaveFailure = (error: any): string => {
+  const describeSaveFailure = (error: unknown): string => {
     const apiError = error?.response?.data?.error;
     const details = Array.isArray(apiError?.details) ? apiError.details : [];
-    const issue = details.find((detail: any) => detail?.message);
+    const issue = details.find((detail: unknown) => detail?.message);
 
     if (issue) {
       return issue.field ? `${issue.field}: ${issue.message}` : issue.message;
@@ -305,7 +306,7 @@ export function useMenuManagement() {
    * is CSV line `index + 2` (line 1 is the header, matching the wording
    * parseMenuItemImport already uses).
    */
-  const describeImportFailure = (error: any): string => {
+  const describeImportFailure = (error: unknown): string => {
     const apiError = error?.response?.data?.error;
     const details = Array.isArray(apiError?.details) ? apiError.details : [];
 
@@ -337,7 +338,7 @@ export function useMenuManagement() {
       const created = response.data?.data?.created ?? items.length;
       toast.success(t("menu.toast.itemsImported", { count: created }));
       await fetchMenu();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to import menu items:", error);
       const message = describeImportFailure(error);
       toast.error(message);
@@ -355,7 +356,7 @@ export function useMenuManagement() {
       toast.success(t("menu.toast.itemDeleted"));
       // Also refetch to sync with server (handles edge cache staleness)
       await fetchMenu();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to delete menu item:", error);
       toast.error(
         error.response?.data?.error?.message || t("menu.errors.deleteFailed"),

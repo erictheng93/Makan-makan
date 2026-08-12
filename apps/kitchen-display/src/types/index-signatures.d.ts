@@ -89,11 +89,11 @@ declare global {
 }
 
 export interface StringIndexable {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface NumberIndexable {
-  [key: number]: any;
+  [key: number]: unknown;
 }
 
 export interface StatusColors extends StringIndexable {

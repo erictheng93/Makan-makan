@@ -304,7 +304,11 @@
                     <!-- 有效期 -->
                     <div class="mt-2 text-xs text-gray-400">
                       {{ t("cart.validUntil") }}:
-                      {{ formatCouponExpiry(coupon.validTo) }}
+                      {{
+                        formatCouponExpiry(
+                          coupon.validTo ?? coupon.expiresAt ?? "",
+                        )
+                      }}
                     </div>
                   </div>
 
@@ -642,6 +646,7 @@ import menuApi from "@/services/menuApi";
 import { useCurrency } from "@/composables/useCurrency";
 import { getOrderSubmitErrorI18nKey } from "@/utils/order-submit-error";
 import type { CreateOrderRequest } from "@makanmasak/shared-types";
+import type { CouponValidationResult, CustomerCoupon } from "@/types/coupon";
 
 // Props
 const props = defineProps<{
@@ -693,7 +698,7 @@ const isSubmitting = ref(false);
 
 // 優惠券相關狀態
 const couponCode = ref("");
-const appliedCoupon = ref<any>(null);
+const appliedCoupon = ref<CustomerCoupon | null>(null);
 const isValidatingCoupon = ref(false);
 const couponValidationMessage = ref("");
 const couponValidationError = ref(false);
@@ -702,8 +707,8 @@ const couponDiscountAmount = ref(0);
 // 可用優惠券列表相關狀態
 const showAvailableCoupons = ref(false);
 const isLoadingCoupons = ref(false);
-const availableCoupons = ref<any[]>([]);
-const selectedCoupon = ref<any>(null);
+const availableCoupons = ref<CustomerCoupon[]>([]);
+const selectedCoupon = ref<CustomerCoupon | null>(null);
 
 // 最低消費相關狀態
 const minimumOrderAmount = ref(0);
@@ -742,7 +747,7 @@ watch(
   { immediate: true },
 );
 
-const getOrderSubmitErrorMessage = (error: any) => {
+const getOrderSubmitErrorMessage = (error: unknown) => {
   return t(getOrderSubmitErrorI18nKey(error));
 };
 
@@ -757,7 +762,7 @@ const { mutate: createOrder } = useMutation({
       `/restaurant/${props.restaurantId}/table/${props.tableId}/order/${order.id}`,
     );
   },
-  onError: (error: any) => {
+  onError: (error: unknown) => {
     toast.error(getOrderSubmitErrorMessage(error));
     isSubmitting.value = false;
   },
@@ -774,7 +779,7 @@ const { mutate: createGuestOrder } = useMutation({
       `/restaurant/${props.restaurantId}/table/${props.tableId}/order/${response.order.id}`,
     );
   },
-  onError: (error: any) => {
+  onError: (error: unknown) => {
     toast.error(getOrderSubmitErrorMessage(error));
     isSubmitting.value = false;
   },
@@ -936,19 +941,22 @@ const validateCoupon = async () => {
     // Sanitize input: trim whitespace and convert to uppercase
     const sanitizedCode = couponCode.value.trim().toUpperCase();
 
-    const result = await apiClient.post<any>("/coupons/validate", {
-      code: sanitizedCode,
-      restaurantId: props.restaurantId.toString(),
-      orderAmount: cartStore.subtotal,
-      menuItems: cartStore.items.map((item) => ({
-        menuItemId: item.menuItem.id,
-        quantity: item.quantity,
-      })),
-    });
+    const result = await apiClient.post<CouponValidationResult>(
+      "/coupons/validate",
+      {
+        code: sanitizedCode,
+        restaurantId: props.restaurantId.toString(),
+        orderAmount: cartStore.subtotal,
+        menuItems: cartStore.items.map((item) => ({
+          menuItemId: item.menuItem.id,
+          quantity: item.quantity,
+        })),
+      },
+    );
 
     if (result.valid) {
       // 驗證成功
-      appliedCoupon.value = result.coupon;
+      appliedCoupon.value = result.coupon ?? null;
       couponDiscountAmount.value = result.discountAmount || 0;
       couponValidationMessage.value = tWithParams("toast.couponApplied", {
         amount: formatPrice(couponDiscountAmount.value),
@@ -994,7 +1002,7 @@ const loadAvailableCoupons = async () => {
 
   isLoadingCoupons.value = true;
   try {
-    availableCoupons.value = await apiClient.get<any[]>(
+    availableCoupons.value = await apiClient.get<CustomerCoupon[]>(
       `/coupons/available/${props.restaurantId}`,
     );
   } catch (error) {
@@ -1005,7 +1013,7 @@ const loadAvailableCoupons = async () => {
   }
 };
 
-const selectCoupon = (coupon: any) => {
+const selectCoupon = (coupon: CustomerCoupon) => {
   if (appliedCoupon.value) return; // 如果已有應用的優惠券，不允許選擇
   selectedCoupon.value = selectedCoupon.value?.id === coupon.id ? null : coupon;
 };
@@ -1019,7 +1027,7 @@ const applyCouponFromList = async () => {
 };
 
 // 優惠券格式化方法
-const formatCouponDiscount = (coupon: any) => {
+const formatCouponDiscount = (coupon: CustomerCoupon) => {
   if (coupon.discountType === "percentage") {
     return `${coupon.discountValue}% ${t("common.off")}`;
   } else {
@@ -1027,7 +1035,8 @@ const formatCouponDiscount = (coupon: any) => {
   }
 };
 
-const formatCouponExpiry = (dateString: any) => {
+const formatCouponExpiry = (dateString: string | number | Date) => {
+  if (dateString === "") return "";
   try {
     const date = new Date(dateString);
     return date.toLocaleDateString(currentLanguage.value, {
@@ -1036,23 +1045,23 @@ const formatCouponExpiry = (dateString: any) => {
       day: "2-digit",
     });
   } catch {
-    return dateString;
+    return String(dateString);
   }
 };
 
-const getCouponTypeClass = (discountType: any) => {
+const getCouponTypeClass = (discountType: CustomerCoupon["discountType"]) => {
   return discountType === "percentage"
     ? "bg-[#E3F2FD] text-[#4A6E8C]"
     : "bg-[#E8F5E9] text-[#4E7C5F]";
 };
 
-const getCouponTypeText = (discountType: any) => {
+const getCouponTypeText = (discountType: CustomerCoupon["discountType"]) => {
   return discountType === "percentage"
     ? t("cart.percentage")
     : t("cart.fixedAmount");
 };
 
-const selectAndApplyCoupon = async (coupon: any) => {
+const selectAndApplyCoupon = async (coupon: CustomerCoupon) => {
   selectedCoupon.value = coupon;
   await applyCouponFromList();
 };

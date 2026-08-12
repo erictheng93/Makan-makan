@@ -446,7 +446,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, h } from "vue";
+import { ref, computed, onMounted, onUnmounted, h, type Component } from "vue";
 import { useI18n } from "@/i18n";
 import {
   Cpu as CpuChipIcon,
@@ -505,7 +505,7 @@ const TrendIcon = ({
   trend: "up" | "down" | "stable";
   class?: string;
 }) => {
-  const iconMap: Record<string, any> = {
+  const iconMap: Record<"up" | "down" | "stable", Component> = {
     up: ArrowTrendingUpIcon,
     down: ArrowTrendingDownIcon,
     stable: MinusIcon,
@@ -558,7 +558,7 @@ const resolveAlert = (alertId: string) => {
 
 // Utility functions
 const getHealthStatusIcon = (status: string) => {
-  const iconMap: Record<string, any> = {
+  const iconMap: Record<string, unknown> = {
     healthy: CheckCircleIcon,
     warning: ExclamationTriangleIcon,
     critical: XCircleIcon,

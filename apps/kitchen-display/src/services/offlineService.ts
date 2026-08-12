@@ -1,6 +1,24 @@
 import { ref, computed } from "vue";
 import { apiClient } from "./authApi";
 import type { KitchenOrder } from "@/types";
+import { getErrorMessage, isRecord } from "@/utils/unknown";
+
+interface OfflineActionPayload {
+  status?: KitchenOrder["status"];
+  priority?: KitchenOrder["priority"];
+  operation?: "start_all" | "complete_all";
+  restaurantId?: string | number;
+  [key: string]: unknown;
+}
+
+interface OfflineSyncResponse {
+  success: boolean;
+  error?: string;
+  conflict?: {
+    type?: unknown;
+    serverData?: unknown;
+  };
+}
 
 // Offline storage types
 export interface OfflineAction {
@@ -13,7 +31,7 @@ export interface OfflineAction {
     | "batch_operation";
   orderId: number;
   itemId?: number;
-  payload: any;
+  payload: OfflineActionPayload;
   timestamp: number;
   synced: boolean;
   retryCount: number;
@@ -32,8 +50,8 @@ export interface OfflineData {
 export interface SyncConflict {
   id: string;
   type: "order_updated" | "order_deleted" | "status_conflict";
-  localData: any;
-  serverData: any;
+  localData: unknown;
+  serverData: unknown;
   resolution?: "local" | "server" | "merge";
 }
 
@@ -234,7 +252,7 @@ class OfflineService {
   public queueAction(
     type: OfflineAction["type"],
     orderId: number,
-    payload: any,
+    payload: OfflineActionPayload,
     itemId?: number,
   ): string {
     const action: OfflineAction = {
@@ -292,11 +310,15 @@ class OfflineService {
         break;
 
       case "update_status":
-        order.status = action.payload.status;
+        if (action.payload.status) {
+          order.status = action.payload.status;
+        }
         break;
 
       case "priority_change":
-        order.priority = action.payload.priority;
+        if (action.payload.priority) {
+          order.priority = action.payload.priority;
+        }
         break;
 
       case "batch_operation":
@@ -312,7 +334,10 @@ class OfflineService {
     this.cacheOrders(cachedOrders);
   }
 
-  private applyBatchOperation(order: KitchenOrder, payload: any) {
+  private applyBatchOperation(
+    order: KitchenOrder,
+    payload: OfflineActionPayload,
+  ) {
     switch (payload.operation) {
       case "start_all":
         order.items.forEach((item) => {
@@ -389,9 +414,9 @@ class OfflineService {
       } else {
         throw new Error(response.error || "Sync failed");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       action.retryCount++;
-      action.error = error.message;
+      action.error = getErrorMessage(error, "Sync failed");
 
       if (action.retryCount >= this.MAX_RETRY_ATTEMPTS) {
         console.error(
@@ -405,7 +430,9 @@ class OfflineService {
     }
   }
 
-  private async sendActionToServer(action: OfflineAction): Promise<any> {
+  private async sendActionToServer(
+    action: OfflineAction,
+  ): Promise<OfflineSyncResponse> {
     const endpoint = this.getActionEndpoint(action);
     const payload = this.formatActionPayload(action);
     const method = this.getActionMethod(action);
@@ -415,13 +442,22 @@ class OfflineService {
         validateStatus: () => true,
       });
 
-      return typeof response.data === "object" && response.data !== null
-        ? response.data
+      return isRecord(response.data)
+        ? {
+            success: response.data.success !== false,
+            error:
+              typeof response.data.error === "string"
+                ? response.data.error
+                : undefined,
+            conflict: isRecord(response.data.conflict)
+              ? response.data.conflict
+              : undefined,
+          }
         : { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: error?.message || "Offline action replay failed",
+        error: getErrorMessage(error, "Offline action replay failed"),
       };
     }
   }
@@ -457,7 +493,7 @@ class OfflineService {
     }
   }
 
-  private formatActionPayload(action: OfflineAction): any {
+  private formatActionPayload(action: OfflineAction): OfflineActionPayload {
     if (action.type === "start_cooking" || action.type === "mark_ready") {
       return { status: action.payload.status };
     }
@@ -470,10 +506,18 @@ class OfflineService {
   }
 
   // Conflict resolution
-  private handleSyncConflict(action: OfflineAction, conflictData: any) {
+  private handleSyncConflict(
+    action: OfflineAction,
+    conflictData: NonNullable<OfflineSyncResponse["conflict"]>,
+  ) {
     const conflict: SyncConflict = {
       id: `conflict_${action.id}`,
-      type: conflictData.type,
+      type:
+        conflictData.type === "order_updated" ||
+        conflictData.type === "order_deleted" ||
+        conflictData.type === "status_conflict"
+          ? conflictData.type
+          : "status_conflict",
       localData: action.payload,
       serverData: conflictData.serverData,
     };

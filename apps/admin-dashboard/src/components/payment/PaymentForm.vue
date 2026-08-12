@@ -283,7 +283,7 @@ const availablePaymentMethods = computed(() =>
   paymentStore.getAvailableMethodsForCountry(props.country),
 );
 
-const orderData = ref<any>(null);
+const orderData = ref<unknown>(null);
 
 const orderDetails = computed(() => ({
   id: props.orderId,
@@ -376,7 +376,7 @@ const processPayment = async () => {
 
 const handlePaymentSuccess = (data: {
   transactionId: string;
-  paymentMethod: any;
+  paymentMethod: unknown;
 }) => {
   paymentStatus.value = "success";
   emit("payment-success", data.transactionId);

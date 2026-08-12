@@ -1,5 +1,6 @@
 import api from "./authApi";
 import type { ApiResponse, KitchenOrdersResponse, ItemStatus } from "@/types";
+import { getApiErrorMessage } from "@/utils/unknown";
 
 export interface UpdateItemStatusRequest {
   status: ItemStatus;
@@ -21,11 +22,10 @@ export const kitchenApi = {
         data: response.data.data,
         timestamp: response.data.timestamp,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Get kitchen orders API error:", error);
 
-      const message =
-        error.response?.data?.message || error.message || "獲取訂單失敗";
+      const message = getApiErrorMessage(error, "獲取訂單失敗");
       return {
         success: false,
         error: message,
@@ -54,11 +54,10 @@ export const kitchenApi = {
         data: response.data.data,
         timestamp: response.data.timestamp,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Update item status API error:", error);
 
-      const message =
-        error.response?.data?.message || error.message || "更新狀態失敗";
+      const message = getApiErrorMessage(error, "更新狀態失敗");
       return {
         success: false,
         error: message,
@@ -103,7 +102,7 @@ export const kitchenApi = {
         data: { updatedCount: updates.length },
         timestamp: new Date().toISOString(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Batch update item status API error:", error);
 
       return {

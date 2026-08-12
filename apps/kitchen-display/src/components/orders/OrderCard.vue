@@ -414,7 +414,7 @@ const elapsedTimeClass = computed(() => {
 
 // Item status icon (using lucide-vue-next equivalents)
 const getItemStatusIcon = (status: string) => {
-  const icons: Record<string, any> = {
+  const icons: Record<string, unknown> = {
     pending: ClockIcon,
     preparing: FlameIcon,
     ready: CheckCircleIcon,

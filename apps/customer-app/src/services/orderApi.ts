@@ -4,6 +4,7 @@ import {
   recordRecentMarketCheckout,
   recordRecoveredMarketCheckoutGuestToken,
 } from "@/utils/marketCheckouts";
+import { isRecord } from "@/utils/unknown";
 import type {
   GuestRealtimeTokenResponse,
   Order,
@@ -96,7 +97,7 @@ export interface CreateGuestOrderRequest {
   items: Array<{
     menuItemId: number;
     quantity: number;
-    customizations?: any;
+    customizations?: unknown;
     notes?: string;
   }>;
   notes?: string;
@@ -118,7 +119,7 @@ export interface CreateMarketCheckoutRequest {
     items: Array<{
       menuItemId: number;
       quantity: number;
-      customizations?: any;
+      customizations?: unknown;
       notes?: string;
     }>;
     notes?: string;
@@ -453,7 +454,7 @@ export const orderApi = {
     itemData: {
       menuItemId: number;
       quantity: number;
-      customizations?: any;
+      customizations?: unknown;
       notes?: string;
     },
   ): Promise<OrderItem> {
@@ -479,7 +480,7 @@ export const orderApi = {
     items: Array<{
       menuItemId: number;
       quantity: number;
-      customizations?: any;
+      customizations?: unknown;
     }>,
   ): Promise<OrderSummary> {
     const response = await apiClient.post<OrderSummary>(
@@ -604,9 +605,9 @@ export const orderApi = {
         `/restaurants/${restaurantId}/tables/${tableId}/current-order`,
       );
       return response;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // 404 表示沒有進行中的訂單
-      if (error.status === 404) {
+      if (isRecord(error) && error.status === 404) {
         return null;
       }
       throw error;

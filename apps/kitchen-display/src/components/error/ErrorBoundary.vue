@@ -170,7 +170,7 @@ const isDevelopment = computed(() => import.meta.env.DEV);
 const toast = useToast();
 
 // Error capture
-onErrorCaptured((err: Error, instance: any, info: string) => {
+onErrorCaptured((err: Error, instance: unknown, info: string) => {
   console.error("ErrorBoundary caught error:", err);
   console.error("Error info:", info);
   console.error("Component instance:", instance);

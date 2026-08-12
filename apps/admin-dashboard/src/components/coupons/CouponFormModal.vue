@@ -435,7 +435,7 @@ const props = withDefaults(defineProps<Props>(), {
 // Emits
 const emit = defineEmits<{
   close: [];
-  save: [couponData: any];
+  save: [couponData: unknown];
 }>();
 
 // Reactive state

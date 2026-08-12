@@ -103,11 +103,15 @@ export const useAppStore = defineStore("app", () => {
 
   // PWA 相關
   const isInstallable = ref(false);
-  const installPrompt = ref<any>(null);
+  interface BeforeInstallPromptEvent extends Event {
+    prompt: () => Promise<unknown>;
+  }
+
+  const installPrompt = ref<BeforeInstallPromptEvent | null>(null);
 
   const handleInstallPrompt = (e: Event) => {
     e.preventDefault();
-    installPrompt.value = e;
+    installPrompt.value = e as BeforeInstallPromptEvent;
     isInstallable.value = true;
   };
 

@@ -90,7 +90,7 @@ async function createConfirmedOrder(
     }),
   );
   expect(postRes.status).toBe(201);
-  const created: any = (await postRes.json()).data;
+  const created: unknown = (await postRes.json()).data;
 
   // Confirm the order so it appears in the kitchen queue
   await testApp.app.fetch(
@@ -139,7 +139,7 @@ describe("Kitchen Display GET orders — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
+    const json: unknown = await res.json();
     expect(json.success).toBe(true);
     // Kitchen response: { pending: [], preparing: [], ready: [], stats: {} }
     expect(Array.isArray(json.data.pending)).toBe(true);
@@ -168,7 +168,7 @@ describe("Kitchen Display GET orders — real integration", () => {
     );
 
     expect(res.status).toBe(403);
-    const json: any = await res.json();
+    const json: unknown = await res.json();
     expect(json.success).toBe(false);
     expect(json.error?.code).toBeDefined();
   });
@@ -181,7 +181,7 @@ describe("Kitchen Display GET orders — real integration", () => {
     );
 
     expect(res.status).toBe(401);
-    const json: any = await res.json();
+    const json: unknown = await res.json();
     expect(json.success).toBe(false);
     expect(json.error?.code).toBeDefined();
   });
@@ -204,7 +204,7 @@ describe("Kitchen Display GET orders — real integration", () => {
 
     // validateChefAccess grants roles 0-3; role=3 must not get 401/403
     expect(res.status).toBe(200);
-    const json: any = await res.json();
+    const json: unknown = await res.json();
     expect(json.success).toBe(true);
   });
 });
@@ -251,7 +251,7 @@ describe("Kitchen Display PUT item status — real integration", () => {
     );
 
     expect(putRes.status).toBe(200);
-    const preparingJson: any = await putRes.json();
+    const preparingJson: unknown = await putRes.json();
     expect(preparingJson.success).toBe(true);
 
     const [preparingItem] = await testApp.testDb.drizzle
@@ -273,7 +273,7 @@ describe("Kitchen Display PUT item status — real integration", () => {
     );
 
     expect(readyRes.status).toBe(200);
-    const readyJson: any = await readyRes.json();
+    const readyJson: unknown = await readyRes.json();
     expect(readyJson.success).toBe(true);
 
     const [readyItem] = await testApp.testDb.drizzle
@@ -323,7 +323,7 @@ describe("Kitchen Display PUT item status — real integration", () => {
     );
 
     expect(putRes.status).toBe(403);
-    const json: any = await putRes.json();
+    const json: unknown = await putRes.json();
     expect(json.success).toBe(false);
   });
 });
@@ -365,7 +365,7 @@ describe("Kitchen Display round-trip — real integration", () => {
       }),
     );
     expect(getRes.status).toBe(200);
-    const json: any = await getRes.json();
+    const json: unknown = await getRes.json();
     expect(json.success).toBe(true);
 
     // Kitchen maps "confirmed" orders to the `pending` bucket
@@ -375,7 +375,7 @@ describe("Kitchen Display round-trip — real integration", () => {
       ...(json.data.ready ?? []),
     ];
     const found = allOrders.find(
-      (o: any) => String(o.id) === String(orderId) || o.orderId === orderId,
+      (o: unknown) => String(o.id) === String(orderId) || o.orderId === orderId,
     );
     expect(found).toBeTruthy();
   });
@@ -397,7 +397,7 @@ describe("Kitchen Display round-trip — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
+    const json: unknown = await res.json();
     expect(json.success).toBe(true);
     expect(json.data.pending).toHaveLength(0);
     expect(json.data.preparing).toHaveLength(0);

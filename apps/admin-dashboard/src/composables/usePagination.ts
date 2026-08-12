@@ -131,7 +131,7 @@ export function usePagination<T>(
   /**
    * Apply filters and reload
    */
-  const applyFilters = async (filters: Record<string, any>) => {
+  const applyFilters = async (filters: Record<string, unknown>) => {
     params.value.filters = filters;
     await loadPage(1); // Reset to first page
   };
@@ -254,7 +254,7 @@ export function useInfiniteScroll<T>(
   /**
    * Apply filters and refresh
    */
-  const applyFilters = async (filters: Record<string, any>) => {
+  const applyFilters = async (filters: Record<string, unknown>) => {
     params.value.filters = filters;
     await refresh();
   };

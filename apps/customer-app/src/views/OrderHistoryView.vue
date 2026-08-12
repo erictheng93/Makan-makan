@@ -269,6 +269,7 @@ import { useCurrency } from "@/composables/useCurrency";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useToast } from "vue-toastification";
 import { customerOrderApi } from "@/services/customerOrderApi";
+import type { CustomerOrdersParams } from "@/services/customerOrderApi";
 import type { Order } from "@makanmasak/shared-types";
 
 const router = useRouter();
@@ -298,7 +299,7 @@ const loadOrders = async () => {
   isLoading.value = true;
 
   try {
-    const params: any = {
+    const params: CustomerOrdersParams = {
       page: pagination.page,
       limit: pagination.limit,
     };

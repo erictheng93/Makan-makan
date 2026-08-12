@@ -83,8 +83,8 @@ export interface KitchenSSEEvent {
     | "HEARTBEAT";
   eventId?: string;
   orderId?: number;
-  payload?: any;
-  data?: any;
+  payload?: unknown;
+  data?: unknown;
   timestamp: string | number;
   restaurantId: number | string;
   connectionId?: string;
@@ -122,7 +122,7 @@ export interface AuthState {
 }
 
 // API 響應
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
@@ -191,5 +191,5 @@ export interface HistoryRecord {
   timestamp: string;
   userId: number;
   userName: string;
-  details?: any;
+  details?: unknown;
 }

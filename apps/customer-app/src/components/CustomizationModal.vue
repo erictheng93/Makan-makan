@@ -423,6 +423,27 @@ import type {
 const { t, tWithParams } = useI18n();
 const { formatPrice } = useCurrency();
 
+interface CustomizationChoice {
+  id: string;
+  name: string;
+  priceAdjustment?: number;
+}
+
+interface CustomizationOption {
+  id: string;
+  name: string;
+  type: "single" | "multiple";
+  choices?: CustomizationChoice[];
+  maxSelections?: number;
+}
+
+interface AddOnOption {
+  id: string;
+  name: string;
+  price: number;
+  maxQuantity?: number;
+}
+
 // Props
 const props = defineProps<{
   show: boolean;
@@ -442,11 +463,11 @@ const selectedMultipleOptions = ref<Record<string, string[]>>({});
 const selectedAddOns = ref<string[]>([]);
 
 // Helper functions for consistent key access
-const getOptionKey = (option: any): string => {
+const getOptionKey = (option: CustomizationOption): string => {
   return String(option.id || "");
 };
 
-const getChoiceKey = (choice: any): string => {
+const getChoiceKey = (choice: CustomizationChoice): string => {
   return String(choice.id || "");
 };
 
@@ -455,7 +476,7 @@ const getChoiceKey = (choice: any): string => {
  * owner can set it in the admin form, so it has to actually hold here — the
  * API stores `options` as opaque JSON and never checks it on submit.
  */
-const maxSelectionsOf = (option: any): number | undefined => {
+const maxSelectionsOf = (option: CustomizationOption): number | undefined => {
   const max = option?.maxSelections;
   return option?.type === "multiple" &&
     typeof max === "number" &&
@@ -465,7 +486,10 @@ const maxSelectionsOf = (option: any): number | undefined => {
     : undefined;
 };
 
-const isChoiceBlockedByCap = (option: any, choice: any): boolean => {
+const isChoiceBlockedByCap = (
+  option: CustomizationOption,
+  choice: CustomizationChoice,
+): boolean => {
   const max = maxSelectionsOf(option);
   if (max === undefined) return false;
   const selected = selectedMultipleOptions.value[getOptionKey(option)] ?? [];
@@ -479,14 +503,14 @@ const isChoiceBlockedByCap = (option: any, choice: any): boolean => {
  */
 const addOnQuantities = ref<Record<string, number>>({});
 
-const maxAddOnQuantity = (addOn: any): number | undefined => {
+const maxAddOnQuantity = (addOn: AddOnOption): number | undefined => {
   const max = addOn?.maxQuantity;
   return typeof max === "number" && Number.isInteger(max) && max > 0
     ? max
     : undefined;
 };
 
-const addOnQuantity = (addOn: any): number => {
+const addOnQuantity = (addOn: AddOnOption): number => {
   const chosen = addOnQuantities.value[getAddOnKey(addOn)] ?? 1;
   const max = maxAddOnQuantity(addOn);
   return max === undefined ? chosen : Math.min(chosen, max);
@@ -494,11 +518,11 @@ const addOnQuantity = (addOn: any): number => {
 
 // A cap of exactly 1 leaves nothing to step through, so the row stays a plain
 // checkbox rather than growing controls that can never move.
-const showsQuantityStepper = (addOn: any): boolean =>
+const showsQuantityStepper = (addOn: AddOnOption): boolean =>
   selectedAddOns.value.includes(getAddOnKey(addOn)) &&
   maxAddOnQuantity(addOn) !== 1;
 
-const isAddOnAtMaxQuantity = (addOn: any): boolean => {
+const isAddOnAtMaxQuantity = (addOn: AddOnOption): boolean => {
   const max = maxAddOnQuantity(addOn);
   return max !== undefined && addOnQuantity(addOn) >= max;
 };
@@ -511,7 +535,7 @@ watch(selectedAddOns, (selected) => {
   }
 });
 
-const changeAddOnQuantity = (addOn: any, delta: number) => {
+const changeAddOnQuantity = (addOn: AddOnOption, delta: number) => {
   const max = maxAddOnQuantity(addOn);
   const next = addOnQuantity(addOn) + delta;
   if (next < 1) return;
@@ -519,7 +543,7 @@ const changeAddOnQuantity = (addOn: any, delta: number) => {
   addOnQuantities.value[getAddOnKey(addOn)] = next;
 };
 
-const getAddOnKey = (addOn: any): string => {
+const getAddOnKey = (addOn: AddOnOption): string => {
   return String(addOn.id || "");
 };
 

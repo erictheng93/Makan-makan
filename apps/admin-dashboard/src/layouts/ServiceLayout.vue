@@ -403,7 +403,7 @@ const markAllAsRead = () => {
 };
 
 const getNotificationIcon = (type: string) => {
-  const icons: Record<string, any> = {
+  const icons: Record<string, unknown> = {
     urgent_order: ExclamationTriangleIcon,
     new_order: BellIcon,
     achievement: StarIcon,

@@ -60,7 +60,7 @@ class PerformanceOptimizationService {
     enableComponentCache: true,
   });
 
-  private componentCache = new Map<string, any>();
+  private componentCache = new Map<string, unknown>();
 
   constructor() {
     this.initializePerformanceMonitoring();
@@ -211,7 +211,7 @@ class PerformanceOptimizationService {
   }
 
   // Component Cache Management
-  async loadComponent(componentPath: string): Promise<any> {
+  async loadComponent(componentPath: string): Promise<unknown> {
     if (this.componentCache.has(componentPath)) {
       return this.componentCache.get(componentPath);
     }

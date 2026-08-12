@@ -28,6 +28,8 @@ export interface OrderSort {
   direction: "asc" | "desc";
 }
 
+type OrderFilterValue = OrderFilter[keyof OrderFilter];
+
 export const useOrderManagementStore = defineStore("orderManagement", () => {
   const settingsStore = useSettingsStore();
 
@@ -335,7 +337,10 @@ export const useOrderManagementStore = defineStore("orderManagement", () => {
   };
 
   // Filter Management
-  const setFilter = (key: keyof OrderFilter, value: any) => {
+  const setFilter = <K extends keyof OrderFilter>(
+    key: K,
+    value: OrderFilter[K],
+  ) => {
     filters.value[key] = value;
   };
 
@@ -480,7 +485,7 @@ export const useOrderManagementStore = defineStore("orderManagement", () => {
   };
 
   // Navigation methods
-  const selectNextOrder = (allOrders: any[] = []) => {
+  const selectNextOrder = (allOrders: KitchenOrder[] = []) => {
     if (allOrders.length === 0) return;
 
     const currentIndex = focusedOrderId.value
@@ -495,7 +500,7 @@ export const useOrderManagementStore = defineStore("orderManagement", () => {
     }
   };
 
-  const selectPreviousOrder = (allOrders: any[] = []) => {
+  const selectPreviousOrder = (allOrders: KitchenOrder[] = []) => {
     if (allOrders.length === 0) return;
 
     const currentIndex = focusedOrderId.value
@@ -511,7 +516,7 @@ export const useOrderManagementStore = defineStore("orderManagement", () => {
     }
   };
 
-  const selectFirstOrder = (allOrders: any[] = []) => {
+  const selectFirstOrder = (allOrders: KitchenOrder[] = []) => {
     if (allOrders.length === 0) return;
     focusedOrderId.value = allOrders[0]?.id || null;
     if (focusedOrderId.value) {
@@ -519,7 +524,7 @@ export const useOrderManagementStore = defineStore("orderManagement", () => {
     }
   };
 
-  const selectLastOrder = (allOrders: any[] = []) => {
+  const selectLastOrder = (allOrders: KitchenOrder[] = []) => {
     if (allOrders.length === 0) return;
     focusedOrderId.value = allOrders[allOrders.length - 1]?.id || null;
     if (focusedOrderId.value) {
@@ -527,13 +532,16 @@ export const useOrderManagementStore = defineStore("orderManagement", () => {
     }
   };
 
-  const selectAllVisibleOrders = (visibleOrders: any[] = []) => {
+  const selectAllVisibleOrders = (visibleOrders: KitchenOrder[] = []) => {
     visibleOrders.forEach((order) => selectOrder(order.id));
   };
 
   // Filter operations
-  const applyFilter = (filterType: string, value: any) => {
-    setFilter(filterType as keyof OrderFilter, value);
+  const applyFilter = (
+    filterType: keyof OrderFilter,
+    value: OrderFilterValue,
+  ) => {
+    setFilter(filterType, value as never);
   };
 
   // Refresh operations

@@ -87,7 +87,7 @@ describe("Customer Menu API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
+    const json: unknown = await res.json();
     expect(json.success).toBe(true);
 
     // menuApi.getRestaurantMenu() depends on both these arrays
@@ -95,7 +95,9 @@ describe("Customer Menu API — real integration", () => {
     expect(Array.isArray(json.data.menuItems)).toBe(true);
     expect(json.data.menuItems.length).toBeGreaterThanOrEqual(1);
 
-    const item = json.data.menuItems.find((i: any) => i.name === "Nasi Lemak");
+    const item = json.data.menuItems.find(
+      (i: unknown) => i.name === "Nasi Lemak",
+    );
     expect(item).toBeTruthy();
     expect(item.price).toBe(120);
   });
@@ -115,11 +117,11 @@ describe("Customer Menu API — real integration", () => {
       new Request(`https://test/api/v1/menu/${restaurant.id}`),
     );
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    const items: any[] = json.data.menuItems ?? [];
+    const json: unknown = await res.json();
+    const items: unknown[] = json.data.menuItems ?? [];
 
-    expect(items.find((i: any) => i.id === visible.id)).toBeTruthy();
-    expect(items.find((i: any) => i.id === hidden.id)).toBeUndefined();
+    expect(items.find((i: unknown) => i.id === visible.id)).toBeTruthy();
+    expect(items.find((i: unknown) => i.id === hidden.id)).toBeUndefined();
   });
 
   it("returns 404 (or 200 with empty arrays) for an unknown restaurant", async () => {
@@ -128,7 +130,7 @@ describe("Customer Menu API — real integration", () => {
     );
     expect([200, 404]).toContain(res.status);
     if (res.status === 200) {
-      const json: any = await res.json();
+      const json: unknown = await res.json();
       expect(Array.isArray(json.data.menuItems)).toBe(true);
     }
   });
@@ -141,7 +143,7 @@ describe("Customer Menu API — real integration", () => {
       new Request(`https://test/api/v1/menu/${restaurant.id}`),
     );
     expect(res.status).toBe(200);
-    const json: any = await res.json();
+    const json: unknown = await res.json();
     expect(json).toHaveProperty("success", true);
     expect(json).toHaveProperty("data");
   });
@@ -160,7 +162,7 @@ describe("Customer Menu API — real integration", () => {
     );
     expect([200, 404]).toContain(res.status);
     if (res.status === 200) {
-      const json: any = await res.json();
+      const json: unknown = await res.json();
       expect(Array.isArray(json.data)).toBe(true);
     }
   });
@@ -194,7 +196,7 @@ describe("Customer Orders API — real integration", () => {
     );
 
     expect(res.status).toBe(201);
-    const json: any = await res.json();
+    const json: unknown = await res.json();
     expect(json.success).toBe(true);
     expect(json.data.id).toBeTruthy();
     expect(typeof json.data.status).toBe("string");
@@ -220,7 +222,7 @@ describe("Customer Orders API — real integration", () => {
       }),
     );
     expect(postRes.status).toBe(201);
-    const created: any = (await postRes.json()).data;
+    const created: unknown = (await postRes.json()).data;
 
     const getRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/orders/${created.id}`, {
@@ -228,7 +230,7 @@ describe("Customer Orders API — real integration", () => {
       }),
     );
     expect(getRes.status).toBe(200);
-    const fetched: any = (await getRes.json()).data;
+    const fetched: unknown = (await getRes.json()).data;
 
     expect(fetched.id).toBe(created.id);
     expect(fetched.restaurantId).toBe(String(restaurant.id));
@@ -251,7 +253,7 @@ describe("Customer Orders API — real integration", () => {
       }),
     );
     expect(res.status).toBe(401);
-    const json: any = await res.json();
+    const json: unknown = await res.json();
     expect(json.success).toBe(false);
     expect(json.error?.code).toBeDefined();
   });
@@ -267,7 +269,7 @@ describe("Customer Orders API — real integration", () => {
       }),
     );
     expect([403, 404]).toContain(res.status);
-    const json: any = await res.json();
+    const json: unknown = await res.json();
     expect(json.success).toBe(false);
   });
 });
@@ -293,7 +295,7 @@ describe("Customer Discovery API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
+    const json: unknown = await res.json();
     expect(json.success).toBe(true);
     // menuApi.searchRestaurants() reads json.data.results
     expect(json.data).toHaveProperty("results");
@@ -313,7 +315,7 @@ describe("Customer Discovery API — real integration", () => {
       ),
     );
     expect(res.status).toBe(200);
-    const json: any = await res.json();
+    const json: unknown = await res.json();
     expect(json.data.results).toHaveLength(0);
   });
 
@@ -334,7 +336,7 @@ describe("Customer Discovery API — real integration", () => {
       new Request("https://test/api/v1/discovery/restaurants?q=mee&limit=3"),
     );
     expect(res.status).toBe(200);
-    const json: any = await res.json();
+    const json: unknown = await res.json();
     expect(json.data.results.length).toBeLessThanOrEqual(3);
   });
 
@@ -346,7 +348,7 @@ describe("Customer Discovery API — real integration", () => {
     );
     expect([200, 404]).toContain(res.status);
     if (res.status === 200) {
-      const json: any = await res.json();
+      const json: unknown = await res.json();
       expect(Array.isArray(json.data.results)).toBe(true);
     }
   });

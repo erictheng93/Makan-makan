@@ -20,7 +20,7 @@ export interface KitchenPushNotificationOptions {
   badge?: string;
   image?: string;
   tag?: string;
-  data?: any;
+  data?: unknown;
   actions?: Array<{
     action: string;
     title: string;
@@ -518,7 +518,7 @@ export class KitchenPushNotificationService {
     return localStorage.getItem("restaurant_id") || "";
   }
 
-  private getDeviceInfo(): Record<string, any> {
+  private getDeviceInfo(): Record<string, unknown> {
     return {
       user_agent: navigator.userAgent,
       platform: navigator.platform,
@@ -571,7 +571,7 @@ export class KitchenPushNotificationService {
     }
   }
 
-  getNotificationSettings(): any {
+  getNotificationSettings(): unknown {
     const settings = localStorage.getItem("kitchen_notification_settings");
     return settings
       ? JSON.parse(settings)

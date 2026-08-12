@@ -190,7 +190,7 @@ const attendanceStats = computed(() => {
   ];
 });
 
-const getEmployeeInitials = (schedule: any) =>
+const getEmployeeInitials = (schedule: unknown) =>
   getInitials(schedule.employeeName || "");
 
 const getEmployeeName = (employeeId: number) => {

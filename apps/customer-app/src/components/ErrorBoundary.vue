@@ -100,7 +100,7 @@ const toast = useToast();
 // State
 const hasError = ref(false);
 const error = ref<Error | null>(null);
-const errorInfo = ref<any>(null);
+const errorInfo = ref<{ componentStack: string } | null>(null);
 
 // Computed
 const isDevelopment = computed(() => import.meta.env.DEV);

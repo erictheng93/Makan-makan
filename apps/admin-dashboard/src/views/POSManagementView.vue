@@ -1168,7 +1168,7 @@ const getTransactionTypeColor = (type: string) => {
 };
 
 const getTransactionIcon = (type: string) => {
-  const icons: Record<string, any> = {
+  const icons: Record<string, unknown> = {
     sale: BanknotesIcon,
     refund: MinusIcon,
     cash_in: PlusIcon,

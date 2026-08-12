@@ -172,8 +172,8 @@ const isLoading = ref(false);
 const showCreateBackupModal = ref(false);
 const showRestoreModal = ref(false);
 const selectedBackup = ref<BackupRecord | null>(null);
-const systemHealth = ref<any>(null);
-const backupMetrics = ref<any>(null);
+const systemHealth = ref<unknown>(null);
+const backupMetrics = ref<unknown>(null);
 const recentBackups = ref<BackupRecord[]>([]);
 const alerts = ref<BackupAlertType[]>([]);
 

@@ -346,13 +346,15 @@ import ManualInputModal from "@/components/ManualInputModal.vue";
 import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
 import type { Restaurant } from "@makanmasak/shared-types";
 
+type RecentRestaurant = Restaurant & { lastVisit: number };
+
 const router = useRouter();
 const toast = useToast();
 const { t } = useI18n();
 const appStore = useAppStore();
 
 const showManualInput = ref(false);
-const recentRestaurants = ref<Restaurant[]>([]);
+const recentRestaurants = ref<RecentRestaurant[]>([]);
 
 onMounted(() => {
   loadRecentRestaurants();
@@ -388,8 +390,8 @@ const loadRecentRestaurants = () => {
       const parsed = JSON.parse(saved);
       // 只保留最近7天內的記錄
       const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      recentRestaurants.value = parsed
-        .filter((item: any) => item.lastVisit > sevenDaysAgo)
+      recentRestaurants.value = (parsed as RecentRestaurant[])
+        .filter((item: RecentRestaurant) => item.lastVisit > sevenDaysAgo)
         .slice(0, 3); // 只顯示最近3家
     }
   } catch (error) {

@@ -15,7 +15,7 @@ export interface CustomerOrdersResponse {
 export interface CustomerOrdersParams {
   page?: number;
   limit?: number;
-  status?: OrderStatus | OrderStatus[];
+  status?: OrderStatus | OrderStatus[] | string;
   dateFrom?: string;
   dateTo?: string;
 }
@@ -85,7 +85,7 @@ export const customerOrderApi = {
       phone?: string;
       email?: string;
     };
-    customerInfo: any;
+    customerInfo: unknown;
     tableInfo?: {
       id: number;
       number: string;
@@ -118,7 +118,45 @@ export const customerOrderApi = {
       deliveredAt?: Date;
     };
   }> {
-    const response = await apiClient.get(`/orders/${orderId}/receipt`);
+    const response = await apiClient.get<{
+      orderNumber: string;
+      restaurantInfo: {
+        id: number;
+        name: string;
+        address?: string;
+        phone?: string;
+        email?: string;
+      };
+      customerInfo: unknown;
+      tableInfo?: { id: number; number: string; seats: number };
+      items: Array<{
+        id: number;
+        name: string;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        customizations?: string[];
+        notes?: string;
+      }>;
+      summary: {
+        subtotal: number;
+        tax: number;
+        serviceCharge: number;
+        discount: number;
+        total: number;
+      };
+      paymentInfo: {
+        method: string;
+        status: string;
+        paidAt?: Date;
+      };
+      timestamps: {
+        orderedAt: Date;
+        confirmedAt?: Date;
+        readyAt?: Date;
+        deliveredAt?: Date;
+      };
+    }>(`/orders/${orderId}/receipt`);
     return response;
   },
 
