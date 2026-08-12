@@ -24,7 +24,6 @@ import {
 } from "../utils/business-day";
 import { CustomerWebPushService } from "./CustomerWebPushService";
 import { RealtimeBroadcastService } from "./RealtimeBroadcastService";
-import { ReservationService } from "./ReservationService";
 import { BaseService } from "./base";
 import { OrderService } from "./order";
 import { DEFAULT_TABLE_OCCUPANCY_MS } from "./table-state";
@@ -114,12 +113,10 @@ const getMutationChanges = (result: unknown): number => {
 };
 
 export class WaitingListService extends BaseService {
-  private reservationService: ReservationService;
   private backgroundTasks: Promise<void>[] = [];
 
   constructor(d1: any, env: any) {
     super(d1, env);
-    this.reservationService = new ReservationService(d1, env);
   }
 
   drainBackgroundTasks(): Promise<void>[] {
@@ -150,7 +147,7 @@ export class WaitingListService extends BaseService {
 
       let body = template.body;
       for (const [key, value] of Object.entries(data)) {
-        body = body.replaceAll(`{{${key}}}`, value);
+        body = body.split(`{{${key}}}`).join(value);
       }
 
       await provider.sendSMS({ to: phone, body });

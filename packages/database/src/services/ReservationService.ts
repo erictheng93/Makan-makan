@@ -1200,30 +1200,6 @@ export class ReservationService extends BaseService {
   }
 
   /**
-   * 增加時段使用量
-   */
-  private async incrementSlotUsage(
-    restaurantId: string,
-    date: string,
-    timeSlot: string,
-    partySize: number,
-  ): Promise<void> {
-    try {
-      await this.db.run(sql`
-        UPDATE reservation_slots
-        SET current_reservations = current_reservations + 1,
-            current_capacity = current_capacity + ${partySize},
-            updated_at = ${Date.now()}
-        WHERE restaurant_id = ${restaurantId}
-          AND date = ${date}
-          AND time_slot = ${timeSlot}
-      `);
-    } catch (error) {
-      console.error("Error incrementing slot usage:", error);
-    }
-  }
-
-  /**
    * 減少時段使用量
    */
   private async decrementSlotUsage(

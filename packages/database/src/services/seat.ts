@@ -870,22 +870,4 @@ export class SeatService extends BaseService {
 
     return numbers;
   }
-
-  /**
-   * 更新座位使用統計
-   */
-  private async updateSeatUsageStats(seatId: number): Promise<void> {
-    try {
-      await this.db
-        .update(seats)
-        .set({
-          totalUsage: sql`${seats.totalUsage} + 1`,
-          updatedAt: new Date(),
-        })
-        .where(and(eq(seats.id, seatId), isNull(seats.deletedAt)));
-    } catch (error) {
-      // Silent failure for usage stats update - non-critical operation
-      // Error will be logged by the parent method's handleError
-    }
-  }
 }

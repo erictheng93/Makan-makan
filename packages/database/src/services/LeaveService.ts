@@ -908,8 +908,6 @@ export class LeaveService extends BaseService {
 
       // Build approval chain
       const approvalChain = this.buildApprovalChain(
-        data.restaurantId,
-        data.leaveTypeId,
         type.requiredApprovalLevels,
       );
 
@@ -1507,11 +1505,7 @@ export class LeaveService extends BaseService {
   // Helper Methods
   // ========================================
 
-  private buildApprovalChain(
-    restaurantId: string,
-    leaveTypeId: number,
-    levels: number,
-  ): any[] {
+  private buildApprovalChain(levels: number): any[] {
     // Simplified approval chain - can be enhanced with actual approval rules
     const chain = [];
     for (let i = 1; i <= levels; i++) {

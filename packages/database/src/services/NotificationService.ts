@@ -13,7 +13,7 @@ function stripHtmlTags(html: string): string {
   let prev;
   do {
     prev = result;
-    result = result.replaceAll(/<[^>]*>/g, "");
+    result = result.replace(/<[^>]*>/g, "");
   } while (result !== prev);
   return result;
 }
@@ -955,7 +955,7 @@ export class NotificationService extends BaseService {
     // Handle {{#if variable}} conditionals (simple implementation)
     result = result.replace(
       /{{#if\s+(\w+)}}([\s\S]*?){{\/if}}/g,
-      (match, key, content) => {
+      (_match, key, content) => {
         return data[key] ? content : "";
       },
     );
