@@ -9,6 +9,7 @@ import {
   gte,
   inArray,
   lte,
+  lt,
   ne,
   sql,
   sum,
@@ -918,21 +919,22 @@ export class AnalyticsService extends BaseService {
       const dateRange = this.getPreviousDateRange(dateFrom, dateTo);
       if (dateRange) {
         conditions.push(gte(orders.createdAt, dateRange.dateFrom));
-        conditions.push(lte(orders.createdAt, dateRange.dateTo));
+        conditions.push(lt(orders.createdAt, dateRange.dateToExclusive));
+
+        const shiftedDateGroupSql = this.getShiftedDateGroupSQL(
+          groupBy,
+          dateRange.spanMs,
+        );
 
         const comparisonData = await this.db
           .select({
-            date: sql<string>`${this.getShiftedDateGroupSQL(
-              groupBy,
-              dateRange.spanMs,
-            )}`,
+            date: sql<string>`${shiftedDateGroupSql}`,
             revenue: sumMoneyAmount(orders.totalAmountCents),
           })
           .from(orders)
           .where(and(...conditions))
-          .groupBy(
-            sql`${this.getShiftedDateGroupSQL(groupBy, dateRange.spanMs)}`,
-          )
+          .groupBy(sql`${shiftedDateGroupSql}`)
+          .orderBy(sql`${shiftedDateGroupSql}`)
           .limit(limit);
 
         return new Map(
@@ -955,6 +957,7 @@ export class AnalyticsService extends BaseService {
       .from(orders)
       .where(and(...conditions))
       .groupBy(sql`${dateGroupSql}`)
+      .orderBy(sql`${dateGroupSql}`)
       .limit(limit);
 
     const priorRevenueByDate = new Map(
@@ -974,7 +977,7 @@ export class AnalyticsService extends BaseService {
   private getPreviousDateRange(
     dateFrom: string,
     dateTo: string,
-  ): { dateFrom: Date; dateTo: Date; spanMs: number } | undefined {
+  ): { dateFrom: Date; dateToExclusive: Date; spanMs: number } | undefined {
     const fromMs = new Date(dateFrom).getTime();
     const toMs = new Date(dateTo).getTime();
     const span = toMs - fromMs;
@@ -984,7 +987,7 @@ export class AnalyticsService extends BaseService {
 
     return {
       dateFrom: new Date(fromMs - span),
-      dateTo: new Date(fromMs),
+      dateToExclusive: new Date(fromMs),
       spanMs: span,
     };
   }

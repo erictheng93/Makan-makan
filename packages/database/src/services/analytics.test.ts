@@ -75,6 +75,141 @@ describe("AnalyticsService revenue analytics", () => {
       },
     ]);
   });
+
+  it("excludes current-period boundary orders from the prior period", async () => {
+    await testDb.drizzle
+      .insert(orders)
+      .values([
+        order("current-boundary", "B-001", "2026-01-08T00:00:00.000Z", 15000),
+        order("previous-boundary", "B-002", "2026-01-06T00:00:00.000Z", 10000),
+        order("current-end", "B-003", "2026-01-10T00:00:00.000Z", 50000),
+      ]);
+
+    const service = new AnalyticsService(testDb.bindings.DB, {} as never);
+
+    const result = await service.getRevenueAnalytics({
+      restaurantId: "analytics-restaurant",
+      dateFrom: "2026-01-08T00:00:00.000Z",
+      dateTo: "2026-01-10T00:00:00.000Z",
+      groupBy: "day",
+      includeComparison: true,
+    });
+
+    expect(result).toEqual([
+      {
+        date: "2026-01-08",
+        revenue: 150,
+        orderCount: 1,
+        averageOrderValue: 150,
+        comparison: {
+          previousRevenue: 100,
+          growthRate: 50,
+        },
+      },
+      {
+        date: "2026-01-10",
+        revenue: 500,
+        orderCount: 1,
+        averageOrderValue: 500,
+        comparison: {
+          previousRevenue: 0,
+          growthRate: 100,
+        },
+      },
+    ]);
+  });
+
+  it("compares each day with the previous day when no date range is supplied", async () => {
+    await testDb.drizzle
+      .insert(orders)
+      .values([
+        order("daily-1", "C-001", "2026-01-08T12:00:00.000Z", 10000),
+        order("daily-2", "C-002", "2026-01-09T12:00:00.000Z", 20000),
+        order("daily-3", "C-003", "2026-01-10T12:00:00.000Z", 30000),
+      ]);
+
+    const service = new AnalyticsService(testDb.bindings.DB, {} as never);
+
+    const result = await service.getRevenueAnalytics({
+      restaurantId: "analytics-restaurant",
+      groupBy: "day",
+      includeComparison: true,
+    });
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        date: "2026-01-08",
+        comparison: {
+          previousRevenue: 0,
+          growthRate: 100,
+        },
+      }),
+      expect.objectContaining({
+        date: "2026-01-09",
+        comparison: {
+          previousRevenue: 100,
+          growthRate: 100,
+        },
+      }),
+      expect.objectContaining({
+        date: "2026-01-10",
+        comparison: {
+          previousRevenue: 200,
+          growthRate: 50,
+        },
+      }),
+    ]);
+  });
+
+  it.each([
+    {
+      groupBy: "week" as const,
+      currentDate: "2026-01-12T12:00:00.000Z",
+      previousDate: "2026-01-05T12:00:00.000Z",
+      currentBucket: "2026-W02",
+    },
+    {
+      groupBy: "month" as const,
+      currentDate: "2026-03-15T12:00:00.000Z",
+      previousDate: "2026-02-15T12:00:00.000Z",
+      currentBucket: "2026-03",
+    },
+    {
+      groupBy: "year" as const,
+      currentDate: "2026-03-15T12:00:00.000Z",
+      previousDate: "2025-03-15T12:00:00.000Z",
+      currentBucket: "2026",
+    },
+  ])(
+    "compares $groupBy buckets with their previous bucket when no date range is supplied",
+    async ({ groupBy, currentDate, previousDate, currentBucket }) => {
+      await testDb.drizzle
+        .insert(orders)
+        .values([
+          order(`${groupBy}-current`, `${groupBy}-001`, currentDate, 30000),
+          order(`${groupBy}-previous`, `${groupBy}-002`, previousDate, 20000),
+        ]);
+
+      const service = new AnalyticsService(testDb.bindings.DB, {} as never);
+
+      const result = await service.getRevenueAnalytics({
+        restaurantId: "analytics-restaurant",
+        groupBy,
+        includeComparison: true,
+      });
+
+      expect(result).toContainEqual(
+        expect.objectContaining({
+          date: currentBucket,
+          revenue: 300,
+          comparison: {
+            previousRevenue: 200,
+            growthRate: 50,
+          },
+        }),
+      );
+    },
+  );
 });
 
 function order(
