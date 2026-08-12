@@ -16,6 +16,7 @@ import {
   splitBills,
   groupActivityLogs,
   orders,
+  restaurants,
   OrderService as DatabaseOrderService,
 } from "@makanmasak/database";
 import { menuItems } from "@makanmasak/database";
@@ -2769,6 +2770,18 @@ export class GroupOrdersService implements IGroupOrderService {
   }
 
   private async updateMemberTotal(groupOrderId: string, memberId: string) {
+    const [groupOrder] = await this.db
+      .select({ restaurantId: groupOrders.restaurantId })
+      .from(groupOrders)
+      .where(eq(groupOrders.id, groupOrderId));
+    const [restaurant] = groupOrder
+      ? await this.db
+          .select({ settings: restaurants.settings })
+          .from(restaurants)
+          .where(eq(restaurants.id, groupOrder.restaurantId))
+      : [];
+    const taxRate = restaurant?.settings?.taxRate ?? 0;
+    const serviceChargeRate = restaurant?.settings?.serviceChargeRate ?? 0;
     const totalResult = await this.db
       .select({
         total: sql<number>`COALESCE(SUM(COALESCE(${groupCartItems.totalPriceCents}, 0)), 0) / 100.0`,
@@ -2783,6 +2796,9 @@ export class GroupOrdersService implements IGroupOrderService {
       );
 
     const total = totalResult[0]?.total || 0;
+    const subtotalCents = toRequiredCents(total);
+    const taxAmountCents = toRequiredCents(total * taxRate);
+    const serviceChargeCents = toRequiredCents(total * serviceChargeRate);
     const now = new Date();
 
     // Update or create split_bill record for this member
@@ -2803,12 +2819,12 @@ export class GroupOrdersService implements IGroupOrderService {
       await this.db
         .update(splitBills)
         .set({
-          subtotalCents: toRequiredCents(total),
-          taxAmountCents: 0,
-          serviceChargeCents: 0,
+          subtotalCents,
+          taxAmountCents,
+          serviceChargeCents,
           discountAmountCents: 0,
           tipAmountCents: 0,
-          totalAmountCents: toRequiredCents(total),
+          totalAmountCents: subtotalCents + taxAmountCents + serviceChargeCents,
           updatedAt: now,
         })
         .where(
@@ -2822,12 +2838,12 @@ export class GroupOrdersService implements IGroupOrderService {
         id: randomUUID(),
         groupOrderId,
         memberId,
-        subtotalCents: toRequiredCents(total),
-        taxAmountCents: 0,
-        serviceChargeCents: 0,
+        subtotalCents,
+        taxAmountCents,
+        serviceChargeCents,
         discountAmountCents: 0,
         tipAmountCents: 0,
-        totalAmountCents: toRequiredCents(total),
+        totalAmountCents: subtotalCents + taxAmountCents + serviceChargeCents,
         paymentStatus: "pending",
         createdAt: now,
         updatedAt: now,
