@@ -2,15 +2,36 @@ import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import { sseConnectionPool } from "../services/sseConnectionPool";
 import type { SSEConnectionOptions } from "../services/sseConnectionPool";
 
+type SSEError = Event | Error;
+type ParsedMessageEvent = MessageEvent & {
+  parsedData?: unknown;
+};
+type ConnectionPoolEvent = CustomEvent<{
+  connectionId: string;
+  eventType: string;
+  status?: string;
+  data?: {
+    error?: unknown;
+  };
+}>;
+
+const getMessageData = (event: ParsedMessageEvent): unknown =>
+  event.parsedData ?? event.data;
+
+const toSSEError = (error: unknown): SSEError =>
+  error instanceof Event || error instanceof Error
+    ? error
+    : new Error(String(error));
+
 export interface UseSSEOptions extends Omit<SSEConnectionOptions, "url"> {
   immediate?: boolean;
   onConnected?: () => void;
-  onError?: (error: any) => void;
+  onError?: (error: SSEError) => void;
   onDisconnected?: () => void;
   onReconnecting?: () => void;
 }
 
-export interface SSEMessage<T = any> {
+export interface SSEMessage<T = unknown> {
   eventType: string;
   data: T;
   timestamp: number;
@@ -20,7 +41,7 @@ export interface SSEMessage<T = any> {
 /**
  * Vue composable for Server-Sent Events with connection pooling
  */
-export function useSSE<T = any>(url: string, options: UseSSEOptions = {}) {
+export function useSSE<T = unknown>(url: string, options: UseSSEOptions = {}) {
   const {
     immediate = true,
     events = ["message"],
@@ -52,7 +73,8 @@ export function useSSE<T = any>(url: string, options: UseSSEOptions = {}) {
   const listeners = new Map<string, EventListener>();
 
   // Connection management
-  let connection: any = null;
+  let connection: Awaited<ReturnType<typeof sseConnectionPool.connect>> | null =
+    null;
 
   /**
    * Connect to SSE
@@ -74,10 +96,10 @@ export function useSSE<T = any>(url: string, options: UseSSEOptions = {}) {
 
       // Setup event listeners
       events.forEach((eventType) => {
-        const listener: EventListener = (event: any) => {
+        const listener = ((event: ParsedMessageEvent) => {
           const message: SSEMessage<T> = {
             eventType,
-            data: event.parsedData || event.data,
+            data: getMessageData(event) as T,
             timestamp: Date.now(),
             raw: event,
           };
@@ -92,7 +114,7 @@ export function useSSE<T = any>(url: string, options: UseSSEOptions = {}) {
 
           // Update stats
           connectionStats.value.messagesReceived++;
-        };
+        }) as EventListener;
 
         listeners.set(eventType, listener);
         sseConnectionPool.addEventListener(connectionId, eventType, listener);
@@ -104,7 +126,7 @@ export function useSSE<T = any>(url: string, options: UseSSEOptions = {}) {
     } catch (err) {
       isConnecting.value = false;
       error.value = err instanceof Error ? err.message : String(err);
-      onError?.(err);
+      onError?.(toSSEError(err));
     }
   };
 
@@ -171,9 +193,9 @@ export function useSSE<T = any>(url: string, options: UseSSEOptions = {}) {
 
       // If already connected, add listener immediately
       if (isConnected.value) {
-        const listener: EventListener = (event: any) => {
-          callback(event.parsedData || event.data);
-        };
+        const listener = ((event: ParsedMessageEvent) => {
+          callback(getMessageData(event) as T);
+        }) as EventListener;
         listeners.set(eventType, listener);
         sseConnectionPool.addEventListener(connectionId, eventType, listener);
       }
@@ -193,7 +215,7 @@ export function useSSE<T = any>(url: string, options: UseSSEOptions = {}) {
   /**
    * Send message (for bi-directional SSE if supported)
    */
-  const sendMessage = (data: any, eventType = "message") => {
+  const sendMessage = (_data: unknown, _eventType = "message") => {
     // This would require WebSocket or similar for bi-directional communication
     // SSE is unidirectional from server to client
     console.warn(
@@ -203,7 +225,7 @@ export function useSSE<T = any>(url: string, options: UseSSEOptions = {}) {
 
   // Setup connection pool event listeners
   const setupConnectionPoolListeners = () => {
-    const connectionListener: EventListener = (event: any) => {
+    const connectionListener = ((event: ConnectionPoolEvent) => {
       const {
         connectionId: eventConnectionId,
         eventType,
@@ -224,7 +246,7 @@ export function useSSE<T = any>(url: string, options: UseSSEOptions = {}) {
           isConnected.value = false;
           isReconnecting.value = false;
           error.value = "Connection error";
-          onError?.(event.detail.data?.error);
+          onError?.(toSSEError(event.detail.data?.error));
           break;
 
         case "disconnected":
@@ -239,7 +261,7 @@ export function useSSE<T = any>(url: string, options: UseSSEOptions = {}) {
           isConnecting.value = false;
           isReconnecting.value = false;
           error.value = "Connection failed";
-          onError?.(event.detail.data?.error);
+          onError?.(toSSEError(event.detail.data?.error));
           break;
       }
 
@@ -248,7 +270,7 @@ export function useSSE<T = any>(url: string, options: UseSSEOptions = {}) {
         isReconnecting.value = true;
         onReconnecting?.();
       }
-    };
+    }) as EventListener;
 
     sseConnectionPool.on("connection", connectionListener);
 
