@@ -967,6 +967,7 @@ export class TableService extends BaseService {
       const availableTables = await this.db
         .select({
           id: tables.id,
+          restaurantId: tables.restaurantId,
           number: tables.number,
           name: tables.name,
           capacity: tables.capacity,
@@ -974,6 +975,12 @@ export class TableService extends BaseService {
           floor: tables.floor,
           section: tables.section,
           features: tables.features,
+          // Pinned by the WHERE above, so these were left out of the
+          // projection. Callers still expect a whole table back, and a row
+          // that omits them is only "available" by implication — say it.
+          isActive: tables.isActive,
+          isOccupied: tables.isOccupied,
+          isReservable: tables.isReservable,
         })
         .from(tables)
         .where(and(...conditions))
