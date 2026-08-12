@@ -7,6 +7,7 @@
 import type {
   AxiosInstance,
   AxiosRequestConfig,
+  AxiosResponse,
   InternalAxiosRequestConfig,
   AxiosError,
 } from "axios";
@@ -43,7 +44,7 @@ function generateRequestKey(config: AxiosRequestConfig): string {
               acc[key] = params[key];
               return acc;
             },
-            {} as Record<string, any>,
+            {} as Record<string, unknown>,
           ),
       )
     : "";
@@ -104,7 +105,7 @@ export function installAxiosDeduplication(
 
   // Response interceptor - handle deduplication
   const responseInterceptor = axiosInstance.interceptors.response.use(
-    (response: any) => response,
+    (response: AxiosResponse) => response,
     (error: AxiosError) => {
       // On error, invalidate cache for this request
       const config = error.config as ExtendedAxiosRequestConfig;
@@ -123,7 +124,7 @@ export function installAxiosDeduplication(
   const originalDelete = axiosInstance.delete;
 
   // GET requests - always deduplicate
-  axiosInstance.get = function <_T = any, R = any, D = any>(
+  axiosInstance.get = function <_T = unknown, R = unknown, D = unknown>(
     url: string,
     config?: AxiosRequestConfig<D>,
   ): Promise<R> {
@@ -144,7 +145,7 @@ export function installAxiosDeduplication(
   };
 
   // POST requests - deduplicate only if cache key is same
-  axiosInstance.post = function <_T = any, R = any, D = any>(
+  axiosInstance.post = function <_T = unknown, R = unknown, D = unknown>(
     url: string,
     data?: D,
     config?: AxiosRequestConfig<D>,
@@ -171,7 +172,7 @@ export function installAxiosDeduplication(
   };
 
   // PUT requests - deduplicate with short TTL
-  axiosInstance.put = function <_T = any, R = any, D = any>(
+  axiosInstance.put = function <_T = unknown, R = unknown, D = unknown>(
     url: string,
     data?: D,
     config?: AxiosRequestConfig<D>,
@@ -198,7 +199,7 @@ export function installAxiosDeduplication(
   };
 
   // PATCH requests - deduplicate with short TTL
-  axiosInstance.patch = function <_T = any, R = any, D = any>(
+  axiosInstance.patch = function <_T = unknown, R = unknown, D = unknown>(
     url: string,
     data?: D,
     config?: AxiosRequestConfig<D>,
@@ -225,7 +226,7 @@ export function installAxiosDeduplication(
   };
 
   // DELETE requests - don't deduplicate by default (use skipDedup to force)
-  axiosInstance.delete = function <_T = any, R = any, D = any>(
+  axiosInstance.delete = function <_T = unknown, R = unknown, D = unknown>(
     url: string,
     config?: AxiosRequestConfig<D>,
   ): Promise<R> {
@@ -253,7 +254,7 @@ export function installAxiosDeduplication(
  * @example
  * api.get('/users', skipDedup())
  */
-export function skipDedup<D = any>(): AxiosRequestConfig<D> {
+export function skipDedup<D = unknown>(): AxiosRequestConfig<D> {
   return {
     [DEDUP_SKIP_SYMBOL]: true,
   } as AxiosRequestConfig<D>;
@@ -265,7 +266,7 @@ export function skipDedup<D = any>(): AxiosRequestConfig<D> {
  * @example
  * api.get('/menu', withDedupTTL(30000)) // Cache for 30s
  */
-export function withDedupTTL<D = any>(ttl: number): AxiosRequestConfig<D> {
+export function withDedupTTL<D = unknown>(ttl: number): AxiosRequestConfig<D> {
   return {
     dedupTTL: ttl,
   } as AxiosRequestConfig<D>;
@@ -280,7 +281,7 @@ export function withDedupTTL<D = any>(ttl: number): AxiosRequestConfig<D> {
  *   { headers: { 'X-Custom': 'value' } }
  * ))
  */
-export function combineConfigs<D = any>(
+export function combineConfigs<D = unknown>(
   ...configs: AxiosRequestConfig<D>[]
 ): AxiosRequestConfig<D> {
   return Object.assign({}, ...configs);

@@ -4,8 +4,29 @@
  * Track and analyze application performance metrics
  */
 
-// Browser-only module: declare types missing in Workers environments
-declare const window: any;
+// Browser-only module, but packages that omit the DOM lib compile this file
+// too, so the handful of globals it touches are declared structurally rather
+// than pulled from lib.dom. Typed shapes, not `any`: a wrong property still
+// fails the build.
+type PerformanceObserverEntryListLike = {
+  getEntries(): BrowserPerformanceEntry[];
+};
+
+type PerformanceObserverLike = {
+  observe(options: { entryTypes: string[] }): void;
+  disconnect(): void;
+};
+
+declare const PerformanceObserver: {
+  new (
+    callback: (list: PerformanceObserverEntryListLike) => void,
+  ): PerformanceObserverLike;
+};
+
+declare const window: {
+  addEventListener(type: string, listener: () => void): void;
+  location: { href: string };
+};
 
 export interface PerformanceMetric {
   name: string;
@@ -120,6 +141,8 @@ type BrowserPerformanceEntry = {
 
 type BrowserResourceTiming = BrowserPerformanceEntry & {
   readonly transferSize?: number;
+  // Read by categorizeResource; absent on older engines, hence optional.
+  readonly initiatorType?: string;
 };
 
 type PerformanceWithBrowserApis = Performance & {
@@ -146,7 +169,7 @@ export class PerformanceMonitor {
     Pick<PerformanceMonitorOptions, "onReport">;
   private metrics: PerformanceMetric[] = [];
   private webVitals: WebVitals = {};
-  private observer: any = null;
+  private observer: PerformanceObserverLike | null = null;
 
   constructor(options: PerformanceMonitorOptions = {}) {
     this.options = {
@@ -362,7 +385,7 @@ export class PerformanceMonitor {
   private trackWebVitalsMetrics(): void {
     // Use PerformanceObserver for Web Vitals
     if ("PerformanceObserver" in window) {
-      this.observer = new PerformanceObserver((list: any) => {
+      this.observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
           if (entry.entryType === "largest-contentful-paint") {
             this.webVitals.LCP = entry.startTime;
@@ -374,7 +397,10 @@ export class PerformanceMonitor {
           }
 
           if (entry.entryType === "first-input") {
-            const fidEntry = entry as FirstInputPerformanceEntry;
+            // `first-input` and `layout-shift` carry fields PerformanceEntry
+            // does not declare, so the widening step is required rather than
+            // sloppy.
+            const fidEntry = entry as unknown as FirstInputPerformanceEntry;
             this.webVitals.FID = fidEntry.processingStart - fidEntry.startTime;
             this.trackMetric({
               name: "FID",
@@ -385,11 +411,11 @@ export class PerformanceMonitor {
 
           if (
             entry.entryType === "layout-shift" &&
-            !(entry as LayoutShiftPerformanceEntry).hadRecentInput
+            !(entry as unknown as LayoutShiftPerformanceEntry).hadRecentInput
           ) {
             const currentCLS =
               (this.webVitals.CLS || 0) +
-              (entry as LayoutShiftPerformanceEntry).value;
+              (entry as unknown as LayoutShiftPerformanceEntry).value;
             this.webVitals.CLS = currentCLS;
             this.trackMetric({ name: "CLS", value: currentCLS, unit: "score" });
           }
@@ -475,7 +501,7 @@ export class PerformanceMonitor {
   private trackTimeToInteractive(): void {
     // Simple TTI heuristic: when there's a 5-second window of no long tasks
     let lastLongTaskEnd = 0;
-    const longTaskObserver = new PerformanceObserver((list: any) => {
+    const longTaskObserver = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
         lastLongTaskEnd = entry.startTime + entry.duration;
       }
@@ -483,7 +509,7 @@ export class PerformanceMonitor {
 
     try {
       longTaskObserver.observe({ entryTypes: ["longtask"] });
-    } catch (e) {
+    } catch {
       // Long tasks not supported
     }
 
@@ -501,7 +527,9 @@ export class PerformanceMonitor {
   /**
    * Categorize resource type
    */
-  private categorizeResource(resource: any): ResourceTiming["type"] {
+  private categorizeResource(
+    resource: BrowserResourceTiming,
+  ): ResourceTiming["type"] {
     const name = resource.name.toLowerCase();
     const initiatorType = resource.initiatorType;
 

@@ -10,7 +10,7 @@
  * - Race conditions in reactive data fetching
  */
 
-export interface RequestCacheEntry<T = any> {
+export interface RequestCacheEntry<T = unknown> {
   promise: Promise<T>;
   timestamp: number;
   subscribers: number;
@@ -41,7 +41,7 @@ export interface RequestDeduplicationOptions {
    * Custom cache key generator
    * Default: JSON.stringify(args)
    */
-  keyGenerator?: (...args: any[]) => string;
+  keyGenerator?: (...args: unknown[]) => string;
 }
 
 export class RequestDeduplicator {
@@ -83,7 +83,10 @@ export class RequestDeduplicator {
           `[RequestDedup] Cache HIT for key: ${cacheKey} (subscribers: ${cached.subscribers})`,
         );
       }
-      return cached.promise;
+      // One cache, string keys, a different result type behind each — the
+      // entry's own type cannot be recovered, so the caller's T is the
+      // assertion. Making that explicit beats hiding it behind `any`.
+      return cached.promise as Promise<T>;
     }
 
     if (this.options.debug) {
@@ -128,9 +131,9 @@ export class RequestDeduplicator {
   /**
    * Deduplicate with auto-generated key from arguments
    */
-  async dedupeByArgs<T>(
-    requestFn: (...args: any[]) => Promise<T>,
-    ...args: any[]
+  async dedupeByArgs<TArgs extends unknown[], T>(
+    requestFn: (...args: TArgs) => Promise<T>,
+    ...args: TArgs
   ): Promise<T> {
     const key = this.options.keyGenerator(...args);
     return this.dedupe(key, () => requestFn(...args));
@@ -282,13 +285,13 @@ export function deduplicate(options?: RequestDeduplicationOptions) {
   const deduplicator = getDeduplicator(options);
 
   return function (
-    target: any,
+    target: object,
     propertyKey: string,
     descriptor: PropertyDescriptor,
   ) {
     const originalMethod = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const key = `${target.constructor.name}.${propertyKey}:${JSON.stringify(args)}`;
       return deduplicator.dedupe(key, () => originalMethod.apply(this, args));
     };
@@ -305,15 +308,13 @@ export function deduplicate(options?: RequestDeduplicationOptions) {
  *   return fetch(`/api/users/${id}`).then(r => r.json())
  * })
  */
-export function withDeduplication<T extends (...args: any[]) => Promise<any>>(
-  fn: T,
+export function withDeduplication<TArgs extends unknown[], TResult>(
+  fn: (...args: TArgs) => Promise<TResult>,
   options?: RequestDeduplicationOptions,
-): T {
+): (...args: TArgs) => Promise<TResult> {
   const deduplicator = getDeduplicator(options);
 
-  return ((...args: any[]) => {
-    return deduplicator.dedupeByArgs(fn, ...args);
-  }) as T;
+  return (...args: TArgs) => deduplicator.dedupeByArgs(fn, ...args);
 }
 
 /**

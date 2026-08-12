@@ -4,7 +4,32 @@
  * Comprehensive error tracking with context, breadcrumbs, and reporting
  */
 
-declare const window: any;
+// Browser-only paths, but packages that omit the DOM lib compile this file
+// too, so the two globals it touches are declared structurally rather than
+// pulled from lib.dom. Typed shapes, not `any`: reading a field the handler
+// does not declare still fails the build.
+type ErrorEventLike = {
+  readonly error?: unknown;
+  readonly message?: string;
+  readonly filename?: string;
+  readonly lineno?: number;
+  readonly colno?: number;
+};
+
+type PromiseRejectionEventLike = {
+  readonly reason?: unknown;
+};
+
+declare const window: {
+  addEventListener(
+    type: "error",
+    listener: (event: ErrorEventLike) => void,
+  ): void;
+  addEventListener(
+    type: "unhandledrejection",
+    listener: (event: PromiseRejectionEventLike) => void,
+  ): void;
+};
 
 export type ErrorSeverity = "low" | "medium" | "high" | "critical";
 export type ErrorCategory =
@@ -33,9 +58,9 @@ export interface ErrorContext {
     url?: string;
     method?: string;
     headers?: Record<string, string>;
-    body?: any;
-    params?: Record<string, any>;
-    query?: Record<string, any>;
+    body?: unknown;
+    params?: Record<string, unknown>;
+    query?: Record<string, unknown>;
   };
 
   /**
@@ -51,7 +76,7 @@ export interface ErrorContext {
   /**
    * Additional custom context
    */
-  extra?: Record<string, any>;
+  extra?: Record<string, unknown>;
 }
 
 export interface ErrorBreadcrumb {
@@ -59,7 +84,7 @@ export interface ErrorBreadcrumb {
   category: string;
   message: string;
   level: "debug" | "info" | "warning" | "error";
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 export interface TrackedError {
@@ -460,8 +485,15 @@ export class ErrorTracker {
 
     // Capture unhandled errors
     if (this.options.captureConsoleErrors) {
-      window.addEventListener("error", (event: any) => {
-        this.captureError(event.error || event.message, {
+      window.addEventListener("error", (event: ErrorEventLike) => {
+        // An ErrorEvent may carry neither an Error nor a message; `any`
+        // previously let that undefined through to captureError.
+        const thrown =
+          event.error instanceof Error
+            ? event.error
+            : (event.message ?? "Unknown window error");
+
+        this.captureError(thrown, {
           severity: "high",
           category: "system",
           context: {
@@ -477,17 +509,20 @@ export class ErrorTracker {
 
     // Capture unhandled promise rejections
     if (this.options.captureUnhandledRejections) {
-      window.addEventListener("unhandledrejection", (event: any) => {
-        const error =
-          event.reason instanceof Error
-            ? event.reason
-            : new Error(String(event.reason));
+      window.addEventListener(
+        "unhandledrejection",
+        (event: PromiseRejectionEventLike) => {
+          const error =
+            event.reason instanceof Error
+              ? event.reason
+              : new Error(String(event.reason));
 
-        this.captureError(error, {
-          severity: "high",
-          category: "system",
-        });
-      });
+          this.captureError(error, {
+            severity: "high",
+            category: "system",
+          });
+        },
+      );
     }
   }
 }
