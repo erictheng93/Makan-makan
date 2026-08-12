@@ -169,7 +169,7 @@ export interface LeaveRequest {
 
   // Conflict Detection
   hasScheduleConflict: boolean;
-  conflictDetails?: string | Record<string, any>;
+  conflictDetails?: string | Record<string, unknown>;
 
   // Delegation
   delegatedTo?: number; // Employee who will cover duties

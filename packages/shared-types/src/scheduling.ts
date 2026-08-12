@@ -198,7 +198,7 @@ export interface SchedulingRule {
   ruleType: RuleType;
 
   // Rule Configuration (JSON)
-  ruleConfig: string | Record<string, any>;
+  ruleConfig: string | Record<string, unknown>;
 
   // Applicability
   appliesToRoles?: string | number[];
@@ -231,7 +231,7 @@ export interface SchedulingConflict {
   conflictType: ConflictType;
   severity: ConflictSeverity;
   message: string;
-  details?: string | Record<string, any>;
+  details?: string | Record<string, unknown>;
 
   // Affected Entities
   scheduleIds: string | number[];

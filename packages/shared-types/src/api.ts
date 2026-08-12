@@ -1,3 +1,4 @@
+import type { MenuItemOptions } from "./menu";
 import {
   PaginationParams,
   PaginatedResponse as PaginationPaginatedResponse,
@@ -57,8 +58,8 @@ export enum ApiErrorCode {
 export interface ApiRequestConfig {
   method: HttpMethod;
   url: string;
-  data?: any;
-  params?: Record<string, any>;
+  data?: unknown;
+  params?: Record<string, unknown>;
   headers?: Record<string, string>;
   timeout?: number;
   retries?: number;
@@ -66,7 +67,7 @@ export interface ApiRequestConfig {
 
 // API 響應配置
 export interface ApiResponseConfig {
-  data: any;
+  data: unknown;
   status: number;
   statusText: string;
   headers: Record<string, string>;
@@ -76,7 +77,7 @@ export interface ApiResponseConfig {
 export interface ApiError {
   code: ApiErrorCode;
   message: string;
-  details?: any;
+  details?: unknown;
   field?: string;
   timestamp?: string;
   requestId?: string;
@@ -107,7 +108,7 @@ export interface FileUploadResponse {
 }
 
 // 批量操作請求
-export interface BulkOperationRequest<T = any> {
+export interface BulkOperationRequest<T = unknown> {
   operation: "create" | "update" | "delete";
   items: T[];
   options?: {
@@ -117,7 +118,7 @@ export interface BulkOperationRequest<T = any> {
 }
 
 // 批量操作響應
-export interface BulkOperationResponse<T = any> {
+export interface BulkOperationResponse<T = unknown> {
   success: T[];
   errors: Array<{
     index: number;
@@ -167,7 +168,7 @@ export interface MenuApiResponse {
       description?: string;
       price: number;
       imageUrl?: string;
-      options?: any;
+      options?: MenuItemOptions;
       isAvailable: boolean;
       isFeatured: boolean;
     }>;
@@ -178,7 +179,7 @@ export interface MenuApiResponse {
     description?: string;
     price: number;
     imageUrl?: string;
-    options?: any;
+    options?: MenuItemOptions;
     isAvailable: boolean;
     isFeatured: boolean;
     categoryId?: number;
@@ -188,7 +189,7 @@ export interface MenuApiResponse {
 // API WebSocket message types (simpler for API responses)
 export interface ApiWebSocketMessage {
   type: string;
-  data: any;
+  data: unknown;
   timestamp: string;
   channel?: string;
 }

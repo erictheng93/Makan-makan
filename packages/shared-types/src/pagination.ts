@@ -40,7 +40,7 @@ export interface PaginationParams {
   /**
    * Additional filters (endpoint-specific)
    */
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
 }
 
 /**
@@ -343,14 +343,14 @@ export function getPaginationOffsetLimit(params: PaginationParams): {
 /**
  * Encode cursor for cursor-based pagination
  */
-export function encodeCursor(data: Record<string, any>): string {
+export function encodeCursor(data: Record<string, unknown>): string {
   return Buffer.from(JSON.stringify(data)).toString("base64");
 }
 
 /**
  * Decode cursor for cursor-based pagination
  */
-export function decodeCursor(cursor: string): Record<string, any> {
+export function decodeCursor(cursor: string): Record<string, unknown> {
   try {
     return JSON.parse(Buffer.from(cursor, "base64").toString("utf-8"));
   } catch {

@@ -1,6 +1,6 @@
 // 通用型別定義
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: {

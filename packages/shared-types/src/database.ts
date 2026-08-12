@@ -1,5 +1,5 @@
 // D1 資料庫查詢結果類型
-export interface D1Result<T = any> {
+export interface D1Result<T = unknown> {
   results: T[];
   success: boolean;
   meta: {
@@ -14,7 +14,7 @@ export interface D1Result<T = any> {
 }
 
 // D1 單一結果
-export interface D1SingleResult<T = any> {
+export interface D1SingleResult<T = unknown> {
   result: T | null;
   success: boolean;
   meta: {
@@ -48,7 +48,7 @@ export interface QueryOptions {
   offset?: number;
   orderBy?: string;
   orderDirection?: "ASC" | "DESC";
-  where?: Record<string, any>;
+  where?: Record<string, unknown>;
   joins?: Array<{
     table: string;
     on: string;

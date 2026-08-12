@@ -385,7 +385,7 @@ export interface NotificationRequest {
   type: NotificationType;
   recipientPhone: string;
   recipientEmail?: string;
-  data: any; // 通知相關數據
+  data: Record<string, unknown>; // 通知相關數據
 }
 
 // ==========================================

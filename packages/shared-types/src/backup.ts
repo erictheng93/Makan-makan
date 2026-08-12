@@ -254,7 +254,7 @@ export interface BackupAuditLog {
     | "backup_restored"
     | "schedule_modified"
     | "configuration_updated";
-  details: Record<string, any>;
+  details: Record<string, unknown>;
   performed_by: string;
   ip_address: string;
   user_agent: string;

@@ -83,8 +83,8 @@ export interface StripeWebhookEvent {
   type: string;
   created: number;
   data: {
-    object: any;
-    previous_attributes?: any;
+    object: unknown;
+    previous_attributes?: unknown;
   };
   livemode: boolean;
   pending_webhooks: number;

@@ -52,7 +52,7 @@ export interface PaymentRequest {
     email?: string;
     phone?: string;
   };
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   returnUrl?: string;
   cancelUrl?: string;
 }
@@ -64,11 +64,11 @@ export interface PaymentResult {
   clientSecret?: string;
   redirectUrl?: string;
   qrCodeData?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   error?: {
     code: string;
     message: string;
-    details?: any;
+    details?: unknown;
   };
 }
 
@@ -76,7 +76,7 @@ export interface RefundRequest {
   transactionId: string;
   amount?: number;
   reason?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface RefundResult {
@@ -99,7 +99,7 @@ export interface WebhookPayload {
   currency?: CurrencyCode;
   timestamp: string;
   signature?: string;
-  rawData: any;
+  rawData: unknown;
 }
 
 export interface WebhookResult {
@@ -117,7 +117,7 @@ export interface PaymentProviderConfig {
   supportedCountries: CountryCode[];
   supportedMethods: PaymentMethod[];
   testMode: boolean;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   webhookEndpoint?: string;
 }
 
@@ -148,7 +148,7 @@ export abstract class PaymentProvider {
   abstract refundPayment(request: RefundRequest): Promise<RefundResult>;
 
   abstract handleWebhook(
-    payload: any,
+    payload: unknown,
     signature?: string,
   ): Promise<WebhookResult>;
 
@@ -205,6 +205,6 @@ export interface PaymentTransaction {
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   error?: string;
 }

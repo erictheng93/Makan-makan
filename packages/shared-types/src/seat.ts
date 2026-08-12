@@ -286,5 +286,5 @@ export enum SeatErrorCode {
 export interface SeatError {
   code: SeatErrorCode;
   message: string;
-  details?: any;
+  details?: unknown;
 }

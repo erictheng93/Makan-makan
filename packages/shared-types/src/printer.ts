@@ -98,7 +98,7 @@ export interface PrintError {
   code: string;
   message: string;
   timestamp?: Date;
-  details?: any;
+  details?: unknown;
 }
 
 // =============================================
@@ -251,7 +251,7 @@ export type CommandType =
 
 export interface PrintCommand {
   type: CommandType;
-  data: any;
+  data: unknown;
   options?: {
     alignment?: "left" | "center" | "right";
     font?: "normal" | "bold" | "large";
@@ -494,7 +494,7 @@ export interface PrinterEvent {
   timestamp: Date;
   deviceId?: string;
   jobId?: string;
-  data?: any;
+  data?: unknown;
   message?: string;
 }
 
