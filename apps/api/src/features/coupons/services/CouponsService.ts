@@ -39,6 +39,30 @@ interface AvailableCoupon {
   minOrderAmountCents?: number | null;
 }
 
+/**
+ * Exactly what formatCouponMoneyFields reads.
+ *
+ * The constraint used to be AvailableCoupon, which also demands `id` and a
+ * non-null `discountValue` — neither of which the formatter touches, and
+ * `discountValue` is one of the three values it produces. Requiring the output
+ * as input forced callers holding a database row to cast, and the cast erased
+ * the row's own fields (`code`, `name`) from the result.
+ */
+interface CouponMoneyFields {
+  discountType: string;
+  discountPercentageBps?: number | null;
+  discountValueCents?: number | null;
+  maxDiscountAmountCents?: number | null;
+  minOrderAmountCents?: number | null;
+}
+
+/** The three amounts the formatter derives from the cents columns. */
+interface FormattedCouponMoney {
+  discountValue: number;
+  maxDiscountAmount: number | null;
+  minOrderAmount: number | null;
+}
+
 interface CouponUsageByDay {
   date: string;
   usageCount: number;
@@ -84,7 +108,9 @@ function toCouponApiError(error: unknown): unknown {
 }
 
 export class CouponsService extends BaseCouponService {
-  formatCouponMoneyFields<T extends AvailableCoupon>(coupon: T): T {
+  formatCouponMoneyFields<T extends CouponMoneyFields>(
+    coupon: T,
+  ): T & FormattedCouponMoney {
     const minOrderAmount = amountFromCents(coupon.minOrderAmountCents);
     const maxDiscountAmount = amountFromCents(coupon.maxDiscountAmountCents);
     const discountValue =
@@ -97,7 +123,7 @@ export class CouponsService extends BaseCouponService {
       discountValue,
       maxDiscountAmount,
       minOrderAmount,
-    } as T;
+    };
   }
 
   /**
@@ -141,7 +167,7 @@ export class CouponsService extends BaseCouponService {
   ): Promise<PaginatedCouponsResponse> {
     const result = await this.getCoupons(filters, page, limit);
     const couponList = result.coupons.map((coupon) =>
-      this.formatCouponMoneyFields(coupon as AvailableCoupon),
+      this.formatCouponMoneyFields(coupon),
     );
 
     // Add pages calculation
@@ -267,10 +293,7 @@ export class CouponsService extends BaseCouponService {
     orderAmount?: number,
   ): Promise<AvailableCoupon[]> {
     const availableCoupons = (
-      (await this.getAvailableCoupons(
-        restaurantId,
-        userId,
-      )) as AvailableCoupon[]
+      await this.getAvailableCoupons(restaurantId, userId)
     ).map((coupon) => this.formatCouponMoneyFields(coupon));
 
     if (!orderAmount) {
