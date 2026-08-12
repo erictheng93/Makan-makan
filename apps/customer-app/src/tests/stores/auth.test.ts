@@ -5,6 +5,10 @@ import {
   customerIdentityApi,
   type CustomerSummary,
 } from "@/services/customerIdentityApi";
+import {
+  clearCustomerAccessToken,
+  hasCustomerAccessToken,
+} from "@/services/customerAccessToken";
 
 vi.mock("@/utils/i18n", () => ({
   translate: (key: string) => key,
@@ -40,17 +44,16 @@ const customer = (
 });
 
 beforeEach(() => {
-  // Sessions land in web storage, so without this a token from one case is
-  // still sitting there when the next one asserts on it.
   sessionStorage.clear();
   localStorage.clear();
+  clearCustomerAccessToken();
   setActivePinia(createPinia());
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
   vi.spyOn(console, "error").mockImplementation(() => undefined);
 });
 
 describe("customer auth store", () => {
-  it("hydrates customer user and token from localStorage", () => {
+  it("does not hydrate an access token from browser storage", () => {
     localStorage.setItem(
       "customer_user",
       JSON.stringify({
@@ -65,10 +68,10 @@ describe("customer auth store", () => {
 
     const store = useAuthStore();
 
-    expect(store.isAuthenticated).toBe(true);
+    expect(store.isAuthenticated).toBe(false);
     expect(store.userId).toBe("customer-1");
     expect(store.userName).toBe("Lin Mei");
-    expect(store.token).toBe("stored-access");
+    expect(store.token).toBeNull();
   });
 
   it("requests an OTP and exposes API errors without leaving loading enabled", async () => {
@@ -98,7 +101,7 @@ describe("customer auth store", () => {
     expect(store.isLoading).toBe(false);
   });
 
-  it("verifies OTP sessions, persists only the access token, and maps customer summary to app user", async () => {
+  it("keeps OTP access tokens out of browser storage and maps customer summary to app user", async () => {
     vi.mocked(customerIdentityApi.verifyOtp).mockResolvedValue({
       accessToken: "access-token",
       expiresIn: 3600,
@@ -119,7 +122,8 @@ describe("customer auth store", () => {
       phone: "0912345678",
       role: 5,
     });
-    expect(sessionStorage.getItem("customer_auth_token")).toBe("access-token");
+    expect(sessionStorage.getItem("customer_auth_token")).toBeNull();
+    expect(hasCustomerAccessToken()).toBe(true);
     expect(localStorage.getItem("customer_refresh_token")).toBeNull();
     expect(JSON.parse(localStorage.getItem("customer_user")!)).toMatchObject({
       id: "customer-1",
@@ -127,11 +131,12 @@ describe("customer auth store", () => {
     });
   });
 
-  it("falls back to refresh during checkAuth and does not logout on refresh success", async () => {
+  it("refreshes a session without reading or writing an access token in browser storage", async () => {
     sessionStorage.setItem("customer_auth_token", "old-access");
-    vi.mocked(customerIdentityApi.getMe).mockRejectedValue(
-      new Error("access expired"),
-    );
+    vi.mocked(customerIdentityApi.getMe).mockResolvedValue({
+      customer: customer(),
+      preferences: {} as never,
+    });
     vi.mocked(customerIdentityApi.refresh).mockResolvedValue({
       accessToken: "new-access",
       expiresIn: 3600,
@@ -142,7 +147,8 @@ describe("customer auth store", () => {
 
     expect(customerIdentityApi.refresh).toHaveBeenCalledWith();
     expect(store.token).toBe("new-access");
-    expect(sessionStorage.getItem("customer_auth_token")).toBe("new-access");
+    expect(sessionStorage.getItem("customer_auth_token")).toBeNull();
+    expect(hasCustomerAccessToken()).toBe(true);
     expect(localStorage.getItem("customer_refresh_token")).toBeNull();
     expect(customerIdentityApi.logout).not.toHaveBeenCalled();
   });
@@ -168,6 +174,7 @@ describe("customer auth store", () => {
     expect(store.user).toBeNull();
     expect(store.token).toBeNull();
     expect(sessionStorage.getItem("customer_auth_token")).toBeNull();
+    expect(hasCustomerAccessToken()).toBe(false);
     expect(localStorage.getItem("customer_refresh_token")).toBeNull();
     expect(localStorage.getItem("customer_user")).toBeNull();
   });
@@ -191,9 +198,8 @@ describe("customer auth store", () => {
     );
     expect(store.isAuthenticated).toBe(true);
     expect(store.user).toMatchObject({ id: "customer-1", role: 5 });
-    expect(sessionStorage.getItem("customer_auth_token")).toBe(
-      "password-access",
-    );
+    expect(sessionStorage.getItem("customer_auth_token")).toBeNull();
+    expect(hasCustomerAccessToken()).toBe(true);
     expect(localStorage.getItem("customer_refresh_token")).toBeNull();
     expect(JSON.parse(localStorage.getItem("customer_user")!)).toMatchObject({
       id: "customer-1",

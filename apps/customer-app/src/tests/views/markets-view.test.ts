@@ -5,6 +5,10 @@ import MarketsView from "@/views/MarketsView.vue";
 import { customerIdentityApi } from "@/services/customerIdentityApi";
 import { marketsApi } from "@/services/marketsApi";
 import { useMarketsStore } from "@/stores/markets";
+import {
+  clearCustomerAccessToken,
+  setCustomerAccessToken,
+} from "@/services/customerAccessToken";
 
 const routerPush = vi.hoisted(() => vi.fn());
 const routerReplace = vi.hoisted(() => vi.fn());
@@ -87,6 +91,7 @@ function mountView() {
 describe("MarketsView", () => {
   beforeEach(() => {
     localStorage.clear();
+    clearCustomerAccessToken();
     routerPush.mockReset();
     routerReplace.mockReset();
     for (const key of Object.keys(routeQuery)) {
@@ -310,7 +315,7 @@ describe("MarketsView", () => {
   });
 
   it("hydrates authenticated market favorites from customer identity", async () => {
-    sessionStorage.setItem("customer_auth_token", "customer-token");
+    setCustomerAccessToken("customer-token");
     vi.mocked(customerIdentityApi.listFavorites).mockResolvedValueOnce([
       {
         id: 42,
@@ -339,7 +344,7 @@ describe("MarketsView", () => {
   });
 
   it("hydrates authenticated recent markets from customer identity", async () => {
-    sessionStorage.setItem("customer_auth_token", "customer-token");
+    setCustomerAccessToken("customer-token");
     vi.mocked(customerIdentityApi.listRecentMarkets).mockResolvedValueOnce([
       {
         marketId: "m1",

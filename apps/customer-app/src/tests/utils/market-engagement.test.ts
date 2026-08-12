@@ -11,6 +11,10 @@ import {
   toggleFavoriteMarket,
 } from "@/utils/marketEngagement";
 import { customerIdentityApi } from "@/services/customerIdentityApi";
+import {
+  clearCustomerAccessToken,
+  setCustomerAccessToken,
+} from "@/services/customerAccessToken";
 import type { MarketListItem } from "@/services/marketsApi";
 
 vi.mock("@/services/customerIdentityApi", () => ({
@@ -46,6 +50,7 @@ function market(overrides: Partial<MarketListItem> = {}): MarketListItem {
 describe("marketEngagement", () => {
   beforeEach(() => {
     localStorage.clear();
+    clearCustomerAccessToken();
     vi.mocked(customerIdentityApi.listFavorites).mockReset();
     vi.mocked(customerIdentityApi.addFavorite).mockReset();
     vi.mocked(customerIdentityApi.removeFavorite).mockReset();
@@ -83,7 +88,7 @@ describe("marketEngagement", () => {
   });
 
   it("syncs favorite market changes to customer identity when authenticated", async () => {
-    sessionStorage.setItem("customer_auth_token", "customer-token");
+    setCustomerAccessToken("customer-token");
     vi.mocked(customerIdentityApi.listFavorites).mockResolvedValueOnce([]);
 
     await syncFavoriteMarketPreference(market(), true);
@@ -96,7 +101,7 @@ describe("marketEngagement", () => {
   });
 
   it("removes synced favorite market records when unfavorited", async () => {
-    sessionStorage.setItem("customer_auth_token", "customer-token");
+    setCustomerAccessToken("customer-token");
     vi.mocked(customerIdentityApi.listFavorites).mockResolvedValueOnce([
       {
         id: 42,
@@ -112,7 +117,7 @@ describe("marketEngagement", () => {
   });
 
   it("hydrates server favorite ids into local market snapshots", async () => {
-    sessionStorage.setItem("customer_auth_token", "customer-token");
+    setCustomerAccessToken("customer-token");
     vi.mocked(customerIdentityApi.listFavorites).mockResolvedValueOnce([
       {
         id: 42,
@@ -139,7 +144,7 @@ describe("marketEngagement", () => {
   });
 
   it("syncs recent market visits to customer identity when authenticated", async () => {
-    sessionStorage.setItem("customer_auth_token", "customer-token");
+    setCustomerAccessToken("customer-token");
 
     await syncRecentMarketVisit(market());
 
@@ -150,7 +155,7 @@ describe("marketEngagement", () => {
   });
 
   it("hydrates server recent market ids into local market snapshots", async () => {
-    sessionStorage.setItem("customer_auth_token", "customer-token");
+    setCustomerAccessToken("customer-token");
     vi.mocked(customerIdentityApi.listRecentMarkets).mockResolvedValueOnce([
       {
         marketId: "market-2",

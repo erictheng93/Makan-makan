@@ -641,6 +641,7 @@ import ConfirmationModal from "@/components/ConfirmationModal.vue";
 import CouponRecommendation from "@/components/CouponRecommendation.vue";
 import { orderApi } from "@/services/orderApi";
 import { apiClient } from "@/services/api";
+import { hasCustomerAccessToken } from "@/services/customerAccessToken";
 import type { CreateGuestOrderRequest } from "@/services/orderApi";
 import menuApi from "@/services/menuApi";
 import { useCurrency } from "@/composables/useCurrency";
@@ -1071,7 +1072,7 @@ const submitOrder = async () => {
     isSubmitting.value = true;
     showConfirmation.value = false;
 
-    const isAuthenticated = !!sessionStorage.getItem("customer_auth_token");
+    const isAuthenticated = hasCustomerAccessToken();
     const isDineIn = !!props.tableId;
 
     if (!isAuthenticated && isDineIn) {

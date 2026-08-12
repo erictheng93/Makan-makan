@@ -6,6 +6,10 @@ import {
   type CustomerRegistration,
   type CustomerSummary,
 } from "@/services/customerIdentityApi";
+import {
+  clearCustomerAccessToken,
+  setCustomerAccessToken,
+} from "@/services/customerAccessToken";
 import { translate as t } from "@/utils/i18n";
 
 // 定義客戶用戶類型
@@ -64,10 +68,9 @@ const failureCode = (err: unknown): string | undefined => {
 
 export const useAuthStore = defineStore("auth", () => {
   // 狀態
+  sessionStorage.removeItem("customer_auth_token");
   const user = ref<CustomerUser | null>(hydrateUser());
-  const token = ref<string | null>(
-    sessionStorage.getItem("customer_auth_token"),
-  );
+  const token = ref<string | null>(null);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
@@ -111,8 +114,7 @@ export const useAuthStore = defineStore("auth", () => {
     token.value = session.accessToken;
     user.value = toCustomerUser(session.customer);
 
-    sessionStorage.setItem("customer_auth_token", session.accessToken);
-    localStorage.removeItem("customer_refresh_token");
+    setCustomerAccessToken(session.accessToken);
     persistUser(user.value);
 
     scheduleProactiveRefresh(session.accessToken);
@@ -227,6 +229,7 @@ export const useAuthStore = defineStore("auth", () => {
       token.value = null;
       error.value = null;
 
+      clearCustomerAccessToken();
       sessionStorage.removeItem("customer_auth_token");
       localStorage.removeItem("customer_refresh_token");
       persistUser(null);
@@ -241,8 +244,7 @@ export const useAuthStore = defineStore("auth", () => {
 
       if ("accessToken" in data && data.accessToken) {
         token.value = data.accessToken;
-        sessionStorage.setItem("customer_auth_token", token.value!);
-        localStorage.removeItem("customer_refresh_token");
+        setCustomerAccessToken(token.value);
 
         if (token.value) scheduleProactiveRefresh(token.value);
         return true;
@@ -257,7 +259,9 @@ export const useAuthStore = defineStore("auth", () => {
 
   // 檢查認證狀態
   const checkAuth = async () => {
-    if (!token.value) return false;
+    if (!token.value && !(await refresh())) {
+      return false;
+    }
 
     try {
       const data = await customerIdentityApi.getMe();
@@ -274,7 +278,18 @@ export const useAuthStore = defineStore("auth", () => {
 
     // Attempt refresh before giving up
     const refreshed = await refresh();
-    if (refreshed) return true;
+    if (refreshed) {
+      try {
+        const data = await customerIdentityApi.getMe();
+        if (data.customer) {
+          user.value = toCustomerUser(data.customer);
+          persistUser(user.value);
+          return true;
+        }
+      } catch (err) {
+        console.warn("Auth check after refresh failed:", err);
+      }
+    }
 
     await logout();
     return false;

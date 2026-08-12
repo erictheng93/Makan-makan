@@ -352,6 +352,7 @@ import TimelineItem from "@/components/TimelineItem.vue";
 import OrderItemCard from "@/components/OrderItemCard.vue";
 import ConfirmationModal from "@/components/ConfirmationModal.vue";
 import { orderApi } from "@/services/orderApi";
+import { hasCustomerAccessToken } from "@/services/customerAccessToken";
 import { formatDateTime } from "@/utils/format";
 import { useCurrency } from "@/composables/useCurrency";
 import { getErrorMessage, isRecord } from "@/utils/unknown";
@@ -384,7 +385,7 @@ const showCancelConfirmation = ref(false);
 const guestRealtimeCacheKey = `makanmakan_guest_realtime_token:${props.restaurantId}:${props.tableId}:${props.orderId}`;
 const guestQrCacheKey = `makanmakan_table_qr:${props.restaurantId}:${props.tableId}`;
 const shouldUseGuestRealtime = computed(() => {
-  const hasCustomerToken = !!sessionStorage.getItem("customer_auth_token");
+  const hasCustomerToken = hasCustomerAccessToken();
   const hasGuestToken = !!localStorage.getItem("guest_auth_token");
   return !hasCustomerToken && hasGuestToken;
 });
@@ -488,7 +489,7 @@ const {
 } = useQuery({
   queryKey: ["order", props.orderId],
   queryFn: () => {
-    const hasCustomerToken = !!sessionStorage.getItem("customer_auth_token");
+    const hasCustomerToken = hasCustomerAccessToken();
     const hasGuestToken = !!localStorage.getItem("guest_auth_token");
 
     if (!hasCustomerToken && hasGuestToken) {

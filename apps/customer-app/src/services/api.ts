@@ -5,6 +5,11 @@ import type {
   PaginatedResponse,
 } from "@makanmasak/shared-types";
 import { translate } from "@/utils/i18n";
+import {
+  clearCustomerAccessToken,
+  getCustomerAccessToken,
+  hasCustomerAccessToken,
+} from "./customerAccessToken";
 
 declare module "axios" {
   interface AxiosRequestConfig {
@@ -76,8 +81,8 @@ class ApiClient {
     // 請求攔截器
     this.requestInterceptorId = this.instance.interceptors.request.use(
       (config) => {
-        // 添加認證 token (customer_auth_token for customer app)
-        const token = sessionStorage.getItem("customer_auth_token");
+        // Customer access tokens are held only in module memory.
+        const token = getCustomerAccessToken();
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         } else {
@@ -227,8 +232,7 @@ class ApiClient {
     // Note: Do NOT clear guest_auth_token here — guest tokens are
     // independent from customer auth and should persist for order tracking.
     // 401 errors from SSE/polling should not invalidate guest sessions.
-    sessionStorage.removeItem("customer_auth_token");
-    localStorage.removeItem("customer_refresh_token");
+    clearCustomerAccessToken();
   }
 
   private getErrorMessage(status: number): string {
@@ -350,7 +354,7 @@ export const apiClient = new ApiClient();
 // 響應式 API 狀態 Hook
 export const useApiState = () => {
   const isOnline = navigator.onLine;
-  const hasToken = !!sessionStorage.getItem("customer_auth_token");
+  const hasToken = hasCustomerAccessToken();
 
   return {
     isOnline,

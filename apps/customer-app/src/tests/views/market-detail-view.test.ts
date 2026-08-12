@@ -7,6 +7,10 @@ import { customerIdentityApi } from "@/services/customerIdentityApi";
 import { discoveryApi } from "@/services/discoveryApi";
 import { useMarketCartStore } from "@/stores/marketCart";
 import { useMarketsStore } from "@/stores/markets";
+import {
+  clearCustomerAccessToken,
+  setCustomerAccessToken,
+} from "@/services/customerAccessToken";
 
 const routerPush = vi.hoisted(() => vi.fn());
 const routerReplace = vi.hoisted(() => vi.fn());
@@ -444,6 +448,7 @@ function mountView() {
 
 describe("MarketDetailView", () => {
   beforeEach(() => {
+    clearCustomerAccessToken();
     localStorage.clear();
     setActivePinia(createPinia());
     routerPush.mockReset();
@@ -474,7 +479,7 @@ describe("MarketDetailView", () => {
   });
 
   it("records recent market visits and toggles favorite markets", async () => {
-    sessionStorage.setItem("customer_auth_token", "customer-token");
+    setCustomerAccessToken("customer-token");
     const wrapper = mountView();
     await vi.waitFor(() => {
       expect(localStorage.getItem("makanmakan_recent_markets")).toContain(

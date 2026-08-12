@@ -408,16 +408,8 @@ router.beforeEach(async (to, from, next) => {
       return;
     }
 
-    if (!authStore.isAuthenticated) {
-      // 未登入，重定向到登入頁
-      next({
-        name: "Login",
-        query: { redirect: to.fullPath },
-      });
-      return;
-    }
-
-    // 驗證 token 是否有效
+    // Restore an access token from the HttpOnly refresh cookie when this is a
+    // fresh page load. Access tokens are intentionally never persisted.
     const isValid = await authStore.checkAuth();
     if (!isValid) {
       next({
@@ -429,7 +421,10 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // 檢查需要訪客身份的路由（如登入、註冊頁）
-  if (requiresGuest && authStore.isAuthenticated) {
+  if (
+    requiresGuest &&
+    (authStore.isAuthenticated || (await authStore.checkAuth()))
+  ) {
     // 已登入用戶訪問登入/註冊頁，重定向到訂單頁
     next({ name: "Orders" });
     return;

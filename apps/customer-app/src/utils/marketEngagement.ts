@@ -1,5 +1,6 @@
 import type { MarketListItem } from "@/services/marketsApi";
 import { customerIdentityApi } from "@/services/customerIdentityApi";
+import { hasCustomerAccessToken } from "@/services/customerAccessToken";
 
 const FAVORITES_KEY = "makanmakan_favorite_markets";
 const RECENTS_KEY = "makanmakan_recent_markets";
@@ -81,11 +82,7 @@ export function toggleFavoriteMarket(market: MarketListItem) {
 }
 
 export function isCustomerFavoriteSyncAvailable() {
-  return Boolean(
-    typeof window !== "undefined"
-      ? window.sessionStorage.getItem("customer_auth_token")
-      : undefined,
-  );
+  return hasCustomerAccessToken();
 }
 
 export async function syncFavoriteMarketPreference(

@@ -429,6 +429,7 @@ import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import { useShopCartStore } from "@/stores/shopCart";
 import { apiClient } from "@/services/api";
+import { hasCustomerAccessToken } from "@/services/customerAccessToken";
 import { useI18n } from "@/composables/useI18n";
 import { useCurrency } from "@/composables/useCurrency";
 import { getLocalizedMenuName } from "@/utils/localized-menu-content";
@@ -568,7 +569,7 @@ const handleCheckout = async () => {
     };
 
     // Use guest endpoint if no customer auth token
-    const hasCustomerToken = !!sessionStorage.getItem("customer_auth_token");
+    const hasCustomerToken = hasCustomerAccessToken();
     let orderResult: SubmittedOrder;
 
     if (hasCustomerToken) {

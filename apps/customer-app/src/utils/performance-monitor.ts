@@ -4,6 +4,7 @@
  */
 
 import { apiClient } from "@/services/api";
+import { hasCustomerAccessToken } from "@/services/customerAccessToken";
 
 export interface PerformanceMetrics {
   // Service Worker 性能
@@ -603,11 +604,7 @@ export class PWAPerformanceMonitor {
 
     // 發送到後端或第三方分析服務。 /analytics/* 全域套用 authMiddleware，
     // 未登入的訪客呼叫會 401 污染 log；這個遙測不是業務關鍵，未登入就跳過。
-    const authToken =
-      typeof localStorage !== "undefined"
-        ? sessionStorage.getItem("customer_auth_token")
-        : null;
-    if (!authToken) {
+    if (!hasCustomerAccessToken()) {
       return;
     }
     void apiClient
