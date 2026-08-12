@@ -1,4 +1,5 @@
 import { USER_ROLES } from "@makanmasak/database";
+import type { UserPreferences } from "@makanmasak/shared-types";
 
 /**
  * User role names mapping for display purposes
@@ -26,7 +27,7 @@ export interface CreateUserData {
   address?: string;
   dateOfBirth?: string;
   profileImageUrl?: string;
-  preferences?: unknown;
+  preferences?: UserPreferences;
 }
 
 /**
@@ -39,7 +40,7 @@ export interface UpdateUserData {
   address?: string;
   dateOfBirth?: string;
   profileImageUrl?: string;
-  preferences?: unknown;
+  preferences?: UserPreferences;
   isActive?: boolean;
   isVerified?: boolean;
 }
@@ -107,7 +108,7 @@ export interface FormattedUser {
   profileImageUrl?: string;
   isActive: boolean;
   isVerified: boolean;
-  preferences?: unknown;
+  preferences?: UserPreferences;
   totalOrders?: number;
   totalSpent?: number;
   lastLoginAt?: string;

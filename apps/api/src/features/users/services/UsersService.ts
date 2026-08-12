@@ -1,4 +1,5 @@
 import { UserService, AuthService, USER_ROLES } from "@makanmasak/database";
+import type { UserPreferences } from "@makanmasak/shared-types";
 import type { Env } from "../../../types/env";
 import {
   notFound,
@@ -35,7 +36,7 @@ interface UserRecord {
   profileImageUrl?: string;
   isActive: boolean;
   isVerified: boolean;
-  preferences?: unknown;
+  preferences?: UserPreferences;
   totalOrders?: number;
   totalSpent?: number;
   lastLoginAt?: string;

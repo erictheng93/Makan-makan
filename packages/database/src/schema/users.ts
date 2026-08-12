@@ -1,6 +1,7 @@
 import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
+import type { UserPreferences } from "@makanmasak/shared-types";
 import { restaurants } from "./restaurants";
 
 // 用戶角色定義
@@ -48,22 +49,7 @@ export const users = sqliteTable(
       .default(false),
 
     // 偏好設定
-    preferences: text("preferences", { mode: "json" }).$type<{
-      language?: string;
-      currency?: string;
-      notifications?: {
-        email?: boolean;
-        sms?: boolean;
-        push?: boolean;
-      };
-      dietary?: {
-        vegetarian?: boolean;
-        vegan?: boolean;
-        halal?: boolean;
-        glutenFree?: boolean;
-        allergies?: string[];
-      };
-    }>(),
+    preferences: text("preferences", { mode: "json" }).$type<UserPreferences>(),
 
     // 統計資訊
     totalOrders: integer("total_orders").notNull().default(0),

@@ -3,6 +3,24 @@ import { BaseEntity, Status, UserRole } from "./common";
 // Re-export UserRole for convenience
 export { UserRole };
 
+/** Preferences stored with a staff user and exposed through the user API. */
+export interface UserPreferences {
+  language?: string;
+  currency?: string;
+  notifications?: {
+    email?: boolean;
+    sms?: boolean;
+    push?: boolean;
+  };
+  dietary?: {
+    vegetarian?: boolean;
+    vegan?: boolean;
+    halal?: boolean;
+    glutenFree?: boolean;
+    allergies?: string[];
+  };
+}
+
 export interface User extends BaseEntity {
   email: string;
   name: string;

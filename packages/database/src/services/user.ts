@@ -1,6 +1,7 @@
 import * as bcrypt from "bcryptjs";
 import { and, asc, count, desc, eq, gte, like, ne, or, sql } from "drizzle-orm";
 import { USER_ROLES, users, type UserRole } from "../schema";
+import type { UserPreferences } from "@makanmasak/shared-types";
 import { BaseService } from "./base";
 
 export interface CreateUserData {
@@ -14,7 +15,7 @@ export interface CreateUserData {
   address?: string;
   dateOfBirth?: string;
   profileImageUrl?: string;
-  preferences?: any;
+  preferences?: UserPreferences;
 }
 
 export interface UpdateUserData {
@@ -24,7 +25,7 @@ export interface UpdateUserData {
   address?: string;
   dateOfBirth?: string;
   profileImageUrl?: string;
-  preferences?: any;
+  preferences?: UserPreferences;
   isActive?: boolean;
   isVerified?: boolean;
 }
