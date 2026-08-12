@@ -19,6 +19,7 @@ import {
   orderItems,
   orders,
   sql,
+  type createDatabase,
 } from "@makanmasak/database";
 import type {
   ProductAnalysis,
@@ -58,21 +59,7 @@ interface DailyMetric {
   revenue: number;
 }
 
-interface DrizzleQuery<TResult> extends PromiseLike<TResult[]> {
-  leftJoin(table: unknown, on: unknown): DrizzleQuery<TResult>;
-  innerJoin(table: unknown, on: unknown): DrizzleQuery<TResult>;
-  where(condition: unknown): DrizzleQuery<TResult>;
-  groupBy(...columns: unknown[]): DrizzleQuery<TResult>;
-  orderBy(...columns: unknown[]): DrizzleQuery<TResult>;
-}
-
-export interface DrizzleDb {
-  select<TResult extends object>(
-    selection: Record<string, unknown>,
-  ): {
-    from(table: unknown): DrizzleQuery<TResult>;
-  };
-}
+export type DrizzleDb = ReturnType<typeof createDatabase>;
 
 type ProductAnalysisRow = RawProductMetrics & {
   dailyData: DailyMetric[];
@@ -267,7 +254,7 @@ export class ProductAnalysisService {
     const endMs = new Date(endDate + "T23:59:59.999Z").getTime();
 
     const result = await this.db
-      .select<RawProductMetrics>({
+      .select({
         menu_item_id: menuItems.id,
         menu_item_name: menuItems.name,
         category: sql<string>`COALESCE(${categories.name}, '')`,
@@ -318,7 +305,7 @@ export class ProductAnalysisService {
     const endMs = new Date(endDate + "T23:59:59.999Z").getTime();
 
     const result = await this.db
-      .select<DailyMetric>({
+      .select({
         date: sql<string>`DATE(${orders.createdAt} / 1000, 'unixepoch')`,
         orders: sql<number>`COUNT(*)`,
         revenue: sql<number>`COALESCE(SUM(${orderItems.totalPriceCents}), 0) / 100.0`,

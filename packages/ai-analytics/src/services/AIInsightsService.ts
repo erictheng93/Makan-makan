@@ -53,12 +53,10 @@ export class AIInsightsService {
 
   constructor(
     private db: D1Database,
-    drizzleDb?: DrizzleDb,
+    drizzleDb: DrizzleDb,
   ) {
     // ProductAnalysisService uses Drizzle Layer 2 queries
-    this.productAnalysis = new ProductAnalysisService(
-      drizzleDb ?? (db as unknown as DrizzleDb),
-    );
+    this.productAnalysis = new ProductAnalysisService(drizzleDb);
   }
 
   /**
