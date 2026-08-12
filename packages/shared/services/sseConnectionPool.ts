@@ -1,4 +1,4 @@
-interface SSEConnectionOptions {
+export interface SSEConnectionOptions {
   url: string;
   headers?: Record<string, string>;
   withCredentials?: boolean;
@@ -48,6 +48,9 @@ interface ConnectionPoolStats {
 type ParsedMessageEvent = MessageEvent & {
   parsedData: unknown;
 };
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
 
 /**
  * SSE Connection Pool Manager
@@ -252,7 +255,7 @@ export class SSEConnectionPool {
     this.poolStats.totalMessagesReceived++;
 
     // Parse message data
-    let data: any;
+    let data: unknown;
     try {
       data = JSON.parse(event.data);
     } catch {
@@ -286,7 +289,10 @@ export class SSEConnectionPool {
     );
 
     // Handle special messages
-    if (eventType === "heartbeat" || (data && data.type === "heartbeat")) {
+    if (
+      eventType === "heartbeat" ||
+      (isRecord(data) && data.type === "heartbeat")
+    ) {
       this.handleHeartbeat(connection, data);
     }
   }
@@ -444,11 +450,11 @@ export class SSEConnectionPool {
   /**
    * Handle heartbeat message
    */
-  private handleHeartbeat(connection: SSEConnection, data: any): void {
+  private handleHeartbeat(connection: SSEConnection, data: unknown): void {
     connection.lastActivity = Date.now();
 
     // Respond to server heartbeat if needed
-    if (data?.requiresResponse) {
+    if (isRecord(data) && data.requiresResponse) {
       // Send heartbeat response (implementation depends on your backend)
       console.log(`Heartbeat received from ${connection.id}`);
     }
@@ -542,7 +548,7 @@ export class SSEConnectionPool {
   private notifyConnectionEvent(
     connection: SSEConnection,
     eventType: string,
-    data?: any,
+    data?: unknown,
   ): void {
     this.eventBus.dispatchEvent(
       new CustomEvent("connection", {
