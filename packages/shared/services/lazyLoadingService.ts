@@ -327,7 +327,9 @@ export class LazyLoadingService {
     if (this.cache.size >= this.config.cacheSize) {
       // Remove oldest entry (simple FIFO, could be improved with proper LRU)
       const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
     }
 
     this.cache.set(src, image.cloneNode(true) as HTMLImageElement);

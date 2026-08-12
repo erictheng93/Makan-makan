@@ -30,8 +30,8 @@ export default defineConfig({
       ),
       "@makanmasak/utils": resolve(__dirname, "../../packages/utils/src"),
     },
-    // packages/shared/ is a path-aliased loose folder (no package.json), so
-    // when Rollup walks up from files like stores/moduleAccess.ts looking for
+    // The shared workspace package is resolved from source here, so when
+    // Rollup walks up from files like stores/moduleAccess.ts looking for
     // singletons (pinia, vue, vue-router), pnpm's strict layout means the walk
     // fails. dedupe forces resolution from this app's node_modules instead.
     dedupe: ["pinia", "vue", "vue-router"],

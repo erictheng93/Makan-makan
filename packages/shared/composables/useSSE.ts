@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted, watch, computed } from "vue";
+import { ref, shallowRef, onMounted, onUnmounted, watch, computed } from "vue";
 import { sseConnectionPool } from "../services/sseConnectionPool";
 import type { SSEConnectionOptions } from "../services/sseConnectionPool";
 
@@ -57,8 +57,8 @@ export function useSSE<T = unknown>(url: string, options: UseSSEOptions = {}) {
   const isConnecting = ref(false);
   const isReconnecting = ref(false);
   const error = ref<string | null>(null);
-  const lastMessage = ref<SSEMessage<T> | null>(null);
-  const messages = ref<SSEMessage<T>[]>([]);
+  const lastMessage = shallowRef<SSEMessage<T> | null>(null);
+  const messages = shallowRef<SSEMessage<T>[]>([]);
   const connectionStats = ref({
     messagesReceived: 0,
     reconnectCount: 0,
@@ -105,12 +105,9 @@ export function useSSE<T = unknown>(url: string, options: UseSSEOptions = {}) {
           };
 
           lastMessage.value = message;
-          messages.value.push(message);
-
-          // Keep only last 100 messages to prevent memory leaks
-          if (messages.value.length > 100) {
-            messages.value.shift();
-          }
+          // Keep only the last 100 messages and replace the shallow ref value
+          // so consumers observe the update without unwrapping generic payloads.
+          messages.value = [...messages.value, message].slice(-100);
 
           // Update stats
           connectionStats.value.messagesReceived++;

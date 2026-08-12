@@ -409,25 +409,6 @@ export function createVendorChunks() {
   };
 }
 
-// Export commonly used loaders
-export const commonComponentLoaders = {
-  // Admin components
-  AdminDashboard: () => import("@/views/DashboardView.vue"),
-  OrdersView: () => import("@/views/OrdersView.vue"),
-  MenuView: () => import("@/views/MenuView.vue"),
-  AnalyticsView: () => import("@/views/AnalyticsView.vue"),
-  SettingsView: () => import("@/views/SettingsView.vue"),
-
-  // Customer components
-  MenuBrowser: () => import("@/components/MenuBrowser.vue"),
-  OrderTracking: () => import("@/components/OrderTracking.vue"),
-  CartView: () => import("@/views/CartView.vue"),
-
-  // Kitchen components
-  KitchenDisplay: () => import("@/views/KitchenView.vue"),
-  OrderCard: () => import("@/components/OrderCard.vue"),
-};
-
 export default {
   lazyComponent,
   createRouteComponents,
@@ -435,5 +416,4 @@ export default {
   FeatureLoader,
   createChunkName,
   createVendorChunks,
-  commonComponentLoaders,
 };

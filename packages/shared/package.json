@@ -1,0 +1,29 @@
+{
+  "name": "@makanmasak/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "vue-tsc --noEmit",
+    "lint": "eslint composables/**/*.ts directives/**/*.ts plugins/**/*.ts services/**/*.ts stores/**/*.ts types/**/*.ts utils/**/*.ts --no-warn-ignored"
+  },
+  "exports": {
+    "./components/*": "./components/*",
+    "./composables/*": "./composables/*",
+    "./directives/*": "./directives/*",
+    "./plugins/*": "./plugins/*",
+    "./services/*": "./services/*",
+    "./stores/*": "./stores/*",
+    "./types/*": "./types/*",
+    "./utils/*": "./utils/*"
+  },
+  "peerDependencies": {
+    "pinia": ">=2 <4",
+    "vue": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.0",
+    "typescript": "^5.0.0",
+    "vue-tsc": "^3.0.0"
+  }
+}

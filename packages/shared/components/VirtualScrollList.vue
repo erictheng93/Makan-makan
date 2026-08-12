@@ -11,7 +11,7 @@
     <!-- Visible items -->
     <div
       v-for="item in visibleItems"
-      :key="getItemKey ? getItemKey(item) : item.id"
+      :key="getItemKey ? getItemKey(item) : item._virtualIndex"
       :style="{ height: itemHeight + 'px' }"
       class="virtual-scroll-item"
     >
