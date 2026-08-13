@@ -11,6 +11,8 @@ import type {
   PrintJobStatus,
   PrintRequest,
   PrintResponse,
+  PrinterDriverConfig,
+  PrinterEvent,
   PrintServiceConfig,
   PrintStatistics,
   RegionConfig,
@@ -27,9 +29,9 @@ type PrintJobMetricsMetadata = NonNullable<PrintJob["metadata"]> & {
 
 export abstract class PrinterDriver {
   protected device: PrinterDevice;
-  protected config: any;
+  protected config: PrinterDriverConfig;
 
-  constructor(device: PrinterDevice, config: any) {
+  constructor(device: PrinterDevice, config: PrinterDriverConfig) {
     this.device = device;
     this.config = config;
   }
@@ -686,7 +688,7 @@ export class PrinterService {
     }
   }
 
-  private emit(event: string, data: any): void {
+  private emit(event: string, data: PrinterEvent["data"]): void {
     const handlers = this.eventHandlers.get(event);
     if (handlers) {
       handlers.forEach((handler) => {

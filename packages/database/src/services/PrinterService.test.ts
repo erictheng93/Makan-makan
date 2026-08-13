@@ -4,6 +4,7 @@ import type {
   PrintContent,
   PrintJob,
   PrintServiceConfig,
+  PrinterDriverConfig,
   PrinterDevice,
 } from "@makanmasak/shared-types";
 import { PrinterDriver, PrinterService } from "./PrinterService";
@@ -51,6 +52,20 @@ function createDevice(
     },
     lastSeen: new Date(2026, 5, 12, 8),
     isDefault: false,
+  };
+}
+
+function createDriverConfig(): PrinterDriverConfig {
+  return {
+    brand: "generic",
+    encoding: "utf-8",
+    commandSet: "esc-pos",
+    features: {
+      cutter: true,
+      drawer: true,
+      buzzer: true,
+      graphics: true,
+    },
   };
 }
 
@@ -175,10 +190,16 @@ describe("PrinterService statistics", () => {
     const service = new PrinterService(createConfig());
 
     await service.registerDriver(
-      new TestPrinterDriver(createDevice("printer-online", "online"), {}),
+      new TestPrinterDriver(
+        createDevice("printer-online", "online"),
+        createDriverConfig(),
+      ),
     );
     await service.registerDriver(
-      new TestPrinterDriver(createDevice("printer-offline", "offline"), {}),
+      new TestPrinterDriver(
+        createDevice("printer-offline", "offline"),
+        createDriverConfig(),
+      ),
     );
 
     addQueuedJob(
