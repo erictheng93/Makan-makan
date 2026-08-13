@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Session-list responses now carry `deviceInfo` and `location`. Both were always omitted: the columns are `mode: "json"`, so the driver hands them over already parsed, and the response transform tried to `JSON.parse` the resulting object a second time and swallowed the error in a bare `catch`.
+
 - Menu and category response timestamps now use Unix milliseconds (`number`) rather than ISO-8601 strings. API consumers, integrations, and caches that persist these fields must accept the numeric wire format.
 
 - Order-item responses now fall back to the current menu-item description when an historical item snapshot has no description. This restores the existing fallback path by selecting the required menu field.
