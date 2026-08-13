@@ -249,10 +249,10 @@ describe("menu DTO timestamps", () => {
       updatedAt,
     });
 
-    expect(category.createdAt).toBe(createdAt.toISOString());
-    expect(category.updatedAt).toBe(updatedAt.toISOString());
-    expect(item.createdAt).toBe(createdAt.toISOString());
-    expect(item.updatedAt).toBe(updatedAt.toISOString());
+    expect(category.createdAt).toBe(createdAt.getTime());
+    expect(category.updatedAt).toBe(updatedAt.getTime());
+    expect(item.createdAt).toBe(createdAt.getTime());
+    expect(item.updatedAt).toBe(updatedAt.getTime());
   });
 });
 
