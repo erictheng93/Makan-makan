@@ -18,6 +18,12 @@ export interface CachedQuery<T> {
   expires_at: number;
 }
 
+interface QueryCacheStats {
+  total_keys: number;
+  hit_rate: number;
+  popular_queries: Array<{ key: string; hits: number }>;
+}
+
 /**
  * Query cache wrapper for KV-based caching
  */
@@ -173,17 +179,15 @@ export class QueryCache {
   /**
    * Get cache statistics
    */
-  async getStats(): Promise<{
-    total_keys: number;
-    hit_rate: number;
-    popular_queries: Array<{ key: string; hits: number }>;
-  }> {
+  async getStats(): Promise<QueryCacheStats> {
     if (!this.kv) {
       return { total_keys: 0, hit_rate: 0, popular_queries: [] };
     }
 
     try {
-      const stats = await this.kv.get<any>("cache:stats", { type: "json" });
+      const stats = await this.kv.get<QueryCacheStats>("cache:stats", {
+        type: "json",
+      });
       return stats || { total_keys: 0, hit_rate: 0, popular_queries: [] };
     } catch {
       return { total_keys: 0, hit_rate: 0, popular_queries: [] };
