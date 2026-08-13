@@ -326,7 +326,7 @@ async function ensureMigratedBaseline(): Promise<string> {
     }
 
     await new Promise((resolve) =>
-      setTimeout(resolve, BASELINE_POLL_INTERVAL_MS),
+      realSetTimeout(resolve, BASELINE_POLL_INTERVAL_MS),
     );
   }
 }
