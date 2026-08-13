@@ -13,38 +13,47 @@ export type {
   TableStats as DbTableStats,
 } from "@makanmasak/database";
 
-// Core table type (feature-specific, includes computed/joined fields)
+/**
+ * Core table type (feature-specific, includes computed/joined fields).
+ *
+ * Optionality here mirrors the queries rather than the schema. Nullable
+ * columns arrive as `null`, not absent, and the projections differ: the list
+ * query omits `restaurantId`/`updatedAt`, and the availability query omits both
+ * timestamps. Declaring those required is what kept the divergence invisible
+ * while the service returned `any`. Selecting the missing columns would change
+ * the responses, so it is tracked separately rather than done here.
+ */
 export interface Table {
   id: number;
-  restaurantId: string;
+  restaurantId?: string;
   number: string;
-  name?: string;
+  name?: string | null;
   capacity: number;
-  location?: string;
-  floor: number;
-  section?: string;
-  features?: TableFeatures;
+  location?: string | null;
+  floor?: number | null;
+  section?: string | null;
+  features?: TableFeatures | null;
   isActive: boolean;
   isOccupied: boolean;
   isReservable: boolean;
-  occupiedBy?: string;
-  occupiedAt?: Date;
-  orderId?: number;
+  occupiedBy?: string | null;
+  occupiedAt?: Date | null;
+  orderId?: number | null;
   currentOrderId?: string | null;
-  estimatedReleaseTime?: Date;
-  lastCleanedAt?: Date;
-  cleaningNotes?: string;
-  maintenanceNotes?: string;
-  qrCode?: string;
-  qrCodeVersion?: number;
+  estimatedReleaseTime?: Date | null;
+  lastCleanedAt?: Date | null;
+  cleaningNotes?: string | null;
+  maintenanceNotes?: string | null;
+  qrCode?: string | null;
+  qrCodeVersion?: number | null;
   pendingQrCode?: string | null;
   pendingQrCodeVersion?: number | null;
   pendingQrPreparedAt?: Date | null;
-  qrMode?: "table" | "seat";
-  seatCount?: number;
-  seatNumberingStyle?: "numeric" | "alphabetic" | "custom";
-  createdAt: Date;
-  updatedAt: Date;
+  qrMode?: "table" | "seat" | null;
+  seatCount?: number | null;
+  seatNumberingStyle?: "numeric" | "alphabetic" | "custom" | null;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface TableFeatures {

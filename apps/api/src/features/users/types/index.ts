@@ -92,28 +92,35 @@ export interface UserSearchQuery {
 }
 
 /**
- * Formatted user response interface
+ * Formatted user response interface.
+ *
+ * `formatUser` copies its fields straight across from the query row, so what
+ * is optional here is what the queries may not select: the list projections
+ * omit `updatedAt`, and `searchUsers` selects only six columns, leaving
+ * `isActive`, `isVerified` and the timestamps absent from search responses.
+ * These were previously declared required, which is what let that go unnoticed.
+ * Making the query select them is a response change and is tracked separately.
  */
 export interface FormattedUser {
   id: string;
   username: string;
   role: number;
   role_name: string;
-  restaurantId?: string;
-  email?: string;
-  fullName: string;
-  phone?: string;
-  address?: string;
-  dateOfBirth?: string;
-  profileImageUrl?: string;
-  isActive: boolean;
-  isVerified: boolean;
-  preferences?: UserPreferences;
-  totalOrders?: number;
-  totalSpent?: number;
-  lastLoginAt?: string;
-  createdAt: string;
-  updatedAt: string;
+  restaurantId?: string | null;
+  email?: string | null;
+  fullName?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  dateOfBirth?: string | null;
+  profileImageUrl?: string | null;
+  isActive?: boolean;
+  isVerified?: boolean;
+  preferences?: UserPreferences | string | null;
+  totalOrders?: number | null;
+  totalSpent?: number | null;
+  lastLoginAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | Date | null;
 }
 
 /**

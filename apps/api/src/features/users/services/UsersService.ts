@@ -23,25 +23,37 @@ interface CurrentUser {
   restaurantId?: string | number | null;
 }
 
+/**
+ * What the user queries actually hand back, which is not what this interface
+ * used to claim. Nullable columns arrive as `null`, not absent, and the list
+ * and search projections select different subsets — `searchUsers` returns six
+ * columns, so everything outside that set is genuinely missing rather than
+ * merely empty. `updatedAt` is a `Date` from `updateUser`'s `returning()` and a
+ * serialized string from the read paths.
+ *
+ * Widening it here documents what already reaches `formatUser`; it does not
+ * change any response. Narrowing it back is a query change, not a type change:
+ * the projections have to select the columns first. See TODOS.
+ */
 interface UserRecord {
   id: string;
   username: string;
   role: number;
-  restaurantId?: string;
-  email?: string;
-  fullName: string;
-  phone?: string;
-  address?: string;
-  dateOfBirth?: string;
-  profileImageUrl?: string;
-  isActive: boolean;
-  isVerified: boolean;
-  preferences?: UserPreferences;
-  totalOrders?: number;
-  totalSpent?: number;
-  lastLoginAt?: string;
-  createdAt: string;
-  updatedAt: string;
+  restaurantId?: string | null;
+  email?: string | null;
+  fullName?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  dateOfBirth?: string | null;
+  profileImageUrl?: string | null;
+  isActive?: boolean;
+  isVerified?: boolean;
+  preferences?: UserPreferences | string | null;
+  totalOrders?: number | null;
+  totalSpent?: number | null;
+  lastLoginAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | Date | null;
 }
 
 export class UsersService {
@@ -58,7 +70,10 @@ export class UsersService {
   canManageUser(
     currentUser: CurrentUser,
     targetRole: number,
-    targetRestaurantId?: string,
+    // Nullable column, so `null` reaches here as readily as `undefined`.
+    // Neither can equal an owner's restaurant id, which is the refusal the
+    // comparison below already produces.
+    targetRestaurantId?: string | null,
   ): boolean {
     if (currentUser.role === USER_ROLES.ADMIN) return true;
     if (currentUser.role === USER_ROLES.OWNER) {

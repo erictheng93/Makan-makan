@@ -105,7 +105,12 @@ export class TablesService {
   /**
    * Update an existing table
    */
-  async updateTable(id: number, data: UpdateTableData): Promise<Table> {
+  // Returns undefined when the id matched no row: `update … returning()` yields
+  // an empty array, and the caller decides whether that is a 404.
+  async updateTable(
+    id: number,
+    data: UpdateTableData,
+  ): Promise<Table | undefined> {
     try {
       const updatedTable = await this.tableService.updateTable(id, data);
       return updatedTable;
@@ -365,8 +370,10 @@ export class TablesService {
    */
   async getTableByQRCode(qrCode: string): Promise<Table | null> {
     try {
+      // The lookup misses with `undefined`; this method has always promised
+      // `null` for "no such table", so normalise rather than widen it.
       const table = await this.tableService.getTableByQRCode(qrCode);
-      return table;
+      return table ?? null;
     } catch (error) {
       this.logError("getTableByQRCode", error);
       throw new Error(
@@ -393,12 +400,18 @@ export class TablesService {
    * Validate restaurant access permissions
    */
   validateRestaurantAccess(
-    restaurantId: string,
+    restaurantId: string | undefined,
     userRestaurantId: string,
     isAdmin: boolean,
   ): boolean {
     if (isAdmin) {
       return true;
+    }
+    // A row whose projection left `restaurantId` out cannot be shown to belong
+    // to the caller, so it does not. The comparison below already refused it —
+    // this only makes refusing the explicit answer rather than a side effect.
+    if (!restaurantId) {
+      return false;
     }
     return restaurantId === userRestaurantId;
   }
