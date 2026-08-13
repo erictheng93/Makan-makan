@@ -41,6 +41,9 @@ export interface SeatStats {
   averageOccupancyRate: number;
 }
 
+/** A full `seats` row, as `insert`/`update` … `returning()` hands it back. */
+export type SeatRow = typeof seats.$inferSelect;
+
 /**
  * 座位服務
  * 負責座位的創建、管理和操作
@@ -53,7 +56,7 @@ export class SeatService extends BaseService {
     tableId: number,
     seatCount: number,
     options: SeatNumberingOptions = {},
-  ): Promise<any[]> {
+  ): Promise<SeatRow[]> {
     try {
       // 驗證桌子是否存在
       const table = await this.db
@@ -119,7 +122,7 @@ export class SeatService extends BaseService {
   /**
    * 獲取單個座位
    */
-  async getSeatById(seatId: number): Promise<any> {
+  async getSeatById(seatId: number) {
     try {
       const seat = await this.db
         .select({
@@ -163,7 +166,7 @@ export class SeatService extends BaseService {
   /**
    * 根據 QR Code 獲取座位
    */
-  async getSeatByQRCode(qrCode: string): Promise<any> {
+  async getSeatByQRCode(qrCode: string) {
     try {
       const seat = await this.db
         .select({
@@ -207,11 +210,7 @@ export class SeatService extends BaseService {
   async getSeatsByTableId(
     tableId: number,
     filters: Omit<SeatFilters, "tableId"> = {},
-  ): Promise<{
-    seats: any[];
-    total: number;
-    pagination?: { page: number; limit: number; totalPages: number };
-  }> {
+  ) {
     try {
       const {
         page = 1,
@@ -286,7 +285,10 @@ export class SeatService extends BaseService {
   /**
    * 更新座位
    */
-  async updateSeat(seatId: number, data: UpdateSeatData): Promise<any> {
+  async updateSeat(
+    seatId: number,
+    data: UpdateSeatData,
+  ): Promise<SeatRow | undefined> {
     try {
       const [updatedSeat] = await this.db
         .update(seats)
