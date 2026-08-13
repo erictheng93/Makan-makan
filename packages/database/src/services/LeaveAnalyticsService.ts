@@ -94,6 +94,83 @@ export interface LeaveBalanceAnalytics {
   carryoverDays: number;
 }
 
+interface LeaveUsageRow {
+  total_requests: number;
+  approved_requests: number;
+  rejected_requests: number;
+  pending_requests: number;
+  cancelled_requests: number;
+  avg_days_per_request: number;
+  total_days_used: number;
+}
+
+interface LeaveTypeSummaryRow {
+  leave_type_id: number;
+  leave_type_name: string;
+  leave_type_code: string;
+  total_requests: number;
+  total_days: number;
+  approved_requests: number;
+  rejected_requests: number;
+  pending_requests: number;
+  avg_days_per_request: number;
+}
+
+interface EmployeeLeaveStatsRow {
+  employee_id: string;
+  employee_name: string;
+  email: string;
+  role: string;
+  total_requests: number;
+  total_days_used: number;
+  remaining_days: number;
+  last_leave_date: string | null;
+  most_used_leave_type: string | null;
+}
+
+interface LeaveTrendRow {
+  period: string;
+  total_requests: number;
+  total_days: number;
+  approved_requests: number;
+  rejected_requests: number;
+}
+
+interface LeaveDistributionRow {
+  leave_type: string;
+  count: number;
+  total_days: number;
+}
+
+interface PeakCountRow {
+  count: number;
+  month?: string;
+  week?: string;
+  day_of_week?: string;
+}
+
+interface PeakDemandDayRow {
+  date: string;
+  request_count: number;
+  employees_on_leave: number;
+}
+
+interface LeaveTotalRow {
+  total: number;
+}
+
+interface LeaveBalanceRow {
+  avg_balance: number;
+  total_unused: number;
+  total_carryover: number;
+  low_balance_count: number;
+  zero_balance_count: number;
+}
+
+interface RemainingBalanceRow {
+  remaining_days: number;
+}
+
 // ========================================
 // Service Class
 // ========================================
@@ -127,7 +204,7 @@ export class LeaveAnalyticsService {
       `,
       )
       .bind(restaurantId, startDate, endDate)
-      .first<any>();
+      .first<LeaveUsageRow>();
 
     if (!result) {
       return this.getEmptyUsageStats();
@@ -184,7 +261,7 @@ export class LeaveAnalyticsService {
       `,
       )
       .bind(restaurantId, startDate, endDate, restaurantId)
-      .all<any>();
+      .all<LeaveTypeSummaryRow>();
 
     return (results.results || []).map((row) => ({
       leaveTypeId: row.leave_type_id,
@@ -241,7 +318,7 @@ export class LeaveAnalyticsService {
       `,
       )
       .bind(String(year), String(year), year, restaurantId, limit)
-      .all<any>();
+      .all<EmployeeLeaveStatsRow>();
 
     return (results.results || []).map((row) => ({
       employeeId: row.employee_id,
@@ -252,7 +329,7 @@ export class LeaveAnalyticsService {
       totalDaysUsed: row.total_days_used || 0,
       remainingDays: row.remaining_days || 0,
       mostUsedLeaveType: row.most_used_leave_type || "N/A",
-      lastLeaveDate: row.last_leave_date,
+      lastLeaveDate: row.last_leave_date || undefined,
     }));
   }
 
@@ -285,7 +362,7 @@ export class LeaveAnalyticsService {
       `,
       )
       .bind(restaurantId, startDate, endDate)
-      .all<any>();
+      .all<LeaveTrendRow>();
 
     return (results.results || []).map((row) => ({
       period: row.period,
@@ -323,7 +400,7 @@ export class LeaveAnalyticsService {
       `,
       )
       .bind(restaurantId, startDate, endDate, restaurantId)
-      .all<any>();
+      .all<LeaveDistributionRow>();
 
     const total = (results.results || []).reduce(
       (sum, row) => sum + (row.count || 0),
@@ -358,7 +435,7 @@ export class LeaveAnalyticsService {
       `,
       )
       .bind(restaurantId, String(year))
-      .first<any>();
+      .first<PeakCountRow>();
 
     // Get most common week
     const weekResult = await this.db
@@ -373,7 +450,7 @@ export class LeaveAnalyticsService {
       `,
       )
       .bind(restaurantId, String(year))
-      .first<any>();
+      .first<PeakCountRow>();
 
     // Get most common day of week
     const dayResult = await this.db
@@ -398,7 +475,7 @@ export class LeaveAnalyticsService {
       `,
       )
       .bind(restaurantId, String(year))
-      .first<any>();
+      .first<PeakCountRow>();
 
     // Top 5 days with highest leave demand
     const topDaysResult = await this.db
@@ -418,7 +495,7 @@ export class LeaveAnalyticsService {
       `,
       )
       .bind(restaurantId, String(year))
-      .all<any>();
+      .all<PeakDemandDayRow>();
 
     const highestDemandDays = (topDaysResult.results || []).map((row) => ({
       date: row.date,
@@ -436,7 +513,7 @@ export class LeaveAnalyticsService {
       `,
       )
       .bind(restaurantId, String(year))
-      .first<any>();
+      .first<LeaveTotalRow>();
 
     const yearDays =
       (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 366 : 365;
@@ -475,7 +552,7 @@ export class LeaveAnalyticsService {
       `,
       )
       .bind(restaurantId, year)
-      .first<any>();
+      .first<LeaveBalanceRow>();
 
     if (!result) {
       return {
@@ -501,7 +578,7 @@ export class LeaveAnalyticsService {
       `,
       )
       .bind(restaurantId, year)
-      .all<any>();
+      .all<RemainingBalanceRow>();
 
     const sorted = (balances.results || []).map(
       (r) => Number(r.remaining_days) || 0,

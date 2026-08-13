@@ -218,7 +218,13 @@ export interface DailySchedulingStats {
   currentlyWorking: number;
   totalActualHours: number;
   totalOvertimeHours: number;
-  statusBreakdown: Record<EmployeeSchedule["status"], number>;
+  statusBreakdown: {
+    scheduled: number;
+    confirmed: number;
+    completed: number;
+    cancelled: number;
+    noShow: number;
+  };
   shiftTypeBreakdown: Record<string, number>;
 }
 
@@ -790,6 +796,7 @@ export class SchedulingService extends BaseService {
           severity: "error",
           message: "Employee has approved leave on this date",
           restaurantId: data.restaurantId,
+          scheduleIds: "[]",
           employeeIds: JSON.stringify([sched.employeeId]),
           details: JSON.stringify({ leaveRequestId: empLeaves[0].id }),
         });
@@ -2187,7 +2194,7 @@ export class SchedulingService extends BaseService {
         .filter((emp) => !onLeaveIds.has(emp.id) && !scheduledIds.has(emp.id))
         .map((emp) => ({
           ...emp,
-          availability: "available",
+          availability: "available" as const,
           reason: "Available for scheduling",
         }));
 
