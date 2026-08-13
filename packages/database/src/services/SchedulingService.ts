@@ -170,9 +170,74 @@ export interface ScheduleSwapRequest {
 
 export interface ConflictCheckResult {
   hasConflicts: boolean;
-  conflicts: SchedulingConflict[];
-  warnings: SchedulingConflict[];
-  info: SchedulingConflict[];
+  conflicts: DetectedSchedulingConflict[];
+  warnings: DetectedSchedulingConflict[];
+  info: DetectedSchedulingConflict[];
+}
+
+/** Conflict information available before a conflict record is persisted. */
+export type DetectedSchedulingConflict = Pick<
+  SchedulingConflict,
+  "conflictType" | "severity" | "message" | "employeeIds"
+> &
+  Partial<Pick<SchedulingConflict, "scheduleIds" | "details">>;
+
+export interface SwapRequestFilters {
+  restaurantId?: string;
+  requesterEmployeeId?: string;
+  targetEmployeeId?: string;
+  requestType?: ScheduleSwapRequest["requestType"];
+  status?: ScheduleSwapRequest["status"];
+  page?: number;
+  limit?: number;
+}
+
+export interface ConflictFilters {
+  restaurantId?: string;
+  conflictType?: SchedulingConflict["conflictType"];
+  severity?: SchedulingConflict["severity"];
+  status?: SchedulingConflict["status"];
+  page?: number;
+  limit?: number;
+}
+
+export type AvailableEmployee = Pick<
+  typeof users.$inferSelect,
+  "id" | "fullName" | "role"
+> & {
+  availability: "available";
+  reason: string;
+};
+
+export interface DailySchedulingStats {
+  date: string;
+  totalSchedules: number;
+  totalEmployees: number;
+  totalHours: number;
+  clockedIn: number;
+  currentlyWorking: number;
+  totalActualHours: number;
+  totalOvertimeHours: number;
+  statusBreakdown: Record<EmployeeSchedule["status"], number>;
+  shiftTypeBreakdown: Record<string, number>;
+}
+
+export interface WeeklyScheduleSummary {
+  weekStartDate: string;
+  weekEndDate: string;
+  totalSchedules: number;
+  totalEmployees: number;
+  totalHours: number;
+  totalOvertimeHours: number;
+  confirmedSchedules: number;
+  completedSchedules: number;
+  cancelledSchedules: number;
+  dailyBreakdown: Array<{
+    date: string;
+    scheduleCount: number;
+    employeeCount: number;
+    totalHours: number;
+  }>;
 }
 
 export interface ScheduleFilters {
@@ -629,7 +694,7 @@ export class SchedulingService extends BaseService {
     }
 
     // Collect all schedule data to create
-    const schedulesToCreate: Record<string, any>[] = [];
+    const schedulesToCreate: (typeof employeeSchedules.$inferInsert)[] = [];
     const currentDate = new Date(startDate);
     while (currentDate <= endDate) {
       const dayOfWeek = currentDate.getDay();
@@ -687,7 +752,7 @@ export class SchedulingService extends BaseService {
     ]);
 
     // Process-local conflict detection for all schedules at once
-    const bulkConflicts: any[] = [];
+    const bulkConflicts: (typeof schedulingConflicts.$inferInsert)[] = [];
     for (const sched of schedulesToCreate) {
       const empSchedules = existingSchedules.filter(
         (s) =>
@@ -753,7 +818,7 @@ export class SchedulingService extends BaseService {
             overtimeHours: 0,
             createdAt: new Date(),
             updatedAt: new Date(),
-          } as any) as BatchItem<"sqlite">,
+          }) as BatchItem<"sqlite">,
       ),
     ];
     await this.db.batch(
@@ -1013,9 +1078,9 @@ export class SchedulingService extends BaseService {
     endTime: string;
     scheduledHours: number;
   }): Promise<ConflictCheckResult> {
-    const conflicts: any[] = [];
-    const warnings: any[] = [];
-    const info: any[] = [];
+    const conflicts: DetectedSchedulingConflict[] = [];
+    const warnings: DetectedSchedulingConflict[] = [];
+    const info: DetectedSchedulingConflict[] = [];
 
     // Check overlapping shifts
     const overlapping = await this.checkOverlappingShifts(
@@ -1077,7 +1142,7 @@ export class SchedulingService extends BaseService {
     workDate: string,
     startTime: string,
     endTime: string,
-  ): Promise<any[]> {
+  ): Promise<DetectedSchedulingConflict[]> {
     const existingSchedules = await this.db
       .select()
       .from(employeeSchedules)
@@ -1089,7 +1154,7 @@ export class SchedulingService extends BaseService {
         ),
       );
 
-    const conflicts = [];
+    const conflicts: DetectedSchedulingConflict[] = [];
     for (const schedule of existingSchedules) {
       if (
         this.timesOverlap(
@@ -1116,7 +1181,7 @@ export class SchedulingService extends BaseService {
     employeeId: string,
     workDate: string,
     startTime: string,
-  ): Promise<any[]> {
+  ): Promise<DetectedSchedulingConflict[]> {
     const yesterday = new Date(workDate);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split("T")[0];
@@ -1132,7 +1197,7 @@ export class SchedulingService extends BaseService {
         ),
       );
 
-    const conflicts = [];
+    const conflicts: DetectedSchedulingConflict[] = [];
     for (const prevSchedule of previousSchedules) {
       const restHours = this.calculateRestHours(
         prevSchedule.endTime,
@@ -1156,7 +1221,7 @@ export class SchedulingService extends BaseService {
     employeeId: string,
     workDate: string,
     additionalHours: number,
-  ): Promise<any | null> {
+  ): Promise<DetectedSchedulingConflict | null> {
     const [result] = await this.db
       .select({
         totalHours: sql<number>`SUM(${employeeSchedules.scheduledHours})`,
@@ -1189,7 +1254,7 @@ export class SchedulingService extends BaseService {
     employeeId: string,
     workDate: string,
     additionalHours: number,
-  ): Promise<any | null> {
+  ): Promise<DetectedSchedulingConflict | null> {
     const date = new Date(workDate);
     const weekStart = new Date(date);
     weekStart.setDate(date.getDate() - date.getDay());
@@ -1231,7 +1296,7 @@ export class SchedulingService extends BaseService {
   private async checkConsecutiveDays(
     employeeId: string,
     workDate: string,
-  ): Promise<any | null> {
+  ): Promise<DetectedSchedulingConflict | null> {
     const date = new Date(workDate);
     const weekAgo = new Date(date);
     weekAgo.setDate(date.getDate() - 7);
@@ -1280,7 +1345,7 @@ export class SchedulingService extends BaseService {
   private async checkLeaveConflict(
     employeeId: string,
     workDate: string,
-  ): Promise<any | null> {
+  ): Promise<DetectedSchedulingConflict | null> {
     const [leave] = await this.db
       .select()
       .from(leaveRequests)
@@ -1945,7 +2010,7 @@ export class SchedulingService extends BaseService {
   }
 
   async getSwapRequests(
-    filters: any,
+    filters: SwapRequestFilters,
   ): Promise<{ items: ScheduleSwapRequest[]; total: number }> {
     try {
       const { page = 1, limit = 20, ...restFilters } = filters;
@@ -2071,7 +2136,7 @@ export class SchedulingService extends BaseService {
     restaurantId: string;
     date: string;
     shiftTemplateId?: number;
-  }): Promise<any[]> {
+  }): Promise<AvailableEmployee[]> {
     try {
       // Get all active employees in the restaurant
       const allEmployees = await this.db
@@ -2137,7 +2202,7 @@ export class SchedulingService extends BaseService {
    * Get scheduling conflicts with filters
    */
   async getConflicts(
-    filters: any,
+    filters: ConflictFilters,
   ): Promise<{ items: SchedulingConflict[]; total: number }> {
     try {
       const { page = 1, limit = 20, ...restFilters } = filters;
@@ -2243,7 +2308,10 @@ export class SchedulingService extends BaseService {
   /**
    * Get daily scheduling statistics
    */
-  async getDailyStats(restaurantId: string, date: string): Promise<any> {
+  async getDailyStats(
+    restaurantId: string,
+    date: string,
+  ): Promise<DailySchedulingStats> {
     try {
       // Get total schedules for the day
       const [scheduleStats] = await this.db
@@ -2338,7 +2406,7 @@ export class SchedulingService extends BaseService {
   async getWeeklySummary(
     restaurantId: string,
     weekStartDate: string,
-  ): Promise<any> {
+  ): Promise<WeeklyScheduleSummary> {
     try {
       // Calculate week end date
       const startDate = new Date(weekStartDate);
