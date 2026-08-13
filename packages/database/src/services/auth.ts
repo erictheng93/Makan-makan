@@ -109,14 +109,36 @@ type TokenUser = {
 
 type RefreshTokenPrincipal = { userId: string };
 
+type ValidatedTokenUser = Pick<
+  typeof users.$inferSelect,
+  | "id"
+  | "username"
+  | "fullName"
+  | "role"
+  | "restaurantId"
+  | "isActive"
+  | "tokenVersion"
+> & { publicId: (typeof users.$inferSelect)["id"] };
+
+type UserSessionSummary = Pick<
+  typeof sessions.$inferSelect,
+  | "id"
+  | "deviceInfo"
+  | "ipAddress"
+  | "location"
+  | "lastAccessedAt"
+  | "expiresAt"
+  | "createdAt"
+>;
+
 export interface SessionData {
   userId: string;
   token: string;
   refreshToken?: string;
   userAgent?: string;
   ipAddress?: string;
-  deviceInfo?: any;
-  location?: any;
+  deviceInfo?: typeof sessions.$inferInsert.deviceInfo;
+  location?: typeof sessions.$inferInsert.location;
   expiresAt: Date;
 }
 
@@ -535,7 +557,7 @@ export class AuthService extends BaseService {
   // 驗證 token 並取得用戶資訊
   async validateToken(
     token: string,
-  ): Promise<{ valid: boolean; user?: any; error?: string }> {
+  ): Promise<{ valid: boolean; user?: ValidatedTokenUser; error?: string }> {
     try {
       const jwtSecret = this.env.JWT_SECRET;
       if (!jwtSecret || jwtSecret.length < 32) {
@@ -638,7 +660,7 @@ export class AuthService extends BaseService {
   }
 
   // 取得用戶的活躍 sessions
-  async getUserSessions(userId: string): Promise<any[]> {
+  async getUserSessions(userId: string): Promise<UserSessionSummary[]> {
     try {
       return await this.db
         .select({

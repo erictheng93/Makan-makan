@@ -42,14 +42,9 @@ import type {
   IAuthService,
 } from "../types";
 
-interface DatabaseSessionSummary {
-  id: string;
-  deviceInfo?: string | null;
-  location?: string | null;
-  lastAccessedAt?: string | number | Date | null;
-  expiresAt: string | number | Date;
-  createdAt: string | number | Date;
-}
+type DatabaseSessionSummary = Awaited<
+  ReturnType<DatabaseAuthService["getUserSessions"]>
+>[number];
 
 const LOGIN_RATE_LIMIT_ERROR =
   "Account locked after repeated failures. Please try again later.";
@@ -712,10 +707,9 @@ export class AuthService implements IAuthService {
       const sessions = await this.dbAuthService.getUserSessions(userId);
 
       // Transform to match our interface
-      const parseJsonField = <T>(
-        value: string | null | undefined,
-      ): T | undefined => {
+      const parseJsonField = <T>(value: unknown): T | undefined => {
         if (!value) return undefined;
+        if (typeof value !== "string") return value as T;
         try {
           return JSON.parse(value) as T;
         } catch {
