@@ -28,8 +28,8 @@ export interface CreateErrorReportData {
   severity: "low" | "medium" | "high" | "critical";
   errorCode?: string;
   errorMessage: string;
-  errorContext?: Record<string, any>;
-  originalError?: any;
+  errorContext?: Record<string, unknown>;
+  originalError?: unknown;
   userAgent?: string;
   url?: string;
   timestamp: Date;
@@ -170,7 +170,9 @@ export class ErrorReportingService extends BaseService {
 
       // Cursor-based pagination path
       if (cursor) {
-        const cursorResult = await paginateWithCursor(
+        const cursorResult = await paginateWithCursor<
+          typeof errorReports.$inferSelect
+        >(
           this.db,
           errorReports,
           {
@@ -183,15 +185,17 @@ export class ErrorReportingService extends BaseService {
         );
 
         return {
-          reports: cursorResult.data.map((report: any) => ({
-            ...report,
-            errorContext: report.errorContext
-              ? JSON.parse(report.errorContext)
-              : null,
-            originalError: report.originalError
-              ? JSON.parse(report.originalError)
-              : null,
-          })),
+          reports: cursorResult.data.map(
+            (report: typeof errorReports.$inferSelect) => ({
+              ...report,
+              errorContext: report.errorContext
+                ? JSON.parse(report.errorContext)
+                : null,
+              originalError: report.originalError
+                ? JSON.parse(report.originalError)
+                : null,
+            }),
+          ),
           pagination: cursorResult.pagination,
         };
       }

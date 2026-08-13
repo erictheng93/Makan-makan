@@ -241,7 +241,9 @@ async function encryptPayload(
   );
   const sharedSecret = new Uint8Array(
     await crypto.subtle.deriveBits(
-      { name: "ECDH", public: receiverPublicKey } as any,
+      { name: "ECDH", public: receiverPublicKey } as Parameters<
+        SubtleCrypto["deriveBits"]
+      >[0],
       senderKeys.privateKey,
       256,
     ),
