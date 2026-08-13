@@ -27,7 +27,7 @@ export interface SessionUpdateData {
   token?: string;
   lastAccessedAt?: Date;
   expiresAt?: Date;
-  location?: any;
+  location?: typeof sessions.$inferInsert.location;
 }
 
 export interface SessionFilters {
@@ -49,9 +49,14 @@ export interface SessionStats {
   recentLogins: number; // 最近24小時
 }
 
+/** A full `sessions` row, as `insert`/`update` … `returning()` hands it back. */
+export type SessionRow = typeof sessions.$inferSelect;
+
 export class SessionService extends BaseService {
   // 創建新 session
-  async createSession(data: SessionCreateData): Promise<any> {
+  async createSession(
+    data: SessionCreateData,
+  ): Promise<SessionRow | undefined> {
     try {
       const sessionId = data.id || crypto.randomUUID();
 
@@ -78,7 +83,7 @@ export class SessionService extends BaseService {
   }
 
   // 根據 token 取得 session
-  async getSessionByToken(token: string): Promise<any> {
+  async getSessionByToken(token: string) {
     try {
       const session = await this.db
         .select({
@@ -102,7 +107,7 @@ export class SessionService extends BaseService {
   }
 
   // 根據 refresh token 取得 session
-  async getSessionByRefreshToken(refreshToken: string): Promise<any> {
+  async getSessionByRefreshToken(refreshToken: string) {
     try {
       const session = await this.db
         .select({
@@ -132,7 +137,7 @@ export class SessionService extends BaseService {
   }
 
   // 取得 session 詳情（包含用戶資訊）
-  async getSessionById(id: string): Promise<any> {
+  async getSessionById(id: string) {
     try {
       const sessionWithUser = await this.db
         .select({
@@ -165,7 +170,10 @@ export class SessionService extends BaseService {
   }
 
   // 更新 session 資訊
-  async updateSession(id: string, data: SessionUpdateData): Promise<any> {
+  async updateSession(
+    id: string,
+    data: SessionUpdateData,
+  ): Promise<SessionRow | undefined> {
     try {
       const [updatedSession] = await this.db
         .update(sessions)
@@ -295,10 +303,7 @@ export class SessionService extends BaseService {
   }
 
   // 取得用戶的活躍 sessions
-  async getUserSessions(
-    userId: string,
-    includeExpired = false,
-  ): Promise<any[]> {
+  async getUserSessions(userId: string, includeExpired = false) {
     try {
       const conditions = [eq(sessions.userId, userId)];
 
@@ -330,11 +335,7 @@ export class SessionService extends BaseService {
   }
 
   // 取得所有活躍 sessions（管理員功能）
-  async getActiveSessions(filters: SessionFilters = {}): Promise<{
-    sessions: any[];
-    total: number;
-    pagination: { page: number; limit: number; totalPages: number };
-  }> {
+  async getActiveSessions(filters: SessionFilters = {}) {
     try {
       const {
         page = 1,
@@ -556,7 +557,7 @@ export class SessionService extends BaseService {
   }
 
   // 取得特定 IP 的 sessions（安全監控）
-  async getSessionsByIP(ipAddress: string, limit = 10): Promise<any[]> {
+  async getSessionsByIP(ipAddress: string, limit = 10) {
     try {
       const sessionsList = await this.db
         .select({
