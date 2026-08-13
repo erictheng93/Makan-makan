@@ -10,9 +10,9 @@
 
 import { v7 as uuidv7 } from "uuid";
 
-export interface QueryBatchItem {
+export interface QueryBatchItem<T = unknown> {
   id: string;
-  query: () => Promise<any>;
+  query: () => Promise<T>;
   priority: number;
   timeout: number;
   retryCount: number;
@@ -75,7 +75,7 @@ export class ConnectionManager {
       batchable = false,
     } = options;
 
-    const queryItem: QueryBatchItem = {
+    const queryItem: QueryBatchItem<T> = {
       id: uuidv7(),
       query: queryFn,
       priority,
@@ -96,7 +96,7 @@ export class ConnectionManager {
   /**
    * Add query to batch for optimized execution
    */
-  private async addToBatch<T>(queryItem: QueryBatchItem): Promise<T> {
+  private async addToBatch<T>(queryItem: QueryBatchItem<T>): Promise<T> {
     this.queryQueue.push(queryItem);
     this.metrics.batchedQueries++;
 
@@ -122,7 +122,7 @@ export class ConnectionManager {
           clearInterval(checkInterval);
           try {
             const result = await queryItem.query();
-            resolve(result as T);
+            resolve(result);
           } catch (error) {
             reject(error);
           }
@@ -149,7 +149,7 @@ export class ConnectionManager {
   /**
    * Execute query with retry logic
    */
-  private async executeWithRetry<T>(queryItem: QueryBatchItem): Promise<T> {
+  private async executeWithRetry<T>(queryItem: QueryBatchItem<T>): Promise<T> {
     this.activeQueries++;
     this.metrics.totalQueries++;
     const startTime = Date.now();
@@ -162,7 +162,7 @@ export class ConnectionManager {
 
       this.metrics.successfulQueries++;
       this.updateQueryTime(Date.now() - startTime);
-      return result as T;
+      return result;
     } catch (error) {
       // Retry on transient errors
       if (
@@ -205,7 +205,7 @@ export class ConnectionManager {
   /**
    * Check if error is retryable
    */
-  private isRetryableError(error: any): boolean {
+  private isRetryableError(error: unknown): boolean {
     if (!error) return false;
 
     const retryableErrors = [
@@ -217,7 +217,8 @@ export class ConnectionManager {
       "network",
     ];
 
-    const errorMessage = error.message?.toLowerCase() || "";
+    const errorMessage =
+      error instanceof Error ? error.message.toLowerCase() : "";
     return retryableErrors.some((err) => errorMessage.includes(err));
   }
 
