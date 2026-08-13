@@ -273,6 +273,13 @@ routes.put(
 
     const updatedCoupon = await couponsService.updateCoupon(id, data);
 
+    // The existence check above and this UPDATE are two statements: a coupon
+    // deleted in between leaves nothing to return, and formatting undefined
+    // would answer 500 where 404 is the truth.
+    if (!updatedCoupon) {
+      throw notFound("Coupon not found");
+    }
+
     return c.json({
       success: true,
       data: couponsService.formatCouponMoneyFields(updatedCoupon),
@@ -311,6 +318,10 @@ routes.post(
     }
 
     const deactivatedCoupon = await couponsService.deactivateCoupon(id);
+
+    if (!deactivatedCoupon) {
+      throw notFound("Coupon not found");
+    }
 
     return c.json({
       success: true,

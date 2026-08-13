@@ -251,12 +251,38 @@ describe("CouponsService", () => {
     ).rejects.toThrow();
   });
 
+  it("reports zeros for a coupon nobody has redeemed", async () => {
+    const service = createService();
+    // SUM and AVG over zero usage rows come back NULL, and the aggregate row
+    // itself is optional. Consumers get 0, not a null to guess at.
+    vi.spyOn(service, "getCouponStats").mockResolvedValue({
+      totalUsed: 0,
+      totalDiscount: null,
+      avgDiscount: null,
+      lastUsed: null,
+    } as never);
+
+    await expect(
+      service.getComprehensiveCouponStats(10),
+    ).resolves.toMatchObject({
+      totalUsed: 0,
+      totalDiscount: 0,
+      avgDiscount: 0,
+      lastUsed: null,
+    });
+  });
+
   it("augments stats and counts bulk operation failures", async () => {
     const service = createService();
+    // The real getCouponStats returns totalUsed / totalDiscount / avgDiscount
+    // / lastUsed. This mock used to answer with totalUsage and uniqueUsers,
+    // fields no version of CouponStats has ever had — the old spread passed
+    // the fiction straight through to the assertion.
     vi.spyOn(service, "getCouponStats").mockResolvedValue({
-      totalUsage: 3,
+      totalUsed: 3,
       totalDiscount: 25,
-      uniqueUsers: 2,
+      avgDiscount: 8.5,
+      lastUsed: "2026-06-07T00:00:00.000Z",
     });
     vi.spyOn(service, "updateCoupon")
       .mockResolvedValueOnce({ id: 1 })
@@ -274,7 +300,10 @@ describe("CouponsService", () => {
     await expect(
       service.getComprehensiveCouponStats(10),
     ).resolves.toMatchObject({
-      totalUsage: 3,
+      totalUsed: 3,
+      totalDiscount: 25,
+      avgDiscount: 8.5,
+      lastUsed: "2026-06-07T00:00:00.000Z",
       usageByDay: [],
       topUsers: [],
       averageOrderValue: 0,

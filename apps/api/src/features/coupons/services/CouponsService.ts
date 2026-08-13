@@ -214,10 +214,18 @@ export class CouponsService extends BaseCouponService {
   > {
     const baseStats = await this.getCouponStats(couponId);
 
-    // Additional analytics can be added here
-    // For now, return base stats with empty additional data
+    // Spelled out rather than spread, because every field can be absent and
+    // the published contract is not: the aggregate row itself is optional, and
+    // SUM/AVG over zero usage rows are NULL rather than 0 — the COALESCE in
+    // the query only covers null amounts within a row, not the absence of
+    // rows. A coupon nobody has redeemed has discounted nothing, so this says
+    // 0 instead of handing consumers a null to guess at.
+    // Additional analytics can be added here.
     return {
-      ...baseStats,
+      totalUsed: baseStats?.totalUsed ?? 0,
+      totalDiscount: baseStats?.totalDiscount ?? 0,
+      avgDiscount: baseStats?.avgDiscount ?? 0,
+      lastUsed: baseStats?.lastUsed ?? null,
       usageByDay: [],
       topUsers: [],
       averageOrderValue: 0,
