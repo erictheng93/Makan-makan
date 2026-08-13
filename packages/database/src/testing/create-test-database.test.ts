@@ -117,6 +117,20 @@ describe("tryAcquireBaselineLock", () => {
     expect(tryAcquireBaselineLock(lock)).toBe(false);
   });
 
+  it("uses real time to reclaim a stale lock while fake timers are active", () => {
+    const lock = lockPath();
+    fs.mkdirSync(lock);
+    const staleMtime = new Date(Date.now() - 1_000);
+    fs.utimesSync(lock, staleMtime, staleMtime);
+    vi.useFakeTimers({ now: new Date("2026-06-07T00:00:00.000Z") });
+
+    try {
+      expect(tryAcquireBaselineLock(lock, undefined, 1)).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("reclaims a lock whose owner died without releasing it", () => {
     // A SIGKILLed builder never runs its `finally`, so the lock outlives it.
     // Without reclamation the cache stays wedged for every later run.

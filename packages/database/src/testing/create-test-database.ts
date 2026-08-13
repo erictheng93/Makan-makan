@@ -48,8 +48,9 @@ const REAL_D1_TEST_DATABASE_ID = "makanmakan-real-d1-test";
 const TEST_DATABASE_STAGE_TIMEOUT_MS = 300_000;
 const TEST_DATABASE_DISPOSE_TIMEOUT_MS = 15_000;
 
-// Capture real timers at module load so Vitest fake timers cannot freeze D1
-// diagnostic deadlines or transient-error retry backoff.
+// Capture real time primitives at module load so Vitest fake timers cannot
+// freeze D1 diagnostic deadlines, baseline lock expiry, or retry backoff.
+const realDateNow = Date.now.bind(Date);
 const realSetTimeout = globalThis.setTimeout;
 const realClearTimeout = globalThis.clearTimeout;
 
@@ -298,7 +299,7 @@ async function ensureMigratedBaseline(): Promise<string> {
   const baselinePath = path.join(cacheRoot, cacheKey);
   const readyFile = readyFileFor(baselinePath);
   const lockPath = `${baselinePath}.lock`;
-  const deadline = Date.now() + BASELINE_TOTAL_TIMEOUT_MS;
+  const deadline = realDateNow() + BASELINE_TOTAL_TIMEOUT_MS;
 
   for (;;) {
     if (fs.existsSync(readyFile)) return baselinePath;
@@ -317,7 +318,7 @@ async function ensureMigratedBaseline(): Promise<string> {
       return baselinePath;
     }
 
-    if (Date.now() >= deadline) {
+    if (realDateNow() >= deadline) {
       throw new Error(
         `Timed out waiting for real-D1 migrated baseline after ${Math.ceil(
           BASELINE_TOTAL_TIMEOUT_MS / 1000,
@@ -337,7 +338,7 @@ async function ensureMigratedBaseline(): Promise<string> {
  */
 export function tryAcquireBaselineLock(
   lockPath: string,
-  now: number = Date.now(),
+  now: number = realDateNow(),
   staleAfterMs: number = BASELINE_LOCK_STALE_MS,
 ): boolean {
   try {
