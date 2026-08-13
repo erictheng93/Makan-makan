@@ -18,6 +18,7 @@ import {
   menuItems,
   restaurants,
   tables,
+  customers,
   waitingList,
   couponUsage,
   ORDER_STATUS,
@@ -39,6 +40,7 @@ export const orderMenuItemSummaryColumns = {
   id: true,
   name: true,
   nameEn: true,
+  description: true,
   imageUrl: true,
 } as const;
 
@@ -134,6 +136,41 @@ type PreparedOrderItem = {
     unitPrice: number;
     customizations: SelectedCustomizations | undefined;
   };
+};
+
+type PrepTimeOrderItem = {
+  quantity: number;
+  customizations?: {
+    options?: unknown[];
+    addOns?: unknown[];
+  };
+};
+
+type OrderMenuItemSummary = Pick<
+  typeof menuItems.$inferSelect,
+  keyof typeof orderMenuItemSummaryColumns
+>;
+
+type OrderItemWithRelations = typeof orderItems.$inferSelect & {
+  menuItem?: OrderMenuItemSummary | null;
+};
+
+type OrderRestaurantRelation = Pick<
+  typeof restaurants.$inferSelect,
+  "id" | "name"
+> &
+  Partial<Pick<typeof restaurants.$inferSelect, "phone">>;
+type OrderTableRelation = Pick<typeof tables.$inferSelect, "id" | "number">;
+type OrderCustomerRelation = Pick<
+  typeof customers.$inferSelect,
+  "id" | "displayName" | "primaryPhone"
+>;
+
+type OrderWithRelations = typeof orders.$inferSelect & {
+  items?: OrderItemWithRelations[];
+  restaurant?: OrderRestaurantRelation | null;
+  table?: OrderTableRelation | null;
+  customer?: OrderCustomerRelation | null;
 };
 
 function resolveMoneyCents(
@@ -1482,7 +1519,7 @@ export class OrderService extends BaseService {
   }
 
   // 計算預估準備時間
-  private calculateEstimatedPrepTime(orderItems: any[]): number {
+  private calculateEstimatedPrepTime(orderItems: PrepTimeOrderItem[]): number {
     let maxPrepTime = 0;
     let totalComplexity = 0;
 
@@ -1492,11 +1529,12 @@ export class OrderService extends BaseService {
 
       // 根據客製化增加時間
       let itemComplexity = 1;
-      if (item.customizations?.options?.length > 0) {
-        itemComplexity += item.customizations.options.length * 0.2;
+      const customizations = item.customizations;
+      if (customizations?.options?.length) {
+        itemComplexity += customizations.options.length * 0.2;
       }
-      if (item.customizations?.addOns?.length > 0) {
-        itemComplexity += item.customizations.addOns.length * 0.1;
+      if (customizations?.addOns?.length) {
+        itemComplexity += customizations.addOns.length * 0.1;
       }
 
       const itemPrepTime = basePrepTime * itemComplexity * item.quantity;
@@ -1516,8 +1554,8 @@ export class OrderService extends BaseService {
   }
 
   // 資料轉換
-  private mapToOrder(order: any): Order {
-    const mapOrderItem = (item: any) => {
+  private mapToOrder(order: OrderWithRelations): Order {
+    const mapOrderItem = (item: OrderItemWithRelations) => {
       const snapshot = item.itemSnapshot;
       const snapshotMenuItem = snapshot
         ? {
@@ -1587,6 +1625,6 @@ export class OrderService extends BaseService {
       customer: order.customer,
       createdAt: toMillis(order.createdAt)!,
       updatedAt: toMillis(order.updatedAt)!,
-    } as Order;
+    } as unknown as Order;
   }
 }
