@@ -49,7 +49,7 @@ export interface UserStats {
 
 export class UserService extends BaseService {
   // 創建新用戶
-  async createUser(data: CreateUserData): Promise<any> {
+  async createUser(data: CreateUserData) {
     try {
       // 檢查用戶名是否已存在
       const existingUser = await this.db
@@ -133,7 +133,7 @@ export class UserService extends BaseService {
   }
 
   // 取得用戶詳細資訊
-  async getUserById(id: string): Promise<any> {
+  async getUserById(id: string) {
     try {
       const user = await this.db
         .select({
@@ -191,7 +191,7 @@ export class UserService extends BaseService {
   }
 
   // 根據用戶名取得用戶
-  async getUserByUsername(username: string): Promise<any> {
+  async getUserByUsername(username: string) {
     try {
       const user = await this.db
         .select({
@@ -233,7 +233,7 @@ export class UserService extends BaseService {
   }
 
   // 更新用戶資訊
-  async updateUser(id: string, data: UpdateUserData): Promise<any> {
+  async updateUser(id: string, data: UpdateUserData) {
     try {
       // 檢查 email 是否已被其他用戶使用
       if (data.email) {
@@ -306,11 +306,7 @@ export class UserService extends BaseService {
   async getRestaurantUsers(
     restaurantId: string,
     filters: Omit<UserFilters, "restaurantId"> = {},
-  ): Promise<{
-    users: any[];
-    total: number;
-    pagination: { page: number; limit: number; totalPages: number };
-  }> {
+  ) {
     try {
       const {
         page = 1,
@@ -405,11 +401,7 @@ export class UserService extends BaseService {
   }
 
   // 取得系統中所有用戶（管理員功能）
-  async getAllUsers(filters: UserFilters = {}): Promise<{
-    users: any[];
-    total: number;
-    pagination: { page: number; limit: number; totalPages: number };
-  }> {
+  async getAllUsers(filters: UserFilters = {}) {
     try {
       const {
         page = 1,
@@ -509,11 +501,7 @@ export class UserService extends BaseService {
   }
 
   // 更新用戶角色
-  async updateUserRole(
-    id: string,
-    role: number,
-    _updatedBy: string,
-  ): Promise<any> {
+  async updateUserRole(id: string, role: number, _updatedBy: string) {
     try {
       // 驗證角色是否有效
       const validRoles = Object.values(USER_ROLES);
@@ -662,11 +650,7 @@ export class UserService extends BaseService {
   }
 
   // 搜尋用戶
-  async searchUsers(
-    query: string,
-    restaurantId?: string,
-    limit = 10,
-  ): Promise<any[]> {
+  async searchUsers(query: string, restaurantId?: string, limit = 10) {
     try {
       const conditions = [
         or(
@@ -711,7 +695,7 @@ export class UserService extends BaseService {
   }
 
   // 取得特定角色的用戶
-  async getUsersByRole(role: number, restaurantId?: string): Promise<any[]> {
+  async getUsersByRole(role: number, restaurantId?: string) {
     try {
       const conditions = [eq(users.role, role), eq(users.isActive, true)];
 

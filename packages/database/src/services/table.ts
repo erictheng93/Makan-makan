@@ -19,6 +19,14 @@ import { resolveAppBaseUrl } from "./app-base-url";
 import { BaseService } from "./base";
 import { SeatService } from "./seat";
 
+/** A full `tables` row, as `insert`/`update` … `returning()` hands it back. */
+export type TableRow = typeof tables.$inferSelect;
+
+/** The seat projection `SeatService.getSeatsByTableId` returns. */
+type TableSeatList = Awaited<
+  ReturnType<SeatService["getSeatsByTableId"]>
+>["seats"];
+
 export interface CreateTableData {
   restaurantId: string;
   number: string;
@@ -54,7 +62,7 @@ export interface UpdateTableData {
   location?: string;
   floor?: number;
   section?: string;
-  features?: any;
+  features?: typeof tables.$inferInsert.features;
   isActive?: boolean;
   isReservable?: boolean;
   maintenanceNotes?: string;
@@ -81,7 +89,8 @@ export interface QRCodeOptions {
   size?: "small" | "medium" | "large";
   format?: "png" | "svg" | "pdf";
   includeTableInfo?: boolean;
-  customData?: any;
+  /** Opaque passenger data. Nothing in the service reads a shape out of it. */
+  customData?: unknown;
 }
 
 export interface TableStats {
@@ -98,7 +107,7 @@ export interface TableStats {
 
 export class TableService extends BaseService {
   // 創建新桌子
-  async createTable(data: CreateTableData): Promise<any> {
+  async createTable(data: CreateTableData) {
     try {
       // 檢查桌號是否已存在於同一餐廳
       const existingTable = await this.db
@@ -214,7 +223,7 @@ export class TableService extends BaseService {
   }
 
   // 取得桌子詳細資訊
-  async getTableById(id: number): Promise<any> {
+  async getTableById(id: number) {
     try {
       const table = await this.db
         .select({
@@ -263,7 +272,9 @@ export class TableService extends BaseService {
       }
 
       // SQLite stores booleans as 0/1 integers — coerce only these fields
-      const tableData: Record<string, any> = {
+      const tableData: NonNullable<typeof table> & {
+        seats?: TableSeatList;
+      } = {
         ...table,
         isOccupied: Boolean(Number(table.isOccupied)),
         isActive: Boolean(Number(table.isActive)),
@@ -284,7 +295,7 @@ export class TableService extends BaseService {
   }
 
   // 根據 QR Code 取得桌子
-  async getTableByQRCode(qrCode: string): Promise<any> {
+  async getTableByQRCode(qrCode: string) {
     try {
       const table = await this.db
         .select()
@@ -299,7 +310,10 @@ export class TableService extends BaseService {
   }
 
   // 更新桌子資訊
-  async updateTable(id: number, data: UpdateTableData): Promise<any> {
+  async updateTable(
+    id: number,
+    data: UpdateTableData,
+  ): Promise<TableRow | undefined> {
     try {
       const currentTable = await this.db
         .select({
@@ -436,11 +450,7 @@ export class TableService extends BaseService {
   async getRestaurantTables(
     restaurantId: string,
     filters: Omit<TableFilters, "restaurantId"> = {},
-  ): Promise<{
-    tables: any[];
-    total: number;
-    pagination: { page: number; limit: number; totalPages: number };
-  }> {
+  ) {
     try {
       const {
         page = 1,
@@ -702,7 +712,7 @@ export class TableService extends BaseService {
   // 重新生成 QR Code
   async regenerateQRCode(
     tableId: number,
-    _customData?: any,
+    _customData?: QRCodeOptions["customData"],
   ): Promise<{ success: boolean; qrCode?: string; error?: string }> {
     try {
       const table = await this.db
@@ -947,10 +957,7 @@ export class TableService extends BaseService {
   }
 
   // 取得可用桌子
-  async getAvailableTables(
-    restaurantId: string,
-    capacity?: number,
-  ): Promise<any[]> {
+  async getAvailableTables(restaurantId: string, capacity?: number) {
     try {
       const conditions = [
         eq(tables.restaurantId, restaurantId),
@@ -1185,7 +1192,7 @@ export class TableService extends BaseService {
         // 檢查所有座位是否都沒在使用
         const seatsResult = await seatService.getSeatsByTableId(tableId);
         const hasOccupiedSeats = seatsResult.seats.some(
-          (seat: any) => seat.isOccupied,
+          (seat) => seat.isOccupied,
         );
 
         if (hasOccupiedSeats) {
@@ -1243,7 +1250,7 @@ export class TableService extends BaseService {
   }
 
   // 取得桌子的訂單歷史
-  async getTableOrderHistory(tableId: number, limit = 20): Promise<any[]> {
+  async getTableOrderHistory(tableId: number, limit = 20) {
     try {
       const orderHistory = await this.db
         .select({
