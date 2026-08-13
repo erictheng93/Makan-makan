@@ -15,7 +15,7 @@
     "typecheck": {
       "dependsOn": ["^build"],
       "cache": true,
-      "outputs": []
+      "outputs": ["node_modules/.cache/tsc/typecheck.tsbuildinfo"]
     },
     "lint": {
       "dependsOn": ["^build"],

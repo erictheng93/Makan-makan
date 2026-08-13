@@ -5,7 +5,9 @@
     "declaration": false,
     "declarationMap": false,
     "noEmit": true,
-    "rootDir": ".."
+    "rootDir": "..",
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.cache/tsc/typecheck.tsbuildinfo"
   },
   "include": ["src/**/*.ts"],
   "exclude": [
