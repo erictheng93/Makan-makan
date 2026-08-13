@@ -70,7 +70,7 @@ export interface NotificationPayload {
   recipientPhone?: string;
   category: NotificationCategory;
   type: NotificationType;
-  data: Record<string, any>; // Variable values
+  data: Record<string, unknown>; // Variable values
   priority?: "low" | "normal" | "high";
   scheduledAt?: Date; // For scheduled notifications
 }
@@ -943,7 +943,10 @@ export class NotificationService extends BaseService {
   /**
    * Simple template renderer (replaces {{variable}} with values)
    */
-  private renderTemplate(template: string, data: Record<string, any>): string {
+  private renderTemplate(
+    template: string,
+    data: Record<string, unknown>,
+  ): string {
     let result = template;
 
     // Replace {{variable}} placeholders
