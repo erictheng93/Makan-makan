@@ -907,7 +907,6 @@ export class ReservationService extends BaseService {
         capacity: number;
         features?: string;
         turnover_count?: number;
-        [key: string]: any;
       }>;
 
       if (availableTables.length === 0) {
