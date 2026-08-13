@@ -14,7 +14,7 @@ import { BaseService } from "./base";
 
 interface QueryMetadata {
   sql: string;
-  params: any[];
+  params: unknown[];
   executionTime: number;
   cacheKey: string;
   cacheTtl: number;
@@ -44,18 +44,53 @@ interface CacheStrategy {
   geographicDistribution: boolean;
 }
 
+interface OptimizationOptions {
+  cacheKey?: string;
+  cacheTtl?: number;
+  tags?: string[];
+  priority?: "high" | "normal" | "low";
+  endpoint?: string;
+  userRole?: number;
+  enablePreloading?: boolean;
+}
+
+interface EdgeCacheManager {
+  get<T>(key: string): Promise<T | null | undefined>;
+  set<T>(
+    key: string,
+    value: T,
+    options: {
+      ttl: number;
+      tags: string[];
+      priority: "high" | "normal" | "low";
+    },
+  ): Promise<void>;
+}
+
+interface AnalyticsEngine {
+  writeDataPoint(data: {
+    blobs: string[];
+    doubles: number[];
+    indexes: number[];
+  }): Promise<unknown>;
+}
+
+interface CountResult {
+  total: number;
+}
+
 export class IntelligentD1Service extends BaseService {
   private queryAnalytics: Map<string, QueryMetadata> = new Map();
   private queryPatterns: Map<string, QueryPattern> = new Map();
   private preloadQueue: Set<string> = new Set();
-  private cacheManager: any; // EdgeCacheManager instance
-  private analyticsEngine: any;
+  private cacheManager?: EdgeCacheManager;
+  private analyticsEngine?: AnalyticsEngine;
 
   constructor(
     d1: D1Database,
     env: import("./base").CloudflareEnv,
-    cacheManager?: any,
-    analyticsEngine?: any,
+    cacheManager?: EdgeCacheManager,
+    analyticsEngine?: AnalyticsEngine,
     _context?: ExecutionContext,
   ) {
     super(d1, env);
@@ -71,16 +106,8 @@ export class IntelligentD1Service extends BaseService {
    */
   async executeWithOptimization<T>(
     sql: string,
-    params: any[] = [],
-    options: {
-      cacheKey?: string;
-      cacheTtl?: number;
-      tags?: string[];
-      priority?: "high" | "normal" | "low";
-      endpoint?: string;
-      userRole?: number;
-      enablePreloading?: boolean;
-    } = {},
+    params: unknown[] = [],
+    options: OptimizationOptions = {},
   ): Promise<T[]> {
     const startTime = Date.now();
     const querySignature = this.generateQuerySignature(sql, params);
@@ -90,7 +117,7 @@ export class IntelligentD1Service extends BaseService {
 
     // Try cache first (unless high priority requiring fresh data)
     if (options.priority !== "high" && options.cacheKey && this.cacheManager) {
-      const cached = (await this.cacheManager.get(options.cacheKey)) as T[];
+      const cached = await this.cacheManager.get<T[]>(options.cacheKey);
       if (cached) {
         // Record cache hit
         this.recordQueryMetric(
@@ -206,7 +233,7 @@ export class IntelligentD1Service extends BaseService {
    */
   async getPaginatedWithPrefetch<T>(
     baseQuery: string,
-    params: any[],
+    params: unknown[],
     page: number,
     limit: number,
     options: {
@@ -242,7 +269,7 @@ export class IntelligentD1Service extends BaseService {
         tags: options.tags,
         enablePreloading: true,
       }),
-      this.executeWithOptimization<any>(countQuery, params, {
+      this.executeWithOptimization<CountResult>(countQuery, params, {
         cacheKey: countCacheKey,
         cacheTtl: 300, // Count changes less frequently
         tags: options.tags,
@@ -320,7 +347,7 @@ export class IntelligentD1Service extends BaseService {
       userRole?: number;
       deviceType?: string;
     } = {},
-  ): Promise<any> {
+  ): Promise<unknown[]> {
     // Determine optimal query strategy based on context
     const cacheStrategy = this.getMenuCacheStrategy(restaurantId, options);
 
@@ -344,7 +371,7 @@ export class IntelligentD1Service extends BaseService {
       userRole?: number;
       priority?: "high" | "normal" | "low";
     } = {},
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>[]> {
     const cacheKey = `analytics:${restaurantId}:${timeRange}:${metrics.join(",")}`;
     const cacheTtl = this.getAnalyticsCacheTtl(timeRange);
 
@@ -368,7 +395,10 @@ export class IntelligentD1Service extends BaseService {
 
   // Private helper methods
 
-  private async executeQuery<T>(sql: string, params: any[] = []): Promise<T[]> {
+  private async executeQuery<T>(
+    sql: string,
+    params: unknown[] = [],
+  ): Promise<T[]> {
     try {
       const stmt = this.d1.prepare(sql);
       const result =
@@ -379,7 +409,7 @@ export class IntelligentD1Service extends BaseService {
     }
   }
 
-  private generateQuerySignature(sql: string, params: any[]): string {
+  private generateQuerySignature(sql: string, params: unknown[]): string {
     // Normalize SQL and create signature for pattern matching
     const normalizedSql = sql.replace(/\s+/g, " ").trim().toLowerCase();
     const paramTypes = params.map((p) => typeof p).join(",");
@@ -389,8 +419,8 @@ export class IntelligentD1Service extends BaseService {
   private updateQueryAnalytics(
     signature: string,
     sql: string,
-    params: any[],
-    options: any,
+    params: unknown[],
+    options: OptimizationOptions,
   ): void {
     const existing = this.queryAnalytics.get(signature);
     const now = Date.now();
@@ -424,13 +454,13 @@ export class IntelligentD1Service extends BaseService {
           doubles: [Date.now(), executionTime],
           indexes: [executionTime > 1000 ? 1 : 0], // Slow query flag
         })
-        .catch((error: any) => console.error("Analytics error:", error));
+        .catch((error: unknown) => console.error("Analytics error:", error));
     }
   }
 
   private recordQueryError(
     querySignature: string,
-    error: any,
+    error: unknown,
     executionTime: number,
   ): void {
     this.recordQueryMetric("query_error", querySignature, executionTime);
@@ -455,7 +485,7 @@ export class IntelligentD1Service extends BaseService {
   private determineCacheStrategy(
     querySignature: string,
     executionTime: number,
-    options: any,
+    options: OptimizationOptions,
   ): CacheStrategy {
     const metadata = this.queryAnalytics.get(querySignature);
 
@@ -519,7 +549,7 @@ export class IntelligentD1Service extends BaseService {
 
   private triggerPredictivePreloading(
     querySignature: string,
-    _options: any,
+    _options: OptimizationOptions,
   ): void {
     // Analyze query patterns and preload related queries
     const patterns = this.predictRelatedQueries(querySignature);
@@ -553,7 +583,7 @@ export class IntelligentD1Service extends BaseService {
 
   private learnQueryPattern(
     querySignature: string,
-    options: any,
+    options: OptimizationOptions,
     executionTime: number,
   ): void {
     const existing = this.queryPatterns.get(querySignature);
@@ -695,7 +725,7 @@ export class IntelligentD1Service extends BaseService {
   private async getMenuWithCategories(
     _restaurantId: string,
     _strategy: CacheStrategy,
-  ): Promise<any> {
+  ): Promise<unknown[]> {
     // Implementation would join menu_items and categories tables
     return [];
   }
@@ -703,15 +733,24 @@ export class IntelligentD1Service extends BaseService {
   private async getMenuItems(
     _restaurantId: string,
     _strategy: CacheStrategy,
-    _options: any,
-  ): Promise<any> {
+    _options: {
+      includeAvailabilityOnly?: boolean;
+      userRole?: number;
+      deviceType?: string;
+    },
+  ): Promise<unknown[]> {
     // Implementation would query menu_items table with filters
     return [];
   }
 
   private getMenuCacheStrategy(
     restaurantId: string,
-    _options: any,
+    _options: {
+      includeCategories?: boolean;
+      includeAvailabilityOnly?: boolean;
+      userRole?: number;
+      deviceType?: string;
+    },
   ): CacheStrategy {
     return {
       type: "standard",
@@ -726,7 +765,7 @@ export class IntelligentD1Service extends BaseService {
     restaurantId: string,
     timeRange: string,
     _metrics: string[],
-  ): { sql: string; params: any[] } {
+  ): { sql: string; params: unknown[] } {
     // Implementation would build complex analytics query
     return {
       sql: "SELECT COUNT(*) as orders FROM orders WHERE restaurant_id = ? AND created_at > ?",
