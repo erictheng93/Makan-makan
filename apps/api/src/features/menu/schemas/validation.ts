@@ -292,11 +292,10 @@ export const STOCK_ONLY_ITEM_FIELDS = [
  * Wire format is deliberately either shape, both normalised to epoch
  * milliseconds here so the service compares integers and never strings:
  *
- * - an ISO-8601 instant, which is what a JSON round-trip of the API's own
- *   response produces (menu_items.updated_at_ms is INTEGER ms, Drizzle hands it
- *   over as a Date, and `JSON.stringify(Date)` emits
- *   "2026-07-30T12:34:56.789Z" — ms-precise, so the round-trip is lossless);
- * - a raw epoch-ms integer, for a client that parsed the date itself.
+ * - a raw epoch-ms integer, which current API responses produce;
+ * - an ISO-8601 instant from a legacy client or a cached response replay.
+ *   `Date.parse()` preserves millisecond precision, so either form reaches the
+ *   service as the same integer.
  *
  * String comparison would have been the trap here: "…789Z" and "…789+00:00"
  * are the same instant and different strings.

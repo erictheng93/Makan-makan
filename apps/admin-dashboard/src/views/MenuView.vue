@@ -1424,7 +1424,7 @@ const menuItemForm = ref({
   minInventoryAlert: 5 as NumericFormValue,
   // The version this form was populated from; sent back on save so a
   // concurrent edit is refused instead of silently overwritten (#85).
-  updatedAt: undefined as string | undefined,
+  updatedAt: undefined as number | undefined,
 });
 
 type MenuItemFormState = typeof menuItemForm.value;

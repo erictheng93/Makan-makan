@@ -2,6 +2,20 @@
 
 Organized by skill/component, then priority (P0 top → P4 bottom, then Completed).
 
+## API contracts
+
+### Record field types in the API contract snapshot
+
+**Priority:** P2 **Status:** Open (identified 2026-08-13) **Files:** `scripts/check-api-contracts.cjs`, `.api-contracts-snapshot.json`
+
+**Context:** `contract:check` reports schema-field additions/removals, but its static extractor stores only field names. Consequently, a wire-contract change such as menu/category `createdAt` and `updatedAt` changing from ISO strings to Unix-millisecond numbers produces no contract warning. The script's header currently overstates this capability by saying type changes are detected.
+
+**Scope:**
+
+- Extend the extractor and snapshot to persist each field's Zod type, including optionality/nullability and nested response objects where practical.
+- Diff type changes as breaking changes and update the script documentation.
+- Resolve the current `contract:check` baseline delta for `seats.SEAT_SENSITIVE_FIELDS` (`pendingQrCode`, `pendingQrCodeVersion`, and `pendingQrPreparedAt`) by reviewing the seats change and intentionally running `contract:update` if accepted.
+
 ## database / money schema
 
 ### Retire legacy REAL money columns with D1 drop-column cutover

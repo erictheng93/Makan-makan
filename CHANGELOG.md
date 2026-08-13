@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Menu and category response timestamps now use Unix milliseconds (`number`) rather than ISO-8601 strings. API consumers, integrations, and caches that persist these fields must accept the numeric wire format.
+
 - Order-item responses now fall back to the current menu-item description when an historical item snapshot has no description. This restores the existing fallback path by selecting the required menu field.
 
 - `rateLimitMiddleware` no longer returns 500 instead of 429. Its KV counter was written with an `expirationTtl` derived from the remaining window, which drops under Cloudflare's 60-second floor a moment into any one-minute window and made the write throw. Every route on a sub-90-second window was affected — signed QR verification, realtime guest tokens, and the credits endpoints — and the limit never engaged, because each rejected write also failed to persist the count. TTLs are now clamped to the KV floor (the counter's own `resetTime` still bounds the window, so this only affects garbage collection), and a limiter failure now fails open with a warning rather than turning a KV hiccup into an outage of the endpoint it protects.
