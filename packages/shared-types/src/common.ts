@@ -18,8 +18,8 @@ export interface ApiResponse<T = unknown> {
 
 export interface BaseEntity {
   id: number;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 /**

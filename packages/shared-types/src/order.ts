@@ -58,15 +58,11 @@ export interface CustomerProfile {
   preferences?: Record<string, unknown>;
 }
 
-// Order overrides BaseEntity's `id` plus `createdAt`/`updatedAt` to the
-// database-backed UUID/text id and Unix-ms integer wire contract. See
+// Order overrides BaseEntity's `id` to the database-backed UUID/text id. See
 // packages/database/src/services/order.ts
 // `toMillis` and apps/api/src/__tests__/integration/orders.real.integration.test.ts
 // for the enforcement point.
-export interface Order extends Omit<
-  BaseEntity,
-  "id" | "createdAt" | "updatedAt"
-> {
+export interface Order extends Omit<BaseEntity, "id"> {
   id: string;
   restaurantId: string;
   tableId?: number;
