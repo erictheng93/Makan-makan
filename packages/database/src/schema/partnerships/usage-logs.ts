@@ -76,7 +76,7 @@ export const partnershipUsageLogs = sqliteTable(
     originalAmountCents: integer("original_amount_cents"),
     finalAmountCents: integer("final_amount_cents"),
     orderItems: text("order_items", { mode: "json" })
-      .$type<any[]>()
+      .$type<unknown[]>()
       .default([]),
 
     // 使用資訊
@@ -102,7 +102,7 @@ export const partnershipUsageLogs = sqliteTable(
 
     // 額外資訊
     metadata: text("metadata", { mode: "json" })
-      .$type<Record<string, any>>()
+      .$type<Record<string, unknown>>()
       .default({}),
 
     // 時間戳記

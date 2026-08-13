@@ -91,7 +91,7 @@ export const partnerships = sqliteTable(
       .default("manual")
       .$type<VerificationMethod>(),
     verificationConfig: text("verification_config", { mode: "json" })
-      .$type<Record<string, any>>()
+      .$type<Record<string, unknown>>()
       .default({}),
     allowedEmailDomains: text("allowed_email_domains", { mode: "json" })
       .$type<string[]>()
@@ -123,7 +123,7 @@ export const partnerships = sqliteTable(
     notes: text("notes"),
     tags: text("tags", { mode: "json" }).$type<string[]>().default([]),
     metadata: text("metadata", { mode: "json" })
-      .$type<Record<string, any>>()
+      .$type<Record<string, unknown>>()
       .default({}),
 
     // 時間戳記

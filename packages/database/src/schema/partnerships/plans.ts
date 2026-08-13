@@ -117,7 +117,7 @@ export const partnershipPlans = sqliteTable(
     termsAndConditions: text("terms_and_conditions"),
     notes: text("notes"),
     metadata: text("metadata", { mode: "json" })
-      .$type<Record<string, any>>()
+      .$type<Record<string, unknown>>()
       .default({}),
 
     // 時間戳記

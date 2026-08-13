@@ -56,9 +56,9 @@ export const auditLogs = sqliteTable(
     // 操作詳情
     description: text("description").notNull(), // 操作描述
     changes: text("changes", { mode: "json" }).$type<{
-      before?: Record<string, any>; // 變更前的值
-      after?: Record<string, any>; // 變更後的值
-      metadata?: Record<string, any>; // 額外的元數據
+      before?: Record<string, unknown>; // 變更前的值
+      after?: Record<string, unknown>; // 變更後的值
+      metadata?: Record<string, unknown>; // 額外的元數據
     }>(),
 
     // 請求資訊

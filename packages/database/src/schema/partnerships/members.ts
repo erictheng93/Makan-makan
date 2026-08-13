@@ -93,7 +93,7 @@ export const verifiedMembers = sqliteTable(
     studentIdPhotoUrl: text("student_id_photo_url"),
     notes: text("notes"),
     metadata: text("metadata", { mode: "json" })
-      .$type<Record<string, any>>()
+      .$type<Record<string, unknown>>()
       .default({}),
 
     // 時間戳記
