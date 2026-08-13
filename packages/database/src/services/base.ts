@@ -28,10 +28,15 @@ export type DeploymentMode = "saas" | "independent";
 export interface CloudflareEnv {
   JWT_SECRET: string;
   NODE_ENV?: string;
+  ENVIRONMENT?: string;
   CACHE_KV?: KVNamespace;
   WEB_PUSH_VAPID_PUBLIC_KEY?: string;
   WEB_PUSH_VAPID_PRIVATE_KEY?: string;
   WEB_PUSH_VAPID_SUBJECT?: string;
+  QR_SIGNING_KEY?: string;
+  CLIENT_BASE_URL?: string;
+  CORS_ORIGIN?: string;
+  API_BASE_URL?: string;
   WEB_PUSH_DELIVERER?: (delivery: {
     subscription: {
       id: string;
@@ -44,6 +49,7 @@ export interface CloudflareEnv {
   // Notification providers
   RESEND_API_KEY?: string;
   NOTIFICATION_FROM_EMAIL?: string;
+  USE_MAILCHANNELS?: string;
   // SMS vendor selection — see ./sms (SmsProviderEnv)
   SMS_PROVIDER?: string;
   TWILIO_ACCOUNT_SID?: string;
@@ -62,7 +68,6 @@ export interface CloudflareEnv {
   LICENSE_KEY?: string;
   CENTRAL_API_URL?: string;
   PLATFORM_VERSION?: string;
-  [key: string]: any;
 }
 
 // 基礎服務類別
@@ -165,7 +170,7 @@ export class BaseService {
    * writes instead of relying on this helper.
    */
   protected async safeTransaction<T>(
-    writeFn: (db: any) => Promise<T>,
+    writeFn: (db: ReturnType<typeof drizzle<typeof schema>>) => Promise<T>,
   ): Promise<T> {
     void writeFn;
     throw new Error(
@@ -174,7 +179,7 @@ export class BaseService {
   }
 
   // 通用錯誤處理
-  protected handleError(error: any, operation: string): never {
+  protected handleError(error: unknown, operation: string): never {
     // 安全地記錄錯誤，避免循環引用問題
     if (error instanceof Error) {
       console.error(`Database error in ${operation}:`, error.message);
