@@ -12,6 +12,7 @@ export default [
       "dist/**",
       "node_modules/**",
       "*.d.ts",
+      "**/*.d.ts",
       "coverage/**",
       "test-results/**",
       "**/*.vue.js",

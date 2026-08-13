@@ -9,7 +9,7 @@
     "build:full": "vue-tsc && vite build",
     "preview": "vite preview --host",
     "typecheck": "vue-tsc --noEmit",
-    "lint": "eslint src",
+    "lint": "eslint src --max-warnings 0",
     "lint:fix": "eslint src --fix",
     "test": "vitest",
     "test:e2e": "playwright test --config=playwright.config.ts",
