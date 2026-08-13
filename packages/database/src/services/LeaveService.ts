@@ -22,6 +22,12 @@ import { NotificationService } from "./NotificationService";
 // Types
 // ========================================
 
+type ApprovalChainEntry = {
+  level: number;
+  approverRole: number;
+  required: boolean;
+};
+
 export interface LeaveType {
   id: number;
   restaurantId: string | null;
@@ -1505,9 +1511,9 @@ export class LeaveService extends BaseService {
   // Helper Methods
   // ========================================
 
-  private buildApprovalChain(levels: number): any[] {
+  private buildApprovalChain(levels: number): ApprovalChainEntry[] {
     // Simplified approval chain - can be enhanced with actual approval rules
-    const chain = [];
+    const chain: ApprovalChainEntry[] = [];
     for (let i = 1; i <= levels; i++) {
       chain.push({
         level: i,
@@ -1525,7 +1531,10 @@ export class LeaveService extends BaseService {
   /**
    * Get holidays for a specific year
    */
-  async getHolidays(restaurantId: string | null, year: number): Promise<any[]> {
+  async getHolidays(
+    restaurantId: string | null,
+    year: number,
+  ): Promise<(typeof leaveCalendarEvents.$inferSelect)[]> {
     const startDate = `${year}-01-01`;
     const endDate = `${year}-12-31`;
 
