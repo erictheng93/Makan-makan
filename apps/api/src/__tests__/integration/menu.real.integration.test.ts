@@ -1756,9 +1756,9 @@ describe("Menu API — real integration", () => {
    * saved every field it rendered.
    *
    * The wire format is what usually breaks this: the API serialises
-   * menu_items.updated_at_ms (INTEGER ms, a Date in Drizzle) to an ISO string,
-   * and the client echoes that string back. These tests send exactly what a
-   * client reads from the API, without reformatting it.
+   * menu_items.updated_at_ms (INTEGER ms, a Date in Drizzle) to epoch ms, and
+   * the client echoes that number back. The schema also accepts ISO strings for
+   * legacy clients and cached replays, so both branches stay covered here.
    */
   describe("concurrent edits are refused instead of overwritten (#85)", () => {
     async function setupItem() {
@@ -1818,7 +1818,8 @@ describe("Menu API — real integration", () => {
     it("accepts the version the client read and refuses it once stale", async () => {
       const { ownerToken, item } = await setupItem();
 
-      // The exact ISO string the API handed the client, echoed back unchanged.
+      // The exact epoch-ms value the API handed the client, echoed back
+      // unchanged.
       const firstRes = await testApp.app.fetch(
         putItem(item.id, ownerToken, {
           name: "牛肉麵",
@@ -1894,13 +1895,16 @@ describe("Menu API — real integration", () => {
       expect((await readItem(item.id)).priceCents).toBe(18000);
     });
 
-    it("accepts an epoch-ms version as well as the ISO one", async () => {
+    it("accepts an ISO version as well as the epoch-ms one", async () => {
       const { ownerToken, item } = await setupItem();
 
       const res = await testApp.app.fetch(
         putItem(item.id, ownerToken, {
           price: 210,
-          updatedAt: Date.parse(item.updatedAt),
+          // item.updatedAt is epoch ms on the wire now. The ISO branch exists
+          // for legacy clients and cached replays, so it has to be built
+          // explicitly.
+          updatedAt: new Date(item.updatedAt).toISOString(),
         }),
       );
 
