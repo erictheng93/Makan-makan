@@ -454,7 +454,7 @@ export class SeatService extends BaseService {
         .where(and(eq(seats.id, seatId), isNull(seats.deletedAt)));
 
       return { success: true, qrCode: newQRCode };
-    } catch (error) {
+    } catch {
       return { success: false, error: "Failed to regenerate QR code" };
     }
   }
@@ -513,7 +513,7 @@ export class SeatService extends BaseService {
         .where(and(eq(seats.id, seatId), isNull(seats.deletedAt)));
 
       return { success: true, qrCode: pendingQrCode };
-    } catch (error) {
+    } catch {
       return { success: false, error: "Failed to prepare QR code rotation" };
     }
   }
@@ -551,7 +551,7 @@ export class SeatService extends BaseService {
         .where(and(eq(seats.id, seatId), isNull(seats.deletedAt)));
 
       return { success: true, qrCode: seat.pendingQrCode };
-    } catch (error) {
+    } catch {
       return { success: false, error: "Failed to activate QR code rotation" };
     }
   }
@@ -571,7 +571,7 @@ export class SeatService extends BaseService {
         .where(and(eq(seats.id, seatId), isNull(seats.deletedAt)));
 
       return { success: true };
-    } catch (error) {
+    } catch {
       return { success: false, error: "Failed to discard QR code rotation" };
     }
   }
@@ -671,7 +671,7 @@ export class SeatService extends BaseService {
           qrCode,
         })),
       };
-    } catch (error) {
+    } catch {
       return { success: false, error: "Failed to prepare QR code rotation" };
     }
   }
@@ -755,7 +755,7 @@ export class SeatService extends BaseService {
           qrCode,
         })),
       };
-    } catch (error) {
+    } catch {
       return { success: false, error: "Failed to generate QR codes" };
     }
   }

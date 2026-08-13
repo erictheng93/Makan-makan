@@ -762,7 +762,7 @@ export class ReservationService extends BaseService {
               isAvailable: true,
             });
             count++;
-          } catch (error) {
+          } catch {
             // 忽略重複錯誤
             console.warn(`Slot already exists: ${dateStr} ${timeSlot}`);
           }

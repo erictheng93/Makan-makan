@@ -185,7 +185,7 @@ export class QueryCache {
     try {
       const stats = await this.kv.get<any>("cache:stats", { type: "json" });
       return stats || { total_keys: 0, hit_rate: 0, popular_queries: [] };
-    } catch (error) {
+    } catch {
       return { total_keys: 0, hit_rate: 0, popular_queries: [] };
     }
   }

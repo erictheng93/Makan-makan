@@ -740,7 +740,7 @@ export class TableService extends BaseService {
         .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)));
 
       return { success: true, qrCode: newQRCode };
-    } catch (error) {
+    } catch {
       return { success: false, error: "Failed to regenerate QR code" };
     }
   }
@@ -798,7 +798,7 @@ export class TableService extends BaseService {
         .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)));
 
       return { success: true, qrCode: pendingQrCode };
-    } catch (error) {
+    } catch {
       return { success: false, error: "Failed to prepare QR code rotation" };
     }
   }
@@ -837,7 +837,7 @@ export class TableService extends BaseService {
         .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)));
 
       return { success: true, qrCode: table.pendingQrCode };
-    } catch (error) {
+    } catch {
       return { success: false, error: "Failed to activate QR code rotation" };
     }
   }
@@ -858,7 +858,7 @@ export class TableService extends BaseService {
         .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)));
 
       return { success: true };
-    } catch (error) {
+    } catch {
       return { success: false, error: "Failed to discard QR code rotation" };
     }
   }

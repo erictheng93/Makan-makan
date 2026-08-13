@@ -454,7 +454,7 @@ export class AuthService extends BaseService {
           expiresAt: accessTokenExpiry,
         },
       };
-    } catch (error) {
+    } catch {
       return {
         success: false,
         error: "Invalid refresh token",
@@ -612,7 +612,7 @@ export class AuthService extends BaseService {
         .where(eq(sessions.id, session.id));
 
       return { valid: true, user };
-    } catch (error) {
+    } catch {
       return { valid: false, error: "Invalid token" };
     }
   }
@@ -716,7 +716,7 @@ export class AuthService extends BaseService {
         .where(eq(sessions.userId, userId));
 
       return { success: true };
-    } catch (error) {
+    } catch {
       return { success: false, error: "Failed to change password" };
     }
   }
