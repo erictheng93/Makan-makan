@@ -29,7 +29,13 @@ export function isOpenNow(
   const dayKey = weekdayPart;
   const todayHours = businessHours[dayKey];
 
-  if (!todayHours || todayHours.closed) return false;
+  if (
+    !todayHours ||
+    ("isOpen" in todayHours && !todayHours.isOpen) ||
+    ("closed" in todayHours && todayHours.closed)
+  ) {
+    return false;
+  }
 
   const currentHHmm = `${hourPart}:${minutePart}`;
   return currentHHmm >= todayHours.open && currentHHmm < todayHours.close;

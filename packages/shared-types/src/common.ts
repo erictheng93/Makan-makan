@@ -62,15 +62,13 @@ export enum SpiceLevel {
   EXTREME = 4,
 }
 
-export interface BusinessHours {
-  monday?: string;
-  tuesday?: string;
-  wednesday?: string;
-  thursday?: string;
-  friday?: string;
-  saturday?: string;
-  sunday?: string;
+export interface BusinessHoursDay {
+  open: string;
+  close: string;
+  isOpen: boolean;
 }
+
+export type BusinessHours = Record<string, BusinessHoursDay>;
 
 export interface ImageVariants {
   thumbnail?: string;

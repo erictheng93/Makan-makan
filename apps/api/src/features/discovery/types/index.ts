@@ -132,9 +132,9 @@ export interface MarketSearchScopeMetadata {
 }
 
 export interface BusinessHours {
-  [day: string]: {
-    open: string;
-    close: string;
-    closed?: boolean;
-  };
+  [day: string]:
+    | { open: string; close: string; isOpen: boolean }
+    // Market operating hours still use the legacy `closed` field. Keep this
+    // compatibility shape until the market contract is migrated separately.
+    | { open: string; close: string; closed?: boolean };
 }

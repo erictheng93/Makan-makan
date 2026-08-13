@@ -39,15 +39,9 @@ export const restaurants = sqliteTable(
     }>(),
 
     // 營業資訊
-    businessHours: text("business_hours", { mode: "json" }).$type<{
-      monday?: { open: string; close: string; closed?: boolean };
-      tuesday?: { open: string; close: string; closed?: boolean };
-      wednesday?: { open: string; close: string; closed?: boolean };
-      thursday?: { open: string; close: string; closed?: boolean };
-      friday?: { open: string; close: string; closed?: boolean };
-      saturday?: { open: string; close: string; closed?: boolean };
-      sunday?: { open: string; close: string; closed?: boolean };
-    }>(),
+    businessHours: text("business_hours", { mode: "json" }).$type<
+      Record<string, { open: string; close: string; isOpen: boolean }>
+    >(),
 
     // 狀態和設定
     isAvailable: integer("is_available", { mode: "boolean" })
