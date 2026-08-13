@@ -336,7 +336,7 @@ export function assembleMenuItemOptions(
 
 export async function loadAssembledMenuItemOptions(
   db: MenuOptionsDb,
-  items: MenuItemWithOptions[],
+  items: readonly MenuItemWithOptions[],
 ): Promise<Map<number, MenuItemOptions | undefined>> {
   if (items.length === 0) return new Map();
 

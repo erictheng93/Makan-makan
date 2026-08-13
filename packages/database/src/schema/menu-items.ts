@@ -35,10 +35,10 @@ export const menuItems = sqliteTable(
     // 圖片資訊
     imageUrl: text("image_url"),
     imageVariants: text("image_variants", { mode: "json" }).$type<{
-      thumbnail?: string; // 縮圖 (150x150)
-      small?: string; // 小圖 (300x300)
-      medium?: string; // 中圖 (600x600)
-      large?: string; // 大圖 (1200x1200)
+      thumbnail?: string | null; // 縮圖 (150x150)
+      small?: string | null; // 小圖 (300x300)
+      medium?: string | null; // 中圖 (600x600)
+      large?: string | null; // 大圖 (1200x1200)
     }>(),
     imageId: text("image_id"), // 引用 images.id，供換圖刪舊
 

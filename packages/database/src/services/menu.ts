@@ -168,9 +168,12 @@ export const menuItemSelectColumns = {
   updatedAt: menuItems.updatedAt,
 } as const;
 
-type MenuItemRow = typeof menuItems.$inferSelect;
+type MenuItemRow = Pick<
+  typeof menuItems.$inferSelect,
+  keyof typeof menuItemSelectColumns
+>;
 type MenuItemWithAssembledOptions = Omit<MenuItemRow, "options"> & {
-  options?: MenuItemOptions;
+  options?: MenuItemRow["options"] | MenuItemOptions;
 };
 type MenuCategoryRow = typeof categories.$inferSelect & {
   itemCount?: number;
@@ -183,7 +186,7 @@ export function mapMenuCategoryRow(cat: MenuCategoryRow): Category {
     restaurantId: cat.restaurantId,
     name: cat.name,
     nameEn: cat.nameEn ?? null,
-    description: cat.description,
+    description: cat.description ?? undefined,
     sortOrder: cat.sortOrder,
     status: cat.isActive ? 1 : 0, // Convert boolean to Status enum
     // `status` alone collapses two independent flags, so a category hidden via
@@ -295,7 +298,7 @@ const notDeletedItem = isNull(menuItems.deletedAt);
 
 export class MenuService extends BaseService {
   private async mapToMenuItemsWithAssembledOptions(
-    items: MenuItemRow[],
+    items: readonly MenuItemRow[],
   ): Promise<MenuItem[]> {
     const optionMap = await loadAssembledMenuItemOptions(this.db, items);
     return items.map((item) =>
