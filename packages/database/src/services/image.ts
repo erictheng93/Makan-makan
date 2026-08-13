@@ -119,7 +119,9 @@ export interface CreateImageData {
   uploadedBy?: string;
   cloudflareImageId?: string;
   variants?: string[];
-  metadata?: any;
+  // Caller-supplied and only ever serialised on the way in — `images.metadata`
+  // is a plain text column, so nothing here reads a shape back out.
+  metadata?: unknown;
 }
 
 export class ImageService extends BaseService {
@@ -549,7 +551,7 @@ export class ImageService extends BaseService {
    * Update image
    */
   async updateImage(id: string, data: Partial<CreateImageData>): Promise<void> {
-    const updateData: any = {
+    const updateData: Partial<typeof images.$inferInsert> = {
       updatedAt: new Date(),
     };
 
@@ -611,7 +613,7 @@ export class ImageService extends BaseService {
   async createProcessingJob(data: {
     imageId: string;
     jobType: string;
-    inputParams?: any;
+    inputParams?: unknown;
     priority?: number;
   }): Promise<ImageProcessingJob> {
     const jobData: NewImageProcessingJob = {
@@ -636,10 +638,10 @@ export class ImageService extends BaseService {
   async updateProcessingJobStatus(
     jobId: number,
     status: string,
-    outputData?: any,
+    outputData?: unknown,
     error?: string,
   ): Promise<void> {
-    const updateData: any = {
+    const updateData: Partial<typeof imageProcessingJobs.$inferInsert> = {
       status,
     };
 
