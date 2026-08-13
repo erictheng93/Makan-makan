@@ -15,6 +15,16 @@
     "typecheck": {
       "dependsOn": ["^build"],
       "cache": true,
+      "outputs": []
+    },
+    "@makanmasak/api#typecheck": {
+      "dependsOn": ["^build"],
+      "cache": true,
+      "outputs": ["node_modules/.cache/tsc/typecheck.tsbuildinfo"]
+    },
+    "@makanmasak/database#typecheck": {
+      "dependsOn": ["^build"],
+      "cache": true,
       "outputs": ["node_modules/.cache/tsc/typecheck.tsbuildinfo"]
     },
     "lint": {
