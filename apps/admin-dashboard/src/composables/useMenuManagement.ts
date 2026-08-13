@@ -47,11 +47,11 @@ export interface MenuItemData {
   rating?: number;
   reviewCount?: number;
   /**
-   * ISO-8601 instant, exactly as the API serialised menu_items.updated_at_ms.
-   * Echoed back on save as the optimistic-lock precondition, so a stale form
-   * cannot overwrite someone else's concurrent edit (#85).
+   * Unix-ms timestamp from menu_items.updated_at_ms. Echoed back on save as the
+   * optimistic-lock precondition, so a stale form cannot overwrite someone
+   * else's concurrent edit (#85).
    */
-  updatedAt?: string;
+  updatedAt?: number;
 }
 
 /**
@@ -235,7 +235,7 @@ export function useMenuManagement() {
       inventoryCount?: number | null;
       minInventoryAlert?: number | null;
       // Set when editing: the updatedAt the form was populated from.
-      updatedAt?: string;
+      updatedAt?: number;
     },
     editingId?: number,
   ): Promise<SaveMenuItemOutcome> => {

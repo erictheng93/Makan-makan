@@ -17,8 +17,8 @@ function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
     isFeatured: false,
     inventoryCount: null,
     orderCount: 0,
-    createdAt: "",
-    updatedAt: "",
+    createdAt: 1786_000_000_000,
+    updatedAt: 1786_000_000_000,
     ...overrides,
   };
 }

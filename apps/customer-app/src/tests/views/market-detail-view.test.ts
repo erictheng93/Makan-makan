@@ -589,8 +589,8 @@ describe("MarketDetailView", () => {
         isFeatured: false,
         inventoryCount: null,
         orderCount: 0,
-        createdAt: "",
-        updatedAt: "",
+        createdAt: 1786_000_000_000,
+        updatedAt: 1786_000_000_000,
       },
       quantity: 2,
     });
@@ -630,7 +630,7 @@ describe("MarketDetailView", () => {
           },
         ],
         subtotal: 240,
-        createdAt: "",
+        createdAt: 1786_000_000_000,
       },
       childOrders: [],
     });
@@ -653,8 +653,8 @@ describe("MarketDetailView", () => {
         isFeatured: false,
         inventoryCount: null,
         orderCount: 0,
-        createdAt: "",
-        updatedAt: "",
+        createdAt: 1786_000_000_000,
+        updatedAt: 1786_000_000_000,
       },
       quantity: 2,
     });
@@ -676,8 +676,8 @@ describe("MarketDetailView", () => {
         isFeatured: false,
         inventoryCount: null,
         orderCount: 0,
-        createdAt: "",
-        updatedAt: "",
+        createdAt: 1786_000_000_000,
+        updatedAt: 1786_000_000_000,
       },
       quantity: 1,
     });

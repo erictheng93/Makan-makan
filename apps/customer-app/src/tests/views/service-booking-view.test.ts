@@ -52,8 +52,8 @@ const serviceItem = {
   sortOrder: 0,
   isActive: true,
   isPublic: true,
-  createdAt: "",
-  updatedAt: "",
+  createdAt: 1786_000_000_000,
+  updatedAt: 1786_000_000_000,
 };
 
 const pendingBooking = {

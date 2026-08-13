@@ -20,8 +20,8 @@ vi.mock("@/composables/useCurrency", () => ({
 function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
   return {
     id: 1,
-    createdAt: "2026-07-27T00:00:00.000Z",
-    updatedAt: "2026-07-27T00:00:00.000Z",
+    createdAt: 1786_000_000_000,
+    updatedAt: 1786_000_000_000,
     restaurantId: "restaurant-1",
     categoryId: 1,
     catalogType: "menu_item",

@@ -85,8 +85,8 @@ function category(overrides: Partial<Category> = {}): Category {
     name: "招牌炸物",
     sortOrder: 1,
     status: 1,
-    createdAt: "",
-    updatedAt: "",
+    createdAt: 1786_000_000_000,
+    updatedAt: 1786_000_000_000,
     ...overrides,
   };
 }
@@ -106,8 +106,8 @@ function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
     isFeatured: true,
     inventoryCount: null,
     orderCount: 20,
-    createdAt: "",
-    updatedAt: "",
+    createdAt: 1786_000_000_000,
+    updatedAt: 1786_000_000_000,
     ...overrides,
   };
 }

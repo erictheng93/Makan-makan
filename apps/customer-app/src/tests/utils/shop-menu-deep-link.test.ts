@@ -29,8 +29,8 @@ function menuItem(overrides: Partial<MenuItem> = {}): MenuItem {
     isFeatured: false,
     inventoryCount: null,
     orderCount: 0,
-    createdAt: "",
-    updatedAt: "",
+    createdAt: 1786_000_000_000,
+    updatedAt: 1786_000_000_000,
     ...overrides,
   };
 }
@@ -42,8 +42,8 @@ function category(overrides: Partial<Category> = {}): Category {
     name: "小吃",
     sortOrder: 1,
     status: 1,
-    createdAt: "",
-    updatedAt: "",
+    createdAt: 1786_000_000_000,
+    updatedAt: 1786_000_000_000,
     ...overrides,
   };
 }
@@ -60,8 +60,8 @@ function serviceItem(
     sortOrder: 1,
     isActive: true,
     isPublic: true,
-    createdAt: "",
-    updatedAt: "",
+    createdAt: 1786_000_000_000,
+    updatedAt: 1786_000_000_000,
     ...overrides,
   };
 }

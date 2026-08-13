@@ -1086,7 +1086,7 @@ export class MenuService implements IMenuService {
   /**
    * Normalise a category into the feature Category shape. This receives two
    * different runtime shapes: a shared Category (from getMenu, already carrying
-   * `status` + string timestamps) and a raw Drizzle row (from create/update,
+   * `status` + Unix-ms timestamps) and a raw Drizzle row (from create/update,
    * carrying `isActive` + Date timestamps and no `status`). We discriminate at
    * runtime via `in` checks. Deriving status from `isActive` also fixes a
    * latent bug: the previous `status || 1` cast made the create/update path
@@ -1102,8 +1102,8 @@ export class MenuService implements IMenuService {
         : isActive === false
           ? Status.INACTIVE
           : Status.ACTIVE;
-    const toIso = (value: string | Date): string =>
-      value instanceof Date ? value.toISOString() : value;
+    const toUnixMs = (value: number | Date): number =>
+      value instanceof Date ? value.getTime() : value;
     return {
       id: category.id,
       restaurantId: String(category.restaurantId),
@@ -1116,8 +1116,8 @@ export class MenuService implements IMenuService {
       sortOrder: category.sortOrder,
       status,
       imageUrl: "imageUrl" in category ? (category.imageUrl ?? null) : null,
-      createdAt: toIso(category.createdAt),
-      updatedAt: toIso(category.updatedAt),
+      createdAt: toUnixMs(category.createdAt),
+      updatedAt: toUnixMs(category.updatedAt),
       // Both visibility flags reach the admin client. getMenu now carries them
       // through, so a category hidden via isVisible arrives flagged instead of
       // being indistinguishable from a visible one (#83).

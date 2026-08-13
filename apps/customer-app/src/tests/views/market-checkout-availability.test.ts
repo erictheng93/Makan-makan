@@ -157,8 +157,8 @@ function stallItem(id: number, restaurantId: string, name: string) {
     isFeatured: false,
     inventoryCount: null,
     orderCount: 0,
-    createdAt: "",
-    updatedAt: "",
+    createdAt: 1786_000_000_000,
+    updatedAt: 1786_000_000_000,
   };
 }
 
