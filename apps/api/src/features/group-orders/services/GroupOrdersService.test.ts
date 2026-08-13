@@ -1045,6 +1045,8 @@ describe("GroupOrdersService formatting and cache behavior", () => {
           priceCents: 1250,
         },
       ],
+      [{ restaurantId: "restaurant-1" }],
+      [{ settings: { taxRate: 0, serviceChargeRate: 0 } }],
       [{ total: 25 }],
       [],
       [{ total: 25 }],
@@ -1068,6 +1070,8 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     const updateService = createService();
     const updateDb = createDb([
       [cartItem],
+      [{ restaurantId: "restaurant-1" }],
+      [{ settings: { taxRate: 0, serviceChargeRate: 0 } }],
       [{ total: 37.5 }],
       [],
       [{ total: 37.5 }],
@@ -2920,6 +2924,8 @@ describe("cart mutations return a renderable row", () => {
     const service = createService();
     service.db = createDb([
       [storedCartItem],
+      [{ restaurantId: "restaurant-1" }],
+      [{ settings: { taxRate: 0, serviceChargeRate: 0 } }],
       [{ total: 37.5 }],
       [],
       [{ total: 37.5 }],
