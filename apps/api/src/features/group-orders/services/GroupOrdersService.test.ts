@@ -11,15 +11,6 @@ vi.mock("drizzle-orm/d1", () => ({
 }));
 
 import { GroupOrdersService } from "./GroupOrdersService";
-import {
-  groupCartItems,
-  groupActivityLogs,
-  groupMembers,
-  groupOrders,
-  menuItems,
-  restaurants,
-  splitBills,
-} from "@makanmasak/database";
 
 function createKV() {
   const values = new Map<string, string>();
@@ -53,50 +44,9 @@ function createService() {
   return service as any;
 }
 
-type SelectFixtures = Map<unknown, unknown[][]>;
-
-/**
- * Converts the suite's older compact fixtures once, before a query runs.
- * Results are subsequently consumed only by the table passed to `.from()`.
- * New fixtures should use `new Map([[table, [result, ...]]])` directly.
- */
-function fixturesByTable(results: unknown[]): SelectFixtures {
-  const fixtures: SelectFixtures = new Map();
-  const add = (table: unknown, result: unknown) => {
-    const tableResults = fixtures.get(table) ?? [];
-    tableResults.push(result as unknown[]);
-    fixtures.set(table, tableResults);
-  };
-
-  for (const result of results) {
-    const row = Array.isArray(result) ? result[0] : undefined;
-    if (!row || typeof row !== "object") continue;
-
-    if ("action" in row) add(groupActivityLogs, result);
-    else if ("role" in row || "count" in row) add(groupMembers, result);
-    else if ("menuItemId" in row || "total" in row) add(groupCartItems, result);
-    else if ("paymentStatus" in row) add(splitBills, result);
-    else if ("name" in row && ("price" in row || "priceCents" in row)) {
-      add(menuItems, result);
-    } else if ("restaurantId" in row) {
-      add(groupOrders, result);
-    } else if ("settings" in row) {
-      add(restaurants, result);
-    } else {
-      add(groupOrders, result);
-    }
-  }
-
-  return fixtures;
-}
-
-function createQuery(nextResultFor: (table: unknown) => unknown) {
-  let result: unknown = [];
+function createQuery(result: unknown) {
   const builder = {
-    from: vi.fn((table: unknown) => {
-      result = nextResultFor(table);
-      return builder;
-    }),
+    from: vi.fn(() => builder),
     innerJoin: vi.fn(() => builder),
     where: vi.fn(() => builder),
     orderBy: vi.fn(() => builder),
@@ -112,12 +62,9 @@ function createQuery(nextResultFor: (table: unknown) => unknown) {
 }
 
 function createDb(
-  selectFixtures: SelectFixtures | unknown[] = new Map(),
+  selectResults: unknown[] = [],
   updateResults: unknown[] = [],
 ) {
-  const tableFixtures = Array.isArray(selectFixtures)
-    ? fixturesByTable(selectFixtures)
-    : selectFixtures;
   const inserts: Array<{ table: unknown; payload: unknown }> = [];
   const updates: Array<{ table: unknown; payload: unknown }> = [];
   const deletes: unknown[] = [];
@@ -126,13 +73,7 @@ function createDb(
     inserts,
     updates,
     deletes,
-    select: vi.fn(() =>
-      createQuery((table) => {
-        const results = tableFixtures.get(table);
-        if (!results) return [];
-        return results.shift() ?? [];
-      }),
-    ),
+    select: vi.fn(() => createQuery(selectResults.shift() ?? [])),
     insert: vi.fn((table: unknown) => ({
       values: vi.fn(async (payload: unknown) => {
         inserts.push({ table, payload });
@@ -264,24 +205,6 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     vi.mocked(console.log).mockRestore();
     vi.mocked(console.error).mockRestore();
     vi.useRealTimers();
-  });
-
-  it("routes database fixtures by table even when unrelated queries are added", async () => {
-    const db = createDb(
-      new Map([
-        [groupOrders, [[baseGroupOrder]]],
-        [groupMembers, [[hostMember]]],
-        [restaurants, [[{ settings: { taxRate: 0, serviceChargeRate: 0 } }]]],
-      ]),
-    );
-
-    await expect(db.select().from(restaurants)).resolves.toEqual([
-      { settings: { taxRate: 0, serviceChargeRate: 0 } },
-    ]);
-    await expect(db.select().from(groupOrders)).resolves.toEqual([
-      baseGroupOrder,
-    ]);
-    await expect(db.select().from(groupMembers)).resolves.toEqual([hostMember]);
   });
 
   it("formats group orders with defaults, cents-first money, and timestamp compatibility", () => {
@@ -1110,28 +1033,25 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       addedAt: new Date("2026-06-07T00:00:00.000Z"),
       updatedAt: new Date("2026-06-07T00:00:00.000Z"),
     };
-    service.db = createDb(
-      new Map([
-        [groupOrders, [[baseGroupOrder], [{ restaurantId: "restaurant-1" }]]],
-        [groupMembers, [[hostMember]]],
-        [
-          menuItems,
-          [
-            [
-              {
-                id: 10,
-                restaurantId: "restaurant-1",
-                name: "Laksa",
-                price: 9,
-                priceCents: 1250,
-              },
-            ],
-          ],
-        ],
-        [restaurants, [[{ settings: { taxRate: 0, serviceChargeRate: 0 } }]]],
-        [groupCartItems, [[{ total: 25 }], [], [{ total: 25 }], [cartItem]]],
-      ]),
-    );
+    service.db = createDb([
+      [baseGroupOrder],
+      [hostMember],
+      [
+        {
+          id: 10,
+          restaurantId: "restaurant-1",
+          name: "Laksa",
+          price: 9,
+          priceCents: 1250,
+        },
+      ],
+      [{ restaurantId: "restaurant-1" }],
+      [{ settings: { taxRate: 0, serviceChargeRate: 0 } }],
+      [{ total: 25 }],
+      [],
+      [{ total: 25 }],
+      [cartItem],
+    ]);
 
     await expect(
       service.addCartItem("group-1", {
@@ -1148,22 +1068,15 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     expect(values.has("group_order_summary:group-1")).toBe(false);
 
     const updateService = createService();
-    const updateDb = createDb(
-      new Map([
-        [groupOrders, [[{ restaurantId: "restaurant-1" }]]],
-        [restaurants, [[{ settings: { taxRate: 0, serviceChargeRate: 0 } }]]],
-        [
-          groupCartItems,
-          [
-            [cartItem],
-            [{ total: 37.5 }],
-            [],
-            [{ total: 37.5 }],
-            [{ ...cartItem, quantity: 3, totalPriceCents: 3750 }],
-          ],
-        ],
-      ]),
-    );
+    const updateDb = createDb([
+      [cartItem],
+      [{ restaurantId: "restaurant-1" }],
+      [{ settings: { taxRate: 0, serviceChargeRate: 0 } }],
+      [{ total: 37.5 }],
+      [],
+      [{ total: 37.5 }],
+      [{ ...cartItem, quantity: 3, totalPriceCents: 3750 }],
+    ]);
     updateService.db = updateDb;
 
     await expect(
