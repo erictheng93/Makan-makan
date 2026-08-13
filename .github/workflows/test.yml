@@ -147,6 +147,18 @@ jobs:
       - name: 📥 安裝依賴
         run: pnpm install --frozen-lockfile
 
+      # Only this job for now. Turbo's artifact store shares the repo's 10GB
+      # GitHub cache budget with the pnpm store above, so it is deliberately
+      # scoped to one job until a few runs show the hit rate is worth the
+      # eviction pressure it puts on that pnpm cache.
+      - name: ⚡ Turbo 任務快取
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .turbo/cache
+          key: turbo-lint-typecheck-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-lint-typecheck-${{ runner.os }}-
+
       - name: 🔍 ESLint 檢查
         run: |
           if [ "${{ needs.changes.outputs.full }}" = "true" ] || \
