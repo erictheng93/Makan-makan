@@ -4,6 +4,7 @@
  */
 
 import { eq, and, lt, isNull, sql } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import { BaseService, type CloudflareEnv } from "./base";
 import { resolveAppBaseUrl } from "./app-base-url";
 import type { D1Database } from "@cloudflare/workers-types";
@@ -342,7 +343,7 @@ export class VerificationService extends BaseService {
           .set({ usedAt: tokenUsedAt })
           .where(eq(passwordResetTokens.token, token)),
         this.db.insert(passwordChangeLogs).values(logEntry),
-      ] as [any, ...any[]]);
+      ] as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
 
       // Get user details for notification
       const user = await this.db
@@ -511,7 +512,7 @@ export class VerificationService extends BaseService {
             emailVerifiedAt: now,
           })
           .where(eq(users.id, verificationToken.userId)),
-      ] as [any, ...any[]]);
+      ] as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
 
       // Get user details
       const user = await this.db
@@ -682,7 +683,7 @@ export class VerificationService extends BaseService {
             phoneVerifiedAt: now,
           })
           .where(eq(users.id, userId)),
-      ] as [any, ...any[]]);
+      ] as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
 
       // Send success notification
       await this.notificationService.sendNotification({
@@ -738,7 +739,7 @@ export class VerificationService extends BaseService {
         this.db
           .delete(phoneVerificationTokens)
           .where(lt(phoneVerificationTokens.expiresAt, now)),
-      ] as [any, ...any[]]);
+      ] as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
 
       return {
         deletedPasswordResetTokens: passwordResetResult.meta.changes,
