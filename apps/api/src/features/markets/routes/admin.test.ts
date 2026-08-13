@@ -419,7 +419,9 @@ describe("markets admin routes", () => {
         name: "New Vendor",
         city: "Taipei",
         phone: "00000000",
-        businessHours: { friday: { open: "17:00", close: "23:00" } },
+        businessHours: {
+          friday: { open: "17:00", close: "23:00", isOpen: true },
+        },
       }),
     );
     expect(syncFns.onMarketMembershipChanged).toHaveBeenCalledWith(

@@ -34,6 +34,24 @@ type BulkCreateMarketInput = z.infer<
   typeof bulkCreateMarketsSchema
 >["markets"][number];
 
+function restaurantBusinessHoursFromMarketOpeningHours(
+  openingHours: Record<
+    string,
+    { open: string; close: string; closed?: boolean }
+  > | null,
+) {
+  return Object.fromEntries(
+    Object.entries(openingHours ?? {}).map(([day, hours]) => [
+      day,
+      {
+        open: hours.open,
+        close: hours.close,
+        isOpen: !hours.closed,
+      },
+    ]),
+  );
+}
+
 type BulkCreateMarketIssue = {
   index: number;
   code: "duplicate_in_payload" | "slug_exists";
@@ -765,7 +783,9 @@ routes.post(
           website: vendor.website,
           latitude: vendor.latitude ?? null,
           longitude: vendor.longitude ?? null,
-          businessHours: market.openingHours ?? {},
+          businessHours: restaurantBusinessHoursFromMarketOpeningHours(
+            market.openingHours,
+          ),
         });
         restaurantId = restaurant.id;
         restaurantName = restaurant.name;
