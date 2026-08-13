@@ -11,9 +11,27 @@ import {
 } from "../utils/money";
 import { BaseService } from "./base";
 
+/** 完整的 `coupons` 資料列，即 `insert`/`update` … `returning()` 回傳的形狀。 */
+export type CouponRow = typeof coupons.$inferSelect;
+
+/** mapCouponMoneyFields 會讀取的金額欄位子集（`_cents` / `_bps`）。 */
+type CouponMoneyColumns = Pick<
+  CouponRow,
+  | "discountType"
+  | "discountPercentageBps"
+  | "discountValueCents"
+  | "maxDiscountAmountCents"
+  | "minOrderAmountCents"
+>;
+
 // 優惠券驗證結果接口
 export interface CouponValidationResult {
   valid: boolean;
+  // 仍為 any：實際值是 mapCouponMoneyFields(row)，除了 CouponRow 欄位外
+  // 還多了 discountValue / maxDiscountAmount / minOrderAmount（皆可能為 null）。
+  // 收窄成 CouponRow 會讓 OrdersService.validateCoupon 讀 discountValue 編譯失敗，
+  // 收窄成含這些欄位的型別則會撞上該處宣告的 discountValue: number（不可為 null）。
+  // 要真正去掉這個 any，得連同 apps/api 的 CouponValidation 一起修。
   coupon?: any;
   error?: string;
   discountAmount?: number;
@@ -128,13 +146,13 @@ export class CouponService extends BaseService {
    */
   static readonly EligibilityError = CouponEligibilityError;
 
-  private mapCouponMoneyFields<T extends Record<string, any>>(coupon: T): T {
+  private mapCouponMoneyFields<T extends CouponMoneyColumns>(coupon: T): T {
     const hasDiscountValue =
       "discountPercentageBps" in coupon || "discountValueCents" in coupon;
     const hasMaxDiscountAmount = "maxDiscountAmountCents" in coupon;
     const hasMinOrderAmount = "minOrderAmountCents" in coupon;
 
-    const normalized: Record<string, any> = {
+    const normalized: Record<string, unknown> = {
       ...coupon,
     };
 
@@ -490,7 +508,7 @@ export class CouponService extends BaseService {
   /**
    * 創建優惠券
    */
-  async createCoupon(data: CreateCouponData): Promise<any> {
+  async createCoupon(data: CreateCouponData) {
     // 檢查代碼是否已存在
     const existingCoupon = await this.db.query.coupons.findFirst({
       where: eq(coupons.code, data.code.toUpperCase()),
@@ -536,11 +554,7 @@ export class CouponService extends BaseService {
   /**
    * 獲取優惠券列表
    */
-  async getCoupons(
-    filters: CouponFilters = {},
-    page = 1,
-    limit = 20,
-  ): Promise<{ coupons: any[]; total: number; page: number; limit: number }> {
+  async getCoupons(filters: CouponFilters = {}, page = 1, limit = 20) {
     const whereConditions = [];
 
     if (filters.restaurantId) {
@@ -620,7 +634,7 @@ export class CouponService extends BaseService {
   /**
    * 獲取單個優惠券詳情
    */
-  async getCoupon(id: number): Promise<any | null> {
+  async getCoupon(id: number) {
     const coupon = await this.db.query.coupons.findFirst({
       where: eq(coupons.id, id),
       with: {
@@ -664,7 +678,7 @@ export class CouponService extends BaseService {
 
     return this.mapCouponMoneyFields({
       ...coupon,
-      usages: coupon.usages?.map((usage: any) => ({
+      usages: coupon.usages?.map((usage) => ({
         ...usage,
         order: usage.order
           ? {
@@ -679,10 +693,7 @@ export class CouponService extends BaseService {
   /**
    * 更新優惠券
    */
-  async updateCoupon(
-    id: number,
-    updates: Partial<CreateCouponData>,
-  ): Promise<any> {
+  async updateCoupon(id: number, updates: Partial<CreateCouponData>) {
     const centsUpdates: Record<string, number | null | undefined> = {};
     if (
       updates.discountValue !== undefined ||
@@ -739,7 +750,7 @@ export class CouponService extends BaseService {
   /**
    * 停用優惠券
    */
-  async deactivateCoupon(id: number): Promise<any> {
+  async deactivateCoupon(id: number) {
     return await this.updateCoupon(id, { isActive: false });
   }
 
@@ -753,7 +764,7 @@ export class CouponService extends BaseService {
   /**
    * 獲取優惠券使用統計
    */
-  async getCouponStats(couponId: number): Promise<any> {
+  async getCouponStats(couponId: number) {
     const stats = await this.db
       .select({
         totalUsed: sql<number>`count(*)`,
@@ -834,10 +845,7 @@ export class CouponService extends BaseService {
   /**
    * 獲取可用的優惠券 (供前端顯示)
    */
-  async getAvailableCoupons(
-    restaurantId: string,
-    _userId?: string,
-  ): Promise<any[]> {
+  async getAvailableCoupons(restaurantId: string, _userId?: string) {
     const now = new Date().toISOString();
 
     const couponList = await this.db.query.coupons.findMany({
