@@ -514,6 +514,7 @@ export class TableService extends BaseService {
       const tablesList = await this.db
         .select({
           id: tables.id,
+          restaurantId: tables.restaurantId,
           number: tables.number,
           name: tables.name,
           capacity: tables.capacity,
@@ -529,6 +530,7 @@ export class TableService extends BaseService {
           totalUsage: tables.totalUsage,
           lastCleanedAt: tables.lastCleanedAt,
           createdAt: tables.createdAt,
+          updatedAt: tables.updatedAt,
           qrMode: tables.qrMode,
           seatCount: tables.seatCount,
           seatNumberingStyle: tables.seatNumberingStyle,
@@ -988,6 +990,8 @@ export class TableService extends BaseService {
           isActive: tables.isActive,
           isOccupied: tables.isOccupied,
           isReservable: tables.isReservable,
+          createdAt: tables.createdAt,
+          updatedAt: tables.updatedAt,
         })
         .from(tables)
         .where(and(...conditions))

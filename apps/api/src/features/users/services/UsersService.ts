@@ -24,16 +24,14 @@ interface CurrentUser {
 }
 
 /**
- * What the user queries actually hand back, which is not what this interface
- * used to claim. Nullable columns arrive as `null`, not absent, and the list
- * and search projections select different subsets — `searchUsers` returns six
- * columns, so everything outside that set is genuinely missing rather than
- * merely empty. `updatedAt` is a `Date` from `updateUser`'s `returning()` and a
- * serialized string from the read paths.
+ * What the user queries actually hand back. Nullable columns arrive as `null`,
+ * not absent — this interface used to declare them optional-undefined, which
+ * nothing caught while the service returned `any`.
  *
- * Widening it here documents what already reaches `formatUser`; it does not
- * change any response. Narrowing it back is a query change, not a type change:
- * the projections have to select the columns first. See TODOS.
+ * The projections used to disagree about which columns they selected at all;
+ * they now all cover what `formatUser` reads, so presence is no longer the
+ * variable. `updatedAt` is still a `Date` from `updateUser`'s `returning()` and
+ * a serialized string from the read paths.
  */
 interface UserRecord {
   id: string;
@@ -46,8 +44,8 @@ interface UserRecord {
   address?: string | null;
   dateOfBirth?: string | null;
   profileImageUrl?: string | null;
-  isActive?: boolean;
-  isVerified?: boolean;
+  isActive: boolean;
+  isVerified: boolean;
   preferences?: UserPreferences | string | null;
   totalOrders?: number | null;
   totalSpent?: number | null;

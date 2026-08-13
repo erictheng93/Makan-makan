@@ -16,16 +16,16 @@ export type {
 /**
  * Core table type (feature-specific, includes computed/joined fields).
  *
- * Optionality here mirrors the queries rather than the schema. Nullable
- * columns arrive as `null`, not absent, and the projections differ: the list
- * query omits `restaurantId`/`updatedAt`, and the availability query omits both
- * timestamps. Declaring those required is what kept the divergence invisible
- * while the service returned `any`. Selecting the missing columns would change
- * the responses, so it is tracked separately rather than done here.
+ * Optionality here mirrors the queries rather than the schema: nullable
+ * columns arrive as `null`, not absent. The projections used to disagree about
+ * which columns they selected at all — the list query omitted `restaurantId`
+ * and `updatedAt`, the availability query omitted both timestamps — which went
+ * unnoticed while the service returned `any`. They now all select these, so
+ * these are required again.
  */
 export interface Table {
   id: number;
-  restaurantId?: string;
+  restaurantId: string;
   number: string;
   name?: string | null;
   capacity: number;
@@ -52,8 +52,8 @@ export interface Table {
   qrMode?: "table" | "seat" | null;
   seatCount?: number | null;
   seatNumberingStyle?: "numeric" | "alphabetic" | "custom" | null;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface TableFeatures {

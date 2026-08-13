@@ -352,12 +352,14 @@ export class UserService extends BaseService {
           phone: users.phone,
           fullName: users.fullName,
           role: users.role,
+          restaurantId: users.restaurantId,
           isActive: users.isActive,
           isVerified: users.isVerified,
           totalOrders: users.totalOrders,
           totalSpent: users.totalSpent,
           lastLoginAt: users.lastLoginAt,
           createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
         })
         .from(users)
         .where(and(...conditions))
@@ -382,12 +384,14 @@ export class UserService extends BaseService {
         phone: user.phone ? String(user.phone) : null,
         fullName: user.fullName ? String(user.fullName) : null,
         role: Number(user.role),
+        restaurantId: user.restaurantId ? String(user.restaurantId) : null,
         isActive: Boolean(Number(user.isActive)),
         isVerified: Boolean(Number(user.isVerified)),
         totalOrders: user.totalOrders ? Number(user.totalOrders) : 0,
         totalSpent: user.totalSpent ? Number(user.totalSpent) : 0,
         lastLoginAt: user.lastLoginAt ? String(user.lastLoginAt) : null,
         createdAt: user.createdAt ? String(user.createdAt) : null,
+        updatedAt: user.updatedAt ? String(user.updatedAt) : null,
       }));
 
       return {
@@ -449,6 +453,7 @@ export class UserService extends BaseService {
           id: users.id,
           username: users.username,
           email: users.email,
+          phone: users.phone,
           fullName: users.fullName,
           role: users.role,
           restaurantId: users.restaurantId,
@@ -458,6 +463,7 @@ export class UserService extends BaseService {
           totalSpent: users.totalSpent,
           lastLoginAt: users.lastLoginAt,
           createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
         })
         .from(users)
         .where(conditions.length > 0 ? and(...conditions) : undefined)
@@ -479,6 +485,7 @@ export class UserService extends BaseService {
         id: String(user.id),
         username: String(user.username),
         email: user.email ? String(user.email) : null,
+        phone: user.phone ? String(user.phone) : null,
         fullName: user.fullName ? String(user.fullName) : null,
         role: Number(user.role),
         restaurantId: user.restaurantId ? String(user.restaurantId) : null,
@@ -488,6 +495,7 @@ export class UserService extends BaseService {
         totalSpent: user.totalSpent ? Number(user.totalSpent) : 0,
         lastLoginAt: user.lastLoginAt ? String(user.lastLoginAt) : null,
         createdAt: user.createdAt ? String(user.createdAt) : null,
+        updatedAt: user.updatedAt ? String(user.updatedAt) : null,
       }));
 
       return {
@@ -672,6 +680,14 @@ export class UserService extends BaseService {
           email: users.email,
           role: users.role,
           profileImageUrl: users.profileImageUrl,
+          // Search results run through the same formatter as the list
+          // endpoints, which reads these. Leaving them out published
+          // `isActive: undefined` on every hit.
+          restaurantId: users.restaurantId,
+          isActive: users.isActive,
+          isVerified: users.isVerified,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
         })
         .from(users)
         .where(and(...conditions))
@@ -688,6 +704,11 @@ export class UserService extends BaseService {
         profileImageUrl: user.profileImageUrl
           ? String(user.profileImageUrl)
           : null,
+        restaurantId: user.restaurantId ? String(user.restaurantId) : null,
+        isActive: Boolean(Number(user.isActive)),
+        isVerified: Boolean(Number(user.isVerified)),
+        createdAt: user.createdAt ? String(user.createdAt) : null,
+        updatedAt: user.updatedAt ? String(user.updatedAt) : null,
       }));
     } catch (error) {
       this.handleError(error, "searchUsers");
