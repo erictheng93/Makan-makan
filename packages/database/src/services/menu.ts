@@ -25,6 +25,7 @@ import type {
   MenuStructure,
   MenuItem,
   Category,
+  MenuItemOptions,
 } from "@makanmasak/shared-types";
 import { amountFromCents, toCents, toRequiredCents } from "../utils/money";
 import { loadAssembledMenuItemOptions } from "./menu-options";
@@ -42,7 +43,7 @@ export interface CreateMenuItemData {
   price: number;
   originalPrice?: number | null;
   imageUrl?: string | null;
-  imageVariants?: any;
+  imageVariants?: typeof menuItems.$inferInsert.imageVariants;
   imageId?: string | null;
   isAvailable?: boolean;
   isFeatured?: boolean;
@@ -53,10 +54,10 @@ export interface CreateMenuItemData {
   spiceLevel?: number;
   preparationTime?: number;
   calories?: number | null;
-  dietaryInfo?: any;
+  dietaryInfo?: typeof menuItems.$inferInsert.dietaryInfo;
   allergens?: string[];
-  options?: any;
-  availableHours?: any;
+  options?: typeof menuItems.$inferInsert.options;
+  availableHours?: typeof menuItems.$inferInsert.availableHours;
   tags?: string[];
   keywords?: string | null;
 }
@@ -167,7 +168,16 @@ export const menuItemSelectColumns = {
   updatedAt: menuItems.updatedAt,
 } as const;
 
-export function mapMenuCategoryRow(cat: any): Category {
+type MenuItemRow = typeof menuItems.$inferSelect;
+type MenuItemWithAssembledOptions = Omit<MenuItemRow, "options"> & {
+  options?: MenuItemOptions;
+};
+type MenuCategoryRow = typeof categories.$inferSelect & {
+  itemCount?: number;
+  menuItems?: MenuItemRow[];
+};
+
+export function mapMenuCategoryRow(cat: MenuCategoryRow): Category {
   return {
     id: cat.id,
     restaurantId: cat.restaurantId,
@@ -193,7 +203,9 @@ export function mapMenuCategoryRow(cat: any): Category {
   };
 }
 
-export function mapDatabaseMenuItem(item: any): MenuItem {
+export function mapDatabaseMenuItem(
+  item: MenuItemWithAssembledOptions,
+): MenuItem {
   return {
     id: item.id,
     restaurantId: item.restaurantId,
@@ -283,7 +295,7 @@ const notDeletedItem = isNull(menuItems.deletedAt);
 
 export class MenuService extends BaseService {
   private async mapToMenuItemsWithAssembledOptions(
-    items: any[],
+    items: MenuItemRow[],
   ): Promise<MenuItem[]> {
     const optionMap = await loadAssembledMenuItemOptions(this.db, items);
     return items.map((item) =>
@@ -372,7 +384,7 @@ export class MenuService extends BaseService {
           }
 
           const flatItems = restaurant.categories.flatMap(
-            (cat: any) => cat.menuItems,
+            (cat) => cat.menuItems,
           );
           const menuItemsWithOptions =
             await this.mapToMenuItemsWithAssembledOptions(flatItems);
@@ -381,7 +393,7 @@ export class MenuService extends BaseService {
           // stored categories.item_count any more — it only ever tracked
           // creates, so deletes/toggles/moves left it stale (#84).
           return {
-            categories: restaurant.categories.map((cat: any) =>
+            categories: restaurant.categories.map((cat) =>
               mapMenuCategoryRow(cat),
             ),
             menuItems: menuItemsWithOptions,
@@ -2017,7 +2029,7 @@ export class MenuService extends BaseService {
   }
 
   // 資料轉換
-  private mapToMenuItem(item: any): MenuItem {
+  private mapToMenuItem(item: MenuItemWithAssembledOptions): MenuItem {
     return mapDatabaseMenuItem(item);
   }
 }
