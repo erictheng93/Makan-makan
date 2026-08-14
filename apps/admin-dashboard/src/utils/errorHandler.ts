@@ -68,6 +68,16 @@ export function isDedicatedUiErrorCode(
 }
 
 /**
+ * 被 throw / reject 的值可以是任何東西 —— axios error、Error、本檔產生的
+ * ErrorDetails，或一個裸值。要讀它的欄位就得先確認它真的是物件。
+ */
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+/**
  * 從統一錯誤信封 `{ success: false, error: { code, message } }` 取出
  * 機器可讀的 error code。舊路由可能還把 error 當字串回，這時沒有 code。
  *
@@ -75,14 +85,11 @@ export function isDedicatedUiErrorCode(
  * api.ts 的 errorHandler 包成 ErrorDetails 再 reject，原始錯誤放在
  * originalError）。
  */
-export function extractApiErrorCode(error: any): string | undefined {
-  for (const candidate of [error, error?.originalError]) {
-    const apiError = candidate?.response?.data?.error;
-    if (
-      typeof apiError === "object" &&
-      apiError !== null &&
-      typeof apiError.code === "string"
-    ) {
+export function extractApiErrorCode(error: unknown): string | undefined {
+  for (const candidate of [error, asRecord(error)?.originalError]) {
+    const response = asRecord(asRecord(candidate)?.response);
+    const apiError = asRecord(asRecord(response?.data)?.error);
+    if (typeof apiError?.code === "string") {
       return apiError.code;
     }
   }
@@ -118,8 +125,8 @@ export interface ErrorDetails {
   severity: ErrorSeverity;
   code?: string | number;
   message: string;
-  originalError?: any;
-  context?: Record<string, any>;
+  originalError?: unknown;
+  context?: Record<string, unknown>;
   timestamp: Date;
   userAgent?: string;
   url?: string;
@@ -131,7 +138,7 @@ export interface ErrorDetails {
 class OfflineManager {
   private isOnline = navigator.onLine;
   private callbacks: Array<(isOnline: boolean) => void> = [];
-  private pendingRequests: Array<() => Promise<any>> = [];
+  private pendingRequests: Array<() => Promise<unknown>> = [];
 
   constructor() {
     this.setupEventListeners();
@@ -174,7 +181,7 @@ class OfflineManager {
     callback(this.isOnline); // 立即回調當前狀態
   }
 
-  addPendingRequest(request: () => Promise<any>) {
+  addPendingRequest(request: () => Promise<unknown>) {
     this.pendingRequests.push(request);
   }
 
@@ -282,7 +289,7 @@ export class ErrorHandler {
   }
 
   // 處理一般錯誤
-  handleError(error: any, context?: Record<string, any>): ErrorDetails {
+  handleError(error: unknown, context?: Record<string, unknown>): ErrorDetails {
     const errorDetails = this.parseError(error, context);
 
     // 記錄錯誤
@@ -305,11 +312,17 @@ export class ErrorHandler {
   }
 
   // 解析錯誤
-  private parseError(error: any, context?: Record<string, any>): ErrorDetails {
+  private parseError(
+    error: unknown,
+    context?: Record<string, unknown>,
+  ): ErrorDetails {
     let type = ErrorType.UNKNOWN;
     let severity = ErrorSeverity.MEDIUM;
     let message = "發生了未知錯誤";
     let code: string | number | undefined;
+
+    // Error 實例也是物件，所以 asRecord 一樣能讀到它的 name / message。
+    const record = asRecord(error);
 
     // 根據錯誤類型進行分類
     if (error instanceof TypeError || error instanceof ReferenceError) {
@@ -317,19 +330,28 @@ export class ErrorHandler {
       severity = ErrorSeverity.LOW;
       message = "輸入驗證錯誤";
     } else if (
-      error?.name === "NetworkError" ||
-      error?.code === "NETWORK_ERROR"
+      record?.name === "NetworkError" ||
+      record?.code === "NETWORK_ERROR"
     ) {
       type = ErrorType.NETWORK;
       severity = ErrorSeverity.HIGH;
       message = "網絡連接錯誤，請檢查您的網絡連接";
-    } else if (error?.response) {
+    } else if (record?.response) {
       // API 錯誤 — unified format: { success: false, error: { code, message } }
       type = ErrorType.API;
-      code = error.response.status;
-      const apiError = error.response.data?.error;
+      const response = asRecord(record.response);
+      const status = response?.status;
+      code =
+        typeof status === "number" || typeof status === "string"
+          ? status
+          : undefined;
+      const apiError = asRecord(response?.data)?.error;
+      const apiErrorMessage = asRecord(apiError)?.message;
       if (typeof apiError === "object" && apiError !== null) {
-        message = apiError.message || "服務器錯誤";
+        message =
+          typeof apiErrorMessage === "string" && apiErrorMessage
+            ? apiErrorMessage
+            : "服務器錯誤";
       } else if (typeof apiError === "string") {
         // Backward compatibility: un-migrated routes may still return error as string
         message = apiError || "服務器錯誤";
@@ -351,8 +373,8 @@ export class ErrorHandler {
         severity = ErrorSeverity.MEDIUM;
         message = "權限不足或登入已過期";
       }
-    } else if (error?.message) {
-      message = error.message;
+    } else if (typeof record?.message === "string" && record.message) {
+      message = record.message;
     }
 
     return {
@@ -452,7 +474,7 @@ export class KitchenErrorHandler extends ErrorHandler {
     return handler.handleSSEConnectionError(error, eventSource);
   }
 
-  static handleAPIError(error: any, context?: Record<string, any>) {
+  static handleAPIError(error: unknown, context?: Record<string, unknown>) {
     const handler = ErrorHandler.getInstance();
     return handler.handleError(error, context);
   }
@@ -540,7 +562,11 @@ export class KitchenErrorHandler extends ErrorHandler {
   }
 
   // 處理 API 請求錯誤
-  handleAPIRequest(error: any, context?: Record<string, any>): Promise<any> {
+  // 三條分支都只 reject，沒有任何 resolve 路徑，所以是 Promise<never>。
+  handleAPIRequest(
+    error: unknown,
+    context?: Record<string, unknown>,
+  ): Promise<never> {
     const errorDetails = this.handleError(error, context);
 
     // 如果是網絡錯誤且處於離線狀態
@@ -564,38 +590,36 @@ export class KitchenErrorHandler extends ErrorHandler {
 
   // 處理離線請求
   private handleOfflineRequest(
-    _originalError: any,
-    _context?: Record<string, any>,
-  ): Promise<any> {
+    _originalError: unknown,
+    _context?: Record<string, unknown>,
+  ): Promise<never> {
     const toast = useToast();
     toast.warning("當前網絡不可用，請求將在網絡恢復後重新嘗試");
 
-    return new Promise(
-      (_resolve: (value?: any) => void, reject: (reason?: any) => void) => {
-        // 創建重試請求函數
-        const retryRequest = async () => {
-          try {
-            // 這裡應該重新執行原始請求
-            // 實際實現需要根據具體的 API 客戶端來決定
-            console.log("Retrying request after network recovery:", _context);
-            // resolve(retriedResult)
-            reject(new Error("Request retry not implemented"));
-          } catch (error) {
-            reject(error);
-          }
-        };
+    return new Promise<never>((_resolve, reject) => {
+      // 創建重試請求函數
+      const retryRequest = async () => {
+        try {
+          // 這裡應該重新執行原始請求
+          // 實際實現需要根據具體的 API 客戶端來決定
+          console.log("Retrying request after network recovery:", _context);
+          // resolve(retriedResult)
+          reject(new Error("Request retry not implemented"));
+        } catch (error) {
+          reject(error);
+        }
+      };
 
-        // 添加到離線隊列
-        this.offlineManager.addPendingRequest(retryRequest);
-      },
-    );
+      // 添加到離線隊列
+      this.offlineManager.addPendingRequest(retryRequest);
+    });
   }
 
   // 處理 Token 刷新
   private async handleTokenRefresh(
-    _originalError: any,
-    _context?: Record<string, any>,
-  ): Promise<any> {
+    _originalError: unknown,
+    _context?: Record<string, unknown>,
+  ): Promise<never> {
     try {
       const success = authRefreshHandler ? await authRefreshHandler() : false;
 
