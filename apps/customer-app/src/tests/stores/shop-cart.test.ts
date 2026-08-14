@@ -59,7 +59,7 @@ beforeEach(() => {
 describe("useShopCartStore", () => {
   it("adds customized items, merges matching rows, and persists scoped cart data", () => {
     const store = useShopCartStore();
-    store.initializeCart("restaurant-1", "678");
+    store.initializeCart("restaurant-1");
 
     store.addItem(menuItem(), 1, customizations(), "less salt");
     store.addItem(menuItem(), 2, customizations(), "less salt");
@@ -81,7 +81,7 @@ describe("useShopCartStore", () => {
 
   it("removes items when quantity drops to zero and updates notes otherwise", () => {
     const store = useShopCartStore();
-    store.initializeCart("restaurant-1", "678");
+    store.initializeCart("restaurant-1");
     store.addItem(menuItem(), 1);
     const id = store.items[0].id;
 
@@ -95,7 +95,7 @@ describe("useShopCartStore", () => {
 
   it("adds delivery fee only for delivery fulfillment and clears delivery info when switching away", () => {
     const store = useShopCartStore();
-    store.initializeCart("restaurant-1", "678");
+    store.initializeCart("restaurant-1");
     store.addItem(menuItem(), 1);
 
     store.setFulfillmentType("delivery");
@@ -113,9 +113,9 @@ describe("useShopCartStore", () => {
     expect(store.deliveryInfo).toBeNull();
   });
 
-  it("restores valid cart data for the same restaurant and phone suffix", () => {
+  it("restores valid cart data for the same restaurant", () => {
     localStorage.setItem(
-      "makanmakan_shop_cart_restaurant-1_678",
+      "makanmakan_shop_cart_restaurant-1",
       JSON.stringify({
         items: [
           {
@@ -127,7 +127,6 @@ describe("useShopCartStore", () => {
           },
         ],
         restaurantId: "restaurant-1",
-        phoneLastDigits: "678",
         timestamp: Date.now(),
         fulfillmentType: "delivery",
         deliveryInfo: {
@@ -140,7 +139,7 @@ describe("useShopCartStore", () => {
     );
 
     const store = useShopCartStore();
-    store.initializeCart("restaurant-1", "678");
+    store.initializeCart("restaurant-1");
 
     expect(store.items).toHaveLength(1);
     expect(store.fulfillmentType).toBe("delivery");
@@ -151,7 +150,7 @@ describe("useShopCartStore", () => {
   it("discards invalid or expired persisted cart data", () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     localStorage.setItem(
-      "makanmakan_shop_cart_restaurant-1_678",
+      "makanmakan_shop_cart_restaurant-1",
       JSON.stringify({
         items: [
           {
@@ -163,20 +162,19 @@ describe("useShopCartStore", () => {
           },
         ],
         restaurantId: "restaurant-1",
-        phoneLastDigits: "678",
         timestamp: Date.now(),
       }),
     );
     let store = useShopCartStore();
-    store.initializeCart("restaurant-1", "678");
+    store.initializeCart("restaurant-1");
     expect(store.items).toEqual([]);
     expect(
-      localStorage.getItem("makanmakan_shop_cart_restaurant-1_678"),
+      localStorage.getItem("makanmakan_shop_cart_restaurant-1"),
     ).toBeNull();
 
     setActivePinia(createPinia());
     localStorage.setItem(
-      "makanmakan_shop_cart_restaurant-1_678",
+      "makanmakan_shop_cart_restaurant-1",
       JSON.stringify({
         items: [
           {
@@ -188,21 +186,20 @@ describe("useShopCartStore", () => {
           },
         ],
         restaurantId: "restaurant-1",
-        phoneLastDigits: "678",
         timestamp: Date.now() - 3 * 60 * 60 * 1000,
       }),
     );
     store = useShopCartStore();
-    store.initializeCart("restaurant-1", "678");
+    store.initializeCart("restaurant-1");
     expect(store.items).toEqual([]);
     expect(
-      localStorage.getItem("makanmakan_shop_cart_restaurant-1_678"),
+      localStorage.getItem("makanmakan_shop_cart_restaurant-1"),
     ).toBeNull();
   });
 
   it("clears cart state and removes only the active scoped storage key", () => {
     const store = useShopCartStore();
-    store.initializeCart("restaurant-1", "678");
+    store.initializeCart("restaurant-1");
     store.addItem(menuItem(), 1);
     localStorage.setItem("makanmakan_shop_cart_restaurant-2", "other shop");
 
@@ -210,7 +207,6 @@ describe("useShopCartStore", () => {
 
     expect(store.items).toEqual([]);
     expect(store.restaurantId).toBeNull();
-    expect(store.phoneLastDigits).toBe("");
     expect(
       localStorage.getItem("makanmakan_shop_cart_restaurant-1"),
     ).toBeNull();
@@ -219,13 +215,13 @@ describe("useShopCartStore", () => {
     );
   });
 
-  describe("shops that do not ask for pickup digits", () => {
-    // requirePhone=false leaves phoneLastDigits empty. The key used to include
-    // it and save/restore bailed out when it was blank, so the cart lived only
-    // in memory and every refresh emptied it (#193).
-    it("persists a cart with no pickup digits", () => {
+  describe("persistence", () => {
+    // The key used to end in the customer's pickup digits, and save/restore
+    // bailed out when those were blank — so a shop that collected none had no
+    // persistence at all and every refresh emptied the cart (#193).
+    it("writes the cart under a restaurant-scoped key", () => {
       const store = useShopCartStore();
-      store.initializeCart("restaurant-1", "");
+      store.initializeCart("restaurant-1");
 
       store.addItem(menuItem(), 2);
 
@@ -236,13 +232,13 @@ describe("useShopCartStore", () => {
 
     it("survives a page refresh", () => {
       const first = useShopCartStore();
-      first.initializeCart("restaurant-1", "");
+      first.initializeCart("restaurant-1");
       first.addItem(menuItem(), 2);
 
       // A refresh is a fresh store against the same localStorage.
       setActivePinia(createPinia());
       const second = useShopCartStore();
-      second.initializeCart("restaurant-1", "");
+      second.initializeCart("restaurant-1");
 
       expect(second.items).toHaveLength(1);
       expect(second.itemCount).toBe(2);
@@ -250,77 +246,12 @@ describe("useShopCartStore", () => {
 
     it("still keeps two restaurants apart", () => {
       const store = useShopCartStore();
-      store.initializeCart("restaurant-1", "");
+      store.initializeCart("restaurant-1");
       store.addItem(menuItem(), 2);
 
-      store.initializeCart("restaurant-2", "");
+      store.initializeCart("restaurant-2");
 
       expect(store.items).toEqual([]);
-    });
-  });
-
-  describe("carts written by an older build", () => {
-    function writeLegacyCart() {
-      localStorage.setItem(
-        "makanmakan_shop_cart_restaurant-1_678",
-        JSON.stringify({
-          items: [
-            {
-              id: "42",
-              menuItem: menuItem(),
-              quantity: 2,
-              price: 100,
-              totalPrice: 200,
-            },
-          ],
-          restaurantId: "restaurant-1",
-          phoneLastDigits: "678",
-          timestamp: Date.now(),
-          fulfillmentType: "takeaway",
-        }),
-      );
-    }
-
-    it("adopts a cart left under the old key", () => {
-      // Someone mid-order when this build ships should not lose their cart.
-      writeLegacyCart();
-
-      const store = useShopCartStore();
-      store.initializeCart("restaurant-1", "678");
-
-      expect(store.items).toHaveLength(1);
-      expect(store.itemCount).toBe(2);
-    });
-
-    it("moves it under the new key and drops the old one", () => {
-      writeLegacyCart();
-
-      const store = useShopCartStore();
-      store.initializeCart("restaurant-1", "678");
-
-      expect(
-        localStorage.getItem("makanmakan_shop_cart_restaurant-1"),
-      ).toContain("Beef Noodles");
-      expect(
-        localStorage.getItem("makanmakan_shop_cart_restaurant-1_678"),
-      ).toBeNull();
-    });
-
-    it("prefers the current key when both exist", () => {
-      writeLegacyCart();
-      const store = useShopCartStore();
-      store.initializeCart("restaurant-1", "678");
-      store.clearCart();
-
-      store.initializeCart("restaurant-1", "678");
-      store.addItem(menuItem({ id: 43, name: "Fried Rice" }), 1);
-
-      setActivePinia(createPinia());
-      const reopened = useShopCartStore();
-      reopened.initializeCart("restaurant-1", "678");
-
-      expect(reopened.items).toHaveLength(1);
-      expect(reopened.items[0].menuItem.name).toBe("Fried Rice");
     });
   });
 });

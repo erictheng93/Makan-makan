@@ -222,12 +222,6 @@ const hasFulfillmentMethods = computed(
   () => dineInEnabled.value || takeawayEnabled.value || deliveryEnabled.value,
 );
 
-// Owners can turn the pickup-identifier step off in shop settings. Default to
-// asking when the setting is absent, which is what the API seeds shops with.
-const requiresPickupDigits = computed(
-  () => restaurant.value?.shopQrSettings?.requirePhone !== false,
-);
-
 const restaurantDescription = computed(() => {
   if (restaurant.value?.isPlaceholderDescription) {
     return "";
@@ -275,21 +269,9 @@ function handleContinue() {
     shopCartStore.setDeliveryFee(restaurant.value.settings.deliveryFee);
   }
 
-  // 內用不需要留取餐末三碼，直接進入菜單。外帶／外送則看店家是否要求。
-  if (selectedType.value === "dine-in" || !requiresPickupDigits.value) {
-    router.push({
-      name: "ShopMenu",
-      params: { restaurantId: props.restaurantId },
-      query: {
-        ...route.query,
-        fulfillmentType: selectedType.value,
-      },
-    });
-    return;
-  }
-
+  // 取餐識別用訂單編號，不再攔一個末三碼頁面。
   router.push({
-    name: "ShopPhoneVerification",
+    name: "ShopMenu",
     params: { restaurantId: props.restaurantId },
     query: {
       ...route.query,

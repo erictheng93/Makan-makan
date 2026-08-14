@@ -205,12 +205,9 @@ describe("i18n Integration Tests", () => {
       "toast.noCameraFound",
       "toast.browserNoCamera",
       "toast.errorReportCopied",
-      "toast.verificationSuccess",
       "toast.preparingMenu",
       "toast.restaurantLoadFailed",
       "toast.invalidQRCode",
-      "toast.shopModeNotEnabled",
-      "toast.phoneVerifyError",
       "toast.orderConfirmed",
       "toast.orderPreparing",
       "toast.orderReady",
@@ -414,7 +411,6 @@ describe("i18n Integration Tests", () => {
       "shopCart.subtotal",
       "shopCart.deliveryFee",
       "shopCart.total",
-      "shopCart.pickupNumber",
       "shopCart.confirmOrder",
       "shopCart.processing",
     ];
@@ -509,28 +505,6 @@ describe("i18n Integration Tests", () => {
 
     it("should have all shopMenu keys in all 6 locales", () => {
       assertKeysInAllLocales(shopMenuKeys);
-    });
-  });
-
-  // ---------------------------------------------------------------
-  // 10. PhoneVerification Section
-  // ---------------------------------------------------------------
-  describe("PhoneVerification Section", () => {
-    const phoneVerificationKeys = [
-      "phoneVerification.title",
-      "phoneVerification.enterLastDigits",
-      "phoneVerification.forIdentification",
-      "phoneVerification.lastDigits",
-      "phoneVerification.placeholder",
-      "phoneVerification.example",
-      "phoneVerification.startOrdering",
-      "phoneVerification.verifyingStatus",
-      "phoneVerification.whyNeeded",
-      "phoneVerification.whyNeededDesc",
-    ];
-
-    it("should have all phoneVerification keys in all 6 locales", () => {
-      assertKeysInAllLocales(phoneVerificationKeys);
     });
   });
 
@@ -654,7 +628,6 @@ describe("i18n Integration Tests", () => {
       "navigation.browseMenu",
       "navigation.scanQR",
       "navigation.orderTypeSelect",
-      "navigation.verifyPhone",
       "navigation.shopMenu",
       "navigation.serviceBooking",
       "navigation.shoppingCart",
@@ -1018,7 +991,6 @@ describe("i18n Integration Tests", () => {
         "manualInput.title",
         "qrScanView.title",
         "shopMenu.loadingMenu",
-        "phoneVerification.title",
         "menuItemCard.featured",
         "menuItemModal.featured",
         "orderItem.unknownItem",

@@ -166,10 +166,8 @@ describe("OrderTypeLandingView", () => {
     expect(wrapper.text()).toContain("市場入口店");
     expect(wrapper.text()).not.toContain("Owner must complete");
   });
-  describe("requirePhone shop setting", () => {
-    // Takeaway-only so autoSelectType lands on takeaway, the branch that used
-    // to route through the pickup-digits screen unconditionally.
-    function mockTakeawayOnlyShop(requirePhone?: boolean) {
+  describe("continuing to the menu", () => {
+    function mockShop(overrides: Record<string, unknown> = {}) {
       vi.mocked(menuApi.getRestaurant).mockResolvedValue({
         id: "restaurant-1",
         name: "市場入口店",
@@ -177,10 +175,8 @@ describe("OrderTypeLandingView", () => {
           enableDineIn: false,
           enableTakeaway: true,
           enableDelivery: false,
+          ...overrides,
         },
-        ...(requirePhone === undefined
-          ? {}
-          : { shopQrSettings: { requirePhone } }),
       } as never);
     }
 
@@ -196,33 +192,31 @@ describe("OrderTypeLandingView", () => {
       await wrapper.get('[data-testid="continue-btn"]').trigger("click");
     }
 
-    it("skips the pickup-digits step when the owner turned it off", async () => {
-      mockTakeawayOnlyShop(false);
+    it("goes straight to the menu for takeaway", async () => {
+      // There is no pickup-digits screen between the two any more; the order
+      // number is the pickup identifier.
+      mockShop();
 
       await clickContinue();
 
       expect(routerPush).toHaveBeenCalledWith(
-        expect.objectContaining({ name: "ShopMenu" }),
+        expect.objectContaining({
+          name: "ShopMenu",
+          query: expect.objectContaining({ fulfillmentType: "takeaway" }),
+        }),
       );
     });
 
-    it("asks for pickup digits when the setting is on", async () => {
-      mockTakeawayOnlyShop(true);
+    it("goes straight to the menu for dine-in", async () => {
+      mockShop({ enableDineIn: true, enableTakeaway: false });
 
       await clickContinue();
 
       expect(routerPush).toHaveBeenCalledWith(
-        expect.objectContaining({ name: "ShopPhoneVerification" }),
-      );
-    });
-
-    it("asks for pickup digits when the shop has no setting yet", async () => {
-      mockTakeawayOnlyShop(undefined);
-
-      await clickContinue();
-
-      expect(routerPush).toHaveBeenCalledWith(
-        expect.objectContaining({ name: "ShopPhoneVerification" }),
+        expect.objectContaining({
+          name: "ShopMenu",
+          query: expect.objectContaining({ fulfillmentType: "dine-in" }),
+        }),
       );
     });
   });

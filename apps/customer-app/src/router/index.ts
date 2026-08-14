@@ -177,24 +177,11 @@ const routes: RouteRecordRaw[] = [
     meta: { titleKey: "navigation.orderTypeSelect" },
   },
   {
-    path: "/restaurant/:restaurantId/shop/verify",
-    name: "ShopPhoneVerification",
-    component: () => import("@/views/ShopPhoneVerificationView.vue"),
-    props: (route) => ({
-      restaurantId: route.params.restaurantId,
-      shopQrCode: route.query.qr as string,
-    }),
-    meta: {
-      titleKey: "navigation.verifyPhone",
-    },
-  },
-  {
     path: "/restaurant/:restaurantId/shop/menu",
     name: "ShopMenu",
     component: () => import("@/views/ShopMenuView.vue"),
     props: (route) => ({
       restaurantId: route.params.restaurantId,
-      phoneLastDigits: route.query.phone as string,
       // Carried from the scanned sticker so checkout can prove which code it
       // came from — the server retires older ones after a regeneration.
       shopQrCode: route.query.qr as string | undefined,

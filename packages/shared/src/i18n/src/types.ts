@@ -202,7 +202,6 @@ export interface CustomerAppMessages extends BaseMessageSchema {
   manualInput: Record<string, string>;
   qrScanView: Record<string, string>;
   shopMenu: Record<string, string>;
-  phoneVerification: Record<string, unknown>;
   menuItemCard: Record<string, string>;
   menuItemModal: Record<string, unknown>;
   orderItem: Record<string, string>;

@@ -30,12 +30,11 @@ describe("shop menu route", () => {
     // sticker: `?qr=` rides every push from the landing page onward, and
     // checkout can only prove which sticker it came from if it lands here.
     const props = await resolveProps(
-      `/restaurant/restaurant-1/shop/menu?phone=678&qr=${SHOP_QR_CODE}`,
+      `/restaurant/restaurant-1/shop/menu?qr=${SHOP_QR_CODE}`,
     );
 
     expect(props).toMatchObject({
       restaurantId: "restaurant-1",
-      phoneLastDigits: "678",
       shopQrCode: SHOP_QR_CODE,
     });
   });

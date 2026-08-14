@@ -88,7 +88,6 @@ export interface OrderTrackingInfo {
 export interface CreateGuestOrderRequest {
   restaurantId: string;
   guestName: string;
-  phoneLastDigits: string;
   orderType: "shop" | "table" | "seat";
   waitingListId?: string;
   customerPhone?: string;

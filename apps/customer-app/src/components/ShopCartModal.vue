@@ -341,36 +341,6 @@
                 }}</span>
               </div>
 
-              <!-- Customer Info — only when this shop collects pickup digits;
-                   otherwise the row reads "Pickup number ···" with nothing
-                   after it. -->
-              <div
-                v-if="phoneLastDigits"
-                class="bg-ios-blue/10 rounded-lg p-3"
-                data-testid="pickup-number"
-              >
-                <div class="flex items-center text-sm text-ios-blue">
-                  <svg
-                    class="w-5 h-5 mr-2 flex-shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
-                    />
-                  </svg>
-                  <span
-                    >{{ t("shopCart.pickupNumber") }} ···{{
-                      phoneLastDigits
-                    }}</span
-                  >
-                </div>
-              </div>
-
               <!-- Checkout Button -->
               <button
                 :disabled="isSubmitting"
@@ -454,7 +424,6 @@ interface GuestOrderResponse {
 const props = defineProps<{
   show: boolean;
   restaurantId: string;
-  phoneLastDigits?: string;
   /** The scanned sticker's code, when this session started from one. */
   shopQrCode?: string;
   waitingTicketId?: string;
@@ -562,7 +531,6 @@ const handleCheckout = async () => {
         notes: item.notes,
       })),
       customerInfo: {
-        phoneLastDigits: props.phoneLastDigits,
         orderType: "shop",
       },
       totalAmount: shopCartStore.totalWithDelivery,
@@ -591,9 +559,6 @@ const handleCheckout = async () => {
       const guestOrderData = {
         restaurantId: props.restaurantId,
         guestName: "Guest",
-        phoneLastDigits: (props.phoneLastDigits || "000")
-          .slice(-3)
-          .padStart(3, "0"),
         orderType: "shop" as const,
         ...(props.shopQrCode ? { shopQrCode: props.shopQrCode } : {}),
         waitingListId: props.waitingTicketId,

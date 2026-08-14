@@ -201,16 +201,6 @@
                 formatDateTime(order.createdAt)
               }}</span>
             </div>
-            <div v-if="order.pickupNumber" class="flex justify-between text-sm">
-              <span class="text-ios-secondary">{{
-                t("orderTracking.pickupNumber")
-              }}</span>
-              <span
-                data-testid="pickup-number"
-                class="font-bold text-ios-blue text-base"
-                >{{ order.pickupNumber }}</span
-              >
-            </div>
             <div v-if="order.customerName" class="flex justify-between text-sm">
               <span class="text-ios-secondary">{{
                 t("orderTracking.customerName")

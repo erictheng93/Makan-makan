@@ -72,7 +72,6 @@ function mountModal(props: Record<string, unknown> = {}) {
     props: {
       show: true,
       restaurantId: "restaurant-1",
-      phoneLastDigits: "678",
       ...props,
     },
     global: { stubs: { Teleport: true, Transition: false } },
@@ -96,27 +95,11 @@ describe("ShopCartModal checkout payload", () => {
     routerPush.mockReset();
   });
 
-  it("shows the pickup number only when the shop collects one", async () => {
-    const withDigits = mountModal({ phoneLastDigits: "678" });
-    expect(withDigits.find('[data-testid="pickup-number"]').exists()).toBe(
-      true,
-    );
-    expect(withDigits.text()).toContain("678");
+  it("sends no pickup digits — the order number is the pickup identifier", async () => {
+    await checkout();
 
-    // requirePhone=false leaves it blank; the row used to render as
-    // "Pickup number ···" with nothing after it.
-    const withoutDigits = mountModal({ phoneLastDigits: "" });
-    expect(withoutDigits.find('[data-testid="pickup-number"]').exists()).toBe(
-      false,
-    );
-  });
-
-  it("does not put the pickup digits in the tracking URL", async () => {
-    // The route never mapped that query param, and the tracking screen reads
-    // the number off the order — echoing the URL back would show whatever the
-    // customer typed rather than what the kitchen sees.
-    await checkout({ phoneLastDigits: "678" });
-
+    const [, payload] = post.mock.calls[0];
+    expect(payload).not.toHaveProperty("phoneLastDigits");
     expect(routerPush).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "ShopOrderTracking",

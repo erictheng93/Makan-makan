@@ -598,7 +598,6 @@
     <ShopCartModal
       :show="showCart"
       :restaurant-id="restaurantId"
-      :phone-last-digits="phoneLastDigits"
       :shop-qr-code="shopQrCode"
       :waiting-ticket-id="waitingTicketId"
       @close="showCart = false"
@@ -651,7 +650,6 @@ import {
 // Props
 const props = defineProps<{
   restaurantId: string;
-  phoneLastDigits?: string;
   shopQrCode?: string;
   waitingTicketId?: string;
   linkedItemId?: string | string[] | null;
@@ -688,7 +686,7 @@ const openedServicesSection = ref(false);
 
 // 初始化店家購物車
 onMounted(() => {
-  shopCartStore.initializeCart(props.restaurantId, props.phoneLastDigits || "");
+  shopCartStore.initializeCart(props.restaurantId);
 });
 
 // API Queries

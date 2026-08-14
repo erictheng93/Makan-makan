@@ -1080,7 +1080,6 @@ const submitOrder = async () => {
       const guestOrderData: CreateGuestOrderRequest = {
         restaurantId: props.restaurantId,
         guestName: customerInfo.value.name.trim() || "Guest",
-        phoneLastDigits: customerInfo.value.phone.trim().slice(-3) || "000",
         orderType: seatId.value ? "seat" : "table",
         tableId: props.tableId,
         seatId: seatId.value ?? undefined,
