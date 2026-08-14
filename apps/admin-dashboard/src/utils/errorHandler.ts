@@ -81,9 +81,10 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
  * 從統一錯誤信封 `{ success: false, error: { code, message } }` 取出
  * 機器可讀的 error code。舊路由可能還把 error 當字串回，這時沒有 code。
  *
- * 同時接受原始 axios error 與本檔案產生的 ErrorDetails（非 401 的錯誤會被
- * api.ts 的 errorHandler 包成 ErrorDetails 再 reject，原始錯誤放在
- * originalError）。
+ * 同時接受原始 axios error 與包了一層 originalError 的形狀。auth-client 的
+ * 攔截器現在一律 reject 原始 axios error（它曾經改用 errorHandler 的回傳值，
+ * 那個物件沒有 response，把所有依 code 分支的復原 UI 都關掉了），所以第二
+ * 層在目前的資料流下用不到 —— 留著只是為了不因呼叫端換包裝而再度失靈。
  */
 export function extractApiErrorCode(error: unknown): string | undefined {
   for (const candidate of [error, asRecord(error)?.originalError]) {
