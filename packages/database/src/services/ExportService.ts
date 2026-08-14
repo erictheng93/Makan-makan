@@ -21,6 +21,8 @@ export interface ExportResult {
   error?: string;
 }
 
+type ExportRecord = Record<string, string | number | boolean | null>;
+
 export class ExportService {
   constructor(private db: D1Database) {}
 
@@ -56,7 +58,7 @@ export class ExportService {
         LEFT JOIN users approver ON lr.approved_by = approver.id
         WHERE lr.restaurant_id = ?
       `;
-      const params: any[] = [restaurantId];
+      const params: unknown[] = [restaurantId];
 
       if (options.startDate) {
         query += " AND lr.start_date >= ?";
@@ -83,7 +85,7 @@ export class ExportService {
       const results = await this.db
         .prepare(query)
         .bind(...params)
-        .all<any>();
+        .all<ExportRecord>();
       const records = results.results || [];
 
       // Generate export based on format
@@ -137,7 +139,7 @@ export class ExportService {
         JOIN leave_types lt ON lb.leave_type_id = lt.id
         WHERE u.restaurant_id = ? AND lb.year = ?
       `;
-      const params: any[] = [restaurantId, year];
+      const params: unknown[] = [restaurantId, year];
 
       if (options.employeeIds && options.employeeIds.length > 0) {
         query += ` AND lb.employee_id IN (${options.employeeIds.map(() => "?").join(",")})`;
@@ -149,7 +151,7 @@ export class ExportService {
       const results = await this.db
         .prepare(query)
         .bind(...params)
-        .all<any>();
+        .all<ExportRecord>();
       const records = results.results || [];
 
       switch (options.format || "csv") {
@@ -204,7 +206,7 @@ export class ExportService {
         LEFT JOIN shift_templates st ON es.shift_template_id = st.id
         WHERE es.restaurant_id = ?
       `;
-      const params: any[] = [restaurantId];
+      const params: unknown[] = [restaurantId];
 
       if (options.startDate) {
         query += " AND es.work_date >= ?";
@@ -226,7 +228,7 @@ export class ExportService {
       const results = await this.db
         .prepare(query)
         .bind(...params)
-        .all<any>();
+        .all<ExportRecord>();
       const records = results.results || [];
 
       switch (options.format) {
@@ -252,7 +254,7 @@ export class ExportService {
   /**
    * Generate CSV format
    */
-  private generateCSV(records: any[], filename: string): ExportResult {
+  private generateCSV(records: ExportRecord[], filename: string): ExportResult {
     if (records.length === 0) {
       return {
         success: false,
@@ -303,7 +305,10 @@ export class ExportService {
   /**
    * Generate Excel-compatible CSV until real XLSX support exists.
    */
-  private generateExcel(records: any[], filename: string): ExportResult {
+  private generateExcel(
+    records: ExportRecord[],
+    filename: string,
+  ): ExportResult {
     return this.generateCSV(records, filename);
   }
 
@@ -311,7 +316,7 @@ export class ExportService {
    * Generate PDF format (simple HTML table for now)
    */
   private generatePDF(
-    records: any[],
+    records: ExportRecord[],
     filename: string,
     title: string,
   ): ExportResult {
@@ -426,7 +431,7 @@ export class ExportService {
   /**
    * Format value for display
    */
-  private formatValue(value: any): string {
+  private formatValue(value: unknown): string {
     if (value === null || value === undefined) return "-";
     if (typeof value === "boolean") return value ? "Yes" : "No";
     if (typeof value === "number") return value.toLocaleString();
