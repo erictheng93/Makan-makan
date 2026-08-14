@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Hono } from "hono";
 import routes from "./index";
 import { ApiError } from "../../../shared/utils/api-error";
+import { GUEST_ORDER_THROTTLE } from "../services/guest-order-throttle";
 
 const databaseMocks = vi.hoisted(() => ({
   createDatabase: vi.fn(),
@@ -77,8 +78,11 @@ function createMockDb() {
   return { select: vi.fn(() => createSelectChain()) };
 }
 
-function createEnv() {
+function createEnv(options: { rateLimitKV?: Map<string, string> | null } = {}) {
   const kv = new Map<string, string>();
+  // Absent by default so the existing cases keep exercising the ordering path
+  // rather than the throttle; the throttle fails open without it.
+  const rateLimitStore = options.rateLimitKV ?? null;
   return {
     DB: {},
     CACHE_KV: {
@@ -90,6 +94,17 @@ function createEnv() {
         kv.delete(key);
       }),
     },
+    RATE_LIMIT_KV: rateLimitStore
+      ? {
+          get: vi.fn(async (key: string) => rateLimitStore.get(key) ?? null),
+          put: vi.fn(async (key: string, value: string) => {
+            rateLimitStore.set(key, value);
+          }),
+          delete: vi.fn(async (key: string) => {
+            rateLimitStore.delete(key);
+          }),
+        }
+      : undefined,
   };
 }
 
@@ -254,6 +269,51 @@ describe("guest order routes", () => {
       error: { code: "SHOP_MODE_DISABLED" },
     });
     expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it("throttles a flood of guest orders aimed at one restaurant", async () => {
+    // Rejected before any database work — the flooder should not get to spend
+    // a D1 read per attempt.
+    const env = createEnv({ rateLimitKV: new Map() });
+    const app = createRoutesWithApiErrorHandler();
+    const burstLimit = Math.ceil(
+      GUEST_ORDER_THROTTLE.requests * GUEST_ORDER_THROTTLE.burstMultiplier,
+    );
+
+    const send = () =>
+      app.fetch(
+        new Request("https://test/", {
+          method: "POST",
+          headers: { "cf-connecting-ip": "203.0.113.10" },
+          body: JSON.stringify(validGuestOrderBody()),
+        }),
+        env as never,
+      );
+
+    for (let i = 0; i < burstLimit; i += 1) {
+      databaseMocks.selectQueue.push({
+        get: {
+          id: "restaurant-1",
+          isActive: true,
+          isAvailable: true,
+          enableShopMode: true,
+          settings: { allowGuestOrders: true },
+        },
+      });
+      createOrder.mockResolvedValue({ id: 600 + i, orderNumber: `G${i}` });
+      expect((await send()).status).toBe(201);
+    }
+
+    const blocked = await send();
+
+    expect(blocked.status).toBe(429);
+    await expect(blocked.json()).resolves.toMatchObject({
+      success: false,
+      error: { code: "GUEST_ORDER_RATE_LIMITED" },
+    });
+    expect(createOrder).toHaveBeenCalledTimes(burstLimit);
+    // The rejected attempt never reached the restaurant lookup.
+    expect(databaseMocks.selectQueue).toHaveLength(0);
   });
 
   it("refuses a sticker the owner has regenerated away from", async () => {

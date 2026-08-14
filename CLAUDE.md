@@ -180,6 +180,34 @@ pnpm deploy:prod        # Deploy to production
 - WAF rules, rate limiting (per-IP and per-user)
 - Complete audit trail, role-based access control (RBAC)
 
+### Shop QR codes are public identifiers, not credentials
+
+`shopQrCode` (`SHOP-{restaurantId}-{ts}`) is handed to anyone who asks, by
+design — `GET /api/v1/restaurants/:id` returns it, and so does
+`GET /api/v1/discovery/restaurants/:id/takeaway-eligibility`. That is what lets
+a customer start a takeaway order from discovery or a market page without
+physically scanning anything (`DiscoveryView.vue`, `MarketDetailView.vue`).
+
+Consequences, in order of how often they get forgotten:
+
+- **Never treat possession of the code as proof of presence.** "Verify the shop
+  QR, then issue a short-lived capability that guest-orders checks" adds nothing:
+  the attacker fetches the code from a public endpoint first. Replacing it with a
+  high-entropy random token does not help either, because the same endpoints
+  would hand out the new token.
+- **What it legitimately does:** identify which restaurant a scan refers to, and
+  tell the server whether the sticker in someone's hand is the current one.
+  `assertShopQrCurrent` (`features/orders/services/shop-mode-gate.ts`) compares it
+  only to retire superseded stickers after a regeneration — a revocation check,
+  not authentication.
+- **Abuse control must stand on its own.** Guest ordering is rate limited per
+  (restaurant, IP) in `features/guest-orders/services/guest-order-throttle.ts`,
+  layered under the global per-IP limiter. Do not re-key the global limiter by
+  restaurant: that multiplies an attacker's budget by the number of restaurants
+  instead of shrinking it.
+- Table and seat QR codes are different — those carry an HMAC signature
+  (`buildSignedQRUrl`) and are not public. Do not generalize this note to them.
+
 ## Coding Conventions
 
 ### UI/UX Design System (Enforced)

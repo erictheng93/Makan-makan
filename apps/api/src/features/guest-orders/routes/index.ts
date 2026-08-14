@@ -30,6 +30,7 @@ import {
   assertShopModeEnabled,
   assertShopQrCurrent,
 } from "../../orders/services/shop-mode-gate";
+import { enforceGuestOrderThrottle } from "../services/guest-order-throttle";
 import {
   ApiError,
   notFound,
@@ -49,6 +50,10 @@ app.post("/", validateBody(createGuestOrderSchema), async (c) => {
   await enforceQuota(c, "orders.created", {
     restaurantId: data.restaurantId,
   });
+
+  // Before any database work: the cheapest request to serve is the one a
+  // flooder never gets to pay for.
+  await enforceGuestOrderThrottle(c, data.restaurantId);
 
   const db = createDatabase(c.env.DB);
 
