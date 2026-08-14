@@ -924,7 +924,12 @@ export class OrdersService implements IOrdersService {
                 | "percentage"
                 | "fixed_amount"
                 | "free_item",
-              discountValue: result.coupon.discountValue,
+              // `discountValue` is derived from nullable cents/bps columns, so a
+              // coupon that carries no numeric value — a `free_item` grant — maps
+              // to null. The response contract promises a number, and every
+              // existing consumer already renders `discountValue || 0`, so
+              // collapse it here rather than widening the contract.
+              discountValue: result.coupon.discountValue ?? 0,
             }
           : undefined,
         originalAmount: data.orderAmount,
