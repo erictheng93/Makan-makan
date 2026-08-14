@@ -15,6 +15,7 @@ import {
   validateParams,
 } from "../../../shared/middleware";
 import { OrdersService } from "../services/OrdersService";
+import { assertShopOrderingEnabled } from "../services/shop-mode-gate";
 import { ConsoleLogger } from "../../../core/monitoring";
 import type { Env } from "../../../shared/types";
 import type { AuthUser } from "../../../middleware/auth";
@@ -291,6 +292,14 @@ app.post(
       String(user.restaurantId) !== data.restaurantId
     ) {
       throw forbidden("Access denied to this restaurant");
+    }
+
+    // Shop-channel orders only. `orderType` defaults to "shop" in the schema, so
+    // a table order whose client omitted the field lands here too — those carry
+    // a tableId and belong to the dine-in channel, which shop mode does not
+    // govern.
+    if (data.orderType === "shop" && !data.tableId) {
+      await assertShopOrderingEnabled(c.env, data.restaurantId);
     }
 
     // Transform data for service

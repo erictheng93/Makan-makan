@@ -24,6 +24,7 @@ const gateMocks = vi.hoisted(() => ({
   moduleGate: vi.fn(
     () => async (_c: unknown, next: () => Promise<void>) => next(),
   ),
+  assertShopOrderingEnabled: vi.fn(),
 }));
 const authState = vi.hoisted(() => ({
   user: {
@@ -67,6 +68,10 @@ vi.mock("../services/OrdersService", () => ({
   OrdersService: function OrdersService() {
     return serviceMocks;
   },
+}));
+
+vi.mock("../services/shop-mode-gate", () => ({
+  assertShopOrderingEnabled: gateMocks.assertShopOrderingEnabled,
 }));
 
 // moduleGate(...) is called once per route at registration (module import
@@ -117,6 +122,7 @@ describe("orders routes", () => {
     }
     gateMocks.enforceQuota.mockReset();
     gateMocks.meterEmit.mockReset();
+    gateMocks.assertShopOrderingEnabled.mockReset();
     authState.user = {
       id: 42,
       role: 1,
@@ -289,6 +295,54 @@ describe("orders routes", () => {
         restaurantId: "restaurant-1",
         metadata: { orderId: 1001 },
       },
+    );
+  });
+
+  it("gates shop-channel orders on shop mode", async () => {
+    gateMocks.assertShopOrderingEnabled.mockRejectedValue(
+      Object.assign(new Error("This restaurant is not accepting shop orders"), {
+        code: "SHOP_MODE_DISABLED",
+      }),
+    );
+
+    const response = await withSilencedRouteError(() =>
+      routes.fetch(
+        jsonRequest("/", {
+          restaurantId: "restaurant-1",
+          items: [{ menuItemId: 7, quantity: 1, price: 120 }],
+          orderType: "shop",
+        }),
+        createEnv() as never,
+      ),
+    );
+
+    expect(gateMocks.assertShopOrderingEnabled).toHaveBeenCalledWith(
+      expect.anything(),
+      "restaurant-1",
+    );
+    expect(response.status).toBe(500);
+    expect(serviceMocks.createOrder).not.toHaveBeenCalled();
+  });
+
+  it("leaves table orders ungated even though orderType defaults to shop", async () => {
+    // The schema default means a client that omits orderType sends a table
+    // order labelled "shop". Gating on that label alone would break dine-in.
+    serviceMocks.createOrder.mockResolvedValue({ id: 1002 });
+
+    const response = await routes.fetch(
+      jsonRequest("/", {
+        restaurantId: "restaurant-1",
+        items: [{ menuItemId: 7, quantity: 1, price: 120 }],
+        tableId: 3,
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(201);
+    expect(gateMocks.assertShopOrderingEnabled).not.toHaveBeenCalled();
+    expect(serviceMocks.createOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ tableId: 3, orderType: "shop" }),
+      42,
     );
   });
 

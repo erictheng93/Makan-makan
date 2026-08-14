@@ -162,6 +162,7 @@ describe("guest order routes", () => {
         id: "restaurant-1",
         isActive: true,
         isAvailable: true,
+        enableShopMode: true,
         settings: { allowGuestOrders: true },
       },
     });
@@ -225,6 +226,69 @@ describe("guest order routes", () => {
     );
   });
 
+  it("refuses shop orders once the owner turns shop mode off", async () => {
+    // The printed sticker keeps working otherwise: nothing else on this path
+    // reads enableShopMode, and a shop that skips the pickup-digits screen
+    // never touches the QR verify endpoint that does.
+    databaseMocks.selectQueue.push({
+      get: {
+        id: "restaurant-1",
+        isActive: true,
+        isAvailable: true,
+        enableShopMode: false,
+        settings: { allowGuestOrders: true },
+      },
+    });
+
+    const response = await createRoutesWithApiErrorHandler().fetch(
+      new Request("https://test/", {
+        method: "POST",
+        body: JSON.stringify(validGuestOrderBody()),
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: { code: "SHOP_MODE_DISABLED" },
+    });
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it("still accepts table orders from a shop with shop mode off", async () => {
+    // enableShopMode governs the shop QR channel only — dine-in at a table is
+    // a different channel and must not be collateral damage.
+    databaseMocks.selectQueue.push(
+      {
+        get: {
+          id: "restaurant-1",
+          isActive: true,
+          isAvailable: true,
+          enableShopMode: false,
+          settings: { allowGuestOrders: true },
+        },
+      },
+      { get: { id: 3, restaurantId: "restaurant-1" } },
+    );
+    createOrder.mockResolvedValue({ id: 502, orderNumber: "G002" });
+
+    const response = await routes.fetch(
+      new Request("https://test/", {
+        method: "POST",
+        body: JSON.stringify(
+          validGuestOrderBody({ orderType: "table", tableId: 3 }),
+        ),
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(201);
+    expect(createOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ orderType: "table", tableId: 3 }),
+    );
+  });
+
   it("rejects invalid create requests and active duplicate guest orders", async () => {
     const invalidEnv = createEnv();
     const app = createRoutesWithApiErrorHandler();
@@ -264,6 +328,7 @@ describe("guest order routes", () => {
         id: "restaurant-1",
         isActive: true,
         isAvailable: true,
+        enableShopMode: true,
         settings: { allowGuestOrders: true },
       },
     });
@@ -296,6 +361,7 @@ describe("guest order routes", () => {
           id: "restaurant-1",
           isActive: true,
           isAvailable: true,
+          enableShopMode: true,
           settings: { allowGuestOrders: true },
         },
       },
@@ -305,6 +371,7 @@ describe("guest order routes", () => {
           id: "restaurant-1",
           isActive: true,
           isAvailable: true,
+          enableShopMode: true,
           settings: { allowGuestOrders: true },
         },
       },
@@ -370,6 +437,7 @@ describe("guest order routes", () => {
           id: "restaurant-1",
           isActive: true,
           isAvailable: true,
+          enableShopMode: true,
           settings: { allowGuestOrders: true },
         },
       },
@@ -394,6 +462,7 @@ describe("guest order routes", () => {
           id: "restaurant-1",
           isActive: true,
           isAvailable: true,
+          enableShopMode: true,
           settings: { allowGuestOrders: true },
         },
       },
@@ -425,6 +494,7 @@ describe("guest order routes", () => {
         id: "restaurant-1",
         isActive: true,
         isAvailable: true,
+        enableShopMode: true,
         settings: { allowGuestOrders: true },
       },
     });

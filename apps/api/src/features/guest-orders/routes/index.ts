@@ -26,6 +26,7 @@ import {
   addGuestOrderItemsSchema,
 } from "../schemas/validation";
 import { OrdersService } from "../../orders/services/OrdersService";
+import { assertShopModeEnabled } from "../../orders/services/shop-mode-gate";
 import {
   ApiError,
   notFound,
@@ -66,6 +67,12 @@ app.post("/", validateBody(createGuestOrderSchema), async (c) => {
   const settings = restaurant.settings as Record<string, unknown> | null;
   if (!settings || settings.allowGuestOrders !== true) {
     throw forbidden("Guest orders are not enabled for this restaurant");
+  }
+
+  // Shop orders ride the shop QR channel, which the owner can switch off.
+  // Reuses the row already loaded above rather than re-reading it.
+  if (data.orderType === "shop") {
+    assertShopModeEnabled(restaurant.enableShopMode);
   }
 
   // 2. Check active order limit for this device when it already has a guest
