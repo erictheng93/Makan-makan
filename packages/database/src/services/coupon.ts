@@ -24,15 +24,17 @@ type CouponMoneyColumns = Pick<
   | "minOrderAmountCents"
 >;
 
+export type CouponWithMoneyFields<T extends CouponMoneyColumns = CouponRow> =
+  T & {
+    discountValue: number | null;
+    maxDiscountAmount: number | null;
+    minOrderAmount: number | null;
+  };
+
 // 優惠券驗證結果接口
 export interface CouponValidationResult {
   valid: boolean;
-  // 仍為 any：實際值是 mapCouponMoneyFields(row)，除了 CouponRow 欄位外
-  // 還多了 discountValue / maxDiscountAmount / minOrderAmount（皆可能為 null）。
-  // 收窄成 CouponRow 會讓 OrdersService.validateCoupon 讀 discountValue 編譯失敗，
-  // 收窄成含這些欄位的型別則會撞上該處宣告的 discountValue: number（不可為 null）。
-  // 要真正去掉這個 any，得連同 apps/api 的 CouponValidation 一起修。
-  coupon?: any;
+  coupon?: CouponWithMoneyFields;
   error?: string;
   discountAmount?: number;
   finalAmount?: number;
@@ -146,14 +148,19 @@ export class CouponService extends BaseService {
    */
   static readonly EligibilityError = CouponEligibilityError;
 
-  private mapCouponMoneyFields<T extends CouponMoneyColumns>(coupon: T): T {
+  private mapCouponMoneyFields<T extends CouponMoneyColumns>(
+    coupon: T,
+  ): CouponWithMoneyFields<T> {
     const hasDiscountValue =
       "discountPercentageBps" in coupon || "discountValueCents" in coupon;
     const hasMaxDiscountAmount = "maxDiscountAmountCents" in coupon;
     const hasMinOrderAmount = "minOrderAmountCents" in coupon;
 
-    const normalized: Record<string, unknown> = {
+    const normalized: CouponWithMoneyFields<T> = {
       ...coupon,
+      discountValue: null,
+      maxDiscountAmount: null,
+      minOrderAmount: null,
     };
 
     if (hasDiscountValue) {
@@ -173,7 +180,7 @@ export class CouponService extends BaseService {
       normalized.minOrderAmount = amountFromCents(coupon.minOrderAmountCents);
     }
 
-    return normalized as T;
+    return normalized;
   }
 
   private toCouponUpdate(updates: Partial<CreateCouponData>) {
