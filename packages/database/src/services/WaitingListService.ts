@@ -13,6 +13,7 @@ import type {
   WaitTimeEstimateRequest,
   WaitTimeEstimateResult,
 } from "@makanmasak/shared-types";
+import type { D1Database } from "@cloudflare/workers-types";
 import { RealtimeEventType, WaitingStatus } from "@makanmasak/shared-types";
 import { sql, type SQL } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
@@ -24,7 +25,7 @@ import {
 } from "../utils/business-day";
 import { CustomerWebPushService } from "./CustomerWebPushService";
 import { RealtimeBroadcastService } from "./RealtimeBroadcastService";
-import { BaseService } from "./base";
+import { BaseService, type CloudflareEnv } from "./base";
 import { OrderService } from "./order";
 import { DEFAULT_TABLE_OCCUPANCY_MS } from "./table-state";
 import { assertWaitingTransition } from "./ticket-primitives";
@@ -73,6 +74,7 @@ interface WaitingListDbRow {
   timeout_at?: number | null;
   updated_at: number;
   table?: string | null;
+  table_json?: string | null;
 }
 
 interface AvailableTableRow {
@@ -103,6 +105,22 @@ interface WaitingPartySizeRow {
   party_size: number;
 }
 
+interface TurnoverEstimateRow {
+  avg_turnover_minutes?: number | null;
+}
+
+interface OccupiedTableCountRow {
+  occupied_count?: number | null;
+  earliest_available?: number | null;
+}
+
+interface QueueStatusCountRow {
+  total?: number | null;
+  wait_2?: number | null;
+  wait_4?: number | null;
+  wait_6?: number | null;
+}
+
 const getMutationChanges = (result: unknown): number => {
   if (typeof result !== "object" || result === null || !("meta" in result)) {
     return 0;
@@ -115,7 +133,7 @@ const getMutationChanges = (result: unknown): number => {
 export class WaitingListService extends BaseService {
   private backgroundTasks: Promise<void>[] = [];
 
-  constructor(d1: any, env: any) {
+  constructor(d1: D1Database, env: CloudflareEnv) {
     super(d1, env);
   }
 
@@ -1024,7 +1042,7 @@ export class WaitingListService extends BaseService {
         aheadResult,
         occupiedResult,
       ] = await Promise.all([
-        this.db.get(sql`
+        this.db.get<TurnoverEstimateRow>(sql`
             SELECT AVG(
               CASE
                 WHEN COALESCE(o.paid_at_ms, o.delivered_at_ms) IS NOT NULL
@@ -1037,24 +1055,24 @@ export class WaitingListService extends BaseService {
             WHERE o.restaurant_id = ${restaurantId}
               AND COALESCE(o.paid_at_ms, o.delivered_at_ms) > ${Date.now() - 2 * 60 * 60 * 1000}
               AND o.status IN ('delivered', 'paid')
-          `) as Promise<any>,
-        this.db.get(sql`
+          `),
+        this.db.get<CountRow>(sql`
             SELECT COUNT(*) as count
             FROM tables
             WHERE restaurant_id = ${restaurantId}
               AND is_active = 1
               AND capacity >= ${partySize}
               AND capacity <= ${partySize + 2}
-          `) as Promise<any>,
-        this.db.get(sql`
+          `),
+        this.db.get<CountRow>(sql`
             SELECT COUNT(*) as count
             FROM waiting_list
             WHERE restaurant_id = ${restaurantId}
               AND status = 'waiting'
               AND party_size <= ${partySize + 2}
               AND queue_date = ${businessDateSql()}
-          `) as Promise<any>,
-        this.db.get(sql`
+          `),
+        this.db.get<OccupiedTableCountRow>(sql`
             SELECT
               COUNT(*) as occupied_count,
               MIN(estimated_free_at_ms) as earliest_available
@@ -1063,7 +1081,7 @@ export class WaitingListService extends BaseService {
               AND is_occupied = 1
               AND capacity >= ${partySize}
               AND capacity <= ${partySize + 2}
-          `) as Promise<any>,
+          `),
       ]);
 
       const avgTurnover =
@@ -1149,7 +1167,7 @@ export class WaitingListService extends BaseService {
         estimate,
         ...sizeEstimates
       ] = await Promise.all([
-        this.db.get(sql`
+        this.db.get<QueueStatusCountRow>(sql`
             SELECT
               COUNT(*) as total,
               SUM(CASE WHEN party_size <= 2 THEN 1 ELSE 0 END) as wait_2,
@@ -1159,14 +1177,14 @@ export class WaitingListService extends BaseService {
             WHERE restaurant_id = ${restaurantId}
               AND status = 'waiting'
               AND queue_date = ${businessDateSql()}
-          `) as Promise<any>,
-        this.db.get(sql`
+          `),
+        this.db.get<CountRow>(sql`
             SELECT COUNT(*) as count
             FROM tables
             WHERE restaurant_id = ${restaurantId}
               AND is_active = 1
               AND is_occupied = 0
-          `) as Promise<any>,
+          `),
         this.estimateWaitTime({ restaurantId, partySize: 4 }),
         this.estimateWaitTime({ restaurantId, partySize: 2 }),
         this.estimateWaitTime({ restaurantId, partySize: 4 }),
@@ -1459,7 +1477,7 @@ export class WaitingListService extends BaseService {
    * 格式化候位回應
    */
   private formatWaitingListResponse(
-    data: any,
+    data: WaitingListDbRow,
     partiesAhead: number,
   ): WaitingListResponse {
     return {
