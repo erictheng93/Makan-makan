@@ -2447,9 +2447,6 @@ const jaJP: Messages = {
       instructions: "注文方法",
       instructionsHint: "QRコード注文の簡単な説明",
       instructionsExample: "例：QRコードをスキャンして注文開始",
-      requirePhone: "受け取り用の下3桁を必須にする",
-      requirePhoneDesc:
-        "テイクアウト・デリバリーのお客様は受け取り識別用に電話番号の下3桁を入力します。電話番号認証ではなく、SMSは送信されません。",
       saveSettings: "設定を保存",
       saving: "保存中...",
       management: "QRコード管理",

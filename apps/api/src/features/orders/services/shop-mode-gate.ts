@@ -3,9 +3,8 @@
  *
  * `enableShopMode` is the owner's on/off switch for QR ordering, and until this
  * existed the only server-side place that consulted it on the customer path was
- * `GET /qr/verify/shop/:qrCode`. That endpoint is reached solely from the
- * pickup-digits screen, which shops that turn `requirePhone` off skip entirely —
- * so switching shop mode off left the order write itself unguarded.
+ * `GET /qr/verify/shop/:qrCode` — an endpoint the ordering flow does not go
+ * through, so switching shop mode off left the order write itself unguarded.
  *
  * Applied at the two customer-facing entry points (`POST /orders`,
  * `POST /guest-orders`) rather than inside `OrdersService.createOrder`, because

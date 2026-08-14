@@ -11,13 +11,11 @@ export interface GuestTokenData {
   orderId: string;
   restaurantId: string;
   guestName: string;
-  phoneLastDigits: string;
   createdAt: number;
 }
 
 export interface GuestSessionData {
   restaurantId: string;
-  phoneLastDigits: string;
   createdAt: number;
   orderId?: string; // Set after order is created
 }

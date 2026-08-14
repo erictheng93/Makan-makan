@@ -39,7 +39,6 @@ export interface Restaurant extends UUIDEntity {
 export interface ShopQrSettings {
   displayName?: string;
   instructions?: string;
-  requirePhone?: boolean;
 }
 
 export enum PlanType {

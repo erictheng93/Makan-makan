@@ -626,42 +626,10 @@ describe("authentication routes", () => {
     expect(service.getSecurityEvents).toHaveBeenCalledWith(undefined, 5);
   });
 
-  it("creates guest tokens and stores guest token metadata in KV", async () => {
-    const { res, kv } = request("/guest-token", "POST", {
-      restaurantId: "S-20250124-001",
-      phoneLastDigits: "1234",
-    });
-    const response = await res;
-
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
-      success: true,
-      token: "guest-token-1",
-      expiresIn: 14400,
-    });
-    expect(kv.put).toHaveBeenCalledWith(
-      "guest_token:guest-token-1",
-      expect.stringContaining('"phoneLastDigits":"1234"'),
-      { expirationTtl: 14400 },
-    );
-  });
-
-  it("validates guest token inputs before writing KV state", async () => {
-    let result = request("/guest-token", "POST", {
-      phoneLastDigits: "123",
-    });
-    let response = await result.res;
-
-    expect(response.status).toBe(400);
-    expect(result.kv.put).not.toHaveBeenCalled();
-
-    result = request("/guest-token", "POST", {
-      restaurantId: "S-20250124-001",
-      phoneLastDigits: "12",
-    });
-    response = await result.res;
-
-    expect(response.status).toBe(400);
-    expect(result.kv.put).not.toHaveBeenCalled();
+  it("no longer exposes the shop guest-token endpoint", () => {
+    // Retired with the pickup-digits step: its only caller was the shop
+    // verification screen, and /guest-orders mints its own token on success.
+    const routes = app.routes.map((route) => route.path);
+    expect(routes).not.toContain("/guest-token");
   });
 });

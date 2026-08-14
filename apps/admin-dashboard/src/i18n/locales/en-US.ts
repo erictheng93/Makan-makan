@@ -2441,9 +2441,6 @@ const enUS: Messages = {
       instructions: "Ordering Instructions",
       instructionsHint: "Brief instructions on how to use QR Code ordering",
       instructionsExample: "e.g., Scan QR code to start ordering",
-      requirePhone: "Require pickup digits",
-      requirePhoneDesc:
-        "Takeaway and delivery customers enter the last 3 digits of their phone as a pickup reference. This is not phone verification — no SMS is sent.",
       saveSettings: "Save Settings",
       saving: "Saving...",
       management: "QR Code Management",

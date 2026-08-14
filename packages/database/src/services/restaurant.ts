@@ -448,7 +448,6 @@ export class RestaurantService extends BaseService {
       const defaultSettings = {
         displayName: restaurant.name,
         instructions: "掃描 QR Code 開始點餐",
-        requirePhone: true,
       };
 
       // 更新数据库
@@ -609,7 +608,6 @@ export class RestaurantService extends BaseService {
     settings?: {
       displayName?: string;
       instructions?: string;
-      requirePhone?: boolean;
     },
   ): Promise<void> {
     try {
@@ -678,7 +676,6 @@ export class RestaurantService extends BaseService {
         settings: restaurant.shopQrSettings || {
           displayName: restaurant.name,
           instructions: "掃描 QR Code 開始點餐",
-          requirePhone: true,
         },
       };
     } catch (error) {

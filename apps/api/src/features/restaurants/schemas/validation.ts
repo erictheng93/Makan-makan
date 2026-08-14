@@ -324,7 +324,6 @@ const shopQrSettingsSchema = z.object({
     .string()
     .max(500, "Instructions must be less than 500 characters")
     .optional(),
-  requirePhone: z.boolean().optional(),
 });
 
 const updateShopModeSchema = z.object({

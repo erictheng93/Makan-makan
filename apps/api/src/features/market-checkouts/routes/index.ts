@@ -477,7 +477,6 @@ app.post("/", async (c) => {
         orderId: String(childOrder.id),
         restaurantId: vendor.restaurantId,
         guestName: data.guestName,
-        phoneLastDigits: data.phoneLastDigits,
         createdAt: Date.now(),
       };
 
@@ -1124,7 +1123,6 @@ app.post(
       orderId: String(child.orderId),
       restaurantId: child.restaurantId,
       guestName: "Guest",
-      phoneLastDigits: parsed.data.phoneLastDigits,
       createdAt: Date.now(),
     };
     const fourHoursInSeconds = 4 * 60 * 60;

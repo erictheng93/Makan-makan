@@ -470,12 +470,11 @@ describe("restaurants routes", () => {
 
     res = await request("/rest-1/shop-mode", "PUT", {
       enabled: true,
-      settings: { displayName: "Makan Stall", requirePhone: true },
+      settings: { displayName: "Makan Stall" },
     });
     expect(res.status).toBe(200);
     expect(restaurantFns.updateShopMode).toHaveBeenCalledWith("rest-1", true, {
       displayName: "Makan Stall",
-      requirePhone: true,
     });
 
     // Shop QR + shop mode are the no-table equivalent of table QR management

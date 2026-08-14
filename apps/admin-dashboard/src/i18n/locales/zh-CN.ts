@@ -2415,9 +2415,6 @@ const zhCN: Messages = {
       instructions: "点餐说明",
       instructionsHint: "简短说明如何使用 QR Code 点餐",
       instructionsExample: "例如：扫描QR码开始点餐",
-      requirePhone: "要求填写取餐末三码",
-      requirePhoneDesc:
-        "外带／外送顾客下单前需填写手机末三码作为取餐识别。这不是手机验证，系统不会发送短信。",
       saveSettings: "保存设置",
       saving: "保存中...",
       management: "QR Code 管理",

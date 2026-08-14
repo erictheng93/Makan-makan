@@ -2456,9 +2456,6 @@ const idID: Messages = {
       instructions: "Petunjuk Pemesanan",
       instructionsHint: "Petunjuk singkat cara menggunakan pemesanan kode QR",
       instructionsExample: "Mis. Pindai kode QR untuk mulai memesan",
-      requirePhone: "Wajib 3 digit terakhir untuk pengambilan",
-      requirePhoneDesc:
-        "Pelanggan bawa pulang / antar mengisi 3 digit terakhir nomor telepon sebagai penanda pengambilan. Ini bukan verifikasi telepon — tidak ada SMS yang dikirim.",
       saveSettings: "Simpan Pengaturan",
       saving: "Menyimpan...",
       management: "Manajemen Kode QR",

@@ -78,10 +78,6 @@ export const createGuestOrderSchema = z
   .object({
     restaurantId: z.string().min(1),
     guestName: z.string().max(50).default("Guest"),
-    phoneLastDigits: z
-      .string()
-      .regex(/^\d{3}$/, "Must be exactly 3 digits")
-      .default("000"),
     orderType: z.enum(["shop", "table", "seat"]),
     // What the customer scanned, when they scanned something. Optional on
     // purpose: clients that predate the field, and entry points with no sticker

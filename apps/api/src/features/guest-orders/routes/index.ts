@@ -163,8 +163,6 @@ app.post("/", validateBody(createGuestOrderSchema), async (c) => {
       waitingListCustomerPhone: data.customerPhone,
       customerInfo: {
         name: data.guestName,
-        // phoneLastDigits is only 3 digits (for order dedup), not a real phone number.
-        // Don't pass it as phone — it would fail the 7-20 digit validation in OrdersService.
       },
       items: data.items.map((item) => ({
         menuItemId: item.menuItemId,
@@ -211,7 +209,6 @@ app.post("/", validateBody(createGuestOrderSchema), async (c) => {
     orderId: String(order.id),
     restaurantId: data.restaurantId,
     guestName: data.guestName,
-    phoneLastDigits: data.phoneLastDigits,
     createdAt: Date.now(),
   };
 
@@ -229,8 +226,7 @@ app.post("/", validateBody(createGuestOrderSchema), async (c) => {
     expirationTtl: twoHoursInSeconds,
   });
   // Reverse mapping so any cancel path (admin DELETE, guest cancel, cleanup
-  // jobs) can locate and clear the active-order key without knowing the
-  // original phoneLastDigits + restaurantId combo.
+  // jobs) can locate and clear the active-order key from the order id alone.
   await c.env.CACHE_KV.put(`guest_active_lookup:${order.id}`, activeOrderKey, {
     expirationTtl: twoHoursInSeconds,
   });

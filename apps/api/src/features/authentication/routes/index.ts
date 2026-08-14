@@ -745,64 +745,6 @@ export function createAuthRoutes(
     },
   );
 
-  /**
-   * Get guest token for shop QR ordering (no auth required)
-   * POST /api/v1/auth/guest-token
-   */
-  authRoutes.post("/guest-token", async (c) => {
-    const body = await c.req.json();
-    const { restaurantId, phoneLastDigits } = body;
-
-    // Validate inputs
-    if (!restaurantId || typeof restaurantId !== "string") {
-      return c.json(
-        { success: false, error: "restaurantId is required" },
-        HTTP_STATUS.BAD_REQUEST,
-      );
-    }
-
-    if (
-      !phoneLastDigits ||
-      typeof phoneLastDigits !== "string" ||
-      !/^\d{3,4}$/.test(phoneLastDigits)
-    ) {
-      return c.json(
-        {
-          success: false,
-          error: "phoneLastDigits must be 3-4 digits",
-        },
-        HTTP_STATUS.BAD_REQUEST,
-      );
-    }
-
-    // Generate guest token
-    const { generateGuestToken } =
-      await import("../../../middleware/guestAuth");
-    const token = generateGuestToken();
-
-    // Store in KV with 4-hour TTL
-    const tokenData = {
-      restaurantId,
-      phoneLastDigits,
-      createdAt: Date.now(),
-    };
-
-    await c.env.CACHE_KV.put(
-      `guest_token:${token}`,
-      JSON.stringify(tokenData),
-      { expirationTtl: 14400 },
-    );
-
-    return c.json(
-      {
-        success: true,
-        token,
-        expiresIn: 14400,
-      },
-      HTTP_STATUS.OK,
-    );
-  });
-
   return authRoutes;
 }
 

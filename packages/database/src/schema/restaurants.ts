@@ -63,7 +63,6 @@ export const restaurants = sqliteTable(
     shopQrSettings: text("shop_qr_settings", { mode: "json" }).$type<{
       displayName?: string;
       instructions?: string;
-      requirePhone?: boolean;
     }>(),
     shopQrVersion: integer("shop_qr_version").notNull().default(1),
 

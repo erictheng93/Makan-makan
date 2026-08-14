@@ -2449,9 +2449,6 @@ const viVN: Messages = {
       instructions: "Hướng dẫn đặt hàng",
       instructionsHint: "Hướng dẫn ngắn gọn về cách dùng mã QR đặt hàng",
       instructionsExample: "VD: Quét mã QR để bắt đầu đặt hàng",
-      requirePhone: "Yêu cầu 3 số cuối để nhận hàng",
-      requirePhoneDesc:
-        "Khách mang đi / giao hàng nhập 3 số cuối điện thoại để nhận diện khi lấy đồ. Đây không phải xác minh số điện thoại — hệ thống không gửi SMS.",
       saveSettings: "Lưu cài đặt",
       saving: "Đang lưu...",
       management: "Quản lý mã QR",
