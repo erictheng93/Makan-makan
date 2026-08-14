@@ -341,8 +341,14 @@
                 }}</span>
               </div>
 
-              <!-- Customer Info -->
-              <div class="bg-ios-blue/10 rounded-lg p-3">
+              <!-- Customer Info — only when this shop collects pickup digits;
+                   otherwise the row reads "Pickup number ···" with nothing
+                   after it. -->
+              <div
+                v-if="phoneLastDigits"
+                class="bg-ios-blue/10 rounded-lg p-3"
+                data-testid="pickup-number"
+              >
                 <div class="flex items-center text-sm text-ios-blue">
                   <svg
                     class="w-5 h-5 mr-2 flex-shrink-0"
@@ -630,9 +636,12 @@ const handleCheckout = async () => {
         restaurantId: props.restaurantId,
         orderId,
       },
+      // No `phone` here: the ShopOrderTracking route never mapped it to a prop,
+      // and the tracking screen reads the pickup number off the order itself
+      // (`order.pickupNumber`). A number echoed back from the URL would be
+      // whatever the customer last typed, not what the kitchen sees.
       query: {
         type: "shop",
-        phone: props.phoneLastDigits,
       },
     });
   } catch (error: unknown) {
