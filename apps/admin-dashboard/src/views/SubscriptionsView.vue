@@ -385,6 +385,7 @@ import {
   type PlanTier,
 } from "@/services/subscriptionService";
 import UsageTab from "@/components/billing/UsageTab.vue";
+import { getApiEnvelopeMessage } from "@makanmasak/shared/utils/unknown";
 
 const { t } = useI18n();
 const { formatDate } = useDateFormatter();
@@ -439,9 +440,9 @@ async function loadSubscriptions() {
   errorMessage.value = null;
   try {
     subscriptions.value = await subscriptionService.getAll();
-  } catch (err: any) {
+  } catch (err: unknown) {
     errorMessage.value =
-      err?.response?.data?.error?.message ?? t("subscriptions.loadError");
+      getApiEnvelopeMessage(err) ?? t("subscriptions.loadError");
   } finally {
     isLoading.value = false;
   }
@@ -578,10 +579,9 @@ async function onCreateSubscription() {
     });
     subscriptions.value.unshift(created);
     closeCreateModal();
-  } catch (err: any) {
+  } catch (err: unknown) {
     createError.value =
-      err?.response?.data?.error?.message ??
-      t("subscriptions.form.createError");
+      getApiEnvelopeMessage(err) ?? t("subscriptions.form.createError");
   } finally {
     isCreating.value = false;
   }

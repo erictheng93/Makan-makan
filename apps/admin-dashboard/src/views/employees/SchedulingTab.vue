@@ -254,6 +254,7 @@ import UnassignedSidebar from "@/components/scheduling/UnassignedSidebar.vue";
 import ShiftTemplateManager from "@/components/scheduling/ShiftTemplateManager.vue";
 import SchedulingConflictBar from "@/components/scheduling/SchedulingConflictBar.vue";
 import { useConfirmModal } from "@/composables/useConfirmModal";
+import { getErrorMessage } from "@makanmasak/shared/utils/unknown";
 
 // ── Auth / restaurant ────────────────────────────────────
 const { t } = useI18n();
@@ -372,8 +373,8 @@ async function loadAll() {
     shiftTemplates.value = templates;
     schedules.value = sched?.data ?? (Array.isArray(sched) ? sched : []);
     leaveRequests.value = leaves ?? [];
-  } catch (e: any) {
-    loadError.value = e?.message || t("employees.scheduling.loadFailed");
+  } catch (e: unknown) {
+    loadError.value = getErrorMessage(e, t("employees.scheduling.loadFailed"));
   } finally {
     loading.value = false;
   }
@@ -567,8 +568,8 @@ async function confirmAssign() {
     };
     schedules.value = [...schedules.value, enrichedSchedule];
     pendingAssignment.value = null;
-  } catch (e: any) {
-    toast.error(e?.message || t("employees.scheduling.assignFailed"));
+  } catch (e: unknown) {
+    toast.error(getErrorMessage(e, t("employees.scheduling.assignFailed")));
   } finally {
     assigning.value = false;
   }
@@ -585,8 +586,8 @@ async function handleRemove(scheduleId: number) {
   try {
     await schedulingService.deleteSchedule(scheduleId);
     schedules.value = schedules.value.filter((s) => s.id !== scheduleId);
-  } catch (e: any) {
-    toast.error(e?.message || t("employees.scheduling.removeFailed"));
+  } catch (e: unknown) {
+    toast.error(getErrorMessage(e, t("employees.scheduling.removeFailed")));
   }
 }
 

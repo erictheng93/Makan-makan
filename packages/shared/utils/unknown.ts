@@ -87,14 +87,20 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
   return getApiEnvelopeMessage(error) ?? getErrorMessage(error, fallback);
 }
 
+/**
+ * axios 把狀態碼放在 `response.status`，但被 throw 的不一定是 axios error
+ * —— WebSocket / fetch 包裝過的錯誤是把 `status` 掛在自己身上。兩處都看。
+ */
 export function getApiErrorStatus(error: unknown): number | undefined {
-  if (!isRecord(error) || !isRecord(error.response)) {
+  if (!isRecord(error)) {
     return undefined;
   }
 
-  return typeof error.response.status === "number"
-    ? error.response.status
-    : undefined;
+  if (isRecord(error.response) && typeof error.response.status === "number") {
+    return error.response.status;
+  }
+
+  return typeof error.status === "number" ? error.status : undefined;
 }
 
 export function getApiErrorStatusText(error: unknown): string | undefined {

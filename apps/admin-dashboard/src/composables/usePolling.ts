@@ -1,6 +1,7 @@
 import { ref, onUnmounted, type Ref } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { api } from "@/services/api";
+import { getErrorMessage } from "@makanmasak/shared/utils/unknown";
 
 interface UsePollingReturn<T> {
   data: Ref<T | null>;
@@ -37,8 +38,8 @@ export function usePolling<T>(
       error.value = null;
       const result = await fetchFunction();
       data.value = result;
-    } catch (err: any) {
-      error.value = err.message || "Polling failed";
+    } catch (err: unknown) {
+      error.value = getErrorMessage(err, "Polling failed");
       console.error("Polling error:", err);
     } finally {
       isLoading.value = false;

@@ -184,6 +184,7 @@ import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { schedulingService } from "@/services/schedulingService";
 import type { ShiftTemplate } from "@/types/scheduling";
+import { getErrorMessage } from "@makanmasak/shared/utils/unknown";
 
 const props = defineProps<{
   isOpen: boolean;
@@ -278,8 +279,8 @@ async function handleSave() {
       emit("template-created", created);
     }
     resetForm();
-  } catch (e: any) {
-    formError.value = e?.message || "操作失敗，請再試一次";
+  } catch (e: unknown) {
+    formError.value = getErrorMessage(e, "操作失敗，請再試一次");
   } finally {
     saving.value = false;
   }
@@ -297,8 +298,8 @@ async function handleDelete(id: number) {
     await schedulingService.deleteShiftTemplate(id);
     emit("template-deleted", id);
     if (editingId.value === id) resetForm();
-  } catch (e: any) {
-    toast.error(e?.message || "刪除失敗，請再試一次");
+  } catch (e: unknown) {
+    toast.error(getErrorMessage(e, "刪除失敗，請再試一次"));
   }
 }
 </script>

@@ -12,6 +12,7 @@ import {
 import { api } from "@/services/api";
 import { getAuthToken } from "@/utils/authTokenProvider";
 import { sanitizeForLog } from "@/utils/sanitize";
+import { getApiErrorStatus } from "@makanmasak/shared/utils/unknown";
 
 export type ConnectionStatus =
   | "disconnected"
@@ -154,18 +155,19 @@ class WebSocketService {
       this.ws = new WebSocket(this.wsUrl);
 
       this.setupWebSocketHandlers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to connect to WebSocket:", error);
       this.connectionStatus.value = "error";
       // Don't retry on client errors that won't resolve with retries
+      const status = getApiErrorStatus(error);
       if (
-        error.status === 400 ||
-        error.status === 401 ||
-        error.status === 403 ||
-        error.status === 429
+        status === 400 ||
+        status === 401 ||
+        status === 403 ||
+        status === 429
       ) {
         console.warn(
-          `WebSocket connection aborted (HTTP ${error.status}), not retrying`,
+          `WebSocket connection aborted (HTTP ${status}), not retrying`,
         );
         return;
       }

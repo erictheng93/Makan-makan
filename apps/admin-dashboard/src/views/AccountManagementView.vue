@@ -13,6 +13,7 @@ import { api, unwrapApiList } from "@/services/api";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import type { Restaurant, PlatformUser } from "@/types";
 import { UserRole } from "@/types";
+import { getApiErrorMessage } from "@makanmasak/shared/utils/unknown";
 
 const { t } = useI18n();
 const { formatDate } = useDateFormatter();
@@ -285,11 +286,8 @@ async function handleOwnerSubmit() {
     toast.success(t("accountManagement.createOwnerSuccess"));
     resetOwnerForm();
     await fetchOwners();
-  } catch (e: any) {
-    const msg =
-      e?.response?.data?.error?.message ||
-      e?.message ||
-      t("accountManagement.createError");
+  } catch (e: unknown) {
+    const msg = getApiErrorMessage(e, t("accountManagement.createError"));
     submitError.value = msg;
   } finally {
     submitting.value = false;
@@ -314,11 +312,8 @@ async function handleAdminSubmit() {
     toast.success(t("accountManagement.createAdminSuccess"));
     resetAdminForm();
     await fetchAdmins();
-  } catch (e: any) {
-    const msg =
-      e?.response?.data?.error?.message ||
-      e?.message ||
-      t("accountManagement.createError");
+  } catch (e: unknown) {
+    const msg = getApiErrorMessage(e, t("accountManagement.createError"));
     submitError.value = msg;
   } finally {
     submitting.value = false;

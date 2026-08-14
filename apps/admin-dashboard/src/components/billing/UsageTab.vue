@@ -169,6 +169,7 @@ import {
 } from "@/services/subscriptionService";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import { useI18n } from "@/i18n";
+import { getApiEnvelopeMessage } from "@makanmasak/shared/utils/unknown";
 
 const { formatShortDateTime } = useDateFormatter();
 const { t, locale } = useI18n();
@@ -210,9 +211,8 @@ async function loadUsage() {
     currentMeters.value = usage.current.meters;
     events.value = eventPage.events;
     eventsTotal.value = eventPage.total;
-  } catch (err: any) {
-    errorMessage.value =
-      err?.response?.data?.error?.message ?? t("usage.loadError");
+  } catch (err: unknown) {
+    errorMessage.value = getApiEnvelopeMessage(err) ?? t("usage.loadError");
   } finally {
     isLoading.value = false;
   }

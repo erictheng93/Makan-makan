@@ -61,6 +61,7 @@ import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useBackupStore } from "@/stores/backup";
 import type { BackupRecord } from "@makanmasak/shared-types";
+import { getErrorMessage } from "@makanmasak/shared/utils/unknown";
 
 const props = defineProps<{
   backup: BackupRecord | null;
@@ -111,8 +112,8 @@ const handleRestore = async () => {
 
     emit("restored", props.backup.id);
     emit("close");
-  } catch (err: any) {
-    error.value = err.message || t("backup.restore.error");
+  } catch (err: unknown) {
+    error.value = getErrorMessage(err, t("backup.restore.error"));
   } finally {
     isRestoring.value = false;
   }

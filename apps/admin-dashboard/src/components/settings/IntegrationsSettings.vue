@@ -386,6 +386,7 @@ import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { apiClient, unwrapApiPayload } from "@/services/api";
 import { useDateFormatter } from "@/composables/useDateFormatter";
+import { getApiEnvelopeMessage } from "@makanmasak/shared/utils/unknown";
 
 const { t } = useI18n();
 const { formatShortDateTime } = useDateFormatter();
@@ -483,10 +484,10 @@ async function connectUberEats() {
     showMsg("success", t("integrations.alerts.connectSuccess"));
     showConnectForm.value = false;
     await loadIntegration();
-  } catch (err: any) {
+  } catch (err: unknown) {
     showMsg(
       "error",
-      err?.response?.data?.error || t("integrations.alerts.connectFailed"),
+      getApiEnvelopeMessage(err) ?? t("integrations.alerts.connectFailed"),
     );
   } finally {
     isConnecting.value = false;
@@ -526,10 +527,10 @@ async function syncMenu() {
     await apiClient.post(`/integrations/${restaurantId}/uber_eats/menu-sync`);
     showMsg("success", t("integrations.alerts.syncTriggered"));
     await loadIntegration();
-  } catch (err: any) {
+  } catch (err: unknown) {
     showMsg(
       "error",
-      err?.response?.data?.error || t("integrations.alerts.syncFailed"),
+      getApiEnvelopeMessage(err) ?? t("integrations.alerts.syncFailed"),
     );
   } finally {
     isSyncing.value = false;

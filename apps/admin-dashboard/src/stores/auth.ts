@@ -12,6 +12,10 @@ import {
 } from "@/utils/errorHandler";
 import { getAuthToken } from "@/utils/authTokenProvider";
 import { useModuleAccessStore } from "@makanmasak/shared/stores/moduleAccess";
+import {
+  getApiEnvelopeMessage,
+  getApiErrorStatus,
+} from "@makanmasak/shared/utils/unknown";
 
 type RetryableAxiosRequestConfig = AxiosRequestConfig & {
   _retry?: boolean;
@@ -302,10 +306,10 @@ export const useAuthStore = defineStore("auth", () => {
         success: false,
         error: response.data.error?.message || "Login failed",
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: error.response?.data?.error?.message || t("auth.loginFailed"),
+        error: getApiEnvelopeMessage(error) ?? t("auth.loginFailed"),
       };
     } finally {
       isLoading.value = false;
@@ -346,8 +350,8 @@ export const useAuthStore = defineStore("auth", () => {
           authClient.tokens.scheduleProactiveRefresh(token.value);
         return true;
       }
-    } catch (error: any) {
-      const status = error?.response?.status ?? error?.status;
+    } catch (error: unknown) {
+      const status = getApiErrorStatus(error);
 
       // Only logout on definitive auth failures (401/403).
       // Transient errors (429 rate-limit, 5xx, network) should NOT
@@ -425,8 +429,8 @@ export const useAuthStore = defineStore("auth", () => {
           authClient.tokens.scheduleProactiveRefresh(token.value!);
           return { refreshed: true, authFailure: false };
         }
-      } catch (error: any) {
-        const status = error?.response?.status ?? error?.status;
+      } catch (error: unknown) {
+        const status = getApiErrorStatus(error);
         const authFailure = status === 400 || status === 401 || status === 403;
         if (clearOnAuthFailure && authFailure) {
           clearLocalSessionState();
