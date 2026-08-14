@@ -3,6 +3,45 @@ import { BaseService } from "./base";
 import { resolveAppBaseUrl } from "./app-base-url";
 import { restaurants, categories, menuItems, tables, users } from "../schema";
 import type { Restaurant } from "@makanmasak/shared-types";
+import { PlanType } from "@makanmasak/shared-types";
+
+/** 只列出 mapToRestaurant 實際讀取的欄位，任何餵給它的查詢都必須選滿 */
+type RestaurantRow = Pick<
+  typeof restaurants.$inferSelect,
+  | "address"
+  | "bannerUrl"
+  | "businessHours"
+  | "category"
+  | "city"
+  | "createdAt"
+  | "description"
+  | "district"
+  | "email"
+  | "enableShopMode"
+  | "id"
+  | "imageUrls"
+  | "isActive"
+  | "isAvailable"
+  | "latitude"
+  | "logoUrl"
+  | "longitude"
+  | "name"
+  | "phone"
+  | "rating"
+  | "reviewCount"
+  | "settings"
+  | "shopQrCode"
+  | "shopQrCodeImageUrl"
+  | "shopQrSettings"
+  | "shopQrVersion"
+  | "supportsDelivery"
+  | "supportsTakeaway"
+  | "totalOrders"
+  | "type"
+  | "updatedAt"
+  | "website"
+>;
+type RestaurantInsert = typeof restaurants.$inferInsert;
 
 export interface CreateRestaurantData {
   name: string;
@@ -15,7 +54,7 @@ export interface CreateRestaurantData {
   phone: string;
   email?: string;
   website?: string;
-  businessHours?: any;
+  businessHours?: RestaurantInsert["businessHours"];
   latitude?: number | null;
   longitude?: number | null;
   logoUrl?: string;
@@ -25,7 +64,7 @@ export interface CreateRestaurantData {
 export interface UpdateRestaurantData extends Partial<CreateRestaurantData> {
   isAvailable?: boolean;
   isActive?: boolean;
-  settings?: any;
+  settings?: RestaurantInsert["settings"];
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -157,6 +196,16 @@ export class RestaurantService extends BaseService {
           reviewCount: restaurants.reviewCount,
           totalOrders: restaurants.totalOrders,
           enableShopMode: restaurants.enableShopMode,
+          businessHours: restaurants.businessHours,
+          imageUrls: restaurants.imageUrls,
+          latitude: restaurants.latitude,
+          longitude: restaurants.longitude,
+          settings: restaurants.settings,
+          shopQrCodeImageUrl: restaurants.shopQrCodeImageUrl,
+          shopQrSettings: restaurants.shopQrSettings,
+          shopQrVersion: restaurants.shopQrVersion,
+          supportsDelivery: restaurants.supportsDelivery,
+          supportsTakeaway: restaurants.supportsTakeaway,
           shopQrCode: restaurants.shopQrCode,
           createdAt: restaurants.createdAt,
           updatedAt: restaurants.updatedAt,
@@ -609,7 +658,8 @@ export class RestaurantService extends BaseService {
     qrUrl: string | null;
     qrCodeImageUrl: string | null;
     version: number;
-    settings: any;
+    // 下方的 || 後備保證這裡一定有值
+    settings: NonNullable<RestaurantInsert["shopQrSettings"]>;
   }> {
     try {
       const restaurant = await this.getRestaurant(restaurantId);
@@ -657,44 +707,45 @@ export class RestaurantService extends BaseService {
   }
 
   // 資料轉換
-  private mapToRestaurant(restaurant: any): Restaurant {
+  private mapToRestaurant(restaurant: RestaurantRow): Restaurant {
     return {
       id: restaurant.id,
       name: restaurant.name,
       type: restaurant.type,
       category: restaurant.category,
-      description: restaurant.description,
+      description: restaurant.description ?? undefined,
       address: restaurant.address,
       district: restaurant.district,
       city: restaurant.city,
       latitude: restaurant.latitude,
       longitude: restaurant.longitude,
       phone: restaurant.phone,
-      email: restaurant.email,
-      website: restaurant.website,
-      businessHours: restaurant.businessHours,
+      email: restaurant.email ?? undefined,
+      website: restaurant.website ?? undefined,
+      businessHours: restaurant.businessHours ?? undefined,
       isAvailable: restaurant.isAvailable,
       isActive: restaurant.isActive,
-      logoUrl: restaurant.logoUrl,
-      bannerUrl: restaurant.bannerUrl,
-      imageUrls: restaurant.imageUrls,
-      settings: restaurant.settings,
-      rating: restaurant.rating,
+      logoUrl: restaurant.logoUrl ?? undefined,
+      bannerUrl: restaurant.bannerUrl ?? undefined,
+      imageUrls: restaurant.imageUrls ?? undefined,
+      settings: restaurant.settings ?? undefined,
+      rating: restaurant.rating ?? undefined,
       reviewCount: restaurant.reviewCount,
       totalOrders: restaurant.totalOrders,
       supportsTakeaway: restaurant.supportsTakeaway,
       supportsDelivery: restaurant.supportsDelivery,
       status: restaurant.isActive ? 1 : 0, // Status.ACTIVE : Status.INACTIVE
-      planType: restaurant.planType || 0,
+      // restaurants 資料表尚無方案欄位，一律以 FREE 呈現，待方案功能落地再改為讀取欄位
+      planType: PlanType.FREE,
       // 店家 QR Code 相关字段
-      shopQrCode: restaurant.shopQrCode,
-      shopQrCodeImageUrl: restaurant.shopQrCodeImageUrl,
+      shopQrCode: restaurant.shopQrCode ?? undefined,
+      shopQrCodeImageUrl: restaurant.shopQrCodeImageUrl ?? undefined,
       enableShopMode: restaurant.enableShopMode,
-      shopQrSettings: restaurant.shopQrSettings,
+      shopQrSettings: restaurant.shopQrSettings ?? undefined,
       shopQrVersion: restaurant.shopQrVersion,
-      createdAt: restaurant.createdAt,
-      updatedAt: restaurant.updatedAt,
-    } as Restaurant;
+      createdAt: restaurant.createdAt.toISOString(),
+      updatedAt: restaurant.updatedAt.toISOString(),
+    };
   }
 }
 

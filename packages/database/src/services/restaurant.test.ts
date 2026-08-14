@@ -41,6 +41,8 @@ describe("RestaurantService.updateRestaurant", () => {
             enableTakeaway: true,
             minOrderAmount: 300,
           },
+          createdAt: new Date("2026-01-01T00:00:00.000Z"),
+          updatedAt: new Date("2026-01-02T00:00:00.000Z"),
         },
       ]),
     };
@@ -122,6 +124,9 @@ describe("RestaurantService shop QR codes", () => {
       shopQrCodeImageUrl: null,
       shopQrVersion: 1,
       settings: { enableTakeaway: true },
+      // 兩欄在 schema 都是 notNull，真實列必定帶值
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
       ...overrides,
     };
   }
