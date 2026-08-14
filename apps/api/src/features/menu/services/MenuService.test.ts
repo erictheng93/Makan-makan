@@ -232,7 +232,7 @@ describe("MenuService", () => {
           id: 7,
           restaurantId: "rest-1",
           status: Status.ACTIVE,
-          createdAt: "2026-06-01T00:00:00.000Z",
+          createdAt: new Date("2026-06-01T00:00:00.000Z").getTime(),
         },
       ],
       menuItems: [
@@ -659,7 +659,7 @@ describe("MenuService", () => {
       id: 9,
       restaurantId: "rest-1",
       status: Status.ACTIVE,
-      createdAt: "2026-06-01T00:00:00.000Z",
+      createdAt: new Date("2026-06-01T00:00:00.000Z").getTime(),
     });
     await expect(
       service.updateCategory(9, { isActive: false } as never),
