@@ -686,6 +686,7 @@ import { useI18n } from "@/i18n";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
 import { ReservationService } from "@/services/reservationService";
+import { getApiEnvelopeMessage } from "@makanmasak/shared/utils/unknown";
 import {
   ReservationStatus,
   type Reservation,
@@ -808,9 +809,9 @@ async function createReservation() {
     showCreateDialog.value = false;
     resetForm();
     await loadReservations();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Create reservation error:", error);
-    toast.error(error.response?.data?.error || t("reservation.createError"));
+    toast.error(getApiEnvelopeMessage(error) ?? t("reservation.createError"));
   } finally {
     submitting.value = false;
   }
@@ -832,9 +833,9 @@ async function confirmReservation(id: string) {
     await ReservationService.confirmReservation(id);
     toast.success(t("reservation.confirmSuccess"));
     await loadReservations();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Confirm reservation error:", error);
-    toast.error(error.response?.data?.error || t("reservation.confirmError"));
+    toast.error(getApiEnvelopeMessage(error) ?? t("reservation.confirmError"));
   }
 }
 
@@ -846,9 +847,9 @@ async function markArrived(id: string) {
     await ReservationService.markArrived(id);
     toast.success(t("reservation.arrivedSuccess"));
     await loadReservations();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Mark arrived error:", error);
-    toast.error(error.response?.data?.error || t("reservation.arrivedError"));
+    toast.error(getApiEnvelopeMessage(error) ?? t("reservation.arrivedError"));
   }
 }
 
@@ -860,9 +861,9 @@ async function markSeated(id: string) {
     await ReservationService.markSeated(id);
     toast.success(t("reservation.seatedSuccess"));
     await loadReservations();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Mark seated error:", error);
-    toast.error(error.response?.data?.error || t("reservation.seatedError"));
+    toast.error(getApiEnvelopeMessage(error) ?? t("reservation.seatedError"));
   }
 }
 
@@ -882,9 +883,9 @@ async function cancelReservation(id: string) {
     await ReservationService.cancelReservation(id);
     toast.success(t("reservation.cancelSuccess"));
     await loadReservations();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Cancel reservation error:", error);
-    toast.error(error.response?.data?.error || t("reservation.cancelError"));
+    toast.error(getApiEnvelopeMessage(error) ?? t("reservation.cancelError"));
   }
 }
 

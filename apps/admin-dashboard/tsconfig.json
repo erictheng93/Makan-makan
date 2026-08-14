@@ -40,6 +40,7 @@
     "../../packages/shared/composables/useModuleAccess.ts",
     "../../packages/shared/stores/moduleAccess.ts",
     "../../packages/shared/types/module-access.ts",
+    "../../packages/shared/utils/unknown.ts",
     "../../packages/shared-types/src/**/*",
     "../../packages/utils/src/**/*"
   ],

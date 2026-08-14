@@ -35,29 +35,56 @@ export function getErrorMessage(
 }
 
 /**
- * axios 風格的錯誤優先取後端回的訊息，取不到再退回該錯誤自身的訊息。
+ * 只取後端回應主體裡的訊息，取不到就回 `undefined`。
  *
  * 本專案強制的錯誤格式是 `{ success: false, error: { code, message } }`
  * （見 CLAUDE.md），所以先找 `data.error.message`；`data.message` 是尚未
  * 遷移的舊路由才會有的形狀，留著當後備。
+ *
+ * 刻意不退回 axios 自身的 `message` —— 那是 "Network Error" 這種未在地化
+ * 的英文字串，蓋掉呼叫端的 `?? t("...")` 只會讓 UI 更難懂。需要那層退路的
+ * 用 {@link getApiErrorMessage}。
  */
-export function getApiErrorMessage(error: unknown, fallback: string): string {
+export function getApiEnvelopeMessage(error: unknown): string | undefined {
   const data =
     isRecord(error) && isRecord(error.response)
       ? error.response.data
       : undefined;
 
-  if (isRecord(data)) {
-    const enveloped = isRecord(data.error) ? data.error.message : undefined;
-    if (typeof enveloped === "string" && enveloped.length > 0) {
-      return enveloped;
-    }
-    if (typeof data.message === "string" && data.message.length > 0) {
-      return data.message;
-    }
+  if (!isRecord(data)) {
+    return undefined;
   }
 
-  return getErrorMessage(error, fallback);
+  const enveloped = isRecord(data.error) ? data.error.message : undefined;
+  if (typeof enveloped === "string" && enveloped.length > 0) {
+    return enveloped;
+  }
+  if (typeof data.message === "string" && data.message.length > 0) {
+    return data.message;
+  }
+  return undefined;
+}
+
+/**
+ * 取統一錯誤信封裡機器可讀的 `code`，用來分支到專屬的復原 UI
+ * （例如 MENU_ITEM_MODIFIED 的重載/合併流程）。
+ */
+export function getApiErrorCode(error: unknown): string | undefined {
+  const data =
+    isRecord(error) && isRecord(error.response)
+      ? error.response.data
+      : undefined;
+  const envelope =
+    isRecord(data) && isRecord(data.error) ? data.error : undefined;
+  return typeof envelope?.code === "string" ? envelope.code : undefined;
+}
+
+/**
+ * axios 風格的錯誤優先取後端回的訊息，取不到再退回該錯誤自身的訊息，
+ * 最後才是 fallback。
+ */
+export function getApiErrorMessage(error: unknown, fallback: string): string {
+  return getApiEnvelopeMessage(error) ?? getErrorMessage(error, fallback);
 }
 
 export function getApiErrorStatus(error: unknown): number | undefined {

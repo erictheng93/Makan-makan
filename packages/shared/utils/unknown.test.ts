@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   isRecord,
   getErrorMessage,
+  getApiEnvelopeMessage,
+  getApiErrorCode,
   getApiErrorMessage,
   getApiErrorStatus,
   getApiErrorStatusText,
@@ -36,6 +38,47 @@ describe("getErrorMessage", () => {
     expect(getErrorMessage(null, "fallback")).toBe("fallback");
     expect(getErrorMessage("a string", "fallback")).toBe("fallback");
     expect(getErrorMessage({ message: 42 }, "fallback")).toBe("fallback");
+  });
+});
+
+describe("getApiEnvelopeMessage", () => {
+  it("reads the unified envelope", () => {
+    const error = {
+      response: { data: { error: { message: "此優惠券已過期" } } },
+    };
+    expect(getApiEnvelopeMessage(error)).toBe("此優惠券已過期");
+  });
+
+  it("leaves the localized fallback to the caller instead of surfacing axios' English", () => {
+    const error = { message: "Network Error", response: { data: {} } };
+    expect(getApiEnvelopeMessage(error)).toBeUndefined();
+    expect(getApiEnvelopeMessage(error) ?? "連線失敗").toBe("連線失敗");
+  });
+
+  it("returns undefined for a body-less error", () => {
+    expect(getApiEnvelopeMessage(new Error("boom"))).toBeUndefined();
+  });
+});
+
+describe("getApiErrorCode", () => {
+  it("reads the machine-readable code the recovery UIs branch on", () => {
+    const error = {
+      response: {
+        status: 409,
+        data: { error: { code: "MENU_ITEM_MODIFIED", message: "conflict" } },
+      },
+    };
+    expect(getApiErrorCode(error)).toBe("MENU_ITEM_MODIFIED");
+  });
+
+  it("returns undefined when the envelope carries no code", () => {
+    expect(
+      getApiErrorCode({ response: { data: { error: {} } } }),
+    ).toBeUndefined();
+    expect(
+      getApiErrorCode({ response: { data: { error: "legacy string" } } }),
+    ).toBeUndefined();
+    expect(getApiErrorCode(new Error("boom"))).toBeUndefined();
   });
 });
 

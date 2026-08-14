@@ -468,6 +468,7 @@ import { useDateFormatter } from "@/composables/useDateFormatter";
 import { api } from "@/services/api";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
+import { getApiEnvelopeMessage } from "@makanmasak/shared/utils/unknown";
 
 import {
   PlusIcon,
@@ -692,10 +693,8 @@ const resetPassword = async (user: User) => {
       confirmPassword: tempPassword,
     });
     toast.success(t("users.confirm.resetPasswordSuccess"));
-  } catch (error: any) {
-    toast.error(
-      error.response?.data?.error?.message || t("users.errors.resetFailed"),
-    );
+  } catch (error: unknown) {
+    toast.error(getApiEnvelopeMessage(error) || t("users.errors.resetFailed"));
   }
 };
 
@@ -718,10 +717,8 @@ const toggleUserStatus = async (user: User) => {
   try {
     await api.patch(`/users/${user.id}/status`, { isActive: newIsActive });
     await fetchUsers();
-  } catch (error: any) {
-    toast.error(
-      error.response?.data?.error?.message || t("users.errors.toggleFailed"),
-    );
+  } catch (error: unknown) {
+    toast.error(getApiEnvelopeMessage(error) || t("users.errors.toggleFailed"));
   }
 };
 
@@ -759,10 +756,8 @@ const saveUser = async () => {
     }
     closeUserModal();
     await fetchUsers();
-  } catch (error: any) {
-    toast.error(
-      error.response?.data?.error?.message || t("users.errors.saveFailed"),
-    );
+  } catch (error: unknown) {
+    toast.error(getApiEnvelopeMessage(error) || t("users.errors.saveFailed"));
   }
 };
 

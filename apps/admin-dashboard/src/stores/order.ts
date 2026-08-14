@@ -3,6 +3,7 @@ import { ref, computed, readonly } from "vue";
 import type { Order, OrderStatus } from "@/types";
 import { api, unwrapApiList } from "@/services/api";
 import { t } from "@/i18n";
+import { getApiEnvelopeMessage } from "@makanmasak/shared/utils/unknown";
 
 export const useOrderStore = defineStore("order", () => {
   const orders = ref<Order[]>([]);
@@ -78,9 +79,8 @@ export const useOrderStore = defineStore("order", () => {
         const payload = response.data.data;
         orders.value = unwrapApiList<Order>(payload);
       }
-    } catch (err: any) {
-      error.value =
-        err.response?.data?.error?.message || t("orderStore.fetchFailed");
+    } catch (err: unknown) {
+      error.value = getApiEnvelopeMessage(err) || t("orderStore.fetchFailed");
     } finally {
       isLoading.value = false;
     }
@@ -103,10 +103,9 @@ export const useOrderStore = defineStore("order", () => {
         return true;
       }
       return false;
-    } catch (err: any) {
+    } catch (err: unknown) {
       error.value =
-        err.response?.data?.error?.message ||
-        t("orderStore.updateStatusFailed");
+        getApiEnvelopeMessage(err) || t("orderStore.updateStatusFailed");
       return false;
     }
   };
@@ -195,9 +194,8 @@ export const useOrderStore = defineStore("order", () => {
         return true;
       }
       return false;
-    } catch (err: any) {
-      error.value =
-        err.response?.data?.error?.message || t("orderStore.cancelFailed");
+    } catch (err: unknown) {
+      error.value = getApiEnvelopeMessage(err) || t("orderStore.cancelFailed");
       return false;
     }
   };

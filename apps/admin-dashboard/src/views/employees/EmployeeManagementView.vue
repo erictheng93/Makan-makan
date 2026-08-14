@@ -107,6 +107,11 @@ import { leavesService } from "@/services/leavesService";
 import EmployeeFormModal from "@/components/employees/EmployeeFormModal.vue";
 import type { Employee, EmployeeFormData } from "@/types/employee";
 import {
+  getApiEnvelopeMessage,
+  getErrorMessage,
+  isRecord,
+} from "@makanmasak/shared/utils/unknown";
+import {
   Users,
   Plus,
   Clock,
@@ -249,18 +254,30 @@ const handleSave = async (form: EmployeeFormData, isEdit: boolean) => {
       await employeeList.createUser(form);
     }
     closeModal();
-  } catch (error: any) {
-    const rawError = error?.originalError || error;
-    const apiError = rawError?.response?.data?.error;
-    let errorMessage: string;
-    if (apiError?.details && Array.isArray(apiError.details)) {
-      errorMessage = apiError.details.map((d: any) => d.message).join("\n");
-    } else if (apiError?.message) {
-      errorMessage = apiError.message;
-    } else {
-      errorMessage = error?.message || t("users.errors.saveFailed");
-    }
-    toast.error(errorMessage);
+  } catch (error: unknown) {
+    // 驗證失敗時後端會在信封的 details 帶逐欄訊息，那比信封本身的
+    // 「Validation failed」有用得多，所以優先顯示。
+    const envelope =
+      isRecord(error) &&
+      isRecord(error.response) &&
+      isRecord(error.response.data)
+        ? error.response.data.error
+        : undefined;
+    const details = isRecord(envelope) ? envelope.details : undefined;
+    const fieldMessages = Array.isArray(details)
+      ? details
+          .map((d) =>
+            isRecord(d) && typeof d.message === "string" ? d.message : "",
+          )
+          .filter(Boolean)
+      : [];
+
+    toast.error(
+      fieldMessages.length > 0
+        ? fieldMessages.join("\n")
+        : (getApiEnvelopeMessage(error) ??
+            getErrorMessage(error, t("users.errors.saveFailed"))),
+    );
   }
 };
 
@@ -268,20 +285,16 @@ const handleResetPassword = async (userId: number) => {
   try {
     await employeeList.resetPassword(userId);
     toast.success(t("users.confirm.resetPasswordSuccess"));
-  } catch (error: any) {
-    toast.error(
-      error.response?.data?.error?.message || t("users.errors.resetFailed"),
-    );
+  } catch (error: unknown) {
+    toast.error(getApiEnvelopeMessage(error) || t("users.errors.resetFailed"));
   }
 };
 
 const handleToggleStatus = async (user: any) => {
   try {
     await employeeList.toggleUserStatus(user);
-  } catch (error: any) {
-    toast.error(
-      error.response?.data?.error?.message || t("users.errors.toggleFailed"),
-    );
+  } catch (error: unknown) {
+    toast.error(getApiEnvelopeMessage(error) || t("users.errors.toggleFailed"));
   }
 };
 

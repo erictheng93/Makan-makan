@@ -3,6 +3,7 @@ import { api } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/i18n";
+import { getApiErrorCode } from "@makanmasak/shared/utils/unknown";
 
 /**
  * Shared customization option groups.
@@ -145,9 +146,9 @@ export function useOptionGroups() {
       await fetchGroups();
       toast.success(t(successKey));
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(failureKey, error);
-      const code = error?.response?.data?.error?.code;
+      const code = getApiErrorCode(error);
       toast.error(
         code === "OPTION_GROUP_PUBLIC_ID_CONFLICT"
           ? t("optionGroups.errors.publicIdConflict")
@@ -294,9 +295,9 @@ export function useOptionGroups() {
     try {
       await api.put(`/menu/items/${menuItemId}/option-groups`, { groups });
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to save item option groups:", error);
-      const code = error?.response?.data?.error?.code;
+      const code = getApiErrorCode(error);
       toast.error(
         code === "OPTION_GROUP_PUBLIC_ID_CONFLICT"
           ? t("optionGroups.errors.publicIdConflict")

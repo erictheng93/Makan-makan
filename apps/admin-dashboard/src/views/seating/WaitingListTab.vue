@@ -784,6 +784,7 @@ import { useAuthStore } from "@/stores/auth";
 import { WaitingListService } from "@/services/waitingListService";
 import { useWebSocketService } from "@/services/websocketService";
 import { format } from "date-fns";
+import { getApiEnvelopeMessage } from "@makanmasak/shared/utils/unknown";
 import {
   RealtimeEventType,
   WaitingStatus,
@@ -989,9 +990,9 @@ async function addToQueue() {
     resetForm();
     await loadWaitingList();
     await loadQueueStatus();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Add to queue error:", error);
-    toast.error(error.response?.data?.error || t("waitingList.addError"));
+    toast.error(getApiEnvelopeMessage(error) ?? t("waitingList.addError"));
   } finally {
     submitting.value = false;
   }
@@ -1027,9 +1028,9 @@ async function confirmCall() {
     showCallDialog.value = false;
     await loadWaitingList();
     await loadQueueStatus();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Call waiting error:", error);
-    toast.error(error.response?.data?.error || t("waitingList.callError"));
+    toast.error(getApiEnvelopeMessage(error) ?? t("waitingList.callError"));
   } finally {
     calling.value = false;
   }
@@ -1045,9 +1046,9 @@ async function batchCallNext() {
     toast.success(t("waitingList.callSuccess"));
     await loadWaitingList();
     await loadQueueStatus();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Batch call error:", error);
-    toast.error(error.response?.data?.error || t("waitingList.callError"));
+    toast.error(getApiEnvelopeMessage(error) ?? t("waitingList.callError"));
   } finally {
     batchCalling.value = false;
   }
@@ -1062,9 +1063,9 @@ async function markSeated(id: string) {
     toast.success(t("waitingList.seatSuccess"));
     await loadWaitingList();
     await loadQueueStatus();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Mark seated error:", error);
-    toast.error(error.response?.data?.error || t("waitingList.seatedError"));
+    toast.error(getApiEnvelopeMessage(error) ?? t("waitingList.seatedError"));
   }
 }
 
@@ -1085,9 +1086,9 @@ async function markExpired(id: string) {
     toast.success(t("waitingList.expireSuccess"));
     await loadWaitingList();
     await loadQueueStatus();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Mark expired error:", error);
-    toast.error(error.response?.data?.error || t("waitingList.expireError"));
+    toast.error(getApiEnvelopeMessage(error) ?? t("waitingList.expireError"));
   }
 }
 
@@ -1108,9 +1109,9 @@ async function cancelEntry(entry: WaitingListEntry) {
     toast.success(t("waitingList.cancelSuccess"));
     await loadWaitingList();
     await loadQueueStatus();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Cancel entry error:", error);
-    toast.error(error.response?.data?.error || t("waitingList.cancelError"));
+    toast.error(getApiEnvelopeMessage(error) ?? t("waitingList.cancelError"));
   }
 }
 

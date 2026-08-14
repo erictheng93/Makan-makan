@@ -5,6 +5,7 @@ import { api } from "@/services/api";
 import { useAuthStore } from "./auth";
 import { useCurrency } from "@/composables/useCurrency";
 import { t } from "@/i18n";
+import { getApiEnvelopeMessage } from "@makanmasak/shared/utils/unknown";
 
 type AnalyticsPeriod = "daily" | "weekly" | "monthly";
 type TopMenuItemsPeriod = "today" | "week" | "month";
@@ -114,10 +115,9 @@ export const useDashboardStore = defineStore("dashboard", () => {
         error.value =
           response.data.error?.message || t("dashboardStore.fetchDataFailed");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       error.value =
-        err.response?.data?.error?.message ||
-        t("dashboardStore.fetchDashboardFailed");
+        getApiEnvelopeMessage(err) || t("dashboardStore.fetchDashboardFailed");
       console.error("Dashboard fetch error:", err);
     } finally {
       isLoading.value = false;

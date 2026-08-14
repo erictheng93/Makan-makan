@@ -5,6 +5,10 @@ import { useToast } from "vue-toastification";
 import { useI18n } from "@/i18n";
 import type { MenuItemImportInput } from "@/utils/menuItemImport";
 import type { ImageVariants } from "@/composables/useImageUpload";
+import {
+  getApiEnvelopeMessage,
+  getApiErrorCode,
+} from "@makanmasak/shared/utils/unknown";
 
 export interface CategoryData {
   id: number;
@@ -158,11 +162,9 @@ export function useMenuManagement() {
         toast.success(t("menu.toast.categoryCreated"));
       }
       await fetchMenu();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to save category:", error);
-      toast.error(
-        error.response?.data?.error?.message || t("menu.errors.saveFailed"),
-      );
+      toast.error(getApiEnvelopeMessage(error) || t("menu.errors.saveFailed"));
     }
   };
 
@@ -179,10 +181,10 @@ export function useMenuManagement() {
         selectedCategoryId.value = null;
       }
       await fetchMenu();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to delete category:", error);
       toast.error(
-        error.response?.data?.error?.message || t("menu.errors.deleteFailed"),
+        getApiEnvelopeMessage(error) || t("menu.errors.deleteFailed"),
       );
       await fetchMenu();
     }
@@ -267,9 +269,9 @@ export function useMenuManagement() {
       }
       await fetchMenu();
       return "saved";
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to save menu item:", error);
-      if (error.response?.data?.error?.code === "MENU_ITEM_MODIFIED") {
+      if (getApiErrorCode(error) === "MENU_ITEM_MODIFIED") {
         return "conflict";
       }
       toast.error(describeSaveFailure(error));
@@ -337,7 +339,7 @@ export function useMenuManagement() {
       const created = response.data?.data?.created ?? items.length;
       toast.success(t("menu.toast.itemsImported", { count: created }));
       await fetchMenu();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to import menu items:", error);
       const message = describeImportFailure(error);
       toast.error(message);
@@ -355,10 +357,10 @@ export function useMenuManagement() {
       toast.success(t("menu.toast.itemDeleted"));
       // Also refetch to sync with server (handles edge cache staleness)
       await fetchMenu();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to delete menu item:", error);
       toast.error(
-        error.response?.data?.error?.message || t("menu.errors.deleteFailed"),
+        getApiEnvelopeMessage(error) || t("menu.errors.deleteFailed"),
       );
       // Re-fetch to restore state if delete failed
       await fetchMenu();
