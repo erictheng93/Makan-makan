@@ -166,4 +166,64 @@ describe("OrderTypeLandingView", () => {
     expect(wrapper.text()).toContain("市場入口店");
     expect(wrapper.text()).not.toContain("Owner must complete");
   });
+  describe("requirePhone shop setting", () => {
+    // Takeaway-only so autoSelectType lands on takeaway, the branch that used
+    // to route through the pickup-digits screen unconditionally.
+    function mockTakeawayOnlyShop(requirePhone?: boolean) {
+      vi.mocked(menuApi.getRestaurant).mockResolvedValue({
+        id: "restaurant-1",
+        name: "市場入口店",
+        settings: {
+          enableDineIn: false,
+          enableTakeaway: true,
+          enableDelivery: false,
+        },
+        ...(requirePhone === undefined
+          ? {}
+          : { shopQrSettings: { requirePhone } }),
+      } as never);
+    }
+
+    async function clickContinue() {
+      const wrapper = mount(OrderTypeLandingView, {
+        props: { restaurantId: "restaurant-1" },
+      });
+      await vi.waitFor(() => {
+        expect(wrapper.find('[data-testid="continue-btn"]').exists()).toBe(
+          true,
+        );
+      });
+      await wrapper.get('[data-testid="continue-btn"]').trigger("click");
+    }
+
+    it("skips the pickup-digits step when the owner turned it off", async () => {
+      mockTakeawayOnlyShop(false);
+
+      await clickContinue();
+
+      expect(routerPush).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "ShopMenu" }),
+      );
+    });
+
+    it("asks for pickup digits when the setting is on", async () => {
+      mockTakeawayOnlyShop(true);
+
+      await clickContinue();
+
+      expect(routerPush).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "ShopPhoneVerification" }),
+      );
+    });
+
+    it("asks for pickup digits when the shop has no setting yet", async () => {
+      mockTakeawayOnlyShop(undefined);
+
+      await clickContinue();
+
+      expect(routerPush).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "ShopPhoneVerification" }),
+      );
+    });
+  });
 });

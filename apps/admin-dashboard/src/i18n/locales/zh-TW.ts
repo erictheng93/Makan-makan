@@ -2525,8 +2525,9 @@ const zhTWCore = {
       instructions: "點餐說明",
       instructionsHint: "簡短說明如何使用 QR Code 點餐",
       instructionsExample: "例如：掃描QR碼開始點餐",
-      requirePhone: "需要手機驗證",
-      requirePhoneDesc: "客戶需提供手機號碼才能點餐",
+      requirePhone: "要求填寫取餐末三碼",
+      requirePhoneDesc:
+        "外帶／外送顧客下單前需填寫手機末三碼作為取餐識別。這不是手機驗證，系統不會發送簡訊。",
       saveSettings: "儲存設定",
       saving: "儲存中...",
       management: "QR Code 管理",
