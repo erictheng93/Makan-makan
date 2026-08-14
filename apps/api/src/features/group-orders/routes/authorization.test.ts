@@ -28,7 +28,6 @@ const groupServiceMocks = vi.hoisted(() => ({
   setAutoSubmitOnExpiry: vi.fn(),
   setSplitType: vi.fn(),
   setFeeMode: vi.fn(),
-  setSplitType: vi.fn(),
   isHostSession: vi.fn(),
   isMemberSession: vi.fn(),
   getGroupOrder: vi.fn(),
@@ -141,10 +140,6 @@ describe("group order mutations require proof of who is calling", () => {
     groupServiceMocks.setFeeMode.mockResolvedValue({
       success: true,
       data: { feeMode: "equal" },
-    });
-    groupServiceMocks.setSplitType.mockResolvedValue({
-      success: true,
-      data: { splitType: "equal" },
     });
     groupServiceMocks.getGroupOrder.mockResolvedValue({
       groupOrder: { id: GROUP_ORDER_ID, restaurantId: "rest-1" },
