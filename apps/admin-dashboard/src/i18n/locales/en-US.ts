@@ -2463,7 +2463,7 @@ const enUS: Messages = {
       regenerating: "Regenerating...",
       warning: "Important Note",
       warningText:
-        "Regenerating the QR Code will update the version number. Old QR Codes will remain valid (unless you disable shop mode). Only regenerate if the QR Code has been compromised or for security concerns.",
+        "Regenerating immediately invalidates every QR Code you have already printed — customers scanning an old sticker cannot order. Reprint and replace all of them. Only regenerate if the code has leaked or you have a security concern.",
     },
     markets: {
       title: "Market Memberships",
@@ -2609,7 +2609,8 @@ const enUS: Messages = {
       settingsSaved: "Settings saved",
       qrGenerated: "QR Code generated",
       generateFailed: "Generation failed, please try again later",
-      qrRegenerated: "QR Code regenerated (version {version})",
+      qrRegenerated:
+        "QR Code regenerated (version {version}). Old stickers no longer work — reprint them.",
       regenerateFailed: "Regeneration failed, please try again later",
       copied: "Copied to clipboard",
       downloadFailed: "Unable to download QR Code",
@@ -2621,7 +2622,7 @@ const enUS: Messages = {
       resetDefaultsTitle: "Reset to Defaults",
       resetDefaultsAction: "Reset",
       regenerateQR:
-        "Are you sure you want to regenerate the QR Code? This will update the version number.",
+        "Regenerate the QR Code? Every sticker you have already printed stops working immediately and will need reprinting.",
       regenerateQRTitle: "Regenerate QR Code",
       regenerateQRAction: "Regenerate",
     },

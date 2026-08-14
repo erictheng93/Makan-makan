@@ -2437,7 +2437,7 @@ const zhCN: Messages = {
       regenerating: "重新生成中...",
       warning: "注意事项",
       warningText:
-        "重新生成 QR Code 将更新版本号，旧 QR Code 将继续有效（除非您停用店家模式）。建议在 QR Code 泄露或安全性顾虑时才重新生成。",
+        "重新生成后，已打印的旧 QR Code 会立即失效，顾客扫描将无法点餐。请务必重新打印并更换所有贴纸。仅在 QR Code 外泄或有安全顾虑时才需要重新生成。",
     },
     notifications: {
       soundTitle: "音效通知",
@@ -2483,7 +2483,8 @@ const zhCN: Messages = {
       settingsSaved: "设置已保存",
       qrGenerated: "QR Code 已生成",
       generateFailed: "生成失败，请稍后再试",
-      qrRegenerated: "QR Code 已重新生成（版本 {version}）",
+      qrRegenerated:
+        "QR Code 已重新生成（版本 {version}）。旧贴纸已失效，请重新打印。",
       regenerateFailed: "重新生成失败，请稍后再试",
       copied: "已复制到剪贴板",
       downloadFailed: "无法下载 QR Code",
@@ -2491,7 +2492,8 @@ const zhCN: Messages = {
     },
     confirms: {
       resetDefaults: "确定要将所有设置重置为默认值吗？此操作无法恢复。",
-      regenerateQR: "确定要重新生成 QR Code 吗？这将更新版本号。",
+      regenerateQR:
+        "确定要重新生成 QR Code 吗？已打印的旧 QR Code 会立即失效，需要重新打印并更换。",
       regenerateQRTitle: "重新产生 QR 码",
       regenerateQRAction: "重新产生",
       resetDefaultsAction: "重置",

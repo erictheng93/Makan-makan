@@ -2478,7 +2478,7 @@ const idID: Messages = {
       regenerating: "Membuat ulang...",
       warning: "Catatan Penting",
       warningText:
-        "Membuat ulang kode QR akan memperbarui nomor versi. Kode QR lama tetap valid (kecuali Anda menonaktifkan mode toko). Buat ulang hanya jika kode QR telah disusupi atau untuk alasan keamanan.",
+        "Membuat ulang akan langsung membatalkan semua kode QR yang sudah dicetak — pelanggan yang memindai stiker lama tidak dapat memesan. Cetak ulang dan ganti semuanya. Buat ulang hanya jika kode bocor atau ada kekhawatiran keamanan.",
     },
     notifications: {
       soundTitle: "Notifikasi Suara",
@@ -2526,7 +2526,8 @@ const idID: Messages = {
       settingsSaved: "Pengaturan disimpan",
       qrGenerated: "Kode QR dibuat",
       generateFailed: "Pembuatan gagal, silakan coba lagi nanti",
-      qrRegenerated: "Kode QR dibuat ulang (versi {version})",
+      qrRegenerated:
+        "Kode QR dibuat ulang (versi {version}). Stiker lama tidak berfungsi lagi — cetak ulang.",
       regenerateFailed: "Pembuatan ulang gagal, silakan coba lagi nanti",
       copied: "Disalin ke clipboard",
       downloadFailed: "Tidak dapat mengunduh kode QR",
@@ -2536,7 +2537,7 @@ const idID: Messages = {
       resetDefaults:
         "Apakah Anda yakin ingin mengembalikan semua pengaturan ke default? Tindakan ini tidak dapat dibatalkan.",
       regenerateQR:
-        "Apakah Anda yakin ingin membuat ulang kode QR? Ini akan memperbarui nomor versi.",
+        "Buat ulang kode QR? Semua stiker yang sudah dicetak langsung berhenti berfungsi dan perlu dicetak ulang.",
       regenerateQRAction: "Diperbarui",
       resetDefaultsAction: "Mengatur ulang",
       regenerateQRTitle: "Buat ulang Kode QR",

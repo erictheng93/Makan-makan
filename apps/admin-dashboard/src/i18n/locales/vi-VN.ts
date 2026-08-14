@@ -2471,7 +2471,7 @@ const viVN: Messages = {
       regenerating: "Đang tạo lại...",
       warning: "Lưu ý quan trọng",
       warningText:
-        "Tạo lại mã QR sẽ cập nhật số phiên bản. Mã QR cũ vẫn hợp lệ (trừ khi bạn tắt chế độ cửa hàng). Chỉ tạo lại nếu mã QR bị lộ hoặc vì lý do bảo mật.",
+        "Tạo lại sẽ khiến mọi mã QR đã in mất hiệu lực ngay lập tức — khách quét sticker cũ sẽ không đặt được món. Hãy in lại và thay toàn bộ. Chỉ tạo lại khi mã bị lộ hoặc có lo ngại về bảo mật.",
     },
     notifications: {
       soundTitle: "Thông báo âm thanh",
@@ -2518,7 +2518,8 @@ const viVN: Messages = {
       settingsSaved: "Đã lưu cài đặt",
       qrGenerated: "Đã tạo mã QR",
       generateFailed: "Tạo thất bại, vui lòng thử lại sau",
-      qrRegenerated: "Đã tạo lại mã QR (phiên bản {version})",
+      qrRegenerated:
+        "Đã tạo lại mã QR (phiên bản {version}). Sticker cũ không còn dùng được — hãy in lại.",
       regenerateFailed: "Tạo lại thất bại, vui lòng thử lại sau",
       copied: "Đã sao chép vào clipboard",
       downloadFailed: "Không thể tải mã QR",
@@ -2528,7 +2529,7 @@ const viVN: Messages = {
       resetDefaults:
         "Bạn có chắc muốn đặt lại tất cả cài đặt về mặc định? Không thể hoàn tác.",
       regenerateQR:
-        "Bạn có chắc muốn tạo lại mã QR? Số phiên bản sẽ được cập nhật.",
+        "Tạo lại mã QR? Mọi sticker đã in sẽ ngừng hoạt động ngay và cần in lại.",
       resetDefaultsAction: "Cài lại",
       regenerateQRAction: "tái sinh",
       resetDefaultsTitle: "Đặt lại về mặc định",

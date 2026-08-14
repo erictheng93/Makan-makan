@@ -2547,7 +2547,7 @@ const zhTWCore = {
       regenerating: "重新生成中...",
       warning: "注意事項",
       warningText:
-        "重新生成 QR Code 將更新版本號，舊 QR Code 將繼續有效（除非您停用店家模式）。建議在 QR Code 洩露或安全性顧慮時才重新生成。",
+        "重新生成後，已印出的舊 QR Code 會立即失效，顧客掃描將無法點餐。請務必重新列印並更換所有貼紙。僅在 QR Code 外流或有安全顧慮時才需要重新生成。",
     },
     markets: {
       title: "所屬市場 / 商圈",
@@ -2684,7 +2684,8 @@ const zhTWCore = {
       settingsSaved: "設定已儲存",
       qrGenerated: "QR Code 已生成",
       generateFailed: "生成失敗，請稍後再試",
-      qrRegenerated: "QR Code 已重新生成（版本 {version}）",
+      qrRegenerated:
+        "QR Code 已重新生成（版本 {version}）。舊貼紙已失效，請重新列印。",
       regenerateFailed: "重新生成失敗，請稍後再試",
       copied: "已複製到剪貼簿",
       downloadFailed: "無法下載 QR Code",
@@ -2692,7 +2693,8 @@ const zhTWCore = {
     },
     confirms: {
       resetDefaults: "確定要將所有設定重置為預設值嗎？此操作無法恢復。",
-      regenerateQR: "確定要重新生成 QR Code 嗎？這將更新版本號。",
+      regenerateQR:
+        "確定要重新生成 QR Code 嗎？已印出的舊 QR Code 會立即失效，需要重新列印並更換。",
     },
   },
 

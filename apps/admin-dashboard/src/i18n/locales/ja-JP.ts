@@ -2469,7 +2469,7 @@ const jaJP: Messages = {
       regenerating: "再生成中...",
       warning: "重要な注意事項",
       warningText:
-        "QRコードを再生成するとバージョン番号が更新されます。古いQRコードは有効なままです（ショップモードを無効にしない限り）。セキュリティ上の懸念がある場合のみ再生成してください。",
+        "再生成すると、すでに印刷したQRコードは即座に無効になり、古いステッカーを読み取ったお客様は注文できません。必ずすべて印刷し直して貼り替えてください。QRコードが流出した場合やセキュリティ上の懸念がある場合のみ再生成してください。",
     },
     notifications: {
       soundTitle: "サウンド通知",
@@ -2518,7 +2518,8 @@ const jaJP: Messages = {
       settingsSaved: "設定が保存されました",
       qrGenerated: "QRコードが生成されました",
       generateFailed: "生成に失敗しました。後でもう一度お試しください",
-      qrRegenerated: "QRコードが再生成されました（バージョン {version}）",
+      qrRegenerated:
+        "QRコードを再生成しました（バージョン {version}）。古いステッカーは無効です。印刷し直してください。",
       regenerateFailed: "再生成に失敗しました。後でもう一度お試しください",
       copied: "クリップボードにコピーしました",
       downloadFailed: "QRコードをダウンロードできません",
@@ -2528,7 +2529,7 @@ const jaJP: Messages = {
       resetDefaults:
         "すべての設定をデフォルトにリセットしてもよろしいですか？この操作は取り消せません。",
       regenerateQR:
-        "QRコードを再生成してもよろしいですか？バージョン番号が更新されます。",
+        "QRコードを再生成しますか？すでに印刷したQRコードは即座に無効になり、印刷し直す必要があります。",
       regenerateQRAction: "再生する",
       resetDefaultsAction: "リセット",
       resetDefaultsTitle: "デフォルトにリセット",
