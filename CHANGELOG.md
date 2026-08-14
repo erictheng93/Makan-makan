@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- User response timestamps (`createdAt`, `updatedAt`, `lastLoginAt`) are ISO-8601 again. The read paths serialised these `timestamp_ms` columns with `String(date)`, which emits the runtime's locale form — `"Wed Aug 13 2026 22:00:00 GMT+0800 (台北標準時間)"` — so the value was neither sortable nor parseable as the ISO instant the response type promised, and shifted with the server's timezone. Paths that returned the `Date` unserialised were always correct, since `JSON.stringify` emits ISO; they are now consistent with the rest.
+
 - Table and user responses now carry the fields their own types have always declared. The queries behind them selected different column sets, which went unnoticed while the services returned `any`: table lists omitted `restaurantId` and `updatedAt`, available-table lookups omitted both timestamps, user lists omitted `updatedAt` (and disagreed with each other over `phone` and `restaurantId`), and user search returned six columns, so every hit published `isActive`, `isVerified`, `createdAt` and `updatedAt` as `undefined`. These are additive — no existing field changed shape or value — but consumers that enumerate response keys, snapshot payloads, or reject unknown fields will see the new ones.
 
 - Session-list responses now carry `deviceInfo` and `location`. Both were always omitted: the columns are `mode: "json"`, so the driver hands them over already parsed, and the response transform tried to `JSON.parse` the resulting object a second time and swallowed the error in a bare `catch`.

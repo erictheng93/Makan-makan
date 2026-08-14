@@ -4,6 +4,20 @@ import { USER_ROLES, users, type UserRole } from "../schema";
 import type { UserPreferences } from "@makanmasak/shared-types";
 import { BaseService } from "./base";
 
+/**
+ * `last_login_at_ms`, `created_at_ms` and `updated_at_ms` are `timestamp_ms`
+ * columns, so Drizzle hands them over as `Date`. `String(date)` emits the
+ * engine's locale form — "Wed Aug 13 2026 22:00:00 GMT+0800 (台北標準時間)" —
+ * which is neither sortable nor parseable by anything expecting the ISO-8601
+ * instant these responses have always been typed as.
+ *
+ * `dateOfBirth` deliberately does not go through here: it is a `text` column
+ * that already holds an ISO date, so it is a string on arrival.
+ */
+function isoOrNull(value: Date | null | undefined): string | null {
+  return value ? value.toISOString() : null;
+}
+
 export interface CreateUserData {
   username: string;
   email?: string;
@@ -121,9 +135,9 @@ export class UserService extends BaseService {
         isVerified: Boolean(Number(newUser.isVerified)),
         totalOrders: newUser.totalOrders ? Number(newUser.totalOrders) : 0,
         totalSpent: newUser.totalSpent ? Number(newUser.totalSpent) : 0,
-        lastLoginAt: newUser.lastLoginAt ? String(newUser.lastLoginAt) : null,
-        createdAt: newUser.createdAt ? String(newUser.createdAt) : null,
-        updatedAt: newUser.updatedAt ? String(newUser.updatedAt) : null,
+        lastLoginAt: isoOrNull(newUser.lastLoginAt),
+        createdAt: isoOrNull(newUser.createdAt),
+        updatedAt: isoOrNull(newUser.updatedAt),
       };
 
       return userWithoutPassword;
@@ -181,9 +195,9 @@ export class UserService extends BaseService {
         preferences: user.preferences ? String(user.preferences) : null,
         totalOrders: user.totalOrders ? Number(user.totalOrders) : 0,
         totalSpent: user.totalSpent ? Number(user.totalSpent) : 0,
-        lastLoginAt: user.lastLoginAt ? String(user.lastLoginAt) : null,
-        createdAt: user.createdAt ? String(user.createdAt) : null,
-        updatedAt: user.updatedAt ? String(user.updatedAt) : null,
+        lastLoginAt: isoOrNull(user.lastLoginAt),
+        createdAt: isoOrNull(user.createdAt),
+        updatedAt: isoOrNull(user.updatedAt),
       };
     } catch (error) {
       this.handleError(error, "getUserById");
@@ -224,8 +238,8 @@ export class UserService extends BaseService {
         restaurantId: user.restaurantId ? String(user.restaurantId) : null,
         isActive: Boolean(Number(user.isActive)),
         isVerified: Boolean(Number(user.isVerified)),
-        lastLoginAt: user.lastLoginAt ? String(user.lastLoginAt) : null,
-        createdAt: user.createdAt ? String(user.createdAt) : null,
+        lastLoginAt: isoOrNull(user.lastLoginAt),
+        createdAt: isoOrNull(user.createdAt),
       };
     } catch (error) {
       this.handleError(error, "getUserByUsername");
@@ -389,9 +403,9 @@ export class UserService extends BaseService {
         isVerified: Boolean(Number(user.isVerified)),
         totalOrders: user.totalOrders ? Number(user.totalOrders) : 0,
         totalSpent: user.totalSpent ? Number(user.totalSpent) : 0,
-        lastLoginAt: user.lastLoginAt ? String(user.lastLoginAt) : null,
-        createdAt: user.createdAt ? String(user.createdAt) : null,
-        updatedAt: user.updatedAt ? String(user.updatedAt) : null,
+        lastLoginAt: isoOrNull(user.lastLoginAt),
+        createdAt: isoOrNull(user.createdAt),
+        updatedAt: isoOrNull(user.updatedAt),
       }));
 
       return {
@@ -493,9 +507,9 @@ export class UserService extends BaseService {
         isVerified: Boolean(Number(user.isVerified)),
         totalOrders: user.totalOrders ? Number(user.totalOrders) : 0,
         totalSpent: user.totalSpent ? Number(user.totalSpent) : 0,
-        lastLoginAt: user.lastLoginAt ? String(user.lastLoginAt) : null,
-        createdAt: user.createdAt ? String(user.createdAt) : null,
-        updatedAt: user.updatedAt ? String(user.updatedAt) : null,
+        lastLoginAt: isoOrNull(user.lastLoginAt),
+        createdAt: isoOrNull(user.createdAt),
+        updatedAt: isoOrNull(user.updatedAt),
       }));
 
       return {
@@ -707,8 +721,8 @@ export class UserService extends BaseService {
         restaurantId: user.restaurantId ? String(user.restaurantId) : null,
         isActive: Boolean(Number(user.isActive)),
         isVerified: Boolean(Number(user.isVerified)),
-        createdAt: user.createdAt ? String(user.createdAt) : null,
-        updatedAt: user.updatedAt ? String(user.updatedAt) : null,
+        createdAt: isoOrNull(user.createdAt),
+        updatedAt: isoOrNull(user.updatedAt),
       }));
     } catch (error) {
       this.handleError(error, "searchUsers");
@@ -747,8 +761,8 @@ export class UserService extends BaseService {
         email: user.email ? String(user.email) : null,
         phone: user.phone ? String(user.phone) : null,
         role: Number(user.role),
-        lastLoginAt: user.lastLoginAt ? String(user.lastLoginAt) : null,
-        createdAt: user.createdAt ? String(user.createdAt) : null,
+        lastLoginAt: isoOrNull(user.lastLoginAt),
+        createdAt: isoOrNull(user.createdAt),
       }));
     } catch (error) {
       this.handleError(error, "getUsersByRole");
