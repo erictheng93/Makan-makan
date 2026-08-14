@@ -449,6 +449,8 @@ const props = defineProps<{
   show: boolean;
   restaurantId: string;
   phoneLastDigits?: string;
+  /** The scanned sticker's code, when this session started from one. */
+  shopQrCode?: string;
   waitingTicketId?: string;
 }>();
 
@@ -540,6 +542,10 @@ const handleCheckout = async () => {
     const orderData = {
       restaurantId: props.restaurantId,
       orderType: "shop",
+      // Let the server retire this order if the owner has since regenerated
+      // their QR code. Omitted entirely when this session did not start from a
+      // scan, which the server reads as "nothing to check".
+      ...(props.shopQrCode ? { shopQrCode: props.shopQrCode } : {}),
       waitingListId: props.waitingTicketId,
       customerPhone: waitingListCustomerPhone,
       items: shopCartStore.items.map((item) => ({
@@ -583,6 +589,7 @@ const handleCheckout = async () => {
           .slice(-3)
           .padStart(3, "0"),
         orderType: "shop" as const,
+        ...(props.shopQrCode ? { shopQrCode: props.shopQrCode } : {}),
         waitingListId: props.waitingTicketId,
         customerPhone: waitingListCustomerPhone,
         items: shopCartStore.items.map((item) => ({

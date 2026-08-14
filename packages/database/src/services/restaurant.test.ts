@@ -215,10 +215,12 @@ describe("RestaurantService shop QR codes", () => {
   });
 });
 
-describe("RestaurantService.isShopModeEnabled", () => {
+describe("RestaurantService.getShopOrderingState", () => {
   const RESTAURANT_ID = "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1";
 
-  function serviceWithRow(row: { enableShopMode: boolean } | undefined) {
+  function serviceWithRow(
+    row: { enableShopMode: boolean; shopQrCode: string | null } | undefined,
+  ) {
     const findFirst = vi.fn(async () => row);
     const service = createServiceWithDb({
       query: { restaurants: { findFirst } },
@@ -226,26 +228,41 @@ describe("RestaurantService.isShopModeEnabled", () => {
     return { service, findFirst };
   }
 
-  it("reports the stored flag for an existing restaurant", async () => {
-    const { service, findFirst } = serviceWithRow({ enableShopMode: true });
+  it("reports the flag and the live code for an existing restaurant", async () => {
+    const { service, findFirst } = serviceWithRow({
+      enableShopMode: true,
+      shopQrCode: `SHOP-${RESTAURANT_ID}-1785563580`,
+    });
 
-    await expect(service.isShopModeEnabled(RESTAURANT_ID)).resolves.toBe(true);
+    await expect(service.getShopOrderingState(RESTAURANT_ID)).resolves.toEqual({
+      enableShopMode: true,
+      shopQrCode: `SHOP-${RESTAURANT_ID}-1785563580`,
+    });
     expect(findFirst).toHaveBeenCalledWith(
-      // Only the one column: this runs on every shop order, so it must not
+      // Two columns only: this runs on every shop order, so it must not
       // quietly grow into a full-row read.
-      expect.objectContaining({ columns: { enableShopMode: true } }),
+      expect.objectContaining({
+        columns: { enableShopMode: true, shopQrCode: true },
+      }),
     );
   });
 
   it("reports false when the owner turned shop mode off", async () => {
-    const { service } = serviceWithRow({ enableShopMode: false });
+    const { service } = serviceWithRow({
+      enableShopMode: false,
+      shopQrCode: null,
+    });
 
-    await expect(service.isShopModeEnabled(RESTAURANT_ID)).resolves.toBe(false);
+    await expect(
+      service.getShopOrderingState(RESTAURANT_ID),
+    ).resolves.toMatchObject({ enableShopMode: false });
   });
 
   it("distinguishes a missing restaurant from a disabled one", async () => {
     const { service } = serviceWithRow(undefined);
 
-    await expect(service.isShopModeEnabled(RESTAURANT_ID)).resolves.toBeNull();
+    await expect(
+      service.getShopOrderingState(RESTAURANT_ID),
+    ).resolves.toBeNull();
   });
 });

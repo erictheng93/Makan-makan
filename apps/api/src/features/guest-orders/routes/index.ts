@@ -26,7 +26,10 @@ import {
   addGuestOrderItemsSchema,
 } from "../schemas/validation";
 import { OrdersService } from "../../orders/services/OrdersService";
-import { assertShopModeEnabled } from "../../orders/services/shop-mode-gate";
+import {
+  assertShopModeEnabled,
+  assertShopQrCurrent,
+} from "../../orders/services/shop-mode-gate";
 import {
   ApiError,
   notFound,
@@ -73,6 +76,7 @@ app.post("/", validateBody(createGuestOrderSchema), async (c) => {
   // Reuses the row already loaded above rather than re-reading it.
   if (data.orderType === "shop") {
     assertShopModeEnabled(restaurant.enableShopMode);
+    assertShopQrCurrent(restaurant.shopQrCode, data.shopQrCode);
   }
 
   // 2. Check active order limit for this device when it already has a guest

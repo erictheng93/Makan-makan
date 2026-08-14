@@ -256,6 +256,63 @@ describe("guest order routes", () => {
     expect(createOrder).not.toHaveBeenCalled();
   });
 
+  it("refuses a sticker the owner has regenerated away from", async () => {
+    databaseMocks.selectQueue.push({
+      get: {
+        id: "restaurant-1",
+        isActive: true,
+        isAvailable: true,
+        enableShopMode: true,
+        shopQrCode: "SHOP-restaurant-1-1785563580",
+        settings: { allowGuestOrders: true },
+      },
+    });
+
+    const response = await createRoutesWithApiErrorHandler().fetch(
+      new Request("https://test/", {
+        method: "POST",
+        body: JSON.stringify(
+          validGuestOrderBody({ shopQrCode: "SHOP-restaurant-1-1780000000" }),
+        ),
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: { code: "SHOP_QR_REVOKED" },
+    });
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it("accepts the sticker that is currently live", async () => {
+    databaseMocks.selectQueue.push({
+      get: {
+        id: "restaurant-1",
+        isActive: true,
+        isAvailable: true,
+        enableShopMode: true,
+        shopQrCode: "SHOP-restaurant-1-1785563580",
+        settings: { allowGuestOrders: true },
+      },
+    });
+    createOrder.mockResolvedValue({ id: 503, orderNumber: "G003" });
+
+    const response = await routes.fetch(
+      new Request("https://test/", {
+        method: "POST",
+        body: JSON.stringify(
+          validGuestOrderBody({ shopQrCode: "SHOP-restaurant-1-1785563580" }),
+        ),
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(201);
+    expect(createOrder).toHaveBeenCalledOnce();
+  });
+
   it("still accepts table orders from a shop with shop mode off", async () => {
     // enableShopMode governs the shop QR channel only — dine-in at a table is
     // a different channel and must not be collateral damage.

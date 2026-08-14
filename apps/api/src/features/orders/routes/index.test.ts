@@ -319,9 +319,30 @@ describe("orders routes", () => {
     expect(gateMocks.assertShopOrderingEnabled).toHaveBeenCalledWith(
       expect.anything(),
       "restaurant-1",
+      undefined,
     );
     expect(response.status).toBe(500);
     expect(serviceMocks.createOrder).not.toHaveBeenCalled();
+  });
+
+  it("forwards the scanned code so a regenerated QR can be retired", async () => {
+    serviceMocks.createOrder.mockResolvedValue({ id: 1003 });
+
+    await routes.fetch(
+      jsonRequest("/", {
+        restaurantId: "restaurant-1",
+        items: [{ menuItemId: 7, quantity: 1, price: 120 }],
+        orderType: "shop",
+        shopQrCode: "SHOP-restaurant-1-1785563580",
+      }),
+      createEnv() as never,
+    );
+
+    expect(gateMocks.assertShopOrderingEnabled).toHaveBeenCalledWith(
+      expect.anything(),
+      "restaurant-1",
+      "SHOP-restaurant-1-1785563580",
+    );
   });
 
   it("leaves table orders ungated even though orderType defaults to shop", async () => {

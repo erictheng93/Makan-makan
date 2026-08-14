@@ -195,6 +195,9 @@ const routes: RouteRecordRaw[] = [
     props: (route) => ({
       restaurantId: route.params.restaurantId,
       phoneLastDigits: route.query.phone as string,
+      // Carried from the scanned sticker so checkout can prove which code it
+      // came from — the server retires older ones after a regeneration.
+      shopQrCode: route.query.qr as string | undefined,
       waitingTicketId: route.query.waitingTicketId as string | undefined,
       linkedItemId: route.query.itemId,
       linkedCategoryName: route.query.categoryName,

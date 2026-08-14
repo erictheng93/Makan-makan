@@ -599,6 +599,7 @@
       :show="showCart"
       :restaurant-id="restaurantId"
       :phone-last-digits="phoneLastDigits"
+      :shop-qr-code="shopQrCode"
       :waiting-ticket-id="waitingTicketId"
       @close="showCart = false"
     />
@@ -651,6 +652,7 @@ import {
 const props = defineProps<{
   restaurantId: string;
   phoneLastDigits?: string;
+  shopQrCode?: string;
   waitingTicketId?: string;
   linkedItemId?: string | string[] | null;
   linkedCategoryName?: string | string[] | null;

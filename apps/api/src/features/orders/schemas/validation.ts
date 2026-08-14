@@ -142,6 +142,10 @@ export const createOrderSchema = z
     items: z.array(createOrderItemSchema).min(1).max(50),
     notes: notesSchema(500).optional(),
     orderType: orderTypeSchema.default("shop"),
+    // What the customer scanned, when they scanned something. Optional on
+    // purpose: clients that predate the field, and entry points with no sticker
+    // to present, must keep working. See assertShopQrCurrent.
+    shopQrCode: z.string().max(100).optional(),
     deliveryInfo: deliveryInfoSchema.optional(),
     scheduledTime: dateStringSchema,
     couponCode: z.string().max(50).optional(),

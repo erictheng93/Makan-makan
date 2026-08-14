@@ -3,15 +3,19 @@ import { ApiError } from "../../../shared/utils/api-error";
 import {
   assertShopModeEnabled,
   assertShopOrderingEnabled,
+  assertShopQrCurrent,
 } from "./shop-mode-gate";
 
-const isShopModeEnabled = vi.hoisted(() => vi.fn());
+const getShopOrderingState = vi.hoisted(() => vi.fn());
 
 vi.mock("@makanmasak/database", () => ({
   RestaurantService: function RestaurantService() {
-    return { isShopModeEnabled };
+    return { getShopOrderingState };
   },
 }));
+
+const LIVE_QR_CODE = "SHOP-restaurant-1-1785563580";
+const RETIRED_QR_CODE = "SHOP-restaurant-1-1780000000";
 
 function createEnv() {
   return { DB: {}, JWT_SECRET: "test" } as never;
@@ -50,29 +54,74 @@ describe("assertShopModeEnabled", () => {
   });
 });
 
+describe("assertShopQrCurrent", () => {
+  it("passes the code that is currently printed", () => {
+    expect(() => assertShopQrCurrent(LIVE_QR_CODE, LIVE_QR_CODE)).not.toThrow();
+  });
+
+  it("retires a code the owner has regenerated away from", async () => {
+    await expectApiError(
+      () => assertShopQrCurrent(LIVE_QR_CODE, RETIRED_QR_CODE),
+      "SHOP_QR_REVOKED",
+    );
+  });
+
+  it("skips the check when the client sent nothing to check", () => {
+    // Clients that predate the field, waiting-list links, bookmarked menus.
+    // Rejecting these would break ordering for everyone mid-session.
+    expect(() => assertShopQrCurrent(LIVE_QR_CODE, undefined)).not.toThrow();
+    expect(() => assertShopQrCurrent(LIVE_QR_CODE, "")).not.toThrow();
+  });
+
+  it("rejects a scanned code when the shop has none on file", async () => {
+    await expectApiError(
+      () => assertShopQrCurrent(null, RETIRED_QR_CODE),
+      "SHOP_QR_REVOKED",
+    );
+  });
+});
+
 describe("assertShopOrderingEnabled", () => {
+  function mockState(state: unknown) {
+    getShopOrderingState.mockReset();
+    getShopOrderingState.mockResolvedValue(state);
+  }
+
   it("looks the restaurant up and passes when shop mode is on", async () => {
-    isShopModeEnabled.mockReset();
-    isShopModeEnabled.mockResolvedValue(true);
+    mockState({ enableShopMode: true, shopQrCode: LIVE_QR_CODE });
 
     await expect(
       assertShopOrderingEnabled(createEnv(), "restaurant-1"),
     ).resolves.toBeUndefined();
-    expect(isShopModeEnabled).toHaveBeenCalledWith("restaurant-1");
+    expect(getShopOrderingState).toHaveBeenCalledWith("restaurant-1");
   });
 
   it("rejects when the owner turned shop mode off", async () => {
-    isShopModeEnabled.mockReset();
-    isShopModeEnabled.mockResolvedValue(false);
+    mockState({ enableShopMode: false, shopQrCode: LIVE_QR_CODE });
 
     await expect(
       assertShopOrderingEnabled(createEnv(), "restaurant-1"),
     ).rejects.toMatchObject({ code: "SHOP_MODE_DISABLED", status: 403 });
   });
 
+  it("rejects a superseded sticker even while shop mode is on", async () => {
+    mockState({ enableShopMode: true, shopQrCode: LIVE_QR_CODE });
+
+    await expect(
+      assertShopOrderingEnabled(createEnv(), "restaurant-1", RETIRED_QR_CODE),
+    ).rejects.toMatchObject({ code: "SHOP_QR_REVOKED", status: 403 });
+  });
+
+  it("accepts the live sticker", async () => {
+    mockState({ enableShopMode: true, shopQrCode: LIVE_QR_CODE });
+
+    await expect(
+      assertShopOrderingEnabled(createEnv(), "restaurant-1", LIVE_QR_CODE),
+    ).resolves.toBeUndefined();
+  });
+
   it("answers 404 for a restaurant that does not exist", async () => {
-    isShopModeEnabled.mockReset();
-    isShopModeEnabled.mockResolvedValue(null);
+    mockState(null);
 
     await expect(
       assertShopOrderingEnabled(createEnv(), "missing"),

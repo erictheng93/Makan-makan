@@ -299,7 +299,11 @@ app.post(
     // a tableId and belong to the dine-in channel, which shop mode does not
     // govern.
     if (data.orderType === "shop" && !data.tableId) {
-      await assertShopOrderingEnabled(c.env, data.restaurantId);
+      await assertShopOrderingEnabled(
+        c.env,
+        data.restaurantId,
+        data.shopQrCode,
+      );
     }
 
     // Transform data for service

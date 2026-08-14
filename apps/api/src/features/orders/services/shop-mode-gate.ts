@@ -38,18 +38,47 @@ export function assertShopModeEnabled(enabled: boolean | null | undefined) {
 }
 
 /**
- * Same assertion for callers that have not loaded the restaurant yet.
+ * Retire the previous sticker when an owner regenerates their shop QR code.
+ *
+ * Checked only when the client actually sends what it scanned. Requiring it
+ * outright would reject every customer already mid-order on a client that
+ * predates the field, and every entry point that legitimately has no code to
+ * present (a waiting-list link, a bookmarked menu). So this closes the loop for
+ * scans that carry a code and leaves the rest to `assertShopModeEnabled` —
+ * regeneration takes effect for anyone scanning the old sticker, which is who
+ * the owner is trying to turn away.
+ */
+export function assertShopQrCurrent(
+  currentQrCode: string | null | undefined,
+  scannedQrCode: string | null | undefined,
+) {
+  if (!scannedQrCode) {
+    return;
+  }
+
+  if (scannedQrCode !== currentQrCode) {
+    throw forbidden(
+      "This QR code is no longer valid. Please scan the current one.",
+      "SHOP_QR_REVOKED",
+    );
+  }
+}
+
+/**
+ * Same assertions for callers that have not loaded the restaurant yet.
  */
 export async function assertShopOrderingEnabled(
   env: Env,
   restaurantId: string,
+  scannedQrCode?: string | null,
 ) {
   const restaurantService = new RestaurantService(env.DB, env);
-  const enabled = await restaurantService.isShopModeEnabled(restaurantId);
+  const state = await restaurantService.getShopOrderingState(restaurantId);
 
-  if (enabled === null) {
+  if (state === null) {
     throw notFound("Restaurant not found", "RESTAURANT_NOT_FOUND");
   }
 
-  assertShopModeEnabled(enabled);
+  assertShopModeEnabled(state.enableShopMode);
+  assertShopQrCurrent(state.shopQrCode, scannedQrCode);
 }

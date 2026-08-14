@@ -83,6 +83,10 @@ export const createGuestOrderSchema = z
       .regex(/^\d{3}$/, "Must be exactly 3 digits")
       .default("000"),
     orderType: z.enum(["shop", "table", "seat"]),
+    // What the customer scanned, when they scanned something. Optional on
+    // purpose: clients that predate the field, and entry points with no sticker
+    // to present, must keep working. See assertShopQrCurrent.
+    shopQrCode: z.string().max(100).optional(),
     waitingListId: z.string().min(1).max(100).optional(),
     customerPhone: z.string().max(20).optional(),
     tableId: z.number().int().positive().optional(),

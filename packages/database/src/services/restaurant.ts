@@ -470,23 +470,32 @@ export class RestaurantService extends BaseService {
   }
 
   /**
-   * Shop-mode probe for the ordering path.
+   * Shop-channel probe for the ordering path: is the channel open, and which
+   * printed code is currently the live one.
    *
    * Returns null when the restaurant does not exist, so a caller can tell that
    * apart from shop mode simply being off. Deliberately not `getRestaurant()`:
    * this runs on every shop order, and that one pulls the whole row plus its
    * category list.
    */
-  async isShopModeEnabled(restaurantId: string): Promise<boolean | null> {
+  async getShopOrderingState(restaurantId: string): Promise<{
+    enableShopMode: boolean;
+    shopQrCode: string | null;
+  } | null> {
     try {
       const restaurant = await this.db.query.restaurants.findFirst({
-        columns: { enableShopMode: true },
+        columns: { enableShopMode: true, shopQrCode: true },
         where: eq(restaurants.id, restaurantId),
       });
 
-      return restaurant ? restaurant.enableShopMode : null;
+      return restaurant
+        ? {
+            enableShopMode: restaurant.enableShopMode,
+            shopQrCode: restaurant.shopQrCode,
+          }
+        : null;
     } catch (error) {
-      this.handleError(error, "isShopModeEnabled");
+      this.handleError(error, "getShopOrderingState");
     }
   }
 
