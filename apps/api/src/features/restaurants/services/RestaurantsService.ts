@@ -48,6 +48,8 @@ type ShopQrSettings = Record<string, unknown>;
 
 interface ShopQrCodeInfo {
   qrCode: string | null;
+  /** Scannable https:// payload for the printed sticker. Null until a code exists. */
+  qrUrl: string | null;
   qrCodeImageUrl: string | null;
   enabled: boolean;
   version: number;
@@ -939,6 +941,7 @@ export class RestaurantsService {
    */
   async generateShopQrCode(id: string): Promise<{
     qrCode: string;
+    qrUrl: string;
     qrCodeImageUrl: string | null;
     version: number;
   }> {
@@ -970,6 +973,7 @@ export class RestaurantsService {
    */
   async regenerateShopQrCode(id: string): Promise<{
     qrCode: string;
+    qrUrl: string;
     qrCodeImageUrl: string | null;
     version: number;
   }> {

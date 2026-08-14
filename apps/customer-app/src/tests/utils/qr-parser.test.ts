@@ -60,6 +60,36 @@ describe("qr-parser shop QR support", () => {
     });
     expect(data && validateQRData(data)).toBe(true);
   });
+
+  it("parses the printed shop URL and keeps the code that proves the scan", () => {
+    // What the printed sticker encodes since shop QRs became real links. The
+    // `qr` param has to survive: it is the only thing the app can verify
+    // server-side, so losing it silently downgrades the scan to a bare id.
+    const data = parseQRContent(
+      "https://makanmasak.com/restaurant/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1/shop/order-type?qr=SHOP-019fa136-cfe3-709f-a2ab-f8a3ebcd31a1-1785563580",
+    );
+
+    expect(data).toMatchObject({
+      type: "shop",
+      restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
+      shopQrCode: "SHOP-019fa136-cfe3-709f-a2ab-f8a3ebcd31a1-1785563580",
+      source: "url",
+    });
+    expect(data && validateQRData(data)).toBe(true);
+  });
+
+  it("still parses a shop URL that carries no code", () => {
+    const data = parseQRContent(
+      "https://makanmasak.com/restaurant/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1/shop/order-type",
+    );
+
+    expect(data).toMatchObject({
+      type: "shop",
+      restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
+      source: "url",
+    });
+    expect(data).not.toHaveProperty("shopQrCode");
+  });
 });
 
 describe("qr-parser signed table and seat QR support", () => {

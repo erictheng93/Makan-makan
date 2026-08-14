@@ -1321,9 +1321,9 @@
                 >
                 <div class="flex items-center space-x-2">
                   <code
-                    class="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded text-sm font-mono"
+                    class="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded text-sm font-mono break-all"
                   >
-                    {{ shopQR.qrCode }}
+                    {{ shopQrPayload }}
                   </code>
                   <button
                     class="px-3 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
@@ -1891,6 +1891,7 @@ const marketServiceGapAreaDistrict = computed(() =>
 const shopQR = reactive({
   enabled: false,
   qrCode: "",
+  qrUrl: "",
   qrCodeImageUrl: "",
   version: 1,
   settings: {
@@ -1904,6 +1905,12 @@ const generatedShopQrDataUrl = ref("");
 const shopQrPreviewUrl = computed(
   () => shopQR.qrCodeImageUrl || generatedShopQrDataUrl.value,
 );
+/**
+ * What the QR bitmap actually encodes. The API returns `qrUrl` — a real https://
+ * link a phone camera can open — while `qrCode` is only the lookup key. Older
+ * API builds omit `qrUrl`, so fall back rather than printing a blank sticker.
+ */
+const shopQrPayload = computed(() => shopQR.qrUrl || shopQR.qrCode);
 
 const isGeneratingQR = ref(false);
 const isRegeneratingQR = ref(false);
@@ -2044,15 +2051,15 @@ watch(
 );
 
 watch(
-  () => [shopQR.qrCode, shopQR.qrCodeImageUrl] as const,
-  async ([qrCode, qrCodeImageUrl]) => {
-    if (!qrCode || qrCodeImageUrl) {
+  () => [shopQrPayload.value, shopQR.qrCodeImageUrl] as const,
+  async ([payload, qrCodeImageUrl]) => {
+    if (!payload || qrCodeImageUrl) {
       generatedShopQrDataUrl.value = "";
       return;
     }
 
     try {
-      generatedShopQrDataUrl.value = await toPrintableDataUrl(qrCode);
+      generatedShopQrDataUrl.value = await toPrintableDataUrl(payload);
     } catch (error) {
       console.error("Failed to prepare shop QR image:", error);
       generatedShopQrDataUrl.value = "";
@@ -2447,6 +2454,7 @@ const loadShopQRInfo = async () => {
     if (data) {
       shopQR.enabled = data.enabled || false;
       shopQR.qrCode = data.qrCode || "";
+      shopQR.qrUrl = data.qrUrl || "";
       shopQR.qrCodeImageUrl = data.qrCodeImageUrl || "";
       shopQR.version = data.version || 1;
       if (data.settings) {
@@ -2520,6 +2528,7 @@ const generateShopQR = async () => {
     const data = response.data?.data ?? response.data;
     if (data) {
       shopQR.qrCode = data.qrCode;
+      shopQR.qrUrl = data.qrUrl || "";
       shopQR.qrCodeImageUrl = data.qrCodeImageUrl;
       shopQR.version = data.version;
     }
@@ -2552,6 +2561,7 @@ const regenerateShopQR = async () => {
     const data = response.data?.data ?? response.data;
     if (data) {
       shopQR.qrCode = data.qrCode;
+      shopQR.qrUrl = data.qrUrl || "";
       shopQR.qrCodeImageUrl = data.qrCodeImageUrl;
       shopQR.version = data.version;
       toast.success(
@@ -2568,7 +2578,9 @@ const regenerateShopQR = async () => {
 
 const copyQRCode = () => {
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(shopQR.qrCode).then(() => {
+    // Copy what the sticker encodes, not the internal lookup key — an owner
+    // pasting this into a LINE post or bio needs an openable link.
+    navigator.clipboard.writeText(shopQrPayload.value).then(() => {
       toast.success(t("settings.alerts.copied"));
     });
   }
@@ -2577,9 +2589,9 @@ const copyQRCode = () => {
 const resolveShopQRCodeDataUrl = async () => {
   if (shopQR.qrCodeImageUrl) return shopQR.qrCodeImageUrl;
   if (generatedShopQrDataUrl.value) return generatedShopQrDataUrl.value;
-  if (!shopQR.qrCode) return "";
+  if (!shopQrPayload.value) return "";
 
-  generatedShopQrDataUrl.value = await toPrintableDataUrl(shopQR.qrCode);
+  generatedShopQrDataUrl.value = await toPrintableDataUrl(shopQrPayload.value);
   return generatedShopQrDataUrl.value;
 };
 

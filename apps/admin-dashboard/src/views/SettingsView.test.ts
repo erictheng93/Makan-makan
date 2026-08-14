@@ -309,8 +309,17 @@ describe("SettingsView guest ordering availability", () => {
 
 describe("SettingsView shop QR management", () => {
   const shopQrCode = "SHOP-019fa136-cfe3-709f-a2ab-f8a3ebcd31a1-1785563580";
+  const shopQrUrl = `https://makanmasak.com/restaurant/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1/shop/order-type?qr=${encodeURIComponent(shopQrCode)}`;
+  let shopQrInfo: Record<string, unknown> = {};
 
   beforeEach(() => {
+    shopQrInfo = {
+      enabled: true,
+      qrCode: shopQrCode,
+      qrUrl: shopQrUrl,
+      qrCodeImageUrl: null,
+      version: 1,
+    };
     vi.clearAllMocks();
     vi.mocked(useAuthStore).mockReturnValue({
       restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
@@ -320,16 +329,7 @@ describe("SettingsView shop QR management", () => {
     } as unknown as ReturnType<typeof useRoute>);
     vi.mocked(api.get).mockImplementation(async (url: string) => {
       if (url === "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1/qr/shop") {
-        return {
-          data: {
-            data: {
-              enabled: true,
-              qrCode: shopQrCode,
-              qrCodeImageUrl: null,
-              version: 1,
-            },
-          },
-        };
+        return { data: { data: shopQrInfo } };
       }
       if (url === "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1") {
         return { data: { data: { name: "雞排攤" } } };
@@ -370,7 +370,9 @@ describe("SettingsView shop QR management", () => {
     });
     await flushPromises();
 
-    expect(toPrintableDataUrl).toHaveBeenCalledWith(shopQrCode);
+    // The bitmap must encode the openable link, not the internal lookup key —
+    // a phone camera does nothing useful with a bare "SHOP-…" string.
+    expect(toPrintableDataUrl).toHaveBeenCalledWith(shopQrUrl);
     const fallbackImage = wrapper.get(
       `img[src="data:image/png;base64,c2hvcA=="]`,
     );
@@ -396,6 +398,24 @@ describe("SettingsView shop QR management", () => {
         },
       ],
     );
+  });
+
+  it("falls back to the raw code when the API predates qrUrl", async () => {
+    // A dashboard deployed ahead of the API must still print something
+    // scannable-by-the-app rather than a blank sticker.
+    delete shopQrInfo.qrUrl;
+
+    mount(SettingsView, {
+      global: {
+        stubs: {
+          IntegrationsSettings: true,
+          RestaurantServiceItemsManager: true,
+        },
+      },
+    });
+    await flushPromises();
+
+    expect(toPrintableDataUrl).toHaveBeenCalledWith(shopQrCode);
   });
 
   it("does not show desktop notification controls on the QR Code tab", async () => {

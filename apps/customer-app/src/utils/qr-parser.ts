@@ -326,12 +326,20 @@ function parseURLFormat(content: string): QRData | null {
       };
     }
 
-    // 店家模式路徑: /restaurant/123/shop
+    // 店家模式路徑: /restaurant/123/shop/order-type?qr=SHOP-123-1785563580
+    //
+    // This is what printed shop stickers encode, so `qr` has to survive the
+    // parse: it is the only thing that lets the app verify the code server-side
+    // (and therefore the only thing that makes regeneration or disabling shop
+    // mode take effect). Dropping it silently downgrades the scan to a bare
+    // restaurant id, which no longer proves the scanner saw a live sticker.
     const shopPathMatch = url.pathname.match(/\/restaurant\/([^/]+)\/shop/);
     if (shopPathMatch) {
+      const shopQrCode = url.searchParams.get("qr") ?? undefined;
       return {
         type: "shop",
-        restaurantId: shopPathMatch[1],
+        restaurantId: decodeURIComponent(shopPathMatch[1]),
+        ...(shopQrCode ? { shopQrCode } : {}),
         source: "url",
         raw: content,
       };

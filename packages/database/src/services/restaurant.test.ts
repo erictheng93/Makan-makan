@@ -3,9 +3,13 @@ import type { D1Database } from "@cloudflare/workers-types";
 import { restaurants } from "../schema";
 import { RestaurantService } from "./restaurant";
 
-function createServiceWithDb<TDb extends object>(db: TDb): RestaurantService {
+function createServiceWithDb<TDb extends object>(
+  db: TDb,
+  env: Record<string, unknown> = {},
+): RestaurantService {
   const service = new RestaurantService({} as D1Database, {
     JWT_SECRET: "test",
+    ...env,
   });
   (service as unknown as { db: TDb }).db = db;
   return service;
@@ -71,5 +75,177 @@ describe("RestaurantService.updateRestaurant", () => {
       enableTakeaway: true,
       minOrderAmount: 300,
     });
+  });
+});
+
+/**
+ * Collect the column names a Drizzle `where` expression references, so a test
+ * can assert on the filter itself instead of on a stubbed query result.
+ */
+function whereColumnNames(args: unknown): string[] {
+  const names: string[] = [];
+  const walk = (node: unknown): void => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    const candidate = node as { name?: unknown; table?: unknown };
+    if (typeof candidate.name === "string" && candidate.table) {
+      names.push(candidate.name);
+    }
+    walk((node as { queryChunks?: unknown }).queryChunks);
+  };
+  walk((args as { where?: unknown })?.where);
+  return names;
+}
+
+describe("RestaurantService shop QR codes", () => {
+  const RESTAURANT_ID = "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1";
+  const SHOP_QR_CODE = `SHOP-${RESTAURANT_ID}-1785563580`;
+  const CLIENT_BASE_URL = "https://makanmasak.com";
+
+  function buildRestaurantRow(overrides: Record<string, unknown> = {}) {
+    return {
+      id: RESTAURANT_ID,
+      name: "雞排攤",
+      type: "street_food",
+      category: "casual",
+      address: "逢甲路 1 號",
+      district: "西屯區",
+      city: "台中市",
+      phone: "0912345678",
+      isActive: true,
+      isAvailable: true,
+      enableShopMode: true,
+      shopQrCode: SHOP_QR_CODE,
+      shopQrCodeImageUrl: null,
+      shopQrVersion: 1,
+      settings: { enableTakeaway: true },
+      ...overrides,
+    };
+  }
+
+  it("returns a scannable https URL alongside the stored lookup code", async () => {
+    const db = {
+      query: {
+        restaurants: {
+          findFirst: vi.fn(async () => buildRestaurantRow()),
+        },
+      },
+    };
+    const service = createServiceWithDb(db, {
+      CLIENT_BASE_URL,
+    });
+
+    const result = await service.generateShopQrCode(RESTAURANT_ID);
+
+    // The stored code stays the lookup key; the URL is what gets printed.
+    expect(result.qrCode).toBe(SHOP_QR_CODE);
+    expect(result.qrUrl).toBe(
+      `${CLIENT_BASE_URL}/restaurant/${RESTAURANT_ID}/shop/order-type?qr=${encodeURIComponent(SHOP_QR_CODE)}`,
+    );
+  });
+
+  it("exposes the same URL from getShopQrCodeInfo, and null when no code exists", async () => {
+    const findFirst = vi
+      .fn()
+      .mockResolvedValueOnce(buildRestaurantRow())
+      .mockResolvedValueOnce(buildRestaurantRow({ shopQrCode: null }));
+    const service = createServiceWithDb(
+      { query: { restaurants: { findFirst } } },
+      { CLIENT_BASE_URL },
+    );
+
+    await expect(
+      service.getShopQrCodeInfo(RESTAURANT_ID),
+    ).resolves.toMatchObject({
+      qrCode: SHOP_QR_CODE,
+      qrUrl: `${CLIENT_BASE_URL}/restaurant/${RESTAURANT_ID}/shop/order-type?qr=${encodeURIComponent(SHOP_QR_CODE)}`,
+    });
+
+    await expect(
+      service.getShopQrCodeInfo(RESTAURANT_ID),
+    ).resolves.toMatchObject({ qrCode: null, qrUrl: null });
+  });
+
+  it("filters verification on shop mode, not just on the code", async () => {
+    // Asserting on the WHERE clause rather than on a stubbed empty result:
+    // a mock that returns nothing passes whether or not the filter exists, and
+    // this filter is the only thing that retires a printed sticker when an
+    // owner turns shop mode off.
+    const findFirst = vi.fn(async () => undefined);
+    const service = createServiceWithDb(
+      { query: { restaurants: { findFirst } } },
+      { CLIENT_BASE_URL },
+    );
+
+    await expect(service.verifyShopQrCode(SHOP_QR_CODE)).resolves.toEqual({
+      valid: false,
+    });
+    expect(findFirst).toHaveBeenCalledOnce();
+    expect(whereColumnNames(findFirst.mock.calls[0][0])).toEqual(
+      expect.arrayContaining(["shop_qr_code", "is_active", "enable_shop_mode"]),
+    );
+  });
+
+  it("resolves a QR code for an active shop-mode restaurant", async () => {
+    const findFirst = vi.fn(async () => buildRestaurantRow());
+    const service = createServiceWithDb(
+      { query: { restaurants: { findFirst } } },
+      { CLIENT_BASE_URL },
+    );
+
+    await expect(service.verifyShopQrCode(SHOP_QR_CODE)).resolves.toMatchObject(
+      { valid: true, restaurantId: RESTAURANT_ID },
+    );
+  });
+
+  it("rejects anything that is not a shop code without hitting the database", async () => {
+    const findFirst = vi.fn();
+    const service = createServiceWithDb(
+      { query: { restaurants: { findFirst } } },
+      { CLIENT_BASE_URL },
+    );
+
+    await expect(service.verifyShopQrCode("TABLE-1")).resolves.toEqual({
+      valid: false,
+    });
+    expect(findFirst).not.toHaveBeenCalled();
+  });
+});
+
+describe("RestaurantService.isShopModeEnabled", () => {
+  const RESTAURANT_ID = "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1";
+
+  function serviceWithRow(row: { enableShopMode: boolean } | undefined) {
+    const findFirst = vi.fn(async () => row);
+    const service = createServiceWithDb({
+      query: { restaurants: { findFirst } },
+    });
+    return { service, findFirst };
+  }
+
+  it("reports the stored flag for an existing restaurant", async () => {
+    const { service, findFirst } = serviceWithRow({ enableShopMode: true });
+
+    await expect(service.isShopModeEnabled(RESTAURANT_ID)).resolves.toBe(true);
+    expect(findFirst).toHaveBeenCalledWith(
+      // Only the one column: this runs on every shop order, so it must not
+      // quietly grow into a full-row read.
+      expect.objectContaining({ columns: { enableShopMode: true } }),
+    );
+  });
+
+  it("reports false when the owner turned shop mode off", async () => {
+    const { service } = serviceWithRow({ enableShopMode: false });
+
+    await expect(service.isShopModeEnabled(RESTAURANT_ID)).resolves.toBe(false);
+  });
+
+  it("distinguishes a missing restaurant from a disabled one", async () => {
+    const { service } = serviceWithRow(undefined);
+
+    await expect(service.isShopModeEnabled(RESTAURANT_ID)).resolves.toBeNull();
   });
 });

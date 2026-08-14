@@ -1,5 +1,6 @@
 import { eq, and, desc, asc, count, sql } from "drizzle-orm";
 import { BaseService } from "./base";
+import { resolveAppBaseUrl } from "./app-base-url";
 import { restaurants, categories, menuItems, tables, users } from "../schema";
 import type { Restaurant } from "@makanmasak/shared-types";
 
@@ -342,11 +343,35 @@ export class RestaurantService extends BaseService {
   // ==================== 店家级别 QR Code 功能 ====================
 
   /**
+   * Build the URL that a printed shop QR code encodes.
+   *
+   * The stored `shopQrCode` (`SHOP-{id}-{ts}`) stays the lookup key — it is what
+   * `verifyShopQrCode` matches and what discovery hands out — but a bare string
+   * is not a scannable QR payload: a phone's native camera shows it as plain
+   * text with nothing to open. Table and seat codes already encode a real
+   * https:// URL for exactly this reason (see buildSignedQRUrl), and shop codes
+   * were the one printed surface left behind.
+   *
+   * The target is the existing landing route, so nothing new has to be routed:
+   * the in-app scanner already pushes customers to the same place.
+   */
+  private buildShopQrUrl(restaurantId: string, qrCode: string): string {
+    const baseUrl = resolveAppBaseUrl(this.env, "shop QR codes");
+    const url = new URL(
+      `/restaurant/${encodeURIComponent(restaurantId)}/shop/order-type`,
+      baseUrl,
+    );
+    url.searchParams.set("qr", qrCode);
+    return url.toString();
+  }
+
+  /**
    * 生成店家级别 QR Code
    * 适用于无桌号的外带/自取订单场景
    */
   async generateShopQrCode(restaurantId: string): Promise<{
     qrCode: string;
+    qrUrl: string;
     qrCodeImageUrl: string | null;
     version: number;
   }> {
@@ -360,6 +385,7 @@ export class RestaurantService extends BaseService {
       if (restaurant.shopQrCode) {
         return {
           qrCode: restaurant.shopQrCode,
+          qrUrl: this.buildShopQrUrl(restaurantId, restaurant.shopQrCode),
           qrCodeImageUrl: restaurant.shopQrCodeImageUrl || null,
           version: restaurant.shopQrVersion || 1,
         };
@@ -390,6 +416,7 @@ export class RestaurantService extends BaseService {
 
       return {
         qrCode: updated.shopQrCode!,
+        qrUrl: this.buildShopQrUrl(restaurantId, updated.shopQrCode!),
         qrCodeImageUrl: updated.shopQrCodeImageUrl || null,
         version: updated.shopQrVersion || 1,
       };
@@ -404,6 +431,7 @@ export class RestaurantService extends BaseService {
    */
   async regenerateShopQrCode(restaurantId: string): Promise<{
     qrCode: string;
+    qrUrl: string;
     qrCodeImageUrl: string | null;
     version: number;
   }> {
@@ -432,11 +460,33 @@ export class RestaurantService extends BaseService {
 
       return {
         qrCode: updated.shopQrCode!,
+        qrUrl: this.buildShopQrUrl(restaurantId, updated.shopQrCode!),
         qrCodeImageUrl: null,
         version: updated.shopQrVersion || newVersion,
       };
     } catch (error) {
       this.handleError(error, "regenerateShopQrCode");
+    }
+  }
+
+  /**
+   * Shop-mode probe for the ordering path.
+   *
+   * Returns null when the restaurant does not exist, so a caller can tell that
+   * apart from shop mode simply being off. Deliberately not `getRestaurant()`:
+   * this runs on every shop order, and that one pulls the whole row plus its
+   * category list.
+   */
+  async isShopModeEnabled(restaurantId: string): Promise<boolean | null> {
+    try {
+      const restaurant = await this.db.query.restaurants.findFirst({
+        columns: { enableShopMode: true },
+        where: eq(restaurants.id, restaurantId),
+      });
+
+      return restaurant ? restaurant.enableShopMode : null;
+    } catch (error) {
+      this.handleError(error, "isShopModeEnabled");
     }
   }
 
@@ -454,10 +504,15 @@ export class RestaurantService extends BaseService {
         return { valid: false };
       }
 
+      // enableShopMode is part of validity, not a display detail. Turning shop
+      // mode off is how an owner takes their printed codes out of service, and
+      // until this was checked here the only thing standing between a disabled
+      // shop and an order was a client-side `if` in the customer app.
       const restaurant = await this.db.query.restaurants.findFirst({
         where: and(
           eq(restaurants.shopQrCode, qrCode),
           eq(restaurants.isActive, true),
+          eq(restaurants.enableShopMode, true),
         ),
       });
 
@@ -542,6 +597,7 @@ export class RestaurantService extends BaseService {
   async getShopQrCodeInfo(restaurantId: string): Promise<{
     enabled: boolean;
     qrCode: string | null;
+    qrUrl: string | null;
     qrCodeImageUrl: string | null;
     version: number;
     settings: any;
@@ -555,6 +611,9 @@ export class RestaurantService extends BaseService {
       return {
         enabled: restaurant.enableShopMode || false,
         qrCode: restaurant.shopQrCode || null,
+        qrUrl: restaurant.shopQrCode
+          ? this.buildShopQrUrl(restaurantId, restaurant.shopQrCode)
+          : null,
         qrCodeImageUrl: restaurant.shopQrCodeImageUrl || null,
         version: restaurant.shopQrVersion || 1,
         settings: restaurant.shopQrSettings || {
