@@ -74,9 +74,9 @@ describe("useShopCartStore", () => {
     expect(store.itemCount).toBe(3);
     expect(store.subtotal).toBe(420);
     expect(store.isEmpty).toBe(false);
-    expect(
-      localStorage.getItem("makanmakan_shop_cart_restaurant-1_678"),
-    ).toContain("Beef Noodles");
+    expect(localStorage.getItem("makanmakan_shop_cart_restaurant-1")).toContain(
+      "Beef Noodles",
+    );
   });
 
   it("removes items when quantity drops to zero and updates notes otherwise", () => {
@@ -204,6 +204,7 @@ describe("useShopCartStore", () => {
     const store = useShopCartStore();
     store.initializeCart("restaurant-1", "678");
     store.addItem(menuItem(), 1);
+    localStorage.setItem("makanmakan_shop_cart_restaurant-2", "other shop");
 
     store.clearCart();
 
@@ -211,7 +212,115 @@ describe("useShopCartStore", () => {
     expect(store.restaurantId).toBeNull();
     expect(store.phoneLastDigits).toBe("");
     expect(
-      localStorage.getItem("makanmakan_shop_cart_restaurant-1_678"),
+      localStorage.getItem("makanmakan_shop_cart_restaurant-1"),
     ).toBeNull();
+    expect(localStorage.getItem("makanmakan_shop_cart_restaurant-2")).toBe(
+      "other shop",
+    );
+  });
+
+  describe("shops that do not ask for pickup digits", () => {
+    // requirePhone=false leaves phoneLastDigits empty. The key used to include
+    // it and save/restore bailed out when it was blank, so the cart lived only
+    // in memory and every refresh emptied it (#193).
+    it("persists a cart with no pickup digits", () => {
+      const store = useShopCartStore();
+      store.initializeCart("restaurant-1", "");
+
+      store.addItem(menuItem(), 2);
+
+      expect(
+        localStorage.getItem("makanmakan_shop_cart_restaurant-1"),
+      ).toContain("Beef Noodles");
+    });
+
+    it("survives a page refresh", () => {
+      const first = useShopCartStore();
+      first.initializeCart("restaurant-1", "");
+      first.addItem(menuItem(), 2);
+
+      // A refresh is a fresh store against the same localStorage.
+      setActivePinia(createPinia());
+      const second = useShopCartStore();
+      second.initializeCart("restaurant-1", "");
+
+      expect(second.items).toHaveLength(1);
+      expect(second.itemCount).toBe(2);
+    });
+
+    it("still keeps two restaurants apart", () => {
+      const store = useShopCartStore();
+      store.initializeCart("restaurant-1", "");
+      store.addItem(menuItem(), 2);
+
+      store.initializeCart("restaurant-2", "");
+
+      expect(store.items).toEqual([]);
+    });
+  });
+
+  describe("carts written by an older build", () => {
+    function writeLegacyCart() {
+      localStorage.setItem(
+        "makanmakan_shop_cart_restaurant-1_678",
+        JSON.stringify({
+          items: [
+            {
+              id: "42",
+              menuItem: menuItem(),
+              quantity: 2,
+              price: 100,
+              totalPrice: 200,
+            },
+          ],
+          restaurantId: "restaurant-1",
+          phoneLastDigits: "678",
+          timestamp: Date.now(),
+          fulfillmentType: "takeaway",
+        }),
+      );
+    }
+
+    it("adopts a cart left under the old key", () => {
+      // Someone mid-order when this build ships should not lose their cart.
+      writeLegacyCart();
+
+      const store = useShopCartStore();
+      store.initializeCart("restaurant-1", "678");
+
+      expect(store.items).toHaveLength(1);
+      expect(store.itemCount).toBe(2);
+    });
+
+    it("moves it under the new key and drops the old one", () => {
+      writeLegacyCart();
+
+      const store = useShopCartStore();
+      store.initializeCart("restaurant-1", "678");
+
+      expect(
+        localStorage.getItem("makanmakan_shop_cart_restaurant-1"),
+      ).toContain("Beef Noodles");
+      expect(
+        localStorage.getItem("makanmakan_shop_cart_restaurant-1_678"),
+      ).toBeNull();
+    });
+
+    it("prefers the current key when both exist", () => {
+      writeLegacyCart();
+      const store = useShopCartStore();
+      store.initializeCart("restaurant-1", "678");
+      store.clearCart();
+
+      store.initializeCart("restaurant-1", "678");
+      store.addItem(menuItem({ id: 43, name: "Fried Rice" }), 1);
+
+      setActivePinia(createPinia());
+      const reopened = useShopCartStore();
+      reopened.initializeCart("restaurant-1", "678");
+
+      expect(reopened.items).toHaveLength(1);
+      expect(reopened.items[0].menuItem.name).toBe("Fried Rice");
+    });
   });
 });

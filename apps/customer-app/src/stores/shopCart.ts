@@ -52,7 +52,10 @@ const CartItemSchema = z
 const ShopCartDataSchema = z.object({
   items: z.array(CartItemSchema).max(100),
   restaurantId: z.string().min(1),
-  phoneLastDigits: z.string().regex(/^\d{3}$/),
+  // No phoneLastDigits. It was written here and required by this schema, but
+  // never read back out — and requiring three digits rejected the cart of any
+  // shop that turns the pickup-digits step off. Payloads written by older
+  // builds still carry the field; zod strips it.
   timestamp: z.number().int().positive(),
   fulfillmentType: z
     .enum(["dine-in", "takeaway", "delivery"])
@@ -279,17 +282,36 @@ export const useShopCartStore = defineStore("shopCart", () => {
     return parts.join("|");
   };
 
+  /**
+   * Keyed on the restaurant alone.
+   *
+   * The pickup digits used to be part of this key, and save/restore bailed out
+   * when they were empty — so a shop with `requirePhone` turned off had no
+   * persistence at all and every refresh emptied the cart. Isolation between
+   * two people sharing a device does not depend on the key: initializeCart
+   * already clears the previous identity's cart, storage entry included,
+   * whenever the restaurant or the digits change.
+   */
   const getCartStorageKey = () => {
+    return `makanmakan_shop_cart_${restaurantId.value}`;
+  };
+
+  /**
+   * Where a cart saved by an older build lives. Only carts that had pickup
+   * digits were ever written, so knowing the digits is enough to find one —
+   * no scan of localStorage required.
+   */
+  const getLegacyCartStorageKey = () => {
+    if (!restaurantId.value || !phoneLastDigits.value) return null;
     return `makanmakan_shop_cart_${restaurantId.value}_${phoneLastDigits.value}`;
   };
 
   const saveCart = () => {
-    if (!restaurantId.value || !phoneLastDigits.value) return;
+    if (!restaurantId.value) return;
 
     const cartData = {
       items: items.value,
       restaurantId: restaurantId.value,
-      phoneLastDigits: phoneLastDigits.value,
       timestamp: Date.now(),
       fulfillmentType: fulfillmentType.value,
       deliveryInfo: deliveryInfo.value,
@@ -304,10 +326,25 @@ export const useShopCartStore = defineStore("shopCart", () => {
   };
 
   const restoreCart = () => {
-    if (!restaurantId.value || !phoneLastDigits.value) return;
+    if (!restaurantId.value) return;
+
+    let adoptedLegacyKey: string | null = null;
+    const discardStoredCart = () => {
+      localStorage.removeItem(getCartStorageKey());
+      if (adoptedLegacyKey) localStorage.removeItem(adoptedLegacyKey);
+    };
 
     try {
-      const saved = localStorage.getItem(getCartStorageKey());
+      const legacyKey = getLegacyCartStorageKey();
+      let saved = localStorage.getItem(getCartStorageKey());
+
+      // A customer mid-order when this build shipped still has their cart under
+      // the old key. Adopt it once rather than dropping it on the floor.
+      if (!saved && legacyKey) {
+        saved = localStorage.getItem(legacyKey);
+        adoptedLegacyKey = saved ? legacyKey : null;
+      }
+
       if (!saved) return;
 
       // Parse JSON (unsafe until validated)
@@ -321,7 +358,7 @@ export const useShopCartStore = defineStore("shopCart", () => {
           "購物車資料驗證失敗 (可能被篡改):",
           validationResult.error,
         );
-        localStorage.removeItem(getCartStorageKey());
+        discardStoredCart();
         return;
       }
 
@@ -335,7 +372,7 @@ export const useShopCartStore = defineStore("shopCart", () => {
 
       // 檢查是否過期（2小時）
       if (Date.now() - timestamp > 2 * 60 * 60 * 1000) {
-        localStorage.removeItem(getCartStorageKey());
+        discardStoredCart();
         return;
       }
 
@@ -344,9 +381,16 @@ export const useShopCartStore = defineStore("shopCart", () => {
       fulfillmentType.value = savedFulfillmentType ?? "takeaway";
       deliveryInfo.value = savedDeliveryInfo ?? null;
       deliveryFee.value = savedDeliveryFee ?? 0;
+
+      // Move it under the new key so the next refresh takes the direct path.
+      if (adoptedLegacyKey) {
+        localStorage.removeItem(adoptedLegacyKey);
+        adoptedLegacyKey = null;
+        saveCart();
+      }
     } catch (error) {
       console.warn("恢復購物車失敗:", error);
-      localStorage.removeItem(getCartStorageKey());
+      discardStoredCart();
     }
   };
 
