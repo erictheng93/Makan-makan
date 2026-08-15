@@ -716,7 +716,11 @@
     "deliveryDesc": "送到指定地址",
     "noMethodsTitle": "目前尚未開放點餐",
     "noMethodsDescription": "店家正在設定可用的用餐方式，請稍後再試或洽詢店家。",
-    "continue": "繼續"
+    "continue": "繼續",
+    "qrRevokedTitle": "此 QR Code 已失效",
+    "qrRevokedDescription": "店家已更換新的 QR Code，請向店家索取最新的貼紙或連結。",
+    "shopDisabledTitle": "店家目前未開放掃碼點餐",
+    "shopDisabledDescription": "店家已暫停線上點餐，請直接向店員點餐。"
   },
   "group": {
     "sharedCart": "群組購物車",

@@ -716,7 +716,11 @@
     "deliveryDesc": "Giao đến địa chỉ của bạn",
     "noMethodsTitle": "Chưa thể đặt món",
     "noMethodsDescription": "Nhà hàng đang thiết lập các hình thức đặt món. Vui lòng thử lại sau hoặc liên hệ nhà hàng.",
-    "continue": "Tiếp tục"
+    "continue": "Tiếp tục",
+    "qrRevokedTitle": "Mã QR này không còn hiệu lực",
+    "qrRevokedDescription": "Cửa hàng đã phát hành mã QR mới. Vui lòng hỏi nhân viên để lấy nhãn dán hoặc liên kết mới nhất.",
+    "shopDisabledTitle": "Đặt món bằng QR đang tắt",
+    "shopDisabledDescription": "Cửa hàng đã tạm dừng đặt món trực tuyến. Vui lòng đặt trực tiếp với nhân viên."
   },
   "group": {
     "sharedCart": "Giỏ hàng nhóm",

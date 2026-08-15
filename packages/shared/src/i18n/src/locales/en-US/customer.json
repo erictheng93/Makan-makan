@@ -716,7 +716,11 @@
     "deliveryDesc": "Deliver to your address",
     "noMethodsTitle": "Ordering is not available yet",
     "noMethodsDescription": "This restaurant is still setting up its available order types. Please try again later or contact the restaurant.",
-    "continue": "Continue"
+    "continue": "Continue",
+    "qrRevokedTitle": "This QR code is no longer valid",
+    "qrRevokedDescription": "The shop has issued a new QR code. Ask staff for the current sticker or link.",
+    "shopDisabledTitle": "QR ordering is turned off",
+    "shopDisabledDescription": "This shop has paused online ordering. Please order with staff directly."
   },
   "group": {
     "sharedCart": "Group Cart",

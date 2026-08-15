@@ -12,9 +12,34 @@
 
       <div v-else-if="error" class="text-center py-12">
         <p class="text-red-500 mb-4">{{ error }}</p>
-        <button class="text-ios-blue underline" @click="fetchRestaurant">
+        <button class="text-ios-blue underline" @click="loadEntry">
           {{ t("common.retry") }}
         </button>
+      </div>
+
+      <!--
+        Terminal state: the server says this entry cannot order. No retry —
+        retrying a retired sticker gives the same answer, and offering the
+        button reads as "we're having trouble" when the truth is "ask the
+        shop for the current code".
+      -->
+      <div
+        v-else-if="blockedReason"
+        data-testid="shop-entry-blocked"
+        :data-block-reason="blockedReason"
+        class="bg-ios-card rounded-2xl shadow-card-sm px-5 py-8 text-center"
+      >
+        <div
+          class="w-14 h-14 rounded-full bg-red-50 mx-auto mb-4 flex items-center justify-center"
+        >
+          <span class="text-2xl">🚫</span>
+        </div>
+        <h2 class="text-base font-semibold text-ios-text">
+          {{ t(BLOCKED_COPY[blockedReason].title) }}
+        </h2>
+        <p class="mt-2 text-sm text-ios-secondary">
+          {{ t(BLOCKED_COPY[blockedReason].description) }}
+        </p>
       </div>
 
       <div v-else>
@@ -184,9 +209,43 @@ import { useRouter, useRoute } from "vue-router";
 import { useI18n } from "@/composables/useI18n";
 import { useShopCartStore } from "@/stores/shopCart";
 import { menuApi } from "@/services/menuApi";
+import { shopQrApi } from "@/services/shopQrApi";
 import type { Restaurant } from "@makanmasak/shared-types";
 
 type FulfillmentType = "dine-in" | "takeaway" | "delivery";
+
+/**
+ * Why the page can refuse to open, in the server's words.
+ *
+ * `qrRevoked` — the `?qr=` in the URL is not the restaurant's current shop
+ * code, so the owner has regenerated the sticker since it was printed or
+ * shared. `shopDisabled` — the owner has shop ordering switched off entirely.
+ *
+ * Both are exactly what `assertShopOrderingEnabled` throws at checkout
+ * (`SHOP_QR_REVOKED` / `SHOP_MODE_DISABLED`). Asking here is not a second
+ * security boundary — the shop code is public and possession proves nothing —
+ * it just moves the refusal to the door, instead of after a full cart.
+ */
+type BlockedReason = "qrRevoked" | "shopDisabled";
+
+/**
+ * Spelled out rather than built as `orderTypeLanding.${reason}Title`, so the
+ * keys stay greppable from the locale files, and so adding a reason without
+ * adding its copy is a compile error rather than a blank panel.
+ */
+const BLOCKED_COPY: Record<
+  BlockedReason,
+  { title: string; description: string }
+> = {
+  qrRevoked: {
+    title: "orderTypeLanding.qrRevokedTitle",
+    description: "orderTypeLanding.qrRevokedDescription",
+  },
+  shopDisabled: {
+    title: "orderTypeLanding.shopDisabledTitle",
+    description: "orderTypeLanding.shopDisabledDescription",
+  },
+};
 type RestaurantWithPlaceholderFlag = Restaurant & {
   isPlaceholderDescription?: boolean;
 };
@@ -205,6 +264,13 @@ const selectedType = ref<FulfillmentType | null>(null);
 const restaurant = ref<RestaurantWithPlaceholderFlag | null>(null);
 const isLoading = ref(true);
 const error = ref<string | null>(null);
+const blockedReason = ref<BlockedReason | null>(null);
+
+const scannedQrCode = computed(() => {
+  const qr = route.query.qr;
+  const value = Array.isArray(qr) ? qr[0] : qr;
+  return typeof value === "string" && value.length > 0 ? value : null;
+});
 
 const dineInEnabled = computed(() => {
   return restaurant.value?.settings?.enableDineIn ?? false;
@@ -245,12 +311,54 @@ function autoSelectType() {
   }
 }
 
-async function fetchRestaurant() {
+/**
+ * Load the page from what the server says, not from the route.
+ *
+ * `restaurantId` arriving in the path is not permission to order: it is public,
+ * and so is the `?qr=` beside it. The two questions that actually decide
+ * whether this entry can order — is the shop channel open, and is this the
+ * current sticker — are the server's to answer, so both are asked before any
+ * fulfillment button is offered.
+ *
+ * The two requests are independent, so they run together; a scan should not pay
+ * for the verification serially.
+ */
+async function loadEntry() {
   isLoading.value = true;
   error.value = null;
+  blockedReason.value = null;
   try {
-    const res = await menuApi.getRestaurant(props.restaurantId);
+    const qrCode = scannedQrCode.value;
+    const [res, verification] = await Promise.all([
+      menuApi.getRestaurant(props.restaurantId),
+      qrCode ? shopQrApi.verify(qrCode) : Promise.resolve(null),
+    ]);
+
     restaurant.value = res;
+
+    // Either the code is not the shop's current sticker, or it verified against
+    // a different restaurant than the path claims — trusting one half without
+    // the other is how a mismatched pair walks in. Checked ahead of the
+    // shop-mode flag because "ask the shop for the current code" is the more
+    // actionable thing to tell someone holding a retired sticker.
+    if (
+      verification &&
+      (!verification.valid || verification.restaurantId !== props.restaurantId)
+    ) {
+      blockedReason.value = "qrRevoked";
+      return;
+    }
+
+    // Carries the entries that arrive with no code at all — a bookmarked link,
+    // the recent-restaurants picker — which is where the old `settings.enable*`
+    // reads let a switched-off shop straight through. Redundant after a passing
+    // verification, which already requires the flag, and cheap to keep so the
+    // page never depends on which branch it came down.
+    if (!res.enableShopMode) {
+      blockedReason.value = "shopDisabled";
+      return;
+    }
+
     autoSelectType();
   } catch {
     error.value = t("toast.restaurantLoadFailed");
@@ -280,5 +388,5 @@ function handleContinue() {
   });
 }
 
-onMounted(fetchRestaurant);
+onMounted(loadEntry);
 </script>

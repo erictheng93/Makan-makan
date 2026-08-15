@@ -2,6 +2,7 @@ import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import OrderTypeLandingView from "@/views/OrderTypeLandingView.vue";
 import { menuApi } from "@/services/menuApi";
+import { shopQrApi } from "@/services/shopQrApi";
 
 const routerPush = vi.hoisted(() => vi.fn());
 const routeQuery = vi.hoisted(() => ({
@@ -36,9 +37,20 @@ vi.mock("@/services/menuApi", () => ({
   },
 }));
 
+vi.mock("@/services/shopQrApi", () => ({
+  shopQrApi: {
+    verify: vi.fn(),
+  },
+}));
+
 describe("OrderTypeLandingView", () => {
   beforeEach(() => {
     routerPush.mockReset();
+    vi.mocked(shopQrApi.verify).mockReset();
+    vi.mocked(shopQrApi.verify).mockResolvedValue({
+      valid: true,
+      restaurantId: "restaurant-1",
+    });
     delete (
       routeQuery as Partial<typeof routeQuery> & {
         serviceItemId?: string;
@@ -54,6 +66,7 @@ describe("OrderTypeLandingView", () => {
     vi.mocked(menuApi.getRestaurant).mockResolvedValue({
       id: "restaurant-1",
       name: "市場入口店",
+      enableShopMode: true,
       settings: {
         enableDineIn: true,
         enableTakeaway: true,
@@ -121,6 +134,7 @@ describe("OrderTypeLandingView", () => {
       name: "市場入口店",
       description:
         "Provisioned from onboarding application APP-20260727-4OG1RRGC; owner must complete the restaurant profile before publishing.",
+      enableShopMode: true,
       settings: {
         enableDineIn: false,
         enableTakeaway: false,
@@ -148,6 +162,7 @@ describe("OrderTypeLandingView", () => {
       description:
         "Owner must complete the restaurant profile before publishing.",
       isPlaceholderDescription: true,
+      enableShopMode: true,
       settings: {
         enableDineIn: true,
         enableTakeaway: false,
@@ -166,11 +181,100 @@ describe("OrderTypeLandingView", () => {
     expect(wrapper.text()).toContain("市場入口店");
     expect(wrapper.text()).not.toContain("Owner must complete");
   });
+  // #188: the page used to decide it could order from the route params alone.
+  // These cover the three ways the server can say otherwise.
+  describe("trusting the server over the route", () => {
+    async function mountAndSettle() {
+      const wrapper = mount(OrderTypeLandingView, {
+        props: { restaurantId: "restaurant-1" },
+      });
+      await vi.waitFor(() => {
+        expect(
+          wrapper.find('[data-testid="shop-entry-blocked"]').exists(),
+        ).toBe(true);
+      });
+      return wrapper;
+    }
+
+    it("blocks a QR the shop has since regenerated", async () => {
+      vi.mocked(shopQrApi.verify).mockResolvedValue({ valid: false });
+
+      const wrapper = await mountAndSettle();
+
+      expect(shopQrApi.verify).toHaveBeenCalledWith("SHOP-restaurant-1");
+      expect(
+        wrapper
+          .get('[data-testid="shop-entry-blocked"]')
+          .attributes("data-block-reason"),
+      ).toBe("qrRevoked");
+      expect(wrapper.text()).toContain("orderTypeLanding.qrRevokedTitle");
+      expect(wrapper.find('[data-testid="continue-btn"]').exists()).toBe(false);
+    });
+
+    it("blocks a QR that verifies against a different restaurant", async () => {
+      vi.mocked(shopQrApi.verify).mockResolvedValue({
+        valid: true,
+        restaurantId: "restaurant-2",
+      });
+
+      const wrapper = await mountAndSettle();
+
+      expect(
+        wrapper
+          .get('[data-testid="shop-entry-blocked"]')
+          .attributes("data-block-reason"),
+      ).toBe("qrRevoked");
+    });
+
+    it("blocks the no-QR path when the shop has shop mode switched off", async () => {
+      delete (routeQuery as Partial<typeof routeQuery>).qr;
+      vi.mocked(menuApi.getRestaurant).mockResolvedValue({
+        id: "restaurant-1",
+        name: "市場入口店",
+        enableShopMode: false,
+        settings: {
+          enableDineIn: true,
+          enableTakeaway: true,
+          enableDelivery: true,
+        },
+      } as never);
+
+      const wrapper = await mountAndSettle();
+
+      // Nothing to verify without a code — the flag is the whole answer.
+      expect(shopQrApi.verify).not.toHaveBeenCalled();
+      expect(
+        wrapper
+          .get('[data-testid="shop-entry-blocked"]')
+          .attributes("data-block-reason"),
+      ).toBe("shopDisabled");
+      expect(wrapper.text()).toContain("orderTypeLanding.shopDisabledTitle");
+      expect(wrapper.find('[data-testid="continue-btn"]').exists()).toBe(false);
+    });
+
+    it("offers a retry rather than a verdict when verification cannot be reached", async () => {
+      vi.mocked(shopQrApi.verify).mockRejectedValue(new Error("Network Error"));
+
+      const wrapper = mount(OrderTypeLandingView, {
+        props: { restaurantId: "restaurant-1" },
+      });
+
+      await vi.waitFor(() => {
+        expect(wrapper.text()).toContain("toast.restaurantLoadFailed");
+      });
+
+      expect(wrapper.find('[data-testid="shop-entry-blocked"]').exists()).toBe(
+        false,
+      );
+    });
+  });
+
   describe("continuing to the menu", () => {
     function mockShop(overrides: Record<string, unknown> = {}) {
       vi.mocked(menuApi.getRestaurant).mockResolvedValue({
         id: "restaurant-1",
         name: "市場入口店",
+        enableShopMode: true,
         settings: {
           enableDineIn: false,
           enableTakeaway: true,

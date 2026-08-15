@@ -716,7 +716,11 @@
     "deliveryDesc": "Kirim ke alamat Anda",
     "noMethodsTitle": "Pemesanan belum tersedia",
     "noMethodsDescription": "Restoran ini masih menyiapkan jenis pesanan yang tersedia. Silakan coba lagi nanti atau hubungi restoran.",
-    "continue": "Lanjutkan"
+    "continue": "Lanjutkan",
+    "qrRevokedTitle": "Kode QR ini sudah tidak berlaku",
+    "qrRevokedDescription": "Toko telah menerbitkan kode QR baru. Mintalah stiker atau tautan terbaru kepada staf.",
+    "shopDisabledTitle": "Pemesanan lewat QR sedang dimatikan",
+    "shopDisabledDescription": "Toko ini menghentikan sementara pemesanan online. Silakan pesan langsung ke staf."
   },
   "group": {
     "sharedCart": "Keranjang Grup",

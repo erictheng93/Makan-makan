@@ -1034,6 +1034,10 @@ describe("i18n Integration Tests", () => {
       "orderTypeLanding.noMethodsTitle",
       "orderTypeLanding.noMethodsDescription",
       "orderTypeLanding.continue",
+      "orderTypeLanding.qrRevokedTitle",
+      "orderTypeLanding.qrRevokedDescription",
+      "orderTypeLanding.shopDisabledTitle",
+      "orderTypeLanding.shopDisabledDescription",
     ];
 
     it("should have all orderTypeLanding keys in all 6 locales", () => {

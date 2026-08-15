@@ -716,7 +716,11 @@
     "deliveryDesc": "Hantar ke alamat anda",
     "noMethodsTitle": "Pesanan belum tersedia",
     "noMethodsDescription": "Restoran ini masih menetapkan jenis pesanan yang tersedia. Sila cuba lagi kemudian atau hubungi restoran.",
-    "continue": "Teruskan"
+    "continue": "Teruskan",
+    "qrRevokedTitle": "Kod QR ini tidak lagi sah",
+    "qrRevokedDescription": "Kedai telah mengeluarkan kod QR baharu. Sila minta pelekat atau pautan terkini daripada kakitangan.",
+    "shopDisabledTitle": "Pesanan melalui QR ditutup",
+    "shopDisabledDescription": "Kedai ini telah menjeda pesanan dalam talian. Sila buat pesanan terus dengan kakitangan."
   },
   "group": {
     "sharedCart": "Troli Kumpulan",
