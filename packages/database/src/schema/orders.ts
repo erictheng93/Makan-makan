@@ -85,7 +85,6 @@ export const orders = sqliteTable(
     customerInfo: text("customer_info", { mode: "json" }).$type<{
       name?: string;
       phone?: string;
-      phoneLastDigits?: string; // 手機後3位（用於店家訂單驗證）
       email?: string;
       peopleCount?: number; // 用餐人數
       specialRequests?: string[]; // 特殊需求

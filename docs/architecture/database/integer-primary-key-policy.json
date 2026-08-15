@@ -210,7 +210,7 @@
   {
     "tableName": "market_checkout_child_orders",
     "schemaFile": "packages/database/src/schema/markets.ts",
-    "line": 194,
+    "line": 199,
     "category": "join_edge",
     "migrationPlan": "retain",
     "rationale": "Child order rows bridge checkout sessions and restaurant order ids."
@@ -218,7 +218,7 @@
   {
     "tableName": "market_checkout_payments",
     "schemaFile": "packages/database/src/schema/markets.ts",
-    "line": 226,
+    "line": 231,
     "category": "leaf_local",
     "migrationPlan": "retain",
     "rationale": "Payment rows expose payment_id as the stable provider-facing identifier."

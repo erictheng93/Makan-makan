@@ -163,6 +163,11 @@ export const marketCheckoutSessions = sqliteTable(
     platformFeeRateBps: integer("platform_fee_rate_bps").notNull().default(0),
     status: text("status").notNull().default("submitted"),
     paymentStatus: text("payment_status").notNull().default("pending"),
+    // Not the retired shop-order pickup identifier that shared this name: this
+    // is the credential POST /market-checkouts/:id/guest-token compares against
+    // to re-issue a guest token for a customer who lost theirs. Child orders
+    // are guest orders with no account behind them, so this is the only
+    // recovery path — do not delete it as leftovers of the pickup-digits step.
     phoneLastDigits: text("phone_last_digits"),
     subtotalCents: integer("subtotal_cents").notNull(),
     childOrderCount: integer("child_order_count").notNull().default(0),
