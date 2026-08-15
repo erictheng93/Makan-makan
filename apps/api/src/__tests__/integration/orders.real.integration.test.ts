@@ -53,8 +53,9 @@ describe("Orders API — real integration", () => {
     //   items[].price is optional (service computes from DB)
     //   items[].unitPrice is NOT a field — use `price` instead
     //   totalAmount is NOT in the schema — service auto-calculates
-    //   orderType defaults to "shop" (schema default; service discards the
-    //   request value in this codebase and lets Drizzle apply the default)
+    //   orderType is optional and Zod defaults it to "shop", so the service
+    //   always receives an explicit value and writes it through — the "table"
+    //   default on the orders.order_type column is never reached from here
     const payload = {
       restaurantId: String(restaurant.id),
       items: [{ menuItemId: menuItem.id, quantity: 2 }],
