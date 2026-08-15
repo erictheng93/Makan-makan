@@ -158,6 +158,41 @@ interface MarketCheckoutSession {
   createdAt: string;
 }
 
+/**
+ * What a checkout session looks like once it leaves the Worker.
+ *
+ * `phoneLastDigits` is the recovery credential that `POST /:id/guest-token`
+ * compares against: a customer who has lost their guest token proves the
+ * checkout is theirs by producing it. `GET /:id` is unauthenticated, and the
+ * checkout id travels in the tracking link, so echoing the credential back
+ * would hand it to everyone holding that link — precisely the population the
+ * comparison exists to filter — and would leave the per-checkout brute-force
+ * lockout guarding nothing, because there would be no digits left to guess.
+ *
+ * An allowlist rather than `{ ...session }` minus a key: a field added to
+ * `MarketCheckoutSession` later has to be named here before it reaches a
+ * client, so the next secret stored on a session does not ship by default.
+ */
+type PublicMarketCheckoutSession = Omit<
+  MarketCheckoutSession,
+  "phoneLastDigits"
+>;
+
+function toPublicMarketCheckout(
+  session: MarketCheckoutSession,
+): PublicMarketCheckoutSession {
+  return {
+    id: session.id,
+    market: session.market,
+    status: session.status,
+    childOrders: session.childOrders,
+    payment: session.payment,
+    subtotal: session.subtotal,
+    appliedVoucher: session.appliedVoucher,
+    createdAt: session.createdAt,
+  };
+}
+
 interface MarketCheckoutIndexItem {
   id: string;
   market: MarketCheckoutSession["market"];
@@ -594,7 +629,7 @@ app.post("/", async (c) => {
     {
       success: true,
       data: {
-        checkout: session,
+        checkout: toPublicMarketCheckout(session),
         childOrders: children,
       },
     },
@@ -702,7 +737,7 @@ app.post("/:id/voucher", async (c) => {
   return c.json({
     success: true,
     data: {
-      checkout: updatedSession,
+      checkout: toPublicMarketCheckout(updatedSession),
       voucher: appliedVoucher,
       vouchers: listAppliedMarketCheckoutVouchers(appliedVoucher),
       subtotalCents: session.subtotal,
@@ -750,7 +785,10 @@ app.delete("/:id/voucher", async (c) => {
   );
   await updatePersistedMarketCheckoutVoucher(c.env, updatedSession);
 
-  return c.json({ success: true, data: { checkout: updatedSession } });
+  return c.json({
+    success: true,
+    data: { checkout: toPublicMarketCheckout(updatedSession) },
+  });
 });
 
 app.post("/:id/pay", async (c) => {
@@ -781,7 +819,7 @@ app.post("/:id/pay", async (c) => {
     return c.json({
       success: true,
       data: {
-        checkout: session,
+        checkout: toPublicMarketCheckout(session),
         payment: session.payment,
       },
     });
@@ -904,7 +942,7 @@ app.post("/:id/pay", async (c) => {
       {
         success: true,
         data: {
-          checkout: failedSession,
+          checkout: toPublicMarketCheckout(failedSession),
           payment: failedPayment,
         },
       },
@@ -1017,7 +1055,7 @@ app.post("/:id/pay", async (c) => {
       {
         success: true,
         data: {
-          checkout: failedSession,
+          checkout: toPublicMarketCheckout(failedSession),
           payment,
         },
       },
@@ -1029,7 +1067,7 @@ app.post("/:id/pay", async (c) => {
     {
       success: true,
       data: {
-        checkout: updatedSession,
+        checkout: toPublicMarketCheckout(updatedSession),
         payment,
       },
     },
@@ -1320,7 +1358,7 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
     return c.json({
       success: true,
       data: {
-        checkout: updatedSession,
+        checkout: toPublicMarketCheckout(updatedSession),
         payment,
         refunds: [
           {
@@ -1451,7 +1489,7 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
   return c.json({
     success: true,
     data: {
-      checkout: updatedSession,
+      checkout: toPublicMarketCheckout(updatedSession),
       payment,
       refunds,
     },
@@ -1720,7 +1758,9 @@ app.get("/admin/:id", authMiddleware, requireRole([0]), async (c) => {
   const checkoutId = c.req.param("id") ?? "";
   const persisted = await readPersistedMarketCheckoutSession(c.env, checkoutId);
   if (persisted) {
-    const checkout = await hydrateMarketCheckoutSession(persisted, c.env);
+    const checkout = toPublicMarketCheckout(
+      await hydrateMarketCheckoutSession(persisted, c.env),
+    );
 
     return c.json({
       success: true,
@@ -1736,7 +1776,9 @@ app.get("/admin/:id", authMiddleware, requireRole([0]), async (c) => {
   }
 
   const session = JSON.parse(stored) as MarketCheckoutSession;
-  const checkout = await hydrateMarketCheckoutSession(session, c.env);
+  const checkout = toPublicMarketCheckout(
+    await hydrateMarketCheckoutSession(session, c.env),
+  );
 
   return c.json({
     success: true,
@@ -1750,7 +1792,9 @@ app.get("/:id", async (c) => {
   const checkoutId = c.req.param("id") ?? "";
   const persisted = await readPersistedMarketCheckoutSession(c.env, checkoutId);
   if (persisted) {
-    const checkout = await hydrateMarketCheckoutSession(persisted, c.env);
+    const checkout = toPublicMarketCheckout(
+      await hydrateMarketCheckoutSession(persisted, c.env),
+    );
 
     return c.json({
       success: true,
@@ -1766,7 +1810,9 @@ app.get("/:id", async (c) => {
   }
 
   const session = JSON.parse(stored) as MarketCheckoutSession;
-  const checkout = await hydrateMarketCheckoutSession(session, c.env);
+  const checkout = toPublicMarketCheckout(
+    await hydrateMarketCheckoutSession(session, c.env),
+  );
 
   return c.json({
     success: true,

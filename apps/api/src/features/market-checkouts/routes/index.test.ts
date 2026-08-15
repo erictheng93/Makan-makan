@@ -1614,7 +1614,10 @@ describe("market checkout routes", () => {
           platformFeeRateBps: 350,
           status: "submitted",
           paymentStatus: "pending",
-          phoneLastDigits: null,
+          // A real value, not null: the assertion below is about the response
+          // projection dropping the recovery credential, and a null column
+          // reads back as undefined whether or not anything strips it.
+          phoneLastDigits: "789",
           subtotalCents: 12000,
           childOrderCount: 1,
           paymentSummary: null,
@@ -1675,6 +1678,29 @@ describe("market checkout routes", () => {
     });
   });
 
+  it("withholds the recovery digits on the KV branch of the public read", async () => {
+    // GET /:id serializes twice — once from the persisted row, once from the
+    // KV session — so the test above leaves this branch uncovered.
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify(unpaidCheckoutSessionFixture()),
+    );
+    getOrder.mockResolvedValueOnce(null);
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1"),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as {
+      data: { checkout: { phoneLastDigits?: string; id: string } };
+    };
+    expect(json.data.checkout.id).toBe("checkout-1");
+    expect(json.data.checkout.phoneLastDigits).toBeUndefined();
+  });
+
   it("applies a voucher to an unpaid market checkout", async () => {
     const env = createEnv();
     await env.CACHE_KV.put(
@@ -1702,7 +1728,10 @@ describe("market checkout routes", () => {
     );
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
+    const voucherJson = (await response.json()) as {
+      data: { checkout: { phoneLastDigits?: string } };
+    };
+    expect(voucherJson).toMatchObject({
       success: true,
       data: {
         discountCents: 2000,
@@ -1714,6 +1743,9 @@ describe("market checkout routes", () => {
         },
       },
     });
+    // The mutating endpoints echo the whole session back, so they need the
+    // same projection as the read endpoints.
+    expect(voucherJson.data.checkout.phoneLastDigits).toBeUndefined();
     expect(reserveVoucherUsage).toHaveBeenCalledWith(
       expect.objectContaining({ couponId: 42, code: "MARKET10" }),
     );
