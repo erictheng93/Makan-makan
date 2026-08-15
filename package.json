@@ -46,7 +46,7 @@
     "test:features": "cross-env NODE_OPTIONS='--max-old-space-size=8192' vitest run apps/api/src/features apps/admin-dashboard/src apps/kitchen-display/src apps/customer-app/src",
     "test:workers": "cross-env NODE_OPTIONS='--max-old-space-size=4096' vitest run tests/unit/workers --passWithNoTests",
     "test:integration": "pnpm test:real-integration",
-    "test:real-integration": "cross-env NODE_OPTIONS='--max-old-space-size=8192' turbo run test:real-integration --filter=./apps/api --filter=./apps/admin-dashboard --filter=./apps/customer-app --filter=./apps/kitchen-display --filter=./apps/management-api",
+    "test:real-integration": "cross-env NODE_OPTIONS='--max-old-space-size=8192' turbo run test:real-integration --continue=dependencies-successful --filter=./apps/api --filter=./apps/admin-dashboard --filter=./apps/customer-app --filter=./apps/kitchen-display --filter=./apps/management-api",
     "test:workers:integration": "node -e \"const fs=require('fs'); const path='tests/integration/workers'; if (!fs.existsSync(path)) { console.log('No worker integration tests present under tests/integration/workers'); process.exit(0); } console.error('Worker integration tests are present, but test:workers:integration needs a real Wrangler 4 runner.'); process.exit(1);\"",
     "test:ci": "pnpm run test:unit && pnpm run test:e2e",
     "test:ci-guards": "vitest run tests/unit/ci-change-classifier.test.ts tests/unit/check-production-config.test.ts tests/unit/check-vitest-results.test.ts tests/unit/migration-dual-track.test.ts tests/unit/code-scanning-regressions.test.ts tests/unit/check-no-automated-destructive-wrangler.test.ts",
