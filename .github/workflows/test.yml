@@ -188,6 +188,12 @@ jobs:
       - name: 🔒 整合測試白名單檢查
         run: node scripts/check-integration-allowlist.cjs
 
+      # Keeps `turbo run test` executable per package: a bare `vitest` is watch
+      # mode and hangs the run, and a package without its own vitest.config.*
+      # resolves the ROOT config and dies on its `projects` entries.
+      - name: 🧩 Package test script 檢查
+        run: pnpm run check:test-scripts
+
       - name: 🚦 Production config 檢查
         run: pnpm run check:prod-config
         env:

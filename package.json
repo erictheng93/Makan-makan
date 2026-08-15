@@ -65,6 +65,7 @@
     "check:migration-dual-track": "node scripts/check-migration-dual-track.cjs",
     "audit:qr-format": "npx tsx scripts/audit-qr-format.ts",
     "check:no-test-doubles": "node scripts/check-no-test-doubles.cjs",
+    "check:test-scripts": "node scripts/check-package-test-scripts.cjs",
     "check:no-automated-destructive-wrangler": "node scripts/check-no-automated-destructive-wrangler.cjs",
     "check:docs-drift": "node scripts/check-docs-drift.cjs",
     "docs:sync": "node scripts/check-docs-drift.cjs --write",
