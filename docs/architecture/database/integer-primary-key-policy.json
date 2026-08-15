@@ -330,7 +330,7 @@
   {
     "tableName": "restaurant_faqs",
     "schemaFile": "packages/database/src/schema/restaurants.ts",
-    "line": 140,
+    "line": 139,
     "category": "leaf_local",
     "migrationPlan": "retain",
     "rationale": "FAQ rows are scoped children of restaurant identity."
