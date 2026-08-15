@@ -124,8 +124,21 @@ vi.mock("@tanstack/vue-query", () => ({
         data: ref({
           id: "restaurant-1",
           name: "服務測試店",
+          enableShopMode: true,
           settings: { currency: "TWD" },
         }),
+        isLoading: ref(false),
+        error: ref(null),
+        refetch: vi.fn(),
+      };
+    }
+
+    // No `?qr=` in this suite's route, so the verification never runs. Matched
+    // explicitly anyway — the fallthrough below returns service items, which
+    // would read as a failed verification and block ordering.
+    if (options.queryKey[0] === "shop-qr-verify") {
+      return {
+        data: ref(undefined),
         isLoading: ref(false),
         error: ref(null),
         refetch: vi.fn(),
@@ -232,6 +245,12 @@ vi.mock("@/services/menuApi", () => ({
   menuApi: {
     getRestaurant: vi.fn(),
     getMenu: vi.fn(),
+  },
+}));
+
+vi.mock("@/services/shopQrApi", () => ({
+  shopQrApi: {
+    verify: vi.fn(),
   },
 }));
 

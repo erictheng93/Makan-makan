@@ -622,7 +622,8 @@
     "deliveryFee": "Phí giao hàng",
     "total": "Tổng cộng",
     "confirmOrder": "Xác nhận đơn hàng",
-    "processing": "Đang xử lý..."
+    "processing": "Đang xử lý...",
+    "orderingUnavailable": "Cửa hàng hiện không thể nhận đơn hàng này."
   },
   "errorBoundary": {
     "reload": "Tải lại",
@@ -675,7 +676,11 @@
     "viewingShop": "Đang xem thực đơn và dịch vụ của cửa hàng này",
     "targetService": "Dịch vụ: {name}",
     "targetProduct": "Sản phẩm: {name}",
-    "targetDish": "Món ăn: {name}"
+    "targetDish": "Món ăn: {name}",
+    "qrRevokedTitle": "Mã QR này đã hết hiệu lực, tạm dừng đặt món",
+    "qrRevokedDescription": "Vẫn có thể xem thực đơn. Để đặt món, vui lòng hỏi nhân viên mã QR mới nhất.",
+    "shopDisabledTitle": "Cửa hàng đang tạm dừng đặt món trực tuyến",
+    "shopDisabledDescription": "Vẫn có thể xem thực đơn. Để đặt món, vui lòng nói trực tiếp với nhân viên."
   },
   "menuItemCard": {
     "featured": "⭐ Đề xuất đặc biệt",

@@ -622,7 +622,8 @@
     "deliveryFee": "Delivery Fee",
     "total": "Total",
     "confirmOrder": "Confirm Order",
-    "processing": "Processing..."
+    "processing": "Processing...",
+    "orderingUnavailable": "This shop cannot take the order right now."
   },
   "errorBoundary": {
     "reload": "Reload",
@@ -675,7 +676,11 @@
     "viewingShop": "Viewing this shop's menu and services",
     "targetService": "Service: {name}",
     "targetProduct": "Product: {name}",
-    "targetDish": "Dish: {name}"
+    "targetDish": "Dish: {name}",
+    "qrRevokedTitle": "This QR code has expired, so ordering is paused",
+    "qrRevokedDescription": "The menu is still browsable. To order, ask staff for the current QR code.",
+    "shopDisabledTitle": "This shop has paused online ordering",
+    "shopDisabledDescription": "The menu is still browsable. To order, please speak to staff directly."
   },
   "menuItemCard": {
     "featured": "⭐ Featured",

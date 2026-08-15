@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import OrderTypeLandingView from "@/views/OrderTypeLandingView.vue";
 import { menuApi } from "@/services/menuApi";
@@ -184,15 +184,18 @@ describe("OrderTypeLandingView", () => {
   // #188: the page used to decide it could order from the route params alone.
   // These cover the three ways the server can say otherwise.
   describe("trusting the server over the route", () => {
+    // Drains the microtask queue instead of polling on a wall-clock deadline:
+    // both requests are mocked, so the state is reachable in a fixed number of
+    // ticks, and `vi.waitFor`'s 1s default was tight enough to flake under a
+    // loaded parallel run.
     async function mountAndSettle() {
       const wrapper = mount(OrderTypeLandingView, {
         props: { restaurantId: "restaurant-1" },
       });
-      await vi.waitFor(() => {
-        expect(
-          wrapper.find('[data-testid="shop-entry-blocked"]').exists(),
-        ).toBe(true);
-      });
+      await flushPromises();
+      expect(wrapper.find('[data-testid="shop-entry-blocked"]').exists()).toBe(
+        true,
+      );
       return wrapper;
     }
 
@@ -259,10 +262,9 @@ describe("OrderTypeLandingView", () => {
         props: { restaurantId: "restaurant-1" },
       });
 
-      await vi.waitFor(() => {
-        expect(wrapper.text()).toContain("toast.restaurantLoadFailed");
-      });
+      await flushPromises();
 
+      expect(wrapper.text()).toContain("toast.restaurantLoadFailed");
       expect(wrapper.find('[data-testid="shop-entry-blocked"]').exists()).toBe(
         false,
       );

@@ -413,6 +413,7 @@ describe("i18n Integration Tests", () => {
       "shopCart.total",
       "shopCart.confirmOrder",
       "shopCart.processing",
+      "shopCart.orderingUnavailable",
     ];
 
     it("should have all shopCart keys in all 6 locales", () => {
@@ -501,6 +502,10 @@ describe("i18n Integration Tests", () => {
       "shopMenu.tryOtherKeywords",
       "shopMenu.viewCart",
       "shopMenu.shopOrdering",
+      "shopMenu.qrRevokedTitle",
+      "shopMenu.qrRevokedDescription",
+      "shopMenu.shopDisabledTitle",
+      "shopMenu.shopDisabledDescription",
     ];
 
     it("should have all shopMenu keys in all 6 locales", () => {

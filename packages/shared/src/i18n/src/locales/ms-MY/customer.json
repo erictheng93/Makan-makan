@@ -622,7 +622,8 @@
     "deliveryFee": "Yuran Penghantaran",
     "total": "Jumlah",
     "confirmOrder": "Sahkan Pesanan",
-    "processing": "Memproses..."
+    "processing": "Memproses...",
+    "orderingUnavailable": "Kedai ini tidak dapat menerima pesanan buat masa ini."
   },
   "errorBoundary": {
     "reload": "Muat Semula",
@@ -675,7 +676,11 @@
     "viewingShop": "Melihat menu dan perkhidmatan kedai ini",
     "targetService": "Perkhidmatan: {name}",
     "targetProduct": "Produk: {name}",
-    "targetDish": "Hidangan: {name}"
+    "targetDish": "Hidangan: {name}",
+    "qrRevokedTitle": "Kod QR ini telah tamat tempoh, pesanan dijeda",
+    "qrRevokedDescription": "Menu masih boleh dilihat. Untuk memesan, minta kod QR terkini daripada kakitangan.",
+    "shopDisabledTitle": "Kedai ini menjeda pesanan dalam talian",
+    "shopDisabledDescription": "Menu masih boleh dilihat. Untuk memesan, sila berhubung terus dengan kakitangan."
   },
   "menuItemCard": {
     "featured": "⭐ Pilihan Istimewa",

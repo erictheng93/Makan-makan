@@ -343,7 +343,7 @@
 
               <!-- Checkout Button -->
               <button
-                :disabled="isSubmitting"
+                :disabled="isSubmitting || orderingDisabled"
                 data-testid="submit-order-btn"
                 class="w-full bg-ios-blue text-white py-4 px-6 rounded-full font-semibold shadow-lg hover:shadow-xl active:scale-[0.98] transition-transform duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 @click="handleCheckout"
@@ -427,6 +427,13 @@ const props = defineProps<{
   /** The scanned sticker's code, when this session started from one. */
   shopQrCode?: string;
   waitingTicketId?: string;
+  /**
+   * The shop cannot take this order — QR ordering switched off, or the code
+   * that got the customer here has been retired. The cart stays readable so
+   * an existing basket can be reviewed or cleared; only submitting is off,
+   * which is the same answer the order endpoint would give.
+   */
+  orderingDisabled?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -484,6 +491,13 @@ const getWaitingListCustomerPhone = () => {
 };
 
 const handleCheckout = async () => {
+  // The button is disabled in this state; this holds if it is ever submitted
+  // another way, and says the same thing the server would.
+  if (props.orderingDisabled) {
+    toast.error(t("shopCart.orderingUnavailable"));
+    return;
+  }
+
   // Validate delivery fields before submitting
   if (shopCartStore.fulfillmentType === "delivery") {
     if (!deliveryAddress.value.trim()) {

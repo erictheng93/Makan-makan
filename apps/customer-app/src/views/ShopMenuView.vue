@@ -201,6 +201,25 @@
             </svg>
           </div>
 
+          <!--
+            The menu below stays fully browsable; only the buttons that would
+            put something in a cart are gone. Placed above the entry context so
+            it is the first thing read after the search box.
+          -->
+          <section
+            v-if="orderingBlockedReason"
+            data-testid="shop-ordering-blocked"
+            :data-block-reason="orderingBlockedReason"
+            class="bg-ios-card rounded-2xl shadow-card-sm px-4 py-3"
+          >
+            <p class="text-sm font-semibold text-ios-text">
+              {{ t(BLOCKED_COPY[orderingBlockedReason].title) }}
+            </p>
+            <p class="mt-1 text-sm text-ios-secondary">
+              {{ t(BLOCKED_COPY[orderingBlockedReason].description) }}
+            </p>
+          </section>
+
           <section
             v-if="linkedTargetLabel || returnContext"
             data-testid="shop-menu-entry-context"
@@ -382,6 +401,7 @@
               <MenuItemCard
                 v-for="(item, index) in featuredItems"
                 :key="item.id"
+                :ordering-disabled="orderingBlocked"
                 :item="item"
                 :is-featured="true"
                 :anchor-id="null"
@@ -436,6 +456,7 @@
                 <MenuItemCard
                   v-for="(item, index) in getItemsByCategory(category.id)"
                   :key="item.id"
+                  :ordering-disabled="orderingBlocked"
                   :item="item"
                   :anchor-id="menuItemElementId(item.id)"
                   class="animate-slide-up"
@@ -476,6 +497,7 @@
               <MenuItemCard
                 v-for="(item, index) in filteredProductItems"
                 :key="item.id"
+                :ordering-disabled="orderingBlocked"
                 :item="item"
                 :anchor-id="menuItemElementId(item.id)"
                 class="animate-slide-up"
@@ -581,6 +603,7 @@
       v-if="selectedItem"
       :item="selectedItem"
       :show="showItemModal"
+      :ordering-disabled="orderingBlocked"
       @close="showItemModal = false"
       @add-to-cart="handleAddToCart"
     />
@@ -600,6 +623,7 @@
       :restaurant-id="restaurantId"
       :shop-qr-code="shopQrCode"
       :waiting-ticket-id="waitingTicketId"
+      :ordering-disabled="orderingBlocked"
       @close="showCart = false"
     />
   </div>
@@ -622,6 +646,7 @@ import DesktopCartPanel from "@/components/DesktopCartPanel.vue";
 import { useIsDesktop } from "@/composables/useBreakpoint";
 import { menuApi } from "@/services/menuApi";
 import { discoveryApi } from "@/services/discoveryApi";
+import { shopQrApi } from "@/services/shopQrApi";
 import { restaurantContactApi } from "@/services/restaurantContactApi";
 import { useCurrency } from "@/composables/useCurrency";
 import type {
@@ -720,11 +745,78 @@ const { data: restaurantMarketsData } = useQuery({
   staleTime: 5 * 60 * 1000,
 });
 
+/**
+ * This page is not only reached through `OrderTypeLandingView`. Market and
+ * discovery vendor links (`openDishVendor`, `openServiceVendor`) and plain
+ * bookmarks open it directly, so the entry page's checks do not cover it and
+ * the same two questions have to be asked again here.
+ *
+ * The answer only removes ordering, never the menu: browsing a shop that has
+ * paused QR orders is a legitimate thing to do, and a market page that links
+ * to a vendor should not turn into a dead end.
+ */
+const { data: shopQrVerification } = useQuery({
+  queryKey: ["shop-qr-verify", props.shopQrCode],
+  queryFn: () => shopQrApi.verify(props.shopQrCode as string),
+  enabled: Boolean(props.shopQrCode),
+  staleTime: 5 * 60 * 1000,
+  // A failed request is not a verdict — `shopQrApi.verify` only resolves for a
+  // real answer and rethrows the rest, so leaving this undefined on error keeps
+  // a flaky network from locking a valid shop out of ordering.
+  retry: 1,
+});
+
 // Computed
 const isLoading = computed(
   () => isLoadingRestaurant.value || isLoadingMenu.value,
 );
 const error = computed(() => menuError.value?.message || null);
+
+/**
+ * Why ordering is off, or null when it is on. Mirrors `OrderTypeLandingView`'s
+ * `BlockedReason`, and like it defers to the server on both questions rather
+ * than inferring anything from the route.
+ *
+ * Undecided while the restaurant is still loading: assuming "blocked" would
+ * flash a warning at every visitor, and assuming "fine" would let a tap land
+ * in the window before the answer arrives. `isLoading` already hides the menu
+ * until then, so neither happens.
+ */
+const orderingBlockedReason = computed<"qrRevoked" | "shopDisabled" | null>(
+  () => {
+    if (!restaurant.value) return null;
+
+    const verification = shopQrVerification.value;
+    if (
+      verification &&
+      (!verification.valid || verification.restaurantId !== props.restaurantId)
+    ) {
+      return "qrRevoked";
+    }
+
+    return restaurant.value.enableShopMode ? null : "shopDisabled";
+  },
+);
+
+const orderingBlocked = computed(() => orderingBlockedReason.value !== null);
+
+/**
+ * Spelled out rather than interpolated, so the keys stay greppable from the
+ * locale files and a new reason without copy fails to compile.
+ */
+const BLOCKED_COPY: Record<
+  "qrRevoked" | "shopDisabled",
+  { title: string; description: string }
+> = {
+  qrRevoked: {
+    title: "shopMenu.qrRevokedTitle",
+    description: "shopMenu.qrRevokedDescription",
+  },
+  shopDisabled: {
+    title: "shopMenu.shopDisabledTitle",
+    description: "shopMenu.shopDisabledDescription",
+  },
+};
 
 const categories = computed(() => menuStructure.value?.categories || []);
 const menuItems = computed(() => menuStructure.value?.menuItems || []);
@@ -945,6 +1037,15 @@ const handleAddToCart = (data: {
   customizations?: SelectedCustomizations;
   notes?: string;
 }) => {
+  // Every add — card, detail modal, customization modal — arrives here, which
+  // is why the check lives at this one point rather than at each button. The
+  // buttons are disabled too; this is what holds if one is ever missed.
+  const blocked = orderingBlockedReason.value;
+  if (blocked) {
+    toast.error(t(BLOCKED_COPY[blocked].title));
+    return;
+  }
+
   shopCartStore.addItem(
     data.item,
     data.quantity,

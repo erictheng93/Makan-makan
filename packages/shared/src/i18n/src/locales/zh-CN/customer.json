@@ -622,7 +622,8 @@
     "deliveryFee": "外送费",
     "total": "合计",
     "confirmOrder": "确认订单",
-    "processing": "处理中..."
+    "processing": "处理中...",
+    "orderingUnavailable": "商家目前无法接受这笔订单。"
   },
   "errorBoundary": {
     "reload": "重新加载",
@@ -675,7 +676,11 @@
     "viewingShop": "正在查看此店铺菜单与服务",
     "targetService": "服务：{name}",
     "targetProduct": "商品：{name}",
-    "targetDish": "餐点：{name}"
+    "targetDish": "餐点：{name}",
+    "qrRevokedTitle": "此 QR Code 已失效，暂时无法点餐",
+    "qrRevokedDescription": "菜单仍可浏览。要下单请向商家索取最新的 QR Code。",
+    "shopDisabledTitle": "商家目前暂停在线点餐",
+    "shopDisabledDescription": "菜单仍可浏览。要下单请直接向店员点餐。"
   },
   "menuItemCard": {
     "featured": "⭐ 招牌推荐",

@@ -212,7 +212,7 @@
         class="sticky bottom-0 bg-white/95 backdrop-blur-xl p-6 shadow-[0_-4px_16px_rgb(0,0,0,0.04)]"
       >
         <button
-          :disabled="!item.isAvailable || isOutOfStock"
+          :disabled="!item.isAvailable || isOutOfStock || orderingDisabled"
           data-testid="menu-item-modal-add"
           class="w-full bg-ios-blue text-white font-semibold py-4 px-6 rounded-full active:scale-[0.98] transition-transform duration-150 disabled:bg-gray-200 disabled:text-gray-400"
           @click="handleAddToCart"
@@ -239,6 +239,8 @@ import { getLocalizedMenuName } from "@/utils/localized-menu-content";
 const props = defineProps<{
   show: boolean;
   item?: MenuItem;
+  /** See `MenuItemCard` — the channel cannot take orders, the dish is fine. */
+  orderingDisabled?: boolean;
 }>();
 
 const { t, tWithParams, currentLanguage } = useI18n();

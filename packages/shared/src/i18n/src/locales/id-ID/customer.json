@@ -622,7 +622,8 @@
     "deliveryFee": "Biaya Pengiriman",
     "total": "Total",
     "confirmOrder": "Konfirmasi Pesanan",
-    "processing": "Memproses..."
+    "processing": "Memproses...",
+    "orderingUnavailable": "Toko ini tidak dapat menerima pesanan saat ini."
   },
   "errorBoundary": {
     "reload": "Muat Ulang",
@@ -675,7 +676,11 @@
     "viewingShop": "Melihat menu dan layanan toko ini",
     "targetService": "Layanan: {name}",
     "targetProduct": "Produk: {name}",
-    "targetDish": "Hidangan: {name}"
+    "targetDish": "Hidangan: {name}",
+    "qrRevokedTitle": "Kode QR ini kedaluwarsa, pemesanan dijeda",
+    "qrRevokedDescription": "Menu masih bisa dilihat. Untuk memesan, mintalah kode QR terbaru kepada staf.",
+    "shopDisabledTitle": "Toko ini menghentikan sementara pemesanan online",
+    "shopDisabledDescription": "Menu masih bisa dilihat. Untuk memesan, silakan bicara langsung dengan staf."
   },
   "menuItemCard": {
     "featured": "⭐ Pilihan Istimewa",

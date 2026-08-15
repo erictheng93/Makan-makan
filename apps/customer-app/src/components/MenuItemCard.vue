@@ -128,7 +128,7 @@
           <!-- 添加按鈕 -->
           <button
             v-else-if="!hasCustomizations"
-            :disabled="isOutOfStock"
+            :disabled="isOutOfStock || orderingDisabled"
             :data-testid="`menu-item-add-${item.id}`"
             class="bg-ios-blue text-white px-4 py-2 rounded-full text-sm font-medium active:scale-95 transition-transform duration-150 disabled:bg-gray-200 disabled:text-gray-400 flex items-center space-x-1"
             @click="handleQuickAdd"
@@ -152,7 +152,7 @@
           <!-- 客製化按鈕 -->
           <button
             v-else
-            :disabled="isOutOfStock"
+            :disabled="isOutOfStock || orderingDisabled"
             :data-testid="`menu-item-customize-${item.id}`"
             class="bg-ios-blue/10 text-ios-blue px-4 py-2 rounded-full text-sm font-medium active:bg-ios-blue/20 transition-all duration-200 disabled:bg-gray-100 disabled:text-ios-tertiary"
             @click="handleCustomize"
@@ -310,7 +310,7 @@
               <!-- 添加按鈕 -->
               <button
                 v-else-if="!hasCustomizations"
-                :disabled="isOutOfStock"
+                :disabled="isOutOfStock || orderingDisabled"
                 :data-testid="`menu-item-add-${item.id}`"
                 class="bg-ios-blue text-white px-4 py-2 rounded-full text-sm font-medium active:scale-95 transition-transform duration-150 disabled:bg-gray-200 disabled:text-gray-400 flex items-center space-x-1"
                 @click="handleQuickAdd"
@@ -334,7 +334,7 @@
               <!-- 客製化按鈕 -->
               <button
                 v-else
-                :disabled="isOutOfStock"
+                :disabled="isOutOfStock || orderingDisabled"
                 :data-testid="`menu-item-customize-${item.id}`"
                 class="bg-ios-blue/10 text-ios-blue px-4 py-2 rounded-full text-sm font-medium active:bg-ios-blue/20 transition-all duration-200 disabled:bg-gray-100 disabled:text-ios-tertiary"
                 @click="handleCustomize"
@@ -390,6 +390,14 @@ const props = defineProps<{
   item: MenuItem;
   isFeatured?: boolean;
   anchorId?: string | null;
+  /**
+   * The channel this card is shown in cannot take orders right now — the shop
+   * has QR ordering switched off, or the code that got the customer here has
+   * been retired. Distinct from `isOutOfStock`, which is about this one dish,
+   * and it deliberately reuses the same disabled styling: from the customer's
+   * side both mean "look, don't add".
+   */
+  orderingDisabled?: boolean;
 }>();
 
 // Emits
