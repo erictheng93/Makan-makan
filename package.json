@@ -26,6 +26,8 @@
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "lint:fix": "pnpm -r run lint:fix",
+    "verify": "bash scripts/verify.sh",
+    "verify:push": "bash scripts/verify.sh --full",
     "test": "cross-env NODE_OPTIONS='--max-old-space-size=8192' vitest run",
     "test:unit": "cross-env NODE_OPTIONS='--max-old-space-size=8192' vitest run tests/unit",
     "test:e2e": "playwright test",

@@ -127,6 +127,10 @@ pnpm dev:customer       # Customer app only
 pnpm dev:admin          # Admin dashboard only
 pnpm dev:kitchen        # Kitchen display only
 
+# Verification (see "Two verification tiers" below — use these, not the raw commands)
+pnpm verify             # Inner loop: typecheck + lint + test, affected packages only
+pnpm verify:push        # Pre-push gate: the full CI-equivalent gate, once
+
 # Testing
 pnpm test               # All vitest tests (unit + feature)
 pnpm test:unit          # Unit tests only
@@ -145,6 +149,68 @@ pnpm lint:fix           # Auto-fix lint issues
 # Deployment
 pnpm deploy:prod        # Deploy to production
 ```
+
+### Two verification tiers
+
+**Do not run the full suite after every edit.** `pnpm verify` after each
+meaningful change; `pnpm verify:push` once, before pushing. Both live in
+`scripts/verify.sh`.
+
+| | `pnpm verify` | `pnpm verify:push` |
+| --- | --- | --- |
+| Scope | packages affected vs the merge-base with `main` | every package + the root `tests/` project |
+| Contents | typecheck, lint, test | plus prettier, i18n coverage, and the five `check:*` guards — mirrors `.github/workflows/test.yml` |
+| When | after each edit | once, before pushing |
+
+Both tiers go through turbo, so unchanged packages are cache hits rather than
+re-runs. That is what makes the full gate affordable: it still accounts for
+every package, but only re-executes the ones whose inputs moved. Cache
+correctness rests on `$TURBO_DEFAULT$` inputs plus `dependsOn: ["^build"]` —
+a change in `packages/database` invalidates every dependent app's test task.
+
+Never narrow a task's `inputs` in `turbo.json` to an explicit allow-list like
+`src/**`. `packages/shared` keeps tests in `utils/`, and a missed input means a
+stale cache HIT reported as a pass. Subtract from `$TURBO_DEFAULT$` instead.
+
+**Every package that has tests needs its own `vitest.config.ts`.** Without one,
+`vitest` walks up and finds the root config, then resolves its `projects`
+entries relative to the package — `packages/database` failed for exactly this
+reason with `Projects definition references a non-existing file or a directory:
+packages/database/apps/admin-dashboard`. Two further rules follow from
+per-package execution:
+
+- A package's `test` script must be a single-shot `vitest run`. A bare `vitest`
+  is watch mode and hangs turbo forever. Put watch mode in `test:watch`.
+- A package with a `test` script but no test files yet needs
+  `vitest run --passWithNoTests`. Plain `vitest run` exits 1 on "No test files
+  found", which reddens the whole run (`packages/queue-service`).
+- Tests must not build paths from `process.cwd()`. Anchor on
+  `fileURLToPath(new URL("../../..", import.meta.url))` instead, or the test
+  only passes when invoked from the repo root.
+
+A standalone config does **not** inherit the root `resolve.alias` block, so
+repeat the `@makanmasak/*` aliases in it. Dropping them silently switches
+resolution from package source to built `dist/`, which is a different thing to
+be testing.
+
+### One worktree per session
+
+`turbo --affected` and `vitest --changed` both derive scope from the git diff of
+the tree they run in. Several sessions sharing one working tree means every
+session's "affected" set contains every other session's work, and the
+incremental scope collapses back toward a full run.
+
+```bash
+scripts/session-worktree.sh <branch>   # new worktree + shared cache + install
+scripts/session-worktree.sh            # link an existing worktree to the shared cache
+```
+
+The turbo cache is deliberately **not** isolated — it is content-addressed, so a
+package another session already checked at the same content hash is a free hit
+here. The script symlinks each worktree's `.turbo/cache` to
+`~/.cache/turbo/makanmasak` (override with `MAKAN_TURBO_CACHE_DIR`) and links
+the gitignored `.env.local` and `.wrangler` local state from the primary
+worktree.
 
 ## Common Tasks
 
