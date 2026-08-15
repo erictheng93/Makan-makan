@@ -9,8 +9,9 @@
     "build:prod": "wrangler deploy --dry-run --env production",
     "deploy": "node -e \"console.error('Refusing unqualified deploy. Use pnpm run deploy:prod.'); process.exit(1)\"",
     "deploy:prod": "wrangler deploy --env production",
-    "test": "pnpm --dir ../.. exec vitest run --project api",
-    "test:coverage": "pnpm --dir ../.. exec vitest run --coverage --project api",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "test:real-integration": "cross-env NODE_OPTIONS='--max-old-space-size=8192' vitest run --config vitest.real-integration.config.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src"

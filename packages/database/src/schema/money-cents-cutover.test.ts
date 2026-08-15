@@ -1,6 +1,7 @@
 import { getTableConfig } from "drizzle-orm/sqlite-core";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   cashMovements,
@@ -23,6 +24,12 @@ import {
   shiftTemplates,
   verifiedMembers,
 } from "./index";
+
+// Migration fixtures are addressed repo-root-relative. Anchor on this
+// file's own location rather than process.cwd() so the suite passes whether
+// vitest runs from the workspace root or from packages/database, which is
+// what `turbo run test` does.
+const REPO_ROOT = fileURLToPath(new URL("../../../../", import.meta.url));
 
 type Table = Parameters<typeof getTableConfig>[0];
 
@@ -291,7 +298,7 @@ describe("money cents cutover schema", () => {
     "packages/database/migrations_fresh/0070_money_cents_cutover.sql",
     "packages/database/migrations/0087_money_cents_cutover.sql",
   ])("covers every schema cutover surface in %s", (migrationPath) => {
-    const sql = readFileSync(resolve(process.cwd(), migrationPath), "utf8");
+    const sql = readFileSync(resolve(REPO_ROOT, migrationPath), "utf8");
 
     for (const surface of mainMoneyCutoverSurfaces) {
       expect(sql).toContain(
@@ -313,7 +320,7 @@ describe("money cents cutover schema", () => {
     "packages/database/migrations_fresh/0071_market_checkout_child_order_cents_cutover.sql",
     "packages/database/migrations/0088_market_checkout_child_order_cents_cutover.sql",
   ])("covers market checkout child order cutover in %s", (migrationPath) => {
-    const sql = readFileSync(resolve(process.cwd(), migrationPath), "utf8");
+    const sql = readFileSync(resolve(REPO_ROOT, migrationPath), "utf8");
     expect(marketCheckoutChildOrderSurface).toBeDefined();
 
     expect(sql).toContain(

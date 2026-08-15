@@ -2,6 +2,7 @@ import { getTableConfig } from "drizzle-orm/sqlite-core";
 import Database from "better-sqlite3";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   backupAlerts,
@@ -14,6 +15,12 @@ import {
   restoreOperations,
 } from "./index";
 
+// Migration fixtures are addressed repo-root-relative. Anchor on this
+// file's own location rather than process.cwd() so the suite passes whether
+// vitest runs from the workspace root or from packages/database, which is
+// what `turbo run test` does.
+const REPO_ROOT = fileURLToPath(new URL("../../../../", import.meta.url));
+
 type Table = Parameters<typeof getTableConfig>[0];
 
 function columnSqlType(table: Table, columnName: string): string | undefined {
@@ -24,13 +31,13 @@ function columnSqlType(table: Table, columnName: string): string | undefined {
 
 function migration(name: string): string {
   return readFileSync(
-    resolve(process.cwd(), "packages/database/migrations_fresh", name),
+    resolve(REPO_ROOT, "packages/database/migrations_fresh", name),
     "utf8",
   );
 }
 
 function migrationPath(path: string): string {
-  return readFileSync(resolve(process.cwd(), path), "utf8");
+  return readFileSync(resolve(REPO_ROOT, path), "utf8");
 }
 
 describe("schema hardening", () => {

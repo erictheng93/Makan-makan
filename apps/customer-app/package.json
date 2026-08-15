@@ -11,6 +11,8 @@
     "typecheck": "vue-tsc --noEmit",
     "lint": "eslint src --max-warnings 0",
     "lint:fix": "eslint src --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:unit": "vitest",
     "test:real-integration": "vitest --config vitest.real-integration.config.ts",
     "test:e2e": "playwright test",

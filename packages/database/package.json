@@ -21,7 +21,7 @@
     "lint": "eslint src",
     "typecheck": "tsc -p tsconfig.typecheck.json --noEmit",
     "dev": "tsup --no-clean && tsup --watch --no-clean",
-    "test": "NODE_OPTIONS='--max-old-space-size=6144 --expose-gc' vitest",
+    "test": "NODE_OPTIONS='--max-old-space-size=6144 --expose-gc' vitest run",
     "test:run": "NODE_OPTIONS='--max-old-space-size=6144 --expose-gc' vitest run",
     "test:watch": "NODE_OPTIONS='--max-old-space-size=6144 --expose-gc' vitest --watch",
     "test:coverage": "NODE_OPTIONS='--max-old-space-size=6144 --expose-gc' vitest run --coverage",

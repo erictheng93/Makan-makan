@@ -14,28 +14,42 @@
     },
     "typecheck": {
       "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md", "!docs/**"],
       "cache": true,
       "outputs": []
     },
     "@makanmasak/api#typecheck": {
       "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md", "!docs/**"],
       "cache": true,
       "outputs": ["node_modules/.cache/tsc/typecheck.tsbuildinfo"]
     },
     "@makanmasak/database#typecheck": {
       "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md", "!docs/**"],
       "cache": true,
       "outputs": ["node_modules/.cache/tsc/typecheck.tsbuildinfo"]
     },
     "lint": {
       "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md", "!docs/**"],
       "cache": true,
       "outputs": []
     },
+    // Inputs stay at the turbo default minus prose: narrowing them to an
+    // explicit allow-list (src/**, tests/**, …) would silently miss packages
+    // whose tests live outside those directories — packages/shared keeps its
+    // tests in utils/ — and a missed input means a stale cache HIT reported as
+    // a pass. Cross-package changes still invalidate correctly via `^build`.
     "test": {
       "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md", "!docs/**"],
       "cache": true,
-      "outputs": ["coverage/**"]
+      // No outputs: every package's `test` script is a plain `vitest run`.
+      // Coverage is produced by the separate `test:coverage` scripts, and
+      // claiming `coverage/**` here only made turbo warn "no output files
+      // found" for every package on every run.
+      "outputs": []
     },
     "test:real-integration": {
       "dependsOn": ["^build"],

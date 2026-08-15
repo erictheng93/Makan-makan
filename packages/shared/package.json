@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
     "lint": "eslint composables/**/*.ts directives/**/*.ts plugins/**/*.ts services/**/*.ts stores/**/*.ts types/**/*.ts utils/**/*.ts --no-warn-ignored"
   },
   "exports": {

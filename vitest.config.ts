@@ -35,34 +35,7 @@ export default defineConfig({
       "apps/admin-dashboard",
       "apps/customer-app",
       "apps/kitchen-display",
-      // apps/api has no per-app vitest.config.ts (removed in the test-infra
-      // migration), so it is defined inline here. The *.real.integration.test.ts
-      // suites run in the dedicated real-integration job
-      // (apps/api/vitest.real-integration.config.ts: miniflare + 300s timeouts,
-      // serial), so they are excluded from this default unit-test run — under
-      // the default timeout they would otherwise time out.
-      {
-        extends: true,
-        test: {
-          name: "api",
-          root: "apps/api",
-          include: ["src/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
-          exclude: [
-            "**/node_modules/**",
-            "**/dist/**",
-            "**/*.real.integration.test.ts",
-          ],
-          environment: "node",
-          globals: true,
-          testTimeout: 10000,
-          hookTimeout: 10000,
-        },
-        resolve: {
-          alias: {
-            "@": path.resolve(__dirname, "./apps/api/src"),
-          },
-        },
-      },
+      "apps/api",
       "apps/realtime",
       "apps/onboarding-app",
       "apps/print-agent",

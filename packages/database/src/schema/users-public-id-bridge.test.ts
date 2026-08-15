@@ -2,8 +2,15 @@ import { getTableConfig } from "drizzle-orm/sqlite-core";
 import { readFileSync } from "node:fs";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { users } from "./users";
+
+// Migration fixtures are addressed repo-root-relative. Anchor on this
+// file's own location rather than process.cwd() so the suite passes whether
+// vitest runs from the workspace root or from packages/database, which is
+// what `turbo run test` does.
+const REPO_ROOT = fileURLToPath(new URL("../../../../", import.meta.url));
 
 const bridgeMigrations = [
   "packages/database/migrations_fresh/0074_users_public_id_bridge.sql",
@@ -31,12 +38,12 @@ describe("users UUID-native primary key", () => {
       ...bridgeMigrations,
       ...auditGuardMigrations,
     ]) {
-      expect(existsSync(resolve(process.cwd(), migrationPath))).toBe(false);
+      expect(existsSync(resolve(REPO_ROOT, migrationPath))).toBe(false);
     }
 
     const config = JSON.parse(
       readFileSync(
-        resolve(process.cwd(), "packages/database/migration-dual-track.json"),
+        resolve(REPO_ROOT, "packages/database/migration-dual-track.json"),
         "utf8",
       ),
     ) as {

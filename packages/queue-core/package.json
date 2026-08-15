@@ -10,7 +10,8 @@
     "clean": "rm -rf dist",
     "lint": "eslint src --max-warnings 0",
     "typecheck": "tsc --noEmit",
-    "test": "vitest",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage"
   },
