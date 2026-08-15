@@ -22,7 +22,7 @@ describe("Orders API — real integration", () => {
   });
 
   it("round-trips created_at_ms through POST /orders -> GET /orders/:id", async () => {
-    const restaurant = await seed.restaurant();
+    const restaurant = await seed.restaurant({ enableShopMode: true });
 
     // The `orders.customer_id` FK references `users.id`. Drizzle's D1 driver
     // enables `PRAGMA foreign_keys = ON`, so the user must exist before the
@@ -53,7 +53,7 @@ describe("Orders API — real integration", () => {
     //   items[].price is optional (service computes from DB)
     //   items[].unitPrice is NOT a field — use `price` instead
     //   totalAmount is NOT in the schema — service auto-calculates
-    //   orderType defaults to "table" (schema default; service discards the
+    //   orderType defaults to "shop" (schema default; service discards the
     //   request value in this codebase and lets Drizzle apply the default)
     const payload = {
       restaurantId: String(restaurant.id),

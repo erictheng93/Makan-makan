@@ -174,7 +174,7 @@ describe("Customer Menu API — real integration", () => {
 
 describe("Customer Orders API — real integration", () => {
   it("creates an order and returns id + status", async () => {
-    const restaurant = await seed.restaurant();
+    const restaurant = await seed.restaurant({ enableShopMode: true });
     // users.id FK required; seed actor matching admin token sub=1
     await seed.user({ id: 1, role: 0, username: "test-admin" });
     const item = await seed.menuItem(restaurant.id, {
@@ -203,7 +203,7 @@ describe("Customer Orders API — real integration", () => {
   });
 
   it("round-trips the order: POST then GET returns same id and valid createdAt", async () => {
-    const restaurant = await seed.restaurant();
+    const restaurant = await seed.restaurant({ enableShopMode: true });
     await seed.user({ id: 1, role: 0, username: "test-admin" });
     const item = await seed.menuItem(restaurant.id, {
       isAvailable: true,

@@ -110,7 +110,7 @@ describe("Admin Orders API — real integration", () => {
   });
 
   it("creates an order and can read it back as the owner", async () => {
-    const restaurant = await seed.restaurant();
+    const restaurant = await seed.restaurant({ enableShopMode: true });
     await seed.user({ id: 1, role: 0, username: "test-admin" });
     const item = await seed.menuItem(restaurant.id, {
       isAvailable: true,
@@ -148,7 +148,7 @@ describe("Admin Orders API — real integration", () => {
   });
 
   it("updates order status from pending to confirmed", async () => {
-    const restaurant = await seed.restaurant();
+    const restaurant = await seed.restaurant({ enableShopMode: true });
     await seed.user({ id: 1, role: 0, username: "test-admin" });
     const item = await seed.menuItem(restaurant.id, {
       isAvailable: true,

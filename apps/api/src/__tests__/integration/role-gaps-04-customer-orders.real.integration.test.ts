@@ -138,7 +138,7 @@ describe("Role gap coverage: customer order flow with CSRF and idempotency", () 
   });
 
   it("allows role 5 legacy user token to create an order with valid CSRF token", async () => {
-    const restaurant = await seed.restaurant();
+    const restaurant = await seed.restaurant({ enableShopMode: true });
     await insertActiveSubscription(String(restaurant.id));
 
     const customer = await seed.user({
@@ -178,7 +178,7 @@ describe("Role gap coverage: customer order flow with CSRF and idempotency", () 
   });
 
   it("does not dedupe repeated POST for identical payload + token when no idempotency key binding exists", async () => {
-    const restaurant = await seed.restaurant();
+    const restaurant = await seed.restaurant({ enableShopMode: true });
     await insertActiveSubscription(String(restaurant.id));
 
     const customer = await seed.user({
