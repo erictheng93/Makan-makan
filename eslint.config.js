@@ -204,7 +204,8 @@ export default [
       // Left at "warn" on purpose, matching the source files beside them.
       // Turning it off here hid 676 occurrences — 588 of them in apps/api
       // alone — which is what made #185 read as a 317-warning admin-dashboard
-      // problem instead of a repo-wide one. The value of this rule is stopping
+      // problem instead of the repo-wide 912 warnings across 144 files that it
+      // measures as with the rule on. The value of this rule is stopping
       // the next `any`, and `off` is precisely what removes that; test files
       // are not exempt from having a type. Warnings do not fail any lint script
       // that uses this config, so surfacing them costs nothing but honesty.
