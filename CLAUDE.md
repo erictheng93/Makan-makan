@@ -158,8 +158,8 @@ meaningful change; `pnpm verify:push` once, before pushing. Both live in
 
 | | `pnpm verify` | `pnpm verify:push` |
 | --- | --- | --- |
-| Scope | packages affected vs the merge-base with `main` | every package + the root `tests/` project |
-| Contents | typecheck, lint, test | plus prettier, i18n coverage, and the five `check:*` guards — mirrors `.github/workflows/test.yml` |
+| Scope | packages affected vs the merge-base with `main` | every package, the root `tests/` project, and real integrations |
+| Contents | typecheck, lint, test | plus prettier, i18n coverage, the five `check:*` guards, and real integrations — mirrors `.github/workflows/test.yml` |
 | When | after each edit | once, before pushing |
 
 Both tiers go through turbo, so unchanged packages are cache hits rather than

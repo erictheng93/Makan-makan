@@ -81,6 +81,7 @@ else
   step "guard script regressions" pnpm run test:ci-guards
   step "package tests" pnpm exec turbo run test
   step "root tests" pnpm exec vitest run --project root
+  step "real integration tests" pnpm test:real-integration
 fi
 
 echo

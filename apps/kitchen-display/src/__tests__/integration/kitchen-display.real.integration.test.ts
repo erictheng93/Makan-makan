@@ -215,7 +215,7 @@ describe("Kitchen Display GET orders — real integration", () => {
 
 describe("Kitchen Display PUT item status — real integration", () => {
   it("chef can move an order item from pending to preparing to ready", async () => {
-    const restaurant = await seed.restaurant();
+    const restaurant = await seed.restaurant({ enableShopMode: true });
     await activateKitchenSubscription(restaurant.id);
     await seed.user({ id: 1, role: 0, username: "test-admin" });
     const chef = await seed.user({ id: 10, role: 2, username: "chef-user" });
@@ -285,7 +285,7 @@ describe("Kitchen Display PUT item status — real integration", () => {
   });
 
   it("chef from wrong restaurant gets 403 on PUT", async () => {
-    const restaurant = await seed.restaurant();
+    const restaurant = await seed.restaurant({ enableShopMode: true });
     const otherRestaurant = await seed.restaurant();
     await activateKitchenSubscription(restaurant.id);
     await activateKitchenSubscription(otherRestaurant.id);
@@ -334,7 +334,7 @@ describe("Kitchen Display PUT item status — real integration", () => {
 
 describe("Kitchen Display round-trip — real integration", () => {
   it("admin creates + confirms an order and chef sees it in the kitchen queue", async () => {
-    const restaurant = await seed.restaurant();
+    const restaurant = await seed.restaurant({ enableShopMode: true });
     await activateKitchenSubscription(restaurant.id);
     await seed.user({ id: 1, role: 0, username: "test-admin" });
     const chef = await seed.user({ id: 10, role: 2, username: "chef-user" });
