@@ -241,6 +241,42 @@ describe("guest order routes", () => {
     );
   });
 
+  it.each([
+    ["the owner has switched guest ordering off", { allowGuestOrders: false }],
+    ["the restaurant has no settings at all", null],
+    ["settings exist but never opted in", {}],
+  ])("refuses to create an order when %s", async (_case, settings) => {
+    // This gate is what makes guest ordering opt-in, and it is the only thing
+    // standing between a restaurant that never enabled it and an anonymous
+    // order. The route reads `!== true` rather than a falsy check, so an
+    // absent settings object and an absent key have to fail the same way as an
+    // explicit false — hence all three cases, not just the obvious one.
+    databaseMocks.selectQueue.push({
+      get: {
+        id: "restaurant-1",
+        isActive: true,
+        isAvailable: true,
+        enableShopMode: true,
+        settings,
+      },
+    });
+
+    const response = await createRoutesWithApiErrorHandler().fetch(
+      new Request("https://test/", {
+        method: "POST",
+        body: JSON.stringify(validGuestOrderBody()),
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: { message: expect.stringContaining("not enabled") },
+    });
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
   it("refuses shop orders once the owner turns shop mode off", async () => {
     // The printed sticker keeps working otherwise: nothing else on this path
     // reads enableShopMode, and a shop that skips the pickup-digits screen
