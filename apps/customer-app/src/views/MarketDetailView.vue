@@ -515,7 +515,11 @@ const contactProfile = ref<RestaurantContactProfile | null>(null);
 const contactLoading = ref(false);
 const faqQuery = ref("");
 const isFavorite = ref(false);
-const marketCheckoutPhoneLastDigits = ref("000");
+// Empty, not "000": the submit button stays disabled until three digits are
+// actually typed (see canSubmitMarketCheckout), so the recovery credential is
+// always one the customer chose. A prefilled placeholder that happens to pass
+// validation gets submitted untouched by most people.
+const marketCheckoutPhoneLastDigits = ref("");
 const isSubmittingMarketCheckout = ref(false);
 const marketCheckoutResult = ref<MarketCheckoutResponse | null>(null);
 let queryTimer: ReturnType<typeof setTimeout> | undefined;

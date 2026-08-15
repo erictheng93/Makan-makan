@@ -58,10 +58,16 @@ const marketCheckoutVendorSchema = z.object({
 export const createMarketCheckoutSchema = z.object({
   marketSlug: z.string().min(1).max(120),
   guestName: z.string().max(50).default("Guest"),
+  // The credential POST /:id/guest-token compares against when a customer has
+  // lost their guest token. Optional but never defaulted: a default would mint
+  // the same credential for every checkout that omitted the field, and a value
+  // the customer never chose is one anybody can supply. Absent instead stores
+  // nothing, and the recovery endpoint already fails closed on a session with
+  // no digits — the checkout still completes, it just has no recovery path.
   phoneLastDigits: z
     .string()
     .regex(/^\d{3}$/, "Must be exactly 3 digits")
-    .default("000"),
+    .optional(),
   vendors: z.array(marketCheckoutVendorSchema).min(2).max(20),
   notes: notesSchema(500).optional(),
 });

@@ -333,6 +333,25 @@ describe("market checkout availability", () => {
       expect(createMarketCheckout).not.toHaveBeenCalled();
     });
 
+    it("keeps submit inert until the recovery digits are entered", async () => {
+      // The field starts empty so the credential is always one the customer
+      // chose; an enabled button here would submit a checkout with none.
+      const wrapper = await mountDetailView();
+      const submit = wrapper.get('[data-testid="market-checkout-submit"]');
+
+      expect(submit.attributes("disabled")).toBeDefined();
+
+      await submit.trigger("click");
+      await flushPromises();
+      expect(createMarketCheckout).not.toHaveBeenCalled();
+
+      await wrapper
+        .get('[data-testid="market-checkout-phone"]')
+        .setValue("789");
+
+      expect(submit.attributes("disabled")).toBeUndefined();
+    });
+
     it("submits normally when the API has it on", async () => {
       createMarketCheckout.mockResolvedValueOnce({
         checkout: { id: "checkout-1", childOrders: [] },
@@ -341,6 +360,14 @@ describe("market checkout availability", () => {
 
       const wrapper = await mountDetailView();
       const submit = wrapper.get('[data-testid="market-checkout-submit"]');
+
+      // Filled before the assertions below: the recovery digits are no longer
+      // prefilled, so `disabled` reflects the empty field until they are typed.
+      // What this test is about is the feature gate, which drives the
+      // data-/aria-disabled pair instead.
+      await wrapper
+        .get('[data-testid="market-checkout-phone"]')
+        .setValue("789");
 
       expect(submit.attributes("data-disabled")).toBeUndefined();
       expect(submit.attributes("aria-disabled")).toBeUndefined();
@@ -351,9 +378,6 @@ describe("market checkout availability", () => {
           .exists(),
       ).toBe(false);
 
-      await wrapper
-        .get('[data-testid="market-checkout-phone"]')
-        .setValue("789");
       await submit.trigger("click");
       await flushPromises();
 
