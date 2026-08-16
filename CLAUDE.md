@@ -429,8 +429,22 @@ expect(wrapper.vm.statusClass).toBe("active");
 
 Use `data-testid`, `data-status`, `aria-*` attributes, text content, or Vue computed state instead.
 
-**4. Pre-commit check:** lint-staged currently runs ESLint and Prettier only.
-There is no `scripts/check-factory-usage.cjs` gate in this repository.
+**4. Pre-commit checks:** `lint-staged` itself runs ESLint and Prettier only,
+but it is not the whole hook. Husky invokes `.husky/pre-commit` with `sh -e`,
+so the first non-zero exit aborts the commit, and three more scripts run after
+lint-staged:
+
+- `scripts/check-visual-baselines.cjs` — rejects `*-darwin.png` /
+  `*-win32.png` baselines; CI only accepts `*-linux.png`
+- `scripts/audit-module-gates.cjs`
+- `scripts/check-no-automated-destructive-wrangler.cjs`
+
+A fourth check is inline in the hook rather than a script: when a staged
+`*.test.ts` / `*.spec.ts` uses `Factory.build` or `Factory.buildList` without
+`resetAllFactories()`, it prints `⚠️ 警告`. It only warns — it never fails the
+commit, so treat it as advice, not a gate. There is no
+`scripts/check-factory-usage.cjs` in this repository; that inline block is
+what "the factory check" refers to.
 
 ## Error Handling
 
