@@ -475,7 +475,7 @@
             <h3 class="text-lg font-semibold text-[#1C1C1E] mb-4">
               {{
                 t("tables.qrModal.title", {
-                  number: selectedTable?.tableNumber,
+                  number: selectedTable?.tableNumber ?? "",
                 })
               }}
             </h3>
@@ -592,11 +592,54 @@ const statusFilter = ref("");
 const capacityFilter = ref("");
 const showTableModal = ref(false);
 const showQRModal = ref(false);
-const editingTable = ref<any>(null);
-const selectedTable = ref<any>(null);
+
+type TableStatus = "available" | "occupied" | "reserved" | "maintenance";
+type QRMode = "table" | "seat";
+type SeatNumberingStyle = "numeric" | "alphabetic";
+
+interface ApiTable {
+  id: number;
+  number?: string;
+  tableNumber?: string;
+  name?: string | null;
+  tableName?: string | null;
+  capacity?: number | null;
+  location?: string | null;
+  isActive?: boolean;
+  isOccupied?: boolean;
+  qrCode?: string | null;
+  pendingQrCode?: string | null;
+  pendingQrCodeVersion?: number | null;
+  pendingQrPreparedAt?: string | number | null;
+  qrMode?: QRMode | null;
+  seatCount?: number | null;
+  seatNumberingStyle?: SeatNumberingStyle | null;
+  currentOrderId?: string | number | null;
+  orderId?: string | number | null;
+}
+
+interface TableViewModel {
+  id: number;
+  tableNumber: string;
+  tableName: string;
+  capacity: number;
+  location: string;
+  status: TableStatus;
+  qrCode: string;
+  pendingQrCode: string;
+  pendingQrCodeVersion: number | null;
+  pendingQrPreparedAt: string | number | null;
+  qrMode: QRMode;
+  seatCount: number;
+  seatNumberingStyle: SeatNumberingStyle;
+  currentOrderId: string | number | null;
+}
+
+const editingTable = ref<TableViewModel | null>(null);
+const selectedTable = ref<TableViewModel | null>(null);
 
 /** Map API table object to the shape used by this view */
-const mapTable = (t: any) => ({
+const mapTable = (t: ApiTable): TableViewModel => ({
   id: t.id,
   tableNumber: t.number || t.tableNumber || "",
   tableName: t.name || t.tableName || "",
@@ -613,7 +656,7 @@ const mapTable = (t: any) => ({
   currentOrderId: t.currentOrderId || t.orderId || null,
 });
 
-const tables = ref<any[]>([]);
+const tables = ref<TableViewModel[]>([]);
 
 const defaultTableForm = () => ({
   tableNumber: "",
@@ -676,10 +719,17 @@ const filteredTables = computed(() => {
 const selectedTableIds = ref<number[]>([]);
 
 const isTableSelected = (id: number) => selectedTableIds.value.includes(id);
-const printableTableQrCode = (table: any) =>
+type QrCodeSource = {
+  pendingQrCode?: string;
+  qrCode?: string;
+};
+
+const printableTableQrCode = (table: QrCodeSource) =>
   getPrintableQrCode(table.pendingQrCode, table.qrCode);
-const tableQrIsReady = (table: any) => isQrReady(printableTableQrCode(table));
-const tableHasPendingQr = (table: any) => Boolean(table.pendingQrCode);
+const tableQrIsReady = (table: QrCodeSource) =>
+  isQrReady(printableTableQrCode(table));
+const tableHasPendingQr = (table: Pick<QrCodeSource, "pendingQrCode">) =>
+  Boolean(table.pendingQrCode);
 
 const toggleTableSelection = (id: number) => {
   selectedTableIds.value = isTableSelected(id)
@@ -806,7 +856,7 @@ const generateAllQRCodes = async () => {
   }
 };
 
-const regenerateTableQRCode = async (table: any) => {
+const regenerateTableQRCode = async (table: TableViewModel) => {
   try {
     await api.post(`/tables/${table.id}/regenerate-qr`, {});
     await fetchTables();
@@ -821,7 +871,7 @@ const regenerateTableQRCode = async (table: any) => {
   }
 };
 
-const prepareTableQRCode = async (table: any) => {
+const prepareTableQRCode = async (table: TableViewModel) => {
   try {
     await api.post(`/tables/${table.id}/qr/prepare`);
     await fetchTables();
@@ -832,7 +882,7 @@ const prepareTableQRCode = async (table: any) => {
   }
 };
 
-const activateTableQRCode = async (table: any) => {
+const activateTableQRCode = async (table: TableViewModel) => {
   const confirmed = await confirmModal({
     type: "warning",
     title: t("qrRotation.activate"),
@@ -851,7 +901,7 @@ const activateTableQRCode = async (table: any) => {
   }
 };
 
-const discardTableQRCode = async (table: any) => {
+const discardTableQRCode = async (table: TableViewModel) => {
   const confirmed = await confirmModal({
     type: "warning",
     title: t("qrRotation.discard"),
@@ -915,19 +965,19 @@ const discardAllPreparedTableQRCodes = async () => {
   }
 };
 
-const viewQRCode = (table: any) => {
+const viewQRCode = (table: TableViewModel) => {
   selectedTable.value = table;
   showQRModal.value = true;
 };
 
-const manageSeats = (table: any) => {
+const manageSeats = (table: TableViewModel) => {
   router.push({
     name: "TableDetail",
     params: { id: table.id },
   });
 };
 
-const editTable = (table: any) => {
+const editTable = (table: TableViewModel) => {
   editingTable.value = table;
   tableForm.value = {
     ...table,
@@ -940,10 +990,10 @@ const editTable = (table: any) => {
   showTableModal.value = true;
 };
 
-const canDeleteTable = (table: any) =>
+const canDeleteTable = (table: TableViewModel) =>
   table.status !== "occupied" && !table.currentOrderId;
 
-const deleteTable = async (table: any) => {
+const deleteTable = async (table: TableViewModel) => {
   if (!canDeleteTable(table)) {
     toast.error(t("tables.deleteBlocked"));
     return;
@@ -974,7 +1024,7 @@ const deleteTable = async (table: any) => {
   }
 };
 
-const changeTableStatus = async (table: any) => {
+const changeTableStatus = async (table: TableViewModel) => {
   try {
     if (table.status === "occupied") {
       await api.post(`/tables/${table.id}/release`);
@@ -1130,7 +1180,7 @@ const fetchTables = async () => {
   try {
     const response = await api.get("/tables", { restaurantId });
     if (response.data.success && response.data.data) {
-      tables.value = unwrapApiList(response.data.data).map(mapTable);
+      tables.value = unwrapApiList<ApiTable>(response.data.data).map(mapTable);
       // A selected id whose table has since been deleted would print a QR that
       // no longer resolves, so drop anything the server no longer returns.
       const liveIds = new Set(tables.value.map((table) => table.id));
