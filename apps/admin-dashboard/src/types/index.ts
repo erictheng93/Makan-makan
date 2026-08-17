@@ -127,7 +127,11 @@ export interface Order {
   customerInfo?: CustomerInfo;
   deliveryInfo?: DeliveryInfo;
   createdAt: number;
-  updatedAt: string;
+  updatedAt: number;
+  // Client-side only: the API never sends this field (see the order response
+  // assembly in packages/database/src/services/order.ts), it is stamped locally
+  // when a status update lands. Hence a string, unlike the two above which
+  // carry the API's Unix milliseconds.
   completedAt?: string;
 }
 

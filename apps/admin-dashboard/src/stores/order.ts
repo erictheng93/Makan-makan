@@ -94,7 +94,7 @@ export const useOrderStore = defineStore("order", () => {
         const orderIndex = orders.value.findIndex((o) => o.id === orderId);
         if (orderIndex > -1) {
           orders.value[orderIndex].status = status;
-          orders.value[orderIndex].updatedAt = new Date().toISOString();
+          orders.value[orderIndex].updatedAt = Date.now();
 
           if (status === "delivered") {
             orders.value[orderIndex].completedAt = new Date().toISOString();
@@ -189,7 +189,7 @@ export const useOrderStore = defineStore("order", () => {
         const orderIndex = orders.value.findIndex((o) => o.id === orderId);
         if (orderIndex > -1) {
           orders.value[orderIndex].status = "cancelled";
-          orders.value[orderIndex].updatedAt = new Date().toISOString();
+          orders.value[orderIndex].updatedAt = Date.now();
         }
         return true;
       }
