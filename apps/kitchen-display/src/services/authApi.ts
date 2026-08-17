@@ -14,14 +14,33 @@ export function getKitchenApiBaseUrl(env = import.meta.env): string {
   return baseUrl || "/api/v1";
 }
 
+const LOGIN_PATH = "/login";
+let loginRedirectRequested = false;
+
+interface AuthFailureLocation {
+  pathname: string;
+  assign(url: string): void;
+}
+
+export function handleKitchenAuthFailure(
+  location: AuthFailureLocation = window.location,
+): void {
+  // A failed login also returns 401, but navigating from this page destroys the
+  // login form before it can render the server-provided error message.
+  if (loginRedirectRequested || location.pathname === LOGIN_PATH) {
+    return;
+  }
+
+  loginRedirectRequested = true;
+  location.assign(LOGIN_PATH);
+}
+
 // Create the shared API client with kitchen-specific config
 export const apiClient = createAuthenticatedApiClient({
   baseURL: getKitchenApiBaseUrl(),
   storageKeyPrefix: "kitchen",
   csrf: true,
-  onAuthFailure: () => {
-    window.location.href = "/login";
-  },
+  onAuthFailure: handleKitchenAuthFailure,
 });
 
 // Re-export the axios instance for kitchenApi.ts (default import)
