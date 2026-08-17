@@ -148,7 +148,11 @@ describe("sweepOrphanedImages", () => {
     } finally {
       await testDb.dispose();
     }
-  });
+    // The only test here that stands up a real D1 database. It runs in ~2.5s
+    // on an idle machine but has been measured at 12.3s when the whole
+    // monorepo's test tasks compete for cores, which blows the 10s package
+    // default. The work is unchanged — only the budget for it.
+  }, 30000);
 
   it("does not mark metadata inactive when R2 deletion fails", async () => {
     const listStoredImages = vi.fn().mockResolvedValue({
