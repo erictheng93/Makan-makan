@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import routes from "./index";
+import { ApiError } from "../../../shared/utils/api-error";
 import {
   mockMarketCheckoutProviderPaidWebhookPayload,
   mockMarketCheckoutProviderPaidStatusResponse,
@@ -7,6 +8,23 @@ import {
   mockMarketCheckoutProviderRefundResponse,
   signMockMarketCheckoutWebhook,
 } from "../testing/mockMarketCheckoutProviderContract";
+
+routes.onError((err, c) => {
+  if (err instanceof ApiError) {
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: err.code,
+          message: err.message,
+          ...(err.details !== undefined && { details: err.details }),
+        },
+      },
+      err.status as 400 | 401 | 403 | 404 | 409 | 429 | 500,
+    );
+  }
+  return c.json({ success: false, error: { message: String(err) } }, 500);
+});
 
 const databaseMocks = vi.hoisted(() => ({
   createDatabase: vi.fn(),
@@ -381,6 +399,18 @@ async function withSilencedRouteError<T>(action: () => Promise<T>): Promise<T> {
   } finally {
     consoleError.mockRestore();
   }
+}
+
+async function expectApiError(
+  response: Response,
+  status: 400 | 401 | 403 | 404 | 409 | 429 | 500,
+  code: string,
+) {
+  expect(response.status).toBe(status);
+  await expect(response.json()).resolves.toMatchObject({
+    success: false,
+    error: { code },
+  });
 }
 
 // A well-formed guest token (`gt_` + 32-byte hex), as a returning device would
@@ -790,8 +820,7 @@ describe("market checkout routes", () => {
       ),
     );
 
-    expect(response.status).toBe(500);
-    await expect(response.text()).resolves.toBe("Internal Server Error");
+    await expectApiError(response, 404, "NOT_FOUND");
   });
 
   it("rejects duplicate vendors in a market checkout", async () => {
@@ -829,8 +858,7 @@ describe("market checkout routes", () => {
       ),
     );
 
-    expect(response.status).toBe(500);
-    await expect(response.text()).resolves.toBe("Internal Server Error");
+    await expectApiError(response, 400, "BAD_REQUEST");
   });
 
   it("blocks market checkout creation when a vendor already has an active guest order", async () => {
@@ -895,8 +923,7 @@ describe("market checkout routes", () => {
       ),
     );
 
-    expect(response.status).toBe(500);
-    await expect(response.text()).resolves.toBe("Internal Server Error");
+    await expectApiError(response, 409, "MARKET_VENDOR_ACTIVE_ORDER_EXISTS");
     expect(createOrder).not.toHaveBeenCalled();
   });
 
@@ -912,6 +939,8 @@ describe("market checkout routes", () => {
           settings: { allowGuestOrders: true },
         },
         firstMembership: null,
+        expectedStatus: 400,
+        expectedCode: "BAD_REQUEST",
       },
       {
         name: "unavailable restaurant",
@@ -923,6 +952,8 @@ describe("market checkout routes", () => {
           settings: { allowGuestOrders: true },
         },
         firstMembership: { restaurantId: "restaurant-1", marketId: "market-1" },
+        expectedStatus: 400,
+        expectedCode: "BAD_REQUEST",
       },
       {
         name: "guest orders disabled",
@@ -934,6 +965,8 @@ describe("market checkout routes", () => {
           settings: { allowGuestOrders: false },
         },
         firstMembership: { restaurantId: "restaurant-1", marketId: "market-1" },
+        expectedStatus: 403,
+        expectedCode: "FORBIDDEN",
       },
     ];
 
@@ -988,8 +1021,11 @@ describe("market checkout routes", () => {
         ),
       );
 
-      expect(response.status, scenario.name).toBe(500);
-      await expect(response.text()).resolves.toBe("Internal Server Error");
+      await expectApiError(
+        response,
+        scenario.expectedStatus,
+        scenario.expectedCode,
+      );
       expect(createOrder).not.toHaveBeenCalled();
     }
   });
@@ -1052,8 +1088,7 @@ describe("market checkout routes", () => {
       ),
     );
 
-    expect(response.status).toBe(500);
-    await expect(response.text()).resolves.toBe("Internal Server Error");
+    await expectApiError(response, 409, "MENU_ITEM_UNAVAILABLE");
     expect(createOrder).not.toHaveBeenCalled();
   });
 
@@ -1141,6 +1176,8 @@ describe("market checkout routes", () => {
       routes.fetch(twoVendorCreateRequest(), env as never),
     );
 
+    // A downstream order creation throws after the first order commits, so
+    // this is a genuine unexpected dependency failure rather than an ApiError.
     expect(response.status).toBe(500);
 
     // The first vendor's committed order is cancelled (compensation).
@@ -1185,6 +1222,8 @@ describe("market checkout routes", () => {
       routes.fetch(twoVendorCreateRequest(), env as never),
     );
 
+    // Both the later order creation and compensating cancellation fail, which
+    // intentionally remains an unexpected 500 for manual review.
     expect(response.status).toBe(500);
     expect(cancelOrder).toHaveBeenCalledWith(
       "1001",
@@ -1524,8 +1563,7 @@ describe("market checkout routes", () => {
       ),
     );
 
-    expect(missingResponse.status).toBe(500);
-    await expect(missingResponse.text()).resolves.toBe("Internal Server Error");
+    await expectApiError(missingResponse, 404, "NOT_FOUND");
   });
 
   it("rejects guest token recovery for orders outside the checkout", async () => {
@@ -1548,8 +1586,7 @@ describe("market checkout routes", () => {
       ),
     );
 
-    expect(response.status).toBe(500);
-    await expect(response.text()).resolves.toBe("Internal Server Error");
+    await expectApiError(response, 404, "NOT_FOUND");
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith(
       "market_checkout_recover_attempts:checkout-1",
     );
@@ -1793,6 +1830,8 @@ describe("market checkout routes", () => {
       ),
     );
 
+    // The KV persistence failure is deliberately non-ApiError; the assertion
+    // verifies that voucher reservation cleanup still happens before the 500.
     expect(response.status).toBe(500);
     expect(reserveVoucherUsage).toHaveBeenCalledWith(
       expect.objectContaining({ couponId: 42, code: "MARKET10" }),
@@ -1971,8 +2010,7 @@ describe("market checkout routes", () => {
       ),
     );
 
-    expect(response.status).toBe(500);
-    await expect(response.text()).resolves.toBe("Internal Server Error");
+    await expectApiError(response, 400, "VOUCHER_ALREADY_APPLIED");
     expect(validateVoucherAndPrice).not.toHaveBeenCalled();
   });
 
@@ -2010,8 +2048,7 @@ describe("market checkout routes", () => {
         missingEnv as never,
       ),
     );
-    expect(missingResponse.status).toBe(500);
-    await expect(missingResponse.text()).resolves.toBe("Internal Server Error");
+    await expectApiError(missingResponse, 404, "NOT_FOUND");
 
     const paidEnv = createEnv();
     await paidEnv.CACHE_KV.put(
@@ -2028,8 +2065,7 @@ describe("market checkout routes", () => {
       ),
     );
 
-    expect(paidResponse.status).toBe(500);
-    await expect(paidResponse.text()).resolves.toBe("Internal Server Error");
+    await expectApiError(paidResponse, 400, "MARKET_CHECKOUT_ALREADY_PAID");
     expect(validateVoucherAndPrice).not.toHaveBeenCalled();
   });
 
@@ -2082,8 +2118,7 @@ describe("market checkout routes", () => {
         missingEnv as never,
       ),
     );
-    expect(missingResponse.status).toBe(500);
-    await expect(missingResponse.text()).resolves.toBe("Internal Server Error");
+    await expectApiError(missingResponse, 404, "NOT_FOUND");
 
     const paidEnv = createEnv();
     await paidEnv.CACHE_KV.put(
@@ -2099,8 +2134,7 @@ describe("market checkout routes", () => {
       ),
     );
 
-    expect(paidResponse.status).toBe(500);
-    await expect(paidResponse.text()).resolves.toBe("Internal Server Error");
+    await expectApiError(paidResponse, 400, "MARKET_CHECKOUT_ALREADY_PAID");
   });
 
   it("rejects malformed and empty market checkout payment attempts", async () => {
@@ -2115,8 +2149,7 @@ describe("market checkout routes", () => {
       ),
     );
 
-    expect(missingResponse.status).toBe(500);
-    await expect(missingResponse.text()).resolves.toBe("Internal Server Error");
+    await expectApiError(missingResponse, 404, "NOT_FOUND");
 
     const invalidEnv = createEnv();
     await invalidEnv.CACHE_KV.put(
@@ -2157,8 +2190,7 @@ describe("market checkout routes", () => {
       ),
     );
 
-    expect(emptyResponse.status).toBe(500);
-    await expect(emptyResponse.text()).resolves.toBe("Internal Server Error");
+    await expectApiError(emptyResponse, 400, "BAD_REQUEST");
     expect(processPayment).not.toHaveBeenCalled();
   });
 
@@ -2566,8 +2598,7 @@ describe("market checkout routes", () => {
       ),
     );
 
-    expect(missingResponse.status).toBe(500);
-    await expect(missingResponse.text()).resolves.toBe("Internal Server Error");
+    await expectApiError(missingResponse, 404, "NOT_FOUND");
 
     const invalidEnv = createEnv();
     await invalidEnv.CACHE_KV.put(
@@ -2603,8 +2634,7 @@ describe("market checkout routes", () => {
       ),
     );
 
-    expect(unpaidResponse.status).toBe(500);
-    await expect(unpaidResponse.text()).resolves.toBe("Internal Server Error");
+    await expectApiError(unpaidResponse, 400, "BAD_REQUEST");
   });
 
   it("rejects provider split refunds without refundable provider state", async () => {
@@ -2627,10 +2657,7 @@ describe("market checkout routes", () => {
       ),
     );
 
-    expect(missingTransactionResponse.status).toBe(500);
-    await expect(missingTransactionResponse.text()).resolves.toBe(
-      "Internal Server Error",
-    );
+    await expectApiError(missingTransactionResponse, 400, "BAD_REQUEST");
 
     const nonRefundableEnv = createEnv();
     const nonRefundableSession = providerSplitPaidSessionFixture();
@@ -2651,10 +2678,7 @@ describe("market checkout routes", () => {
       ),
     );
 
-    expect(nonRefundableResponse.status).toBe(500);
-    await expect(nonRefundableResponse.text()).resolves.toBe(
-      "Internal Server Error",
-    );
+    await expectApiError(nonRefundableResponse, 400, "BAD_REQUEST");
   });
 
   it("refunds paid child payments for a market checkout", async () => {
@@ -5634,10 +5658,7 @@ describe("market checkout routes", () => {
         }),
         env as never,
       );
-      expect(malformedResponse.status).toBe(500);
-      await expect(malformedResponse.text()).resolves.toBe(
-        "Internal Server Error",
-      );
+      await expectApiError(malformedResponse, 400, "BAD_REQUEST");
 
       const unsignedBody = JSON.stringify({
         id: "evt-missing-signature",
@@ -5650,9 +5671,10 @@ describe("market checkout routes", () => {
         }),
         env as never,
       );
-      expect(unsignedResponse.status).toBe(500);
-      await expect(unsignedResponse.text()).resolves.toBe(
-        "Internal Server Error",
+      await expectApiError(
+        unsignedResponse,
+        401,
+        "MARKET_CHECKOUT_WEBHOOK_SIGNATURE_INVALID",
       );
     });
   });
