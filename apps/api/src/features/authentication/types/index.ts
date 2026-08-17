@@ -149,8 +149,26 @@ export interface Tokens {
 }
 
 // Authentication Response Types
+/**
+ * Why an auth attempt failed. Mirrors the database layer's reasons and adds the
+ * ones this layer originates (currently the login rate limiter).
+ *
+ * Exists so routes can pick an error code or HTTP status without matching on
+ * the English `error` text -- see the comment on AuthFailureReason in
+ * packages/database/src/services/auth.ts.
+ */
+export type AuthFailureReason =
+  | "invalid_credentials"
+  | "customer_password_login_retired"
+  | "customer_password_registration_retired"
+  | "username_taken"
+  | "weak_password"
+  | "rate_limited";
+
 export interface AuthResult {
   success: boolean;
+  /** Set on every failure path; absent on success. */
+  reason?: AuthFailureReason;
   user?: AuthUser;
   tokens?: Tokens;
   error?: string;

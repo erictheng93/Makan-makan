@@ -28,6 +28,7 @@ import { unauthorized } from "../../../shared/utils/api-error";
 import { AuthService as DefaultAuthService } from "../services/AuthService";
 import { authSchemas } from "../schemas/validation";
 import type {
+  AuthFailureReason,
   LoginData,
   RegisterData,
   DeviceInfo,
@@ -37,6 +38,25 @@ import type {
 
 // Create feature logger
 const _logger = new ConsoleLogger("auth-routes");
+
+/**
+ * Login failure reason -> error code the client sees.
+ *
+ * Exhaustive by construction: `Record<AuthFailureReason, ...>` means adding a
+ * reason without deciding its code is a compile error, which is the property
+ * the old `includes("locked")` check could not have. The register-only reasons
+ * are listed too because both flows share one reason union; they are simply
+ * unreachable from this route.
+ */
+const LOGIN_FAILURE_CODES: Record<AuthFailureReason, string> = {
+  invalid_credentials: "INVALID_CREDENTIALS",
+  rate_limited: "ACCOUNT_LOCKED",
+  customer_password_login_retired: "CUSTOMER_PASSWORD_LOGIN_RETIRED",
+  customer_password_registration_retired:
+    "CUSTOMER_PASSWORD_REGISTRATION_RETIRED",
+  username_taken: "USERNAME_TAKEN",
+  weak_password: "WEAK_PASSWORD",
+};
 const STAFF_REFRESH_COOKIE = "__Host-mm_staff_refresh";
 const STAFF_REFRESH_COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
@@ -174,11 +194,12 @@ export function createAuthRoutes(
     const result = await authService.login(loginData);
 
     if (!result.success) {
-      const message = result.error || "Authentication failed";
-      const code = message.toLowerCase().includes("locked")
-        ? "ACCOUNT_LOCKED"
-        : "INVALID_CREDENTIALS";
-      throw unauthorized(message, code);
+      // Mapped from the structured reason, not from the message text. The
+      // previous `message.includes("locked")` worked only because the rate
+      // limiter's copy happens to contain that word, and it labelled the
+      // retired-customer-login case as bad credentials, which it is not.
+      const code = LOGIN_FAILURE_CODES[result.reason ?? "invalid_credentials"];
+      throw unauthorized(result.error || "Authentication failed", code);
     }
 
     if (result.tokens?.refreshToken) {
@@ -295,9 +316,12 @@ export function createAuthRoutes(
       const result = await authService.register(registerData, currentUser.id);
 
       if (!result.success) {
-        const statusCode = result.error?.includes("already exists")
-          ? HTTP_STATUS.CONFLICT
-          : HTTP_STATUS.BAD_REQUEST;
+        // Same reasoning as the login mapping above: derived from the reason
+        // rather than from whether the message happens to say "already exists".
+        const statusCode =
+          result.reason === "username_taken"
+            ? HTTP_STATUS.CONFLICT
+            : HTTP_STATUS.BAD_REQUEST;
         return c.json(
           {
             success: false,

@@ -212,10 +212,18 @@ describe("authentication routes", () => {
     });
   });
 
-  it("maps failed login errors to authentication api errors", async () => {
+  it.each([
+    ["rate_limited", "ACCOUNT_LOCKED"],
+    ["invalid_credentials", "INVALID_CREDENTIALS"],
+    // Previously mapped to INVALID_CREDENTIALS, which was wrong: the account
+    // exists and the password was never the problem. Only reachable now that
+    // the code comes from the reason rather than from the message text.
+    ["customer_password_login_retired", "CUSTOMER_PASSWORD_LOGIN_RETIRED"],
+  ])("maps the %s login failure to %s", async (reason, code) => {
     service.login.mockResolvedValueOnce({
       success: false,
-      error: "Account locked after repeated failures",
+      reason,
+      error: "some message the route must not parse",
     });
 
     const response = await request("/login", "POST", {
@@ -226,7 +234,27 @@ describe("authentication routes", () => {
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toMatchObject({
       success: false,
-      error: { code: "ACCOUNT_LOCKED" },
+      error: { code },
+    });
+  });
+
+  it("does not read the error code out of the message text", async () => {
+    // The message says "locked" but the reason does not. The old
+    // `message.includes("locked")` mapping would have answered ACCOUNT_LOCKED.
+    service.login.mockResolvedValueOnce({
+      success: false,
+      reason: "invalid_credentials",
+      error: "Account locked after repeated failures",
+    });
+
+    const response = await request("/login", "POST", {
+      username: "owner",
+      password: "password",
+    }).res;
+
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: { code: "INVALID_CREDENTIALS" },
     });
   });
 
@@ -257,6 +285,7 @@ describe("authentication routes", () => {
 
     service.register.mockResolvedValueOnce({
       success: false,
+      reason: "username_taken",
       error: "User already exists",
     });
     response = await request("/register-staff", "POST", staffBody()).res;

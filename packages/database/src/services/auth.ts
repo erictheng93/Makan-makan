@@ -142,8 +142,26 @@ export interface SessionData {
   expiresAt: Date;
 }
 
+/**
+ * Why an auth attempt failed, in a form callers can branch on.
+ *
+ * The route layer used to recover this by substring-matching the English
+ * `error` text (`message.includes("locked")`), which coupled control flow to
+ * product copy: rewording a message silently changed the error code, and a
+ * message that merely contained the substring -- "Already clocked in" contains
+ * "locked" -- would have matched by accident. Callers read this instead.
+ */
+export type AuthFailureReason =
+  | "invalid_credentials"
+  | "customer_password_login_retired"
+  | "customer_password_registration_retired"
+  | "username_taken"
+  | "weak_password";
+
 export interface AuthResult {
   success: boolean;
+  /** Set on every failure path; absent on success. */
+  reason?: AuthFailureReason;
   user?: {
     id: string;
     publicId?: string | null;
@@ -192,6 +210,7 @@ export class AuthService extends BaseService {
       if (!user) {
         return {
           success: false,
+          reason: "invalid_credentials",
           error: "Invalid username or password",
         };
       }
@@ -199,6 +218,7 @@ export class AuthService extends BaseService {
       if (user.role === 5) {
         return {
           success: false,
+          reason: "customer_password_login_retired",
           error:
             "Customer password login is retired. Use phone OTP customer authentication.",
         };
@@ -212,6 +232,7 @@ export class AuthService extends BaseService {
       if (!isPasswordValid) {
         return {
           success: false,
+          reason: "invalid_credentials",
           error: "Invalid username or password",
         };
       }
@@ -306,6 +327,7 @@ export class AuthService extends BaseService {
       if (data.role === 5) {
         return {
           success: false,
+          reason: "customer_password_registration_retired",
           error:
             "Customer password registration is retired. Use phone OTP customer authentication.",
         };
@@ -321,6 +343,7 @@ export class AuthService extends BaseService {
       if (existingUser) {
         return {
           success: false,
+          reason: "username_taken",
           error: "Username already exists",
         };
       }
@@ -334,6 +357,7 @@ export class AuthService extends BaseService {
       if (!passwordValidation.valid) {
         return {
           success: false,
+          reason: "weak_password",
           error: passwordValidation.error,
         };
       }

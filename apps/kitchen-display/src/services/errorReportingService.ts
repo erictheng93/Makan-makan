@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import { apiClient } from "./authApi";
 import { performanceService } from "./performanceService";
+import { getApiErrorStatus, isRecord } from "@/utils/unknown";
 
 export interface ErrorReport {
   id: string;
@@ -264,16 +265,29 @@ class ErrorReportingService {
       return category.severity;
     }
 
-    // Default severity based on error patterns
-    if (error.message.includes("fetch") || error.message.includes("network")) {
+    // Fall back to the transport facts, not to the message text. Matching on
+    // prose (`includes("network")`, `includes("permission")`) tied severity to
+    // English copy: rewording -- or localizing -- a message silently
+    // reclassified a critical error as low, and nothing would report that.
+    const status = getApiErrorStatus(error);
+    if (status !== undefined) {
+      if (status === 401 || status === 403) return "critical";
+      if (status >= 500) return "high";
       return "medium";
     }
 
-    if (
-      error.message.includes("permission") ||
-      error.message.includes("unauthorized")
-    ) {
-      return "critical";
+    // A transport failure never reaches a response, so it has no status. axios
+    // labels those on `code`; this is what the old "fetch"/"network" substrings
+    // were reaching for.
+    if (isRecord(error)) {
+      const transportCode = error.code;
+      if (
+        transportCode === "ERR_NETWORK" ||
+        transportCode === "ECONNABORTED" ||
+        transportCode === "ETIMEDOUT"
+      ) {
+        return "medium";
+      }
     }
 
     return "low";

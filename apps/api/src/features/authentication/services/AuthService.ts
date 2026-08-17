@@ -130,6 +130,7 @@ export class AuthService implements IAuthService {
 
         return {
           success: false,
+          reason: "rate_limited",
           error: rateLimitError,
         };
       }
@@ -140,6 +141,7 @@ export class AuthService implements IAuthService {
       // Transform database result to match our interface
       const result: AuthResult = {
         success: dbResult.success,
+        reason: dbResult.reason,
         user: dbResult.user
           ? {
               ...dbResult.user,
@@ -260,6 +262,7 @@ export class AuthService implements IAuthService {
       // Transform database result to match our interface
       const result: AuthResult = {
         success: dbResult.success,
+        reason: dbResult.reason,
         user: dbResult.user
           ? {
               ...dbResult.user,
