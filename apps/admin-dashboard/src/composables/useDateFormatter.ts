@@ -1,5 +1,11 @@
 import { useI18n } from "@/i18n";
 
+type DateInput = Date | string | number;
+
+function toDate(value: DateInput): Date {
+  return value instanceof Date ? value : new Date(value);
+}
+
 /**
  * Date Formatter Composable
  * Provides date formatting utilities
@@ -27,10 +33,10 @@ export function useDateFormatter() {
   };
 
   const formatDate = (
-    date: Date | string,
+    date: DateInput,
     includeWeekday: boolean = false,
   ): string => {
-    const dateObj = typeof date === "string" ? new Date(date) : date;
+    const dateObj = toDate(date);
 
     if (isNaN(dateObj.getTime())) {
       return "Invalid Date";
@@ -64,8 +70,8 @@ export function useDateFormatter() {
     return formatted;
   };
 
-  const formatShortDate = (date: Date | string): string => {
-    const dateObj = typeof date === "string" ? new Date(date) : date;
+  const formatShortDate = (date: DateInput): string => {
+    const dateObj = toDate(date);
 
     if (isNaN(dateObj.getTime())) {
       return "Invalid Date";
@@ -87,7 +93,7 @@ export function useDateFormatter() {
     }
   };
 
-  const formatTime = (date: Date | string): string => {
+  const formatTime = (date: DateInput): string => {
     let hours: number;
     let minutes: number;
 
@@ -97,8 +103,9 @@ export function useDateFormatter() {
       hours = parseInt(parts[0]);
       minutes = parseInt(parts[1]);
     } else {
-      hours = date.getHours();
-      minutes = date.getMinutes();
+      const dateObj = toDate(date);
+      hours = dateObj.getHours();
+      minutes = dateObj.getMinutes();
     }
 
     // Every other formatter here reports an unusable input as "Invalid Date".
@@ -117,8 +124,8 @@ export function useDateFormatter() {
     }
   };
 
-  const formatDateTime = (date: Date | string): string => {
-    const dateObj = typeof date === "string" ? new Date(date) : date;
+  const formatDateTime = (date: DateInput): string => {
+    const dateObj = toDate(date);
 
     if (isNaN(dateObj.getTime())) {
       return "Invalid Date";
@@ -130,8 +137,8 @@ export function useDateFormatter() {
     return `${datePart} ${timePart}`;
   };
 
-  const formatShortDateTime = (date: Date | string): string => {
-    const dateObj = typeof date === "string" ? new Date(date) : date;
+  const formatShortDateTime = (date: DateInput): string => {
+    const dateObj = toDate(date);
 
     if (isNaN(dateObj.getTime())) {
       return "Invalid Date";
@@ -142,8 +149,8 @@ export function useDateFormatter() {
     return `${formatShortDate(dateObj)} ${formatTime(dateObj)}`;
   };
 
-  const formatTimeWithSeconds = (date: Date | string): string => {
-    const dateObj = typeof date === "string" ? new Date(date) : date;
+  const formatTimeWithSeconds = (date: DateInput): string => {
+    const dateObj = toDate(date);
 
     if (isNaN(dateObj.getTime())) {
       return "Invalid Date";
@@ -167,8 +174,8 @@ export function useDateFormatter() {
     }
   };
 
-  const formatRelativeTime = (date: Date | string): string => {
-    const dateObj = typeof date === "string" ? new Date(date) : date;
+  const formatRelativeTime = (date: DateInput): string => {
+    const dateObj = toDate(date);
     const now = new Date();
     const diffMs = now.getTime() - dateObj.getTime();
     const diffSecs = Math.floor(diffMs / 1000);
@@ -196,8 +203,8 @@ export function useDateFormatter() {
   };
 
   const formatDateRange = (
-    startDate: Date | string,
-    endDate: Date | string,
+    startDate: DateInput,
+    endDate: DateInput,
   ): string => {
     const start = formatDate(startDate, false);
     const end = formatDate(endDate, false);
@@ -218,8 +225,8 @@ export function useDateFormatter() {
     return new Intl.DateTimeFormat(locale.value, options).format(date);
   };
 
-  const formatMonthYear = (date: Date | string): string => {
-    const dateObj = typeof date === "string" ? new Date(date) : date;
+  const formatMonthYear = (date: DateInput): string => {
+    const dateObj = toDate(date);
 
     if (isNaN(dateObj.getTime())) {
       return "Invalid Date";
@@ -239,8 +246,8 @@ export function useDateFormatter() {
     }
   };
 
-  const toISOString = (date: Date | string): string => {
-    const dateObj = typeof date === "string" ? new Date(date) : date;
+  const toISOString = (date: DateInput): string => {
+    const dateObj = toDate(date);
     return dateObj.toISOString();
   };
 
@@ -287,8 +294,8 @@ export function useDateFormatter() {
     return today;
   };
 
-  const isToday = (date: Date | string): boolean => {
-    const dateObj = typeof date === "string" ? new Date(date) : date;
+  const isToday = (date: DateInput): boolean => {
+    const dateObj = toDate(date);
     const today = getToday();
 
     return (
@@ -298,8 +305,8 @@ export function useDateFormatter() {
     );
   };
 
-  const isThisWeek = (date: Date | string): boolean => {
-    const dateObj = typeof date === "string" ? new Date(date) : date;
+  const isThisWeek = (date: DateInput): boolean => {
+    const dateObj = toDate(date);
     const today = getToday();
 
     const weekStart = new Date(today);
@@ -312,26 +319,26 @@ export function useDateFormatter() {
     return dateObj >= weekStart && dateObj <= weekEnd;
   };
 
-  const startOfDay = (date: Date | string): Date => {
-    const dateObj = typeof date === "string" ? new Date(date) : new Date(date);
+  const startOfDay = (date: DateInput): Date => {
+    const dateObj = new Date(toDate(date));
     dateObj.setHours(0, 0, 0, 0);
     return dateObj;
   };
 
-  const endOfDay = (date: Date | string): Date => {
-    const dateObj = typeof date === "string" ? new Date(date) : new Date(date);
+  const endOfDay = (date: DateInput): Date => {
+    const dateObj = new Date(toDate(date));
     dateObj.setHours(23, 59, 59, 999);
     return dateObj;
   };
 
-  const addDays = (date: Date | string, days: number): Date => {
-    const dateObj = typeof date === "string" ? new Date(date) : new Date(date);
+  const addDays = (date: DateInput, days: number): Date => {
+    const dateObj = new Date(toDate(date));
     dateObj.setDate(dateObj.getDate() + days);
     return dateObj;
   };
 
-  const toInputDate = (date: Date | string): string => {
-    const dateObj = typeof date === "string" ? new Date(date) : date;
+  const toInputDate = (date: DateInput): string => {
+    const dateObj = toDate(date);
     const year = dateObj.getFullYear();
     const month = String(dateObj.getMonth() + 1).padStart(2, "0");
     const day = String(dateObj.getDate()).padStart(2, "0");
