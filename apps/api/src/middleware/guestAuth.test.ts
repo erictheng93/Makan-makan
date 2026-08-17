@@ -79,6 +79,61 @@ describe("guestTokenAuth", () => {
     });
     expect(response.status).toBe(403);
   });
+
+  it("leaves unexpected downstream errors for the app error handler", async () => {
+    const app = appWithErrorHandler();
+    app.use("/orders/:id", guestTokenAuth);
+    app.get("/orders/:id", () => {
+      throw new Error("D1 exploded");
+    });
+
+    const response = await app.fetch(
+      new Request("https://api.test/orders/order-1", {
+        headers: { Authorization: "Bearer gt_abc" },
+      }),
+      {
+        CACHE_KV: createKv({
+          orderId: "order-1",
+          restaurantId: "rest-1",
+          guestName: "Ada",
+          createdAt: Date.now(),
+        }),
+      } as never,
+    );
+
+    const body = await response.json();
+    expect(body).toMatchObject({
+      success: false,
+      error: { message: "Error: D1 exploded" },
+    });
+    expect(body.error.code).not.toBe("AUTH_FAILED");
+    expect(response.status).toBe(500);
+  });
+
+  it("does not turn a rejected downstream chain into an authentication error", async () => {
+    const downstreamError = new Error("D1 exploded");
+    const context = {
+      req: {
+        header: vi.fn(() => "Bearer gt_abc"),
+        param: vi.fn(() => "order-1"),
+      },
+      env: {
+        CACHE_KV: createKv({
+          orderId: "order-1",
+          restaurantId: "rest-1",
+          guestName: "Ada",
+          createdAt: Date.now(),
+        }),
+      },
+      set: vi.fn(),
+    };
+
+    await expect(
+      guestTokenAuth(context as never, async () => {
+        throw downstreamError;
+      }),
+    ).rejects.toBe(downstreamError);
+  });
 });
 
 describe("guestSessionAuth", () => {
@@ -107,5 +162,58 @@ describe("guestSessionAuth", () => {
       guestSession: { restaurantId: "rest-1", phoneLastDigits: "1234" },
     });
     expect(response.status).toBe(200);
+  });
+
+  it("leaves unexpected downstream errors for the app error handler", async () => {
+    const app = appWithErrorHandler();
+    app.use("/guest-orders", guestSessionAuth);
+    app.post("/guest-orders", () => {
+      throw new Error("D1 exploded");
+    });
+
+    const response = await app.fetch(
+      new Request("https://api.test/guest-orders", {
+        method: "POST",
+        headers: { Authorization: "Bearer gt_abc" },
+      }),
+      {
+        CACHE_KV: createKv({
+          restaurantId: "rest-1",
+          phoneLastDigits: "1234",
+          createdAt: Date.now(),
+        }),
+      } as never,
+    );
+
+    const body = await response.json();
+    expect(body).toMatchObject({
+      success: false,
+      error: { message: "Error: D1 exploded" },
+    });
+    expect(body.error.code).not.toBe("AUTH_FAILED");
+    expect(response.status).toBe(500);
+  });
+
+  it("does not turn a rejected downstream chain into an authentication error", async () => {
+    const downstreamError = new Error("D1 exploded");
+    const context = {
+      req: {
+        header: vi.fn(() => "Bearer gt_abc"),
+      },
+      env: {
+        CACHE_KV: createKv({
+          restaurantId: "rest-1",
+          phoneLastDigits: "1234",
+          createdAt: Date.now(),
+        }),
+      },
+      set: vi.fn(),
+    };
+
+    await expect(
+      guestSessionAuth(context as never, async () => {
+        throw downstreamError;
+      }),
+    ).rejects.toBe(downstreamError);
   });
 });

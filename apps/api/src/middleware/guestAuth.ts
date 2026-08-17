@@ -58,15 +58,13 @@ export const guestTokenAuth = async (
     }
 
     c.set("guestOrder", tokenData);
-    await next();
   } catch (error) {
-    // Downstream handlers run inside this try, so an ApiError they throw --
-    // a 404 from the route, say -- would otherwise be reported as an auth
-    // failure. Only a genuinely unexpected failure becomes a 401 here.
     if (error instanceof ApiError) throw error;
     console.error("Guest token auth error:", error);
     throw unauthorized("Authentication failed", "AUTH_FAILED");
   }
+
+  await next();
 };
 
 /**
@@ -98,12 +96,13 @@ export const guestSessionAuth = async (
     }
 
     c.set("guestSession", tokenData);
-    await next();
   } catch (error) {
     if (error instanceof ApiError) throw error;
     console.error("Guest session auth error:", error);
     throw unauthorized("Authentication failed", "AUTH_FAILED");
   }
+
+  await next();
 };
 
 /**
