@@ -10,6 +10,16 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => ({})),
 }));
 
+import {
+  groupActivityLogs,
+  groupCartItems,
+  groupMembers,
+  groupOrders,
+  menuItems,
+  orders,
+  restaurants,
+  splitBills,
+} from "@makanmasak/database";
 import { GroupOrdersService } from "./GroupOrdersService";
 
 function createKV() {
@@ -44,9 +54,52 @@ function createService() {
   return service as any;
 }
 
-function createQuery(result: unknown) {
+type SelectFixtureName =
+  | "groupActivityLogs"
+  | "groupCartItems"
+  | "groupMembers"
+  | "groupOrders"
+  | "menuItems"
+  | "orders"
+  | "restaurants"
+  | "rawSqlSubquery"
+  | "splitBills";
+
+type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
+
+const rawSqlSubquery = Symbol("rawSqlSubquery");
+const unselectedTable = Symbol("unselectedTable");
+
+const fixtureTables: Record<SelectFixtureName, unknown> = {
+  groupActivityLogs,
+  groupCartItems,
+  groupMembers,
+  groupOrders,
+  menuItems,
+  orders,
+  restaurants,
+  rawSqlSubquery,
+  splitBills,
+};
+
+const fixtureTableNames = new Map<unknown, SelectFixtureName>(
+  Object.entries(fixtureTables).map(([name, table]) => [
+    table,
+    name as SelectFixtureName,
+  ]),
+);
+
+function tableName(table: unknown) {
+  return fixtureTableNames.get(table) ?? "<unknown table>";
+}
+
+function createQuery(nextResultFor: (table: unknown) => unknown) {
+  let selectedTable: unknown = unselectedTable;
   const builder = {
-    from: vi.fn(() => builder),
+    from: vi.fn((table: unknown) => {
+      selectedTable = fixtureTableNames.has(table) ? table : rawSqlSubquery;
+      return builder;
+    }),
     innerJoin: vi.fn(() => builder),
     where: vi.fn(() => builder),
     orderBy: vi.fn(() => builder),
@@ -56,24 +109,56 @@ function createQuery(result: unknown) {
     then: (
       resolve: (value: unknown) => void,
       reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
+    ) => {
+      if (selectedTable === unselectedTable) {
+        return Promise.reject(
+          new Error("Select fixture query never called from(table)"),
+        ).then(resolve, reject);
+      }
+      return Promise.resolve(nextResultFor(selectedTable)).then(
+        resolve,
+        reject,
+      );
+    },
   };
   return builder;
 }
 
 function createDb(
-  selectResults: unknown[] = [],
+  fixtures: SelectFixtures = {},
   updateResults: unknown[] = [],
 ) {
+  const selectResults = new Map<unknown, unknown[][]>(
+    Object.entries(fixtures).map(([name, results]) => [
+      fixtureTables[name as SelectFixtureName],
+      results ?? [],
+    ]),
+  );
   const inserts: Array<{ table: unknown; payload: unknown }> = [];
   const updates: Array<{ table: unknown; payload: unknown }> = [];
   const deletes: unknown[] = [];
+
+  const nextResultFor = (table: unknown) => {
+    const name = tableName(table);
+    const queue = selectResults.get(table);
+
+    if (!queue) {
+      throw new Error(`Missing select fixture for ${name}`);
+    }
+
+    const result = queue.shift();
+    if (result === undefined) {
+      throw new Error(`No select fixtures remaining for ${name}`);
+    }
+
+    return result;
+  };
 
   const db = {
     inserts,
     updates,
     deletes,
-    select: vi.fn(() => createQuery(selectResults.shift() ?? [])),
+    select: vi.fn(() => createQuery(nextResultFor)),
     insert: vi.fn((table: unknown) => ({
       values: vi.fn(async (payload: unknown) => {
         inserts.push({ table, payload });
@@ -177,12 +262,14 @@ function createSplitDb({
   items?: unknown[];
   existingBills?: unknown[][];
 }) {
-  return createDb([
-    [groupOrder],
-    members,
-    items,
-    ...members.map((_, index) => existingBills[index] ?? []),
-  ]);
+  return createDb({
+    groupOrders: [[groupOrder]],
+    groupMembers: [members],
+    groupCartItems: [items],
+    // splitBill checks existing split bills once per member before inserting
+    // replacements, so splitBills keeps a table-local result queue.
+    splitBills: members.map((_, index) => existingBills[index] ?? []),
+  });
 }
 
 function totalCents(result: { totalAmount: number }[]) {
@@ -193,6 +280,23 @@ function totalCents(result: { totalAmount: number }[]) {
 }
 
 describe("GroupOrdersService formatting and cache behavior", () => {
+  it("routes select fixtures by table instead of global query order", async () => {
+    const db = createDb({
+      groupOrders: [[baseGroupOrder]],
+      restaurants: [[{ id: "restaurant-1", settings: { taxRate: 0.05 } }]],
+    });
+
+    await expect(db.select().from(restaurants)).resolves.toEqual([
+      { id: "restaurant-1", settings: { taxRate: 0.05 } },
+    ]);
+    await expect(db.select().from(groupOrders)).resolves.toEqual([
+      baseGroupOrder,
+    ]);
+    await expect(db.select().from(groupOrders)).rejects.toThrow(
+      "No select fixtures remaining for groupOrders",
+    );
+  });
+
   beforeEach(() => {
     uuidState.next = 1;
     vi.useFakeTimers();
@@ -205,6 +309,17 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     vi.mocked(console.log).mockRestore();
     vi.mocked(console.error).mockRestore();
     vi.useRealTimers();
+  });
+
+  it("reports the missing table fixture instead of shifting select results", async () => {
+    const db = createDb({
+      groupOrders: [[baseGroupOrder]],
+    });
+
+    await expect(db.select().from(groupOrders)).resolves.toEqual([
+      baseGroupOrder,
+    ]);
+    await expect(db.select().from(restaurants)).rejects.toThrow("restaurants");
   });
 
   it("formats group orders with defaults, cents-first money, and timestamp compatibility", () => {
@@ -319,11 +434,13 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("lists group orders with cents-first totals", async () => {
     const service = createService();
-    (service as any).db = createDb([
-      [{ ...baseGroupOrder, totalAmount: 99, totalAmountCents: 12345 }],
-      [hostMember],
-      [],
-    ]);
+    (service as any).db = createDb({
+      groupOrders: [
+        [{ ...baseGroupOrder, totalAmount: 99, totalAmountCents: 12345 }],
+      ],
+      groupMembers: [[hostMember]],
+      groupCartItems: [[]],
+    });
 
     await expect(service.listGroupOrders("restaurant-1")).resolves.toEqual([
       expect.objectContaining({
@@ -477,22 +594,28 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("lists group orders with batched member and item counts", async () => {
     const service = createService();
-    const db = createDb([
-      [
-        {
-          ...baseGroupOrder,
-          tableId: 12,
-          settings: { tableNumber: "A5" },
-          totalAmount: 45,
-          totalAmountCents: 4500,
-        },
+    const db = createDb({
+      groupOrders: [
+        [
+          {
+            ...baseGroupOrder,
+            tableId: 12,
+            settings: { tableNumber: "A5" },
+            totalAmount: 45,
+            totalAmountCents: 4500,
+          },
+        ],
       ],
-      [hostMember, { ...hostMember, id: "member-2", role: "member" }],
-      [
-        { id: "cart-1", groupOrderId: "group-1" },
-        { id: "cart-2", groupOrderId: "group-1" },
+      groupMembers: [
+        [hostMember, { ...hostMember, id: "member-2", role: "member" }],
       ],
-    ]);
+      groupCartItems: [
+        [
+          { id: "cart-1", groupOrderId: "group-1" },
+          { id: "cart-2", groupOrderId: "group-1" },
+        ],
+      ],
+    });
     service.db = db;
 
     await expect(
@@ -512,7 +635,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("returns empty lists when no rows exist or list queries fail", async () => {
     const service = createService();
-    service.db = createDb([[]]);
+    service.db = createDb({ groupOrders: [[]] });
 
     await expect(service.listGroupOrders("restaurant-1")).resolves.toEqual([]);
 
@@ -529,7 +652,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
   it("creates a group order with host member, activity log, and cache aliases", async () => {
     const { kv, values } = createKV();
     const service = new GroupOrdersService({} as D1Database, kv) as any;
-    const db = createDb([[{ ...hostMember, id: "uuid-2" }]]);
+    const db = createDb({ groupMembers: [[{ ...hostMember, id: "uuid-2" }]] });
     service.db = db;
     vi.spyOn(Math, "random").mockReturnValue(0);
 
@@ -586,7 +709,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("creates guest-hosted group orders with nullable createdBy and fulfillment settings", async () => {
     const service = createService();
-    const db = createDb([[{ ...hostMember, id: "uuid-3" }]]);
+    const db = createDb({ groupMembers: [[{ ...hostMember, id: "uuid-3" }]] });
     service.db = db;
 
     const result = await service.createGroupOrder(
@@ -621,19 +744,21 @@ describe("GroupOrdersService formatting and cache behavior", () => {
    */
   it("flips auto-submit without disturbing the rest of the settings", async () => {
     const service = createService();
-    const db = createDb([
-      [
-        {
-          id: "group-1",
-          settings: {
-            maxMembers: 8,
-            fulfillmentType: "delivery",
-            deliveryAddress: { line1: "1 Example Rd" },
-            autoSubmitOnExpiry: false,
+    const db = createDb({
+      groupOrders: [
+        [
+          {
+            id: "group-1",
+            settings: {
+              maxMembers: 8,
+              fulfillmentType: "delivery",
+              deliveryAddress: { line1: "1 Example Rd" },
+              autoSubmitOnExpiry: false,
+            },
           },
-        },
+        ],
       ],
-    ]);
+    });
     service.db = db;
 
     await expect(
@@ -657,7 +782,9 @@ describe("GroupOrdersService formatting and cache behavior", () => {
    */
   it("stores the split preference without locking the group", async () => {
     const service = createService();
-    const db = createDb([[{ id: "group-1", status: "active" }]]);
+    const db = createDb({
+      groupOrders: [[{ id: "group-1", status: "active" }]],
+    });
     service.db = db;
 
     await expect(
@@ -678,7 +805,9 @@ describe("GroupOrdersService formatting and cache behavior", () => {
    */
   it("stores by_item using the value the column expects", async () => {
     const service = createService();
-    const db = createDb([[{ id: "group-1", status: "active" }]]);
+    const db = createDb({
+      groupOrders: [[{ id: "group-1", status: "active" }]],
+    });
     service.db = db;
 
     await service.setSplitType("group-1", "by_item");
@@ -690,7 +819,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("refuses to set a split preference on a group order that is gone", async () => {
     const service = createService();
-    service.db = createDb([[]]);
+    service.db = createDb({ groupOrders: [[]] });
 
     await expect(
       service.setSplitType("missing", "equal"),
@@ -730,7 +859,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("refuses to flip auto-submit on a group order that is gone", async () => {
     const service = createService();
-    service.db = createDb([[]]);
+    service.db = createDb({ groupOrders: [[]] });
 
     await expect(
       service.setAutoSubmitOnExpiry("missing", true),
@@ -739,7 +868,9 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("defaults expiresAt to 45 minutes when no expiration is provided", async () => {
     const service = createService();
-    service.db = createDb([[{ ...hostMember, id: "uuid-3" }]]);
+    service.db = createDb({
+      groupMembers: [[{ ...hostMember, id: "uuid-3" }]],
+    });
 
     const result = await service.createGroupOrder(
       { restaurantId: "restaurant-1" },
@@ -755,15 +886,19 @@ describe("GroupOrdersService formatting and cache behavior", () => {
   it("previews a group order without write, cache, or activity side effects", async () => {
     const { kv } = createKV();
     const service = new GroupOrdersService({} as D1Database, kv) as any;
-    const db = createDb([
-      [
-        {
-          ...baseGroupOrder,
-          settings: { fulfillmentType: "pickup" },
-        },
+    const db = createDb({
+      groupOrders: [
+        [
+          {
+            ...baseGroupOrder,
+            settings: { fulfillmentType: "pickup" },
+          },
+        ],
       ],
-      [hostMember, { ...hostMember, id: "member-2", role: "member" }],
-    ]);
+      groupMembers: [
+        [hostMember, { ...hostMember, id: "member-2", role: "member" }],
+      ],
+    });
     service.db = db;
 
     await expect(service.previewGroupByShareCode("ABC12345")).resolves.toEqual({
@@ -783,7 +918,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("returns found false for missing join previews", async () => {
     const service = createService();
-    service.db = createDb([[]]);
+    service.db = createDb({ groupOrders: [[]] });
 
     await expect(service.previewGroupByShareCode("NOPE0000")).resolves.toEqual({
       found: false,
@@ -842,11 +977,11 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     const service = createService();
     const logError = vi.fn();
     service.errorTracker = { ...service.errorTracker, logError };
-    service.db = createDb([
-      [{ ...baseGroupOrder, status: "ordering" }],
-      [hostMember],
-      [],
-    ]);
+    service.db = createDb({
+      groupOrders: [[{ ...baseGroupOrder, status: "ordering" }]],
+      groupMembers: [[hostMember]],
+      groupCartItems: [[]],
+    });
 
     await expect(service.listGroupOrders("restaurant-1")).resolves.toEqual([
       expect.objectContaining({ id: "group-1", status: "active" }),
@@ -854,10 +989,10 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
     const previewService = createService();
     previewService.errorTracker = { ...previewService.errorTracker, logError };
-    previewService.db = createDb([
-      [{ ...baseGroupOrder, status: "ordering" }],
-      [hostMember],
-    ]);
+    previewService.db = createDb({
+      groupOrders: [[{ ...baseGroupOrder, status: "ordering" }]],
+      groupMembers: [[hostMember]],
+    });
 
     await expect(
       previewService.previewGroupByShareCode("ABC12345"),
@@ -874,10 +1009,10 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("recovers the host session and replaces the previous member token", async () => {
     const service = createService();
-    const db = createDb([
-      [baseGroupOrder],
-      [{ ...hostMember, id: "member-1" }],
-    ]);
+    const db = createDb({
+      groupOrders: [[baseGroupOrder]],
+      groupMembers: [[{ ...hostMember, id: "member-1" }]],
+    });
     service.db = db;
 
     await expect(
@@ -897,13 +1032,13 @@ describe("GroupOrdersService formatting and cache behavior", () => {
   it("uses the same recovery failure for wrong code, missing group, and missing creator", async () => {
     const service = createService();
 
-    service.db = createDb([[]]);
+    service.db = createDb({ groupOrders: [[]] });
     await expect(service.recoverHost("group-1", "wrong")).resolves.toEqual({
       success: false,
       error: "Invalid recovery code",
     });
 
-    service.db = createDb([[]]);
+    service.db = createDb({ groupOrders: [[]] });
     await expect(service.recoverHost("missing", "recovery-1")).resolves.toEqual(
       {
         success: false,
@@ -911,7 +1046,10 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       },
     );
 
-    service.db = createDb([[baseGroupOrder], []]);
+    service.db = createDb({
+      groupOrders: [[baseGroupOrder]],
+      groupMembers: [[]],
+    });
     await expect(service.recoverHost("group-1", "recovery-1")).resolves.toEqual(
       {
         success: false,
@@ -922,7 +1060,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("does not recover inactive or expired group orders", async () => {
     const service = createService();
-    service.db = createDb([[]]);
+    service.db = createDb({ groupOrders: [[]] });
 
     await expect(
       service.recoverHost("completed-group", "recovery-1"),
@@ -934,7 +1072,10 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("joins active groups and rejects full or duplicate-member groups", async () => {
     const service = createService();
-    const fullDb = createDb([[baseGroupOrder], [{ count: 4 }]]);
+    const fullDb = createDb({
+      groupOrders: [[baseGroupOrder]],
+      groupMembers: [[{ count: 4 }]],
+    });
     service.db = fullDb;
 
     await expect(
@@ -944,11 +1085,10 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       error: "Group order is full",
     });
 
-    const duplicateDb = createDb([
-      [baseGroupOrder],
-      [{ count: 1 }],
-      [hostMember],
-    ]);
+    const duplicateDb = createDb({
+      groupOrders: [[baseGroupOrder]],
+      groupMembers: [[{ count: 1 }], [hostMember]],
+    });
     service.db = duplicateDb;
     await expect(
       service.joinGroup("ABC12345", { memberName: "Host" }),
@@ -960,12 +1100,14 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     const { kv, values } = createKV();
     values.set("group_order:group-1", JSON.stringify({ stale: true }));
     const joinService = new GroupOrdersService({} as D1Database, kv) as any;
-    const joinDb = createDb([
-      [baseGroupOrder],
-      [{ count: 1 }],
-      [],
-      [{ ...hostMember, id: "uuid-1", name: "Lin", role: "member" }],
-    ]);
+    const joinDb = createDb({
+      groupOrders: [[baseGroupOrder]],
+      groupMembers: [
+        [{ count: 1 }],
+        [],
+        [{ ...hostMember, id: "uuid-1", name: "Lin", role: "member" }],
+      ],
+    });
     joinService.db = joinDb;
 
     await expect(
@@ -992,7 +1134,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("returns join errors for missing groups and database failures", async () => {
     const service = createService();
-    service.db = createDb([[]]);
+    service.db = createDb({ groupOrders: [[]] });
 
     await expect(
       service.joinGroup("MISSING", { memberName: "Lin" }),
@@ -1033,25 +1175,24 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       addedAt: new Date("2026-06-07T00:00:00.000Z"),
       updatedAt: new Date("2026-06-07T00:00:00.000Z"),
     };
-    service.db = createDb([
-      [baseGroupOrder],
-      [hostMember],
-      [
-        {
-          id: 10,
-          restaurantId: "restaurant-1",
-          name: "Laksa",
-          price: 9,
-          priceCents: 1250,
-        },
+    service.db = createDb({
+      groupOrders: [[baseGroupOrder], [{ restaurantId: "restaurant-1" }]],
+      groupMembers: [[hostMember]],
+      menuItems: [
+        [
+          {
+            id: 10,
+            restaurantId: "restaurant-1",
+            name: "Laksa",
+            price: 9,
+            priceCents: 1250,
+          },
+        ],
       ],
-      [{ restaurantId: "restaurant-1" }],
-      [{ settings: { taxRate: 0, serviceChargeRate: 0 } }],
-      [{ total: 25 }],
-      [],
-      [{ total: 25 }],
-      [cartItem],
-    ]);
+      restaurants: [[{ settings: { taxRate: 0, serviceChargeRate: 0 } }]],
+      groupCartItems: [[{ total: 25 }], [{ total: 25 }], [cartItem]],
+      splitBills: [[]],
+    });
 
     await expect(
       service.addCartItem("group-1", {
@@ -1068,15 +1209,18 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     expect(values.has("group_order_summary:group-1")).toBe(false);
 
     const updateService = createService();
-    const updateDb = createDb([
-      [cartItem],
-      [{ restaurantId: "restaurant-1" }],
-      [{ settings: { taxRate: 0, serviceChargeRate: 0 } }],
-      [{ total: 37.5 }],
-      [],
-      [{ total: 37.5 }],
-      [{ ...cartItem, quantity: 3, totalPriceCents: 3750 }],
-    ]);
+    const updateDb = createDb({
+      groupCartItems: [
+        [cartItem],
+        [{ total: 37.5 }],
+        [{ total: 37.5 }],
+        [{ ...cartItem, quantity: 3, totalPriceCents: 3750 }],
+      ],
+      groupOrders: [[{ restaurantId: "restaurant-1" }]],
+      restaurants: [[{ settings: { taxRate: 0, serviceChargeRate: 0 } }]],
+      splitBills: [[]],
+      menuItems: [[]],
+    });
     updateService.db = updateDb;
 
     await expect(
@@ -1097,7 +1241,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("handles cart add validation, fallback response, and update errors", async () => {
     const missingGroupService = createService();
-    missingGroupService.db = createDb([[]]);
+    missingGroupService.db = createDb({ groupOrders: [[]] });
     await expect(
       missingGroupService.addCartItem("group-1", {
         memberId: "member-1",
@@ -1107,9 +1251,9 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     ).resolves.toEqual({ success: false, error: "Group order not found" });
 
     const inactiveGroupService = createService();
-    inactiveGroupService.db = createDb([
-      [{ ...baseGroupOrder, status: "checkout" }],
-    ]);
+    inactiveGroupService.db = createDb({
+      groupOrders: [[{ ...baseGroupOrder, status: "checkout" }]],
+    });
     await expect(
       inactiveGroupService.addCartItem("group-1", {
         memberId: "member-1",
@@ -1122,9 +1266,11 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
 
     const expiredGroupService = createService();
-    expiredGroupService.db = createDb([
-      [{ ...baseGroupOrder, expiresAt: new Date("2026-06-06T00:00:00Z") }],
-    ]);
+    expiredGroupService.db = createDb({
+      groupOrders: [
+        [{ ...baseGroupOrder, expiresAt: new Date("2026-06-06T00:00:00Z") }],
+      ],
+    });
     await expect(
       expiredGroupService.addCartItem("group-1", {
         memberId: "member-1",
@@ -1137,7 +1283,10 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
 
     const missingMemberService = createService();
-    missingMemberService.db = createDb([[baseGroupOrder], []]);
+    missingMemberService.db = createDb({
+      groupOrders: [[baseGroupOrder]],
+      groupMembers: [[]],
+    });
     await expect(
       missingMemberService.addCartItem("group-1", {
         memberId: "member-1",
@@ -1150,7 +1299,11 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
 
     const missingMenuService = createService();
-    missingMenuService.db = createDb([[baseGroupOrder], [hostMember], []]);
+    missingMenuService.db = createDb({
+      groupOrders: [[baseGroupOrder]],
+      groupMembers: [[hostMember]],
+      menuItems: [[]],
+    });
     await expect(
       missingMenuService.addCartItem("group-1", {
         memberId: "member-1",
@@ -1160,23 +1313,24 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     ).resolves.toEqual({ success: false, error: "Menu item not found" });
 
     const fallbackService = createService();
-    const fallbackDb = createDb([
-      [baseGroupOrder],
-      [hostMember],
-      [
-        {
-          id: 10,
-          restaurantId: "restaurant-1",
-          name: "Laksa",
-          price: 999,
-          priceCents: 900,
-        },
+    const fallbackDb = createDb({
+      groupOrders: [[baseGroupOrder], [{ restaurantId: "restaurant-1" }]],
+      groupMembers: [[hostMember]],
+      menuItems: [
+        [
+          {
+            id: 10,
+            restaurantId: "restaurant-1",
+            name: "Laksa",
+            price: 999,
+            priceCents: 900,
+          },
+        ],
       ],
-      [{ total: 9 }],
-      [],
-      [{ total: 9 }],
-      [],
-    ]);
+      restaurants: [[{ settings: { taxRate: 0, serviceChargeRate: 0 } }]],
+      groupCartItems: [[{ total: 9 }], [{ total: 9 }], []],
+      splitBills: [[]],
+    });
     fallbackService.db = fallbackDb;
     await expect(
       fallbackService.addCartItem("group-1", {
@@ -1190,7 +1344,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
 
     const updateMissingService = createService();
-    updateMissingService.db = createDb([[]]);
+    updateMissingService.db = createDb({ groupCartItems: [[]] });
     await expect(
       updateMissingService.updateCartItem("group-1", "item-1", {
         quantity: 2,
@@ -1198,20 +1352,22 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     ).resolves.toEqual({ success: false, error: "Cart item not found" });
 
     const updateFailureService = createService();
-    updateFailureService.db = createDb([
-      [
-        {
-          id: "item-1",
-          groupOrderId: "group-1",
-          memberId: "member-1",
-          unitPrice: 9,
-        },
+    updateFailureService.db = createDb({
+      groupCartItems: [
+        [
+          {
+            id: "item-1",
+            groupOrderId: "group-1",
+            memberId: "member-1",
+            unitPrice: 9,
+          },
+        ],
+        [{ total: 18 }],
+        [{ total: 18 }],
+        [],
       ],
-      [{ total: 18 }],
-      [],
-      [{ total: 18 }],
-      [],
-    ]);
+      splitBills: [[]],
+    });
     await expect(
       updateFailureService.updateCartItem("group-1", "item-1", {
         quantity: 2,
@@ -1225,7 +1381,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("removes cart items and reports missing or failed removals", async () => {
     const missingService = createService();
-    missingService.db = createDb([[]]);
+    missingService.db = createDb({ groupCartItems: [[]] });
     await expect(
       missingService.removeCartItem("group-1", "item-1", "member-1"),
     ).resolves.toEqual({
@@ -1234,18 +1390,22 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
 
     const service = createService();
-    const db = createDb([
-      [
-        {
-          id: "item-1",
-          groupOrderId: "group-1",
-          memberId: "member-1",
-        },
+    const db = createDb({
+      groupCartItems: [
+        [
+          {
+            id: "item-1",
+            groupOrderId: "group-1",
+            memberId: "member-1",
+          },
+        ],
+        [{ total: 0 }],
+        [{ total: 0 }],
       ],
-      [{ total: 0 }],
-      [],
-      [{ total: 0 }],
-    ]);
+      groupOrders: [[{ restaurantId: "restaurant-1" }]],
+      restaurants: [[{ settings: { taxRate: 0, serviceChargeRate: 0 } }]],
+      splitBills: [[]],
+    });
     service.db = db;
     await expect(
       service.removeCartItem("group-1", "item-1", "member-1"),
@@ -1280,18 +1440,22 @@ describe("GroupOrdersService formatting and cache behavior", () => {
    */
   it("credits a removal to the member whose item it was", async () => {
     const service = createService();
-    const db = createDb([
-      [
-        {
-          id: "item-1",
-          groupOrderId: "group-1",
-          memberId: "member-1",
-        },
+    const db = createDb({
+      groupCartItems: [
+        [
+          {
+            id: "item-1",
+            groupOrderId: "group-1",
+            memberId: "member-1",
+          },
+        ],
+        [{ total: 0 }],
+        [{ total: 0 }],
       ],
-      [{ total: 0 }],
-      [],
-      [{ total: 0 }],
-    ]);
+      groupOrders: [[{ restaurantId: "restaurant-1" }]],
+      restaurants: [[{ settings: { taxRate: 0, serviceChargeRate: 0 } }]],
+      splitBills: [[]],
+    });
     service.db = db;
 
     await expect(
@@ -1337,14 +1501,16 @@ describe("GroupOrdersService formatting and cache behavior", () => {
    */
   it("changes the fee choice without locking the group or losing settings", async () => {
     const service = createService();
-    const db = createDb([
-      [
-        {
-          id: "group-1",
-          settings: { maxMembers: 8, autoSubmitOnExpiry: true },
-        },
+    const db = createDb({
+      groupOrders: [
+        [
+          {
+            id: "group-1",
+            settings: { maxMembers: 8, autoSubmitOnExpiry: true },
+          },
+        ],
       ],
-    ]);
+    });
     service.db = db;
 
     await expect(service.setFeeMode("group-1", "equal")).resolves.toMatchObject(
@@ -1365,7 +1531,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("refuses to change the fee choice on a group order that is gone", async () => {
     const service = createService();
-    service.db = createDb([[]]);
+    service.db = createDb({ groupOrders: [[]] });
 
     await expect(service.setFeeMode("missing", "host")).resolves.toMatchObject({
       success: false,
@@ -1390,7 +1556,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("keeps the host's fee choice from the moment the group is opened", async () => {
     const service = createService();
-    const db = createDb([[{ ...hostMember, id: "uuid-3" }]]);
+    const db = createDb({ groupMembers: [[{ ...hostMember, id: "uuid-3" }]] });
     service.db = db;
 
     await service.createGroupOrder(
@@ -1405,7 +1571,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("defaults to charging each member on their own items", async () => {
     const service = createService();
-    const db = createDb([[{ ...hostMember, id: "uuid-3" }]]);
+    const db = createDb({ groupMembers: [[{ ...hostMember, id: "uuid-3" }]] });
     service.db = db;
 
     await service.createGroupOrder({ restaurantId: "restaurant-1" }, null);
@@ -1561,34 +1727,35 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     values.set("group_order_summary:group-1", JSON.stringify({ stale: true }));
     const service = new GroupOrdersService({} as D1Database, kv) as any;
     const secondMember = { ...hostMember, id: "member-2", role: "member" };
-    const splitDb = createDb([
-      [baseGroupOrder],
-      [hostMember, secondMember],
-      [
-        {
-          id: "cart-1",
-          groupOrderId: "group-1",
-          memberId: "member-1",
-          menuItemId: 10,
-          quantity: 1,
-          unitPriceCents: 1000,
-          totalPriceCents: 1000,
-          customizations: {},
-        },
-        {
-          id: "cart-2",
-          groupOrderId: "group-1",
-          memberId: "member-2",
-          menuItemId: 20,
-          quantity: 1,
-          unitPriceCents: 3000,
-          totalPriceCents: 3000,
-          customizations: {},
-        },
+    const splitDb = createDb({
+      groupOrders: [[baseGroupOrder]],
+      groupMembers: [[hostMember, secondMember]],
+      groupCartItems: [
+        [
+          {
+            id: "cart-1",
+            groupOrderId: "group-1",
+            memberId: "member-1",
+            menuItemId: 10,
+            quantity: 1,
+            unitPriceCents: 1000,
+            totalPriceCents: 1000,
+            customizations: {},
+          },
+          {
+            id: "cart-2",
+            groupOrderId: "group-1",
+            memberId: "member-2",
+            menuItemId: 20,
+            quantity: 1,
+            unitPriceCents: 3000,
+            totalPriceCents: 3000,
+            customizations: {},
+          },
+        ],
       ],
-      [],
-      [],
-    ]);
+      splitBills: [[], []],
+    });
     service.db = splitDb;
 
     await expect(
@@ -1623,21 +1790,23 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     expect(values.has("group_order_summary:group-1")).toBe(false);
 
     const paymentService = createService();
-    const paymentDb = createDb([
-      [{ ...baseGroupOrder, status: "checkout" }],
-      [hostMember],
-      [
-        {
-          id: "split-1",
-          groupOrderId: "group-1",
-          memberId: "member-1",
-          totalAmount: 23,
-          totalAmountCents: 2300,
-          paymentStatus: "pending",
-        },
+    const paymentDb = createDb({
+      groupOrders: [[{ ...baseGroupOrder, status: "checkout" }]],
+      groupMembers: [[hostMember]],
+      splitBills: [
+        [
+          {
+            id: "split-1",
+            groupOrderId: "group-1",
+            memberId: "member-1",
+            totalAmount: 23,
+            totalAmountCents: 2300,
+            paymentStatus: "pending",
+          },
+        ],
+        [{ count: 0 }],
       ],
-      [{ count: 0 }],
-    ]);
+    });
     paymentService.db = paymentDb;
 
     await expect(
@@ -1663,27 +1832,29 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("splits bills by item or custom amounts and validates split inputs", async () => {
     const byItemService = createService();
-    const byItemDb = createDb([
-      [baseGroupOrder],
-      [hostMember, { ...hostMember, id: "member-2", role: "member" }],
-      [
-        {
-          id: "cart-1",
-          groupOrderId: "group-1",
-          memberId: "member-1",
-          menuItemId: 10,
-          quantity: 2,
-          unitPrice: 999,
-          unitPriceCents: 900,
-          totalPrice: 999,
-          totalPriceCents: 1800,
-          status: "active",
-        },
+    const byItemDb = createDb({
+      groupOrders: [[baseGroupOrder]],
+      groupMembers: [
+        [hostMember, { ...hostMember, id: "member-2", role: "member" }],
       ],
-      [{ id: "split-1" }],
-      [],
-      [],
-    ]);
+      groupCartItems: [
+        [
+          {
+            id: "cart-1",
+            groupOrderId: "group-1",
+            memberId: "member-1",
+            menuItemId: 10,
+            quantity: 2,
+            unitPrice: 999,
+            unitPriceCents: 900,
+            totalPrice: 999,
+            totalPriceCents: 1800,
+            status: "active",
+          },
+        ],
+      ],
+      splitBills: [[{ id: "split-1" }], []],
+    });
     byItemService.db = byItemDb;
     await expect(
       byItemService.splitBill("group-1", {
@@ -1708,7 +1879,12 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     expect(byItemDb.updates[1].payload.finalAmountCents).toBe(1980);
 
     const customService = createService();
-    const customDb = createDb([[baseGroupOrder], [hostMember], [], []]);
+    const customDb = createDb({
+      groupOrders: [[baseGroupOrder]],
+      groupMembers: [[hostMember]],
+      groupCartItems: [[]],
+      splitBills: [[]],
+    });
     customService.db = customDb;
     await expect(
       customService.splitBill("group-1", {
@@ -1721,22 +1897,32 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
 
     const guards = [
-      { db: createDb([[]]), error: "Group order not found" },
+      { db: createDb({ groupOrders: [[]] }), error: "Group order not found" },
       {
-        db: createDb([[{ ...baseGroupOrder, status: "cancelled" }]]),
+        db: createDb({
+          groupOrders: [[{ ...baseGroupOrder, status: "cancelled" }]],
+        }),
         error: "Group order is already finalized",
       },
       {
-        db: createDb([[baseGroupOrder], []]),
+        db: createDb({ groupOrders: [[baseGroupOrder]], groupMembers: [[]] }),
         error: "No active members found",
       },
       {
-        db: createDb([[baseGroupOrder], [hostMember], []]),
+        db: createDb({
+          groupOrders: [[baseGroupOrder]],
+          groupMembers: [[hostMember]],
+          groupCartItems: [[]],
+        }),
         body: { splitType: "custom" },
         error: "Custom amounts are required for custom split type",
       },
       {
-        db: createDb([[baseGroupOrder], [hostMember], []]),
+        db: createDb({
+          groupOrders: [[baseGroupOrder]],
+          groupMembers: [[hostMember]],
+          groupCartItems: [[]],
+        }),
         body: {
           splitType: "custom",
           customAmounts: [{ memberId: "missing", amount: 1 }],
@@ -1744,7 +1930,11 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         error: "Member missing not found in group",
       },
       {
-        db: createDb([[baseGroupOrder], [hostMember], []]),
+        db: createDb({
+          groupOrders: [[baseGroupOrder]],
+          groupMembers: [[hostMember]],
+          groupCartItems: [[]],
+        }),
         body: { splitType: "unsupported" },
         error: "Unsupported split type: unsupported",
       },
@@ -2201,7 +2391,11 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       service.createOrderService = vi.fn(() => ({ createOrder }));
       service.splitBill = vi.fn(async () => ({ success: true, data: [] }));
       service.db = createDb(
-        [[groupOrder], cartItems, existingOrderRows],
+        {
+          groupOrders: [[groupOrder]],
+          groupCartItems: [cartItems],
+          orders: [existingOrderRows],
+        },
         [claimRows],
       );
       return { service, createOrder, db: service.db };
@@ -2272,9 +2466,17 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         data: { masterOrderId: "order-1", status: "completed" },
       });
 
-      service.db = createDb([
-        [{ ...baseGroupOrder, status: "completed", masterOrderId: "order-1" }],
-      ]);
+      service.db = createDb({
+        groupOrders: [
+          [
+            {
+              ...baseGroupOrder,
+              status: "completed",
+              masterOrderId: "order-1",
+            },
+          ],
+        ],
+      });
 
       await expect(service.finalizeGroupOrder("group-1")).resolves.toEqual({
         success: true,
@@ -2319,13 +2521,18 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       service.createOrderService = vi.fn(() => ({ createOrder }));
       service.splitBill = vi.fn(async () => ({ success: true, data: [] }));
       service.db = createDb(
-        [
-          [baseGroupOrder],
-          [baseGroupOrder],
-          [cartItem("cart-1", "member-1", 1000)],
-          [cartItem("cart-1", "member-1", 1000)],
-          [{ ...baseGroupOrder, status: "finalizing" }],
-        ],
+        {
+          groupOrders: [
+            [baseGroupOrder],
+            [baseGroupOrder],
+            [{ ...baseGroupOrder, status: "finalizing" }],
+          ],
+          groupCartItems: [
+            [cartItem("cart-1", "member-1", 1000)],
+            [cartItem("cart-1", "member-1", 1000)],
+          ],
+          orders: [[]],
+        },
         [[{ id: "group-1" }], []],
       );
 
@@ -2468,20 +2675,22 @@ describe("GroupOrdersService formatting and cache behavior", () => {
   describe("processPayment — Plan A manual settlement", () => {
     it("marks a member's split bill paid with paymentMethod cash and no real gateway involved", async () => {
       const service = createService();
-      const db = createDb([
-        [{ ...baseGroupOrder, status: "checkout" }],
-        [hostMember],
-        [
-          {
-            id: "split-1",
-            groupOrderId: "group-1",
-            memberId: "member-1",
-            totalAmountCents: 3300,
-            paymentStatus: "pending",
-          },
+      const db = createDb({
+        groupOrders: [[{ ...baseGroupOrder, status: "checkout" }]],
+        groupMembers: [[hostMember]],
+        splitBills: [
+          [
+            {
+              id: "split-1",
+              groupOrderId: "group-1",
+              memberId: "member-1",
+              totalAmountCents: 3300,
+              paymentStatus: "pending",
+            },
+          ],
+          [{ count: 1 }],
         ],
-        [{ count: 1 }],
-      ]);
+      });
       service.db = db;
 
       await expect(
@@ -2501,20 +2710,22 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
     it("leaves the group order status unchanged once every member's split bill is paid", async () => {
       const service = createService();
-      const db = createDb([
-        [{ ...baseGroupOrder, status: "completed" }],
-        [hostMember],
-        [
-          {
-            id: "split-1",
-            groupOrderId: "group-1",
-            memberId: "member-1",
-            totalAmountCents: 3300,
-            paymentStatus: "pending",
-          },
+      const db = createDb({
+        groupOrders: [[{ ...baseGroupOrder, status: "completed" }]],
+        groupMembers: [[hostMember]],
+        splitBills: [
+          [
+            {
+              id: "split-1",
+              groupOrderId: "group-1",
+              memberId: "member-1",
+              totalAmountCents: 3300,
+              paymentStatus: "pending",
+            },
+          ],
+          [{ count: 0 }],
         ],
-        [{ count: 0 }],
-      ]);
+      });
       service.db = db;
 
       await expect(
@@ -2531,36 +2742,42 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("validates payment guards and leaves checkout open while others owe", async () => {
     const guards = [
-      { db: createDb([[]]), error: "Group order not found" },
+      { db: createDb({ groupOrders: [[]] }), error: "Group order not found" },
       {
-        db: createDb([[baseGroupOrder], []]),
+        db: createDb({ groupOrders: [[baseGroupOrder]], groupMembers: [[]] }),
         error: "Member not found in group",
       },
       {
-        db: createDb([[baseGroupOrder], [hostMember], []]),
+        db: createDb({
+          groupOrders: [[baseGroupOrder]],
+          groupMembers: [[hostMember]],
+          splitBills: [[]],
+        }),
         error: "Split bill not found for member. Please split the bill first.",
       },
       {
-        db: createDb([
-          [baseGroupOrder],
-          [hostMember],
-          [{ id: "split-1", paymentStatus: "paid" }],
-        ]),
+        db: createDb({
+          groupOrders: [[baseGroupOrder]],
+          groupMembers: [[hostMember]],
+          splitBills: [[{ id: "split-1", paymentStatus: "paid" }]],
+        }),
         error: "Payment already processed for this member",
       },
       {
-        db: createDb([
-          [baseGroupOrder],
-          [hostMember],
-          [
-            {
-              id: "split-1",
-              totalAmount: 10,
-              totalAmountCents: 1000,
-              paymentStatus: "pending",
-            },
+        db: createDb({
+          groupOrders: [[baseGroupOrder]],
+          groupMembers: [[hostMember]],
+          splitBills: [
+            [
+              {
+                id: "split-1",
+                totalAmount: 10,
+                totalAmountCents: 1000,
+                paymentStatus: "pending",
+              },
+            ],
           ],
-        ]),
+        }),
         amount: 9,
         error: "Payment amount (9) does not match split bill amount (10)",
       },
@@ -2578,21 +2795,23 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     }
 
     const service = createService();
-    const db = createDb([
-      [{ ...baseGroupOrder, status: "checkout" }],
-      [hostMember],
-      [
-        {
-          id: "split-1",
-          groupOrderId: "group-1",
-          memberId: "member-1",
-          totalAmount: 23.1,
-          totalAmountCents: 2310,
-          paymentStatus: "pending",
-        },
+    const db = createDb({
+      groupOrders: [[{ ...baseGroupOrder, status: "checkout" }]],
+      groupMembers: [[hostMember]],
+      splitBills: [
+        [
+          {
+            id: "split-1",
+            groupOrderId: "group-1",
+            memberId: "member-1",
+            totalAmount: 23.1,
+            totalAmountCents: 2310,
+            paymentStatus: "pending",
+          },
+        ],
+        [{ count: 1 }],
       ],
-      [{ count: 1 }],
-    ]);
+    });
     service.db = db;
 
     await expect(
@@ -2617,7 +2836,9 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("handles leave guards, expired cleanup, activities, and statistics aggregation", async () => {
     const service = createService();
-    service.db = createDb([[{ ...baseGroupOrder, status: "checkout" }]]);
+    service.db = createDb({
+      groupOrders: [[{ ...baseGroupOrder, status: "checkout" }]],
+    });
 
     await expect(service.leaveGroup("group-1", "member-1")).resolves.toEqual({
       success: false,
@@ -2625,12 +2846,14 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
 
     const cleanupService = createService();
-    const cleanupDb = createDb([
-      [
-        { id: "group-1", shareCode: "ABC12345", expiresAt: new Date() },
-        { id: "group-2", shareCode: "XYZ12345", expiresAt: new Date() },
+    const cleanupDb = createDb({
+      groupOrders: [
+        [
+          { id: "group-1", shareCode: "ABC12345", expiresAt: new Date() },
+          { id: "group-2", shareCode: "XYZ12345", expiresAt: new Date() },
+        ],
       ],
-    ]);
+    });
     cleanupService.db = cleanupDb;
     await expect(cleanupService.cleanupExpiredGroups()).resolves.toEqual({
       cleaned: 2,
@@ -2640,30 +2863,30 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     expect(cleanupDb.inserts).toHaveLength(2);
 
     const activityService = createService();
-    activityService.db = createDb([
-      [
-        {
-          id: "activity-1",
-          groupOrderId: "group-1",
-          memberId: null,
-          action: "bill_split",
-          description: "Split",
-          metadata: { splitType: "equal" },
-          createdAt: new Date("2026-06-07T00:00:00.000Z"),
-        },
+    activityService.db = createDb({
+      groupActivityLogs: [
+        [
+          {
+            id: "activity-1",
+            groupOrderId: "group-1",
+            memberId: null,
+            action: "bill_split",
+            description: "Split",
+            metadata: { splitType: "equal" },
+            createdAt: new Date("2026-06-07T00:00:00.000Z"),
+          },
+        ],
       ],
-    ]);
+    });
     await expect(
       activityService.getActivities("group-1"),
     ).resolves.toMatchObject([{ id: "activity-1", type: "bill_split" }]);
 
     const statsService = createService();
-    statsService.db = createDb([
-      [{ total: 10 }],
-      [{ active: 4 }],
-      [{ avgSize: 2.25 }],
-      [{ avgValue: 31.678 }],
-    ]);
+    statsService.db = createDb({
+      groupOrders: [[{ total: 10 }], [{ active: 4 }], [{ avgValue: 31.678 }]],
+      rawSqlSubquery: [[{ avgSize: 2.25 }]],
+    });
     await expect(
       statsService.getStatistics("restaurant-1", "week"),
     ).resolves.toEqual({
@@ -2679,7 +2902,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("allows members to leave active groups and validates leave edge cases", async () => {
     const missingGroupService = createService();
-    missingGroupService.db = createDb([[]]);
+    missingGroupService.db = createDb({ groupOrders: [[]] });
     await expect(
       missingGroupService.leaveGroup("group-1", "member-1"),
     ).resolves.toEqual({
@@ -2688,7 +2911,10 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
 
     const missingMemberService = createService();
-    missingMemberService.db = createDb([[baseGroupOrder], []]);
+    missingMemberService.db = createDb({
+      groupOrders: [[baseGroupOrder]],
+      groupMembers: [[]],
+    });
     await expect(
       missingMemberService.leaveGroup("group-1", "member-1"),
     ).resolves.toEqual({
@@ -2697,11 +2923,13 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
 
     const hostBlockedService = createService();
-    hostBlockedService.db = createDb([
-      [baseGroupOrder],
-      [hostMember],
-      [hostMember, { ...hostMember, id: "member-2", role: "member" }],
-    ]);
+    hostBlockedService.db = createDb({
+      groupOrders: [[baseGroupOrder]],
+      groupMembers: [
+        [hostMember],
+        [hostMember, { ...hostMember, id: "member-2", role: "member" }],
+      ],
+    });
     await expect(
       hostBlockedService.leaveGroup("group-1", "member-1"),
     ).resolves.toEqual({
@@ -2710,14 +2938,16 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
 
     const service = createService();
-    const db = createDb([
-      [baseGroupOrder],
-      [{ ...hostMember, id: "member-2", role: "member", name: "Lin" }],
-      [hostMember, { ...hostMember, id: "member-2", role: "member" }],
-      [{ total: 0 }],
-      [],
-      [{ total: 0 }],
-    ]);
+    const db = createDb({
+      groupOrders: [[baseGroupOrder], [{ restaurantId: "restaurant-1" }]],
+      groupMembers: [
+        [{ ...hostMember, id: "member-2", role: "member", name: "Lin" }],
+        [hostMember, { ...hostMember, id: "member-2", role: "member" }],
+      ],
+      restaurants: [[{ settings: { taxRate: 0, serviceChargeRate: 0 } }]],
+      groupCartItems: [[{ total: 0 }], [{ total: 0 }]],
+      splitBills: [[]],
+    });
     service.db = db;
     await expect(service.leaveGroup("group-1", "member-2")).resolves.toEqual({
       success: true,
@@ -2748,12 +2978,14 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("reports cleanup item errors and top-level cleanup failures", async () => {
     const service = createService();
-    const db = createDb([
-      [
-        { id: "group-1", shareCode: "ABC12345", expiresAt: new Date() },
-        { id: "group-2", shareCode: "XYZ12345", expiresAt: new Date() },
+    const db = createDb({
+      groupOrders: [
+        [
+          { id: "group-1", shareCode: "ABC12345", expiresAt: new Date() },
+          { id: "group-2", shareCode: "XYZ12345", expiresAt: new Date() },
+        ],
       ],
-    ]);
+    });
     const originalUpdate = db.update;
     let updateAttempts = 0;
     db.update = vi.fn((table: unknown) => {
@@ -2823,14 +3055,14 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("validates host sessions by creator member token and fails closed on lookup errors", async () => {
     const service = createService();
-    service.db = createDb([[{ id: "member-1" }]]);
+    service.db = createDb({ groupMembers: [[{ id: "member-1" }]] });
 
     await expect(
       service.isHostSession("group-1", "host-session"),
     ).resolves.toBe(true);
 
     const memberService = createService();
-    memberService.db = createDb([[]]);
+    memberService.db = createDb({ groupMembers: [[]] });
     await expect(
       memberService.isHostSession("group-1", "member-session"),
     ).resolves.toBe(false);
@@ -2898,15 +3130,14 @@ describe("cart mutations return a renderable row", () => {
 
   it("names the dish when an item is added", async () => {
     const service = createService();
-    service.db = createDb([
-      [baseGroupOrder],
-      [hostMember],
-      [menuItemRow],
-      [{ total: 25 }],
-      [],
-      [{ total: 25 }],
-      [storedCartItem],
-    ]);
+    service.db = createDb({
+      groupOrders: [[baseGroupOrder], [{ restaurantId: "restaurant-1" }]],
+      groupMembers: [[hostMember]],
+      menuItems: [[menuItemRow]],
+      restaurants: [[{ settings: { taxRate: 0, serviceChargeRate: 0 } }]],
+      groupCartItems: [[{ total: 25 }], [{ total: 25 }], [storedCartItem]],
+      splitBills: [[]],
+    });
 
     const result = await service.addCartItem("group-1", {
       memberId: "member-1",
@@ -2922,16 +3153,18 @@ describe("cart mutations return a renderable row", () => {
 
   it("names the dish when an item is updated", async () => {
     const service = createService();
-    service.db = createDb([
-      [storedCartItem],
-      [{ restaurantId: "restaurant-1" }],
-      [{ settings: { taxRate: 0, serviceChargeRate: 0 } }],
-      [{ total: 37.5 }],
-      [],
-      [{ total: 37.5 }],
-      [{ ...storedCartItem, quantity: 3, totalPriceCents: 3750 }],
-      [menuItemRow],
-    ]);
+    service.db = createDb({
+      groupCartItems: [
+        [storedCartItem],
+        [{ total: 37.5 }],
+        [{ total: 37.5 }],
+        [{ ...storedCartItem, quantity: 3, totalPriceCents: 3750 }],
+      ],
+      groupOrders: [[{ restaurantId: "restaurant-1" }]],
+      restaurants: [[{ settings: { taxRate: 0, serviceChargeRate: 0 } }]],
+      splitBills: [[]],
+      menuItems: [[menuItemRow]],
+    });
 
     const result = await service.updateCartItem("group-1", "uuid-1", {
       quantity: 3,
@@ -2946,15 +3179,18 @@ describe("cart mutations return a renderable row", () => {
     // by hand. That path copies the menuItem mapping rather than sharing it,
     // so it is one field away from drifting from every other caller.
     const service = createService();
-    service.db = createDb([
-      [baseGroupOrder],
-      [hostMember],
-      [menuItemRow],
-      [{ total: 25 }],
-      [],
-      [{ total: 25 }],
-      [], // re-query of the inserted row returns nothing
-    ]);
+    service.db = createDb({
+      groupOrders: [[baseGroupOrder], [{ restaurantId: "restaurant-1" }]],
+      groupMembers: [[hostMember]],
+      menuItems: [[menuItemRow]],
+      restaurants: [[{ settings: { taxRate: 0, serviceChargeRate: 0 } }]],
+      groupCartItems: [
+        [{ total: 25 }],
+        [{ total: 25 }],
+        [], // re-query of the inserted row returns nothing
+      ],
+      splitBills: [[]],
+    });
 
     const result = await service.addCartItem("group-1", {
       memberId: "member-1",
@@ -2971,15 +3207,14 @@ describe("cart mutations return a renderable row", () => {
 
   it("uses the same row shape getGroupOrder already returns", async () => {
     const service = createService();
-    service.db = createDb([
-      [baseGroupOrder],
-      [hostMember],
-      [menuItemRow],
-      [{ total: 25 }],
-      [],
-      [{ total: 25 }],
-      [storedCartItem],
-    ]);
+    service.db = createDb({
+      groupOrders: [[baseGroupOrder], [{ restaurantId: "restaurant-1" }]],
+      groupMembers: [[hostMember]],
+      menuItems: [[menuItemRow]],
+      restaurants: [[{ settings: { taxRate: 0, serviceChargeRate: 0 } }]],
+      groupCartItems: [[{ total: 25 }], [{ total: 25 }], [storedCartItem]],
+      splitBills: [[]],
+    });
 
     const added = await service.addCartItem("group-1", {
       memberId: "member-1",
