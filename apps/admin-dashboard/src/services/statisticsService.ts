@@ -1,6 +1,7 @@
 // Comprehensive statistics dashboard service for real-time data management
 import { ref, reactive } from "vue";
 import { api } from "./api";
+import { getResponseErrorMessage } from "@makanmasak/shared/utils/unknown";
 
 export interface RealtimeStats {
   pending_orders: number;
@@ -134,10 +135,11 @@ class StatisticsService {
         Object.assign(this.dashboardData, response.data.data);
         this.lastUpdated.value = new Date();
       } else {
-        const errorObj =
-          response.data.error || "Failed to fetch dashboard data";
+        // 信封形狀下 JSON.stringify 會把整個 { code, message } 丟給使用者，
+        // 取其中的 message 才是可讀的。
         throw new Error(
-          typeof errorObj === "string" ? errorObj : JSON.stringify(errorObj),
+          getResponseErrorMessage(response.data) ??
+            "Failed to fetch dashboard data",
         );
       }
     } catch (error) {

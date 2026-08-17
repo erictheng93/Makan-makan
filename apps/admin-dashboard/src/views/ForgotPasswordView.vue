@@ -141,6 +141,7 @@ import { ref, reactive } from "vue";
 import { useI18n } from "@/i18n";
 import { CheckCircle, AlertCircle, Info } from "lucide-vue-next";
 import { api } from "@/services/api";
+import { getResponseErrorMessage } from "@makanmasak/shared/utils/unknown";
 
 const { t } = useI18n();
 
@@ -207,7 +208,7 @@ const handleSubmit = async () => {
       success.value = true;
       successMessage.value = data.message || t("auth.resetEmailSent");
     } else {
-      error.value = data.error || t("auth.sendFailed");
+      error.value = getResponseErrorMessage(data) ?? t("auth.sendFailed");
     }
   } catch (err) {
     console.error("Forgot password error:", err);

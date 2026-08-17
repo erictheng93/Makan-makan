@@ -338,6 +338,7 @@ import { ref, reactive, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { api } from "@/services/api";
+import { getResponseErrorMessage } from "@makanmasak/shared/utils/unknown";
 import {
   Eye,
   EyeOff,
@@ -443,7 +444,8 @@ const verifyToken = async () => {
     if (data.valid) {
       maskedEmail.value = data.email || "";
     } else {
-      tokenError.value = data.error || t("auth.tokenInvalid");
+      tokenError.value =
+        getResponseErrorMessage(data) ?? t("auth.tokenInvalid");
     }
   } catch (err) {
     console.error("Token verification error:", err);
@@ -512,7 +514,7 @@ const handleSubmit = async () => {
         router.push("/login");
       }, 2000);
     } else {
-      error.value = data.error || t("auth.resetFailed");
+      error.value = getResponseErrorMessage(data) ?? t("auth.resetFailed");
     }
   } catch (err) {
     console.error("Reset password error:", err);

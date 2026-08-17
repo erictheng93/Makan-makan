@@ -66,6 +66,43 @@ export function getApiEnvelopeMessage(error: unknown): string | undefined {
 }
 
 /**
+ * 從**回應主體**取錯誤訊息，不管它是哪一種形狀。
+ *
+ * 上面幾個 helper 吃的是 axios 風格的錯誤（`error.response.data`），但用
+ * `fetch` 的呼叫端手上只有 `await res.json()` 的結果。而 API 目前同時存在
+ * 兩種錯誤形狀 —— CLAUDE.md 強制的 `error: { code, message }`，以及尚未
+ * 遷移的 `error: "文字"`（2026-08 實測 85 處）。
+ *
+ * 讀取端要能同時吃這兩種，否則遷移那 85 處的那一刻，只讀字串的呼叫端會把
+ * 物件丟進字串位置，畫面出現 `[object Object]`。
+ */
+export function getResponseErrorMessage(body: unknown): string | undefined {
+  if (!isRecord(body)) {
+    return undefined;
+  }
+
+  // 信封形狀優先：它是本專案的目標格式。
+  if (isRecord(body.error)) {
+    const message = body.error.message;
+    if (typeof message === "string" && message.length > 0) {
+      return message;
+    }
+  }
+
+  // 尚未遷移的裸字串。
+  if (typeof body.error === "string" && body.error.length > 0) {
+    return body.error;
+  }
+
+  // 有些舊路由把失敗文字放在 `message`（見 /auth/forgot-password）。
+  if (typeof body.message === "string" && body.message.length > 0) {
+    return body.message;
+  }
+
+  return undefined;
+}
+
+/**
  * 取統一錯誤信封裡機器可讀的 `code`，用來分支到專屬的復原 UI
  * （例如 MENU_ITEM_MODIFIED 的重載/合併流程）。
  */

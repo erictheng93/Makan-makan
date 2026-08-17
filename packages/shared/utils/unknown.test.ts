@@ -3,6 +3,7 @@ import {
   isRecord,
   getErrorMessage,
   getApiEnvelopeMessage,
+  getResponseErrorMessage,
   getApiErrorCode,
   getApiErrorMessage,
   getApiErrorStatus,
@@ -125,5 +126,64 @@ describe("getApiErrorStatus / getApiErrorStatusText", () => {
     expect(getApiErrorStatus(new Error("boom"))).toBeUndefined();
     expect(getApiErrorStatus({ response: { status: "404" } })).toBeUndefined();
     expect(getApiErrorStatusText({ response: {} })).toBeUndefined();
+  });
+});
+
+describe("getResponseErrorMessage", () => {
+  it("reads the enveloped message, the target shape", () => {
+    expect(
+      getResponseErrorMessage({
+        success: false,
+        error: { code: "SHOP_MODE_DISABLED", message: "店家未開放掃碼點餐" },
+      }),
+    ).toBe("店家未開放掃碼點餐");
+  });
+
+  /**
+   * 85 個端點還在回這個形狀（2026-08 實測）。只讀信封的呼叫端會漏掉它們，
+   * 只讀字串的呼叫端會在遷移那天把物件塞進字串位置。兩種都要吃。
+   */
+  it("reads a not-yet-migrated bare string error", () => {
+    expect(
+      getResponseErrorMessage({
+        success: false,
+        error: "Insufficient permissions",
+      }),
+    ).toBe("Insufficient permissions");
+  });
+
+  it("reads message for the routes that put the failure text there", () => {
+    expect(
+      getResponseErrorMessage({
+        success: false,
+        message: "Reset link expired",
+      }),
+    ).toBe("Reset link expired");
+  });
+
+  it("prefers the envelope over the sibling message", () => {
+    expect(
+      getResponseErrorMessage({
+        success: false,
+        error: { code: "X", message: "from envelope" },
+        message: "from sibling",
+      }),
+    ).toBe("from envelope");
+  });
+
+  it("skips an envelope whose message is missing or empty", () => {
+    expect(
+      getResponseErrorMessage({ error: { code: "X" }, message: "fallback" }),
+    ).toBe("fallback");
+    expect(
+      getResponseErrorMessage({ error: { message: "" }, message: "fallback" }),
+    ).toBe("fallback");
+  });
+
+  it("returns undefined when there is nothing to show, so callers keep their own copy", () => {
+    expect(getResponseErrorMessage({ success: false })).toBeUndefined();
+    expect(getResponseErrorMessage({ error: "" })).toBeUndefined();
+    expect(getResponseErrorMessage(undefined)).toBeUndefined();
+    expect(getResponseErrorMessage("not an object")).toBeUndefined();
   });
 });
