@@ -30,6 +30,7 @@ vi.mock("@/utils/authTokenProvider", () => ({
 import { t } from "@/i18n";
 import {
   DEDICATED_UI_ERROR_CODES,
+  ErrorHandler,
   ErrorSeverity,
   ErrorType,
   KitchenErrorHandler,
@@ -258,4 +259,26 @@ describe("dedicated UI error code helpers", () => {
     expect(isDedicatedUiErrorCode(undefined)).toBe(false);
     expect(isDedicatedUiErrorCode(409)).toBe(false);
   });
+});
+
+describe("ErrorHandler — unexpected runtime exceptions", () => {
+  it.each([
+    new TypeError("Cannot read properties of undefined"),
+    new ReferenceError("missingValue is not defined"),
+  ])(
+    "classifies %s as a critical unknown error with a generic message",
+    (error) => {
+      const handler = new ErrorHandler();
+      handler.setUserNotificationEnabled(false);
+      vi.spyOn(handler.reportingService, "reportError").mockResolvedValue();
+
+      expect(handler.handleError(error)).toEqual(
+        expect.objectContaining({
+          type: ErrorType.UNKNOWN,
+          severity: ErrorSeverity.CRITICAL,
+          message: "發生了未知錯誤",
+        }),
+      );
+    },
+  );
 });

@@ -327,9 +327,7 @@ export class ErrorHandler {
 
     // 根據錯誤類型進行分類
     if (error instanceof TypeError || error instanceof ReferenceError) {
-      type = ErrorType.VALIDATION;
-      severity = ErrorSeverity.LOW;
-      message = "輸入驗證錯誤";
+      severity = ErrorSeverity.CRITICAL;
     } else if (
       record?.name === "NetworkError" ||
       record?.code === "NETWORK_ERROR"
