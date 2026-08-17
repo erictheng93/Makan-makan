@@ -68,6 +68,9 @@ const enUS: Messages = {
     loginSuccess: "Login successful!",
     fetchRestaurantError: "Failed to fetch restaurant info",
     loginError: "Login failed. Please check your username and password",
+    invalidCredentials: "Invalid username or password",
+    accountLocked:
+      "Your account is locked. Please try again later or contact an administrator",
   },
 
   header: {

@@ -141,7 +141,7 @@ import {
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
 import { useI18n } from "@/i18n";
-import { getErrorMessage } from "@/utils/unknown";
+import { resolveKitchenLoginError } from "@/utils/login-error";
 
 // Composables
 const router = useRouter();
@@ -193,7 +193,7 @@ const handleLogin = async () => {
     }
   } catch (error: unknown) {
     console.error("Login failed:", error);
-    errorMessage.value = getErrorMessage(error, t("login.loginError"));
+    errorMessage.value = resolveKitchenLoginError(error, t);
 
     // 清除密碼欄位
     credentials.value.password = "";

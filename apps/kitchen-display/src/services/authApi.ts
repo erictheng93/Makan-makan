@@ -82,13 +82,10 @@ export const authApi = {
       };
     } catch (error: unknown) {
       console.error("Login API error:", error);
-
-      const message = getApiErrorMessage(error, "登入失敗");
-      return {
-        success: false,
-        error: message,
-        timestamp: new Date().toISOString(),
-      };
+      // The login view maps stable transport fields (code/status) to locale
+      // keys. Preserve the raw error here instead of discarding those fields
+      // and leaving UI code with only server-provided diagnostic prose.
+      throw error;
     }
   },
 

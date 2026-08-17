@@ -462,6 +462,9 @@ const msMY: Messages = {
     loginButton: "Log masuk",
     loginError:
       "Log masuk gagal. Sila semak nama pengguna dan kata laluan anda",
+    invalidCredentials: "Nama pengguna atau kata laluan tidak sah",
+    accountLocked:
+      "Akaun anda dikunci. Sila cuba lagi kemudian atau hubungi pentadbir",
     loginSuccess: "Log masuk berjaya!",
     password: "Kata laluan",
     passwordPlaceholder: "Masukkan kata laluan",

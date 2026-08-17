@@ -66,6 +66,8 @@ const zhTW = {
     loginSuccess: "登入成功！",
     fetchRestaurantError: "無法獲取餐廳資訊",
     loginError: "登入失敗，請檢查用戶名稱和密碼",
+    invalidCredentials: "用戶名稱或密碼不正確",
+    accountLocked: "帳號已被鎖定，請稍後再試或聯繫管理員",
   },
 
   header: {

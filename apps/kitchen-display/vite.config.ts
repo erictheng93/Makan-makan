@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),
+      "@makanmasak/shared": resolve(__dirname, "../../packages/shared"),
       "@makanmasak/shared-types": resolve(
         __dirname,
         "../../packages/shared-types/src",

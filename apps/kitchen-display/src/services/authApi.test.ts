@@ -121,21 +121,24 @@ describe("kitchen auth API", () => {
     expect(result.timestamp).toEqual(expect.any(String));
   });
 
-  it("returns the API error message when login fails", async () => {
+  it("preserves structured login failures for the UI error resolver", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
-    mockApi.post.mockRejectedValueOnce({
-      response: { data: { message: "Invalid credentials" } },
-    });
+    const apiError = {
+      response: {
+        status: 401,
+        data: {
+          error: {
+            code: "INVALID_CREDENTIALS",
+            message: "Invalid username or password",
+          },
+        },
+      },
+    };
+    mockApi.post.mockRejectedValueOnce(apiError);
 
-    const result = await authApi.login({
-      username: "chef",
-      password: "wrong",
-    });
-
-    expect(result).toMatchObject({
-      success: false,
-      error: "Invalid credentials",
-    });
+    await expect(
+      authApi.login({ username: "chef", password: "wrong" }),
+    ).rejects.toBe(apiError);
   });
 
   it("treats logout API failures as a successful local logout", async () => {

@@ -1741,6 +1741,8 @@ const enUS: Messages = {
     login: "Login",
     loggingIn: "Logging in...",
     loginFailed: "Login failed",
+    invalidCredentials: "Invalid username or password",
+    accountLocked: "This account is locked. Please contact an administrator.",
     loginError: "An error occurred during login",
     usernameRequired: "Please enter username",
     passwordRequired: "Please enter password",

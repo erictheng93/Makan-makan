@@ -12,10 +12,8 @@ import {
 } from "@/utils/errorHandler";
 import { getAuthToken } from "@/utils/authTokenProvider";
 import { useModuleAccessStore } from "@makanmasak/shared/stores/moduleAccess";
-import {
-  getApiEnvelopeMessage,
-  getApiErrorStatus,
-} from "@makanmasak/shared/utils/unknown";
+import { getApiErrorStatus } from "@makanmasak/shared/utils/unknown";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 type RetryableAxiosRequestConfig = AxiosRequestConfig & {
   _retry?: boolean;
@@ -35,6 +33,11 @@ const AUTH_CSRF_STORAGE_KEY = "mm_csrf_token_auth";
 const LEGACY_CSRF_STORAGE_KEY = "mm_csrf_token";
 const CSRF_COOKIE_NAME = "__Host-mm_csrf";
 const AUTH_REFRESH_TOKEN_KEY = "auth_refresh_token";
+
+const LOGIN_ERROR_CODE_KEYS: Record<string, string> = {
+  INVALID_CREDENTIALS: "auth.invalidCredentials",
+  ACCOUNT_LOCKED: "auth.accountLocked",
+};
 
 // Hydrate user from localStorage for instant restore on refresh
 const hydrateUser = (): User | null => {
@@ -302,14 +305,19 @@ export const useAuthStore = defineStore("auth", () => {
         return { success: true };
       }
 
+      const errorCode = response.data.error?.code;
+      const errorKey = errorCode && LOGIN_ERROR_CODE_KEYS[errorCode];
+
       return {
         success: false,
-        error: response.data.error?.message || "Login failed",
+        error: errorKey ? t(errorKey) : t("auth.loginFailed"),
       };
     } catch (error: unknown) {
       return {
         success: false,
-        error: getApiEnvelopeMessage(error) ?? t("auth.loginFailed"),
+        error: resolveUserFacingError(error, t, {
+          codeKeys: LOGIN_ERROR_CODE_KEYS,
+        }).message,
       };
     } finally {
       isLoading.value = false;

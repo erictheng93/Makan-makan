@@ -149,16 +149,48 @@ describe("useAuthStore", () => {
 
   it("does not load module access when login fails", async () => {
     vi.mocked(api.post).mockResolvedValue({
-      data: { success: false, error: { message: "bad credentials" } },
+      data: {
+        success: false,
+        error: {
+          code: "INVALID_CREDENTIALS",
+          message: "English API message that must not be displayed",
+        },
+      },
     });
 
     await expect(useAuthStore().login("owner", "wrong")).resolves.toEqual({
       success: false,
-      error: "bad credentials",
+      error: "auth.invalidCredentials",
     });
 
     expect(moduleAccess.fetch).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ["INVALID_CREDENTIALS", "auth.invalidCredentials"],
+    ["ACCOUNT_LOCKED", "auth.accountLocked"],
+  ])(
+    "localizes %s login failures instead of displaying the API message",
+    async (code, expectedError) => {
+      vi.mocked(api.post).mockRejectedValue({
+        response: {
+          status: 401,
+          data: {
+            success: false,
+            error: {
+              code,
+              message: "English API message that must not be displayed",
+            },
+          },
+        },
+      });
+
+      await expect(useAuthStore().login("owner", "wrong")).resolves.toEqual({
+        success: false,
+        error: expectedError,
+      });
+    },
+  );
 
   it("clears module access on logout so the next user starts empty", async () => {
     vi.mocked(api.post).mockResolvedValue({ data: { success: true } });

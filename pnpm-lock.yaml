@@ -576,6 +576,9 @@ importers:
       '@makanmasak/i18n':
         specifier: workspace:*
         version: link:../../packages/shared/src/i18n
+      '@makanmasak/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@tanstack/vue-query':
         specifier: ^5.17.0
         version: 5.92.5(vue@3.5.26(typescript@5.9.3))

@@ -463,6 +463,9 @@ const viVN: Messages = {
     loginButton: "Đăng nhập",
     loginError:
       "Đăng nhập không thành công. Vui lòng kiểm tra tên người dùng và mật khẩu của bạn",
+    invalidCredentials: "Tên người dùng hoặc mật khẩu không đúng",
+    accountLocked:
+      "Tài khoản đã bị khóa. Vui lòng thử lại sau hoặc liên hệ quản trị viên",
     loginSuccess: "Đăng nhập thành công!",
     password: "Mật khẩu",
     passwordPlaceholder: "Nhập mật khẩu",

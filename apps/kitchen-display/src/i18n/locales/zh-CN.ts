@@ -456,6 +456,8 @@ const zhCN: Messages = {
     loggingIn: "登入中...",
     loginButton: "登入",
     loginError: "登入失败，请检查用户名称和密码",
+    invalidCredentials: "用户名或密码不正确",
+    accountLocked: "帐户已被锁定，请稍后再试或联系管理员",
     loginSuccess: "登入成功！",
     password: "密码",
     passwordPlaceholder: "请输入密码",

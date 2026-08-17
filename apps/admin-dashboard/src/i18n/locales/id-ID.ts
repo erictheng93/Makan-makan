@@ -1756,6 +1756,8 @@ const idID: Messages = {
     login: "Masuk",
     loggingIn: "Sedang masuk...",
     loginFailed: "Gagal masuk",
+    invalidCredentials: "Nama pengguna atau kata sandi tidak valid",
+    accountLocked: "Akun ini terkunci. Silakan hubungi administrator.",
     loginError: "Terjadi kesalahan saat proses masuk",
     usernameRequired: "Silakan masukkan nama pengguna",
     passwordRequired: "Silakan masukkan kata sandi",
