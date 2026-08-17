@@ -80,6 +80,26 @@ describe("verification routes", () => {
       createEnv() as never,
     );
     expect(missingResponse.status).toBe(400);
+    await expect(missingResponse.json()).resolves.toEqual({
+      valid: false,
+      error: {
+        code: "MISSING_PARAM",
+        message: "缺少 Token 參數",
+      },
+    });
+
+    const malformedResponse = await routes.fetch(
+      new Request("https://test/reset-password/verify?token=not-a-uuid"),
+      createEnv() as never,
+    );
+    expect(malformedResponse.status).toBe(400);
+    await expect(malformedResponse.json()).resolves.toMatchObject({
+      valid: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: expect.any(String),
+      },
+    });
 
     serviceMethods.verifyResetToken.mockResolvedValue({
       valid: true,
@@ -108,6 +128,22 @@ describe("verification routes", () => {
     );
 
     expect(invalidLookupResponse.status).toBe(400);
+
+    serviceMethods.verifyResetToken.mockRejectedValueOnce(
+      new Error("database unavailable"),
+    );
+    const failedResponse = await routes.fetch(
+      new Request(`https://test/reset-password/verify?token=${token}`),
+      createEnv() as never,
+    );
+    expect(failedResponse.status).toBe(500);
+    await expect(failedResponse.json()).resolves.toEqual({
+      valid: false,
+      error: {
+        code: "RESET_TOKEN_VERIFICATION_FAILED",
+        message: "驗證 Token 時發生錯誤",
+      },
+    });
   });
 
   it("sends email verification only for authenticated users", async () => {

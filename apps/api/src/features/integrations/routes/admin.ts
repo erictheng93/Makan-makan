@@ -99,7 +99,16 @@ adminRoutes.get("/:restaurantId/:platform", async (c) => {
 
   const integration = await service.getIntegration(restaurantId, platform);
   if (!integration) {
-    return c.json({ error: "Integration not found" }, 404);
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: "INTEGRATION_NOT_FOUND",
+          message: "Integration not found",
+        },
+      },
+      404,
+    );
   }
 
   return c.json({ data: integration });
@@ -113,7 +122,13 @@ adminRoutes.post("/:restaurantId/:platform/connect", async (c) => {
 
   if (!isPlatformAdapterSupported(platform)) {
     return c.json(
-      { error: `${platform} integration is not available yet` },
+      {
+        success: false,
+        error: {
+          code: "INTEGRATION_NOT_AVAILABLE",
+          message: `${platform} integration is not available yet`,
+        },
+      },
       501,
     );
   }
@@ -132,7 +147,13 @@ adminRoutes.put("/:restaurantId/:platform", async (c) => {
 
   if (!isPlatformAdapterSupported(platform)) {
     return c.json(
-      { error: `${platform} integration is not available yet` },
+      {
+        success: false,
+        error: {
+          code: "INTEGRATION_NOT_AVAILABLE",
+          message: `${platform} integration is not available yet`,
+        },
+      },
       501,
     );
   }
@@ -161,7 +182,13 @@ adminRoutes.post("/:restaurantId/:platform/menu-sync", async (c) => {
 
   if (!isPlatformAdapterSupported(platform)) {
     return c.json(
-      { error: `${platform} integration is not available yet` },
+      {
+        success: false,
+        error: {
+          code: "INTEGRATION_NOT_AVAILABLE",
+          message: `${platform} integration is not available yet`,
+        },
+      },
       501,
     );
   }

@@ -114,7 +114,7 @@ function request(path: string, init: RequestInit = {}) {
 async function json(response: Response) {
   return (await response.json()) as {
     data?: unknown;
-    error?: string;
+    error?: { code: string; message: string };
     success?: boolean;
     message?: string;
   };
@@ -218,7 +218,13 @@ describe("integrations admin routes", () => {
     const body = await json(response);
 
     expect(response.status).toBe(404);
-    expect(body.error).toBe("Integration not found");
+    expect(body).toMatchObject({
+      success: false,
+      error: {
+        code: "INTEGRATION_NOT_FOUND",
+        message: "Integration not found",
+      },
+    });
   });
 
   it("connects, updates, and disconnects supported integrations", async () => {
@@ -296,7 +302,13 @@ describe("integrations admin routes", () => {
       const response = await request(path, init);
       const body = await json(response);
       expect(response.status).toBe(501);
-      expect(body.error).toBe("foodpanda integration is not available yet");
+      expect(body).toMatchObject({
+        success: false,
+        error: {
+          code: "INTEGRATION_NOT_AVAILABLE",
+          message: "foodpanda integration is not available yet",
+        },
+      });
     }
     expect(mocks.integrationService.connect).not.toHaveBeenCalled();
     expect(mocks.integrationService.updateConfig).not.toHaveBeenCalled();

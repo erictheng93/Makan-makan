@@ -13,6 +13,11 @@ import { idempotencyMiddleware } from "../../../middleware/idempotency";
 
 const webhookRoutes = new Hono<{ Bindings: Env }>();
 
+// Webhook error bodies are an external platform contract. Uber Eats and
+// Foodpanda determine delivery success from the HTTP status, so these routes
+// intentionally retain their established `{ error: string }` responses rather
+// than adopting the internal API error envelope.
+
 webhookRoutes.post(
   "/uber-eats",
   idempotencyMiddleware({

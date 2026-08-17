@@ -93,6 +93,9 @@ class AuthenticationModule implements FeatureModule {
         return c.json(healthStatus, 200);
       } catch (error) {
         this.logger.error("Health check failed", error as Error, {});
+        // Health checks are consumed by infrastructure probes, not API clients.
+        // Preserve the established flat status payload instead of the internal
+        // API error envelope; `status: "unhealthy"` and HTTP 503 are its contract.
         return c.json(
           {
             name: this.name,
