@@ -8,7 +8,11 @@ import { authMiddleware, requireRole } from "../../../middleware/auth";
 import { validateQuery } from "../../../middleware/validation";
 import { ReportService } from "../services/ReportService";
 import type { Env } from "../../../types/env";
-import { forbidden, badRequest } from "../../../shared/utils/api-error";
+import {
+  ApiError,
+  forbidden,
+  badRequest,
+} from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -209,13 +213,7 @@ app.get(
 
       case "pdf":
         // PDF生成（實際應用中需要PDF生成庫）
-        return c.json(
-          {
-            success: false,
-            error: "PDF格式暫未支援",
-          },
-          501,
-        );
+        throw new ApiError("FORMAT_NOT_SUPPORTED", "PDF格式暫未支援", 501);
 
       default:
         throw badRequest("不支援的匯出格式");

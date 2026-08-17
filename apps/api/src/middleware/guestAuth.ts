@@ -6,6 +6,7 @@
 
 import { Context, Next } from "hono";
 import type { Env } from "../types/env";
+import { ApiError, forbidden, unauthorized } from "../shared/utils/api-error";
 
 export interface GuestTokenData {
   orderId: string;
@@ -34,10 +35,7 @@ export const guestTokenAuth = async (
   const authHeader = c.req.header("Authorization");
 
   if (!authHeader || !authHeader.startsWith("Bearer gt_")) {
-    return c.json(
-      { success: false, error: "Missing or invalid guest token" },
-      401,
-    );
+    throw unauthorized("Missing or invalid guest token", "MISSING_AUTH_TOKEN");
   }
 
   const token = authHeader.substring(7); // Remove "Bearer " prefix
@@ -50,26 +48,24 @@ export const guestTokenAuth = async (
     )) as GuestTokenData | null;
 
     if (!tokenData) {
-      return c.json(
-        { success: false, error: "Guest token expired or invalid" },
-        401,
-      );
+      throw unauthorized("Guest token expired or invalid", "TOKEN_INVALID");
     }
 
     // Verify orderId matches the route param
     const routeOrderId = c.req.param("id");
     if (routeOrderId && tokenData.orderId !== routeOrderId) {
-      return c.json(
-        { success: false, error: "Token does not match this order" },
-        403,
-      );
+      throw forbidden("Token does not match this order", "ACCESS_DENIED");
     }
 
     c.set("guestOrder", tokenData);
     await next();
   } catch (error) {
+    // Downstream handlers run inside this try, so an ApiError they throw --
+    // a 404 from the route, say -- would otherwise be reported as an auth
+    // failure. Only a genuinely unexpected failure becomes a 401 here.
+    if (error instanceof ApiError) throw error;
     console.error("Guest token auth error:", error);
-    return c.json({ success: false, error: "Authentication failed" }, 401);
+    throw unauthorized("Authentication failed", "AUTH_FAILED");
   }
 };
 
@@ -85,10 +81,7 @@ export const guestSessionAuth = async (
   const authHeader = c.req.header("Authorization");
 
   if (!authHeader || !authHeader.startsWith("Bearer gt_")) {
-    return c.json(
-      { success: false, error: "Missing or invalid guest token" },
-      401,
-    );
+    throw unauthorized("Missing or invalid guest token", "MISSING_AUTH_TOKEN");
   }
 
   const token = authHeader.substring(7); // Remove "Bearer " prefix
@@ -101,17 +94,15 @@ export const guestSessionAuth = async (
     )) as GuestSessionData | null;
 
     if (!tokenData) {
-      return c.json(
-        { success: false, error: "Guest token expired or invalid" },
-        401,
-      );
+      throw unauthorized("Guest token expired or invalid", "TOKEN_INVALID");
     }
 
     c.set("guestSession", tokenData);
     await next();
   } catch (error) {
+    if (error instanceof ApiError) throw error;
     console.error("Guest session auth error:", error);
-    return c.json({ success: false, error: "Authentication failed" }, 401);
+    throw unauthorized("Authentication failed", "AUTH_FAILED");
   }
 };
 

@@ -136,7 +136,7 @@ describe("BackupController", () => {
     expect(failed.status).toBe(400);
     await expect(readJson(failed)).resolves.toMatchObject({
       success: false,
-      error: "invalid request",
+      error: { code: "BACKUP_OPERATION_FAILED", message: "invalid request" },
     });
   });
 

@@ -152,7 +152,10 @@ async function enforceRateLimit(
   return c.json(
     {
       success: false,
-      error: config.message || "Too many requests. Please try again later.",
+      error: {
+        code: "RATE_LIMIT_EXCEEDED",
+        message: config.message || "Too many requests. Please try again later.",
+      },
       retryAfter,
     },
     429,
@@ -278,7 +281,10 @@ export function userRateLimitMiddleware(config: RateLimitConfig) {
       return c.json(
         {
           success: false,
-          error: config.message || "Too many requests for this user.",
+          error: {
+            code: "RATE_LIMIT_EXCEEDED",
+            message: config.message || "Too many requests for this user.",
+          },
           retryAfter: result.retryAfter,
         },
         429,

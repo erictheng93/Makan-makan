@@ -293,7 +293,7 @@ describe("authentication routes", () => {
     expect(response.status).toBe(409);
     await expect(response.json()).resolves.toMatchObject({
       success: false,
-      error: "User already exists",
+      error: { code: "USERNAME_TAKEN", message: "User already exists" },
     });
   });
 
@@ -356,7 +356,10 @@ describe("authentication routes", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
       success: false,
-      error: "Shop owner restaurant id is required",
+      error: {
+        code: "RESTAURANT_ID_REQUIRED",
+        message: "Shop owner restaurant id is required",
+      },
     });
     expect(service.register).not.toHaveBeenCalled();
   });
@@ -377,7 +380,10 @@ describe("authentication routes", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
       success: false,
-      error: "Restaurant ID is required for restaurant-scoped roles",
+      error: {
+        code: "RESTAURANT_ID_REQUIRED",
+        message: "Restaurant ID is required for restaurant-scoped roles",
+      },
     });
     expect(service.register).not.toHaveBeenCalled();
   });

@@ -848,7 +848,10 @@ export function geoIntelligentRateLimitMiddleware(
         return c.json(
           {
             success: false,
-            error: "Access temporarily blocked",
+            error: {
+              code: "ACCESS_BLOCKED",
+              message: "Access temporarily blocked",
+            },
             reason: blockStatus.reason,
             blocked_until: blockStatus.blockedUntil,
             escalation_level: blockStatus.escalationLevel,
@@ -935,7 +938,10 @@ export function geoIntelligentRateLimitMiddleware(
       return c.json(
         {
           success: false,
-          error: "Rate limit exceeded",
+          error: {
+            code: "RATE_LIMIT_EXCEEDED",
+            message: "Rate limit exceeded",
+          },
           reason: result.reason,
           retry_after: result.retryAfter || 60,
           threat_score: threatIntel.threatScore,

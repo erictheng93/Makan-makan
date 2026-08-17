@@ -49,7 +49,10 @@ export function rateLimitMiddleware(options: Partial<RateLimitOptions> = {}) {
         return c.json(
           {
             success: false,
-            error: "Service temporarily unavailable",
+            error: {
+              code: "RATE_LIMIT_SERVICE_UNAVAILABLE",
+              message: "Service temporarily unavailable",
+            },
             message:
               "Rate limiting service is currently unavailable. Please try again later.",
           },
@@ -65,7 +68,10 @@ export function rateLimitMiddleware(options: Partial<RateLimitOptions> = {}) {
         return c.json(
           {
             success: false,
-            error: "Too many requests",
+            error: {
+              code: "RATE_LIMIT_EXCEEDED",
+              message: "Too many requests",
+            },
             message: `Rate limit exceeded. Max ${opts.maxRequests} requests per ${opts.windowMs / 1000} seconds`,
             retryAfter: Math.ceil(opts.windowMs / 1000),
           },
@@ -115,7 +121,10 @@ export function rateLimitMiddleware(options: Partial<RateLimitOptions> = {}) {
       return c.json(
         {
           success: false,
-          error: "Service temporarily unavailable",
+          error: {
+            code: "RATE_LIMIT_SERVICE_UNAVAILABLE",
+            message: "Service temporarily unavailable",
+          },
           message:
             "Rate limiting service is currently unavailable. Please try again later.",
         },

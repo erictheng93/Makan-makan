@@ -163,12 +163,18 @@ describe("notification routes", () => {
     expect(failureResponse.status).toBe(500);
     await expect(failureResponse.json()).resolves.toEqual({
       success: false,
-      error: "provider offline",
+      error: {
+        code: "TEST_NOTIFICATION_FAILED",
+        message: "provider offline",
+      },
     });
     expect(fallbackFailureResponse.status).toBe(500);
     await expect(fallbackFailureResponse.json()).resolves.toEqual({
       success: false,
-      error: "Failed to send test notification",
+      error: {
+        code: "TEST_NOTIFICATION_FAILED",
+        message: "Failed to send test notification",
+      },
     });
     expect(notificationFns.sendTestNotification).toHaveBeenNthCalledWith(
       2,
@@ -266,12 +272,18 @@ describe("notification routes", () => {
     expect(response.status).toBe(500);
     await expect(response.json()).resolves.toEqual({
       success: false,
-      error: "email failed, sms failed",
+      error: {
+        code: "NOTIFICATION_SEND_FAILED",
+        message: "email failed, sms failed",
+      },
     });
     expect(fallbackResponse.status).toBe(500);
     await expect(fallbackResponse.json()).resolves.toEqual({
       success: false,
-      error: "Failed to send notification",
+      error: {
+        code: "NOTIFICATION_SEND_FAILED",
+        message: "Failed to send notification",
+      },
     });
   });
 
@@ -297,12 +309,18 @@ describe("notification routes", () => {
     expect(missingResponse.status).toBe(404);
     await expect(missingResponse.json()).resolves.toEqual({
       success: false,
-      error: "Notification recipient not found",
+      error: {
+        code: "RECIPIENT_NOT_FOUND",
+        message: "Notification recipient not found",
+      },
     });
     expect(forbiddenResponse.status).toBe(403);
     await expect(forbiddenResponse.json()).resolves.toEqual({
       success: false,
-      error: "Cannot send notifications to another restaurant",
+      error: {
+        code: "ACCESS_DENIED",
+        message: "Cannot send notifications to another restaurant",
+      },
     });
     expect(notificationFns.sendNotification).not.toHaveBeenCalled();
   });
@@ -330,7 +348,10 @@ describe("notification routes", () => {
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({
       success: false,
-      error: "Cannot send notifications to another restaurant",
+      error: {
+        code: "ACCESS_DENIED",
+        message: "Cannot send notifications to another restaurant",
+      },
     });
     expect(notificationFns.sendNotification).not.toHaveBeenCalled();
   });
@@ -369,7 +390,10 @@ describe("notification routes", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
       success: false,
-      error: "Recipient email does not match user",
+      error: {
+        code: "RECIPIENT_EMAIL_MISMATCH",
+        message: "Recipient email does not match user",
+      },
     });
     expect(notificationFns.sendNotification).not.toHaveBeenCalled();
   });

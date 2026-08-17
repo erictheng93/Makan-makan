@@ -1,6 +1,27 @@
 import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
 import { guestSessionAuth, guestTokenAuth } from "./guestAuth";
+import { ApiError } from "../shared/utils/api-error";
+
+/**
+ * The middleware throws ApiError and leaves rendering to the app-wide handler
+ * that app-factory installs. A bare `new Hono()` has none, so Hono's default
+ * answers with plain-text "Internal Server Error" and every assertion on the
+ * JSON body fails. Each test app gets the same handler instead.
+ */
+function appWithErrorHandler(): Hono {
+  const app = new Hono();
+  app.onError((err, c) => {
+    if (err instanceof ApiError) {
+      return c.json(
+        { success: false, error: { code: err.code, message: err.message } },
+        err.status as 400 | 401 | 403 | 404 | 409 | 500,
+      );
+    }
+    return c.json({ success: false, error: { message: String(err) } }, 500);
+  });
+  return app;
+}
 
 function createKv(value: unknown) {
   return {
@@ -10,7 +31,7 @@ function createKv(value: unknown) {
 
 describe("guestTokenAuth", () => {
   it("rejects missing guest bearer tokens", async () => {
-    const app = new Hono();
+    const app = appWithErrorHandler();
     app.use("/orders/:id", guestTokenAuth);
     app.get("/orders/:id", (c) => c.json({ guest: c.get("guestOrder") }));
 
@@ -21,13 +42,16 @@ describe("guestTokenAuth", () => {
 
     await expect(response.json()).resolves.toMatchObject({
       success: false,
-      error: "Missing or invalid guest token",
+      error: {
+        code: "MISSING_AUTH_TOKEN",
+        message: "Missing or invalid guest token",
+      },
     });
     expect(response.status).toBe(401);
   });
 
   it("rejects guest tokens bound to a different order id", async () => {
-    const app = new Hono();
+    const app = appWithErrorHandler();
     app.use("/orders/:id", guestTokenAuth);
     app.get("/orders/:id", (c) => c.json({ guest: c.get("guestOrder") }));
 
@@ -48,7 +72,10 @@ describe("guestTokenAuth", () => {
 
     await expect(response.json()).resolves.toMatchObject({
       success: false,
-      error: "Token does not match this order",
+      error: {
+        code: "ACCESS_DENIED",
+        message: "Token does not match this order",
+      },
     });
     expect(response.status).toBe(403);
   });
@@ -56,7 +83,7 @@ describe("guestTokenAuth", () => {
 
 describe("guestSessionAuth", () => {
   it("attaches valid guest sessions", async () => {
-    const app = new Hono();
+    const app = appWithErrorHandler();
     app.use("/guest-orders", guestSessionAuth);
     app.post("/guest-orders", (c) =>
       c.json({ guestSession: c.get("guestSession") }),

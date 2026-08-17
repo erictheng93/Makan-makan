@@ -106,7 +106,10 @@ app.post(
       return c.json(
         {
           success: false,
-          error: result.error || "Failed to send test notification",
+          error: {
+            code: "TEST_NOTIFICATION_FAILED",
+            message: result.error || "Failed to send test notification",
+          },
         },
         HTTP_STATUS.INTERNAL_SERVER_ERROR,
       );
@@ -327,7 +330,10 @@ app.post(
       return c.json(
         {
           success: false,
-          error: result.errors.join(", ") || "Failed to send notification",
+          error: {
+            code: "NOTIFICATION_SEND_FAILED",
+            message: result.errors.join(", ") || "Failed to send notification",
+          },
         },
         HTTP_STATUS.INTERNAL_SERVER_ERROR,
       );
@@ -353,7 +359,13 @@ async function validateNotificationRecipientScope(
 
   if (!recipient) {
     return c.json(
-      { success: false, error: "Notification recipient not found" },
+      {
+        success: false,
+        error: {
+          code: "RECIPIENT_NOT_FOUND",
+          message: "Notification recipient not found",
+        },
+      },
       HTTP_STATUS.NOT_FOUND,
     );
   }
@@ -371,7 +383,10 @@ async function validateNotificationRecipientScope(
     return c.json(
       {
         success: false,
-        error: "Cannot send notifications to another restaurant",
+        error: {
+          code: "ACCESS_DENIED",
+          message: "Cannot send notifications to another restaurant",
+        },
       },
       HTTP_STATUS.FORBIDDEN,
     );
@@ -383,7 +398,13 @@ async function validateNotificationRecipientScope(
       notificationData.recipientEmail.toLowerCase()
   ) {
     return c.json(
-      { success: false, error: "Recipient email does not match user" },
+      {
+        success: false,
+        error: {
+          code: "RECIPIENT_EMAIL_MISMATCH",
+          message: "Recipient email does not match user",
+        },
+      },
       HTTP_STATUS.BAD_REQUEST,
     );
   }

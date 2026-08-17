@@ -22,7 +22,14 @@ import {
   validateQuery,
   validateParams,
 } from "../../../middleware/validation";
-import { unauthorized } from "../../../shared/utils/api-error";
+import {
+  ApiError,
+  badRequest,
+  conflict,
+  forbidden,
+  notFound,
+  unauthorized,
+} from "../../../shared/utils/api-error";
 
 // Import service and validation schemas
 import { AuthService as DefaultAuthService } from "../services/AuthService";
@@ -250,25 +257,16 @@ export function createAuthRoutes(
 
       // Only admin or shop owner can register new staff users
       if (currentUser.role !== 0 && currentUser.role !== 1) {
-        return c.json(
-          {
-            success: false,
-            error: "Insufficient permissions",
-          },
-          HTTP_STATUS.FORBIDDEN,
-        );
+        throw forbidden("Insufficient permissions", "INSUFFICIENT_ROLE");
       }
 
       const requestData = c.get("validatedBody");
 
       // Validate role permissions
       if (currentUser.role === 1 && requestData.role < 2) {
-        return c.json(
-          {
-            success: false,
-            error: "Shop owners can only create staff accounts",
-          },
-          HTTP_STATUS.FORBIDDEN,
+        throw forbidden(
+          "Shop owners can only create staff accounts",
+          "ROLE_NOT_ASSIGNABLE",
         );
       }
 
@@ -288,15 +286,11 @@ export function createAuthRoutes(
           : requestData.restaurantId;
 
       if (!isPlatformRole && !effectiveRestaurantId) {
-        return c.json(
-          {
-            success: false,
-            error:
-              currentUser.role === 1
-                ? "Shop owner restaurant id is required"
-                : "Restaurant ID is required for restaurant-scoped roles",
-          },
-          HTTP_STATUS.BAD_REQUEST,
+        throw badRequest(
+          currentUser.role === 1
+            ? "Shop owner restaurant id is required"
+            : "Restaurant ID is required for restaurant-scoped roles",
+          "RESTAURANT_ID_REQUIRED",
         );
       }
 
@@ -316,19 +310,18 @@ export function createAuthRoutes(
       const result = await authService.register(registerData, currentUser.id);
 
       if (!result.success) {
-        // Same reasoning as the login mapping above: derived from the reason
-        // rather than from whether the message happens to say "already exists".
-        const statusCode =
-          result.reason === "username_taken"
-            ? HTTP_STATUS.CONFLICT
-            : HTTP_STATUS.BAD_REQUEST;
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          statusCode,
-        );
+        // Same reasoning as the login mapping above: both the status and the
+        // code come from the reason, not from whether the message happens to
+        // say "already exists".
+        const message = result.error || "Registration failed";
+        throw result.reason === "username_taken"
+          ? conflict(message, "USERNAME_TAKEN")
+          : badRequest(
+              message,
+              result.reason
+                ? LOGIN_FAILURE_CODES[result.reason]
+                : "VALIDATION_ERROR",
+            );
       }
 
       return c.json(
@@ -347,13 +340,7 @@ export function createAuthRoutes(
       getCookie(c, STAFF_REFRESH_COOKIE) ?? c.req.header("X-Refresh-Token");
 
     if (!refreshToken) {
-      return c.json(
-        {
-          success: false,
-          error: "Refresh token is required",
-        },
-        HTTP_STATUS.BAD_REQUEST,
-      );
+      throw badRequest("Refresh token is required", "MISSING_AUTH_TOKEN");
     }
 
     // Initialize auth service
@@ -362,12 +349,9 @@ export function createAuthRoutes(
 
     if (!result.success) {
       clearStaffRefreshCookie(c);
-      return c.json(
-        {
-          success: false,
-          error: result.error,
-        },
-        HTTP_STATUS.UNAUTHORIZED,
+      throw unauthorized(
+        result.error || "Refresh token is invalid",
+        "TOKEN_INVALID",
       );
     }
 
@@ -419,13 +403,7 @@ export function createAuthRoutes(
         HTTP_STATUS.OK,
       );
     } else {
-      return c.json(
-        {
-          success: false,
-          error: "Logout failed",
-        },
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-      );
+      throw new ApiError("LOGOUT_FAILED", "Logout failed", 500);
     }
   });
 
@@ -458,26 +436,14 @@ export function createAuthRoutes(
 
       // Users can only view their own profile unless they are admin
       if (currentUser.role !== 0 && String(currentUser.id) !== userId) {
-        return c.json(
-          {
-            success: false,
-            error: "Insufficient permissions",
-          },
-          HTTP_STATUS.FORBIDDEN,
-        );
+        throw forbidden("Insufficient permissions", "INSUFFICIENT_ROLE");
       }
 
       const authService = AuthService(c.env);
       const profile = await authService.getUserProfile(userId);
 
       if (!profile) {
-        return c.json(
-          {
-            success: false,
-            error: "User not found",
-          },
-          HTTP_STATUS.NOT_FOUND,
-        );
+        throw notFound("User not found", "USER_NOT_FOUND");
       }
 
       return c.json(
@@ -503,13 +469,7 @@ export function createAuthRoutes(
 
       // Users can only update their own profile unless they are admin
       if (currentUser.role !== 0 && String(currentUser.id) !== userId) {
-        return c.json(
-          {
-            success: false,
-            error: "Insufficient permissions",
-          },
-          HTTP_STATUS.FORBIDDEN,
-        );
+        throw forbidden("Insufficient permissions", "INSUFFICIENT_ROLE");
       }
 
       const authService = AuthService(c.env);
@@ -519,13 +479,7 @@ export function createAuthRoutes(
       );
 
       if (!updatedUser) {
-        return c.json(
-          {
-            success: false,
-            error: "Failed to update profile",
-          },
-          HTTP_STATUS.BAD_REQUEST,
-        );
+        throw badRequest("Failed to update profile", "PROFILE_UPDATE_FAILED");
       }
 
       return c.json(
@@ -555,12 +509,9 @@ export function createAuthRoutes(
       );
 
       if (!result.success) {
-        return c.json(
-          {
-            success: false,
-            error: result.error,
-          },
-          HTTP_STATUS.BAD_REQUEST,
+        throw badRequest(
+          result.error || "Failed to change password",
+          "PASSWORD_CHANGE_FAILED",
         );
       }
 
@@ -603,12 +554,9 @@ export function createAuthRoutes(
       const success = await authService.terminateSession(user.id, sessionId);
 
       if (!success) {
-        return c.json(
-          {
-            success: false,
-            error: "Failed to terminate session",
-          },
-          HTTP_STATUS.BAD_REQUEST,
+        throw badRequest(
+          "Failed to terminate session",
+          "SESSION_TERMINATION_FAILED",
         );
       }
 
@@ -630,12 +578,9 @@ export function createAuthRoutes(
     const success = await authService.terminateAllSessions(user.id);
 
     if (!success) {
-      return c.json(
-        {
-          success: false,
-          error: "Failed to terminate sessions",
-        },
-        HTTP_STATUS.BAD_REQUEST,
+      throw badRequest(
+        "Failed to terminate sessions",
+        "SESSION_TERMINATION_FAILED",
       );
     }
 

@@ -184,13 +184,10 @@ app.post("/", async (c) => {
   const body = await c.req.json();
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
-    return c.json(
-      {
-        success: false,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      },
-      400,
+    throw badRequest(
+      "Validation failed",
+      "VALIDATION_ERROR",
+      parsed.error.flatten().fieldErrors,
     );
   }
   const booking = await new ServiceBookingService(c.env).createBooking(
@@ -203,13 +200,10 @@ app.post("/recurring", recurringCreateRateLimit, async (c) => {
   const body = await c.req.json();
   const parsed = recurringCreateSchema.safeParse(body);
   if (!parsed.success) {
-    return c.json(
-      {
-        success: false,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      },
-      400,
+    throw badRequest(
+      "Validation failed",
+      "VALIDATION_ERROR",
+      parsed.error.flatten().fieldErrors,
     );
   }
   const bookings = await new ServiceBookingService(
@@ -222,13 +216,10 @@ app.post("/waitlist", waitlistRateLimit, async (c) => {
   const body = await c.req.json();
   const parsed = waitlistSchema.safeParse(body);
   if (!parsed.success) {
-    return c.json(
-      {
-        success: false,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      },
-      400,
+    throw badRequest(
+      "Validation failed",
+      "VALIDATION_ERROR",
+      parsed.error.flatten().fieldErrors,
     );
   }
   const waitlistEntry = await new ServiceBookingService(c.env).joinWaitlist(
@@ -241,13 +232,10 @@ app.post("/:id/pay", async (c) => {
   const body = await c.req.json();
   const parsed = paySchema.safeParse(body);
   if (!parsed.success) {
-    return c.json(
-      {
-        success: false,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      },
-      400,
+    throw badRequest(
+      "Validation failed",
+      "VALIDATION_ERROR",
+      parsed.error.flatten().fieldErrors,
     );
   }
   const booking = await new ServiceBookingService(c.env).payWithCredits({
@@ -274,13 +262,10 @@ app.get("/verify/:code/ics", verifyRateLimit, async (c) => {
     customerEmail: c.req.query("customerEmail") ?? c.req.query("email"),
   });
   if (!parsed.success) {
-    return c.json(
-      {
-        success: false,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      },
-      400,
+    throw badRequest(
+      "Validation failed",
+      "VALIDATION_ERROR",
+      parsed.error.flatten().fieldErrors,
     );
   }
   const ics = await new ServiceBookingService(
@@ -304,13 +289,10 @@ app.get("/verify/:code", verifyRateLimit, async (c) => {
     customerEmail: c.req.query("customerEmail") ?? c.req.query("email"),
   });
   if (!parsed.success) {
-    return c.json(
-      {
-        success: false,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      },
-      400,
+    throw badRequest(
+      "Validation failed",
+      "VALIDATION_ERROR",
+      parsed.error.flatten().fieldErrors,
     );
   }
   const booking = await new ServiceBookingService(c.env).getByConfirmationCode(
@@ -341,13 +323,10 @@ app.post("/verify/:code/cancel", verifyRateLimit, async (c) => {
       c.req.query("email"),
   });
   if (!parsed.success) {
-    return c.json(
-      {
-        success: false,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      },
-      400,
+    throw badRequest(
+      "Validation failed",
+      "VALIDATION_ERROR",
+      parsed.error.flatten().fieldErrors,
     );
   }
   const booking = await new ServiceBookingService(
@@ -448,13 +427,10 @@ app.get("/slots", requireRole([0, 1]), async (c) => {
 app.post("/slots", requireRole([0, 1]), async (c) => {
   const parsed = createSlotSchema.safeParse(await c.req.json());
   if (!parsed.success) {
-    return c.json(
-      {
-        success: false,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      },
-      400,
+    throw badRequest(
+      "Validation failed",
+      "VALIDATION_ERROR",
+      parsed.error.flatten().fieldErrors,
     );
   }
 
@@ -466,13 +442,10 @@ app.post("/slots", requireRole([0, 1]), async (c) => {
 app.post("/slots/batch", requireRole([0, 1]), async (c) => {
   const parsed = batchCreateSlotsSchema.safeParse(await c.req.json());
   if (!parsed.success) {
-    return c.json(
-      {
-        success: false,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      },
-      400,
+    throw badRequest(
+      "Validation failed",
+      "VALIDATION_ERROR",
+      parsed.error.flatten().fieldErrors,
     );
   }
 
@@ -486,13 +459,10 @@ app.post("/slots/batch", requireRole([0, 1]), async (c) => {
 app.post("/slots/block", requireRole([0, 1]), async (c) => {
   const parsed = blockSlotSchema.safeParse(await c.req.json());
   if (!parsed.success) {
-    return c.json(
-      {
-        success: false,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
-      },
-      400,
+    throw badRequest(
+      "Validation failed",
+      "VALIDATION_ERROR",
+      parsed.error.flatten().fieldErrors,
     );
   }
 

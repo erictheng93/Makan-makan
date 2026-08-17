@@ -1,5 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import routes from "./index";
+import { ApiError } from "../../../shared/utils/api-error";
+
+// The routes throw ApiError and leave rendering to app-factory's handler;
+// mounted bare there is none, so Hono's default answers 500 for every guard.
+routes.onError((err, c) => {
+  if (err instanceof ApiError) {
+    return c.json(
+      { success: false, error: { code: err.code, message: err.message } },
+      err.status as 400 | 401 | 403 | 404 | 409 | 500,
+    );
+  }
+  return c.json({ success: false, error: { message: String(err) } }, 500);
+});
 import { authMiddleware } from "../../../middleware/auth";
 
 const mocks = vi.hoisted(() => ({
@@ -385,7 +398,10 @@ describe("monitoring routes", () => {
     expect(updateResponse.status).toBe(404);
     await expect(updateResponse.json()).resolves.toEqual({
       success: false,
-      error: "Alert rule not found",
+      error: {
+        code: "ALERT_RULE_NOT_FOUND",
+        message: "Alert rule not found",
+      },
     });
 
     const deleteResponse = await routes.fetch(

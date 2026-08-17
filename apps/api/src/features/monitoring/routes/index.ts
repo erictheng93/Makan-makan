@@ -22,7 +22,7 @@ import {
 } from "../schemas/validation";
 import type { Env } from "../../../types/env";
 import type { MonitoringOverview, PerformanceReport } from "../types";
-import { badRequest } from "../../../shared/utils/api-error";
+import { badRequest, notFound } from "../../../shared/utils/api-error";
 import {
   getEdgeCache,
   overviewCacheHeaders,
@@ -223,7 +223,7 @@ app.put(
     );
 
     if (!success) {
-      return c.json({ success: false, error: "Alert rule not found" }, 404);
+      throw notFound("Alert rule not found", "ALERT_RULE_NOT_FOUND");
     }
 
     return c.json({
@@ -249,7 +249,7 @@ app.delete(
     const success = await monitoringService.deleteAlertRule(ruleId);
 
     if (!success) {
-      return c.json({ success: false, error: "Alert rule not found" }, 404);
+      throw notFound("Alert rule not found", "ALERT_RULE_NOT_FOUND");
     }
 
     return c.json({

@@ -758,7 +758,7 @@ describe("market checkout routes", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
       success: false,
-      error: "Validation failed",
+      error: { code: "VALIDATION_ERROR", message: "Validation failed" },
     });
     expect(databaseMocks.createDatabase).not.toHaveBeenCalled();
   });
@@ -1504,7 +1504,7 @@ describe("market checkout routes", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
       success: false,
-      error: "Validation failed",
+      error: { code: "VALIDATION_ERROR", message: "Validation failed" },
     });
     expect(env.CACHE_KV.get).not.toHaveBeenCalledWith(
       "market_checkout:checkout-1",
@@ -1994,7 +1994,7 @@ describe("market checkout routes", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
       success: false,
-      error: "Validation failed",
+      error: { code: "VALIDATION_ERROR", message: "Validation failed" },
     });
     expect(validateVoucherAndPrice).not.toHaveBeenCalled();
   });
@@ -2135,7 +2135,7 @@ describe("market checkout routes", () => {
     expect(invalidResponse.status).toBe(400);
     await expect(invalidResponse.json()).resolves.toMatchObject({
       success: false,
-      error: "Validation failed",
+      error: { code: "VALIDATION_ERROR", message: "Validation failed" },
     });
 
     const emptyEnv = createEnv();
@@ -2585,7 +2585,7 @@ describe("market checkout routes", () => {
     expect(invalidResponse.status).toBe(400);
     await expect(invalidResponse.json()).resolves.toMatchObject({
       success: false,
-      error: "Validation failed",
+      error: { code: "VALIDATION_ERROR", message: "Validation failed" },
     });
 
     const unpaidEnv = createEnv();

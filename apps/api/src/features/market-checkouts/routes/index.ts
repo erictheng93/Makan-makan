@@ -344,8 +344,11 @@ app.post("/", async (c) => {
     return c.json(
       {
         success: false,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Validation failed",
+          details: parsed.error.flatten().fieldErrors,
+        },
       },
       400,
     );
@@ -666,8 +669,11 @@ app.post("/:id/voucher", async (c) => {
     return c.json(
       {
         success: false,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Validation failed",
+          details: parsed.error.flatten().fieldErrors,
+        },
       },
       400,
     );
@@ -808,8 +814,11 @@ app.post("/:id/pay", async (c) => {
     return c.json(
       {
         success: false,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Validation failed",
+          details: parsed.error.flatten().fieldErrors,
+        },
       },
       400,
     );
@@ -1094,8 +1103,11 @@ app.post(
       return c.json(
         {
           success: false,
-          error: "Validation failed",
-          details: parsed.error.flatten().fieldErrors,
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Validation failed",
+            details: parsed.error.flatten().fieldErrors,
+          },
         },
         400,
       );
@@ -1120,8 +1132,11 @@ app.post(
       return c.json(
         {
           success: false,
-          error:
-            "Too many failed verification attempts for this checkout. Please try again later.",
+          error: {
+            code: "VERIFICATION_ATTEMPTS_EXCEEDED",
+            message:
+              "Too many failed verification attempts for this checkout. Please try again later.",
+          },
         },
         429,
       );
@@ -1140,7 +1155,10 @@ app.post(
       return c.json(
         {
           success: false,
-          error: "Phone verification failed for this market checkout",
+          error: {
+            code: "PHONE_VERIFICATION_FAILED",
+            message: "Phone verification failed for this market checkout",
+          },
         },
         403,
       );
@@ -1194,8 +1212,11 @@ app.post("/:id/refund", authMiddleware, requireRole([0]), async (c) => {
     return c.json(
       {
         success: false,
-        error: "Validation failed",
-        details: parsed.error.flatten().fieldErrors,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Validation failed",
+          details: parsed.error.flatten().fieldErrors,
+        },
       },
       400,
     );

@@ -8,6 +8,11 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import { VerificationService } from "@makanmasak/database";
 import {
+  ApiError,
+  badRequest,
+  unauthorized,
+} from "../../../shared/utils/api-error";
+import {
   rateLimitMiddleware,
   RateLimitPresets,
 } from "../../../middleware/rateLimiter";
@@ -117,25 +122,17 @@ routes.post(
     const user = c.get("user");
 
     if (!user) {
-      return c.json(
-        {
-          success: false,
-          error: "請先登入",
-        },
-        401,
-      );
+      throw unauthorized("請先登入", "UNAUTHORIZED");
     }
 
     const body = await c.req.json();
     const validation = sendEmailVerificationSchema.safeParse(body);
 
     if (!validation.success) {
-      return c.json(
-        {
-          success: false,
-          error: validation.error.issues[0].message,
-        },
-        400,
+      throw badRequest(
+        validation.error.issues[0].message,
+        "VALIDATION_ERROR",
+        validation.error.flatten().fieldErrors,
       );
     }
 
@@ -151,12 +148,14 @@ routes.post(
       });
 
       return c.json(result, result.success ? 200 : 500);
-    } catch {
-      return c.json(
-        {
-          success: false,
-          error: "發送驗證郵件時發生錯誤",
-        },
+    } catch (error) {
+      // A guard inside the try throws an ApiError with the status it means;
+      // swallowing it here would report every 401/400 as a 500. Only a
+      // genuinely unexpected failure becomes the generic error below.
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(
+        "EMAIL_VERIFICATION_SEND_FAILED",
+        "發送驗證郵件時發生錯誤",
         500,
       );
     }
@@ -171,24 +170,16 @@ routes.get("/verify-email", async (c) => {
   const token = c.req.query("token");
 
   if (!token) {
-    return c.json(
-      {
-        success: false,
-        error: "缺少 Token 參數",
-      },
-      400,
-    );
+    throw badRequest("缺少 Token 參數", "MISSING_PARAM");
   }
 
   const validation = verifyEmailSchema.safeParse({ token });
 
   if (!validation.success) {
-    return c.json(
-      {
-        success: false,
-        error: validation.error.issues[0].message,
-      },
-      400,
+    throw badRequest(
+      validation.error.issues[0].message,
+      "VALIDATION_ERROR",
+      validation.error.flatten().fieldErrors,
     );
   }
 
@@ -202,12 +193,11 @@ routes.get("/verify-email", async (c) => {
     });
 
     return c.json(result, result.success ? 200 : 400);
-  } catch {
-    return c.json(
-      {
-        success: false,
-        error: "Email 驗證時發生錯誤",
-      },
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(
+      "EMAIL_VERIFICATION_FAILED",
+      "Email 驗證時發生錯誤",
       500,
     );
   }
@@ -230,25 +220,17 @@ routes.post(
     const user = c.get("user");
 
     if (!user) {
-      return c.json(
-        {
-          success: false,
-          error: "請先登入",
-        },
-        401,
-      );
+      throw unauthorized("請先登入", "UNAUTHORIZED");
     }
 
     const body = await c.req.json();
     const validation = sendPhoneVerificationSchema.safeParse(body);
 
     if (!validation.success) {
-      return c.json(
-        {
-          success: false,
-          error: validation.error.issues[0].message,
-        },
-        400,
+      throw badRequest(
+        validation.error.issues[0].message,
+        "VALIDATION_ERROR",
+        validation.error.flatten().fieldErrors,
       );
     }
 
@@ -264,12 +246,11 @@ routes.post(
       });
 
       return c.json(result, result.success ? 200 : 500);
-    } catch {
-      return c.json(
-        {
-          success: false,
-          error: "發送驗證碼時發生錯誤",
-        },
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(
+        "PHONE_VERIFICATION_SEND_FAILED",
+        "發送驗證碼時發生錯誤",
         500,
       );
     }
@@ -285,25 +266,17 @@ routes.post("/verify-phone", customerAuthMiddleware, async (c) => {
   const user = c.get("user");
 
   if (!user) {
-    return c.json(
-      {
-        success: false,
-        error: "請先登入",
-      },
-      401,
-    );
+    throw unauthorized("請先登入", "UNAUTHORIZED");
   }
 
   const body = await c.req.json();
   const validation = verifyPhoneSchema.safeParse(body);
 
   if (!validation.success) {
-    return c.json(
-      {
-        success: false,
-        error: validation.error.issues[0].message,
-      },
-      400,
+    throw badRequest(
+      validation.error.issues[0].message,
+      "VALIDATION_ERROR",
+      validation.error.flatten().fieldErrors,
     );
   }
 
@@ -320,14 +293,9 @@ routes.post("/verify-phone", customerAuthMiddleware, async (c) => {
     });
 
     return c.json(result, result.success ? 200 : 400);
-  } catch {
-    return c.json(
-      {
-        success: false,
-        error: "手機驗證時發生錯誤",
-      },
-      500,
-    );
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError("PHONE_VERIFICATION_FAILED", "手機驗證時發生錯誤", 500);
   }
 });
 

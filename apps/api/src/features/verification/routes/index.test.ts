@@ -1,5 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import routes from "./index";
+import { ApiError } from "../../../shared/utils/api-error";
+
+// The routes throw ApiError and rely on the app-wide handler installed by
+// app-factory to render it; mounted bare like this there is none, so Hono's
+// default turns every guard into a 500. Mirrors the same harness in
+// service-bookings/routes/index.test.ts.
+routes.onError((err, c) => {
+  if (err instanceof ApiError) {
+    return c.json(
+      { success: false, error: { code: err.code, message: err.message } },
+      err.status as 400 | 401 | 403 | 404 | 409 | 500,
+    );
+  }
+  return c.json({ success: false, error: { message: String(err) } }, 500);
+});
 
 const serviceMethods = vi.hoisted(() => ({
   verifyResetToken: vi.fn(),

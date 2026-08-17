@@ -8,7 +8,12 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { BackupService } from "../services/BackupService";
 import { BackupConfigService } from "../services/BackupConfigService";
 import { BackupValidationService } from "../services/BackupValidationService";
-import { ApiError } from "../../../shared/utils/api-error";
+import {
+  ApiError,
+  badRequest,
+  forbidden,
+  notFound,
+} from "../../../shared/utils/api-error";
 import type {
   CreateBackupRequest,
   ListBackupsQuery,
@@ -50,6 +55,19 @@ export class BackupController {
    * caller-supplied fallback status so existing non-ApiError error paths
    * (validation errors, service failures, etc.) are unaffected.
    */
+  /**
+   * Reject a request at the door, before any work happens.
+   *
+   * Renders through `errorResponse` so the envelope is identical to the catch
+   * path, but deliberately does not `throw` into the surrounding try: the catch
+   * blocks `console.error` everything they receive, and a malformed id or a
+   * missing role is an expected outcome rather than an incident worth an error
+   * log.
+   */
+  private reject(c: Context, error: ApiError): Response {
+    return this.errorResponse(c, error, error.message);
+  }
+
   private errorResponse(
     c: Context,
     error: unknown,
@@ -73,7 +91,10 @@ export class BackupController {
     return c.json(
       {
         success: false,
-        error: (error as Error).message || fallbackMessage,
+        error: {
+          code: "BACKUP_OPERATION_FAILED",
+          message: (error as Error).message || fallbackMessage,
+        },
       },
       fallbackStatus,
     );
@@ -147,24 +168,12 @@ export class BackupController {
       const backupId = c.req.param("id");
 
       if (!backupId || !this.validationService.isValidUUID(backupId)) {
-        return c.json(
-          {
-            success: false,
-            error: "Invalid backup ID",
-          },
-          400,
-        );
+        return this.reject(c, badRequest("Invalid backup ID", "INVALID_BACKUP_ID"));
       }
 
       const backup = await this.backupService.getBackupById(backupId);
       if (!backup) {
-        return c.json(
-          {
-            success: false,
-            error: "Backup not found",
-          },
-          404,
-        );
+        return this.reject(c, notFound("Backup not found", "BACKUP_NOT_FOUND"));
       }
 
       // Verify restaurant access
@@ -191,24 +200,12 @@ export class BackupController {
       const backupId = c.req.param("id");
 
       if (!backupId || !this.validationService.isValidUUID(backupId)) {
-        return c.json(
-          {
-            success: false,
-            error: "Invalid backup ID",
-          },
-          400,
-        );
+        return this.reject(c, badRequest("Invalid backup ID", "INVALID_BACKUP_ID"));
       }
 
       const backup = await this.backupService.getBackupById(backupId);
       if (!backup) {
-        return c.json(
-          {
-            success: false,
-            error: "Backup not found",
-          },
-          404,
-        );
+        return this.reject(c, notFound("Backup not found", "BACKUP_NOT_FOUND"));
       }
 
       // Verify restaurant access
@@ -218,13 +215,7 @@ export class BackupController {
       );
 
       if (backup.status !== "completed") {
-        return c.json(
-          {
-            success: false,
-            error: "Backup is not completed yet",
-          },
-          400,
-        );
+        return this.reject(c, badRequest("Backup is not completed yet", "BACKUP_NOT_COMPLETED"));
       }
 
       const downloadResponse = await this.backupService.downloadBackup(backup);
@@ -245,13 +236,7 @@ export class BackupController {
       const user = c.get("user");
 
       if (!backupId || !this.validationService.isValidUUID(backupId)) {
-        return c.json(
-          {
-            success: false,
-            error: "Invalid backup ID",
-          },
-          400,
-        );
+        return this.reject(c, badRequest("Invalid backup ID", "INVALID_BACKUP_ID"));
       }
 
       // Validate restore request
@@ -305,24 +290,12 @@ export class BackupController {
       const user = c.get("user");
 
       if (!backupId || !this.validationService.isValidUUID(backupId)) {
-        return c.json(
-          {
-            success: false,
-            error: "Invalid backup ID",
-          },
-          400,
-        );
+        return this.reject(c, badRequest("Invalid backup ID", "INVALID_BACKUP_ID"));
       }
 
       const backup = await this.backupService.getBackupById(backupId);
       if (!backup) {
-        return c.json(
-          {
-            success: false,
-            error: "Backup not found",
-          },
-          404,
-        );
+        return this.reject(c, notFound("Backup not found", "BACKUP_NOT_FOUND"));
       }
 
       // Verify restaurant access
@@ -351,13 +324,7 @@ export class BackupController {
       const restaurantId = c.req.param("restaurant_id");
 
       if (!restaurantId || !this.validationService.isValidUUID(restaurantId)) {
-        return c.json(
-          {
-            success: false,
-            error: "Invalid restaurant ID",
-          },
-          400,
-        );
+        return this.reject(c, badRequest("Invalid restaurant ID", "INVALID_RESTAURANT_ID"));
       }
 
       // Verify restaurant access
@@ -431,13 +398,7 @@ export class BackupController {
 
       // Check if user has admin privileges (role 0 = admin)
       if (user.role !== 0) {
-        return c.json(
-          {
-            success: false,
-            error: "Admin access required",
-          },
-          403,
-        );
+        return this.reject(c, forbidden("Admin access required", "INSUFFICIENT_ROLE"));
       }
 
       const health = await this.backupService.getSystemHealth();
@@ -461,13 +422,7 @@ export class BackupController {
       const period = c.req.query("period") || "week";
 
       if (!restaurantId || !this.validationService.isValidUUID(restaurantId)) {
-        return c.json(
-          {
-            success: false,
-            error: "Invalid restaurant ID",
-          },
-          400,
-        );
+        return this.reject(c, badRequest("Invalid restaurant ID", "INVALID_RESTAURANT_ID"));
       }
 
       // Verify restaurant access
@@ -502,13 +457,7 @@ export class BackupController {
       const unresolved_only = c.req.query("unresolved_only") === "true";
 
       if (!restaurantId || !this.validationService.isValidUUID(restaurantId)) {
-        return c.json(
-          {
-            success: false,
-            error: "Invalid restaurant ID",
-          },
-          400,
-        );
+        return this.reject(c, badRequest("Invalid restaurant ID", "INVALID_RESTAURANT_ID"));
       }
 
       // Verify restaurant access
@@ -538,24 +487,12 @@ export class BackupController {
       const user = c.get("user");
 
       if (!alertId) {
-        return c.json(
-          {
-            success: false,
-            error: "Invalid alert ID",
-          },
-          400,
-        );
+        return this.reject(c, badRequest("Invalid alert ID", "INVALID_ALERT_ID"));
       }
 
       const alert = await this.backupService.getAlertById(alertId);
       if (!alert) {
-        return c.json(
-          {
-            success: false,
-            error: "Alert not found",
-          },
-          404,
-        );
+        return this.reject(c, notFound("Alert not found", "BACKUP_ALERT_NOT_FOUND"));
       }
 
       await this.validationService.verifyRestaurantAccess(
@@ -588,24 +525,12 @@ export class BackupController {
       const user = c.get("user");
 
       if (!alertId) {
-        return c.json(
-          {
-            success: false,
-            error: "Invalid alert ID",
-          },
-          400,
-        );
+        return this.reject(c, badRequest("Invalid alert ID", "INVALID_ALERT_ID"));
       }
 
       const alert = await this.backupService.getAlertById(alertId);
       if (!alert) {
-        return c.json(
-          {
-            success: false,
-            error: "Alert not found",
-          },
-          404,
-        );
+        return this.reject(c, notFound("Alert not found", "BACKUP_ALERT_NOT_FOUND"));
       }
 
       await this.validationService.verifyRestaurantAccess(

@@ -90,7 +90,10 @@ describe("createApp API middleware registration", () => {
     );
     await expect(response.json()).resolves.toMatchObject({
       success: false,
-      error: "Rate limit exceeded",
+      error: {
+        code: "RATE_LIMIT_EXCEEDED",
+        message: "Rate limit exceeded",
+      },
     });
   });
 });

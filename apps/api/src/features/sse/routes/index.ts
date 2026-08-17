@@ -72,8 +72,11 @@ function realtimeGone(c: Context) {
   return c.json(
     {
       success: false,
-      error:
-        "Legacy SSE endpoints have been retired. Use the realtime WebSocket service.",
+      error: {
+        code: "ENDPOINT_RETIRED",
+        message:
+          "Legacy SSE endpoints have been retired. Use the realtime WebSocket service.",
+      },
       data: {
         realtimeWsUrl: c.env.REALTIME_WS_URL,
       },
