@@ -851,6 +851,7 @@ export function geoIntelligentRateLimitMiddleware(
             error: {
               code: "ACCESS_BLOCKED",
               message: "Access temporarily blocked",
+              requestId: c.get("requestId"),
             },
             reason: blockStatus.reason,
             blocked_until: blockStatus.blockedUntil,
@@ -941,6 +942,7 @@ export function geoIntelligentRateLimitMiddleware(
           error: {
             code: "RATE_LIMIT_EXCEEDED",
             message: "Rate limit exceeded",
+            requestId: c.get("requestId"),
           },
           reason: result.reason,
           retry_after: result.retryAfter || 60,

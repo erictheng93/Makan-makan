@@ -297,10 +297,11 @@ class ErrorReportingService {
     const category = this.errorCategories[error.name];
     const tags = category ? [...category.tags] : ["general"];
 
-    // Add contextual tags based on error message
-    if (error.message.includes("order")) tags.push("order-management");
-    if (error.message.includes("audio")) tags.push("audio-system");
-    if (error.message.includes("offline")) tags.push("offline-mode");
+    // Transport facts and the error category are stable across locales. Do not
+    // classify telemetry from server prose: translated or reworded messages
+    // would silently change reporting tags.
+    const status = getApiErrorStatus(error);
+    if (status === undefined && !navigator.onLine) tags.push("offline-mode");
     if (error.stack?.includes("vue-router")) tags.push("routing");
     if (error.stack?.includes("pinia")) tags.push("state-management");
 

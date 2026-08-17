@@ -78,5 +78,17 @@
     "later": "later",
     "estimated": "estimated",
     "actual": "actual"
+  },
+  "errorPresentation": {
+    "invalidRequest": "Please check your input and try again.",
+    "sessionExpired": "Your session has expired. Please sign in again.",
+    "permissionDenied": "You do not have permission to do that.",
+    "notFound": "The requested resource could not be found.",
+    "conflict": "This action is not available in the current state. Please refresh and try again.",
+    "tooManyRequests": "Too many requests. Please try again shortly.",
+    "serviceUnavailable": "The system cannot process this right now. Please try again later.",
+    "network": "There is a network problem. Please check your connection and try again.",
+    "timeout": "The connection timed out. Please try again.",
+    "unknown": "Something went wrong. Please try again later."
   }
 }

@@ -69,28 +69,27 @@ describe("getOrderSubmitErrorI18nKey", () => {
     ).toBe("toast.orderSubmitMenuItemUnavailable");
   });
 
-  it("maps menu availability and inventory message patterns", () => {
+  it("does not classify menu availability from English server prose", () => {
     expect(
       getOrderSubmitErrorI18nKey(new Error("Menu item 101 is not available")),
-    ).toBe("toast.orderSubmitMenuItemUnavailable");
+    ).toBe("errorPresentation.unknown");
 
     expect(
       getOrderSubmitErrorI18nKey(
         new Error("Insufficient inventory for Nasi Lemak"),
       ),
-    ).toBe("toast.orderSubmitInsufficientInventory");
+    ).toBe("errorPresentation.unknown");
   });
 
-  it("maps restaurant availability message patterns", () => {
+  it("falls back to a status key instead of matching English server prose", () => {
     expect(
-      getOrderSubmitErrorI18nKey(
-        new Error("Restaurant is currently unavailable"),
-      ),
-    ).toBe("toast.orderSubmitRestaurantUnavailable");
-
-    expect(
-      getOrderSubmitErrorI18nKey(new Error("Restaurant is not available")),
-    ).toBe("toast.orderSubmitRestaurantUnavailable");
+      getOrderSubmitErrorI18nKey({
+        response: {
+          status: 503,
+          data: { error: "Restaurant is currently unavailable" },
+        },
+      }),
+    ).toBe("errorPresentation.serviceUnavailable");
   });
 
   it("maps order service availability codes", () => {
@@ -123,11 +122,11 @@ describe("getOrderSubmitErrorI18nKey", () => {
     ).toBe("toast.orderSubmitTableUnavailable");
   });
 
-  it("falls back to the generic submit failure instead of server messages", () => {
+  it("falls back to the shared unknown key instead of server messages", () => {
     expect(
       getOrderSubmitErrorI18nKey(
         new Error("Unexpected backend implementation detail"),
       ),
-    ).toBe("toast.orderSubmitFailed");
+    ).toBe("errorPresentation.unknown");
   });
 });

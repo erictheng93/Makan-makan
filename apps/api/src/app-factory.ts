@@ -384,6 +384,7 @@ export function createApp(
   app.onError((err, c) => {
     // Log the original error server-side
     console.error(`[ERROR] ${c.req.method} ${c.req.path}:`, err);
+    const requestId = c.get("requestId");
 
     if (err instanceof ApiError) {
       return c.json(
@@ -392,6 +393,7 @@ export function createApp(
           error: {
             code: err.code,
             message: ErrorSanitizer.sanitizeMessage(err.message),
+            requestId,
             ...(err.details !== undefined && {
               details: sanitizeApiErrorDetails(err.details),
             }),
@@ -420,6 +422,7 @@ export function createApp(
         error: {
           code: sanitized.code ?? "INTERNAL_ERROR",
           message: sanitized.message,
+          requestId,
         },
       },
       toErrorResponseStatusCode(status),

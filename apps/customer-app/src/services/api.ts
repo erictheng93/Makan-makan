@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import type {
   ApiResponse,
-  ApiErrorCode,
+  ApiErrorCodeValue,
   PaginatedResponse,
 } from "@makanmasak/shared-types";
 import { translate } from "@/utils/i18n";
@@ -47,10 +47,11 @@ const API_CONFIG = {
 // API 錯誤類
 export class ApiException extends Error {
   constructor(
-    public code: ApiErrorCode,
+    public code: ApiErrorCodeValue,
     message: string,
     public details?: unknown,
     public status?: number,
+    public requestId?: string,
   ) {
     super(message);
     this.name = "ApiException";
@@ -144,6 +145,7 @@ class ApiClient {
             apiError.message,
             apiError.details,
             response.status,
+            apiError.requestId,
           );
         }
 
@@ -155,7 +157,7 @@ class ApiClient {
         // 處理網路錯誤
         if (!error.response) {
           throw new ApiException(
-            "NETWORK_ERROR" as ApiErrorCode,
+            "NETWORK_ERROR" as ApiErrorCodeValue,
             translate("messages.networkError"),
             error.message,
           );
@@ -167,7 +169,7 @@ class ApiClient {
         if (status === 401 && !error.config?.credentialCheck) {
           await this.handleAuthError();
           throw new ApiException(
-            "UNAUTHORIZED" as ApiErrorCode,
+            "UNAUTHORIZED" as ApiErrorCodeValue,
             translate("messages.sessionExpired"),
             data,
             status,
@@ -182,6 +184,7 @@ class ApiClient {
           apiError.message,
           apiError.details,
           status,
+          apiError.requestId,
         );
       },
     );
@@ -190,11 +193,16 @@ class ApiClient {
   private normalizeApiError(
     error: unknown,
     status: number,
-  ): { code: ApiErrorCode; message: string; details?: unknown } {
+  ): {
+    code: ApiErrorCodeValue;
+    message: string;
+    details?: unknown;
+    requestId?: string;
+  } {
     if (typeof error === "string" && error.trim()) {
       return {
-        code: "INVALID_REQUEST" as ApiErrorCode,
-        message: error,
+        code: "INVALID_REQUEST" as ApiErrorCodeValue,
+        message: this.getErrorMessage(status),
       };
     }
 
@@ -204,25 +212,25 @@ class ApiClient {
         message?: unknown;
         error?: unknown;
         details?: unknown;
+        requestId?: unknown;
       };
 
       return {
         code:
           typeof apiError.code === "string"
-            ? (apiError.code as ApiErrorCode)
-            : ("INTERNAL_SERVER_ERROR" as ApiErrorCode),
-        message:
-          typeof apiError.message === "string"
-            ? apiError.message
-            : typeof apiError.error === "string"
-              ? apiError.error
-              : this.getErrorMessage(status),
+            ? (apiError.code as ApiErrorCodeValue)
+            : ("INTERNAL_SERVER_ERROR" as ApiErrorCodeValue),
+        message: this.getErrorMessage(status),
         details: apiError.details,
+        requestId:
+          typeof apiError.requestId === "string"
+            ? apiError.requestId
+            : undefined,
       };
     }
 
     return {
-      code: "INTERNAL_SERVER_ERROR" as ApiErrorCode,
+      code: "INTERNAL_SERVER_ERROR" as ApiErrorCodeValue,
       message: this.getErrorMessage(status),
     };
   }
@@ -262,7 +270,7 @@ class ApiClient {
         throw error;
       }
       throw new ApiException(
-        "INTERNAL_SERVER_ERROR" as ApiErrorCode,
+        "INTERNAL_SERVER_ERROR" as ApiErrorCodeValue,
         translate("errors.requestFailed"),
         error,
       );

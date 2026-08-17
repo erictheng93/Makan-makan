@@ -54,6 +54,15 @@ export enum ApiErrorCode {
   TIMEOUT = "TIMEOUT",
 }
 
+/**
+ * The errors known to shared clients. API services may still introduce a
+ * domain-specific string code before every client has a release; callers must
+ * therefore treat `ApiError.code` as an open string, not an exhaustive enum.
+ */
+export const KNOWN_API_ERROR_CODES = Object.values(ApiErrorCode);
+export type KnownApiErrorCode = ApiErrorCode;
+export type ApiErrorCodeValue = KnownApiErrorCode | (string & {});
+
 // API 請求配置
 export interface ApiRequestConfig {
   method: HttpMethod;
@@ -75,12 +84,17 @@ export interface ApiResponseConfig {
 
 // API 錯誤詳情
 export interface ApiError {
-  code: ApiErrorCode;
+  code: ApiErrorCodeValue;
   message: string;
   details?: unknown;
   field?: string;
   timestamp?: string;
   requestId?: string;
+}
+
+export interface ApiErrorEnvelope {
+  success: false;
+  error: ApiError;
 }
 
 // 分頁響應 - Re-export from pagination module

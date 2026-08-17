@@ -394,6 +394,9 @@ importers:
       '@makanmasak/i18n':
         specifier: workspace:*
         version: link:../../packages/shared/src/i18n
+      '@makanmasak/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@makanmasak/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types

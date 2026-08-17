@@ -49,6 +49,9 @@ describe("corsMiddleware", () => {
     expect(allowedHeaders).toContain("x-request-id");
     expect(allowedHeaders).toContain("x-restaurant-id");
     expect(allowedHeaders).toContain("x-table-id");
+    expect(response.headers.get("Access-Control-Expose-Headers")).toContain(
+      "X-Request-ID",
+    );
   });
 
   it("does not send a browser policy that disables same-origin QR scanning", async () => {

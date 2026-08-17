@@ -1,18 +1,7 @@
-type OrderSubmitErrorLike = {
-  code?: unknown;
-  status?: unknown;
-  message?: unknown;
-  details?: unknown;
-  response?: {
-    status?: unknown;
-    data?: {
-      code?: unknown;
-      message?: unknown;
-      error?: unknown;
-    };
-  };
-  request?: unknown;
-};
+import {
+  parseUserFacingError,
+  resolveUserFacingError,
+} from "@makanmasak/shared/utils/user-facing-error";
 
 const ORDER_SUBMIT_ERROR_KEYS: Record<string, string> = {
   ACTIVE_GUEST_ORDER_EXISTS: "toast.orderSubmitActiveGuestOrder",
@@ -28,9 +17,6 @@ const ORDER_SUBMIT_ERROR_KEYS: Record<string, string> = {
   EMPTY_ORDER_ITEMS: "toast.cartCannotBeEmpty",
   TOO_MANY_ORDER_ITEMS: "toast.orderSubmitFailed",
   INVALID_MENU_ITEM_ID: "toast.orderSubmitMenuItemUnavailable",
-  // The server now re-checks required groups and selection caps. A customer
-  // only reaches this if the item's options changed while their modal was
-  // open, so point them back at the item rather than at the cart.
   INVALID_CUSTOMIZATION: "toast.orderSubmitMenuItemUnavailable",
   INVALID_ITEM_QUANTITY: "toast.orderSubmitFailed",
   ITEM_QUANTITY_EXCEEDED: "toast.orderSubmitFailed",
@@ -47,108 +33,20 @@ const ORDER_SUBMIT_ERROR_KEYS: Record<string, string> = {
 };
 
 const QR_ERROR_PREFIXES = ["TABLE_QR_", "SEAT_QR_"];
+const identity = (key: string) => key;
 
-const stringValue = (value: unknown): string | undefined =>
-  typeof value === "string" && value.trim() ? value : undefined;
-
-const responseError = (error: OrderSubmitErrorLike) =>
-  error.response?.data?.error;
-
-export const getOrderSubmitErrorCode = (error: unknown): string | undefined => {
-  if (!error || typeof error !== "object") {
-    return undefined;
-  }
-
-  const apiError = error as OrderSubmitErrorLike;
-  const nestedError = responseError(apiError);
-
-  if (nestedError && typeof nestedError === "object") {
-    const code = stringValue((nestedError as { code?: unknown }).code);
-    if (code) return code;
-  }
-
-  return (
-    stringValue(apiError.code) ??
-    stringValue(apiError.response?.data?.code) ??
-    (nestedError ? stringValue(nestedError) : undefined)
-  );
-};
-
-export const getOrderSubmitErrorMessage = (
-  error: unknown,
-): string | undefined => {
-  if (!error || typeof error !== "object") {
-    return undefined;
-  }
-
-  const apiError = error as OrderSubmitErrorLike;
-  const nestedError = responseError(apiError);
-
-  if (nestedError && typeof nestedError === "object") {
-    const message = stringValue((nestedError as { message?: unknown }).message);
-    if (message) return message;
-  }
-
-  return (
-    stringValue(apiError.message) ??
-    stringValue(apiError.response?.data?.message) ??
-    (nestedError ? stringValue(nestedError) : undefined)
-  );
-};
-
+/**
+ * Keeps the order-submit UI's dedicated code registry while delegating all
+ * envelope parsing and generic fallbacks to the shared resolver. In
+ * particular, server messages are no longer regex-matched or displayed.
+ */
 export const getOrderSubmitErrorI18nKey = (error: unknown): string => {
-  if (!error || typeof error !== "object") {
-    return "toast.orderSubmitFailed";
+  const { code } = parseUserFacingError(error);
+  const codeKeys = { ...ORDER_SUBMIT_ERROR_KEYS };
+
+  if (code && QR_ERROR_PREFIXES.some((prefix) => code.startsWith(prefix))) {
+    codeKeys[code] = "toast.orderSubmitQrInvalid";
   }
 
-  const apiError = error as OrderSubmitErrorLike;
-  const code = getOrderSubmitErrorCode(apiError);
-
-  if (
-    code === "NETWORK_ERROR" ||
-    code === "ERR_NETWORK" ||
-    (!apiError.response && apiError.request)
-  ) {
-    return "toast.orderSubmitFailed";
-  }
-
-  if (code) {
-    if (QR_ERROR_PREFIXES.some((prefix) => code.startsWith(prefix))) {
-      return "toast.orderSubmitQrInvalid";
-    }
-
-    const key = ORDER_SUBMIT_ERROR_KEYS[code];
-    if (key) return key;
-  }
-
-  const message = getOrderSubmitErrorMessage(apiError);
-  if (!message) {
-    return "toast.orderSubmitFailed";
-  }
-
-  if (/^Menu item \d+ is not available$/.test(message)) {
-    return "toast.orderSubmitMenuItemUnavailable";
-  }
-
-  if (/^Insufficient inventory for\b/.test(message)) {
-    return "toast.orderSubmitInsufficientInventory";
-  }
-
-  if (/Restaurant is (currently unavailable|not available)/i.test(message)) {
-    return "toast.orderSubmitRestaurantUnavailable";
-  }
-
-  if (/Table (is not available|not found)/i.test(message)) {
-    return "toast.orderSubmitTableUnavailable";
-  }
-
-  if (/Seat not found/i.test(message)) {
-    return "toast.orderSubmitSeatUnavailable";
-  }
-
-  if (message.startsWith("優惠券驗證失敗:")) {
-    return "toast.couponFailed";
-  }
-
-  return "toast.orderSubmitFailed";
+  return resolveUserFacingError(error, identity, { codeKeys }).message;
 };

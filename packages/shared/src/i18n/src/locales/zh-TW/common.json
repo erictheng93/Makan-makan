@@ -78,5 +78,17 @@
     "later": "後",
     "estimated": "預估",
     "actual": "實際"
+  },
+  "errorPresentation": {
+    "invalidRequest": "請檢查輸入內容後再試一次。",
+    "sessionExpired": "登入狀態已失效，請重新登入。",
+    "permissionDenied": "你沒有執行此操作的權限。",
+    "notFound": "找不到要求的資源。",
+    "conflict": "目前狀態不允許此操作，請重新整理後再試。",
+    "tooManyRequests": "操作過於頻繁，請稍後再試。",
+    "serviceUnavailable": "系統暫時無法處理，請稍後再試。",
+    "network": "網路連線發生問題，請檢查後再試。",
+    "timeout": "連線逾時，請再試一次。",
+    "unknown": "發生未知錯誤，請稍後再試。"
   }
 }

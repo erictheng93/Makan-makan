@@ -93,6 +93,7 @@ describe("createApp API middleware registration", () => {
       error: {
         code: "RATE_LIMIT_EXCEEDED",
         message: "Rate limit exceeded",
+        requestId: expect.any(String),
       },
     });
   });
