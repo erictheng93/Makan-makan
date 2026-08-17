@@ -15,25 +15,30 @@ export function getKitchenApiBaseUrl(env = import.meta.env): string {
 }
 
 const LOGIN_PATH = "/login";
-let loginRedirectRequested = false;
 
 interface AuthFailureLocation {
   pathname: string;
   assign(url: string): void;
 }
 
-export function handleKitchenAuthFailure(
-  location: AuthFailureLocation = window.location,
-): void {
-  // A failed login also returns 401, but navigating from this page destroys the
-  // login form before it can render the server-provided error message.
-  if (loginRedirectRequested || location.pathname === LOGIN_PATH) {
-    return;
-  }
+export function createKitchenAuthFailureHandler() {
+  let loginRedirectRequested = false;
 
-  loginRedirectRequested = true;
-  location.assign(LOGIN_PATH);
+  return function handleKitchenAuthFailure(
+    location: AuthFailureLocation = window.location,
+  ): void {
+    // A failed login also returns 401, but navigating from this page destroys
+    // the login form before it can render the server-provided error message.
+    if (loginRedirectRequested || location.pathname === LOGIN_PATH) {
+      return;
+    }
+
+    loginRedirectRequested = true;
+    location.assign(LOGIN_PATH);
+  };
 }
+
+export const handleKitchenAuthFailure = createKitchenAuthFailureHandler();
 
 // Create the shared API client with kitchen-specific config
 export const apiClient = createAuthenticatedApiClient({

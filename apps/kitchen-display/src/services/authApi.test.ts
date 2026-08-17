@@ -2,6 +2,7 @@ import { createAuthenticatedApiClient } from "@makanmasak/auth-client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   authApi,
+  createKitchenAuthFailureHandler,
   getKitchenApiBaseUrl,
   handleKitchenAuthFailure,
 } from "./authApi";
@@ -63,17 +64,19 @@ describe("kitchen auth API config", () => {
 
   it("does not redirect from the login page when authentication fails", () => {
     const assign = vi.fn();
+    const handleAuthFailure = createKitchenAuthFailureHandler();
 
-    handleKitchenAuthFailure({ pathname: "/login", assign });
+    handleAuthFailure({ pathname: "/login", assign });
 
     expect(assign).not.toHaveBeenCalled();
   });
 
   it("redirects to login once when authentication fails away from the login page", () => {
     const assign = vi.fn();
+    const handleAuthFailure = createKitchenAuthFailureHandler();
 
-    handleKitchenAuthFailure({ pathname: "/orders", assign });
-    handleKitchenAuthFailure({ pathname: "/orders", assign });
+    handleAuthFailure({ pathname: "/orders", assign });
+    handleAuthFailure({ pathname: "/orders", assign });
 
     expect(assign).toHaveBeenCalledWith("/login");
     expect(assign).toHaveBeenCalledTimes(1);

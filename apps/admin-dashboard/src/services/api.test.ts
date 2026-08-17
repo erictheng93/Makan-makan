@@ -3,9 +3,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   clearAdminAuthStorage,
+  createAdminAuthFailureHandler,
   ensureManagementAuthToken,
   getAdminTokenStorageMode,
-  handleAdminAuthFailure,
   managementAuthClient,
 } from "./api";
 
@@ -54,6 +54,7 @@ describe("admin API auth storage", () => {
   });
 
   it("redirects to login once after refresh failure, keeping the destination", () => {
+    const handleAuthFailure = createAdminAuthFailureHandler();
     const location = {
       pathname: "/dashboard/monitoring",
       search: "?tab=alerts",
@@ -63,8 +64,8 @@ describe("admin API auth storage", () => {
     localStorage.setItem("auth_token", "stale-local-token");
     sessionStorage.setItem("auth_token", "stale-session-token");
 
-    handleAdminAuthFailure(location);
-    handleAdminAuthFailure(location);
+    handleAuthFailure(location);
+    handleAuthFailure(location);
 
     expect(location.assign).toHaveBeenCalledTimes(1);
     expect(location.assign).toHaveBeenCalledWith(
@@ -72,6 +73,15 @@ describe("admin API auth storage", () => {
     );
     expect(localStorage.getItem("auth_token")).toBeNull();
     expect(sessionStorage.getItem("auth_token")).toBeNull();
+  });
+
+  it("does not redirect when authentication fails on the login page", () => {
+    const handleAuthFailure = createAdminAuthFailureHandler();
+    const location = { pathname: "/login", assign: vi.fn() };
+
+    handleAuthFailure(location);
+
+    expect(location.assign).not.toHaveBeenCalled();
   });
 
   it("exchanges an admin API token for an isolated management token", async () => {

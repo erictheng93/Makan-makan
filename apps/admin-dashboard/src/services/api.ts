@@ -51,8 +51,6 @@ const ADMIN_AUTH_STORAGE_KEYS = [
   "management_auth_user",
 ] as const;
 
-let loginRedirectRequested = false;
-
 interface AuthFailureLocation {
   pathname: string;
   search?: string;
@@ -74,20 +72,28 @@ export function clearAdminAuthStorage(): void {
   managementAuthClient.setAuthToken(null);
 }
 
-export function handleAdminAuthFailure(
-  location: AuthFailureLocation = window.location,
-): void {
-  clearAdminAuthStorage();
+export function createAdminAuthFailureHandler() {
+  let loginRedirectRequested = false;
 
-  if (loginRedirectRequested || location.pathname === LOGIN_PATH) {
-    return;
-  }
+  return function handleAdminAuthFailure(
+    location: AuthFailureLocation = window.location,
+  ): void {
+    clearAdminAuthStorage();
 
-  loginRedirectRequested = true;
-  // Carry the current page across so a mid-session 401 does not silently
-  // relocate the user to their role's landing page once they log back in.
-  location.assign(loginUrlFor(`${location.pathname}${location.search ?? ""}`));
+    if (loginRedirectRequested || location.pathname === LOGIN_PATH) {
+      return;
+    }
+
+    loginRedirectRequested = true;
+    // Carry the current page across so a mid-session 401 does not silently
+    // relocate the user to their role's landing page once they log back in.
+    location.assign(
+      loginUrlFor(`${location.pathname}${location.search ?? ""}`),
+    );
+  };
 }
+
+export const handleAdminAuthFailure = createAdminAuthFailureHandler();
 
 const authClient = createAuthenticatedApiClient({
   baseURL: resolveApiBase(),
