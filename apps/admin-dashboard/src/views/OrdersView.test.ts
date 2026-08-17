@@ -59,7 +59,7 @@ const makeOrder = (overrides: Partial<Order> = {}): Order => ({
   totalAmount: 12000,
   items: [],
   customerInfo: { name: "Test Customer" },
-  createdAt: "2026-08-03T10:00:00.000Z",
+  createdAt: Date.parse("2026-08-03T10:00:00.000Z"),
   updatedAt: "2026-08-03T10:00:00.000Z",
   ...overrides,
 });

@@ -126,7 +126,7 @@ export interface Order {
   notes?: string;
   customerInfo?: CustomerInfo;
   deliveryInfo?: DeliveryInfo;
-  createdAt: string;
+  createdAt: number;
   updatedAt: string;
   completedAt?: string;
 }
