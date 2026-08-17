@@ -124,6 +124,25 @@ function createQuery(nextResultFor: (table: unknown) => unknown) {
   return builder;
 }
 
+/**
+ * Builds a db mock whose select fixtures are dispatched by the table passed to
+ * `.from()`, not by global call order. Adding a query against a *different*
+ * table therefore cannot shift another table's results.
+ *
+ * Two things to know before adding a query to the service:
+ *
+ * - Within a single table the fixtures are still a positional queue. A second
+ *   `.from(groupOrders)` consumes the second `groupOrders` entry, so a new
+ *   query against an already-declared table means every test that declares
+ *   that table needs another entry.
+ * - An undeclared or exhausted table throws and names the table, rather than
+ *   returning `[]` and letting the service take a wrong branch. That is the
+ *   intended failure mode — the message is the diagnosis.
+ *
+ * A `.from()` argument that is not one of the registered tables (a raw SQL
+ * subquery) falls into the shared `rawSqlSubquery` bucket. New tables must be
+ * added to `fixtureTables` or they land there too and silently share its queue.
+ */
 function createDb(
   fixtures: SelectFixtures = {},
   updateResults: unknown[] = [],
@@ -493,76 +512,65 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       updatedAt: new Date("2026-06-07T00:00:00.000Z"),
     };
 
-    const queryResults = [
-      [groupOrder],
-      [
-        {
-          id: "member-1",
-          groupOrderId: "group-1",
-          name: "Host",
-          phone: null,
-          email: null,
-          role: "creator",
-          joinedAt: new Date("2026-06-07T00:00:00.000Z"),
-          lastActiveAt: new Date("2026-06-07T00:00:00.000Z"),
-          leftAt: null,
-        },
+    (service as any).db = createDb({
+      groupOrders: [[groupOrder]],
+      groupMembers: [
+        [
+          {
+            id: "member-1",
+            groupOrderId: "group-1",
+            name: "Host",
+            phone: null,
+            email: null,
+            role: "creator",
+            joinedAt: new Date("2026-06-07T00:00:00.000Z"),
+            lastActiveAt: new Date("2026-06-07T00:00:00.000Z"),
+            leftAt: null,
+          },
+        ],
       ],
-      [
-        {
-          cartItem: {
-            id: "item-1",
+      groupCartItems: [
+        [
+          {
+            cartItem: {
+              id: "item-1",
+              groupOrderId: "group-1",
+              memberId: "member-1",
+              menuItemId: 10,
+              quantity: 2,
+              unitPrice: 9,
+              totalPrice: 18,
+              unitPriceCents: 1250,
+              totalPriceCents: 2500,
+              customizations: {},
+              specialInstructions: "Less spicy",
+              addedAt: new Date("2026-06-07T00:00:00.000Z"),
+              updatedAt: new Date("2026-06-07T00:00:00.000Z"),
+            },
+            menuItemName: "Nasi Lemak",
+            menuItemPrice: 999,
+            menuItemPriceCents: 1250,
+            menuItemImageUrl: null,
+          },
+        ],
+      ],
+      groupActivityLogs: [
+        [
+          {
+            id: "activity-1",
             groupOrderId: "group-1",
             memberId: "member-1",
-            menuItemId: 10,
-            quantity: 2,
-            unitPrice: 9,
-            totalPrice: 18,
-            unitPriceCents: 1250,
-            totalPriceCents: 2500,
-            customizations: {},
-            specialInstructions: "Less spicy",
-            addedAt: new Date("2026-06-07T00:00:00.000Z"),
-            updatedAt: new Date("2026-06-07T00:00:00.000Z"),
+            action: "item_added",
+            description: "Added item",
+            metadata: {},
+            createdAt: new Date("2026-06-07T00:00:00.000Z"),
           },
-          menuItemName: "Nasi Lemak",
-          menuItemPrice: 999,
-          menuItemPriceCents: 1250,
-          menuItemImageUrl: null,
-        },
+        ],
       ],
-      [
-        {
-          id: "activity-1",
-          groupOrderId: "group-1",
-          memberId: "member-1",
-          action: "item_added",
-          description: "Added item",
-          metadata: {},
-          createdAt: new Date("2026-06-07T00:00:00.000Z"),
-        },
-      ],
-      // Split bills: empty until the host splits, which is the normal state
-      // for a group still ordering.
-      [],
-    ];
-    const query = (result: unknown) => {
-      const builder = {
-        from: vi.fn(() => builder),
-        innerJoin: vi.fn(() => builder),
-        where: vi.fn(() => builder),
-        orderBy: vi.fn(() => builder),
-        limit: vi.fn(() => builder),
-        then: (
-          resolve: (value: unknown) => void,
-          reject?: (reason: unknown) => void,
-        ) => Promise.resolve(result).then(resolve, reject),
-      };
-      return builder;
-    };
-    (service as any).db = {
-      select: vi.fn(() => query(queryResults.shift())),
-    };
+      // Empty until the host splits, which is the normal state for a group
+      // still ordering.
+      splitBills: [[]],
+    });
 
     const result = await service.getGroupOrder("group-1");
 
