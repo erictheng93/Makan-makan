@@ -12,6 +12,12 @@ export type ExportDataType =
   | "health"
   | "all";
 
+/**
+ * 一列待導出的資料。監控資料來自多個來源、欄位不固定，所以只約束「是物件」，
+ * 值一律 unknown —— 讀取端必須自己收窄。
+ */
+export type ExportRow = Record<string, unknown>;
+
 export interface ExportOptions {
   // 基本選項
   format: ExportFormat;
@@ -45,8 +51,8 @@ export interface ExportOptions {
     dateFormat: string;
   };
 
-  // 高級選項
-  filters?: any; // 應用的篩選器
+  // 高級選項（宣告了但尚未接線，見 exportService）
+  filters?: Record<string, unknown>; // 應用的篩選器
   maxRows?: number;
   compression?: boolean;
 }

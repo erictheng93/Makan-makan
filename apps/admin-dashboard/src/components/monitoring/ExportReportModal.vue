@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import type { Component } from "vue";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import {
@@ -13,6 +14,7 @@ import type {
   ExportOptions,
   ExportFormat,
   ExportDataType,
+  ExportRow,
   ReportTemplate,
 } from "@/types/monitoring-export";
 import {
@@ -23,7 +25,7 @@ import {
 // Props
 interface Props {
   show: boolean;
-  data: any[];
+  data: ExportRow[];
   defaultDataType?: ExportDataType;
 }
 
@@ -50,7 +52,7 @@ const isExporting = ref(false);
 const exportProgress = ref(0);
 
 // Format icons
-const formatIcons: Record<ExportFormat, any> = {
+const formatIcons: Record<ExportFormat, Component> = {
   csv: TableCellsIcon,
   excel: TableCellsIcon,
   pdf: DocumentChartBarIcon,

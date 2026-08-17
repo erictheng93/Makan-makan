@@ -11,14 +11,21 @@ import type {
   ExportResult,
   ExportFormat,
   ExportDataType,
+  ExportRow,
 } from "@/types/monitoring-export";
 import { useDateFormatter } from "@/composables/useDateFormatter";
+
+type FormattedExportRow = Record<string, string | number | boolean | null>;
+type PdfTableData = { headers: string[]; rows: string[][] };
 
 export class ExportService {
   /**
    * 主要導出方法 - 根據選項導出數據
    */
-  async exportData(data: any[], options: ExportOptions): Promise<ExportResult> {
+  async exportData(
+    data: ExportRow[],
+    options: ExportOptions,
+  ): Promise<ExportResult> {
     try {
       const filename = options.filename || this.generateFilename(options);
 
@@ -66,7 +73,7 @@ export class ExportService {
    * 導出為 CSV 格式
    */
   private async exportToCSV(
-    data: any[],
+    data: ExportRow[],
     options: ExportOptions,
   ): Promise<Blob> {
     const csvOptions = options.csvOptions || {
@@ -91,7 +98,7 @@ export class ExportService {
    * 導出為 Excel 格式
    */
   private async exportToExcel(
-    data: any[],
+    data: ExportRow[],
     options: ExportOptions,
   ): Promise<Blob> {
     // 格式化數據
@@ -126,7 +133,7 @@ export class ExportService {
    * 導出為 PDF 格式
    */
   private async exportToPDF(
-    data: any[],
+    data: ExportRow[],
     options: ExportOptions,
   ): Promise<Blob> {
     const pdfOptions = options.pdfOptions || {
@@ -236,16 +243,25 @@ export class ExportService {
   /**
    * 格式化數據行
    */
-  private formatDataRow(row: any, _format: ExportFormat): any {
-    const formatted: any = {};
+  private formatDataRow(
+    row: ExportRow,
+    _format: ExportFormat,
+  ): FormattedExportRow {
+    const formatted: FormattedExportRow = {};
 
     for (const [key, value] of Object.entries(row)) {
       if (value instanceof Date) {
         formatted[key] = this.formatDate(value);
       } else if (typeof value === "object" && value !== null) {
-        formatted[key] = JSON.stringify(value);
+        formatted[key] = JSON.stringify(value) ?? "";
       } else {
-        formatted[key] = value;
+        formatted[key] =
+          typeof value === "string" ||
+          typeof value === "number" ||
+          typeof value === "boolean" ||
+          value === null
+            ? value
+            : String(value);
       }
     }
 
@@ -269,7 +285,9 @@ export class ExportService {
   /**
    * 計算 Excel 列寬
    */
-  private calculateColumnWidths(data: any[]): any[] {
+  private calculateColumnWidths(
+    data: FormattedExportRow[],
+  ): Array<{ wch: number }> {
     if (data.length === 0) return [];
 
     const keys = Object.keys(data[0]);
@@ -313,7 +331,7 @@ export class ExportService {
   /**
    * 生成摘要數據
    */
-  private generateSummaryData(data: any[]): any[] {
+  private generateSummaryData(data: ExportRow[]): FormattedExportRow[] {
     // 讀取當前語系（在方法內呼叫，確保拿到呼叫當下的 locale）
     const { formatDateTime } = useDateFormatter();
 
@@ -327,22 +345,25 @@ export class ExportService {
   /**
    * 生成 PDF 摘要
    */
-  private generatePDFSummary(data: any[], dataType: ExportDataType): string[] {
+  private generatePDFSummary(
+    data: ExportRow[],
+    dataType: ExportDataType,
+  ): string[] {
     const lines: string[] = [];
 
     lines.push(`• 總記錄數: ${data.length}`);
 
     // 根據數據類型添加特定的摘要信息
     if (dataType === "alerts" || dataType === "all") {
-      const alerts = data.filter((d: any) => d.type === "alert" || d.severity);
+      const alerts = data.filter((row) => row.type === "alert" || row.severity);
       const critical = alerts.filter(
-        (a: any) => a.severity === "critical" || a.severity === "fatal",
+        (alert) => alert.severity === "critical" || alert.severity === "fatal",
       );
       lines.push(`• 嚴重警報: ${critical.length}`);
     }
 
     if (dataType === "errors" || dataType === "all") {
-      const errors = data.filter((d: any) => d.type === "error" || d.errorId);
+      const errors = data.filter((row) => row.type === "error" || row.errorId);
       lines.push(`• 錯誤總數: ${errors.length}`);
     }
 
@@ -352,7 +373,10 @@ export class ExportService {
   /**
    * 準備表格數據
    */
-  private prepareTableData(data: any[], dataType: ExportDataType): any {
+  private prepareTableData(
+    data: ExportRow[],
+    dataType: ExportDataType,
+  ): PdfTableData {
     // 限制數據量以避免 PDF 過大
     const maxRows = 100;
     const limitedData = data.slice(0, maxRows);
@@ -422,7 +446,11 @@ export class ExportService {
   /**
    * 添加 PDF 表格
    */
-  private addPDFTable(doc: jsPDF, tableData: any, startY: number): void {
+  private addPDFTable(
+    doc: jsPDF,
+    tableData: PdfTableData,
+    startY: number,
+  ): void {
     const { headers, rows } = tableData;
 
     // 簡單的表格繪製（在實際應用中可以使用 jspdf-autotable 插件）
@@ -499,7 +527,7 @@ export class ExportService {
    * 快速導出 - 使用默認選項
    */
   async quickExport(
-    data: any[],
+    data: ExportRow[],
     format: ExportFormat,
     dataType: ExportDataType,
   ): Promise<ExportResult> {
