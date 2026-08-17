@@ -1,6 +1,45 @@
 import { apiClient, unwrapApiData } from "./api";
 import type { ApiResponse } from "@/types";
 
+type QueueRecord = Record<string, unknown>;
+type QueueStatus = {
+  queue: {
+    total_waiting: number;
+    avg_estimated_wait: number;
+    min_wait: number;
+    max_wait: number;
+    online_count: number;
+    walkin_count: number;
+    priority_count: number;
+    available_tables: number;
+    by_table_type: unknown[];
+  };
+  activity: {
+    seated_today: number;
+    cancelled_today: number;
+    no_show_today: number;
+    avg_actual_wait: number;
+  };
+  settings: QueueSettings;
+};
+
+const isRecord = (value: unknown): value is QueueRecord =>
+  typeof value === "object" && value !== null;
+const asString = (value: unknown, fallback = ""): string =>
+  typeof value === "string" ? value : fallback;
+const asNumber = (value: unknown, fallback = 0): number =>
+  typeof value === "number" ? value : fallback;
+const asOptionalNumber = (value: unknown): number | undefined =>
+  typeof value === "number" ? value : undefined;
+const asStringArray = (value: unknown): string[] | undefined =>
+  Array.isArray(value) && value.every((item) => typeof item === "string")
+    ? value
+    : undefined;
+const asNumberArray = (value: unknown): number[] | undefined =>
+  Array.isArray(value) && value.every((item) => typeof item === "number")
+    ? value
+    : undefined;
+
 // 新模組化類型定義 - 對應 @makanmasak/queue-core 類型
 export interface QueueItem {
   id: string;
@@ -33,7 +72,7 @@ export interface QueueItem {
   notes: string | null;
   notificationMethods?: string[];
   checkInCode?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface QueueNotification {
@@ -57,13 +96,13 @@ export interface QueueSettings {
   autoCallInterval: number;
   noShowTimeout: number;
   queueNumberReset: "daily" | "weekly" | "monthly" | "never";
-  priorityRules: Record<string, any>;
-  tableAssignmentRules: Record<string, any>;
+  priorityRules: Record<string, unknown>;
+  tableAssignmentRules: Record<string, unknown>;
   notificationTemplates: Record<string, string>;
-  businessHours: Record<string, any>;
-  holidaySettings: Record<string, any>;
-  displaySettings: Record<string, any>;
-  integrationSettings: Record<string, any>;
+  businessHours: Record<string, unknown>;
+  holidaySettings: Record<string, unknown>;
+  displaySettings: Record<string, unknown>;
+  integrationSettings: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -81,64 +120,96 @@ export interface QueueStats {
   }>;
 }
 
-function toNullableIsoString(value: string | number | null | undefined) {
+function toNullableIsoString(value: unknown) {
   if (value == null) return null;
   if (typeof value === "number") return new Date(value).toISOString();
-  return value;
+  return typeof value === "string" ? value : null;
 }
 
-function mapQueueItem(entry: any): QueueItem {
+function mapQueueItem(entry: QueueRecord): QueueItem {
   return {
-    id: entry.id ?? entry.queueId,
-    queueNumber: entry.queueNumber ?? 0,
-    restaurantId: entry.restaurantId ?? "",
-    customerName: entry.customerName ?? null,
-    customerPhone: entry.customerPhone,
-    customerEmail: entry.customerEmail,
-    partySize: entry.partySize ?? 1,
-    tablePreferences: entry.tablePreferences ?? [],
-    specialRequests: entry.specialRequests ?? entry.notes ?? null,
-    priority: entry.priority ?? 0,
-    queueType: entry.queueType ?? "walkin",
-    status: entry.status ?? "waiting",
+    id: asString(entry.id ?? entry.queueId),
+    queueNumber: asNumber(entry.queueNumber),
+    restaurantId: asString(entry.restaurantId),
+    customerName:
+      typeof entry.customerName === "string" ? entry.customerName : null,
+    customerPhone: asString(entry.customerPhone) || undefined,
+    customerEmail: asString(entry.customerEmail) || undefined,
+    partySize: asNumber(entry.partySize, 1),
+    tablePreferences: asNumberArray(entry.tablePreferences),
+    specialRequests:
+      typeof entry.specialRequests === "string"
+        ? entry.specialRequests
+        : typeof entry.notes === "string"
+          ? entry.notes
+          : null,
+    priority: asNumber(entry.priority),
+    queueType:
+      entry.queueType === "online" || entry.queueType === "phone"
+        ? entry.queueType
+        : "walkin",
+    status:
+      entry.status === "called" ||
+      entry.status === "notified" ||
+      entry.status === "seated" ||
+      entry.status === "no_show" ||
+      entry.status === "cancelled" ||
+      entry.status === "expired"
+        ? entry.status
+        : "waiting",
     joinedAt:
       toNullableIsoString(entry.joinedAt ?? entry.createdAt) ??
       new Date(0).toISOString(),
     calledAt: toNullableIsoString(entry.calledAt),
     notifiedAt: toNullableIsoString(entry.notifiedAt) ?? undefined,
     seatedAt: toNullableIsoString(entry.seatedAt),
-    estimatedWaitMinutes: entry.estimatedWaitMinutes ?? 0,
-    actualWaitMinutes: entry.actualWaitMinutes ?? null,
-    assignedTableId: entry.assignedTableId ?? entry.tableId ?? null,
-    servedBy: entry.servedBy,
-    notes: entry.notes ?? null,
-    notificationMethods: entry.notificationMethods,
-    checkInCode: entry.checkInCode,
-    metadata: entry.metadata,
+    estimatedWaitMinutes: asNumber(entry.estimatedWaitMinutes),
+    actualWaitMinutes: asOptionalNumber(entry.actualWaitMinutes) ?? null,
+    assignedTableId:
+      asOptionalNumber(entry.assignedTableId) ??
+      asOptionalNumber(entry.tableId) ??
+      null,
+    servedBy: asOptionalNumber(entry.servedBy),
+    notes: typeof entry.notes === "string" ? entry.notes : null,
+    notificationMethods: asStringArray(entry.notificationMethods),
+    checkInCode: asString(entry.checkInCode) || undefined,
+    metadata: isRecord(entry.metadata) ? entry.metadata : undefined,
   };
 }
 
-function normalizeQueueStatus(data: any): {
-  queue: any;
-  activity: any;
-  settings: QueueSettings;
-} {
+function normalizeQueueStatus(data: unknown): QueueStatus {
+  const payload = isRecord(data) ? data : {};
+  const queue = isRecord(payload.queue) ? payload.queue : {};
+  const activity = isRecord(payload.activity) ? payload.activity : {};
   return {
     queue: {
-      total_waiting: data?.queue?.total_waiting ?? data?.totalWaiting ?? 0,
-      avg_estimated_wait:
-        data?.queue?.avg_estimated_wait ?? data?.averageWaitMinutes ?? 0,
-      min_wait: data?.queue?.min_wait ?? 0,
-      max_wait: data?.queue?.max_wait ?? 0,
-      online_count: data?.queue?.online_count ?? 0,
-      walkin_count: data?.queue?.walkin_count ?? 0,
-      priority_count: data?.queue?.priority_count ?? 0,
-      available_tables:
-        data?.queue?.available_tables ?? data?.availableTables ?? 0,
-      by_table_type: data?.queue?.by_table_type ?? data?.byTableType ?? [],
+      total_waiting: asNumber(queue.total_waiting ?? payload.totalWaiting),
+      avg_estimated_wait: asNumber(
+        queue.avg_estimated_wait ?? payload.averageWaitMinutes,
+      ),
+      min_wait: asNumber(queue.min_wait),
+      max_wait: asNumber(queue.max_wait),
+      online_count: asNumber(queue.online_count),
+      walkin_count: asNumber(queue.walkin_count),
+      priority_count: asNumber(queue.priority_count),
+      available_tables: asNumber(
+        queue.available_tables ?? payload.availableTables,
+      ),
+      by_table_type: Array.isArray(queue.by_table_type)
+        ? queue.by_table_type
+        : Array.isArray(payload.byTableType)
+          ? payload.byTableType
+          : [],
     },
-    activity: data?.activity || {},
-    settings: data?.settings || ({} as QueueSettings),
+    activity: {
+      seated_today: asNumber(activity.seated_today),
+      cancelled_today: asNumber(activity.cancelled_today),
+      no_show_today: asNumber(activity.no_show_today),
+      avg_actual_wait: asNumber(activity.avg_actual_wait),
+    },
+    settings: (isRecord(payload.settings)
+      ? payload.settings
+      : {}) as unknown as QueueSettings,
   };
 }
 
@@ -156,12 +227,12 @@ export const queueService = {
       params,
     });
     const data = unwrapApiData<{ queue?: unknown[] }>(response);
-    return (data?.queue || []).map(mapQueueItem);
+    return (data?.queue || []).filter(isRecord).map(mapQueueItem);
   },
 
   async getQueueStatus(restaurantId: string): Promise<{
-    queue: any;
-    activity: any;
+    queue: QueueStatus["queue"];
+    activity: QueueStatus["activity"];
     settings: QueueSettings;
   }> {
     const response = await apiClient.get(`/queue/${restaurantId}/status`);
@@ -255,7 +326,7 @@ export const queueService = {
     return {
       success: payload.success,
       error,
-      data: payload.data ? mapQueueItem(payload.data) : undefined,
+      data: isRecord(payload.data) ? mapQueueItem(payload.data) : undefined,
     };
   },
 
