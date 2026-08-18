@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 
 const mocks = vi.hoisted(() => ({
   db: {
@@ -31,7 +35,8 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: mocks.drizzle,
 }));
 
-vi.mock("drizzle-orm", () => ({
+vi.mock("drizzle-orm", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   and: vi.fn((...conditions: unknown[]) => ({ op: "and", conditions })),
   eq: vi.fn((column: unknown, value: unknown) => ({ op: "eq", column, value })),
 }));
@@ -69,21 +74,13 @@ vi.mock("../services/PlatformOrderService", () => ({
 }));
 
 import routes from "./webhook";
+import { platformIntegrations } from "@makanmasak/database";
 
-function createQuery(result: unknown) {
-  const builder = {
-    from: vi.fn(() => builder),
-    where: vi.fn(() => builder),
-    then: (
-      resolve: (value: unknown) => void,
-      reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
-  };
-  return builder;
-}
+const fixtureTables = { platformIntegrations };
+type SelectFixtureName = keyof typeof fixtureTables;
 
-function mockSelectResults(results: unknown[]) {
-  mocks.db.select.mockImplementation(() => createQuery(results.shift() ?? []));
+function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
+  Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
 }
 
 function mockMutations(returningRows: unknown[] = [{ id: "log-1" }]) {
@@ -96,7 +93,7 @@ function mockMutations(returningRows: unknown[] = [{ id: "log-1" }]) {
         inserted.push(payload);
         return builder;
       }),
-      returning: vi.fn(() => createQuery(returningRows)),
+      returning: vi.fn(() => Promise.resolve(returningRows)),
     };
     return builder;
   });
@@ -201,12 +198,14 @@ describe("platform webhook routes", () => {
   });
 
   it("returns not found when no enabled integration matches the store", async () => {
-    mockSelectResults([
-      [
-        integration({ credentials: { storeId: "other-store" } }),
-        integration({ credentials: { storeId: "third-store" } }),
+    mockSelectResults({
+      platformIntegrations: [
+        [
+          integration({ credentials: { storeId: "other-store" } }),
+          integration({ credentials: { storeId: "third-store" } }),
+        ],
       ],
-    ]);
+    });
 
     const response = await request("/uber-eats", {
       method: "POST",
@@ -224,7 +223,7 @@ describe("platform webhook routes", () => {
   });
 
   it("rejects invalid webhook signatures with the configured secret", async () => {
-    mockSelectResults([[integration()]]);
+    mockSelectResults({ platformIntegrations: [[integration()]] });
     mocks.adapter.verifyWebhook.mockResolvedValueOnce(false);
 
     const response = await request("/uber-eats", {
@@ -254,9 +253,11 @@ describe("platform webhook routes", () => {
   it("uses encrypted credentials for store matching and webhook secrets", async () => {
     const mutations = mockMutations();
     const encryptedCredentials = "encrypted-credentials";
-    mockSelectResults([
-      [integration({ credentials: encryptedCredentials, config: {} })],
-    ]);
+    mockSelectResults({
+      platformIntegrations: [
+        [integration({ credentials: encryptedCredentials, config: {} })],
+      ],
+    });
     mocks.integrationService.readStoredCredentials.mockResolvedValueOnce({
       storeId: "store-1",
       clientSecret: "client-secret",
@@ -295,7 +296,7 @@ describe("platform webhook routes", () => {
 
   it("acknowledges payment events without order processing", async () => {
     const mutations = mockMutations();
-    mockSelectResults([[integration()]]);
+    mockSelectResults({ platformIntegrations: [[integration()]] });
 
     const response = await request("/uber-eats", {
       method: "POST",
@@ -320,7 +321,7 @@ describe("platform webhook routes", () => {
 
   it("logs failed order processing and returns an error", async () => {
     const mutations = mockMutations();
-    mockSelectResults([[integration()]]);
+    mockSelectResults({ platformIntegrations: [[integration()]] });
     mocks.orderService.processWebhook.mockRejectedValueOnce(
       new Error("menu item missing"),
     );
