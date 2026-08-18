@@ -1658,9 +1658,6 @@ const jaJP: Messages = {
     noResults: "レストランが見つかりません",
   },
   auth: {
-    invalidCredentials: "ユーザー名またはパスワードが正しくありません。",
-    accountLocked:
-      "ログインの失敗が続いたため、アカウントを一時的にロックしました。しばらくしてからお試しください。",
     adminLogin: "管理ダッシュボードログイン",
     username: "ユーザー名",
     password: "パスワード",

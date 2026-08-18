@@ -102,7 +102,9 @@ routes.get("/reset-password/verify", async (c) => {
       {
         valid: false,
         error: {
-          code: "TOKEN_VERIFICATION_FAILED",
+          // RESET_TOKEN_, not TOKEN_: email and phone verification in this
+          // same file also verify tokens, and each already names its subject.
+          code: "RESET_TOKEN_VERIFICATION_FAILED",
           message: "驗證 Token 時發生錯誤",
         },
       },

@@ -1751,9 +1751,6 @@ const enUS: Messages = {
     noResults: "No restaurants found",
   },
   auth: {
-    invalidCredentials: "That username or password is not correct.",
-    accountLocked:
-      "Too many failed attempts. This account is locked for now — please try again later.",
     adminLogin: "Admin Dashboard Login",
     username: "Username",
     password: "Password",

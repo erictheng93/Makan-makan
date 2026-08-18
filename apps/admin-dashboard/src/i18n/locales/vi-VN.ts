@@ -1661,9 +1661,6 @@ const viVN: Messages = {
     noResults: "Không tìm thấy nhà hàng",
   },
   auth: {
-    invalidCredentials: "Tên đăng nhập hoặc mật khẩu không đúng.",
-    accountLocked:
-      "Quá nhiều lần đăng nhập sai. Tài khoản tạm thời bị khóa — vui lòng thử lại sau.",
     adminLogin: "Đăng nhập quản trị",
     username: "Tên đăng nhập",
     password: "Mật khẩu",
