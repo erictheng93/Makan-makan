@@ -45,6 +45,18 @@ const CSRF_HEADERS = {
   "content-type": "application/json",
 };
 
+interface ApiEnvelope<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: { code?: string; message?: string };
+}
+
+async function readApiEnvelope<T = unknown>(
+  response: Response,
+): Promise<ApiEnvelope<T>> {
+  return (await response.json()) as ApiEnvelope<T>;
+}
+
 async function activateOnlineOrderingSubscription(
   restaurantId: string | number,
 ) {
@@ -91,7 +103,7 @@ describe("Admin Orders API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
+    const json = await readApiEnvelope(res);
     expect(json.success).toBe(true);
     expect(Array.isArray(json.data)).toBe(true);
   });
@@ -104,7 +116,7 @@ describe("Admin Orders API — real integration", () => {
     );
 
     expect(res.status).toBe(401);
-    const json: any = await res.json();
+    const json = await readApiEnvelope(res);
     expect(json.success).toBe(false);
     expect(json.error?.code).toBeDefined();
   });
@@ -133,7 +145,9 @@ describe("Admin Orders API — real integration", () => {
       }),
     );
     expect(postRes.status).toBe(201);
-    const created: any = (await postRes.json()).data;
+    const createdResponse = await readApiEnvelope<{ id: string }>(postRes);
+    expect(createdResponse.data).toBeDefined();
+    const created = createdResponse.data!;
 
     // Read back
     const getRes = await testApp.app.fetch(
@@ -142,7 +156,12 @@ describe("Admin Orders API — real integration", () => {
       }),
     );
     expect(getRes.status).toBe(200);
-    const fetched: any = (await getRes.json()).data;
+    const fetchedResponse = await readApiEnvelope<{
+      id: string;
+      restaurantId: string;
+    }>(getRes);
+    expect(fetchedResponse.data).toBeDefined();
+    const fetched = fetchedResponse.data!;
     expect(fetched.id).toBe(created.id);
     expect(fetched.restaurantId).toBe(String(restaurant.id));
   });
@@ -168,7 +187,9 @@ describe("Admin Orders API — real integration", () => {
       }),
     );
     expect(postRes.status).toBe(201);
-    const order: any = (await postRes.json()).data;
+    const orderResponse = await readApiEnvelope<{ id: string }>(postRes);
+    expect(orderResponse.data).toBeDefined();
+    const order = orderResponse.data!;
 
     // Update status
     const patchRes = await testApp.app.fetch(
@@ -182,7 +203,7 @@ describe("Admin Orders API — real integration", () => {
     // 200 = success; 400 = valid status but wrong transition; 404 = endpoint path differs
     expect([200, 400, 404]).toContain(patchRes.status);
     if (patchRes.status === 200) {
-      const json: any = await patchRes.json();
+      const json = await readApiEnvelope(patchRes);
       expect(json.success).toBe(true);
     }
   });
@@ -209,7 +230,7 @@ describe("Admin Restaurant API — real integration", () => {
 
     expect([200, 404]).toContain(res.status);
     if (res.status === 200) {
-      const json: any = await res.json();
+      const json = await readApiEnvelope(res);
       expect(json.success).toBe(true);
       expect(json.data).toBeTruthy();
     }
@@ -225,7 +246,7 @@ describe("Admin Restaurant API — real integration", () => {
     // Public restaurant info may or may not require auth; document actual behaviour
     // rather than assuming. At minimum it must not return 500.
     expect(res.status).not.toBe(500);
-    const json: any = await res.json();
+    const json = await readApiEnvelope(res);
     if (res.status !== 200) {
       expect(json.success).toBe(false);
     }
@@ -246,7 +267,7 @@ describe("Admin Restaurant API — real integration", () => {
     );
 
     expect(res.status).not.toBe(500);
-    const json: any = await res.json();
+    const json = await readApiEnvelope(res);
     expect(typeof json.success).toBe("boolean");
     // Whether 200 or 4xx, the envelope shape must be consistent
     if (json.success) {
@@ -281,7 +302,7 @@ describe("Admin Kitchen API — real integration", () => {
     // 200 = kitchen orders returned; 404 = endpoint path differs in this version
     expect([200, 404]).toContain(res.status);
     if (res.status === 200) {
-      const json: any = await res.json();
+      const json = await readApiEnvelope(res);
       expect(json.success).toBe(true);
       expect(Array.isArray(json.data)).toBe(true);
     }
@@ -298,7 +319,7 @@ describe("Admin Kitchen API — real integration", () => {
 
     expect([401, 404]).toContain(res.status);
     if (res.status === 401) {
-      const json: any = await res.json();
+      const json = await readApiEnvelope(res);
       expect(json.success).toBe(false);
     }
   });
