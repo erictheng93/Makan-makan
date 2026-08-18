@@ -284,7 +284,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, type Component } from "vue";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
@@ -355,7 +355,7 @@ const restaurantId = computed(() => authStore.restaurantId || "");
 
 // Icon mapping for tabs
 const getIconComponent = (icon: string) => {
-  const iconMap: Record<string, any> = {
+  const iconMap: Record<string, Component> = {
     calendar: CalendarIcon,
     list: ListBulletIcon,
     templates: CalendarIcon,

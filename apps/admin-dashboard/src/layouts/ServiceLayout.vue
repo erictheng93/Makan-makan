@@ -272,7 +272,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, type Component } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
@@ -403,7 +403,7 @@ const markAllAsRead = () => {
 };
 
 const getNotificationIcon = (type: string) => {
-  const icons: Record<string, any> = {
+  const icons: Record<string, Component> = {
     urgent_order: ExclamationTriangleIcon,
     new_order: BellIcon,
     achievement: StarIcon,

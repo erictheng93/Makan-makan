@@ -309,7 +309,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, type Component } from "vue";
 import { useI18n } from "@/i18n";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useDateFormatter } from "@/composables/useDateFormatter";
@@ -419,7 +419,7 @@ const getStatusBadgeClass = (status: string) => {
 };
 
 const getStatusIconComponent = (status: string) => {
-  const icons: Record<string, any> = {
+  const icons: Record<string, Component> = {
     pending: ClockIcon,
     approved: CheckCircleIcon,
     rejected: XCircleIcon,

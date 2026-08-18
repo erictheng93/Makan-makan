@@ -954,7 +954,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, type Component } from "vue";
 import {
   BanknotesIcon,
   ShoppingCartIcon,
@@ -1168,7 +1168,7 @@ const getTransactionTypeColor = (type: string) => {
 };
 
 const getTransactionIcon = (type: string) => {
-  const icons: Record<string, any> = {
+  const icons: Record<string, Component> = {
     sale: BanknotesIcon,
     refund: MinusIcon,
     cash_in: PlusIcon,

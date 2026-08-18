@@ -460,7 +460,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, type Component } from "vue";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useVirtualScroll } from "@/composables/useVirtualScroll";
@@ -618,7 +618,7 @@ const {
 
 // 方法
 const getRoleIcon = (role: number) => {
-  const icons: Record<number, any> = {
+  const icons: Record<number, Component> = {
     1: StarIcon,
     2: UserIcon, // ChefHatIcon placeholder
     3: ListBulletIcon,

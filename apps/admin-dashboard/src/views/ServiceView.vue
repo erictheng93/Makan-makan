@@ -616,7 +616,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, type Component } from "vue";
 import {
   ArrowPathIcon,
   TruckIcon,
@@ -970,7 +970,7 @@ const submitIssue = async () => {
 
 // 輔助方法
 const getStatusIcon = (status: string) => {
-  const icons: Record<string, any> = {
+  const icons: Record<string, Component> = {
     ready: TruckIcon,
     delivering: MapIcon,
     delivered: CheckCircleIcon,
