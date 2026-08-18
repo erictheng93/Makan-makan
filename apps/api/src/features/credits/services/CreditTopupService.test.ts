@@ -20,32 +20,117 @@ import {
   HttpCreditTopupGateway,
   type CreditTopupGateway,
 } from "./CreditTopupService";
+import {
+  creditAccounts,
+  creditCards,
+  creditTopupIntents,
+} from "@makanmasak/database";
 
-interface QueueItem {
-  get?: unknown;
-  returning?: unknown[];
+/**
+ * Select fixtures are keyed by table, not by call order: `from(table)`
+ * decides which queue a query draws from, so adding a query against one
+ * table can no longer shift another table's results out from under it.
+ *
+ * Two things still need care when the code under test grows a new query:
+ *
+ * - Within a single table the queue is positional. The Nth read of a table
+ *   takes that table's Nth fixture, so a new query means inserting a fixture
+ *   at the matching index rather than appending one at the end.
+ * - A table has to be listed in `fixtureTables` before it can be declared. An
+ *   unregistered table matches no queue, so every read of it throws.
+ *
+ * Missing and exhausted fixtures both throw and name the table. Nothing
+ * falls back to `[]`/`null`; a silent empty/null result is what made the
+ * previous positional queue so hard to trace back to its cause.
+ *
+ * `CreditTopupService` terminates its selects with `.get()` (single row, or
+ * `undefined` when the fixture entry is `[]`) instead of awaiting the
+ * builder directly — it consumes the next fixture queued for the table
+ * passed to `from()` and takes index 0 of it.
+ *
+ * `createIntent` selects `from(creditCards)` and inner-joins `creditAccounts`
+ * to read the account row in one query — that call still routes to
+ * `creditCards` because joins never change the routing table, so
+ * `creditAccounts` is never the `from()` target anywhere in this service and
+ * stays out of `fixtureTables`. It is imported here only so the regression
+ * test below has a real, unregistered table to demonstrate the
+ * "<unknown table>" case. `creditTopupIntents` is both the only table
+ * `getIntent`/`findIntent` select from and the table `createIntent`/
+ * `confirmIntent` insert/update, so it is registered for select fixtures
+ * while its mutation queue (below) stays untouched.
+ *
+ * None of this service's selects are wrapped in try/catch — the one
+ * try/catch, in `createIntent`, wraps only the gateway call and the update
+ * that marks a failed intent, after the select already ran. A harness throw
+ * from a missing/exhausted select fixture therefore always surfaces as a
+ * rejected promise here; no swallowing caveat applies.
+ */
+type SelectFixtureName = "creditCards" | "creditTopupIntents";
+type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
+
+const fixtureTables: Record<SelectFixtureName, unknown> = {
+  creditCards,
+  creditTopupIntents,
+};
+const fixtureTableNames = new Map<unknown, SelectFixtureName>(
+  Object.entries(fixtureTables).map(([name, table]) => [
+    table,
+    name as SelectFixtureName,
+  ]),
+);
+const unselectedTable = Symbol("unselectedTable");
+
+function createQuery(nextResultFor: (table: unknown) => unknown) {
+  let selectedTable: unknown = unselectedTable;
+  const builder = {
+    from: vi.fn((table: unknown) => {
+      selectedTable = table;
+      return builder;
+    }),
+    innerJoin: vi.fn(() => builder), // joins don't change selectedTable
+    where: vi.fn(() => builder),
+    get: vi.fn(async () => {
+      if (selectedTable === unselectedTable) {
+        throw new Error("Select fixture query never called from(table)");
+      }
+      return (nextResultFor(selectedTable) as unknown[])[0];
+    }),
+  };
+  return builder;
 }
 
-function createSelectChain(queues: { select: QueueItem[] }) {
-  const chain = {
-    from: vi.fn(() => chain),
-    innerJoin: vi.fn(() => chain),
-    where: vi.fn(() => chain),
-    get: vi.fn(async () => queues.select.shift()?.get ?? null),
+function mockSelectResults(fixtures: SelectFixtures = {}) {
+  const selectResults = new Map<unknown, unknown[][]>(
+    Object.entries(fixtures).map(([name, results]) => [
+      fixtureTables[name as SelectFixtureName],
+      [...(results ?? [])],
+    ]),
+  );
+  const nextResultFor = (table: unknown) => {
+    const name = fixtureTableNames.get(table) ?? "<unknown table>";
+    const queue = selectResults.get(table);
+    if (!queue) throw new Error(`Missing select fixture for ${name}`);
+    const result = queue.shift();
+    if (result === undefined) {
+      throw new Error(`No select fixtures remaining for ${name}`);
+    }
+    return result;
   };
-  return chain;
+  mocks.db.select.mockImplementation(() => createQuery(nextResultFor));
+}
+
+interface MutationQueueItem {
+  returning?: unknown[];
 }
 
 function createFakeDb() {
   const queues = {
-    select: [] as QueueItem[],
-    insert: [] as QueueItem[],
-    update: [] as QueueItem[],
+    insert: [] as MutationQueueItem[],
+    update: [] as MutationQueueItem[],
     insertValues: [] as unknown[],
     updateValues: [] as unknown[],
   };
 
-  mocks.db.select.mockImplementation(() => createSelectChain(queues));
   mocks.db.insert.mockImplementation(() => {
     const chain = {
       values: vi.fn((values: unknown) => {
@@ -135,13 +220,43 @@ describe("CreditTopupService", () => {
     vi.useRealTimers();
   });
 
+  it("routes select fixtures by table and reports missing fixtures", async () => {
+    createFakeDb();
+    const card = { id: "account-1", currency: "TWD", status: "active" };
+    mockSelectResults({
+      creditTopupIntents: [[intent()], [intent({ id: "intent-2" })]],
+      creditCards: [[card]],
+    });
+
+    // Read in reverse declaration order: routing follows the table passed to
+    // from(), not the execution order.
+    await expect(mocks.db.select().from(creditCards).get()).resolves.toEqual(
+      card,
+    );
+    await expect(
+      mocks.db.select().from(creditTopupIntents).get(),
+    ).resolves.toEqual(intent());
+    await expect(
+      mocks.db.select().from(creditTopupIntents).get(),
+    ).resolves.toEqual(intent({ id: "intent-2" }));
+    await expect(
+      mocks.db.select().from(creditTopupIntents).get(),
+    ).rejects.toThrow("No select fixtures remaining for creditTopupIntents");
+    // creditAccounts is only ever inner-joined in this service (createIntent
+    // selects from(creditCards)), never the from() target, so it stays out
+    // of fixtureTables and reports <unknown table>.
+    await expect(mocks.db.select().from(creditAccounts).get()).rejects.toThrow(
+      "Missing select fixture for <unknown table>",
+    );
+  });
+
   it("creates an online top-up intent and stores provider metadata", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     const { queues } = createFakeDb();
     const fakeGateway = gateway();
-    queues.select.push({
-      get: { id: "account-1", currency: "TWD", status: "active" },
+    mockSelectResults({
+      creditCards: [[{ id: "account-1", currency: "TWD", status: "active" }]],
     });
     queues.insert.push({
       returning: [intent({ providerTransactionId: null })],
@@ -203,7 +318,7 @@ describe("CreditTopupService", () => {
       }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
-    queues.select.push({ get: null });
+    mockSelectResults({ creditCards: [[]] });
     await expect(
       service.createIntent({
         publicId: "missing",
@@ -212,8 +327,10 @@ describe("CreditTopupService", () => {
       }),
     ).rejects.toMatchObject({ code: "CREDIT_CARD_NOT_FOUND" });
 
-    queues.select.push({
-      get: { id: "account-1", currency: "TWD", status: "suspended" },
+    mockSelectResults({
+      creditCards: [
+        [{ id: "account-1", currency: "TWD", status: "suspended" }],
+      ],
     });
     await expect(
       service.createIntent({
@@ -223,8 +340,8 @@ describe("CreditTopupService", () => {
       }),
     ).rejects.toMatchObject({ code: "CREDIT_ACCOUNT_INACTIVE" });
 
-    queues.select.push({
-      get: { id: "account-1", currency: "MYR", status: "active" },
+    mockSelectResults({
+      creditCards: [[{ id: "account-1", currency: "MYR", status: "active" }]],
     });
     await expect(
       service.createIntent({
@@ -239,8 +356,8 @@ describe("CreditTopupService", () => {
         throw new Error("gateway down");
       }),
     });
-    queues.select.push({
-      get: { id: "account-1", currency: "TWD", status: "active" },
+    mockSelectResults({
+      creditCards: [[{ id: "account-1", currency: "TWD", status: "active" }]],
     });
     queues.insert.push({
       returning: [intent({ providerTransactionId: null })],
@@ -272,7 +389,7 @@ describe("CreditTopupService", () => {
       gateway(),
     );
 
-    queues.select.push({ get: intent() });
+    mockSelectResults({ creditTopupIntents: [[intent()]] });
     queues.update.push({
       returning: [intent({ status: "failed", errorMessage: "declined" })],
     });
@@ -289,7 +406,7 @@ describe("CreditTopupService", () => {
       alreadyProcessed: false,
     });
 
-    queues.select.push({ get: intent() });
+    mockSelectResults({ creditTopupIntents: [[intent()]] });
     queues.update.push({
       returning: [
         intent({
@@ -320,7 +437,9 @@ describe("CreditTopupService", () => {
       sourceId: "intent-1",
     });
 
-    queues.select.push({ get: intent({ status: "paid" }) });
+    mockSelectResults({
+      creditTopupIntents: [[intent({ status: "paid" })]],
+    });
     await expect(
       service.confirmIntent({ intentId: "intent-1", status: "paid" }),
     ).resolves.toMatchObject({
@@ -328,7 +447,9 @@ describe("CreditTopupService", () => {
       alreadyProcessed: true,
     });
 
-    queues.select.push({ get: intent({ status: "expired" }) });
+    mockSelectResults({
+      creditTopupIntents: [[intent({ status: "expired" })]],
+    });
     await expect(
       service.confirmIntent({ providerTransactionId: "txn-1", status: "paid" }),
     ).resolves.toMatchObject({
@@ -338,7 +459,7 @@ describe("CreditTopupService", () => {
   });
 
   it("guards confirmation identifiers and reads intents by id", async () => {
-    const { queues } = createFakeDb();
+    createFakeDb();
     const service = new CreditTopupService(
       env(),
       creditService() as never,
@@ -349,12 +470,14 @@ describe("CreditTopupService", () => {
       service.confirmIntent({ status: "paid" }),
     ).rejects.toMatchObject({ code: "CREDIT_TOPUP_IDENTIFIER_REQUIRED" });
 
-    queues.select.push({ get: null });
+    mockSelectResults({ creditTopupIntents: [[]] });
     await expect(
       service.confirmIntent({ intentId: "missing", status: "paid" }),
     ).rejects.toMatchObject({ code: "CREDIT_TOPUP_INTENT_NOT_FOUND" });
 
-    queues.select.push({ get: intent({ providerTransactionId: "txn-real" }) });
+    mockSelectResults({
+      creditTopupIntents: [[intent({ providerTransactionId: "txn-real" })]],
+    });
     await expect(
       service.confirmIntent({
         intentId: "intent-1",
@@ -363,7 +486,7 @@ describe("CreditTopupService", () => {
       }),
     ).rejects.toMatchObject({ code: "CREDIT_TOPUP_IDENTIFIER_MISMATCH" });
 
-    queues.select.push({ get: intent() });
+    mockSelectResults({ creditTopupIntents: [[intent()]] });
     await expect(service.getIntent("intent-1")).resolves.toMatchObject({
       id: "intent-1",
     });
