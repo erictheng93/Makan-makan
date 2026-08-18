@@ -9,7 +9,7 @@ import { performanceService } from "@/services/performanceService";
 import {
   getApiErrorStatus,
   getApiErrorStatusText,
-  getErrorMessage as getUnknownErrorMessage,
+  describeErrorForLog,
 } from "@/utils/unknown";
 
 const getResourceUrl = (target: EventTarget): string | undefined => {
@@ -107,8 +107,10 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
 
     // Show toast notification if enabled
     if (showToast && !critical) {
-      const message = getErrorMessage(errorObj);
-      toast.error(message);
+      // `getErrorMessage` below, not the log describer: this one is read by a
+      // chef, and the throwables that reach here are browser-side (a window
+      // `error` event, a rejected promise) so they carry no status to classify.
+      toast.error(getErrorMessage(errorObj));
     }
 
     // Log performance impact
@@ -146,9 +148,7 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
       return result;
     } catch (error) {
       handleError(
-        error instanceof Error
-          ? error
-          : new Error(getUnknownErrorMessage(error)),
+        error instanceof Error ? error : new Error(describeErrorForLog(error)),
         {
           operation: "async",
           ...context,
@@ -185,7 +185,7 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
         handleError(
           error instanceof Error
             ? error
-            : new Error(getUnknownErrorMessage(error)),
+            : new Error(describeErrorForLog(error)),
           {
             retryAttempt: errorState.value.retryCount,
             ...context,
@@ -260,7 +260,7 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
             handleError(
               error instanceof Error
                 ? error
-                : new Error(getUnknownErrorMessage(error)),
+                : new Error(describeErrorForLog(error)),
               { function: fn.name },
             );
             throw error;
@@ -272,7 +272,7 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
         handleError(
           error instanceof Error
             ? error
-            : new Error(getUnknownErrorMessage(error)),
+            : new Error(describeErrorForLog(error)),
           { function: fn.name },
         );
         throw error;
@@ -400,7 +400,7 @@ export function useErrorHandling(options: ErrorHandlingOptions = {}) {
     withErrorBoundary,
 
     // Utilities
-    getErrorMessage,
+    describeErrorForLog,
     monitorErrorImpact,
   };
 }

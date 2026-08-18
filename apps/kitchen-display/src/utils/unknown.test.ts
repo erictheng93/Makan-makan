@@ -1,43 +1,35 @@
 import { describe, expect, it } from "vitest";
-import { getApiErrorMessage, getErrorMessage } from "./unknown";
+import { describeErrorForLog, getApiErrorStatus, isRecord } from "./unknown";
 
-describe("getApiErrorMessage", () => {
-  it("maps a unified envelope by code instead of displaying server prose", () => {
-    const error = {
-      message: "Request failed with status code 401",
-      response: {
-        status: 401,
-        data: {
-          success: false,
-          error: { code: "ACCOUNT_LOCKED", message: "帳號已鎖定" },
-        },
-      },
-    };
-
-    expect(getApiErrorMessage(error, "登入失敗")).toBe(
-      "帳號已被鎖定，請稍後再試或聯繫管理員",
-    );
-  });
-
-  it("maps legacy server messages by HTTP status instead of displaying them", () => {
-    const error = { response: { data: { message: "舊路由訊息" } } };
-    expect(getApiErrorMessage(error, "登入失敗")).toBe(
-      "發生未知錯誤，請稍後再試",
-    );
-  });
-
-  it("does not expose error messages or caller fallbacks", () => {
-    expect(getApiErrorMessage(new Error("Network Error"), "登入失敗")).toBe(
-      "發生未知錯誤，請稍後再試",
-    );
-    expect(getApiErrorMessage({}, "登入失敗")).toBe("發生未知錯誤，請稍後再試");
-  });
-});
-
-describe("getErrorMessage", () => {
-  it("never presents an Error message", () => {
+describe("kitchen unknown-narrowing helpers", () => {
+  it("keeps the server's sentence available to the console", () => {
     expect(
-      getErrorMessage(new Error("Internal server detail"), "fallback"),
-    ).toBe("發生未知錯誤，請稍後再試");
+      describeErrorForLog(
+        {
+          response: {
+            status: 403,
+            data: {
+              error: { code: "FORBIDDEN", message: "Restaurant access denied" },
+            },
+          },
+        },
+        "獲取訂單失敗",
+      ),
+    ).toBe("Restaurant access denied");
+  });
+
+  it("uses the caller's text only when the error carries none", () => {
+    expect(describeErrorForLog({}, "獲取訂單失敗")).toBe("獲取訂單失敗");
+  });
+
+  it("reads the status off an axios-shaped error", () => {
+    expect(getApiErrorStatus({ response: { status: 409 } })).toBe(409);
+    expect(getApiErrorStatus(new Error("boom"))).toBeUndefined();
+  });
+
+  it("narrows objects and rejects primitives", () => {
+    expect(isRecord({ a: 1 })).toBe(true);
+    expect(isRecord(null)).toBe(false);
+    expect(isRecord("x")).toBe(false);
   });
 });

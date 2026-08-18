@@ -1843,8 +1843,6 @@ const zhTWCore = {
 
   // 認證
   auth: {
-    invalidCredentials: "帳號或密碼不正確",
-    accountLocked: "連續登入失敗過多次，帳號已暫時鎖定，請稍後再試",
     adminLogin: "管理後台登入",
     username: "帳號",
     password: "密碼",

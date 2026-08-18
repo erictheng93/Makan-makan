@@ -1,6 +1,6 @@
 import api from "./authApi";
 import type { ApiResponse, KitchenOrdersResponse, ItemStatus } from "@/types";
-import { getApiErrorMessage } from "@/utils/unknown";
+import { describeErrorForLog } from "@/utils/unknown";
 
 export interface UpdateItemStatusRequest {
   status: ItemStatus;
@@ -25,7 +25,7 @@ export const kitchenApi = {
     } catch (error: unknown) {
       console.error("Get kitchen orders API error:", error);
 
-      const message = getApiErrorMessage(error, "獲取訂單失敗");
+      const message = describeErrorForLog(error, "獲取訂單失敗");
       return {
         success: false,
         error: message,
@@ -57,7 +57,7 @@ export const kitchenApi = {
     } catch (error: unknown) {
       console.error("Update item status API error:", error);
 
-      const message = getApiErrorMessage(error, "更新狀態失敗");
+      const message = describeErrorForLog(error, "更新狀態失敗");
       return {
         success: false,
         error: message,

@@ -17,27 +17,22 @@ const policyPath = join(
   "docs/architecture/frontend/server-message-presentation-policy.json",
 );
 
-const helpers = [
-  "getApiErrorMessage",
-  "getApiEnvelopeMessage",
-  "getResponseErrorMessage",
-  "getErrorMessage",
-];
+// The four message-reading helpers were deleted; `describeErrorForLog` is what
+// replaced them, and its whole job is to read what must not be rendered. So the
+// inventory follows the name: every call is a promise that nothing shows it.
+const helpers = ["describeErrorForLog"];
 const allowedCategories = new Set([
-  // The endpoint sends no code, so there is nothing to classify yet.
-  "blocked-on-api",
   // A browser-side throwable, not a server response.
   "local-error",
   // Carried on a service envelope for logging; no view renders it.
   "transport-envelope",
   // Stored on a queued offline action for retry bookkeeping.
   "queued-action-record",
+  // Wrapped into an Error for the error-report pipeline.
+  "error-report",
 ]);
 const allowedPlans = new Set(["retain", "migrate"]);
 
-// `(?<![.\w])` keeps `this.getErrorMessage(status)` out: customer-app has a
-// private method of that name which maps an HTTP status to localized copy --
-// the opposite of reading the server's sentence.
 const callPattern = new RegExp(`(?<![.\\w])(${helpers.join("|")})\\s*\\(`);
 const definitionPattern = new RegExp(
   `\\b(function|const|let|private|public|protected)\\s+(${helpers.join("|")})\\b`,

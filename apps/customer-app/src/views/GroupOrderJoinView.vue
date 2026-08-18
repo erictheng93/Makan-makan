@@ -4,7 +4,10 @@ import { useRouter } from "vue-router";
 import { apiClient } from "@/services/api";
 import { useGroupOrder } from "@/composables/useGroupOrder";
 import { useI18n } from "@/composables/useI18n";
-import { getGroupOrderErrorI18nKey } from "@/utils/group-order-error";
+import {
+  getGroupOrderErrorI18nKey,
+  isGroupOrderNotFound,
+} from "@/utils/group-order-error";
 
 interface GroupOrderJoinPreview {
   groupOrderId: string;
@@ -64,7 +67,7 @@ async function loadPreview(): Promise<void> {
     );
   } catch (error) {
     preview.value = null;
-    if (isNotFoundError(error)) {
+    if (isGroupOrderNotFound(error)) {
       isNotFound.value = true;
     } else {
       previewError.value = t(
@@ -74,14 +77,6 @@ async function loadPreview(): Promise<void> {
   } finally {
     isLoading.value = false;
   }
-}
-
-function isNotFoundError(error: unknown): boolean {
-  if (error && typeof error === "object") {
-    const status = (error as { status?: unknown }).status;
-    if (status === 404) return true;
-  }
-  return false;
 }
 
 function openJoinForm(): void {

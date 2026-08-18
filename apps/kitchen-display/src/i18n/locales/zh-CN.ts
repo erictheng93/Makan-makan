@@ -275,18 +275,6 @@ const zhCN: Messages = {
     urgent: "紧急",
   },
   // resolveUserFacingError 根据 HTTP 状态／传输错误选用的文案。
-  errorPresentation: {
-    invalidRequest: "请求无效，请检查后重试",
-    sessionExpired: "登录已过期，请重新登录",
-    permissionDenied: "您没有执行此操作的权限",
-    notFound: "找不到所需资源",
-    conflict: "数据已变更，请刷新后重试",
-    tooManyRequests: "操作过于频繁，请稍后重试",
-    serviceUnavailable: "服务暂时不可用，请稍后重试",
-    network: "网络连接失败，请检查网络后重试",
-    timeout: "操作超时，请稍后重试",
-    unknown: "发生未知错误，请稍后重试",
-  },
 
   header: {
     boardView: "看板",
@@ -465,8 +453,6 @@ const zhCN: Messages = {
     updateStatusFailed: "更新状态失败：",
   },
   login: {
-    invalidCredentials: "用户名称或密码不正确",
-    accountLocked: "连续登录失败过多次，账号已暂时锁定，请稍后再试",
     fetchRestaurantError: "无法获取餐厅资讯",
     helpNote: "需要协助？请联系系统管理员",
     loggingIn: "登入中...",

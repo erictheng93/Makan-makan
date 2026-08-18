@@ -15,5 +15,12 @@ export function resolveKitchenLoginError(
 ): string {
   return resolveUserFacingError(error, translate, {
     codeKeys: LOGIN_ERROR_KEYS,
+    // A 401 here is the password being rejected. Everywhere else it means the
+    // session lapsed, and telling someone at the sign-in form to sign in again
+    // is the one instruction they are already following.
+    statusKeys: { 401: "login.invalidCredentials" },
+    // Named rather than "an unknown error occurred": whatever else went wrong,
+    // the reader knows they were trying to log in and what to try next.
+    fallbackKey: "login.loginError",
   }).message;
 }

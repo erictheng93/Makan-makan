@@ -1,80 +1,70 @@
 [
   {
-    "app": "admin-dashboard",
-    "file": "apps/admin-dashboard/src/views/ForgotPasswordView.vue",
-    "helper": "getResponseErrorMessage",
+    "app": "kitchen-display",
+    "file": "apps/kitchen-display/src/composables/useErrorHandling.ts",
+    "helper": "describeErrorForLog",
     "occurrence": 1,
-    "code": "error.value = getResponseErrorMessage(data) ?? t(\"auth.sendFailed\");",
-    "category": "blocked-on-api",
-    "plan": "migrate",
-    "rationale": "POST /auth/forgot-password answers { success, message } with no error envelope and no code, so there is nothing on the wire for the resolver to classify. Migrating as-is would replace the server's reason with \"check your input\" on every 400. The endpoint has to emit a code first."
-  },
-  {
-    "app": "admin-dashboard",
-    "file": "apps/admin-dashboard/src/views/ResetPasswordView.vue",
-    "helper": "getResponseErrorMessage",
-    "occurrence": 1,
-    "code": "getResponseErrorMessage(data) ?? t(\"auth.tokenInvalid\");",
-    "category": "blocked-on-api",
-    "plan": "migrate",
-    "rationale": "GET /auth/reset-password/verify answers { valid, ... } with no code. A spent reset link and a malformed one are both 400, and the shared 400 copy tells the reader to check their input, which is not something they typed."
-  },
-  {
-    "app": "admin-dashboard",
-    "file": "apps/admin-dashboard/src/views/ResetPasswordView.vue",
-    "helper": "getResponseErrorMessage",
-    "occurrence": 2,
-    "code": "error.value = getResponseErrorMessage(data) ?? t(\"auth.resetFailed\");",
-    "category": "blocked-on-api",
-    "plan": "migrate",
-    "rationale": "POST /auth/reset-password answers { success, message } with no code, so a weak password and an expired token are indistinguishable to the client. Same prerequisite as the other two."
+    "code": "error instanceof Error ? error : new Error(describeErrorForLog(error)),",
+    "category": "error-report",
+    "plan": "retain",
+    "rationale": "Builds the Error handed to errorReportingService. The report is read by whoever is debugging, which is the one audience the server's sentence is written for."
   },
   {
     "app": "kitchen-display",
     "file": "apps/kitchen-display/src/composables/useErrorHandling.ts",
-    "helper": "getErrorMessage",
-    "occurrence": 1,
-    "code": "const message = getErrorMessage(errorObj);",
-    "category": "local-error",
+    "helper": "describeErrorForLog",
+    "occurrence": 2,
+    "code": ": new Error(describeErrorForLog(error)),",
+    "category": "error-report",
     "plan": "retain",
-    "rationale": "The global handler builds its own Error from window 'error' and 'unhandledrejection' events, so this message is JavaScript's, not a server response. The only consumer today passes showToast:false, so it does not reach a toast at all."
+    "rationale": "Same wrapper on the async path; the value goes to the report pipeline, never to a toast -- the toast a few lines above uses the localized name map instead."
+  },
+  {
+    "app": "kitchen-display",
+    "file": "apps/kitchen-display/src/composables/useErrorHandling.ts",
+    "helper": "describeErrorForLog",
+    "occurrence": 3,
+    "code": ": new Error(describeErrorForLog(error)),",
+    "category": "error-report",
+    "plan": "retain",
+    "rationale": "Wraps a non-Error throwable for the retry reporter so the report says what was thrown."
+  },
+  {
+    "app": "kitchen-display",
+    "file": "apps/kitchen-display/src/composables/useErrorHandling.ts",
+    "helper": "describeErrorForLog",
+    "occurrence": 4,
+    "code": ": new Error(describeErrorForLog(error)),",
+    "category": "error-report",
+    "plan": "retain",
+    "rationale": "Wraps a non-Error throwable for the error-boundary reporter."
   },
   {
     "app": "kitchen-display",
     "file": "apps/kitchen-display/src/composables/useKeyboardShortcuts.ts",
-    "helper": "getErrorMessage",
+    "helper": "describeErrorForLog",
     "occurrence": 1,
-    "code": "toast.error(`快捷鍵執行失敗: ${getErrorMessage(error)}`);",
+    "code": "toast.error(`快捷鍵執行失敗: ${describeErrorForLog(error)}`);",
     "category": "local-error",
     "plan": "retain",
-    "rationale": "Reports a shortcut handler throwing -- a browser-side error with no HTTP response to classify. The composable has no translator, so routing it through the resolver would trade a real message for \"an unknown error occurred\"."
+    "rationale": "Reports a shortcut handler throwing -- a browser-side error with no HTTP response to classify, and the composable has no translator, so the resolver would answer \"unknown error\" and lose the only useful part."
   },
   {
     "app": "kitchen-display",
     "file": "apps/kitchen-display/src/composables/useKeyboardShortcuts.ts",
-    "helper": "getErrorMessage",
+    "helper": "describeErrorForLog",
     "occurrence": 2,
-    "code": "toast.error(\"導入失敗: \" + getErrorMessage(error));",
+    "code": "toast.error(\"導入失敗: \" + describeErrorForLog(error));",
     "category": "local-error",
     "plan": "retain",
-    "rationale": "Reports a shortcuts JSON import failing -- a parse error on a file the user just picked, so the parser's own message is the useful part and there is no response to classify."
+    "rationale": "Reports a shortcuts JSON import failing. The parser's own message names what is wrong with the file the user just picked; there is no response to classify."
   },
   {
     "app": "kitchen-display",
     "file": "apps/kitchen-display/src/services/authApi.ts",
-    "helper": "getApiErrorMessage",
+    "helper": "describeErrorForLog",
     "occurrence": 1,
-    "code": "error: getApiErrorMessage(error, \"Login request failed\"),",
-    "category": "transport-envelope",
-    "plan": "retain",
-    "rationale": "Kept deliberately alongside code and status: LoginView translates from those two, and this string is what the store's console.error prints. Removing it would make a lockout undiagnosable from a log."
-  },
-  {
-    "app": "kitchen-display",
-    "file": "apps/kitchen-display/src/services/authApi.ts",
-    "helper": "getApiErrorMessage",
-    "occurrence": 2,
-    "code": "error: getApiErrorMessage(error, \"Token 刷新失敗\"),",
+    "code": "error: describeErrorForLog(error, \"Token 刷新失敗\"),",
     "category": "transport-envelope",
     "plan": "retain",
     "rationale": "Token refresh runs in the background; its failure logs out or retries rather than rendering. Nothing displays this field."
@@ -82,9 +72,9 @@
   {
     "app": "kitchen-display",
     "file": "apps/kitchen-display/src/services/authApi.ts",
-    "helper": "getApiErrorMessage",
-    "occurrence": 3,
-    "code": "const message = getApiErrorMessage(error, \"Token 驗證失敗\");",
+    "helper": "describeErrorForLog",
+    "occurrence": 2,
+    "code": "const message = describeErrorForLog(error, \"Token 驗證失敗\");",
     "category": "transport-envelope",
     "plan": "retain",
     "rationale": "Token validation runs on boot and its failure redirects to login rather than rendering a message."
@@ -92,9 +82,9 @@
   {
     "app": "kitchen-display",
     "file": "apps/kitchen-display/src/services/authApi.ts",
-    "helper": "getApiErrorMessage",
-    "occurrence": 4,
-    "code": "const message = getApiErrorMessage(error, \"獲取用戶資訊失敗\");",
+    "helper": "describeErrorForLog",
+    "occurrence": 3,
+    "code": "const message = describeErrorForLog(error, \"獲取用戶資訊失敗\");",
     "category": "transport-envelope",
     "plan": "retain",
     "rationale": "Profile fetch failure is handled by the caller's own state, not by displaying this string."
@@ -102,39 +92,39 @@
   {
     "app": "kitchen-display",
     "file": "apps/kitchen-display/src/services/kitchenApi.ts",
-    "helper": "getApiErrorMessage",
+    "helper": "describeErrorForLog",
     "occurrence": 1,
-    "code": "const message = getApiErrorMessage(error, \"獲取訂單失敗\");",
+    "code": "const message = describeErrorForLog(error, \"獲取訂單失敗\");",
     "category": "transport-envelope",
-    "plan": "migrate",
-    "rationale": "The orders store rethrows this as a bare Error, so the resolver sees no code or status and answers with the generic copy. Nothing leaks -- the resolver ignores message -- but every kitchen API failure reads the same. Fixing it means carrying code and status the way authApi now does."
+    "plan": "retain",
+    "rationale": "The orders store rethrows this as an Error and resolves its copy separately, so this value only ever reaches console.error -- where \"Restaurant access denied\" is the line worth having."
   },
   {
     "app": "kitchen-display",
     "file": "apps/kitchen-display/src/services/kitchenApi.ts",
-    "helper": "getApiErrorMessage",
+    "helper": "describeErrorForLog",
     "occurrence": 2,
-    "code": "const message = getApiErrorMessage(error, \"更新狀態失敗\");",
+    "code": "const message = describeErrorForLog(error, \"更新狀態失敗\");",
     "category": "transport-envelope",
-    "plan": "migrate",
-    "rationale": "Same as the orders fetch above: the message survives only into the log, and the classification that would tell a chef whether the item was already served is lost on the way."
+    "plan": "retain",
+    "rationale": "Same as the orders fetch: the store renders resolver output and logs this."
   },
   {
     "app": "kitchen-display",
     "file": "apps/kitchen-display/src/services/offlineService.ts",
-    "helper": "getErrorMessage",
+    "helper": "describeErrorForLog",
     "occurrence": 1,
-    "code": "action.error = getErrorMessage(error, \"Sync failed\");",
+    "code": "action.error = describeErrorForLog(error, \"Sync failed\");",
     "category": "queued-action-record",
     "plan": "retain",
-    "rationale": "Recorded on the queued action for retry bookkeeping and the error-report dashboard. No template renders OfflineAction.error."
+    "rationale": "Recorded on the queued action for retry bookkeeping. No template renders OfflineAction.error, and for retries before the last one this is the only place the reason survives."
   },
   {
     "app": "kitchen-display",
     "file": "apps/kitchen-display/src/services/offlineService.ts",
-    "helper": "getErrorMessage",
+    "helper": "describeErrorForLog",
     "occurrence": 2,
-    "code": "error: getErrorMessage(error, \"Offline action replay failed\"),",
+    "code": "error: describeErrorForLog(error, \"Offline action replay failed\"),",
     "category": "queued-action-record",
     "plan": "retain",
     "rationale": "The replay result is consumed by the sync loop to decide whether to retry, not by a view."

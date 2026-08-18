@@ -1,6 +1,6 @@
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useToast } from "vue-toastification";
-import { getErrorMessage } from "@/utils/unknown";
+import { describeErrorForLog } from "@/utils/unknown";
 // Remove unused import
 
 // Keyboard shortcut configuration
@@ -365,7 +365,7 @@ export function useKeyboardShortcuts() {
         showActionFeedback(action);
       } catch (error: unknown) {
         console.error(`Error executing shortcut action "${action}":`, error);
-        toast.error(`快捷鍵執行失敗: ${getErrorMessage(error)}`);
+        toast.error(`快捷鍵執行失敗: ${describeErrorForLog(error)}`);
       }
     } else {
       console.warn(`No handler found for action: ${action}`);
@@ -538,7 +538,7 @@ export function useKeyboardShortcuts() {
             throw new Error("Invalid shortcut configuration format");
           }
         } catch (error: unknown) {
-          toast.error("導入失敗: " + getErrorMessage(error));
+          toast.error("導入失敗: " + describeErrorForLog(error));
           reject(error);
         }
       };

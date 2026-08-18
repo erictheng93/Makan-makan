@@ -1793,9 +1793,6 @@ const idID: Messages = {
     noResults: "Restoran tidak ditemukan",
   },
   auth: {
-    invalidCredentials: "Nama pengguna atau kata sandi tidak benar.",
-    accountLocked:
-      "Terlalu banyak percobaan gagal. Akun ini dikunci sementara — silakan coba lagi nanti.",
     adminLogin: "Masuk Dasbor Admin",
     username: "Nama Pengguna",
     password: "Kata Sandi",

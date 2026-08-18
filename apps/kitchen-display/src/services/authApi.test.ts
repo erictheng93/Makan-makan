@@ -187,7 +187,12 @@ describe("kitchen auth API", () => {
     });
   });
 
-  it("returns locale-safe copy when refresh fails", async () => {
+  /**
+   * `error` on these envelopes is a log line, not copy. Nothing renders a
+   * background token refresh failing -- it retries or signs the chef out -- and
+   * "refresh denied" is what makes that decision explicable afterwards.
+   */
+  it("keeps the server's reason on the refresh failure for the log", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     mockApi.post.mockRejectedValueOnce({
       response: { data: { message: "Refresh denied" } },
@@ -197,7 +202,7 @@ describe("kitchen auth API", () => {
 
     expect(result).toMatchObject({
       success: false,
-      error: "發生未知錯誤，請稍後再試",
+      error: "Refresh denied",
     });
   });
 
@@ -219,7 +224,7 @@ describe("kitchen auth API", () => {
     });
   });
 
-  it("returns locale-safe copy when token validation fails", async () => {
+  it("keeps the server's reason on a validation failure for the log", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     mockApi.get.mockRejectedValueOnce({
       response: { data: { message: "Token expired" } },
@@ -230,7 +235,7 @@ describe("kitchen auth API", () => {
     expect(mockApi.get).toHaveBeenCalledWith("/auth/validate");
     expect(result).toMatchObject({
       success: false,
-      error: "發生未知錯誤，請稍後再試",
+      error: "Token expired",
     });
   });
 
@@ -252,16 +257,16 @@ describe("kitchen auth API", () => {
     });
   });
 
-  it("returns locale-safe copy when fetching the current user fails", async () => {
+  it("falls back to the caller's text when the failure says nothing", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
-    mockApi.get.mockRejectedValueOnce(new Error("network down"));
+    mockApi.get.mockRejectedValueOnce(new Error(""));
 
     const result = await authApi.getCurrentUser();
 
     expect(mockApi.get).toHaveBeenCalledWith("/auth/me");
     expect(result).toMatchObject({
       success: false,
-      error: "發生未知錯誤，請稍後再試",
+      error: "獲取用戶資訊失敗",
     });
   });
 });

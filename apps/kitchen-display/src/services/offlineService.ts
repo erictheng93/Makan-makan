@@ -1,7 +1,7 @@
 import { ref, computed } from "vue";
 import { apiClient } from "./authApi";
 import type { KitchenOrder } from "@/types";
-import { getErrorMessage, isRecord } from "@/utils/unknown";
+import { describeErrorForLog, isRecord } from "@/utils/unknown";
 
 interface OfflineActionPayload {
   status?: KitchenOrder["status"];
@@ -416,7 +416,7 @@ class OfflineService {
       }
     } catch (error: unknown) {
       action.retryCount++;
-      action.error = getErrorMessage(error, "Sync failed");
+      action.error = describeErrorForLog(error, "Sync failed");
 
       if (action.retryCount >= this.MAX_RETRY_ATTEMPTS) {
         console.error(
@@ -457,7 +457,7 @@ class OfflineService {
     } catch (error: unknown) {
       return {
         success: false,
-        error: getErrorMessage(error, "Offline action replay failed"),
+        error: describeErrorForLog(error, "Offline action replay failed"),
       };
     }
   }
