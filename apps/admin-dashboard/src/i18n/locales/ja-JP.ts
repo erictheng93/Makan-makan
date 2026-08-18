@@ -2121,6 +2121,8 @@ const jaJP: Messages = {
       calendar: "カレンダー表示",
     },
     messages: {
+      loadFailed: "休暇データの読み込みに失敗しました。",
+      initFailed: "休暇データの初期化に失敗しました。",
       submitSuccess: "休暇申請が送信されました",
       submitFailed: "休暇申請の送信に失敗しました",
       cancelConfirm: "この休暇申請をキャンセルしてもよろしいですか？",

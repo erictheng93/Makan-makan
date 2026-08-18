@@ -2123,6 +2123,8 @@ const viVN: Messages = {
       calendar: "Xem lịch",
     },
     messages: {
+      loadFailed: "Không tải được dữ liệu nghỉ phép.",
+      initFailed: "Không khởi tạo được dữ liệu nghỉ phép.",
       submitSuccess: "Gửi yêu cầu nghỉ phép thành công!",
       submitFailed: "Gửi yêu cầu nghỉ phép thất bại",
       cancelConfirm: "Bạn có chắc muốn hủy yêu cầu nghỉ phép này?",

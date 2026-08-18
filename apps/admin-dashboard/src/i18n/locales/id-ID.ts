@@ -2228,6 +2228,8 @@ const idID: Messages = {
       calendar: "Tampilan Kalender",
     },
     messages: {
+      loadFailed: "Gagal memuat data cuti.",
+      initFailed: "Gagal menyiapkan data cuti.",
       submitSuccess: "Pengajuan cuti berhasil dikirim!",
       submitFailed: "Gagal mengirim pengajuan cuti",
       cancelConfirm: "Apakah Anda yakin ingin membatalkan pengajuan cuti ini?",

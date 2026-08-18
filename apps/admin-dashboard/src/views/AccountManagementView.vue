@@ -13,7 +13,7 @@ import { api, unwrapApiList } from "@/services/api";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import type { Restaurant, PlatformUser } from "@/types";
 import { UserRole } from "@/types";
-import { getApiErrorMessage } from "@makanmasak/shared/utils/unknown";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 const { t } = useI18n();
 const { formatDate } = useDateFormatter();
@@ -287,7 +287,9 @@ async function handleOwnerSubmit() {
     resetOwnerForm();
     await fetchOwners();
   } catch (e: unknown) {
-    const msg = getApiErrorMessage(e, t("accountManagement.createError"));
+    const msg = resolveUserFacingError(e, t, {
+      fallbackKey: "accountManagement.createError",
+    }).message;
     submitError.value = msg;
   } finally {
     submitting.value = false;
@@ -313,7 +315,9 @@ async function handleAdminSubmit() {
     resetAdminForm();
     await fetchAdmins();
   } catch (e: unknown) {
-    const msg = getApiErrorMessage(e, t("accountManagement.createError"));
+    const msg = resolveUserFacingError(e, t, {
+      fallbackKey: "accountManagement.createError",
+    }).message;
     submitError.value = msg;
   } finally {
     submitting.value = false;

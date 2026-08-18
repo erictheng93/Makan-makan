@@ -2214,6 +2214,8 @@ const enUS: Messages = {
       calendar: "Calendar View",
     },
     messages: {
+      loadFailed: "Loading the leave data failed.",
+      initFailed: "Initializing the leave data failed.",
       submitSuccess: "Leave request submitted successfully!",
       submitFailed: "Failed to submit leave request",
       cancelConfirm: "Are you sure you want to cancel this leave request?",

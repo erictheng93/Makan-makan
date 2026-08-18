@@ -61,7 +61,7 @@ import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useBackupStore } from "@/stores/backup";
 import type { BackupRecord } from "@makanmasak/shared-types";
-import { getErrorMessage } from "@makanmasak/shared/utils/unknown";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 const props = defineProps<{
   backup: BackupRecord | null;
@@ -113,7 +113,7 @@ const handleRestore = async () => {
     emit("restored", props.backup.id);
     emit("close");
   } catch (err: unknown) {
-    error.value = getErrorMessage(err, t("backup.restore.error"));
+    error.value = resolveUserFacingError(err, t, { fallbackKey: "backup.restore.error" }).message;
   } finally {
     isRestoring.value = false;
   }

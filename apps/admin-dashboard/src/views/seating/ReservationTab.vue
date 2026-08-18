@@ -686,7 +686,7 @@ import { useI18n } from "@/i18n";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
 import { ReservationService } from "@/services/reservationService";
-import { getApiEnvelopeMessage } from "@makanmasak/shared/utils/unknown";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 import {
   ReservationStatus,
   type Reservation,
@@ -811,7 +811,11 @@ async function createReservation() {
     await loadReservations();
   } catch (error: unknown) {
     console.error("Create reservation error:", error);
-    toast.error(getApiEnvelopeMessage(error) ?? t("reservation.createError"));
+    toast.error(
+      resolveUserFacingError(error, t, {
+        fallbackKey: "reservation.createError",
+      }).message,
+    );
   } finally {
     submitting.value = false;
   }
@@ -835,7 +839,11 @@ async function confirmReservation(id: string) {
     await loadReservations();
   } catch (error: unknown) {
     console.error("Confirm reservation error:", error);
-    toast.error(getApiEnvelopeMessage(error) ?? t("reservation.confirmError"));
+    toast.error(
+      resolveUserFacingError(error, t, {
+        fallbackKey: "reservation.confirmError",
+      }).message,
+    );
   }
 }
 
@@ -849,7 +857,11 @@ async function markArrived(id: string) {
     await loadReservations();
   } catch (error: unknown) {
     console.error("Mark arrived error:", error);
-    toast.error(getApiEnvelopeMessage(error) ?? t("reservation.arrivedError"));
+    toast.error(
+      resolveUserFacingError(error, t, {
+        fallbackKey: "reservation.arrivedError",
+      }).message,
+    );
   }
 }
 
@@ -863,7 +875,11 @@ async function markSeated(id: string) {
     await loadReservations();
   } catch (error: unknown) {
     console.error("Mark seated error:", error);
-    toast.error(getApiEnvelopeMessage(error) ?? t("reservation.seatedError"));
+    toast.error(
+      resolveUserFacingError(error, t, {
+        fallbackKey: "reservation.seatedError",
+      }).message,
+    );
   }
 }
 
@@ -885,7 +901,11 @@ async function cancelReservation(id: string) {
     await loadReservations();
   } catch (error: unknown) {
     console.error("Cancel reservation error:", error);
-    toast.error(getApiEnvelopeMessage(error) ?? t("reservation.cancelError"));
+    toast.error(
+      resolveUserFacingError(error, t, {
+        fallbackKey: "reservation.cancelError",
+      }).message,
+    );
   }
 }
 

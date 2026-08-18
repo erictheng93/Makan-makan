@@ -2094,6 +2094,8 @@ const zhCN: Messages = {
       calendar: "日历视图",
     },
     messages: {
+      loadFailed: "载入请假资料失败",
+      initFailed: "初始化请假资料失败",
       submitSuccess: "请假申请提交成功！",
       submitFailed: "请假申请提交失败",
       cancelConfirm: "确定要取消此请假申请吗？",

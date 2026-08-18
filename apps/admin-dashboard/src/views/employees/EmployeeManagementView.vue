@@ -106,11 +106,8 @@ import { useAuthStore } from "@/stores/auth";
 import { leavesService } from "@/services/leavesService";
 import EmployeeFormModal from "@/components/employees/EmployeeFormModal.vue";
 import type { Employee, EmployeeFormData } from "@/types/employee";
-import {
-  getApiEnvelopeMessage,
-  getErrorMessage,
-  isRecord,
-} from "@makanmasak/shared/utils/unknown";
+import { isRecord } from "@makanmasak/shared/utils/unknown";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 import {
   Users,
   Plus,
@@ -275,8 +272,9 @@ const handleSave = async (form: EmployeeFormData, isEdit: boolean) => {
     toast.error(
       fieldMessages.length > 0
         ? fieldMessages.join("\n")
-        : (getApiEnvelopeMessage(error) ??
-            getErrorMessage(error, t("users.errors.saveFailed"))),
+        : resolveUserFacingError(error, t, {
+            fallbackKey: "users.errors.saveFailed",
+          }).message,
     );
   }
 };
@@ -286,7 +284,11 @@ const handleResetPassword = async (userId: number) => {
     await employeeList.resetPassword(userId);
     toast.success(t("users.confirm.resetPasswordSuccess"));
   } catch (error: unknown) {
-    toast.error(getApiEnvelopeMessage(error) || t("users.errors.resetFailed"));
+    toast.error(
+      resolveUserFacingError(error, t, {
+        fallbackKey: "users.errors.resetFailed",
+      }).message,
+    );
   }
 };
 
@@ -294,7 +296,11 @@ const handleToggleStatus = async (user: any) => {
   try {
     await employeeList.toggleUserStatus(user);
   } catch (error: unknown) {
-    toast.error(getApiEnvelopeMessage(error) || t("users.errors.toggleFailed"));
+    toast.error(
+      resolveUserFacingError(error, t, {
+        fallbackKey: "users.errors.toggleFailed",
+      }).message,
+    );
   }
 };
 

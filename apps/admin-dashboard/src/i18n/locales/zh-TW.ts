@@ -2296,6 +2296,8 @@ const zhTWCore = {
       calendar: "日曆檢視",
     },
     messages: {
+      loadFailed: "載入請假資料失敗",
+      initFailed: "初始化請假資料失敗",
       submitSuccess: "請假申請提交成功！",
       submitFailed: "請假申請提交失敗",
       cancelConfirm: "確定要取消此請假申請嗎？",

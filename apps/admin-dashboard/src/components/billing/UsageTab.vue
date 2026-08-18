@@ -169,7 +169,7 @@ import {
 } from "@/services/subscriptionService";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import { useI18n } from "@/i18n";
-import { getApiEnvelopeMessage } from "@makanmasak/shared/utils/unknown";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 const { formatShortDateTime } = useDateFormatter();
 const { t, locale } = useI18n();
@@ -212,7 +212,9 @@ async function loadUsage() {
     events.value = eventPage.events;
     eventsTotal.value = eventPage.total;
   } catch (err: unknown) {
-    errorMessage.value = getApiEnvelopeMessage(err) ?? t("usage.loadError");
+    errorMessage.value = resolveUserFacingError(err, t, {
+      fallbackKey: "usage.loadError",
+    }).message;
   } finally {
     isLoading.value = false;
   }
