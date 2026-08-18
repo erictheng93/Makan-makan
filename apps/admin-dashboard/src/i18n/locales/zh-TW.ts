@@ -824,7 +824,24 @@ const zhTWCore = {
   },
 
   // 錯誤訊息
+  // resolveUserFacingError 依 HTTP 狀態／傳輸錯誤挑的文案。這些字串取代的是伺服器
+  // 回傳的英文句子，所以每個語系都得真的翻譯，靠 zh-TW 後備等於沒換掉英文。
+  errorPresentation: {
+    invalidRequest: "請檢查輸入內容後再試一次。",
+    sessionExpired: "登入狀態已失效，請重新登入。",
+    permissionDenied: "你沒有執行此操作的權限。",
+    notFound: "找不到要求的資源。",
+    conflict: "目前狀態不允許此操作，請重新整理後再試。",
+    tooManyRequests: "操作過於頻繁，請稍後再試。",
+    serviceUnavailable: "系統暫時無法處理，請稍後再試。",
+    network: "網路連線發生問題，請檢查後再試。",
+    timeout: "連線逾時，請再試一次。",
+    unknown: "發生未知錯誤，請稍後再試。",
+  },
+
   errors: {
+    loadUsersFailed: "載入員工列表失敗",
+    loadEmployeeFailed: "載入員工資料失敗",
     generic: "操作失敗，請重試",
     networkError: "網路錯誤，請檢查網路連線",
     notFound: "未找到資料",

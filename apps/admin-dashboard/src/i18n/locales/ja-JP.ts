@@ -695,7 +695,25 @@ const jaJP: Messages = {
     workHours: "{hours}時間",
     rangeSeparator: "〜",
   },
+  // resolveUserFacingError が HTTP ステータス／通信エラーから選ぶ文言。
+  errorPresentation: {
+    invalidRequest: "入力内容をご確認のうえ、もう一度お試しください。",
+    sessionExpired:
+      "ログインの有効期限が切れました。再度ログインしてください。",
+    permissionDenied: "この操作を行う権限がありません。",
+    notFound: "対象のデータが見つかりませんでした。",
+    conflict:
+      "現在の状態ではこの操作を実行できません。画面を更新してからお試しください。",
+    tooManyRequests: "操作が集中しています。しばらくしてからお試しください。",
+    serviceUnavailable: "現在処理できません。しばらくしてからお試しください。",
+    network: "ネットワークに問題が発生しました。接続をご確認ください。",
+    timeout: "接続がタイムアウトしました。もう一度お試しください。",
+    unknown: "エラーが発生しました。しばらくしてからお試しください。",
+  },
+
   errors: {
+    loadUsersFailed: "従業員一覧の読み込みに失敗しました。",
+    loadEmployeeFailed: "従業員情報の読み込みに失敗しました。",
     generic: "操作に失敗しました。もう一度お試しください",
     networkError: "ネットワークエラー。接続を確認してください",
     notFound: "データが見つかりません",

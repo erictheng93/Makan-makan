@@ -796,7 +796,27 @@ const idID: Messages = {
     workHours: "{hours} jam",
     rangeSeparator: "sampai",
   },
+  // Teks yang dipilih resolveUserFacingError dari status HTTP atau galat transport.
+  errorPresentation: {
+    invalidRequest: "Silakan periksa input Anda dan coba lagi.",
+    sessionExpired: "Sesi Anda telah berakhir. Silakan masuk kembali.",
+    permissionDenied: "Anda tidak memiliki izin untuk melakukan ini.",
+    notFound: "Sumber yang diminta tidak ditemukan.",
+    conflict:
+      "Tindakan ini tidak tersedia dalam kondisi saat ini. Silakan muat ulang dan coba lagi.",
+    tooManyRequests:
+      "Terlalu banyak permintaan. Silakan coba lagi sebentar lagi.",
+    serviceUnavailable:
+      "Sistem tidak dapat memproses ini sekarang. Silakan coba lagi nanti.",
+    network:
+      "Terjadi masalah jaringan. Silakan periksa koneksi Anda dan coba lagi.",
+    timeout: "Koneksi habis waktu. Silakan coba lagi.",
+    unknown: "Terjadi kesalahan. Silakan coba lagi nanti.",
+  },
+
   errors: {
+    loadUsersFailed: "Gagal memuat daftar karyawan.",
+    loadEmployeeFailed: "Gagal memuat data karyawan.",
     generic: "Operasi gagal, silakan coba lagi",
     networkError: "Kesalahan jaringan, silakan periksa koneksi Anda",
     notFound: "Data tidak ditemukan",

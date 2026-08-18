@@ -695,7 +695,24 @@ const viVN: Messages = {
     workHours: "{hours} giờ",
     rangeSeparator: "đến",
   },
+  // Nội dung resolveUserFacingError chọn theo mã HTTP hoặc lỗi truyền tải.
+  errorPresentation: {
+    invalidRequest: "Vui lòng kiểm tra thông tin đã nhập và thử lại.",
+    sessionExpired: "Phiên của bạn đã hết hạn. Vui lòng đăng nhập lại.",
+    permissionDenied: "Bạn không có quyền thực hiện thao tác này.",
+    notFound: "Không tìm thấy tài nguyên được yêu cầu.",
+    conflict:
+      "Không thể thực hiện thao tác ở trạng thái hiện tại. Vui lòng làm mới và thử lại.",
+    tooManyRequests: "Có quá nhiều yêu cầu. Vui lòng thử lại sau ít phút.",
+    serviceUnavailable: "Hệ thống hiện không thể xử lý. Vui lòng thử lại sau.",
+    network: "Đã xảy ra sự cố mạng. Vui lòng kiểm tra kết nối và thử lại.",
+    timeout: "Kết nối đã hết thời gian. Vui lòng thử lại.",
+    unknown: "Đã xảy ra lỗi. Vui lòng thử lại sau.",
+  },
+
   errors: {
+    loadUsersFailed: "Không tải được danh sách nhân viên.",
+    loadEmployeeFailed: "Không tải được hồ sơ nhân viên.",
     generic: "Thao tác thất bại, vui lòng thử lại",
     networkError: "Lỗi mạng, vui lòng kiểm tra kết nối",
     notFound: "Không tìm thấy dữ liệu",

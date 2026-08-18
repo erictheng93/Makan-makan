@@ -2,7 +2,7 @@ import { ref } from "vue";
 import { api } from "@/services/api";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/i18n";
-import { getApiEnvelopeMessage } from "@makanmasak/shared/utils/unknown";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 export interface FeedbackItem {
   id: number;
@@ -85,7 +85,10 @@ export function useFeedback() {
       toast.success(t("feedback.submitSuccess"));
       return res.data.data as FeedbackItem;
     } catch (err: unknown) {
-      toast.error(getApiEnvelopeMessage(err) ?? t("feedback.submitError"));
+      toast.error(
+        resolveUserFacingError(err, t, { fallbackKey: "feedback.submitError" })
+          .message,
+      );
       throw err;
     } finally {
       isSubmitting.value = false;
@@ -109,7 +112,10 @@ export function useFeedback() {
       }>("/feedback", { params: filters });
       return res.data;
     } catch (err: unknown) {
-      toast.error(getApiEnvelopeMessage(err) ?? t("feedback.loadError"));
+      toast.error(
+        resolveUserFacingError(err, t, { fallbackKey: "feedback.loadError" })
+          .message,
+      );
       throw err;
     } finally {
       isLoading.value = false;
@@ -122,7 +128,10 @@ export function useFeedback() {
       const res = await api.get(`/feedback/${id}`);
       return res.data.data as FeedbackItem;
     } catch (err: unknown) {
-      toast.error(getApiEnvelopeMessage(err) ?? t("feedback.loadError"));
+      toast.error(
+        resolveUserFacingError(err, t, { fallbackKey: "feedback.loadError" })
+          .message,
+      );
       throw err;
     } finally {
       isLoading.value = false;
@@ -135,7 +144,10 @@ export function useFeedback() {
       toast.success(t("feedback.statusUpdated"));
       return res.data.data as FeedbackItem;
     } catch (err: unknown) {
-      toast.error(getApiEnvelopeMessage(err) ?? t("feedback.updateError"));
+      toast.error(
+        resolveUserFacingError(err, t, { fallbackKey: "feedback.updateError" })
+          .message,
+      );
       throw err;
     }
   }
@@ -153,7 +165,10 @@ export function useFeedback() {
       toast.success(t("feedback.replySuccess"));
       return res.data.data as FeedbackResponseItem;
     } catch (err: unknown) {
-      toast.error(getApiEnvelopeMessage(err) ?? t("feedback.replyError"));
+      toast.error(
+        resolveUserFacingError(err, t, { fallbackKey: "feedback.replyError" })
+          .message,
+      );
       throw err;
     }
   }
@@ -170,7 +185,10 @@ export function useFeedback() {
       );
       return res.data.data as FeedbackResponseItem;
     } catch (err: unknown) {
-      toast.error(getApiEnvelopeMessage(err) ?? t("feedback.updateError"));
+      toast.error(
+        resolveUserFacingError(err, t, { fallbackKey: "feedback.updateError" })
+          .message,
+      );
       throw err;
     }
   }
@@ -180,7 +198,10 @@ export function useFeedback() {
       await api.delete(`/feedback/${feedbackId}/responses/${responseId}`);
       toast.success(t("feedback.replyDeleted"));
     } catch (err: unknown) {
-      toast.error(getApiEnvelopeMessage(err) ?? t("feedback.updateError"));
+      toast.error(
+        resolveUserFacingError(err, t, { fallbackKey: "feedback.updateError" })
+          .message,
+      );
       throw err;
     }
   }
@@ -191,7 +212,10 @@ export function useFeedback() {
       toast.success(t("feedback.editSuccess"));
       return res.data.data as FeedbackItem;
     } catch (err: unknown) {
-      toast.error(getApiEnvelopeMessage(err) ?? t("feedback.updateError"));
+      toast.error(
+        resolveUserFacingError(err, t, { fallbackKey: "feedback.updateError" })
+          .message,
+      );
       throw err;
     }
   }
@@ -201,7 +225,10 @@ export function useFeedback() {
       await api.delete(`/feedback/${id}`);
       toast.success(t("feedback.deleteSuccess"));
     } catch (err: unknown) {
-      toast.error(getApiEnvelopeMessage(err) ?? t("feedback.updateError"));
+      toast.error(
+        resolveUserFacingError(err, t, { fallbackKey: "feedback.updateError" })
+          .message,
+      );
       throw err;
     }
   }
@@ -211,7 +238,10 @@ export function useFeedback() {
       const res = await api.get("/feedback/stats");
       return res.data.data as FeedbackStats;
     } catch (err: unknown) {
-      toast.error(getApiEnvelopeMessage(err) ?? t("feedback.loadError"));
+      toast.error(
+        resolveUserFacingError(err, t, { fallbackKey: "feedback.loadError" })
+          .message,
+      );
       throw err;
     }
   }

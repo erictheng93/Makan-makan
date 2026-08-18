@@ -689,7 +689,23 @@ const zhCN: Messages = {
     workHours: "{hours}小时",
     rangeSeparator: "至",
   },
+  // resolveUserFacingError 根据 HTTP 状态／传输错误选用的文案。
+  errorPresentation: {
+    invalidRequest: "请检查输入内容后重试。",
+    sessionExpired: "登录状态已失效，请重新登录。",
+    permissionDenied: "您没有执行此操作的权限。",
+    notFound: "找不到所请求的资源。",
+    conflict: "当前状态不允许此操作，请刷新后重试。",
+    tooManyRequests: "操作过于频繁，请稍后重试。",
+    serviceUnavailable: "系统暂时无法处理，请稍后重试。",
+    network: "网络连接出现问题，请检查后重试。",
+    timeout: "连接超时，请重试。",
+    unknown: "发生未知错误，请稍后重试。",
+  },
+
   errors: {
+    loadUsersFailed: "载入员工列表失败",
+    loadEmployeeFailed: "载入员工资料失败",
     generic: "操作失败，请重试",
     networkError: "网络错误，请检查网络连接",
     notFound: "未找到数据",

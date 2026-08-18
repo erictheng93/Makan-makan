@@ -5,10 +5,8 @@ import { useToast } from "vue-toastification";
 import { useI18n } from "@/i18n";
 import type { MenuItemImportInput } from "@/utils/menuItemImport";
 import type { ImageVariants } from "@/composables/useImageUpload";
-import {
-  getApiEnvelopeMessage,
-  getApiErrorCode,
-} from "@makanmasak/shared/utils/unknown";
+import { getApiErrorCode } from "@makanmasak/shared/utils/unknown";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 export interface CategoryData {
   id: number;
@@ -164,7 +162,11 @@ export function useMenuManagement() {
       await fetchMenu();
     } catch (error: unknown) {
       console.error("Failed to save category:", error);
-      toast.error(getApiEnvelopeMessage(error) || t("menu.errors.saveFailed"));
+      toast.error(
+        resolveUserFacingError(error, t, {
+          fallbackKey: "menu.errors.saveFailed",
+        }).message,
+      );
     }
   };
 
@@ -184,7 +186,9 @@ export function useMenuManagement() {
     } catch (error: unknown) {
       console.error("Failed to delete category:", error);
       toast.error(
-        getApiEnvelopeMessage(error) || t("menu.errors.deleteFailed"),
+        resolveUserFacingError(error, t, {
+          fallbackKey: "menu.errors.deleteFailed",
+        }).message,
       );
       await fetchMenu();
     }
@@ -360,7 +364,9 @@ export function useMenuManagement() {
     } catch (error: unknown) {
       console.error("Failed to delete menu item:", error);
       toast.error(
-        getApiEnvelopeMessage(error) || t("menu.errors.deleteFailed"),
+        resolveUserFacingError(error, t, {
+          fallbackKey: "menu.errors.deleteFailed",
+        }).message,
       );
       // Re-fetch to restore state if delete failed
       await fetchMenu();

@@ -81,3 +81,68 @@ describe("admin order store — local status updates keep the API's time format"
     expect(updated).toBeGreaterThanOrEqual(before);
   });
 });
+
+/**
+ * `t` is mocked to echo its key, so a leaked server sentence is unmistakable:
+ * anything that is not a dotted key came from the response body.
+ */
+describe("admin order store — the server's prose never reaches the banner", () => {
+  const SERVER_PROSE = "Order 41 is locked by kitchen station 3";
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    vi.clearAllMocks();
+  });
+
+  function rejectWith(status: number, code?: string) {
+    return {
+      response: {
+        status,
+        data: {
+          success: false,
+          error: { message: SERVER_PROSE, ...(code && { code }) },
+        },
+      },
+    };
+  }
+
+  it("shows the localized status copy for a 403, not the server's sentence", async () => {
+    vi.mocked(api.get).mockRejectedValue(rejectWith(403, "FORBIDDEN"));
+    const store = useOrderStore();
+
+    await store.fetchOrders();
+
+    expect(store.error).toBe("errorPresentation.permissionDenied");
+  });
+
+  it("names the failed action when the response cannot be classified", async () => {
+    vi.mocked(api.get).mockResolvedValue({
+      data: { success: true, data: [buildOrder()] },
+    });
+    vi.mocked(api.put).mockRejectedValue(rejectWith(418));
+    const store = useOrderStore();
+    await store.fetchOrders();
+
+    await expect(store.updateOrderStatus("order-1", "confirmed")).resolves.toBe(
+      false,
+    );
+
+    expect(store.error).toBe("orderStore.updateStatusFailed");
+  });
+
+  it("keeps the server's sentence out of every failure path", async () => {
+    vi.mocked(api.get).mockResolvedValue({
+      data: { success: true, data: [buildOrder({ status: "confirmed" })] },
+    });
+    vi.mocked(api.delete).mockRejectedValue(
+      rejectWith(409, "ORDER_ALREADY_SERVED"),
+    );
+    const store = useOrderStore();
+    await store.fetchOrders();
+
+    await expect(store.cancelOrder("order-1")).resolves.toBe(false);
+
+    expect(store.error).not.toContain(SERVER_PROSE);
+    expect(store.error).toBe("errorPresentation.conflict");
+  });
+});
