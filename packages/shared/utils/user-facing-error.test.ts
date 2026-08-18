@@ -125,13 +125,36 @@ describe("resolveUserFacingError", () => {
       new Error(leakyMessage),
       "a thrown string",
       undefined,
+      // Reaches the branch that appends a reference, so this test covers the
+      // one place the returned string is not verbatim translator output.
+      {
+        response: {
+          status: 503,
+          data: {
+            error: {
+              code: "SOME_UNMAPPED_CODE",
+              requestId: "req_1",
+              message: leakyMessage,
+            },
+          },
+        },
+      },
     ];
+
+    // The only addition the resolver is allowed to make: a bracketed request id
+    // or error code. Stripped here so the check below still means "everything
+    // else came from the translator".
+    const stripReference = (message: string) =>
+      message.replace(/ \[[A-Za-z0-9_-]+\]$/, "");
 
     for (const error of cases) {
       const result = resolveUserFacingError(error, spy, {
         codeKeys: { MENU_ITEM_UNAVAILABLE: "errors.menuItemUnavailable" },
       });
-      expect(produced.has(result.message), JSON.stringify(error)).toBe(true);
+      expect(
+        produced.has(stripReference(result.message)),
+        JSON.stringify(error),
+      ).toBe(true);
       expect(result.message).not.toContain("table_foo");
       expect(result.message).not.toContain("thrown string");
     }
@@ -207,6 +230,48 @@ describe("resolveUserFacingError", () => {
     );
 
     expect(result.message).toBe("操作過於頻繁，請稍後再試");
+  });
+
+  it("appends something reportable when the copy describes nothing", () => {
+    const result = resolveUserFacingError(
+      {
+        response: {
+          status: 500,
+          data: { error: { code: "D1_ERROR", requestId: "req_7f3a" } },
+        },
+      },
+      translate,
+    );
+
+    expect(result.message).toBe("系統暫時無法處理，請稍後再試 [req_7f3a]");
+  });
+
+  it("falls back to the code when there is no request id", () => {
+    const result = resolveUserFacingError(
+      { response: { status: 418, data: { error: { code: "TEAPOT" } } } },
+      translate,
+      { fallbackKey: "feedback.submitError" },
+    );
+
+    expect(result.message).toBe("提交意見回饋失敗 [TEAPOT]");
+  });
+
+  /**
+   * A 403 already names its own cause, so the identifier would be noise on
+   * every permission check. It is only worth showing where the copy is silent.
+   */
+  it("leaves copy that already explains itself alone", () => {
+    const result = resolveUserFacingError(
+      {
+        response: {
+          status: 403,
+          data: { error: { code: "FORBIDDEN", requestId: "req_7f3a" } },
+        },
+      },
+      translate,
+    );
+
+    expect(result.message).toBe("你沒有執行此操作的權限");
   });
 
   it("classifies transport failures without using the thrown English message", () => {
