@@ -389,7 +389,7 @@ const processPayment = async () => {
 
 const handlePaymentSuccess = (data: {
   transactionId: string;
-  paymentMethod: PaymentMethod;
+  paymentMethod: unknown;
 }) => {
   paymentStatus.value = "success";
   emit("payment-success", data.transactionId);

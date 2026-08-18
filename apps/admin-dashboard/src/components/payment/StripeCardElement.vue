@@ -155,7 +155,7 @@ const props = withDefaults(defineProps<Props>(), {
 interface Emits {
   (
     e: "payment-success",
-    data: { transactionId: string; paymentMethod: any },
+    data: { transactionId: string; paymentMethod: unknown },
   ): void;
   (e: "payment-error", error: string): void;
   (e: "payment-processing", isProcessing: boolean): void;
