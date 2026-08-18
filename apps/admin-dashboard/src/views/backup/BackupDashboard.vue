@@ -71,7 +71,7 @@
         <div class="stat-icon storage-icon">💾</div>
         <div class="stat-content">
           <div class="stat-value">
-            {{ formatFileSize(backupMetrics?.storage_usage_bytes || 0) }}
+            {{ formatFileSize(backupMetrics?.total_storage_used || 0) }}
           </div>
           <div class="stat-label">{{ t("backup.stats.storageUsed") }}</div>
         </div>
@@ -81,7 +81,7 @@
         <div class="stat-icon cost-icon">💰</div>
         <div class="stat-content">
           <div class="stat-value">
-            ${{ (backupMetrics?.cost_estimation || 0).toFixed(3) }}
+            —
           </div>
           <div class="stat-label">{{ t("backup.stats.estimatedCost") }}</div>
         </div>
@@ -155,7 +155,12 @@ import { useI18n } from "vue-i18n";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useBackupStore } from "@/stores/backup";
 import { useAuthStore } from "@/stores/auth";
-import type { BackupRecord, BackupAlert as BackupAlertType } from "@makanmasak/shared-types";
+import type {
+  BackupRecord,
+  BackupAlert as BackupAlertType,
+  BackupSystemHealth,
+} from "@makanmasak/shared-types";
+import type { RestaurantBackupMetrics } from "@/stores/backup";
 
 import BackupListItem from "@/components/backup/BackupListItem.vue";
 import BackupAlert from "@/components/backup/BackupAlert.vue";
@@ -172,8 +177,8 @@ const isLoading = ref(false);
 const showCreateBackupModal = ref(false);
 const showRestoreModal = ref(false);
 const selectedBackup = ref<BackupRecord | null>(null);
-const systemHealth = ref<any>(null);
-const backupMetrics = ref<any>(null);
+const systemHealth = ref<BackupSystemHealth | null>(null);
+const backupMetrics = ref<RestaurantBackupMetrics | null>(null);
 const recentBackups = ref<BackupRecord[]>([]);
 const alerts = ref<BackupAlertType[]>([]);
 
