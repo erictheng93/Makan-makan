@@ -24,6 +24,7 @@ import {
   backupRecords,
   systemAlerts,
 } from "@makanmasak/database";
+import { createSelectFixtureDb } from "@makanmasak/database/testing";
 import { BackupService } from "./BackupService";
 
 function createService() {
@@ -51,51 +52,11 @@ function createService() {
  * `backupRecords` entries below follow the exact order `getSystemHealth`
  * issues them in, `selectDistinct` included.
  */
-type SelectFixtureName =
-  | "backupAlerts"
-  | "backupConfigurations"
-  | "backupRecords";
-type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
-
-const fixtureTables: Record<SelectFixtureName, unknown> = {
+const fixtureTables = {
   backupAlerts,
   backupConfigurations,
   backupRecords,
 };
-const fixtureTableNames = new Map<unknown, SelectFixtureName>(
-  Object.entries(fixtureTables).map(([name, table]) => [
-    table,
-    name as SelectFixtureName,
-  ]),
-);
-
-function createQuery(nextResultFor: (table: unknown) => unknown) {
-  let selectedTable: unknown;
-  const builder = {
-    from: vi.fn((table: unknown) => {
-      selectedTable = table;
-      return builder;
-    }),
-    where: vi.fn(() => builder),
-    orderBy: vi.fn(() => builder),
-    limit: vi.fn(() => builder),
-    then: (
-      resolve: (value: unknown) => void,
-      reject?: (reason: unknown) => void,
-    ) => {
-      if (!selectedTable) {
-        return Promise.reject(
-          new Error("Select fixture query never called from(table)"),
-        ).then(resolve, reject);
-      }
-      return Promise.resolve(nextResultFor(selectedTable)).then(
-        resolve,
-        reject,
-      );
-    },
-  };
-  return builder;
-}
 
 type HealthQueryFixture = {
   running?: number;
@@ -110,7 +71,7 @@ type HealthQueryFixture = {
 };
 
 function mockHealthQueries(fixture: HealthQueryFixture) {
-  const fixtures: SelectFixtures = {
+  const fixtures = {
     backupAlerts: [fixture.alerts ?? []],
     backupConfigurations: [[{ total: fixture.configs ?? 0 }]],
     backupRecords: [
@@ -123,23 +84,7 @@ function mockHealthQueries(fixture: HealthQueryFixture) {
       [{ totalBytes: fixture.totalBytes ?? null }],
     ],
   };
-  const queues = new Map<unknown, unknown[][]>(
-    Object.entries(fixtures).map(([name, results]) => [
-      fixtureTables[name as SelectFixtureName],
-      [...(results ?? [])],
-    ]),
-  );
-  const nextResultFor = (table: unknown) => {
-    const name = fixtureTableNames.get(table) ?? "<unknown table>";
-    const queue = queues.get(table);
-    if (!queue) throw new Error(`Missing select fixture for ${name}`);
-    const result = queue.shift();
-    if (result === undefined)
-      throw new Error(`No select fixtures remaining for ${name}`);
-    return result;
-  };
-  mocks.db.select.mockImplementation(() => createQuery(nextResultFor));
-  mocks.db.selectDistinct.mockImplementation(() => createQuery(nextResultFor));
+  Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
 }
 
 describe("BackupService (worker monitoring path)", () => {
