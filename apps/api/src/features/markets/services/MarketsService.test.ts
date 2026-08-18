@@ -35,6 +35,16 @@ vi.mock("../../../core/cache", async (importOriginal) => {
   };
 });
 
+import {
+  dishSearchIndex,
+  marketJoinRequests,
+  markets,
+  menuItems,
+  restaurantMarketMemberships,
+  restaurantServiceItems,
+  restaurants,
+  systemAlerts,
+} from "@makanmasak/database";
 import { MarketsService } from "./MarketsService";
 
 function createKV(version = "1") {
@@ -60,9 +70,61 @@ function createService(version?: string) {
   };
 }
 
-function createQuery(result: unknown) {
+/**
+ * Select fixtures are keyed by table, not by call order: `from(table)` decides
+ * which queue a query draws from, so adding a query against one table can no
+ * longer shift another table's results out from under it.
+ *
+ * Two things still need care when the code under test grows a new query:
+ *
+ * - Within a single table the queue is positional. The Nth read of a table
+ *   takes that table's Nth fixture, so a new query means inserting a fixture
+ *   at the matching index rather than appending one at the end.
+ * - A table has to be listed in `fixtureTables` before it can be declared. An
+ *   unregistered table matches no queue, so every read of it throws.
+ *
+ * Missing and exhausted fixtures both throw and name the table. Nothing falls
+ * back to `[]`; a silent empty result is what made the previous positional
+ * queue so hard to trace back to its cause.
+ *
+ * Only select fixtures are affected. `mockMutationResults` (insert/update
+ * `.returning()`) is a separate, unchanged positional queue — out of scope
+ * for this conversion.
+ */
+type SelectFixtureName =
+  | "markets"
+  | "restaurantMarketMemberships"
+  | "dishSearchIndex"
+  | "restaurantServiceItems"
+  | "menuItems"
+  | "restaurants"
+  | "marketJoinRequests";
+type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
+
+const fixtureTables: Record<SelectFixtureName, unknown> = {
+  markets,
+  restaurantMarketMemberships,
+  dishSearchIndex,
+  restaurantServiceItems,
+  menuItems,
+  restaurants,
+  marketJoinRequests,
+};
+const fixtureTableNames = new Map<unknown, SelectFixtureName>(
+  Object.entries(fixtureTables).map(([name, table]) => [
+    table,
+    name as SelectFixtureName,
+  ]),
+);
+const unselectedTable = Symbol("unselectedTable");
+
+function createQuery(nextResultFor: (table: unknown) => unknown) {
+  let selectedTable: unknown = unselectedTable;
   const builder = {
-    from: vi.fn(() => builder),
+    from: vi.fn((table: unknown) => {
+      selectedTable = table;
+      return builder;
+    }),
     leftJoin: vi.fn(() => builder),
     innerJoin: vi.fn(() => builder),
     where: vi.fn(() => builder),
@@ -70,18 +132,42 @@ function createQuery(result: unknown) {
     orderBy: vi.fn(() => builder),
     limit: vi.fn(() => builder),
     offset: vi.fn(() => builder),
-    returning: vi.fn(async () => result),
-    get: vi.fn(async () => (Array.isArray(result) ? result[0] : result)),
     then: (
       resolve: (value: unknown) => void,
       reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
+    ) => {
+      if (selectedTable === unselectedTable) {
+        return Promise.reject(
+          new Error("Select fixture query never called from(table)"),
+        ).then(resolve, reject);
+      }
+      return Promise.resolve(nextResultFor(selectedTable)).then(
+        resolve,
+        reject,
+      );
+    },
   };
   return builder;
 }
 
-function mockSelectResults(results: unknown[]) {
-  mocks.db.select.mockImplementation(() => createQuery(results.shift() ?? []));
+function mockSelectResults(fixtures: SelectFixtures) {
+  const selectResults = new Map<unknown, unknown[][]>(
+    Object.entries(fixtures).map(([name, results]) => [
+      fixtureTables[name as SelectFixtureName],
+      [...(results ?? [])],
+    ]),
+  );
+  const nextResultFor = (table: unknown) => {
+    const name = fixtureTableNames.get(table) ?? "<unknown table>";
+    const queue = selectResults.get(table);
+    if (!queue) throw new Error(`Missing select fixture for ${name}`);
+    const result = queue.shift();
+    if (result === undefined) {
+      throw new Error(`No select fixtures remaining for ${name}`);
+    }
+    return result;
+  };
+  mocks.db.select.mockImplementation(() => createQuery(nextResultFor));
 }
 
 function mockMutationResults(results: unknown[] = []) {
@@ -436,7 +522,7 @@ describe("MarketsService", () => {
       searchableProductCount: 4,
       publicServiceCount: 1,
     });
-    mockSelectResults([[{ count: 2 }]]);
+    mockSelectResults({ restaurantMarketMemberships: [[{ count: 2 }]] });
 
     await expect(
       service.getPublicReadiness("market-1", { additionalVendorCount: 1 }),
@@ -467,7 +553,7 @@ describe("MarketsService", () => {
         bookingUrlMissingServiceCount: 1,
       });
 
-    mockSelectResults([[]]);
+    mockSelectResults({ restaurantMarketMemberships: [[]] });
     await expect(
       (service as any).catalogCoverageWithVendorBreakdown("empty-market"),
     ).resolves.toMatchObject({
@@ -481,32 +567,34 @@ describe("MarketsService", () => {
       [],
       [[{ restaurantId: "restaurant-2" }], [{ restaurantId: "restaurant-3" }]],
     );
-    mockSelectResults([
-      [
-        {
-          restaurantId: "restaurant-1",
-          name: "Vendor A",
-          stallNumber: "A1",
-          locationLabel: "Gate",
-          mapPosition: { x: 1, y: 2 },
-        },
-        {
-          restaurantId: "restaurant-2",
-          name: "Vendor B",
-          stallNumber: " ",
-          locationLabel: null,
-          mapPosition: null,
-        },
-        {
-          restaurantId: "restaurant-3",
-          name: "Vendor C",
-          stallNumber: "C1",
-          locationLabel: "Lane",
-          mapPosition: { x: "bad" },
-        },
+    mockSelectResults({
+      restaurantMarketMemberships: [
+        [
+          {
+            restaurantId: "restaurant-1",
+            name: "Vendor A",
+            stallNumber: "A1",
+            locationLabel: "Gate",
+            mapPosition: { x: 1, y: 2 },
+          },
+          {
+            restaurantId: "restaurant-2",
+            name: "Vendor B",
+            stallNumber: " ",
+            locationLabel: null,
+            mapPosition: null,
+          },
+          {
+            restaurantId: "restaurant-3",
+            name: "Vendor C",
+            stallNumber: "C1",
+            locationLabel: "Lane",
+            mapPosition: { x: "bad" },
+          },
+        ],
       ],
-      [{ restaurantId: "restaurant-1" }],
-    ]);
+      dishSearchIndex: [[{ restaurantId: "restaurant-1" }]],
+    });
 
     await expect(
       (service as any).catalogCoverageWithVendorBreakdown("market-1"),
@@ -594,33 +682,35 @@ describe("MarketsService", () => {
         booking_url_missing_service_count: 1,
       },
     ]);
-    mockSelectResults([
-      [
-        {
-          id: "market-1",
-          slug: "night-market",
-          name: "Night Market",
-          type: "night_market",
-          description: "Food stalls",
-          city: "Taipei",
-          district: "Central",
-          address: "Main road",
-          latitude: 25,
-          longitude: 121,
-          boundaryGeojson: null,
-          openingHours: null,
-          mapLayout: null,
-          bannerUrl: null,
-          logoUrl: null,
-          imageUrls: [],
-          tags: ["food"],
-          updatedAt: new Date("2026-06-07T00:00:00.000Z"),
-          vendorCount: 3,
-        },
+    mockSelectResults({
+      markets: [
+        [
+          {
+            id: "market-1",
+            slug: "night-market",
+            name: "Night Market",
+            type: "night_market",
+            description: "Food stalls",
+            city: "Taipei",
+            district: "Central",
+            address: "Main road",
+            latitude: 25,
+            longitude: 121,
+            boundaryGeojson: null,
+            openingHours: null,
+            mapLayout: null,
+            bannerUrl: null,
+            logoUrl: null,
+            imageUrls: [],
+            tags: ["food"],
+            updatedAt: new Date("2026-06-07T00:00:00.000Z"),
+            vendorCount: 3,
+          },
+        ],
+        [{ count: 1 }],
       ],
-      [{ count: 1 }],
-      [{ count: 4 }],
-    ]);
+      dishSearchIndex: [[{ count: 4 }]],
+    });
 
     await expect(
       service.listMarkets({ city: "Taipei", limit: 5 }),
@@ -673,14 +763,16 @@ describe("MarketsService", () => {
       isActive: true,
       deletedAt: null,
     };
-    mockSelectResults([
-      [market],
-      [{ count: 2 }],
-      [{ count: 3 }],
-      [{ categoryName: "Rice", count: 2 }],
-      [{ categoryName: "Sauce", count: 1 }],
-      [{ serviceType: "booking", count: 4 }],
-    ]);
+    mockSelectResults({
+      markets: [[market]],
+      restaurantMarketMemberships: [[{ count: 2 }]],
+      dishSearchIndex: [
+        [{ count: 3 }],
+        [{ categoryName: "Rice", count: 2 }],
+        [{ categoryName: "Sauce", count: 1 }],
+      ],
+      restaurantServiceItems: [[{ serviceType: "booking", count: 4 }]],
+    });
 
     await expect(
       service.getMarketBySlug("night-market"),
@@ -726,7 +818,7 @@ describe("MarketsService", () => {
   it("does not cache missing market detail lookups", async () => {
     mocks.cache.get.mockResolvedValue(null);
     const { service } = createService("8");
-    mockSelectResults([[]]);
+    mockSelectResults({ markets: [[]] });
 
     await expect(service.getMarketBySlug("missing-market")).resolves.toBeNull();
 
@@ -748,27 +840,29 @@ describe("MarketsService", () => {
       service as any,
       "catalogCoverageWithVendorBreakdown",
     ).mockResolvedValue(coverage);
-    mockSelectResults([
-      [
-        {
-          id: "market-1",
-          slug: "filtered-market",
-          name: "Filtered Market",
-          type: "night_market",
-          description: "Food",
-          city: "Taipei",
-          district: "Central",
-          address: "Main road",
-          latitude: 25,
-          longitude: 121,
-          openingHours: {
-            monday: { open: "10:00", close: "22:00", closed: false },
+    mockSelectResults({
+      markets: [
+        [
+          {
+            id: "market-1",
+            slug: "filtered-market",
+            name: "Filtered Market",
+            type: "night_market",
+            description: "Food",
+            city: "Taipei",
+            district: "Central",
+            address: "Main road",
+            latitude: 25,
+            longitude: 121,
+            openingHours: {
+              monday: { open: "10:00", close: "22:00", closed: false },
+            },
+            vendorCount: "4",
           },
-          vendorCount: "4",
-        },
+        ],
+        [{ count: "1" }],
       ],
-      [{ count: "1" }],
-    ]);
+    });
 
     await expect(
       (service as any).queryMarkets(
@@ -808,42 +902,44 @@ describe("MarketsService", () => {
       market: { id: "market-1" },
       publicReadiness: { ready: true },
     } as any);
-    mockSelectResults([
-      [
-        {
-          restaurantId: "restaurant-1",
-          name: "Vendor A",
-          type: "malaysian",
-          category: "casual",
-          district: "Central",
-          city: "Taipei",
-          latitude: 25,
-          longitude: 121,
-          priceRange: 2,
-          rating: 4.8,
-          businessHours: {
-            sunday: { open: "00:00", close: "23:59", closed: false },
-            monday: { open: "00:00", close: "23:59", closed: false },
-            tuesday: { open: "00:00", close: "23:59", closed: false },
-            wednesday: { open: "00:00", close: "23:59", closed: false },
-            thursday: { open: "00:00", close: "23:59", closed: false },
-            friday: { open: "00:00", close: "23:59", closed: false },
-            saturday: { open: "00:00", close: "23:59", closed: false },
+    mockSelectResults({
+      restaurantMarketMemberships: [
+        [
+          {
+            restaurantId: "restaurant-1",
+            name: "Vendor A",
+            type: "malaysian",
+            category: "casual",
+            district: "Central",
+            city: "Taipei",
+            latitude: 25,
+            longitude: 121,
+            priceRange: 2,
+            rating: 4.8,
+            businessHours: {
+              sunday: { open: "00:00", close: "23:59", closed: false },
+              monday: { open: "00:00", close: "23:59", closed: false },
+              tuesday: { open: "00:00", close: "23:59", closed: false },
+              wednesday: { open: "00:00", close: "23:59", closed: false },
+              thursday: { open: "00:00", close: "23:59", closed: false },
+              friday: { open: "00:00", close: "23:59", closed: false },
+              saturday: { open: "00:00", close: "23:59", closed: false },
+            },
+            marketHours: null,
+            supportsTakeaway: true,
+            supportsDelivery: false,
+            imageUrl: null,
+            stallNumber: "A1",
+            locationLabel: "Gate",
+            mapPosition: { x: 1, y: 2 },
+            isPrimary: true,
           },
-          marketHours: null,
-          supportsTakeaway: true,
-          supportsDelivery: false,
-          imageUrl: null,
-          stallNumber: "A1",
-          locationLabel: "Gate",
-          mapPosition: { x: 1, y: 2 },
-          isPrimary: true,
-        },
+        ],
+        [{ count: 1 }],
       ],
-      [{ count: 1 }],
-      [{ restaurantId: "restaurant-1", count: 5 }],
-      [{ restaurantId: "restaurant-1", count: 2 }],
-    ]);
+      menuItems: [[{ restaurantId: "restaurant-1", count: 5 }]],
+      restaurantServiceItems: [[{ restaurantId: "restaurant-1", count: 2 }]],
+    });
 
     await expect(
       service.listVendors("night-market", {
@@ -882,34 +978,36 @@ describe("MarketsService", () => {
       market: { id: "market-1" },
       publicReadiness: { ready: true },
     } as any);
-    mockSelectResults([
-      [
-        {
-          restaurantId: "restaurant-1",
-          name: "Vendor A",
-          type: "malaysian",
-          category: "casual",
-          district: "Central",
-          city: "Taipei",
-          latitude: null,
-          longitude: null,
-          priceRange: 2,
-          rating: 4.8,
-          businessHours: null,
-          marketHours: null,
-          supportsTakeaway: true,
-          supportsDelivery: true,
-          imageUrl: null,
-          stallNumber: "A1",
-          locationLabel: "Gate",
-          mapPosition: null,
-          isPrimary: false,
-        },
+    mockSelectResults({
+      restaurantMarketMemberships: [
+        [
+          {
+            restaurantId: "restaurant-1",
+            name: "Vendor A",
+            type: "malaysian",
+            category: "casual",
+            district: "Central",
+            city: "Taipei",
+            latitude: null,
+            longitude: null,
+            priceRange: 2,
+            rating: 4.8,
+            businessHours: null,
+            marketHours: null,
+            supportsTakeaway: true,
+            supportsDelivery: true,
+            imageUrl: null,
+            stallNumber: "A1",
+            locationLabel: "Gate",
+            mapPosition: null,
+            isPrimary: false,
+          },
+        ],
+        [{ count: "3" }],
       ],
-      [{ count: "3" }],
-      [],
-      [],
-    ]);
+      menuItems: [[]],
+      restaurantServiceItems: [[]],
+    });
 
     await expect(
       service.listVendors("night-market", {
@@ -959,12 +1057,14 @@ describe("MarketsService", () => {
       [{ id: 1, marketId: "market-1", restaurantId: "restaurant-1" }],
       [{ id: 1, leftAt: new Date("2026-06-07T00:00:00.000Z") }],
     ]);
-    mockSelectResults([
-      [{ id: "market-1", deletedAt: null }],
-      [{ id: "market-1", deletedAt: null }],
-      [{ id: "market-1", deletedAt: null }],
-      [],
-    ]);
+    mockSelectResults({
+      markets: [
+        [{ id: "market-1", deletedAt: null }],
+        [{ id: "market-1", deletedAt: null }],
+        [{ id: "market-1", deletedAt: null }],
+      ],
+      restaurantMarketMemberships: [[]],
+    });
 
     await expect(
       service.createMarket({
@@ -1020,10 +1120,10 @@ describe("MarketsService", () => {
       isPrimary: true,
     };
     const mutations = mockMutationResults([[]]);
-    mockSelectResults([
-      [{ id: "market-1", deletedAt: null }],
-      [existingMembership],
-    ]);
+    mockSelectResults({
+      markets: [[{ id: "market-1", deletedAt: null }]],
+      restaurantMarketMemberships: [[existingMembership]],
+    });
 
     await expect(
       service.addVendor("market-1", {
@@ -1064,10 +1164,10 @@ describe("MarketsService", () => {
       isPrimary: false,
     };
     const mutations = mockMutationResults([[updatedMembership]]);
-    mockSelectResults([
-      [{ id: "market-1", deletedAt: null }],
-      [existingMembership],
-    ]);
+    mockSelectResults({
+      markets: [[{ id: "market-1", deletedAt: null }]],
+      restaurantMarketMemberships: [[existingMembership]],
+    });
 
     await expect(
       service.addVendor("market-1", {
@@ -1098,12 +1198,14 @@ describe("MarketsService", () => {
       [{ id: 12, marketId: "market-1", restaurantId: "restaurant-2" }],
       [],
     ]);
-    mockSelectResults([
-      [],
-      [{ id: "deleted-market", deletedAt: new Date("2026-06-07T00:00:00Z") }],
-      [{ id: "market-1", deletedAt: null }],
-      [],
-    ]);
+    mockSelectResults({
+      markets: [
+        [],
+        [{ id: "deleted-market", deletedAt: new Date("2026-06-07T00:00:00Z") }],
+        [{ id: "market-1", deletedAt: null }],
+      ],
+      restaurantMarketMemberships: [[]],
+    });
 
     await expect(
       service.addVendor("missing-market", {
@@ -1165,17 +1267,19 @@ describe("MarketsService", () => {
       longitude: 121,
       updatedAt: new Date("2026-06-07T00:00:00.000Z"),
     };
-    mockSelectResults([
-      [{ slug: "night-market", updatedAt: market.updatedAt }],
-      [
-        { city: "Taipei", district: "Central" },
-        { city: "Taipei", district: "East" },
-        { city: "Kaohsiung", district: "West" },
+    mockSelectResults({
+      markets: [
+        [{ slug: "night-market", updatedAt: market.updatedAt }],
+        [
+          { city: "Taipei", district: "Central" },
+          { city: "Taipei", district: "East" },
+          { city: "Kaohsiung", district: "West" },
+        ],
+        [market],
+        [market],
       ],
-      [market],
-      [{ count: 2 }],
-      [market],
-    ]);
+      dishSearchIndex: [[{ count: 2 }]],
+    });
 
     await expect(service.listSitemapEntries(3)).resolves.toEqual([
       { slug: "night-market", updatedAt: market.updatedAt },
@@ -1209,75 +1313,81 @@ describe("MarketsService", () => {
 
   it("maps restaurant memberships, restaurant join requests, admin requests, and vendor candidates", async () => {
     const { service } = createService();
-    mockSelectResults([
-      [
-        {
-          id: 1,
-          restaurantId: "restaurant-1",
-          marketId: "market-1",
-          stallNumber: "A1",
-          locationLabel: "Gate",
-          mapPosition: { x: 1, y: 2 },
-          marketHours: { monday: { open: "10:00", close: "18:00" } },
-          isPrimary: true,
-          joinedAt: new Date("2026-06-07T00:00:00.000Z"),
-          marketSlug: "night-market",
-          marketName: "Night Market",
-          marketType: "night_market",
-          city: "Taipei",
-          district: "Central",
-        },
+    mockSelectResults({
+      restaurantMarketMemberships: [
+        [
+          {
+            id: 1,
+            restaurantId: "restaurant-1",
+            marketId: "market-1",
+            stallNumber: "A1",
+            locationLabel: "Gate",
+            mapPosition: { x: 1, y: 2 },
+            marketHours: { monday: { open: "10:00", close: "18:00" } },
+            isPrimary: true,
+            joinedAt: new Date("2026-06-07T00:00:00.000Z"),
+            marketSlug: "night-market",
+            marketName: "Night Market",
+            marketType: "night_market",
+            city: "Taipei",
+            district: "Central",
+          },
+        ],
       ],
-      [
-        {
-          id: 2,
-          restaurantId: "restaurant-1",
-          marketId: "market-1",
-          status: "pending",
-          message: "Please add us",
-          requestedAt: new Date("2026-06-07T00:00:00.000Z"),
-          resolvedAt: null,
-          marketSlug: "night-market",
-          marketName: "Night Market",
-          marketType: "night_market",
-          city: "Taipei",
-          district: "Central",
-        },
+      marketJoinRequests: [
+        [
+          {
+            id: 2,
+            restaurantId: "restaurant-1",
+            marketId: "market-1",
+            status: "pending",
+            message: "Please add us",
+            requestedAt: new Date("2026-06-07T00:00:00.000Z"),
+            resolvedAt: null,
+            marketSlug: "night-market",
+            marketName: "Night Market",
+            marketType: "night_market",
+            city: "Taipei",
+            district: "Central",
+          },
+        ],
+        [
+          {
+            id: 3,
+            restaurantId: "restaurant-1",
+            marketId: "market-1",
+            status: "approved",
+            message: null,
+            requestedAt: new Date("2026-06-07T00:00:00.000Z"),
+            resolvedAt: new Date("2026-06-08T00:00:00.000Z"),
+            marketSlug: "night-market",
+            marketName: "Night Market",
+            marketType: "night_market",
+            city: "Taipei",
+            district: "Central",
+            restaurantName: "Makan",
+            restaurantDistrict: "Central",
+            restaurantCity: "Taipei",
+          },
+        ],
       ],
-      [
-        {
-          id: 3,
-          restaurantId: "restaurant-1",
-          marketId: "market-1",
-          status: "approved",
-          message: null,
-          requestedAt: new Date("2026-06-07T00:00:00.000Z"),
-          resolvedAt: new Date("2026-06-08T00:00:00.000Z"),
-          marketSlug: "night-market",
-          marketName: "Night Market",
-          marketType: "night_market",
-          city: "Taipei",
-          district: "Central",
-          restaurantName: "Makan",
-          restaurantDistrict: "Central",
-          restaurantCity: "Taipei",
-        },
+      restaurants: [
+        [
+          {
+            id: "restaurant-2",
+            name: "Candidate",
+            city: "Taipei",
+            district: "East",
+            address: "Street",
+            type: "malaysian",
+            category: "casual",
+            isAvailable: true,
+            supportsTakeaway: true,
+            supportsDelivery: false,
+          },
+        ],
       ],
-      [
-        {
-          id: "restaurant-2",
-          name: "Candidate",
-          city: "Taipei",
-          district: "East",
-          address: "Street",
-          type: "malaysian",
-          category: "casual",
-          isAvailable: true,
-          supportsTakeaway: true,
-          supportsDelivery: false,
-        },
-      ],
-    ]);
+    });
 
     await expect(
       service.listRestaurantMemberships("restaurant-1"),
@@ -1331,41 +1441,45 @@ describe("MarketsService", () => {
 
   it("lists admin requests and vendor candidates with default filters", async () => {
     const { service } = createService();
-    mockSelectResults([
-      [
-        {
-          id: 4,
-          restaurantId: "restaurant-3",
-          marketId: "market-2",
-          status: "pending",
-          message: "Interested",
-          requestedAt: new Date("2026-06-07T00:00:00.000Z"),
-          resolvedAt: null,
-          marketSlug: "morning-market",
-          marketName: "Morning Market",
-          marketType: "traditional_market",
-          city: "Kaohsiung",
-          district: "North",
-          restaurantName: "Candidate",
-          restaurantDistrict: "North",
-          restaurantCity: "Kaohsiung",
-        },
+    mockSelectResults({
+      marketJoinRequests: [
+        [
+          {
+            id: 4,
+            restaurantId: "restaurant-3",
+            marketId: "market-2",
+            status: "pending",
+            message: "Interested",
+            requestedAt: new Date("2026-06-07T00:00:00.000Z"),
+            resolvedAt: null,
+            marketSlug: "morning-market",
+            marketName: "Morning Market",
+            marketType: "traditional_market",
+            city: "Kaohsiung",
+            district: "North",
+            restaurantName: "Candidate",
+            restaurantDistrict: "North",
+            restaurantCity: "Kaohsiung",
+          },
+        ],
       ],
-      [
-        {
-          id: "restaurant-4",
-          name: "Default Candidate",
-          city: "Kaohsiung",
-          district: "North",
-          address: "Market Road",
-          type: "taiwanese",
-          category: "casual",
-          isAvailable: true,
-          supportsTakeaway: false,
-          supportsDelivery: true,
-        },
+      restaurants: [
+        [
+          {
+            id: "restaurant-4",
+            name: "Default Candidate",
+            city: "Kaohsiung",
+            district: "North",
+            address: "Market Road",
+            type: "taiwanese",
+            category: "casual",
+            isAvailable: true,
+            supportsTakeaway: false,
+            supportsDelivery: true,
+          },
+        ],
       ],
-    ]);
+    });
 
     await expect(service.listJoinRequests()).resolves.toEqual({
       requests: [
@@ -1391,21 +1505,32 @@ describe("MarketsService", () => {
       deletedAt: null,
     };
 
-    mockSelectResults([[market], [{ id: 10 }]]);
+    mockSelectResults({
+      markets: [[market]],
+      restaurantMarketMemberships: [[{ id: 10 }]],
+    });
     await expect(
       service.createJoinRequest("restaurant-1", {
         marketSlug: "night-market",
       }),
     ).resolves.toEqual({ status: "already_member" });
 
-    mockSelectResults([[market], [], [{ id: 11 }]]);
+    mockSelectResults({
+      markets: [[market]],
+      restaurantMarketMemberships: [[]],
+      marketJoinRequests: [[{ id: 11 }]],
+    });
     await expect(
       service.createJoinRequest("restaurant-1", {
         marketId: "market-1",
       }),
     ).resolves.toEqual({ status: "already_pending" });
 
-    mockSelectResults([[market], [], []]);
+    mockSelectResults({
+      markets: [[market]],
+      restaurantMarketMemberships: [[]],
+      marketJoinRequests: [[]],
+    });
     mockMutationResults([[{ id: 12, status: "pending" }]]);
     await expect(
       service.createJoinRequest("restaurant-1", {
@@ -1417,28 +1542,32 @@ describe("MarketsService", () => {
       request: { id: 12, status: "pending" },
     });
 
-    mockSelectResults([[]]);
+    mockSelectResults({ marketJoinRequests: [[]] });
     await expect(service.approveJoinRequest(99)).resolves.toEqual({
       status: "not_found",
     });
 
-    mockSelectResults([[{ id: 2, status: "approved" }]]);
+    mockSelectResults({
+      marketJoinRequests: [[{ id: 2, status: "approved" }]],
+    });
     await expect(service.rejectJoinRequest(2)).resolves.toEqual({
       status: "not_pending",
     });
 
-    mockSelectResults([
-      [
-        {
-          id: 3,
-          status: "pending",
-          marketId: "market-1",
-          restaurantId: "restaurant-1",
-        },
+    mockSelectResults({
+      marketJoinRequests: [
+        [
+          {
+            id: 3,
+            status: "pending",
+            marketId: "market-1",
+            restaurantId: "restaurant-1",
+          },
+        ],
       ],
-      [market],
-      [],
-    ]);
+      markets: [[market]],
+      restaurantMarketMemberships: [[]],
+    });
     mockMutationResults([
       [{ id: 1, marketId: "market-1", restaurantId: "restaurant-1" }],
       [{ id: 3, status: "approved" }],
@@ -1451,7 +1580,9 @@ describe("MarketsService", () => {
       membership: { id: 1 },
     });
 
-    mockSelectResults([[{ id: 4, status: "pending" }]]);
+    mockSelectResults({
+      marketJoinRequests: [[{ id: 4, status: "pending" }]],
+    });
     mockMutationResults([[{ id: 4, status: "rejected" }]]);
     await expect(service.rejectJoinRequest(4)).resolves.toEqual({
       status: "rejected",
@@ -1463,22 +1594,24 @@ describe("MarketsService", () => {
   it("reports join request not-found and market-not-found approval states", async () => {
     const { service } = createService();
 
-    mockSelectResults([[]]);
+    mockSelectResults({ marketJoinRequests: [[]] });
     await expect(service.rejectJoinRequest(404)).resolves.toEqual({
       status: "not_found",
     });
 
     vi.spyOn(service, "addVendor").mockResolvedValueOnce(null);
-    mockSelectResults([
-      [
-        {
-          id: 5,
-          status: "pending",
-          marketId: "missing-market",
-          restaurantId: "restaurant-1",
-        },
+    mockSelectResults({
+      marketJoinRequests: [
+        [
+          {
+            id: 5,
+            status: "pending",
+            marketId: "missing-market",
+            restaurantId: "restaurant-1",
+          },
+        ],
       ],
-    ]);
+    });
 
     await expect(service.approveJoinRequest(5)).resolves.toEqual({
       status: "market_not_found",
@@ -1491,5 +1624,41 @@ describe("MarketsService", () => {
       marketHours: null,
       isPrimary: false,
     });
+  });
+
+  it("routes select fixtures by table and reports missing fixtures", async () => {
+    mockSelectResults({
+      markets: [[{ id: "market-1" }]],
+      restaurantMarketMemberships: [[{ id: 10 }]],
+    });
+
+    // Read in reverse declaration order: routing follows the table passed to
+    // from(), not the execution order.
+    await expect(
+      mocks.db.select().from(restaurantMarketMemberships),
+    ).resolves.toEqual([{ id: 10 }]);
+    await expect(mocks.db.select().from(markets)).resolves.toEqual([
+      { id: "market-1" },
+    ]);
+    await expect(mocks.db.select().from(markets)).rejects.toThrow(
+      "No select fixtures remaining for markets",
+    );
+    // dishSearchIndex is a registered table but was not declared for this
+    // call, so it reports missing rather than falling back to [].
+    await expect(mocks.db.select().from(dishSearchIndex)).rejects.toThrow(
+      "Missing select fixture for dishSearchIndex",
+    );
+    // systemAlerts is unrelated to MarketsService and is never registered in
+    // fixtureTables at all, so it reports the generic <unknown table> name
+    // instead of its own — distinct from the "registered but undeclared"
+    // case above.
+    await expect(mocks.db.select().from(systemAlerts)).rejects.toThrow(
+      "Missing select fixture for <unknown table>",
+    );
+    // A query that never calls from() reports distinctly from either
+    // missing-fixture case above.
+    await expect(Promise.resolve(createQuery(() => []))).rejects.toThrow(
+      "Select fixture query never called from(table)",
+    );
   });
 });
