@@ -1,6 +1,9 @@
 // Server-Sent Events (SSE) composable for real-time statistics updates
 import { ref, onMounted, onUnmounted } from "vue";
-import { statisticsService } from "@/services/statisticsService";
+import {
+  statisticsService,
+  type StatisticsDashboardData,
+} from "@/services/statisticsService";
 import { KitchenErrorHandler } from "@/utils/errorHandler";
 import { apiUrl } from "@/services/api-url";
 
@@ -12,7 +15,7 @@ export interface StatisticsSSEEvent {
     | "order_cancelled"
     | "statistics_update"
     | "heartbeat";
-  data: any;
+  data: Partial<StatisticsDashboardData>;
   timestamp: string;
   id?: string;
 }
