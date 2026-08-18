@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { backupRecords } from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 
 const mocks = vi.hoisted(() => ({
   db: {
@@ -21,20 +26,11 @@ function createService() {
   return new BackupValidationService({} as D1Database);
 }
 
-function createQuery(result: unknown) {
-  const builder = {
-    from: vi.fn(() => builder),
-    where: vi.fn(() => builder),
-    then: (
-      resolve: (value: unknown) => void,
-      reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
-  };
-  return builder;
-}
+const fixtureTables = { backupRecords };
+type SelectFixtureName = keyof typeof fixtureTables;
 
-function mockSelectResults(results: unknown[]) {
-  mocks.db.select.mockImplementation(() => createQuery(results.shift() ?? []));
+function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
+  Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
 }
 
 function createContext(user: Record<string, unknown>) {
@@ -361,15 +357,15 @@ describe("BackupValidationService", () => {
   it("checks backup concurrency and recent attempt limits", async () => {
     const service = createService();
 
-    mockSelectResults([[{ total: 2 }], [{ total: 9 }]]);
+    mockSelectResults({ backupRecords: [[{ total: 2 }], [{ total: 9 }]] });
     await expect(service.checkBackupLimits(restaurantId)).resolves.toBeUndefined();
 
-    mockSelectResults([[{ total: 3 }]]);
+    mockSelectResults({ backupRecords: [[{ total: 3 }]] });
     await expect(service.checkBackupLimits(restaurantId)).rejects.toThrow(
       "Maximum number of concurrent backups reached",
     );
 
-    mockSelectResults([[{ total: 0 }], [{ total: 10 }]]);
+    mockSelectResults({ backupRecords: [[{ total: 0 }], [{ total: 10 }]] });
     await expect(service.checkBackupLimits(restaurantId)).rejects.toThrow(
       "Too many backup attempts in the last hour",
     );
@@ -385,15 +381,19 @@ describe("BackupValidationService", () => {
       service.validateTableNames(["orders", "credit_cards", "secrets"]),
     ).rejects.toThrow("Invalid table names: credit_cards, secrets");
 
-    mockSelectResults([[{ totalSize: 9 * 1024 * 1024 * 1024 }]]);
+    mockSelectResults({
+      backupRecords: [[{ totalSize: 9 * 1024 * 1024 * 1024 }]],
+    });
     await expect(service.checkStorageQuota(restaurantId)).resolves.toBeUndefined();
 
-    mockSelectResults([[{ totalSize: 10 * 1024 * 1024 * 1024 }]]);
+    mockSelectResults({
+      backupRecords: [[{ totalSize: 10 * 1024 * 1024 * 1024 }]],
+    });
     await expect(service.checkStorageQuota(restaurantId)).rejects.toThrow(
       "Storage quota exceeded",
     );
 
-    mockSelectResults([[]]);
+    mockSelectResults({ backupRecords: [[]] });
     await expect(service.checkStorageQuota(restaurantId)).resolves.toBeUndefined();
   });
 
