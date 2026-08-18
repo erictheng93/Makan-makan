@@ -104,6 +104,11 @@ interface Props {
   requests: LeaveRequest[];
 }
 
+type LeaveApprovalRequest = LeaveRequest & {
+  employeeName?: string;
+  employee?: { fullName?: string; username?: string };
+};
+
 const props = defineProps<Props>();
 
 defineEmits<{
@@ -115,7 +120,7 @@ const pendingRequests = computed(() => {
   return props.requests.filter((r) => r.status === "pending");
 });
 
-const getEmployeeName = (request: any): string => {
+const getEmployeeName = (request: LeaveApprovalRequest): string => {
   return (
     request.employeeName ||
     request.employee?.fullName ||
