@@ -93,6 +93,10 @@ class AuthenticationModule implements FeatureModule {
         return c.json(healthStatus, 200);
       } catch (error) {
         this.logger.error("Health check failed", error as Error, {});
+        // A health document, not an error envelope: `error` here is one field
+        // of the status report the probe consumes alongside name/version/
+        // status/timestamp, so it stays a plain string rather than gaining a
+        // { code, message } shape the caller has no use for.
         return c.json(
           {
             name: this.name,
