@@ -845,6 +845,7 @@ import type {
   PerformanceReport,
   HealthStatusType,
   ComponentStatusType,
+  ComponentOverview,
 } from "@/types/monitoring";
 import HealthScoreGauge from "@/components/monitoring/HealthScoreGauge.vue";
 import MultiMetricChart from "@/components/monitoring/MultiMetricChart.vue";
@@ -1325,7 +1326,7 @@ function getComponentDisplayName(name: string) {
   return keyMap[name] ? t(keyMap[name]) : name;
 }
 
-function calculateComponentHealthScore(component: any): number {
+function calculateComponentHealthScore(component: ComponentOverview): number {
   let score = 100;
 
   if (component.status === "critical") score -= 50;
