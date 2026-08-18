@@ -5,6 +5,12 @@ vi.mock("drizzle-orm/d1", () => ({
 }));
 
 import { ForecastService } from "./ForecastService";
+import {
+  forecastCache,
+  menuItems,
+  orderItems,
+  orders,
+} from "@makanmasak/database";
 
 function createKV(initial: Record<string, unknown> = {}) {
   const values = new Map<string, string>(
@@ -31,19 +37,123 @@ function createKV(initial: Record<string, unknown> = {}) {
   };
 }
 
-function createQuery<T>(result: T) {
+/**
+ * Select fixtures are keyed by table, not by call order: `from(table)`
+ * decides which queue a query draws from, so adding a query against one
+ * table can no longer shift another table's results out from under it.
+ * `ForecastService` doesn't share a hoisted `db` mock (its `drizzle-orm/d1`
+ * mock just returns `{}`) — each test that needs a select assigns
+ * `(service as any).db = createSelectDb({...})` directly after constructing
+ * the service, matching the file's existing convention.
+ *
+ * Two things still need care when the code under test grows a new query:
+ *
+ * - Within a single table the queue is positional. The Nth read of a table
+ *   takes that table's Nth fixture, so a new query means inserting a fixture
+ *   at the matching index rather than appending one at the end.
+ * - A table has to be listed in `fixtureTables` before it can be declared. An
+ *   unregistered table matches no queue, so every read of it throws.
+ *
+ * Missing and exhausted fixtures both throw and name the table. Nothing
+ * falls back to `[]`; a silent empty result is what made the previous
+ * positional queues so hard to trace back to their cause.
+ *
+ * `forecastCache`, `menuItems`, and `orderItems` are all read directly
+ * somewhere in this service (`getStaleCache`, `getForecast`, `getAccuracy`,
+ * `getAlerts`, `getHistoricalSales`), so all three are registered below.
+ * `getAccuracy`'s and `getHistoricalSales`'s actuals queries innerJoin
+ * `orders` and `menuItems` but select `from(orderItems)`, so those calls
+ * still route to `orderItems` — joins never change the routing table.
+ * `orders` is never itself the `from(table)` target anywhere in this
+ * service, so it stays out of `fixtureTables`; it is imported only so the
+ * regression test below has a real, unregistered table to demonstrate the
+ * "<unknown table>" case.
+ *
+ * One extension beyond the base recipe: a queued entry may be an `Error`
+ * instance instead of a rows array, in which case `nextResultFor` throws
+ * that exact error instead of returning rows. This is only for genuinely
+ * simulating a backend failure (e.g. the "ingredient db unavailable" case
+ * below) — it never fires unless a test deliberately queues an `Error`, so
+ * the missing/exhausted-fixture throws for every other read are unaffected.
+ *
+ * `getAlerts` wraps only its ingredient-forecast select
+ * (`forecastCache`, queried for `forecastType: "ingredient_level"`) in a
+ * local try/catch that logs to `console.error` and continues without
+ * ingredient alerts. A harness throw (missing/exhausted fixture, or an
+ * injected `Error` fixture) from that one query is swallowed there and never
+ * surfaces as a rejected promise — assert via `console.error` and the
+ * returned alert list instead of `rejects.toThrow()`. Every other select in
+ * this file (`getStaleCache`, `getForecast`, `getAccuracy`, the menu-item
+ * inventory read in `getAlerts`, `getHistoricalSales`) has no surrounding
+ * try/catch of its own, so a harness throw there surfaces directly as a
+ * rejected promise.
+ */
+type SelectFixtureName = "forecastCache" | "menuItems" | "orderItems";
+type SelectFixtureRow = unknown[] | Error;
+type SelectFixtures = Partial<Record<SelectFixtureName, SelectFixtureRow[]>>;
+
+const fixtureTables: Record<SelectFixtureName, unknown> = {
+  forecastCache,
+  menuItems,
+  orderItems,
+};
+const fixtureTableNames = new Map<unknown, SelectFixtureName>(
+  Object.entries(fixtureTables).map(([name, table]) => [
+    table,
+    name as SelectFixtureName,
+  ]),
+);
+const unselectedTable = Symbol("unselectedTable");
+
+function createQuery(nextResultFor: (table: unknown) => unknown) {
+  let selectedTable: unknown = unselectedTable;
   const query = {
-    from: vi.fn(() => query),
+    from: vi.fn((table: unknown) => {
+      selectedTable = table;
+      return query;
+    }),
     where: vi.fn(() => query),
     limit: vi.fn(() => query),
     innerJoin: vi.fn(() => query),
     groupBy: vi.fn(() => query),
     orderBy: vi.fn(() => query),
-    then: vi.fn((resolve, reject) =>
-      Promise.resolve(result).then(resolve, reject),
-    ),
+    then: (
+      resolve: (value: unknown) => void,
+      reject?: (reason: unknown) => void,
+    ) => {
+      if (selectedTable === unselectedTable) {
+        return Promise.reject(
+          new Error("Select fixture query never called from(table)"),
+        ).then(resolve, reject);
+      }
+      return Promise.resolve(nextResultFor(selectedTable)).then(
+        resolve,
+        reject,
+      );
+    },
   };
   return query;
+}
+
+function createSelectDb(fixtures: SelectFixtures = {}) {
+  const selectResults = new Map<unknown, SelectFixtureRow[]>(
+    Object.entries(fixtures).map(([name, results]) => [
+      fixtureTables[name as SelectFixtureName],
+      [...(results ?? [])],
+    ]),
+  );
+  const nextResultFor = (table: unknown) => {
+    const name = fixtureTableNames.get(table) ?? "<unknown table>";
+    const queue = selectResults.get(table);
+    if (!queue) throw new Error(`Missing select fixture for ${name}`);
+    const result = queue.shift();
+    if (result === undefined) {
+      throw new Error(`No select fixtures remaining for ${name}`);
+    }
+    if (result instanceof Error) throw result;
+    return result;
+  };
+  return { select: vi.fn(() => createQuery(nextResultFor)) };
 }
 
 describe("ForecastService", () => {
@@ -54,6 +164,31 @@ describe("ForecastService", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it("routes select fixtures by table and reports missing fixtures", async () => {
+    const db = createSelectDb({
+      forecastCache: [[{ id: "forecast-row" }]],
+      menuItems: [[{ id: "menu-row" }]],
+    });
+
+    // Read in reverse declaration order: routing follows the table passed to
+    // from(), not the execution order.
+    await expect(db.select().from(menuItems)).resolves.toEqual([
+      { id: "menu-row" },
+    ]);
+    await expect(db.select().from(forecastCache)).resolves.toEqual([
+      { id: "forecast-row" },
+    ]);
+    await expect(db.select().from(forecastCache)).rejects.toThrow(
+      "No select fixtures remaining for forecastCache",
+    );
+    // orders is innerJoin'd elsewhere but never the from(table) target in
+    // ForecastService, so it stays out of fixtureTables and reports
+    // <unknown table>.
+    await expect(db.select().from(orders)).rejects.toThrow(
+      "Missing select fixture for <unknown table>",
+    );
   });
 
   it("returns cached forecasts without querying the database", async () => {
@@ -192,9 +327,9 @@ describe("ForecastService", () => {
   it("hydrates fresh DB cache misses back into KV", async () => {
     const { kv } = createKV();
     const service = new ForecastService({} as D1Database, kv);
-    (service as any).db = {
-      select: vi.fn(() =>
-        createQuery([
+    (service as any).db = createSelectDb({
+      forecastCache: [
+        [
           {
             data: {
               1: {
@@ -210,9 +345,9 @@ describe("ForecastService", () => {
             generatedBy: "statistical",
             expiresAt: new Date("2026-06-07T06:00:00.000Z"),
           },
-        ]),
-      ),
-    };
+        ],
+      ],
+    });
 
     const result = await service.getForecast(
       "restaurant-1",
@@ -249,18 +384,18 @@ describe("ForecastService", () => {
   it("falls back from expired DB cache by generating a fresh forecast", async () => {
     const { kv } = createKV();
     const service = new ForecastService({} as D1Database, kv);
-    (service as any).db = {
-      select: vi.fn(() =>
-        createQuery([
+    (service as any).db = createSelectDb({
+      forecastCache: [
+        [
           {
             data: {},
             metadata: { generatedAt: "old" },
             generatedBy: "statistical",
             expiresAt: new Date("2026-06-06T00:00:00.000Z"),
           },
-        ]),
-      ),
-    };
+        ],
+      ],
+    });
     const generateSpy = vi
       .spyOn(service, "generateForecast")
       .mockResolvedValue([
@@ -296,30 +431,29 @@ describe("ForecastService", () => {
         { predicted: index === 0 ? 20 : 10 },
       ]),
     );
-    const queries = [
-      createQuery([{ forecastDate: "2026-06-08", data: predictions }]),
-      createQuery(
+    (service as any).db = createSelectDb({
+      forecastCache: [[{ forecastDate: "2026-06-08", data: predictions }]],
+      menuItems: [
         Array.from({ length: 90 }, (_, index) => ({
           id: index + 1,
           name: `Item ${index + 1}`,
         })),
-      ),
-      createQuery([
-        { id: 91, name: "Item 91" },
-        { id: 92, name: "Item 92" },
-      ]),
-      createQuery([
-        {
-          menuItemId: 1,
-          itemName: "Tea",
-          actualQuantity: 15,
-          orderDate: "2026-06-08",
-        },
-      ]),
-    ];
-    (service as any).db = {
-      select: vi.fn(() => queries.shift()),
-    };
+        [
+          { id: 91, name: "Item 91" },
+          { id: 92, name: "Item 92" },
+        ],
+      ],
+      orderItems: [
+        [
+          {
+            menuItemId: 1,
+            itemName: "Tea",
+            actualQuantity: 15,
+            orderDate: "2026-06-08",
+          },
+        ],
+      ],
+    });
 
     const accuracy = await service.getAccuracy(
       "restaurant-1",
@@ -347,9 +481,9 @@ describe("ForecastService", () => {
 
   it("returns no accuracy rows when no forecasts exist", async () => {
     const service = new ForecastService({} as D1Database, createKV().kv);
-    (service as any).db = {
-      select: vi.fn(() => createQuery([])),
-    };
+    (service as any).db = createSelectDb({
+      forecastCache: [[]],
+    });
 
     await expect(
       service.getAccuracy("restaurant-1", "2026-06-08", "2026-06-08"),
@@ -377,38 +511,37 @@ describe("ForecastService", () => {
         ],
       },
     ]);
-    const queries = [
-      createQuery([{ id: 1, name: "Tea", inventoryCount: 20 }]),
-      createQuery([
-        {
-          data: [
-            {
-              ingredientId: 7,
-              ingredientName: "Milk",
-              unit: "L",
-              predictedQuantity: 5,
-              currentStock: 2,
-            },
-            {
-              ingredientId: 8,
-              ingredientName: "Sugar",
-              unit: "kg",
-              predictedQuantity: 10,
-              currentStock: 40,
-            },
-            {
-              ingredientId: 9,
-              ingredientName: "Ignored",
-              unit: "kg",
-              predictedQuantity: 10,
-            },
-          ],
-        },
-      ]),
-    ];
-    (service as any).db = {
-      select: vi.fn(() => queries.shift()),
-    };
+    (service as any).db = createSelectDb({
+      menuItems: [[{ id: 1, name: "Tea", inventoryCount: 20 }]],
+      forecastCache: [
+        [
+          {
+            data: [
+              {
+                ingredientId: 7,
+                ingredientName: "Milk",
+                unit: "L",
+                predictedQuantity: 5,
+                currentStock: 2,
+              },
+              {
+                ingredientId: 8,
+                ingredientName: "Sugar",
+                unit: "kg",
+                predictedQuantity: 10,
+                currentStock: 40,
+              },
+              {
+                ingredientId: 9,
+                ingredientName: "Ignored",
+                unit: "kg",
+                predictedQuantity: 10,
+              },
+            ],
+          },
+        ],
+      ],
+    });
 
     const alerts = await service.getAlerts("restaurant-1");
 
@@ -452,29 +585,15 @@ describe("ForecastService", () => {
         ],
       },
     ]);
-    const queries = [
-      createQuery([{ id: 1, name: "Tea", inventoryCount: null }]),
-      {
-        from: vi.fn(function () {
-          return this;
-        }),
-        where: vi.fn(function () {
-          return this;
-        }),
-        limit: vi.fn(function () {
-          return this;
-        }),
-        then: vi.fn((_resolve, reject) =>
-          Promise.reject(new Error("ingredient db unavailable")).then(
-            undefined,
-            reject,
-          ),
-        ),
-      },
-    ];
-    (service as any).db = {
-      select: vi.fn(() => queries.shift()),
-    };
+    // forecastCache's ingredient-forecast select throws here, standing in
+    // for a genuine backend failure. getAlerts's local try/catch swallows
+    // it (see doc comment above), so this never surfaces as a rejection —
+    // only as the console.error call and a shorter alert list, asserted
+    // below.
+    (service as any).db = createSelectDb({
+      menuItems: [[{ id: 1, name: "Tea", inventoryCount: null }]],
+      forecastCache: [new Error("ingredient db unavailable")],
+    });
 
     await expect(service.getAlerts("restaurant-1")).resolves.toEqual([
       expect.objectContaining({ type: "high_demand" }),
@@ -488,9 +607,9 @@ describe("ForecastService", () => {
 
   it("groups historical sales by menu item in descending query order", async () => {
     const service = new ForecastService({} as D1Database, createKV().kv);
-    (service as any).db = {
-      select: vi.fn(() =>
-        createQuery([
+    (service as any).db = createSelectDb({
+      orderItems: [
+        [
           {
             menuItemId: 1,
             itemName: "Tea",
@@ -509,9 +628,9 @@ describe("ForecastService", () => {
             quantitySum: 4,
             orderDate: "2026-06-01",
           },
-        ]),
-      ),
-    };
+        ],
+      ],
+    });
 
     await expect(
       (service as any).getHistoricalSales("restaurant-1", "2026-06-08", 1),
