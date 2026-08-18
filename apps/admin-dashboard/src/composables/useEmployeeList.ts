@@ -11,6 +11,7 @@ import type {
 import type { EmployeeSchedule } from "@/types/scheduling";
 import { t } from "@/i18n";
 import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
+import { mapApiUser, type ApiUser } from "@/types/api-user";
 
 // Module-level shared state — all callers share the same data
 const users = ref<Employee[]>([]);
@@ -101,23 +102,9 @@ export function useEmployeeList() {
         const payload = response.data?.success
           ? response.data.data
           : response.data;
-        users.value = (Array.isArray(payload) ? payload : []).map((u: any) => ({
-          id: u.id,
-          username: u.username,
-          fullName: u.fullName || "",
-          email: u.email || "",
-          phone: u.phone || "",
-          role: u.role,
-          status: u.isActive
-            ? "active"
-            : u.isActive === false
-              ? "inactive"
-              : "active",
-          isActive: u.isActive !== false,
-          lastLoginAt: u.lastLoginAt,
-          createdAt: u.createdAt,
-          profileImageUrl: u.profileImageUrl,
-        }));
+        users.value = (Array.isArray(payload) ? payload : []).map((user) =>
+          mapApiUser(user as ApiUser),
+        );
       } catch (e: unknown) {
         error.value = resolveUserFacingError(e, t, {
           fallbackKey: "errors.loadUsersFailed",

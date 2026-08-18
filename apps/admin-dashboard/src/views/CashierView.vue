@@ -229,12 +229,7 @@
                   class="text-sm text-green-600"
                 >
                   <div class="flex justify-between">
-                    <span v-if="selectedOrder.couponCode">
-                      {{ t("cashier.coupon") }} ({{
-                        selectedOrder.couponCode
-                      }}):
-                    </span>
-                    <span v-else>{{ t("cashier.discount") }}:</span>
+                    <span>{{ t("cashier.discount") }}:</span>
                     <span
                       >-{{ formatPrice(selectedOrder.discountAmount) }}</span
                     >
@@ -873,6 +868,12 @@ import { useCurrency } from "@/composables/useCurrency";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import { api, unwrapApiList, unwrapApiPayload } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
+import type {
+  Order as ApiOrder,
+  OrderItem as ApiOrderItem,
+  OrderPaymentStatus,
+  OrderStatus,
+} from "@makanmasak/shared";
 
 const { t } = useI18n();
 const { formatPrice, currencySymbol } = useCurrency();
@@ -885,8 +886,8 @@ const isLoadingShift = ref(false);
 const isProcessing = ref(false);
 
 // Type definitions
-interface OrderItem {
-  id: number;
+interface CashierOrderItem {
+  id: string;
   menuItemName: string;
   quantity: number;
   unitPrice: number;
@@ -894,21 +895,20 @@ interface OrderItem {
 }
 
 interface CashierOrder {
-  id: number;
+  id: string;
   orderNumber: string;
   tableNumber: string;
   customerName: string;
-  status: string;
-  paymentStatus: string;
-  createdAt: string;
+  status: OrderStatus;
+  paymentStatus: OrderPaymentStatus;
+  createdAt: number;
   subtotal: number;
   serviceCharge: number;
   taxAmount: number;
   discountAmount: number;
   totalAmount: number;
   paymentMethod?: string;
-  couponCode?: string; // 優惠券代碼
-  items: OrderItem[];
+  items: CashierOrderItem[];
 }
 
 interface RegisterPayload {
@@ -1035,7 +1035,7 @@ const filteredOrders = computed(() => {
   let filtered = orders.value.filter(
     (order) =>
       ["ready", "delivered"].includes(order.status) &&
-      order.paymentStatus === "unpaid",
+      order.paymentStatus === "pending",
   );
 
   if (searchQuery.value) {
@@ -1091,35 +1091,32 @@ const loadOrders = async () => {
     });
     if (response.data.success && response.data.data) {
       const payload = response.data.data;
-      const rawOrders = unwrapApiList(payload);
-      // Map API orders to CashierOrder shape, filtering unpaid
+      const rawOrders = unwrapApiList<ApiOrder>(payload);
+      // Only pending payments remain in the cashier queue.
       orders.value = rawOrders
-        .filter((o: any) => o.paymentStatus === "unpaid" || !o.paymentStatus)
-        .map((o: any) => ({
-          id: o.id,
-          orderNumber: o.orderNumber || `ORD-${o.id}`,
-          tableNumber: o.tableNumber || o.tableName || "",
-          customerName: o.customerName || "",
-          status: o.status,
-          paymentStatus: o.paymentStatus || "unpaid",
-          createdAt: o.createdAt,
-          subtotal: o.subtotal ?? o.totalAmount ?? o.total ?? 0,
-          serviceCharge: o.serviceCharge ?? 0,
-          taxAmount: o.taxAmount ?? o.tax ?? 0,
-          discountAmount: o.discountAmount ?? 0,
-          totalAmount: o.totalAmount ?? o.total ?? o.subtotal ?? 0,
-          paymentMethod: o.paymentMethod,
-          couponCode: o.couponCode,
-          items: (o.items || []).map((item: any) => ({
+        .filter((order) => order.paymentStatus === "pending")
+        .map((order) => ({
+          id: order.id,
+          orderNumber: order.orderNumber,
+          tableNumber: order.table?.number ?? "",
+          customerName: order.customerName ?? "",
+          status: order.status,
+          paymentStatus: order.paymentStatus,
+          createdAt: order.createdAt,
+          subtotal: order.subtotal,
+          serviceCharge: order.serviceCharge ?? 0,
+          taxAmount: order.taxAmount ?? 0,
+          discountAmount: order.discountAmount ?? 0,
+          totalAmount: order.totalAmount,
+          paymentMethod: order.paymentMethod,
+          items: (order.items ?? []).map((item: ApiOrderItem) => ({
             id: item.id,
-            menuItemName: item.menuItemName || item.name || "",
-            quantity: item.quantity || 1,
-            unitPrice: item.unitPrice ?? item.price ?? 0,
-            totalPrice:
-              item.totalPrice ??
-              (item.unitPrice ?? item.price ?? 0) * (item.quantity || 1),
+            menuItemName: item.itemSnapshot?.name ?? item.menuItem?.name ?? "",
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice,
           })),
-        })) as CashierOrder[];
+        }));
     }
   } catch (error) {
     console.error("Failed to load orders:", error);
@@ -1193,7 +1190,7 @@ const selectOrder = (order: CashierOrder) => {
 
 // formatTime treats a bare string as an "HH:mm" time-of-day, so ISO datetimes
 // must be converted to a Date first.
-const formatClockTime = (dateTime: string) => formatTime(new Date(dateTime));
+const formatClockTime = (dateTime: number) => formatTime(new Date(dateTime));
 
 const getOrderStatusClass = (status: string) => {
   const classes: Record<string, string> = {
@@ -1246,7 +1243,7 @@ const processPayment = async () => {
         (o) => o.id === selectedOrder.value!.id,
       );
       if (orderIndex > -1) {
-        orders.value[orderIndex].paymentStatus = "paid";
+        orders.value[orderIndex].paymentStatus = "completed";
         orders.value[orderIndex].status = "paid";
         orders.value[orderIndex].paymentMethod = selectedPaymentMethod.value;
       }

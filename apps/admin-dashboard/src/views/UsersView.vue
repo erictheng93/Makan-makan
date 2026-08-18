@@ -469,6 +469,7 @@ import { api } from "@/services/api";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
 import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
+import { mapApiUser, type ApiUser } from "@/types/api-user";
 
 import {
   PlusIcon,
@@ -536,16 +537,9 @@ const fetchUsers = async () => {
   try {
     const response = await api.get(buildUsersUrl());
     const payload = response.data?.success ? response.data.data : response.data;
-    users.value = (Array.isArray(payload) ? payload : []).map((u: any) => ({
-      id: u.id,
-      username: u.username,
-      fullName: u.fullName || "",
-      email: u.email || "",
-      role: u.role,
-      status: u.isActive ? "active" : "inactive",
-      lastLoginAt: u.lastLoginAt,
-      createdAt: u.createdAt,
-    }));
+    users.value = (Array.isArray(payload) ? payload : []).map((user) =>
+      mapApiUser(user as ApiUser),
+    );
   } catch (error) {
     console.error("Failed to fetch users:", error);
   } finally {
