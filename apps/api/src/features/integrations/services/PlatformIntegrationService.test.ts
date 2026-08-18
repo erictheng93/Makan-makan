@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { platformIntegrations } from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 import type { Env } from "../../../types/env";
 import { PlatformIntegrationService } from "./PlatformIntegrationService";
 
@@ -28,10 +33,11 @@ function createSelectQuery(result: unknown[]) {
   return builder;
 }
 
-function queueSelectResults(results: unknown[][]) {
-  mocks.db.select.mockImplementation(() =>
-    createSelectQuery(results.shift() ?? []),
-  );
+const fixtureTables = { platformIntegrations };
+type SelectFixtureName = keyof typeof fixtureTables;
+
+function queueSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
+  Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
 }
 
 function mockMutations() {
@@ -91,7 +97,12 @@ describe("PlatformIntegrationService", () => {
   });
 
   it("lists integrations and returns null for missing platform rows", async () => {
-    queueSelectResults([[{ id: "integration-1", platform: "uber_eats" }], []]);
+    queueSelectResults({
+      platformIntegrations: [
+        [{ id: "integration-1", platform: "uber_eats" }],
+        [],
+      ],
+    });
 
     const service = new PlatformIntegrationService(env());
 
@@ -112,7 +123,7 @@ describe("PlatformIntegrationService", () => {
       platform: "uber_eats",
       enabled: true,
     };
-    queueSelectResults([[], [finalRow]]);
+    queueSelectResults({ platformIntegrations: [[], [finalRow]] });
     const mutations = mockMutations();
 
     const service = new PlatformIntegrationService(env());
@@ -150,10 +161,12 @@ describe("PlatformIntegrationService", () => {
   });
 
   it("re-enables existing integrations and preserves explicit sync config", async () => {
-    queueSelectResults([
-      [{ id: "integration-1", enabled: false }],
-      [{ id: "integration-1", enabled: true }],
-    ]);
+    queueSelectResults({
+      platformIntegrations: [
+        [{ id: "integration-1", enabled: false }],
+        [{ id: "integration-1", enabled: true }],
+      ],
+    });
     const mutations = mockMutations();
 
     const service = new PlatformIntegrationService(env());
@@ -178,15 +191,17 @@ describe("PlatformIntegrationService", () => {
   });
 
   it("merges config updates and deletes integrations by platform scope", async () => {
-    queueSelectResults([
-      [{ id: "integration-1", config: { autoAcceptOrders: false } }],
-      [
-        {
-          id: "integration-1",
-          config: { autoAcceptOrders: false, menuSyncEnabled: true },
-        },
+    queueSelectResults({
+      platformIntegrations: [
+        [{ id: "integration-1", config: { autoAcceptOrders: false } }],
+        [
+          {
+            id: "integration-1",
+            config: { autoAcceptOrders: false, menuSyncEnabled: true },
+          },
+        ],
       ],
-    ]);
+    });
     const mutations = mockMutations();
 
     const service = new PlatformIntegrationService(env());
@@ -218,19 +233,21 @@ describe("PlatformIntegrationService", () => {
       },
       "test-encryption-key",
     );
-    queueSelectResults([
-      [
-        {
-          id: "integration-1",
-          credentials: encrypted,
-          config: {
-            webhookSecret: "legacy-plain-secret",
-            autoAcceptOrders: false,
+    queueSelectResults({
+      platformIntegrations: [
+        [
+          {
+            id: "integration-1",
+            credentials: encrypted,
+            config: {
+              webhookSecret: "legacy-plain-secret",
+              autoAcceptOrders: false,
+            },
           },
-        },
+        ],
+        [{ id: "integration-1" }],
       ],
-      [{ id: "integration-1" }],
-    ]);
+    });
     const mutations = mockMutations();
 
     await service.updateConfig("restaurant-1", "uber_eats", {
@@ -269,7 +286,9 @@ describe("PlatformIntegrationService", () => {
       },
       "test-encryption-key",
     );
-    queueSelectResults([[{ credentials: encrypted }], []]);
+    queueSelectResults({
+      platformIntegrations: [[{ credentials: encrypted }], []],
+    });
 
     await expect(
       service.getDecryptedCredentials("restaurant-1", "uber_eats"),
