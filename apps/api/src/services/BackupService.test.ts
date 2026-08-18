@@ -18,23 +18,60 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
 
-import { backupAlerts, systemAlerts } from "@makanmasak/database";
+import {
+  backupAlerts,
+  backupConfigurations,
+  backupRecords,
+  systemAlerts,
+} from "@makanmasak/database";
 import { BackupService } from "./BackupService";
 
 function createService() {
   return new BackupService({} as D1Database, {} as R2Bucket, {} as KVNamespace);
 }
 
-function createQuery(result: unknown) {
+type SelectFixtureName =
+  | "backupAlerts"
+  | "backupConfigurations"
+  | "backupRecords";
+type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
+
+const fixtureTables: Record<SelectFixtureName, unknown> = {
+  backupAlerts,
+  backupConfigurations,
+  backupRecords,
+};
+const fixtureTableNames = new Map<unknown, SelectFixtureName>(
+  Object.entries(fixtureTables).map(([name, table]) => [
+    table,
+    name as SelectFixtureName,
+  ]),
+);
+
+function createQuery(nextResultFor: (table: unknown) => unknown) {
+  let selectedTable: unknown;
   const builder = {
-    from: vi.fn(() => builder),
+    from: vi.fn((table: unknown) => {
+      selectedTable = table;
+      return builder;
+    }),
     where: vi.fn(() => builder),
     orderBy: vi.fn(() => builder),
     limit: vi.fn(() => builder),
     then: (
       resolve: (value: unknown) => void,
       reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
+    ) => {
+      if (!selectedTable) {
+        return Promise.reject(
+          new Error("Select fixture query never called from(table)"),
+        ).then(resolve, reject);
+      }
+      return Promise.resolve(nextResultFor(selectedTable)).then(
+        resolve,
+        reject,
+      );
+    },
   };
   return builder;
 }
@@ -51,24 +88,37 @@ type HealthQueryFixture = {
   alerts?: Array<Record<string, unknown>>;
 };
 
-// Must match the query order inside getSystemHealth.
 function mockHealthQueries(fixture: HealthQueryFixture) {
-  const selectResults: unknown[] = [
-    [{ total: fixture.running ?? 0 }],
-    [{ total: fixture.failed24h ?? 0 }],
-    [{ total: fixture.windowFailed ?? 0 }],
-    fixture.windowCompleted ?? [],
-    fixture.lastSuccess ?? [],
-    [{ total: fixture.configs ?? 0 }],
-    [{ totalBytes: fixture.totalBytes ?? null }],
-    fixture.alerts ?? [],
-  ];
-  mocks.db.select.mockImplementation(() =>
-    createQuery(selectResults.shift() ?? []),
+  const fixtures: SelectFixtures = {
+    backupAlerts: [fixture.alerts ?? []],
+    backupConfigurations: [[{ total: fixture.configs ?? 0 }]],
+    backupRecords: [
+      [{ total: fixture.running ?? 0 }],
+      [{ total: fixture.failed24h ?? 0 }],
+      [{ total: fixture.windowFailed ?? 0 }],
+      fixture.windowCompleted ?? [],
+      fixture.lastSuccess ?? [],
+      fixture.restaurants ?? [],
+      [{ totalBytes: fixture.totalBytes ?? null }],
+    ],
+  };
+  const queues = new Map<unknown, unknown[][]>(
+    Object.entries(fixtures).map(([name, results]) => [
+      fixtureTables[name as SelectFixtureName],
+      [...(results ?? [])],
+    ]),
   );
-  mocks.db.selectDistinct.mockImplementation(() =>
-    createQuery(fixture.restaurants ?? []),
-  );
+  const nextResultFor = (table: unknown) => {
+    const name = fixtureTableNames.get(table) ?? "<unknown table>";
+    const queue = queues.get(table);
+    if (!queue) throw new Error(`Missing select fixture for ${name}`);
+    const result = queue.shift();
+    if (result === undefined)
+      throw new Error(`No select fixtures remaining for ${name}`);
+    return result;
+  };
+  mocks.db.select.mockImplementation(() => createQuery(nextResultFor));
+  mocks.db.selectDistinct.mockImplementation(() => createQuery(nextResultFor));
 }
 
 describe("BackupService (worker monitoring path)", () => {
@@ -81,8 +131,7 @@ describe("BackupService (worker monitoring path)", () => {
   describe("getSystemHealth", () => {
     it("reports an idle healthy system when no backup data exists", async () => {
       // Empty tables: every query resolves to no rows at all.
-      mocks.db.select.mockImplementation(() => createQuery([]));
-      mocks.db.selectDistinct.mockImplementation(() => createQuery([]));
+      mockHealthQueries({});
 
       const service = createService();
       const health = await service.getSystemHealth();

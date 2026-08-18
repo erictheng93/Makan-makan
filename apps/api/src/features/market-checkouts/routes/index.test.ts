@@ -1,4 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  marketCheckoutChildOrders,
+  marketCheckoutSessions,
+  markets,
+  menuItems,
+  restaurantMarketMemberships,
+  restaurants,
+} from "@makanmasak/database";
 import routes from "./index";
 import { ApiError } from "../../../shared/utils/api-error";
 import {
@@ -28,10 +36,62 @@ routes.onError((err, c) => {
 
 const databaseMocks = vi.hoisted(() => ({
   createDatabase: vi.fn(),
-  selectQueue: [] as Array<{ get?: unknown; all?: unknown[] }>,
+  selectFixtures: new Map<unknown, unknown[][]>(),
   insertValues: [] as unknown[],
   updateValues: [] as unknown[],
 }));
+
+type SelectFixtureName =
+  | "marketCheckoutChildOrders"
+  | "marketCheckoutSessions"
+  | "markets"
+  | "menuItems"
+  | "restaurantMarketMemberships"
+  | "restaurants";
+
+type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
+
+const fixtureTables: Record<SelectFixtureName, unknown> = {
+  marketCheckoutChildOrders,
+  marketCheckoutSessions,
+  markets,
+  menuItems,
+  restaurantMarketMemberships,
+  restaurants,
+};
+
+const fixtureTableNames = new Map(
+  Object.entries(fixtureTables).map(([name, table]) => [table, name]),
+);
+
+function setSelectFixtures(fixtures: SelectFixtures) {
+  databaseMocks.selectFixtures.clear();
+  for (const [name, rows] of Object.entries(fixtures)) {
+    databaseMocks.selectFixtures.set(fixtureTables[name as SelectFixtureName], [
+      ...rows,
+    ]);
+  }
+}
+
+function setMarketCheckoutSessionFixtures(
+  ...fixtures: Array<{ all: unknown[] }>
+) {
+  setSelectFixtures({
+    // Administrative endpoints only query this table; repeated rows model
+    // repeated queries to the same table, never cross-table ordering.
+    marketCheckoutSessions: fixtures.map((fixture) => fixture.all),
+  });
+}
+
+function setSettlementFixtures(
+  sessions: { all: unknown[] },
+  children: { all: unknown[] },
+) {
+  setSelectFixtures({
+    marketCheckoutSessions: [sessions.all],
+    marketCheckoutChildOrders: [children.all],
+  });
+}
 const createOrder = vi.hoisted(() => vi.fn());
 const getOrder = vi.hoisted(() => vi.fn());
 const cancelOrder = vi.hoisted(() => vi.fn());
@@ -126,14 +186,33 @@ vi.mock("../services/MarketCheckoutVoucherService", async (importOriginal) => {
 
 function createMockDb() {
   const createSelectChain = () => {
+    let selectedTable: unknown;
+    const nextRows = () => {
+      const tableName = fixtureTableNames.get(selectedTable);
+      if (!tableName) {
+        throw new Error("Select fixture query never called from(table)");
+      }
+      const fixtures = databaseMocks.selectFixtures.get(selectedTable);
+      if (!fixtures) {
+        throw new Error(`Missing select fixture for ${tableName}`);
+      }
+      const rows = fixtures.shift();
+      if (!rows) {
+        throw new Error(`No select fixtures remaining for ${tableName}`);
+      }
+      return rows;
+    };
     const chain = {
-      from: vi.fn(() => chain),
+      from: vi.fn((table: unknown) => {
+        selectedTable = table;
+        return chain;
+      }),
       where: vi.fn(() => chain),
       orderBy: vi.fn(() => chain),
       limit: vi.fn(() => chain),
       offset: vi.fn(() => chain),
-      get: vi.fn(async () => databaseMocks.selectQueue.shift()?.get),
-      all: vi.fn(async () => databaseMocks.selectQueue.shift()?.all ?? []),
+      get: vi.fn(async () => nextRows()[0]),
+      all: vi.fn(async () => nextRows()),
     };
     return chain;
   };
@@ -354,30 +433,32 @@ function unpaidCheckoutSessionFixture() {
   };
 }
 
-function persistedSessionRows(
+function persistedSessionFixtures(
   session: ReturnType<typeof unpaidCheckoutSessionFixture>,
-) {
-  return [
-    {
-      get: {
-        id: session.id,
-        marketId: session.market.id,
-        marketSlug: session.market.slug,
-        marketName: session.market.name,
-        platformFeeRateBps: session.market.platformFeeRateBps ?? 0,
-        status: session.status,
-        paymentStatus: session.payment?.status ?? "pending",
-        phoneLastDigits: session.phoneLastDigits ?? null,
-        subtotalCents: session.subtotal,
-        childOrderCount: session.childOrders.length,
-        paymentSummary: session.payment ?? null,
-        appliedVoucher: session.appliedVoucher ?? null,
-        createdAt: new Date(session.createdAt),
-        updatedAt: new Date(session.createdAt),
-      },
-    },
-    {
-      all: session.childOrders.map((child) => ({
+): SelectFixtures {
+  return {
+    marketCheckoutSessions: [
+      [
+        {
+          id: session.id,
+          marketId: session.market.id,
+          marketSlug: session.market.slug,
+          marketName: session.market.name,
+          platformFeeRateBps: session.market.platformFeeRateBps ?? 0,
+          status: session.status,
+          paymentStatus: session.payment?.status ?? "pending",
+          phoneLastDigits: session.phoneLastDigits ?? null,
+          subtotalCents: session.subtotal,
+          childOrderCount: session.childOrders.length,
+          paymentSummary: session.payment ?? null,
+          appliedVoucher: session.appliedVoucher ?? null,
+          createdAt: new Date(session.createdAt),
+          updatedAt: new Date(session.createdAt),
+        },
+      ],
+    ],
+    marketCheckoutChildOrders: [
+      session.childOrders.map((child) => ({
         checkoutId: session.id,
         restaurantId: child.restaurantId,
         restaurantName: child.restaurantName,
@@ -386,8 +467,8 @@ function persistedSessionRows(
         totalAmountCents: child.totalAmountCents ?? null,
         tokenExpiresAt: new Date(child.tokenExpiresAt),
       })),
-    },
-  ];
+    ],
+  };
 }
 
 async function withSilencedRouteError<T>(action: () => Promise<T>): Promise<T> {
@@ -417,9 +498,65 @@ async function expectApiError(
 // present it in the Authorization header.
 const ACTIVE_GUEST_TOKEN = `gt_${"a".repeat(64)}`;
 
+function setTwoVendorCreateFixtures(options?: {
+  firstRestaurant?: unknown;
+  firstMembership?: unknown;
+  menuItems?: unknown[][];
+  repeat?: number;
+}) {
+  const market = {
+    id: "market-1",
+    slug: "fengjia",
+    name: "逢甲夜市",
+    platformFeeRateBps: 350,
+    isActive: true,
+  };
+  const firstRestaurant = options?.firstRestaurant ?? {
+    id: "restaurant-1",
+    name: "雞排攤",
+    isActive: true,
+    isAvailable: true,
+    settings: { allowGuestOrders: true },
+  };
+  const firstMembership =
+    options && "firstMembership" in options
+      ? options.firstMembership
+      : { restaurantId: "restaurant-1", marketId: "market-1" };
+  const secondRestaurant = {
+    id: "restaurant-2",
+    name: "甜點攤",
+    isActive: true,
+    isAvailable: true,
+    settings: { allowGuestOrders: true },
+  };
+  const secondMembership = {
+    restaurantId: "restaurant-2",
+    marketId: "market-1",
+  };
+  const repeat = options?.repeat ?? 1;
+  setSelectFixtures({
+    markets: Array.from({ length: repeat }, () => [market]),
+    // These queues are intentionally positional only within their own table.
+    restaurants: Array.from({ length: repeat }, () => [
+      firstRestaurant,
+      secondRestaurant,
+    ]).flatMap((rows) => rows.map((row) => [row])),
+    restaurantMarketMemberships: Array.from({ length: repeat }, () => [
+      firstMembership,
+      secondMembership,
+    ]).flatMap((rows) => rows.map((row) => (row ? [row] : []))),
+    menuItems: Array.from(
+      { length: repeat },
+      () => options?.menuItems ?? [[{ id: 101 }], [{ id: 202 }]],
+    ).flat(),
+  });
+}
+
 describe("market checkout routes", () => {
   beforeEach(() => {
-    databaseMocks.selectQueue.length = 0;
+    // Most route tests exercise the KV fallback; declare that empty database
+    // read explicitly instead of relying on an implicit `all(): []` fallback.
+    setSelectFixtures({ marketCheckoutSessions: [[]] });
     databaseMocks.insertValues.length = 0;
     databaseMocks.updateValues.length = 0;
     databaseMocks.createDatabase.mockReset();
@@ -441,40 +578,29 @@ describe("market checkout routes", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("creates one child guest order per active market vendor", async () => {
-    databaseMocks.selectQueue.push(
-      {
-        get: {
-          id: "market-1",
-          slug: "fengjia",
-          name: "逢甲夜市",
-          platformFeeRateBps: 350,
-          isActive: true,
-        },
-      },
-      {
-        get: {
-          id: "restaurant-1",
-          name: "雞排攤",
-          isActive: true,
-          isAvailable: true,
-          settings: { allowGuestOrders: true },
-        },
-      },
-      { get: { restaurantId: "restaurant-1", marketId: "market-1" } },
-      {
-        get: {
-          id: "restaurant-2",
-          name: "甜點攤",
-          isActive: true,
-          isAvailable: true,
-          settings: { allowGuestOrders: true },
-        },
-      },
-      { get: { restaurantId: "restaurant-2", marketId: "market-1" } },
-      { all: [{ id: 101 }] },
-      { all: [{ id: 202 }] },
+  it("routes select fixtures by table and rejects exhausted fixtures", async () => {
+    setSelectFixtures({
+      markets: [[{ id: "market-1" }]],
+      restaurants: [[{ id: "restaurant-1" }]],
+    });
+    const db = createMockDb();
+
+    await expect(db.select().from(restaurants).get()).resolves.toEqual({
+      id: "restaurant-1",
+    });
+    await expect(db.select().from(markets).get()).resolves.toEqual({
+      id: "market-1",
+    });
+    await expect(db.select().from(markets).get()).rejects.toThrow(
+      "No select fixtures remaining for markets",
     );
+    await expect(db.select().from(menuItems).all()).rejects.toThrow(
+      "Missing select fixture for menuItems",
+    );
+  });
+
+  it("creates one child guest order per active market vendor", async () => {
+    setTwoVendorCreateFixtures();
     createOrder
       .mockResolvedValueOnce({
         id: 1001,
@@ -599,39 +725,7 @@ describe("market checkout routes", () => {
   });
 
   it("scopes anonymous market checkout active-order keys to the issued guest tokens", async () => {
-    databaseMocks.selectQueue.push(
-      {
-        get: {
-          id: "market-1",
-          slug: "fengjia",
-          name: "Fengjia Night Market",
-          platformFeeRateBps: 350,
-          isActive: true,
-        },
-      },
-      {
-        get: {
-          id: "restaurant-1",
-          name: "Vendor 1",
-          isActive: true,
-          isAvailable: true,
-          settings: { allowGuestOrders: true },
-        },
-      },
-      { get: { restaurantId: "restaurant-1", marketId: "market-1" } },
-      {
-        get: {
-          id: "restaurant-2",
-          name: "Vendor 2",
-          isActive: true,
-          isAvailable: true,
-          settings: { allowGuestOrders: true },
-        },
-      },
-      { get: { restaurantId: "restaurant-2", marketId: "market-1" } },
-      { all: [{ id: 101 }] },
-      { all: [{ id: 202 }] },
-    );
+    setTwoVendorCreateFixtures();
     createOrder
       .mockResolvedValueOnce({
         id: 1001,
@@ -705,40 +799,7 @@ describe("market checkout routes", () => {
   });
 
   it("does not block separate anonymous shoppers sharing a market's WiFi address", async () => {
-    const checkoutQueue = () => [
-      {
-        get: {
-          id: "market-1",
-          slug: "fengjia",
-          name: "Fengjia Night Market",
-          platformFeeRateBps: 350,
-          isActive: true,
-        },
-      },
-      {
-        get: {
-          id: "restaurant-1",
-          name: "Vendor 1",
-          isActive: true,
-          isAvailable: true,
-          settings: { allowGuestOrders: true },
-        },
-      },
-      { get: { restaurantId: "restaurant-1", marketId: "market-1" } },
-      {
-        get: {
-          id: "restaurant-2",
-          name: "Vendor 2",
-          isActive: true,
-          isAvailable: true,
-          settings: { allowGuestOrders: true },
-        },
-      },
-      { get: { restaurantId: "restaurant-2", marketId: "market-1" } },
-      { all: [{ id: 101 }] },
-      { all: [{ id: 202 }] },
-    ];
-    databaseMocks.selectQueue.push(...checkoutQueue(), ...checkoutQueue());
+    setTwoVendorCreateFixtures({ repeat: 2 });
     createOrder.mockImplementation(async () => ({
       id: 1000 + createOrder.mock.calls.length,
       orderNumber: `A00${createOrder.mock.calls.length}`,
@@ -794,7 +855,7 @@ describe("market checkout routes", () => {
   });
 
   it("rejects market checkout creation for unknown markets", async () => {
-    databaseMocks.selectQueue.push({ get: null });
+    setSelectFixtures({ markets: [[]] });
     const env = createEnv();
 
     const response = await withSilencedRouteError(() =>
@@ -824,14 +885,18 @@ describe("market checkout routes", () => {
   });
 
   it("rejects duplicate vendors in a market checkout", async () => {
-    databaseMocks.selectQueue.push({
-      get: {
-        id: "market-1",
-        slug: "fengjia",
-        name: "Fengjia Night Market",
-        platformFeeRateBps: 350,
-        isActive: true,
-      },
+    setSelectFixtures({
+      markets: [
+        [
+          {
+            id: "market-1",
+            slug: "fengjia",
+            name: "Fengjia Night Market",
+            platformFeeRateBps: 350,
+            isActive: true,
+          },
+        ],
+      ],
     });
     const env = createEnv();
 
@@ -862,37 +927,7 @@ describe("market checkout routes", () => {
   });
 
   it("blocks market checkout creation when a vendor already has an active guest order", async () => {
-    databaseMocks.selectQueue.push(
-      {
-        get: {
-          id: "market-1",
-          slug: "fengjia",
-          name: "Fengjia Night Market",
-          platformFeeRateBps: 350,
-          isActive: true,
-        },
-      },
-      {
-        get: {
-          id: "restaurant-1",
-          name: "Vendor 1",
-          isActive: true,
-          isAvailable: true,
-          settings: { allowGuestOrders: true },
-        },
-      },
-      { get: { restaurantId: "restaurant-1", marketId: "market-1" } },
-      {
-        get: {
-          id: "restaurant-2",
-          name: "Vendor 2",
-          isActive: true,
-          isAvailable: true,
-          settings: { allowGuestOrders: true },
-        },
-      },
-      { get: { restaurantId: "restaurant-2", marketId: "market-1" } },
-    );
+    setTwoVendorCreateFixtures();
     const env = createEnv();
     await env.CACHE_KV.put(
       `guest_active:restaurant-1:token:${ACTIVE_GUEST_TOKEN}`,
@@ -971,31 +1006,12 @@ describe("market checkout routes", () => {
     ];
 
     for (const scenario of scenarios) {
-      databaseMocks.selectQueue.length = 0;
+      databaseMocks.selectFixtures.clear();
       createOrder.mockClear();
-      databaseMocks.selectQueue.push(
-        {
-          get: {
-            id: "market-1",
-            slug: "fengjia",
-            name: "Fengjia Night Market",
-            platformFeeRateBps: 350,
-            isActive: true,
-          },
-        },
-        { get: scenario.firstRestaurant },
-        { get: scenario.firstMembership },
-        {
-          get: {
-            id: "restaurant-2",
-            name: "Vendor 2",
-            isActive: true,
-            isAvailable: true,
-            settings: { allowGuestOrders: true },
-          },
-        },
-        { get: { restaurantId: "restaurant-2", marketId: "market-1" } },
-      );
+      setTwoVendorCreateFixtures({
+        firstRestaurant: scenario.firstRestaurant,
+        firstMembership: scenario.firstMembership,
+      });
       const env = createEnv();
 
       const response = await withSilencedRouteError(() =>
@@ -1031,38 +1047,7 @@ describe("market checkout routes", () => {
   });
 
   it("rejects market checkout creation when requested menu items are unavailable", async () => {
-    databaseMocks.selectQueue.push(
-      {
-        get: {
-          id: "market-1",
-          slug: "fengjia",
-          name: "Fengjia Night Market",
-          platformFeeRateBps: 350,
-          isActive: true,
-        },
-      },
-      {
-        get: {
-          id: "restaurant-1",
-          name: "Vendor 1",
-          isActive: true,
-          isAvailable: true,
-          settings: { allowGuestOrders: true },
-        },
-      },
-      { get: { restaurantId: "restaurant-1", marketId: "market-1" } },
-      {
-        get: {
-          id: "restaurant-2",
-          name: "Vendor 2",
-          isActive: true,
-          isAvailable: true,
-          settings: { allowGuestOrders: true },
-        },
-      },
-      { get: { restaurantId: "restaurant-2", marketId: "market-1" } },
-      { all: [] },
-    );
+    setTwoVendorCreateFixtures({ menuItems: [[]] });
     const env = createEnv();
 
     const response = await withSilencedRouteError(() =>
@@ -1092,40 +1077,8 @@ describe("market checkout routes", () => {
     expect(createOrder).not.toHaveBeenCalled();
   });
 
-  function pushTwoVendorCreateQueue() {
-    databaseMocks.selectQueue.push(
-      {
-        get: {
-          id: "market-1",
-          slug: "fengjia",
-          name: "逢甲夜市",
-          platformFeeRateBps: 350,
-          isActive: true,
-        },
-      },
-      {
-        get: {
-          id: "restaurant-1",
-          name: "雞排攤",
-          isActive: true,
-          isAvailable: true,
-          settings: { allowGuestOrders: true },
-        },
-      },
-      { get: { restaurantId: "restaurant-1", marketId: "market-1" } },
-      {
-        get: {
-          id: "restaurant-2",
-          name: "甜點攤",
-          isActive: true,
-          isAvailable: true,
-          settings: { allowGuestOrders: true },
-        },
-      },
-      { get: { restaurantId: "restaurant-2", marketId: "market-1" } },
-      { all: [{ id: 101 }] },
-      { all: [{ id: 202 }] },
-    );
+  function setTwoVendorCreateQueue() {
+    setTwoVendorCreateFixtures();
   }
 
   function twoVendorCreateRequest() {
@@ -1161,7 +1114,7 @@ describe("market checkout routes", () => {
   }
 
   it("compensates already-created vendor orders when a later vendor fails mid-loop", async () => {
-    pushTwoVendorCreateQueue();
+    setTwoVendorCreateQueue();
     createOrder
       .mockResolvedValueOnce({
         id: 1001,
@@ -1207,7 +1160,7 @@ describe("market checkout routes", () => {
   });
 
   it("flags the session for manual review when compensation itself fails", async () => {
-    pushTwoVendorCreateQueue();
+    setTwoVendorCreateQueue();
     createOrder
       .mockResolvedValueOnce({
         id: 1001,
@@ -1319,25 +1272,27 @@ describe("market checkout routes", () => {
   });
 
   it("reissues a child guest token for a persisted market checkout", async () => {
-    databaseMocks.selectQueue.push(
-      {
-        get: {
-          id: "checkout-1",
-          marketId: "market-1",
-          marketSlug: "fengjia",
-          marketName: "逢甲夜市",
-          status: "submitted",
-          paymentStatus: "pending",
-          phoneLastDigits: "789",
-          subtotalCents: 12000,
-          childOrderCount: 1,
-          paymentSummary: null,
-          createdAt: new Date("2026-06-01T10:00:00.000Z"),
-          updatedAt: new Date("2026-06-01T10:00:00.000Z"),
-        },
-      },
-      {
-        all: [
+    setSelectFixtures({
+      marketCheckoutSessions: [
+        [
+          {
+            id: "checkout-1",
+            marketId: "market-1",
+            marketSlug: "fengjia",
+            marketName: "逢甲夜市",
+            status: "submitted",
+            paymentStatus: "pending",
+            phoneLastDigits: "789",
+            subtotalCents: 12000,
+            childOrderCount: 1,
+            paymentSummary: null,
+            createdAt: new Date("2026-06-01T10:00:00.000Z"),
+            updatedAt: new Date("2026-06-01T10:00:00.000Z"),
+          },
+        ],
+      ],
+      marketCheckoutChildOrders: [
+        [
           {
             checkoutId: "checkout-1",
             restaurantId: "restaurant-1",
@@ -1349,8 +1304,8 @@ describe("market checkout routes", () => {
             tokenExpiresAt: new Date("2026-06-01T12:00:00.000Z"),
           },
         ],
-      },
-    );
+      ],
+    });
     const env = createEnv();
 
     const response = await routes.fetch(
@@ -1380,25 +1335,27 @@ describe("market checkout routes", () => {
   });
 
   it("rejects guest token recovery when phone digits do not match", async () => {
-    databaseMocks.selectQueue.push(
-      {
-        get: {
-          id: "checkout-1",
-          marketId: "market-1",
-          marketSlug: "fengjia",
-          marketName: "逢甲夜市",
-          status: "submitted",
-          paymentStatus: "pending",
-          phoneLastDigits: "789",
-          subtotalCents: 12000,
-          childOrderCount: 1,
-          paymentSummary: null,
-          createdAt: new Date("2026-06-01T10:00:00.000Z"),
-          updatedAt: new Date("2026-06-01T10:00:00.000Z"),
-        },
-      },
-      { all: [] },
-    );
+    setSelectFixtures({
+      marketCheckoutSessions: [
+        [
+          {
+            id: "checkout-1",
+            marketId: "market-1",
+            marketSlug: "fengjia",
+            marketName: "逢甲夜市",
+            status: "submitted",
+            paymentStatus: "pending",
+            phoneLastDigits: "789",
+            subtotalCents: 12000,
+            childOrderCount: 1,
+            paymentSummary: null,
+            createdAt: new Date("2026-06-01T10:00:00.000Z"),
+            updatedAt: new Date("2026-06-01T10:00:00.000Z"),
+          },
+        ],
+      ],
+      marketCheckoutChildOrders: [[]],
+    });
     const env = createEnv();
 
     const response = await routes.fetch(
@@ -1641,30 +1598,32 @@ describe("market checkout routes", () => {
   });
 
   it("reads public checkout details from persisted storage before KV fallback", async () => {
-    databaseMocks.selectQueue.push(
-      {
-        get: {
-          id: "checkout-1",
-          marketId: "market-1",
-          marketSlug: "fengjia",
-          marketName: "Fengjia Night Market",
-          platformFeeRateBps: 350,
-          status: "submitted",
-          paymentStatus: "pending",
-          // A real value, not null: the assertion below is about the response
-          // projection dropping the recovery credential, and a null column
-          // reads back as undefined whether or not anything strips it.
-          phoneLastDigits: "789",
-          subtotalCents: 12000,
-          childOrderCount: 1,
-          paymentSummary: null,
-          appliedVoucher: null,
-          createdAt: new Date("2026-06-01T10:00:00.000Z"),
-          updatedAt: new Date("2026-06-01T10:05:00.000Z"),
-        },
-      },
-      {
-        all: [
+    setSelectFixtures({
+      marketCheckoutSessions: [
+        [
+          {
+            id: "checkout-1",
+            marketId: "market-1",
+            marketSlug: "fengjia",
+            marketName: "Fengjia Night Market",
+            platformFeeRateBps: 350,
+            status: "submitted",
+            paymentStatus: "pending",
+            // A real value, not null: the assertion below is about the response
+            // projection dropping the recovery credential, and a null column
+            // reads back as undefined whether or not anything strips it.
+            phoneLastDigits: "789",
+            subtotalCents: 12000,
+            childOrderCount: 1,
+            paymentSummary: null,
+            appliedVoucher: null,
+            createdAt: new Date("2026-06-01T10:00:00.000Z"),
+            updatedAt: new Date("2026-06-01T10:05:00.000Z"),
+          },
+        ],
+      ],
+      marketCheckoutChildOrders: [
+        [
           {
             checkoutId: "checkout-1",
             restaurantId: "restaurant-1",
@@ -1676,8 +1635,8 @@ describe("market checkout routes", () => {
             tokenExpiresAt: new Date("2026-06-01T12:00:00.000Z"),
           },
         ],
-      },
-    );
+      ],
+    });
     getOrder.mockResolvedValueOnce({
       id: 1001,
       orderNumber: "A001",
@@ -1910,9 +1869,7 @@ describe("market checkout routes", () => {
   });
 
   it("applies and removes vouchers from persisted checkouts when KV is empty", async () => {
-    databaseMocks.selectQueue.push(
-      ...persistedSessionRows(unpaidCheckoutSessionFixture()),
-    );
+    setSelectFixtures(persistedSessionFixtures(unpaidCheckoutSessionFixture()));
     validateVoucherAndPrice.mockResolvedValue({
       couponId: 42,
       code: "MARKET10",
@@ -1945,8 +1902,8 @@ describe("market checkout routes", () => {
       { expirationTtl: 14400 },
     );
 
-    databaseMocks.selectQueue.push(
-      ...persistedSessionRows({
+    setSelectFixtures(
+      persistedSessionFixtures({
         ...unpaidCheckoutSessionFixture(),
         appliedVoucher: {
           couponId: 42,
@@ -2565,8 +2522,8 @@ describe("market checkout routes", () => {
   });
 
   it("replays a persisted paid checkout without requiring a KV session", async () => {
-    databaseMocks.selectQueue.push(
-      ...persistedSessionRows(providerSplitPaidSessionFixture()),
+    setSelectFixtures(
+      persistedSessionFixtures(providerSplitPaidSessionFixture()),
     );
     const env = createEnv();
 
@@ -3839,7 +3796,7 @@ describe("market checkout routes", () => {
 
   it("lists market checkout sessions for platform admins", async () => {
     const env = createEnv();
-    databaseMocks.selectQueue.push({
+    setMarketCheckoutSessionFixtures({
       all: [
         {
           id: "checkout-1",
@@ -3957,7 +3914,7 @@ describe("market checkout routes", () => {
       ]),
     });
 
-    databaseMocks.selectQueue.push({
+    setMarketCheckoutSessionFixtures({
       all: [
         {
           id: "checkout-1",
@@ -4070,7 +4027,7 @@ describe("market checkout routes", () => {
 
   it("summarizes market checkout operations for platform admins", async () => {
     const env = createEnv();
-    databaseMocks.selectQueue.push({
+    setMarketCheckoutSessionFixtures({
       all: [
         {
           id: "checkout-1",
@@ -4219,7 +4176,7 @@ describe("market checkout routes", () => {
 
   it("filters market checkout operation summaries by payment status", async () => {
     const env = createEnv();
-    databaseMocks.selectQueue.push({
+    setMarketCheckoutSessionFixtures({
       all: [
         {
           id: "checkout-1",
@@ -4421,7 +4378,7 @@ describe("market checkout routes", () => {
 
   it("exports filtered market checkout operations as CSV", async () => {
     const env = createEnv();
-    databaseMocks.selectQueue.push({
+    setMarketCheckoutSessionFixtures({
       all: [
         {
           id: "checkout-1",
@@ -4600,7 +4557,7 @@ describe("market checkout routes", () => {
 
   it("summarizes market checkout settlement totals by vendor", async () => {
     const env = createEnv();
-    databaseMocks.selectQueue.push(
+    setSettlementFixtures(
       {
         all: [
           {
@@ -4858,7 +4815,7 @@ describe("market checkout routes", () => {
 
   it("exports vendor settlement summaries as CSV", async () => {
     const env = createEnv();
-    databaseMocks.selectQueue.push(
+    setSettlementFixtures(
       {
         all: [
           {
@@ -4980,7 +4937,7 @@ describe("market checkout routes", () => {
 
   it("exports settlement accounting journal entries as CSV", async () => {
     const env = createEnv();
-    databaseMocks.selectQueue.push(
+    setSettlementFixtures(
       {
         all: [
           {

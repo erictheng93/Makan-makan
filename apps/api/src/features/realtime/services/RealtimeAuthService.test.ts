@@ -1,29 +1,54 @@
 import { sign } from "jsonwebtoken";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  groupMembers,
+  orders,
+  restaurants,
+  seats,
+  tables,
+} from "@makanmasak/database";
 
 const mocks = vi.hoisted(() => {
   const dbState: {
-    selectResults: unknown[][];
+    selectFixtures: Map<unknown, unknown[][]>;
     selectError: Error | null;
   } = {
-    selectResults: [],
+    selectFixtures: new Map(),
     selectError: null,
   };
-  const createQuery = () => ({
-    from: vi.fn().mockReturnThis(),
-    innerJoin: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockReturnThis(),
-    then: vi.fn((resolve, reject) => {
-      if (dbState.selectError) {
-        return Promise.reject(dbState.selectError).then(resolve, reject);
-      }
-      return Promise.resolve(dbState.selectResults.shift() ?? []).then(
-        resolve,
-        reject,
-      );
-    }),
-  });
+  const createQuery = () => {
+    let selectedTable: unknown;
+    const query = {
+      from: vi.fn((table: unknown) => {
+        selectedTable = table;
+        return query;
+      }),
+      innerJoin: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      then: vi.fn((resolve, reject) => {
+        if (dbState.selectError) {
+          return Promise.reject(dbState.selectError).then(resolve, reject);
+        }
+        const queue = dbState.selectFixtures.get(selectedTable);
+        if (!queue) {
+          return Promise.reject(
+            new Error(`Missing select fixture for ${tableName(selectedTable)}`),
+          ).then(resolve, reject);
+        }
+        const result = queue.shift();
+        if (result === undefined) {
+          return Promise.reject(
+            new Error(
+              `No select fixtures remaining for ${tableName(selectedTable)}`,
+            ),
+          ).then(resolve, reject);
+        }
+        return Promise.resolve(result).then(resolve, reject);
+      }),
+    };
+    return query;
+  };
   const db = {
     select: vi.fn(() => createQuery()),
   };
@@ -46,6 +71,39 @@ const mocks = vi.hoisted(() => {
 
   return { blacklist, db, dbState, logger, utils };
 });
+
+type SelectFixtureName =
+  | "groupMembers"
+  | "orders"
+  | "restaurants"
+  | "seats"
+  | "tables";
+const fixtureTables: Record<SelectFixtureName, unknown> = {
+  groupMembers,
+  orders,
+  restaurants,
+  seats,
+  tables,
+};
+const fixtureTableNames = new Map<unknown, SelectFixtureName>(
+  Object.entries(fixtureTables).map(([name, table]) => [
+    table,
+    name as SelectFixtureName,
+  ]),
+);
+function tableName(table: unknown) {
+  return fixtureTableNames.get(table) ?? "<unknown table>";
+}
+function setSelectFixtures(
+  fixtures: Partial<Record<SelectFixtureName, unknown[][]>>,
+) {
+  mocks.dbState.selectFixtures = new Map(
+    Object.entries(fixtures).map(([name, results]) => [
+      fixtureTables[name as SelectFixtureName],
+      [...(results ?? [])],
+    ]),
+  );
+}
 
 vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
@@ -82,6 +140,26 @@ const jwtSecret = "session-secret-with-at-least-32-chars";
 const qrSigningKey = "qr-signing-key-with-at-least-32-chars";
 const userId = "018f0000-0000-7000-8000-000000000007";
 const ownerId = "018f0000-0000-7000-8000-000000000001";
+
+function activeGuestRestaurant() {
+  return {
+    id: "restaurant-1",
+    settings: { allowGuestOrders: true },
+    isActive: true,
+    isAvailable: true,
+  };
+}
+
+function activeGuestTable() {
+  return {
+    id: 10,
+    restaurantId: "restaurant-1",
+    number: "T1",
+    qrCodeVersion: 1,
+    isActive: true,
+    deletedAt: null,
+  };
+}
 
 function createKV(values: Record<string, unknown> = {}) {
   return {
@@ -150,7 +228,7 @@ function createPreparedDb(
 describe("RealtimeAuthService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.dbState.selectResults = [];
+    mocks.dbState.selectFixtures = new Map();
     mocks.dbState.selectError = null;
     mocks.utils.parseSignedQRUrl.mockReturnValue(null);
     mocks.utils.verifyQRSignature.mockResolvedValue(false);
@@ -282,7 +360,7 @@ describe("RealtimeAuthService", () => {
     }
 
     it("mints a token pinned to the group order room", async () => {
-      mocks.dbState.selectResults = [[activeMembership()]];
+      setSelectFixtures({ groupMembers: [[activeMembership()]] });
       const service = createService();
 
       const response = await service.generateGroupOrderToken({
@@ -322,9 +400,11 @@ describe("RealtimeAuthService", () => {
       ];
 
       for (const [label, overrides] of cases) {
-        mocks.dbState.selectResults = [
-          overrides === null ? [] : [activeMembership(overrides)],
-        ];
+        setSelectFixtures({
+          groupMembers: [
+            overrides === null ? [] : [activeMembership(overrides)],
+          ],
+        });
         const service = createService();
 
         await expect(
@@ -780,26 +860,30 @@ describe("RealtimeAuthService", () => {
       signature: "signature",
     });
     mocks.utils.verifyQRSignature.mockResolvedValue(true);
-    mocks.dbState.selectResults = [
-      [
-        {
-          id: "restaurant-1",
-          settings: { allowGuestOrders: true },
-          isActive: true,
-          isAvailable: true,
-        },
+    setSelectFixtures({
+      restaurants: [
+        [
+          {
+            id: "restaurant-1",
+            settings: { allowGuestOrders: true },
+            isActive: true,
+            isAvailable: true,
+          },
+        ],
       ],
-      [
-        {
-          id: 10,
-          restaurantId: "restaurant-1",
-          number: "T1",
-          qrCodeVersion: 1,
-          isActive: true,
-          deletedAt: null,
-        },
+      tables: [
+        [
+          {
+            id: 10,
+            restaurantId: "restaurant-1",
+            number: "T1",
+            qrCodeVersion: 1,
+            isActive: true,
+            deletedAt: null,
+          },
+        ],
       ],
-    ];
+    });
     const service = createService();
 
     const response = await service.generateGuestToken({
@@ -849,26 +933,30 @@ describe("RealtimeAuthService", () => {
       signature: "signature",
     });
     mocks.utils.verifyQRSignature.mockResolvedValue(true);
-    mocks.dbState.selectResults = [
-      [
-        {
-          id: "restaurant-1",
-          settings: { allowGuestOrders: true },
-          isActive: true,
-          isAvailable: true,
-        },
+    setSelectFixtures({
+      restaurants: [
+        [
+          {
+            id: "restaurant-1",
+            settings: { allowGuestOrders: true },
+            isActive: true,
+            isAvailable: true,
+          },
+        ],
       ],
-      [
-        {
-          id: 10,
-          restaurantId: "restaurant-1",
-          number: "T1",
-          qrCodeVersion: 2,
-          isActive: true,
-          deletedAt: null,
-        },
+      tables: [
+        [
+          {
+            id: 10,
+            restaurantId: "restaurant-1",
+            number: "T1",
+            qrCodeVersion: 2,
+            isActive: true,
+            deletedAt: null,
+          },
+        ],
       ],
-    ];
+    });
     const service = createService();
 
     await expect(
@@ -891,36 +979,42 @@ describe("RealtimeAuthService", () => {
       signature: "signature",
     });
     mocks.utils.verifyQRSignature.mockResolvedValue(true);
-    mocks.dbState.selectResults = [
-      [
-        {
-          id: "restaurant-1",
-          settings: { allowGuestOrders: true },
-          isActive: true,
-          isAvailable: true,
-        },
+    setSelectFixtures({
+      restaurants: [
+        [
+          {
+            id: "restaurant-1",
+            settings: { allowGuestOrders: true },
+            isActive: true,
+            isAvailable: true,
+          },
+        ],
       ],
-      [
-        {
-          id: 21,
-          tableId: 10,
-          seatNumber: "01",
-          qrCodeVersion: 3,
-          isActive: true,
-          deletedAt: null,
-        },
+      seats: [
+        [
+          {
+            id: 21,
+            tableId: 10,
+            seatNumber: "01",
+            qrCodeVersion: 3,
+            isActive: true,
+            deletedAt: null,
+          },
+        ],
       ],
-      [
-        {
-          id: 10,
-          restaurantId: "restaurant-1",
-          number: "T1",
-          qrCodeVersion: 1,
-          isActive: true,
-          deletedAt: null,
-        },
+      tables: [
+        [
+          {
+            id: 10,
+            restaurantId: "restaurant-1",
+            number: "T1",
+            qrCodeVersion: 1,
+            isActive: true,
+            deletedAt: null,
+          },
+        ],
       ],
-    ];
+    });
     const service = createService();
 
     const response = await service.generateGuestToken({
@@ -956,65 +1050,23 @@ describe("RealtimeAuthService", () => {
       signature: "signature",
     });
     mocks.utils.verifyQRSignature.mockResolvedValue(true);
-    mocks.dbState.selectResults = [
-      [
-        {
-          id: "restaurant-1",
-          settings: { allowGuestOrders: true },
-          isActive: true,
-          isAvailable: true,
-        },
+    setSelectFixtures({
+      restaurants: [
+        [activeGuestRestaurant()],
+        [activeGuestRestaurant()],
+        [activeGuestRestaurant()],
       ],
-      [
-        {
-          id: 10,
-          restaurantId: "restaurant-1",
-          number: "T1",
-          qrCodeVersion: 1,
-          isActive: true,
-          deletedAt: null,
-        },
+      tables: [
+        [activeGuestTable()],
+        [activeGuestTable()],
+        [activeGuestTable()],
       ],
-      [{ id: 42, publicId, restaurantId: "restaurant-1", tableId: 10 }],
-      [
-        {
-          id: "restaurant-1",
-          settings: { allowGuestOrders: true },
-          isActive: true,
-          isAvailable: true,
-        },
+      orders: [
+        [{ id: 42, publicId, restaurantId: "restaurant-1", tableId: 10 }],
+        [{ id: 42, publicId, restaurantId: "restaurant-1", tableId: 10 }],
+        [{ id: 43, restaurantId: "restaurant-2", tableId: 10 }],
       ],
-      [
-        {
-          id: 10,
-          restaurantId: "restaurant-1",
-          number: "T1",
-          qrCodeVersion: 1,
-          isActive: true,
-          deletedAt: null,
-        },
-      ],
-      [{ id: 42, publicId, restaurantId: "restaurant-1", tableId: 10 }],
-      [
-        {
-          id: "restaurant-1",
-          settings: { allowGuestOrders: true },
-          isActive: true,
-          isAvailable: true,
-        },
-      ],
-      [
-        {
-          id: 10,
-          restaurantId: "restaurant-1",
-          number: "T1",
-          qrCodeVersion: 1,
-          isActive: true,
-          deletedAt: null,
-        },
-      ],
-      [{ id: 43, restaurantId: "restaurant-2", tableId: 10 }],
-    ];
+    });
     const service = createService();
 
     await expect(
@@ -1139,7 +1191,7 @@ describe("RealtimeAuthService", () => {
     mocks.utils.verifyQRSignature.mockResolvedValue(true);
     const service = createService();
 
-    mocks.dbState.selectResults = [[]];
+    setSelectFixtures({ restaurants: [[]] });
     await expect(
       service.generateGuestToken({
         restaurantId: "restaurant-1",
@@ -1148,16 +1200,11 @@ describe("RealtimeAuthService", () => {
       }),
     ).resolves.toEqual({ error: "Restaurant not found" });
 
-    mocks.dbState.selectResults = [
-      [
-        {
-          id: "restaurant-1",
-          settings: { allowGuestOrders: false },
-          isActive: true,
-          isAvailable: true,
-        },
+    setSelectFixtures({
+      restaurants: [
+        [{ ...activeGuestRestaurant(), settings: { allowGuestOrders: false } }],
       ],
-    ];
+    });
     await expect(
       service.generateGuestToken({
         restaurantId: "restaurant-1",
@@ -1168,17 +1215,10 @@ describe("RealtimeAuthService", () => {
       error: "Guest realtime is not enabled for this restaurant",
     });
 
-    mocks.dbState.selectResults = [
-      [
-        {
-          id: "restaurant-1",
-          settings: { allowGuestOrders: true },
-          isActive: true,
-          isAvailable: true,
-        },
-      ],
-      [],
-    ];
+    setSelectFixtures({
+      restaurants: [[activeGuestRestaurant()]],
+      tables: [[]],
+    });
     await expect(
       service.generateGuestToken({
         restaurantId: "restaurant-1",
@@ -1187,26 +1227,10 @@ describe("RealtimeAuthService", () => {
       }),
     ).resolves.toEqual({ error: "Table not found or inactive" });
 
-    mocks.dbState.selectResults = [
-      [
-        {
-          id: "restaurant-1",
-          settings: { allowGuestOrders: true },
-          isActive: true,
-          isAvailable: true,
-        },
-      ],
-      [
-        {
-          id: 10,
-          restaurantId: "restaurant-1",
-          number: "T2",
-          qrCodeVersion: 1,
-          isActive: true,
-          deletedAt: null,
-        },
-      ],
-    ];
+    setSelectFixtures({
+      restaurants: [[activeGuestRestaurant()]],
+      tables: [[{ ...activeGuestTable(), number: "T2" }]],
+    });
     await expect(
       service.generateGuestToken({
         restaurantId: "restaurant-1",

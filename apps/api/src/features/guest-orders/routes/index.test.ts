@@ -3,10 +3,11 @@ import { Hono } from "hono";
 import routes from "./index";
 import { ApiError } from "../../../shared/utils/api-error";
 import { GUEST_ORDER_THROTTLE } from "../services/guest-order-throttle";
+import { orders, restaurants, seats, tables } from "@makanmasak/database";
 
 const databaseMocks = vi.hoisted(() => ({
   createDatabase: vi.fn(),
-  selectQueue: [] as Array<{ get?: unknown }>,
+  selectFixtures: new Map<unknown, unknown[][]>(),
 }));
 const createOrder = vi.hoisted(() => vi.fn());
 const getOrder = vi.hoisted(() => vi.fn());
@@ -65,12 +66,49 @@ vi.mock("../../orders/services/OrdersService", () => ({
   },
 }));
 
+type SelectFixtureName = "orders" | "restaurants" | "seats" | "tables";
+const fixtureTables: Record<SelectFixtureName, unknown> = {
+  orders,
+  restaurants,
+  seats,
+  tables,
+};
+const fixtureTableNames = new Map<unknown, SelectFixtureName>(
+  Object.entries(fixtureTables).map(([name, table]) => [
+    table,
+    name as SelectFixtureName,
+  ]),
+);
+function setSelectFixtures(
+  fixtures: Partial<Record<SelectFixtureName, unknown[][]>>,
+) {
+  databaseMocks.selectFixtures = new Map(
+    Object.entries(fixtures).map(([name, results]) => [
+      fixtureTables[name as SelectFixtureName],
+      [...(results ?? [])],
+    ]),
+  );
+}
+
 function createMockDb() {
   const createSelectChain = () => {
+    let selectedTable: unknown;
     const chain = {
-      from: vi.fn(() => chain),
+      from: vi.fn((table: unknown) => {
+        selectedTable = table;
+        return chain;
+      }),
       where: vi.fn(() => chain),
-      get: vi.fn(async () => databaseMocks.selectQueue.shift()?.get),
+      get: vi.fn(async () => {
+        const name = fixtureTableNames.get(selectedTable) ?? "<unknown table>";
+        const queue = databaseMocks.selectFixtures.get(selectedTable);
+        if (!queue) throw new Error(`Missing select fixture for ${name}`);
+        const result = queue.shift();
+        if (result === undefined) {
+          throw new Error(`No select fixtures remaining for ${name}`);
+        }
+        return result[0];
+      }),
     };
     return chain;
   };
@@ -119,6 +157,17 @@ function validGuestOrderBody(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function activeGuestRestaurant(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "restaurant-1",
+    isActive: true,
+    isAvailable: true,
+    enableShopMode: true,
+    settings: { allowGuestOrders: true },
+    ...overrides,
+  };
+}
+
 async function withSilencedRouteError<T>(action: () => Promise<T>): Promise<T> {
   const consoleError = vi
     .spyOn(console, "error")
@@ -159,7 +208,7 @@ const CANCELLING_GUEST_TOKEN = `gt_${"c".repeat(64)}`;
 
 describe("guest order routes", () => {
   beforeEach(() => {
-    databaseMocks.selectQueue.length = 0;
+    databaseMocks.selectFixtures = new Map();
     databaseMocks.createDatabase.mockReset();
     databaseMocks.createDatabase.mockReturnValue(createMockDb());
     createOrder.mockReset();
@@ -172,14 +221,18 @@ describe("guest order routes", () => {
   });
 
   it("creates guest shop orders and stores guest access keys", async () => {
-    databaseMocks.selectQueue.push({
-      get: {
-        id: "restaurant-1",
-        isActive: true,
-        isAvailable: true,
-        enableShopMode: true,
-        settings: { allowGuestOrders: true },
-      },
+    setSelectFixtures({
+      restaurants: [
+        [
+          {
+            id: "restaurant-1",
+            isActive: true,
+            isAvailable: true,
+            enableShopMode: true,
+            settings: { allowGuestOrders: true },
+          },
+        ],
+      ],
     });
     createOrder.mockResolvedValue({
       id: 501,
@@ -251,15 +304,7 @@ describe("guest order routes", () => {
     // order. The route reads `!== true` rather than a falsy check, so an
     // absent settings object and an absent key have to fail the same way as an
     // explicit false — hence all three cases, not just the obvious one.
-    databaseMocks.selectQueue.push({
-      get: {
-        id: "restaurant-1",
-        isActive: true,
-        isAvailable: true,
-        enableShopMode: true,
-        settings,
-      },
-    });
+    setSelectFixtures({ restaurants: [[activeGuestRestaurant({ settings })]] });
 
     const response = await createRoutesWithApiErrorHandler().fetch(
       new Request("https://test/", {
@@ -281,14 +326,8 @@ describe("guest order routes", () => {
     // The printed sticker keeps working otherwise: nothing else on this path
     // reads enableShopMode, and a shop that skips the pickup-digits screen
     // never touches the QR verify endpoint that does.
-    databaseMocks.selectQueue.push({
-      get: {
-        id: "restaurant-1",
-        isActive: true,
-        isAvailable: true,
-        enableShopMode: false,
-        settings: { allowGuestOrders: true },
-      },
+    setSelectFixtures({
+      restaurants: [[activeGuestRestaurant({ enableShopMode: false })]],
     });
 
     const response = await createRoutesWithApiErrorHandler().fetch(
@@ -315,6 +354,11 @@ describe("guest order routes", () => {
     const burstLimit = Math.ceil(
       GUEST_ORDER_THROTTLE.requests * GUEST_ORDER_THROTTLE.burstMultiplier,
     );
+    setSelectFixtures({
+      restaurants: Array.from({ length: burstLimit }, () => [
+        activeGuestRestaurant(),
+      ]),
+    });
 
     const send = () =>
       app.fetch(
@@ -327,15 +371,6 @@ describe("guest order routes", () => {
       );
 
     for (let i = 0; i < burstLimit; i += 1) {
-      databaseMocks.selectQueue.push({
-        get: {
-          id: "restaurant-1",
-          isActive: true,
-          isAvailable: true,
-          enableShopMode: true,
-          settings: { allowGuestOrders: true },
-        },
-      });
       createOrder.mockResolvedValue({ id: 600 + i, orderNumber: `G${i}` });
       expect((await send()).status).toBe(201);
     }
@@ -349,19 +384,14 @@ describe("guest order routes", () => {
     });
     expect(createOrder).toHaveBeenCalledTimes(burstLimit);
     // The rejected attempt never reached the restaurant lookup.
-    expect(databaseMocks.selectQueue).toHaveLength(0);
+    expect(databaseMocks.selectFixtures.get(restaurants)).toHaveLength(0);
   });
 
   it("refuses a sticker the owner has regenerated away from", async () => {
-    databaseMocks.selectQueue.push({
-      get: {
-        id: "restaurant-1",
-        isActive: true,
-        isAvailable: true,
-        enableShopMode: true,
-        shopQrCode: "SHOP-restaurant-1-1785563580",
-        settings: { allowGuestOrders: true },
-      },
+    setSelectFixtures({
+      restaurants: [
+        [activeGuestRestaurant({ shopQrCode: "SHOP-restaurant-1-1785563580" })],
+      ],
     });
 
     const response = await createRoutesWithApiErrorHandler().fetch(
@@ -383,15 +413,10 @@ describe("guest order routes", () => {
   });
 
   it("accepts the sticker that is currently live", async () => {
-    databaseMocks.selectQueue.push({
-      get: {
-        id: "restaurant-1",
-        isActive: true,
-        isAvailable: true,
-        enableShopMode: true,
-        shopQrCode: "SHOP-restaurant-1-1785563580",
-        settings: { allowGuestOrders: true },
-      },
+    setSelectFixtures({
+      restaurants: [
+        [activeGuestRestaurant({ shopQrCode: "SHOP-restaurant-1-1785563580" })],
+      ],
     });
     createOrder.mockResolvedValue({ id: 503, orderNumber: "G003" });
 
@@ -412,18 +437,10 @@ describe("guest order routes", () => {
   it("still accepts table orders from a shop with shop mode off", async () => {
     // enableShopMode governs the shop QR channel only — dine-in at a table is
     // a different channel and must not be collateral damage.
-    databaseMocks.selectQueue.push(
-      {
-        get: {
-          id: "restaurant-1",
-          isActive: true,
-          isAvailable: true,
-          enableShopMode: false,
-          settings: { allowGuestOrders: true },
-        },
-      },
-      { get: { id: 3, restaurantId: "restaurant-1" } },
-    );
+    setSelectFixtures({
+      restaurants: [[activeGuestRestaurant({ enableShopMode: false })]],
+      tables: [[{ id: 3, restaurantId: "restaurant-1" }]],
+    });
     createOrder.mockResolvedValue({ id: 502, orderNumber: "G002" });
 
     const response = await routes.fetch(
@@ -476,15 +493,7 @@ describe("guest order routes", () => {
       `guest_active:restaurant-1:token:${activeGuestToken}`,
       "501",
     );
-    databaseMocks.selectQueue.push({
-      get: {
-        id: "restaurant-1",
-        isActive: true,
-        isAvailable: true,
-        enableShopMode: true,
-        settings: { allowGuestOrders: true },
-      },
-    });
+    setSelectFixtures({ restaurants: [[activeGuestRestaurant()]] });
 
     const duplicateResponse = await app.fetch(
       new Request("https://test/", {
@@ -508,28 +517,13 @@ describe("guest order routes", () => {
   });
 
   it("does not block separate anonymous guests sharing the same restaurant, table, and IP", async () => {
-    databaseMocks.selectQueue.push(
-      {
-        get: {
-          id: "restaurant-1",
-          isActive: true,
-          isAvailable: true,
-          enableShopMode: true,
-          settings: { allowGuestOrders: true },
-        },
-      },
-      { get: { id: 7, restaurantId: "restaurant-1" } },
-      {
-        get: {
-          id: "restaurant-1",
-          isActive: true,
-          isAvailable: true,
-          enableShopMode: true,
-          settings: { allowGuestOrders: true },
-        },
-      },
-      { get: { id: 7, restaurantId: "restaurant-1" } },
-    );
+    setSelectFixtures({
+      restaurants: [[activeGuestRestaurant()], [activeGuestRestaurant()]],
+      tables: [
+        [{ id: 7, restaurantId: "restaurant-1" }],
+        [{ id: 7, restaurantId: "restaurant-1" }],
+      ],
+    });
     createOrder
       .mockResolvedValueOnce({ id: 501, orderNumber: "G001" })
       .mockResolvedValueOnce({ id: 502, orderNumber: "G002" });
@@ -564,13 +558,8 @@ describe("guest order routes", () => {
   });
 
   it("validates restaurant, table, and seat availability before creating", async () => {
-    databaseMocks.selectQueue.push({
-      get: {
-        id: "restaurant-1",
-        isActive: true,
-        isAvailable: false,
-        settings: { allowGuestOrders: true },
-      },
+    setSelectFixtures({
+      restaurants: [[activeGuestRestaurant({ isAvailable: false })]],
     });
 
     const unavailableResponse = await withSilencedRouteError(() =>
@@ -584,18 +573,10 @@ describe("guest order routes", () => {
     );
     expect(unavailableResponse.status).toBe(500);
 
-    databaseMocks.selectQueue.push(
-      {
-        get: {
-          id: "restaurant-1",
-          isActive: true,
-          isAvailable: true,
-          enableShopMode: true,
-          settings: { allowGuestOrders: true },
-        },
-      },
-      { get: { id: 7, restaurantId: "restaurant-2" } },
-    );
+    setSelectFixtures({
+      restaurants: [[activeGuestRestaurant()]],
+      tables: [[{ id: 7, restaurantId: "restaurant-2" }]],
+    });
     const tableResponse = await withSilencedRouteError(() =>
       routes.fetch(
         new Request("https://test/", {
@@ -609,19 +590,11 @@ describe("guest order routes", () => {
     );
     expect(tableResponse.status).toBe(500);
 
-    databaseMocks.selectQueue.push(
-      {
-        get: {
-          id: "restaurant-1",
-          isActive: true,
-          isAvailable: true,
-          enableShopMode: true,
-          settings: { allowGuestOrders: true },
-        },
-      },
-      { get: { id: 7, restaurantId: "restaurant-1" } },
-      { get: { id: 11, tableId: 8 } },
-    );
+    setSelectFixtures({
+      restaurants: [[activeGuestRestaurant()]],
+      tables: [[{ id: 7, restaurantId: "restaurant-1" }]],
+      seats: [[{ id: 11, tableId: 8 }]],
+    });
     const seatResponse = await withSilencedRouteError(() =>
       routes.fetch(
         new Request("https://test/", {
@@ -642,15 +615,7 @@ describe("guest order routes", () => {
   });
 
   it("maps known order creation conflicts", async () => {
-    databaseMocks.selectQueue.push({
-      get: {
-        id: "restaurant-1",
-        isActive: true,
-        isAvailable: true,
-        enableShopMode: true,
-        settings: { allowGuestOrders: true },
-      },
-    });
+    setSelectFixtures({ restaurants: [[activeGuestRestaurant()]] });
     createOrder.mockRejectedValue(new Error("Menu item 101 is not available"));
 
     const response = await withSilencedRouteError(() =>

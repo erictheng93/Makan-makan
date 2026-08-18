@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BackupConfiguration } from "@makanmasak/shared-types";
+import { backupConfigurations, backupRecords } from "@makanmasak/database";
 
 const drizzleState = vi.hoisted(() => ({
   db: undefined as unknown,
@@ -18,22 +19,65 @@ vi.mock("drizzle-orm/d1", () => ({
 
 import { BackupConfigService } from "./BackupConfigService";
 
-function createQuery(result: unknown) {
+type SelectFixtureName = "backupConfigurations" | "backupRecords";
+type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
+
+const fixtureTables: Record<SelectFixtureName, unknown> = {
+  backupConfigurations,
+  backupRecords,
+};
+const fixtureTableNames = new Map<unknown, SelectFixtureName>(
+  Object.entries(fixtureTables).map(([name, table]) => [
+    table,
+    name as SelectFixtureName,
+  ]),
+);
+
+function createQuery(nextResultFor: (table: unknown) => unknown) {
+  let selectedTable: unknown;
   const builder = {
-    from: vi.fn(() => builder),
+    from: vi.fn((table: unknown) => {
+      selectedTable = table;
+      return builder;
+    }),
     where: vi.fn(() => builder),
     orderBy: vi.fn(() => builder),
     limit: vi.fn(() => builder),
     then: (
       resolve: (value: unknown) => void,
       reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
+    ) => {
+      if (!selectedTable) {
+        return Promise.reject(
+          new Error("Select fixture query never called from(table)"),
+        ).then(resolve, reject);
+      }
+      return Promise.resolve(nextResultFor(selectedTable)).then(
+        resolve,
+        reject,
+      );
+    },
   };
   return builder;
 }
 
-function createDb(options: { selectResults?: unknown[] } = {}) {
-  const selectResults = [...(options.selectResults ?? [])];
+function createDb(fixtures: SelectFixtures = {}) {
+  const selectResults = new Map<unknown, unknown[][]>(
+    Object.entries(fixtures).map(([name, results]) => [
+      fixtureTables[name as SelectFixtureName],
+      [...(results ?? [])],
+    ]),
+  );
+  const nextResultFor = (table: unknown) => {
+    const name = fixtureTableNames.get(table) ?? "<unknown table>";
+    const queue = selectResults.get(table);
+    if (!queue) throw new Error(`Missing select fixture for ${name}`);
+    const result = queue.shift();
+    if (result === undefined) {
+      throw new Error(`No select fixtures remaining for ${name}`);
+    }
+    return result;
+  };
   const inserted: unknown[] = [];
   const updated: unknown[] = [];
   const deleted: unknown[] = [];
@@ -42,7 +86,7 @@ function createDb(options: { selectResults?: unknown[] } = {}) {
     inserted,
     updated,
     deleted,
-    select: vi.fn(() => createQuery(selectResults.shift() ?? [])),
+    select: vi.fn(() => createQuery(nextResultFor)),
     insert: vi.fn(() => ({
       values: vi.fn(async (payload: unknown) => {
         inserted.push(payload);
@@ -141,10 +185,27 @@ describe("BackupConfigService", () => {
     vi.useRealTimers();
   });
 
+  it("routes select fixtures by table and reports exhausted fixtures", async () => {
+    const db = createDb({
+      backupConfigurations: [[row()]],
+      backupRecords: [[{ total: 1 }]],
+    });
+
+    await expect(db.select().from(backupRecords)).resolves.toEqual([
+      { total: 1 },
+    ]);
+    await expect(db.select().from(backupConfigurations)).resolves.toEqual([
+      row(),
+    ]);
+    await expect(db.select().from(backupConfigurations)).rejects.toThrow(
+      "No select fixtures remaining for backupConfigurations",
+    );
+  });
+
   it("lists and fetches configurations with camel and snake case row normalization", async () => {
     const { service } = createService(
       createDb({
-        selectResults: [
+        backupConfigurations: [
           [row()],
           [
             row({
@@ -198,7 +259,7 @@ describe("BackupConfigService", () => {
 
   it("returns an existing default configuration or creates one when missing", async () => {
     const db = createDb({
-      selectResults: [[row({ name: "Default Configuration" })], []],
+      backupConfigurations: [[row({ name: "Default Configuration" })], []],
     });
     const { service } = createService(db);
 
@@ -237,7 +298,7 @@ describe("BackupConfigService", () => {
   });
 
   it("creates, updates, and upserts configurations with database column names", async () => {
-    const db = createDb({ selectResults: [[row()]] });
+    const db = createDb({ backupConfigurations: [[row()]] });
     const { service } = createService(db);
 
     await expect(service.createConfiguration(config())).resolves.toMatchObject({
@@ -298,7 +359,9 @@ describe("BackupConfigService", () => {
 
   it("rejects missing and cross-restaurant updates through the wrapped save path", async () => {
     const { service } = createService(
-      createDb({ selectResults: [[], [row({ restaurantId: "restaurant-1" })]] }),
+      createDb({
+        backupConfigurations: [[], [row({ restaurantId: "restaurant-1" })]],
+      }),
     );
 
     await expect(
@@ -313,12 +376,13 @@ describe("BackupConfigService", () => {
 
   it("deletes unused configurations and blocks configurations referenced by backups", async () => {
     const db = createDb({
-      selectResults: [[{ total: 0 }], [{ total: 2 }]],
+      backupRecords: [[{ total: 0 }], [{ total: 2 }]],
     });
     const { service } = createService(db);
 
-    await expect(service.deleteConfiguration("config-1")).resolves
-      .toBeUndefined();
+    await expect(
+      service.deleteConfiguration("config-1"),
+    ).resolves.toBeUndefined();
     expect(db.deleted).toHaveLength(1);
 
     await expect(service.deleteConfiguration("config-2")).rejects.toThrow(
@@ -329,7 +393,7 @@ describe("BackupConfigService", () => {
   it("returns scheduled configurations only when enabled with cron expressions", async () => {
     const { service } = createService(
       createDb({
-        selectResults: [
+        backupConfigurations: [
           [
             row({
               id: "scheduled-1",
@@ -384,7 +448,7 @@ describe("BackupConfigService", () => {
   });
 
   it("clones configurations for another restaurant with a new identity", async () => {
-    const db = createDb({ selectResults: [[row({ name: "Source" })]] });
+    const db = createDb({ backupConfigurations: [[row({ name: "Source" })]] });
     const { service } = createService(db);
 
     await expect(

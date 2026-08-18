@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ForecastResult } from "@makanmasak/shared-types";
+import { forecastCache, menuItemIngredients } from "@makanmasak/database";
 
 const drizzleState = vi.hoisted(() => ({
   db: {} as Record<string, unknown>,
@@ -48,26 +49,68 @@ function createKV(initial: Record<string, unknown> = {}) {
   };
 }
 
-function createQuery<T>(result: T) {
+type SelectFixtureName = "forecastCache" | "menuItemIngredients";
+type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
+
+const fixtureTables: Record<SelectFixtureName, unknown> = {
+  forecastCache,
+  menuItemIngredients,
+};
+const fixtureTableNames = new Map<unknown, SelectFixtureName>(
+  Object.entries(fixtureTables).map(([name, table]) => [
+    table,
+    name as SelectFixtureName,
+  ]),
+);
+
+function createQuery(nextResultFor: (table: unknown) => unknown) {
+  let selectedTable: unknown;
   const query = {
-    from: vi.fn(() => query),
+    from: vi.fn((table: unknown) => {
+      selectedTable = table;
+      return query;
+    }),
     where: vi.fn(() => query),
     limit: vi.fn(() => query),
     innerJoin: vi.fn(() => query),
-    then: vi.fn((resolve, reject) =>
-      Promise.resolve(result).then(resolve, reject),
-    ),
+    then: vi.fn((resolve, reject) => {
+      if (!selectedTable) {
+        return Promise.reject(
+          new Error("Select fixture query never called from(table)"),
+        ).then(resolve, reject);
+      }
+      return Promise.resolve(nextResultFor(selectedTable)).then(
+        resolve,
+        reject,
+      );
+    }),
   };
   return query;
 }
 
-function createDb(selectResults: unknown[] = []) {
+function createDb(fixtures: SelectFixtures = {}) {
+  const selectResults = new Map<unknown, unknown[][]>(
+    Object.entries(fixtures).map(([name, results]) => [
+      fixtureTables[name as SelectFixtureName],
+      [...(results ?? [])],
+    ]),
+  );
+  const nextResultFor = (table: unknown) => {
+    const name = fixtureTableNames.get(table) ?? "<unknown table>";
+    const queue = selectResults.get(table);
+    if (!queue) throw new Error(`Missing select fixture for ${name}`);
+    const result = queue.shift();
+    if (result === undefined) {
+      throw new Error(`No select fixtures remaining for ${name}`);
+    }
+    return result;
+  };
   const insertValues: unknown[] = [];
   const conflictUpdates: unknown[] = [];
   const db = {
     insertValues,
     conflictUpdates,
-    select: vi.fn(() => createQuery(selectResults.shift() ?? [])),
+    select: vi.fn(() => createQuery(nextResultFor)),
     insert: vi.fn(() => ({
       values: vi.fn((values: unknown) => {
         insertValues.push(values);
@@ -144,35 +187,54 @@ describe("IngredientForecastService", () => {
     vi.useRealTimers();
   });
 
-  it("explodes item forecasts into sorted ingredient demand and persists results", async () => {
-    const db = createDb([
-      [
-        {
-          menuItemId: 1,
-          ingredientId: 7,
-          quantityPerServing: 0.2,
-          unit: "kg",
-          ingredientName: "Rice",
-          currentStock: 1,
-        },
-        {
-          menuItemId: 2,
-          ingredientId: 7,
-          quantityPerServing: 0.05,
-          unit: "kg",
-          ingredientName: "Rice",
-          currentStock: 1,
-        },
-        {
-          menuItemId: 1,
-          ingredientId: 8,
-          quantityPerServing: 1.5,
-          unit: "pcs",
-          ingredientName: "Egg",
-          currentStock: 20,
-        },
-      ],
+  it("routes select fixtures by table and reports missing fixtures", async () => {
+    const db = createDb({
+      forecastCache: [[{ data: [] }]],
+      menuItemIngredients: [[{ ingredientId: 7 }]],
+    });
+
+    await expect(db.select().from(menuItemIngredients)).resolves.toEqual([
+      { ingredientId: 7 },
     ]);
+    await expect(db.select().from(forecastCache)).resolves.toEqual([
+      { data: [] },
+    ]);
+    await expect(db.select().from(forecastCache)).rejects.toThrow(
+      "No select fixtures remaining for forecastCache",
+    );
+  });
+
+  it("explodes item forecasts into sorted ingredient demand and persists results", async () => {
+    const db = createDb({
+      menuItemIngredients: [
+        [
+          {
+            menuItemId: 1,
+            ingredientId: 7,
+            quantityPerServing: 0.2,
+            unit: "kg",
+            ingredientName: "Rice",
+            currentStock: 1,
+          },
+          {
+            menuItemId: 2,
+            ingredientId: 7,
+            quantityPerServing: 0.05,
+            unit: "kg",
+            ingredientName: "Rice",
+            currentStock: 1,
+          },
+          {
+            menuItemId: 1,
+            ingredientId: 8,
+            quantityPerServing: 1.5,
+            unit: "pcs",
+            ingredientName: "Egg",
+            currentStock: 20,
+          },
+        ],
+      ],
+    });
     drizzleState.db = db;
     const { kv, values } = createKV();
     const forecastService = createForecastService([itemForecast()]);
@@ -252,18 +314,20 @@ describe("IngredientForecastService", () => {
   });
 
   it("uses AI enhanced ingredient forecasts when configured", async () => {
-    const db = createDb([
-      [
-        {
-          menuItemId: 1,
-          ingredientId: 7,
-          quantityPerServing: 1,
-          unit: "kg",
-          ingredientName: "Rice",
-          currentStock: 1,
-        },
+    const db = createDb({
+      menuItemIngredients: [
+        [
+          {
+            menuItemId: 1,
+            ingredientId: 7,
+            quantityPerServing: 1,
+            unit: "kg",
+            ingredientName: "Rice",
+            currentStock: 1,
+          },
+        ],
       ],
-    ]);
+    });
     drizzleState.db = db;
     const { kv } = createKV();
     const enhancedForecasts = [
@@ -337,29 +401,31 @@ describe("IngredientForecastService", () => {
   });
 
   it("hydrates database fallback forecasts into KV and generates missing dates", async () => {
-    const db = createDb([
-      [
-        {
-          data: [
-            {
-              ingredientId: 7,
-              ingredientName: "Rice",
-              unit: "kg",
-              predictedQuantity: 3,
-              confidence: 0.8,
-              contributingItems: [],
+    const db = createDb({
+      forecastCache: [
+        [
+          {
+            data: [
+              {
+                ingredientId: 7,
+                ingredientName: "Rice",
+                unit: "kg",
+                predictedQuantity: 3,
+                confidence: 0.8,
+                contributingItems: [],
+              },
+            ],
+            metadata: {
+              dataSourceDays: 14,
+              model: "db-cache",
+              generatedAt: "2026-06-07T00:00:00.000Z",
             },
-          ],
-          metadata: {
-            dataSourceDays: 14,
-            model: "db-cache",
-            generatedAt: "2026-06-07T00:00:00.000Z",
+            generatedBy: "statistical",
           },
-          generatedBy: "statistical",
-        },
+        ],
+        [],
       ],
-      [],
-    ]);
+    });
     drizzleState.db = db;
     const { kv } = createKV();
     const forecastService = createForecastService();
