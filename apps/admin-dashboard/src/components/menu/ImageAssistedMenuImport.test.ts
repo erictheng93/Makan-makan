@@ -16,10 +16,11 @@ describe("ImageAssistedMenuImport", () => {
       },
     });
 
-    await wrapper.get("button").trigger("click");
     await wrapper
-      .findAll("button")
-      .find((button) => button.text() === "新增品項")!
+      .get('[data-testid="image-menu-import-add-category"]')
+      .trigger("click");
+    await wrapper
+      .get('[data-testid="image-menu-import-add-item"]')
       .trigger("click");
 
     const inputs = wrapper.findAll("input");

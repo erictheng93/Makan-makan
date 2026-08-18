@@ -55,6 +55,7 @@
             </h4>
             <button
               type="button"
+              data-testid="image-menu-import-add-category"
               class="text-[13px] font-semibold text-[#0066D6]"
               @click="addCategory"
             >
@@ -98,6 +99,7 @@
             </h4>
             <button
               type="button"
+              data-testid="image-menu-import-add-item"
               class="text-[13px] font-semibold text-[#0066D6]"
               @click="addItem"
             >

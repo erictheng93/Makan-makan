@@ -2396,7 +2396,9 @@ const publishImageAssistedMenu = async (payload: {
   );
   imageMenuCreatedCategoryIds.forEach((id, key) => categoryIds.set(key, id));
   payload.categories.forEach((category, index) => {
-    categoryIds.set(category.key, -(index + 1));
+    if (!categoryIds.has(category.key)) {
+      categoryIds.set(category.key, -(index + 1));
+    }
   });
   const beforeCreate = validateImageAssistedMenuItems(
     payload.items,
@@ -2410,10 +2412,15 @@ const publishImageAssistedMenu = async (payload: {
 
   isPublishingImageMenu.value = true;
   try {
-    const createdCategoryIds = await createImageAssistedCategories(
-      payload.categories,
-      imageMenuCreatedCategoryIds,
+    const categoriesToCreate = payload.categories.filter(
+      (category) => !imageMenuCreatedCategoryIds.has(category.key),
     );
+    const createdCategoryIds = categoriesToCreate.length
+      ? await createImageAssistedCategories(
+          categoriesToCreate,
+          imageMenuCreatedCategoryIds,
+        )
+      : imageMenuCreatedCategoryIds;
     createdCategoryIds.forEach((id, key) => categoryIds.set(key, id));
     const ready = validateImageAssistedMenuItems(payload.items, categoryIds);
     await importMenuItems(ready.items);
