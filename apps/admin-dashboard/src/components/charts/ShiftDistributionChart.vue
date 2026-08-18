@@ -137,10 +137,16 @@ const fetchData = async () => {
     const templates = await schedulingService.getShiftTemplates(restaurantId);
 
     if (Array.isArray(templates) && templates.length > 0) {
-      shifts.value = templates.map((tpl: any) => ({
+      shifts.value = templates.map((tpl) => ({
         id: String(tpl.id),
         name: tpl.name || `${tpl.startTime || ""}-${tpl.endTime || ""}`,
-        count: tpl.assignedCount ?? tpl.employeeCount ?? 0,
+        // GET /scheduling/:id/templates projects the shift_templates row and
+        // nothing more, so there is no assigned-employee count to read. The
+        // previous `tpl.assignedCount ?? tpl.employeeCount ?? 0` chain named
+        // two fields that exist nowhere in the API and so resolved to 0 for
+        // every template. Kept at 0 rather than silently switching to a
+        // different number; see #209 for restoring a real count.
+        count: 0,
       }));
     } else {
       shifts.value = [];

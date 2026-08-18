@@ -229,14 +229,17 @@ const fetchData = async () => {
       fetchPromises.push(
         schedulingService
           .getDailyStats(restaurantId, dateStr)
-          .then((stats: any) => ({
+          .then((stats) => ({
             date: dateStr,
             value:
               selectedMetric.value === "schedules"
-                ? (stats.totalSchedules ?? stats.scheduleCount ?? 0)
+                ? stats.totalSchedules
                 : selectedMetric.value === "average"
-                  ? (stats.averageHours ?? 0)
-                  : (stats.totalHours ?? 0),
+                  ? // DailyStats has no averageHours — the endpoint returns
+                    // totals only — so this metric has always plotted 0.
+                    // See #209.
+                    0
+                  : stats.totalHours,
           }))
           .catch(() => ({ date: dateStr, value: 0 })),
       );

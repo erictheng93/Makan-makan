@@ -19,7 +19,6 @@ export default [
       "**/.backup/**",
       "**/*.backup",
       "*.config.js",
-      "src/components/charts/**",
     ],
   },
 
