@@ -18,7 +18,7 @@ export interface CachedAnalyticsData {
   id: string;
   restaurant_id: string;
   period: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   cached_at: string;
 }
 
@@ -27,7 +27,7 @@ export interface OfflineMenuUpdate {
   restaurant_id: string;
   action: "create" | "update" | "delete";
   menu_item_id?: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   timestamp: string;
   synced: boolean;
 }
@@ -36,7 +36,7 @@ export interface CachedBackupData {
   id: string;
   restaurant_id: string;
   backup_type: string;
-  data: any;
+  data: unknown;
   cached_at: string;
   expires_at: string;
 }
@@ -46,7 +46,7 @@ export interface OfflineUserAction {
   restaurant_id: string;
   action_type: string;
   target_id: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   user_id: string;
   timestamp: string;
   synced: boolean;
@@ -328,7 +328,7 @@ class AdminOfflineStorageManager {
   }
 
   // Settings Management
-  async saveSetting(key: string, value: any): Promise<void> {
+  async saveSetting(key: string, value: unknown): Promise<void> {
     const store = this.getStore("adminSettings", "readwrite");
     return new Promise((resolve, reject) => {
       const request = store.put({
@@ -341,11 +341,11 @@ class AdminOfflineStorageManager {
     });
   }
 
-  async getSetting(key: string): Promise<any> {
+  async getSetting<T = unknown>(key: string): Promise<T | null> {
     const store = this.getStore("adminSettings");
     return new Promise((resolve, reject) => {
       const request = store.get(key);
-      request.onsuccess = () => resolve(request.result?.value || null);
+      request.onsuccess = () => resolve((request.result?.value as T) ?? null);
       request.onerror = () => reject(request.error);
     });
   }
@@ -355,7 +355,7 @@ class AdminOfflineStorageManager {
     id: string;
     user_id: string;
     restaurant_id: string;
-    layout_data: any;
+    layout_data: unknown;
   }): Promise<void> {
     const store = this.getStore("dashboardLayouts", "readwrite");
     const layoutWithTimestamp = {
@@ -369,7 +369,10 @@ class AdminOfflineStorageManager {
     });
   }
 
-  async getDashboardLayout(userId: string, restaurantId: string): Promise<any> {
+  async getDashboardLayout<T = unknown>(
+    userId: string,
+    restaurantId: string,
+  ): Promise<T | null> {
     const store = this.getStore("dashboardLayouts");
     const index = store.index("user_id");
     return new Promise((resolve, reject) => {
@@ -378,7 +381,7 @@ class AdminOfflineStorageManager {
         const results = request.result.filter(
           (item) => item.restaurant_id === restaurantId,
         );
-        resolve(results.length > 0 ? results[0] : null);
+        resolve((results[0] as T | undefined) ?? null);
       };
       request.onerror = () => reject(request.error);
     });

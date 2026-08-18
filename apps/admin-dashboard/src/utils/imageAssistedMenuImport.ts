@@ -39,13 +39,17 @@ export function validateImageAssistedMenuItems(
     if (!Number.isInteger(price) || price < 0) {
       rowErrors.price = "價格必須是 0 以上整數分。";
     }
-    if (!categoryId) rowErrors.categoryKey = "請選擇分類。";
+    if (categoryId === undefined) rowErrors.categoryKey = "請選擇分類。";
     if (!Number.isInteger(sortOrder) || sortOrder < 0) {
       rowErrors.sortOrder = "排序必須是 0 以上整數。";
     }
 
     if (Object.keys(rowErrors).length > 0) {
       errors[draft.id] = rowErrors;
+      continue;
+    }
+
+    if (categoryId === undefined) {
       continue;
     }
 

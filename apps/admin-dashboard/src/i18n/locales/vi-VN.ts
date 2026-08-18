@@ -1673,8 +1673,6 @@ const viVN: Messages = {
     login: "Đăng nhập",
     loggingIn: "Đang đăng nhập...",
     loginFailed: "Đăng nhập thất bại",
-    invalidCredentials: "Tên đăng nhập hoặc mật khẩu không đúng",
-    accountLocked: "Tài khoản này đã bị khóa. Vui lòng liên hệ quản trị viên.",
     loginError: "Đã xảy ra lỗi trong quá trình đăng nhập",
     usernameRequired: "Vui lòng nhập tên đăng nhập",
     passwordRequired: "Vui lòng nhập mật khẩu",

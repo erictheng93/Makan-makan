@@ -1830,8 +1830,6 @@ const zhTWCore = {
     login: "登入",
     loggingIn: "登入中...",
     loginFailed: "登入失敗",
-    invalidCredentials: "帳號或密碼錯誤",
-    accountLocked: "此帳號已被鎖定，請聯絡管理員。",
     loginError: "登入過程中發生錯誤",
     usernameRequired: "請輸入帳號",
     passwordRequired: "請輸入密碼",
