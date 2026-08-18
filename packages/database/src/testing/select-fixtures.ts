@@ -25,10 +25,11 @@ export function createSelectFixtureDb<Name extends string>(
     Object.entries(fixtureTables).map(([name, table]) => [table, name as Name]),
   );
   const results = new Map<unknown, unknown[][]>(
-    Object.entries(fixtures).map(([name, queue]) => [
-      fixtureTables[name as Name],
-      [...(queue ?? [])],
-    ]),
+    // Object.entries widens the value type of a Partial<Record<…>> to `{}`,
+    // so the queue has to be re-stated to stay spreadable.
+    (Object.entries(fixtures) as [Name, unknown[][] | undefined][]).map(
+      ([name, queue]) => [fixtureTables[name], [...(queue ?? [])]],
+    ),
   );
   const unselectedTable = Symbol("unselectedTable");
 
