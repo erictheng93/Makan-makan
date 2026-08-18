@@ -7,7 +7,10 @@
 
 import { ref, type Ref } from "vue";
 import type { SystemMetrics } from "@/types/monitoring";
-import { monitoringService } from "@/services/monitoringService";
+import {
+  monitoringService,
+  type RecentAlert,
+} from "@/services/monitoringService";
 import { createVisibilityAwarePoller } from "@/services/visibilityAwarePoller";
 
 export type AlertNotificationType = "info" | "warning" | "critical" | "fatal";
@@ -165,20 +168,22 @@ class MonitoringPollingService {
         // Merge new alerts (dedup by id)
         const existingIds = new Set(this.alerts.value.map((a) => a.id));
         const newAlerts = recentAlerts.filter(
-          (a: any) => !existingIds.has(a.id),
+          (alert) => !existingIds.has(alert.id),
         );
 
         if (newAlerts.length > 0) {
           // Map backend alert format to AlertNotification
-          const mapped: AlertNotification[] = newAlerts.map((a: any) => ({
-            id: a.id,
-            type: a.severity || "info",
-            severity: a.severity || "info",
-            title: a.title || "",
-            message: a.message || "",
-            timestamp: a.timestamp || Date.now(),
-            acknowledged: false,
-          }));
+          const mapped: AlertNotification[] = newAlerts.map(
+            (alert: RecentAlert) => ({
+              id: alert.id,
+              type: alert.severity || "info",
+              severity: alert.severity || "info",
+              title: alert.title || "",
+              message: alert.message || "",
+              timestamp: alert.timestamp || Date.now(),
+              acknowledged: false,
+            }),
+          );
 
           this.alerts.value = [...mapped, ...this.alerts.value].slice(0, 50);
 
