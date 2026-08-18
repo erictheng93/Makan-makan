@@ -1,14 +1,112 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CouponService,
+  employeeAvailability,
+  restaurantServiceItems,
+  serviceBookings,
+  serviceBookingSlots,
+  serviceBookingWaitlist,
   SERVICE_BOOKING_PAYMENT_METHOD,
   SERVICE_BOOKING_PAYMENT_REQUIREMENT,
   SERVICE_BOOKING_PAYMENT_STATUS,
   SERVICE_BOOKING_STATUS,
   SERVICE_BOOKING_WAITLIST_STATUS,
+  users,
 } from "@makanmasak/database";
 import { CreditService } from "../../credits/services/CreditService";
 import { ServiceBookingService } from "./ServiceBookingService";
+
+/**
+ * Select fixtures are keyed by table, not by call order: `from(table)`
+ * decides which queue a query draws from, so adding a query against one
+ * table can no longer shift another table's results out from under it.
+ *
+ * Two things still need care when the code under test grows a new query:
+ *
+ * - Within a single table the queue is positional. The Nth read of a table
+ *   takes that table's Nth fixture, so a new query means inserting a fixture
+ *   at the matching index rather than appending one at the end.
+ * - A table has to be listed in `fixtureTables` before it can be declared. An
+ *   unregistered table matches no queue, so every read of it throws.
+ *
+ * Missing and exhausted fixtures both throw and name the table. Nothing
+ * falls back to `[]`/`undefined`; a silent empty/undefined result is what
+ * made the previous positional queues (`selectGet`/`selectAll`) so hard to
+ * trace back to their cause.
+ *
+ * `ServiceBookingService` terminates its selects with `.get()` (single row,
+ * or `undefined` when the fixture entry is `[]`) or `.all()` (the whole
+ * array) instead of awaiting the builder directly. Both consume the next
+ * fixture queued for the table passed to `from()` — `.get()` just takes
+ * index 0 of it.
+ *
+ * `restaurantServiceItems`, `users`, `employeeAvailability`,
+ * `serviceBookingSlots`, and `serviceBookings` are all read via `db.select`
+ * somewhere in this service (`createBooking`, `joinWaitlist`,
+ * `getAvailability`, `listSlots`, `listByRestaurant`, `listDueReminders`,
+ * `requireBooking`, `requireSlot`, `assertServiceBelongsToRestaurant`,
+ * `assertEmployeeAvailable`, `assertEmployeeHasNoOverlappingBooking`,
+ * `reserveSlotCapacity`), so all five are registered below.
+ * `assertServiceBelongsToRestaurant` and `assertEmployeeAvailable` select a
+ * narrowed column list rather than `select()`, but that does not change
+ * routing — only the `from()` argument does. `serviceBookingWaitlist` is
+ * only ever `insert`ed into by this service, never selected, so it stays
+ * unregistered; it is imported only so the regression test below has a real,
+ * unregistered table to demonstrate the "<unknown table>" case.
+ *
+ * `createBooking`'s slot-capacity reservation and insert run inside a
+ * try/catch, but the catch only best-effort releases reserved capacity and
+ * always re-throws the original error (`throw error;`) — it never swallows
+ * or replaces it. A harness throw from a missing/exhausted select fixture
+ * therefore still surfaces with its original message as a rejected promise;
+ * no swallowing caveat applies anywhere in this file.
+ */
+type SelectFixtureName =
+  | "restaurantServiceItems"
+  | "users"
+  | "employeeAvailability"
+  | "serviceBookingSlots"
+  | "serviceBookings";
+type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
+
+const fixtureTables: Record<SelectFixtureName, unknown> = {
+  restaurantServiceItems,
+  users,
+  employeeAvailability,
+  serviceBookingSlots,
+  serviceBookings,
+};
+const fixtureTableNames = new Map<unknown, SelectFixtureName>(
+  Object.entries(fixtureTables).map(([name, table]) => [
+    table,
+    name as SelectFixtureName,
+  ]),
+);
+const unselectedTable = Symbol("unselectedTable");
+
+function createSelectQuery(nextResultFor: (table: unknown) => unknown) {
+  let selectedTable: unknown = unselectedTable;
+  const builder = {
+    from: vi.fn((table: unknown) => {
+      selectedTable = table;
+      return builder;
+    }),
+    where: vi.fn(() => builder),
+    get: vi.fn(async () => {
+      if (selectedTable === unselectedTable) {
+        throw new Error("Select fixture query never called from(table)");
+      }
+      return (nextResultFor(selectedTable) as unknown[])[0];
+    }),
+    all: vi.fn(async () => {
+      if (selectedTable === unselectedTable) {
+        throw new Error("Select fixture query never called from(table)");
+      }
+      return nextResultFor(selectedTable);
+    }),
+  };
+  return builder;
+}
 
 afterEach(() => {
   vi.useRealTimers();
@@ -104,27 +202,34 @@ describe("ServiceBookingService orchestration helpers", () => {
   }
 
   function createDbMock(input: {
-    selectGet?: unknown[];
-    selectAll?: unknown[][];
+    selectFixtures?: SelectFixtures;
     insertReturning?: unknown[];
     updateReturning?: unknown[];
   }) {
-    const selectGet = [...(input.selectGet ?? [])];
-    const selectAll = [...(input.selectAll ?? [])];
     const insertReturning = [...(input.insertReturning ?? [])];
     const updateReturning = [...(input.updateReturning ?? [])];
     const insertValues: unknown[] = [];
     const updateSets: unknown[] = [];
 
+    const selectResults = new Map<unknown, unknown[][]>(
+      Object.entries(input.selectFixtures ?? {}).map(([name, results]) => [
+        fixtureTables[name as SelectFixtureName],
+        [...(results ?? [])],
+      ]),
+    );
+    const nextResultFor = (table: unknown) => {
+      const name = fixtureTableNames.get(table) ?? "<unknown table>";
+      const queue = selectResults.get(table);
+      if (!queue) throw new Error(`Missing select fixture for ${name}`);
+      const result = queue.shift();
+      if (result === undefined) {
+        throw new Error(`No select fixtures remaining for ${name}`);
+      }
+      return result;
+    };
+
     const db = {
-      select: vi.fn(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn(() => ({
-            get: vi.fn(async () => selectGet.shift()),
-            all: vi.fn(async () => selectAll.shift() ?? []),
-          })),
-        })),
-      })),
+      select: vi.fn(() => createSelectQuery(nextResultFor)),
       insert: vi.fn(() => ({
         values: vi.fn((values: unknown) => {
           insertValues.push(values);
@@ -163,6 +268,38 @@ describe("ServiceBookingService orchestration helpers", () => {
     }
     return service;
   }
+
+  it("routes select fixtures by table and reports missing fixtures", async () => {
+    const slotRow = { id: "slot-1" };
+    const bookingRow = { id: "booking-1" };
+    const { db } = createDbMock({
+      selectFixtures: {
+        serviceBookingSlots: [[slotRow]],
+        serviceBookings: [[bookingRow], [bookingRow]],
+      },
+    });
+
+    // Read in reverse declaration order: routing follows the table passed to
+    // from(), not the execution order.
+    await expect(db.select().from(serviceBookings).all()).resolves.toEqual([
+      bookingRow,
+    ]);
+    await expect(db.select().from(serviceBookingSlots).get()).resolves.toEqual(
+      slotRow,
+    );
+    await expect(db.select().from(serviceBookings).get()).resolves.toEqual(
+      bookingRow,
+    );
+    await expect(db.select().from(serviceBookingSlots).all()).rejects.toThrow(
+      "No select fixtures remaining for serviceBookingSlots",
+    );
+    // serviceBookingWaitlist is only ever written to (never selected) in
+    // ServiceBookingService, so it stays out of fixtureTables and reports
+    // <unknown table>.
+    await expect(
+      db.select().from(serviceBookingWaitlist).get(),
+    ).rejects.toThrow("Missing select fixture for <unknown table>");
+  });
 
   it("creates recurring bookings with weekly dates and recurrence metadata", async () => {
     const service = createService();
@@ -293,28 +430,30 @@ describe("ServiceBookingService orchestration helpers", () => {
 
   it("maps slot availability from capped booking slots", async () => {
     const { db } = createDbMock({
-      selectAll: [
-        [
-          {
-            timeSlot: "10:00",
-            maxCapacity: 3,
-            currentBookings: 1,
-            isAvailable: 1,
-          },
-          {
-            timeSlot: "11:00",
-            maxCapacity: 2,
-            currentBookings: 2,
-            isAvailable: 1,
-          },
-          {
-            timeSlot: "12:00",
-            maxCapacity: 2,
-            currentBookings: 0,
-            isAvailable: 0,
-          },
+      selectFixtures: {
+        serviceBookingSlots: [
+          [
+            {
+              timeSlot: "10:00",
+              maxCapacity: 3,
+              currentBookings: 1,
+              isAvailable: 1,
+            },
+            {
+              timeSlot: "11:00",
+              maxCapacity: 2,
+              currentBookings: 2,
+              isAvailable: 1,
+            },
+            {
+              timeSlot: "12:00",
+              maxCapacity: 2,
+              currentBookings: 0,
+              isAvailable: 0,
+            },
+          ],
         ],
-      ],
+      },
     });
     const service = createService({ db });
 
@@ -336,20 +475,24 @@ describe("ServiceBookingService orchestration helpers", () => {
     const { d1, calls } = createD1Mock([{ changes: 0 }]);
     const insertedRow = { id: "booking-1" };
     const { db, insertValues } = createDbMock({
-      selectGet: [
-        {
-          id: 10,
-          restaurantId: "rest-1",
-          name: "Spa Session",
-          durationMinutes: 90,
-          priceCents: 5000,
-          availableHours: { start: "09:00", end: "18:00", days: [3] },
-          requiresBooking: true,
-          isActive: true,
-          deletedAt: null,
-        },
-        undefined,
-      ],
+      selectFixtures: {
+        restaurantServiceItems: [
+          [
+            {
+              id: 10,
+              restaurantId: "rest-1",
+              name: "Spa Session",
+              durationMinutes: 90,
+              priceCents: 5000,
+              availableHours: { start: "09:00", end: "18:00", days: [3] },
+              requiresBooking: true,
+              isActive: true,
+              deletedAt: null,
+            },
+          ],
+        ],
+        serviceBookingSlots: [[]],
+      },
       insertReturning: [insertedRow],
     });
     const service = createService({ d1: d1 as never, db });
@@ -412,20 +555,24 @@ describe("ServiceBookingService orchestration helpers", () => {
     } as never);
     const { d1 } = createD1Mock([{ changes: 0 }]);
     const { db, insertValues } = createDbMock({
-      selectGet: [
-        {
-          id: 10,
-          restaurantId: "rest-1",
-          name: "Spa Session",
-          durationMinutes: null,
-          priceCents: 5000,
-          availableHours: null,
-          requiresBooking: true,
-          isActive: true,
-          deletedAt: null,
-        },
-        undefined,
-      ],
+      selectFixtures: {
+        restaurantServiceItems: [
+          [
+            {
+              id: 10,
+              restaurantId: "rest-1",
+              name: "Spa Session",
+              durationMinutes: null,
+              priceCents: 5000,
+              availableHours: null,
+              requiresBooking: true,
+              isActive: true,
+              deletedAt: null,
+            },
+          ],
+        ],
+        serviceBookingSlots: [[]],
+      },
       insertReturning: [{ id: "booking-1" }],
     });
     const service = createService({ d1: d1 as never, db });
@@ -498,7 +645,12 @@ describe("ServiceBookingService orchestration helpers", () => {
     await expect(
       createService({
         d1: createD1Mock([{ changes: 0 }]).d1 as never,
-        db: createDbMock({ selectGet: [baseService, undefined] }).db,
+        db: createDbMock({
+          selectFixtures: {
+            restaurantServiceItems: [[baseService]],
+            serviceBookingSlots: [[]],
+          },
+        }).db,
       }).createBooking(book),
     ).rejects.toThrow("Voucher expired");
 
@@ -510,26 +662,35 @@ describe("ServiceBookingService orchestration helpers", () => {
     await expect(
       createService({
         d1: createD1Mock([{ changes: 0 }]).d1 as never,
-        db: createDbMock({ selectGet: [baseService, undefined] }).db,
+        db: createDbMock({
+          selectFixtures: {
+            restaurantServiceItems: [[baseService]],
+            serviceBookingSlots: [[]],
+          },
+        }).db,
       }).createBooking(book),
     ).rejects.toThrow("This voucher does not apply to this service");
   });
 
   it("rejects booking times outside configured service hours", async () => {
     const { db } = createDbMock({
-      selectGet: [
-        {
-          id: 10,
-          restaurantId: "rest-1",
-          name: "Spa Session",
-          durationMinutes: 60,
-          priceCents: 1000,
-          availableHours: { start: "09:00", end: "18:00", days: [3] },
-          requiresBooking: true,
-          isActive: true,
-          deletedAt: null,
-        },
-      ],
+      selectFixtures: {
+        restaurantServiceItems: [
+          [
+            {
+              id: 10,
+              restaurantId: "rest-1",
+              name: "Spa Session",
+              durationMinutes: 60,
+              priceCents: 1000,
+              availableHours: { start: "09:00", end: "18:00", days: [3] },
+              requiresBooking: true,
+              isActive: true,
+              deletedAt: null,
+            },
+          ],
+        ],
+      },
     });
     const service = createService({ db });
 
@@ -568,37 +729,56 @@ describe("ServiceBookingService orchestration helpers", () => {
 
     await expect(
       createService({
-        db: createDbMock({ selectGet: [undefined] }).db,
+        db: createDbMock({
+          selectFixtures: { restaurantServiceItems: [[]] },
+        }).db,
       }).createBooking(book),
     ).rejects.toThrow("Service not found");
     await expect(
       createService({
         db: createDbMock({
-          selectGet: [{ ...baseService, restaurantId: "rest-2" }],
+          selectFixtures: {
+            restaurantServiceItems: [
+              [{ ...baseService, restaurantId: "rest-2" }],
+            ],
+          },
         }).db,
       }).createBooking(book),
     ).rejects.toThrow("Service does not belong to this restaurant");
     await expect(
       createService({
         db: createDbMock({
-          selectGet: [{ ...baseService, requiresBooking: false }],
+          selectFixtures: {
+            restaurantServiceItems: [
+              [{ ...baseService, requiresBooking: false }],
+            ],
+          },
         }).db,
       }).createBooking(book),
     ).rejects.toThrow("This service does not accept bookings");
     await expect(
       createService({
-        db: createDbMock({ selectGet: [baseService] }).db,
+        db: createDbMock({
+          selectFixtures: { restaurantServiceItems: [[baseService]] },
+        }).db,
       }).createBooking({ ...book, bookingTime: "08:59" }),
     ).rejects.toThrow("The selected time is before the service opens");
     await expect(
       createService({
-        db: createDbMock({ selectGet: [baseService] }).db,
+        db: createDbMock({
+          selectFixtures: { restaurantServiceItems: [[baseService]] },
+        }).db,
       }).createBooking({ ...book, bookingTime: "18:01" }),
     ).rejects.toThrow("The selected time is after the service closes");
     await expect(
       createService({
         d1: createD1Mock([{ changes: 0 }]).d1 as never,
-        db: createDbMock({ selectGet: [baseService, undefined] }).db,
+        db: createDbMock({
+          selectFixtures: {
+            restaurantServiceItems: [[baseService]],
+            serviceBookingSlots: [[]],
+          },
+        }).db,
       }).createBooking({
         ...book,
         paymentRequirement: SERVICE_BOOKING_PAYMENT_REQUIREMENT.DEPOSIT,
@@ -607,7 +787,12 @@ describe("ServiceBookingService orchestration helpers", () => {
     await expect(
       createService({
         d1: createD1Mock([{ changes: 0 }]).d1 as never,
-        db: createDbMock({ selectGet: [baseService, undefined] }).db,
+        db: createDbMock({
+          selectFixtures: {
+            restaurantServiceItems: [[baseService]],
+            serviceBookingSlots: [[]],
+          },
+        }).db,
       }).createBooking({
         ...book,
         paymentRequirement: SERVICE_BOOKING_PAYMENT_REQUIREMENT.DEPOSIT,
@@ -617,7 +802,12 @@ describe("ServiceBookingService orchestration helpers", () => {
     await expect(
       createService({
         d1: createD1Mock([{ changes: 0 }]).d1 as never,
-        db: createDbMock({ selectGet: [baseService, undefined] }).db,
+        db: createDbMock({
+          selectFixtures: {
+            restaurantServiceItems: [[baseService]],
+            serviceBookingSlots: [[]],
+          },
+        }).db,
       }).createBooking({
         ...book,
         reminderOptIn: true,
@@ -629,20 +819,24 @@ describe("ServiceBookingService orchestration helpers", () => {
   it("creates bookings without immediate payment when payment is deferred", async () => {
     const { d1 } = createD1Mock([{ changes: 0 }]);
     const { db, insertValues } = createDbMock({
-      selectGet: [
-        {
-          id: 10,
-          restaurantId: "rest-1",
-          name: "Spa Session",
-          durationMinutes: 60,
-          priceCents: 5000,
-          availableHours: null,
-          requiresBooking: true,
-          isActive: true,
-          deletedAt: null,
-        },
-        undefined,
-      ],
+      selectFixtures: {
+        restaurantServiceItems: [
+          [
+            {
+              id: 10,
+              restaurantId: "rest-1",
+              name: "Spa Session",
+              durationMinutes: 60,
+              priceCents: 5000,
+              availableHours: null,
+              requiresBooking: true,
+              isActive: true,
+              deletedAt: null,
+            },
+          ],
+        ],
+        serviceBookingSlots: [[]],
+      },
       insertReturning: [{ id: "booking-1" }],
     });
     const service = createService({ d1: d1 as never, db });
@@ -671,20 +865,24 @@ describe("ServiceBookingService orchestration helpers", () => {
   it("rejects bookings when an existing slot is full", async () => {
     const { d1 } = createD1Mock([{ changes: 0 }]);
     const { db } = createDbMock({
-      selectGet: [
-        {
-          id: 10,
-          restaurantId: "rest-1",
-          name: "Spa Session",
-          durationMinutes: 60,
-          priceCents: 1000,
-          availableHours: null,
-          requiresBooking: true,
-          isActive: true,
-          deletedAt: null,
-        },
-        { id: "slot-1" },
-      ],
+      selectFixtures: {
+        restaurantServiceItems: [
+          [
+            {
+              id: 10,
+              restaurantId: "rest-1",
+              name: "Spa Session",
+              durationMinutes: 60,
+              priceCents: 1000,
+              availableHours: null,
+              requiresBooking: true,
+              isActive: true,
+              deletedAt: null,
+            },
+          ],
+        ],
+        serviceBookingSlots: [[{ id: "slot-1" }]],
+      },
     });
     const service = createService({ d1: d1 as never, db });
 
@@ -703,34 +901,38 @@ describe("ServiceBookingService orchestration helpers", () => {
   it("accepts employees only when availability covers the booking and no active booking overlaps", async () => {
     const { d1 } = createD1Mock([{ changes: 0 }]);
     const { db, insertValues } = createDbMock({
-      selectGet: [
-        {
-          id: 10,
-          restaurantId: "rest-1",
-          name: "Spa Session",
-          durationMinutes: 60,
-          priceCents: 1000,
-          availableHours: null,
-          requiresBooking: true,
-          isActive: true,
-          deletedAt: null,
-        },
-        { id: 7, restaurantId: "rest-1", isActive: true, role: 2 },
-        undefined,
-      ],
-      selectAll: [
-        [
-          {
-            availabilityType: "recurring",
-            dayOfWeek: 3,
-            startTime: "09:00",
-            endTime: "17:00",
-            preferenceType: "available",
-            priority: 1,
-          },
+      selectFixtures: {
+        restaurantServiceItems: [
+          [
+            {
+              id: 10,
+              restaurantId: "rest-1",
+              name: "Spa Session",
+              durationMinutes: 60,
+              priceCents: 1000,
+              availableHours: null,
+              requiresBooking: true,
+              isActive: true,
+              deletedAt: null,
+            },
+          ],
         ],
-        [],
-      ],
+        users: [[{ id: 7, restaurantId: "rest-1", isActive: true, role: 2 }]],
+        serviceBookingSlots: [[]],
+        employeeAvailability: [
+          [
+            {
+              availabilityType: "recurring",
+              dayOfWeek: 3,
+              startTime: "09:00",
+              endTime: "17:00",
+              preferenceType: "available",
+              priority: 1,
+            },
+          ],
+        ],
+        serviceBookings: [[]],
+      },
       insertReturning: [{ id: "booking-1" }],
     });
     const service = createService({ d1: d1 as never, db });
@@ -773,47 +975,12 @@ describe("ServiceBookingService orchestration helpers", () => {
     await expect(
       createService({
         db: createDbMock({
-          selectGet: [
-            serviceRow,
-            { id: 7, restaurantId: "rest-1", isActive: false, role: 2 },
-          ],
-        }).db,
-      }).createBooking(book),
-    ).rejects.toThrow("The assigned employee is not available");
-
-    await expect(
-      createService({
-        db: createDbMock({
-          selectGet: [
-            serviceRow,
-            { id: 7, restaurantId: "rest-1", isActive: true, role: 2 },
-          ],
-          selectAll: [[]],
-        }).db,
-      }).createBooking(book),
-    ).rejects.toThrow("The assigned employee is not available");
-
-    await expect(
-      createService({
-        db: createDbMock({
-          selectGet: [
-            serviceRow,
-            { id: 7, restaurantId: "rest-1", isActive: true, role: 2 },
-          ],
-          selectAll: [
-            [
-              {
-                availabilityType: "specific_date",
-                startDate: "2026-06-10",
-                endDate: "2026-06-10",
-                startTime: null,
-                endTime: null,
-                preferenceType: "available",
-                priority: 2,
-              },
+          selectFixtures: {
+            restaurantServiceItems: [[serviceRow]],
+            users: [
+              [{ id: 7, restaurantId: "rest-1", isActive: false, role: 2 }],
             ],
-            [{ bookingTime: "09:30", durationMinutesSnapshot: 60 }],
-          ],
+          },
         }).db,
       }).createBooking(book),
     ).rejects.toThrow("The assigned employee is not available");
@@ -821,31 +988,76 @@ describe("ServiceBookingService orchestration helpers", () => {
     await expect(
       createService({
         db: createDbMock({
-          selectGet: [
-            serviceRow,
-            { id: 7, restaurantId: "rest-1", isActive: true, role: 2 },
-          ],
-          selectAll: [
-            [
-              {
-                availabilityType: "recurring",
-                dayOfWeek: 3,
-                startTime: "09:00",
-                endTime: "17:00",
-                preferenceType: "available",
-                priority: 1,
-              },
-              {
-                availabilityType: "specific_date",
-                startDate: "2026-06-10",
-                endDate: "2026-06-10",
-                startTime: "09:00",
-                endTime: "17:00",
-                preferenceType: "unavailable",
-                priority: 2,
-              },
+          selectFixtures: {
+            restaurantServiceItems: [[serviceRow]],
+            users: [
+              [{ id: 7, restaurantId: "rest-1", isActive: true, role: 2 }],
             ],
-          ],
+            employeeAvailability: [[]],
+          },
+        }).db,
+      }).createBooking(book),
+    ).rejects.toThrow("The assigned employee is not available");
+
+    await expect(
+      createService({
+        db: createDbMock({
+          selectFixtures: {
+            restaurantServiceItems: [[serviceRow]],
+            users: [
+              [{ id: 7, restaurantId: "rest-1", isActive: true, role: 2 }],
+            ],
+            employeeAvailability: [
+              [
+                {
+                  availabilityType: "specific_date",
+                  startDate: "2026-06-10",
+                  endDate: "2026-06-10",
+                  startTime: null,
+                  endTime: null,
+                  preferenceType: "available",
+                  priority: 2,
+                },
+              ],
+            ],
+            serviceBookings: [
+              [{ bookingTime: "09:30", durationMinutesSnapshot: 60 }],
+            ],
+          },
+        }).db,
+      }).createBooking(book),
+    ).rejects.toThrow("The assigned employee is not available");
+
+    await expect(
+      createService({
+        db: createDbMock({
+          selectFixtures: {
+            restaurantServiceItems: [[serviceRow]],
+            users: [
+              [{ id: 7, restaurantId: "rest-1", isActive: true, role: 2 }],
+            ],
+            employeeAvailability: [
+              [
+                {
+                  availabilityType: "recurring",
+                  dayOfWeek: 3,
+                  startTime: "09:00",
+                  endTime: "17:00",
+                  preferenceType: "available",
+                  priority: 1,
+                },
+                {
+                  availabilityType: "specific_date",
+                  startDate: "2026-06-10",
+                  endDate: "2026-06-10",
+                  startTime: "09:00",
+                  endTime: "17:00",
+                  preferenceType: "unavailable",
+                  priority: 2,
+                },
+              ],
+            ],
+          },
         }).db,
       }).createBooking(book),
     ).rejects.toThrow("The assigned employee is not available");
@@ -898,17 +1110,21 @@ describe("ServiceBookingService orchestration helpers", () => {
   it("creates waitlist entries with default party and waiting status", async () => {
     const insertedRow = { id: "wait-1" };
     const { db, insertValues } = createDbMock({
-      selectGet: [
-        {
-          id: 10,
-          restaurantId: "rest-1",
-          durationMinutes: 60,
-          availableHours: null,
-          requiresBooking: true,
-          isActive: true,
-          deletedAt: null,
-        },
-      ],
+      selectFixtures: {
+        restaurantServiceItems: [
+          [
+            {
+              id: 10,
+              restaurantId: "rest-1",
+              durationMinutes: 60,
+              availableHours: null,
+              requiresBooking: true,
+              isActive: true,
+              deletedAt: null,
+            },
+          ],
+        ],
+      },
       insertReturning: [insertedRow],
     });
     const service = createService({ db });
@@ -938,32 +1154,36 @@ describe("ServiceBookingService orchestration helpers", () => {
   it("creates waitlist entries with employee assignment and optional fields", async () => {
     const insertedRow = { id: "wait-2" };
     const { db, insertValues } = createDbMock({
-      selectGet: [
-        {
-          id: 10,
-          restaurantId: "rest-1",
-          durationMinutes: null,
-          availableHours: null,
-          requiresBooking: true,
-          isActive: true,
-          deletedAt: null,
-        },
-        { id: 7, restaurantId: "rest-1", isActive: true, role: 2 },
-      ],
-      selectAll: [
-        [
-          {
-            availabilityType: "specific_date",
-            startDate: "2026-06-10",
-            endDate: "2026-06-10",
-            startTime: null,
-            endTime: null,
-            preferenceType: "available",
-            priority: null,
-          },
+      selectFixtures: {
+        restaurantServiceItems: [
+          [
+            {
+              id: 10,
+              restaurantId: "rest-1",
+              durationMinutes: null,
+              availableHours: null,
+              requiresBooking: true,
+              isActive: true,
+              deletedAt: null,
+            },
+          ],
         ],
-        [],
-      ],
+        users: [[{ id: 7, restaurantId: "rest-1", isActive: true, role: 2 }]],
+        employeeAvailability: [
+          [
+            {
+              availabilityType: "specific_date",
+              startDate: "2026-06-10",
+              endDate: "2026-06-10",
+              startTime: null,
+              endTime: null,
+              preferenceType: "available",
+              priority: null,
+            },
+          ],
+        ],
+        serviceBookings: [[]],
+      },
       insertReturning: [insertedRow],
     });
     const service = createService({ db });
@@ -1005,38 +1225,48 @@ describe("ServiceBookingService orchestration helpers", () => {
 
     await expect(
       createService({
-        db: createDbMock({ selectGet: [undefined] }).db,
+        db: createDbMock({
+          selectFixtures: { restaurantServiceItems: [[]] },
+        }).db,
       }).joinWaitlist(waitlist),
     ).rejects.toThrow("Service not found");
     await expect(
       createService({
         db: createDbMock({
-          selectGet: [
-            {
-              id: 10,
-              restaurantId: "rest-2",
-              availableHours: null,
-              requiresBooking: true,
-              isActive: true,
-              deletedAt: null,
-            },
-          ],
+          selectFixtures: {
+            restaurantServiceItems: [
+              [
+                {
+                  id: 10,
+                  restaurantId: "rest-2",
+                  availableHours: null,
+                  requiresBooking: true,
+                  isActive: true,
+                  deletedAt: null,
+                },
+              ],
+            ],
+          },
         }).db,
       }).joinWaitlist(waitlist),
     ).rejects.toThrow("Service does not belong to this restaurant");
     await expect(
       createService({
         db: createDbMock({
-          selectGet: [
-            {
-              id: 10,
-              restaurantId: "rest-1",
-              availableHours: null,
-              requiresBooking: false,
-              isActive: true,
-              deletedAt: null,
-            },
-          ],
+          selectFixtures: {
+            restaurantServiceItems: [
+              [
+                {
+                  id: 10,
+                  restaurantId: "rest-1",
+                  availableHours: null,
+                  requiresBooking: false,
+                  isActive: true,
+                  deletedAt: null,
+                },
+              ],
+            ],
+          },
         }).db,
       }).joinWaitlist(waitlist),
     ).rejects.toThrow("This service does not accept waitlist entries");
@@ -1047,7 +1277,10 @@ describe("ServiceBookingService orchestration helpers", () => {
     const bookings = [{ id: "booking-1" }];
     const reminders = [{ id: "reminder-1" }];
     const { db } = createDbMock({
-      selectAll: [slots, bookings, reminders],
+      selectFixtures: {
+        serviceBookingSlots: [slots],
+        serviceBookings: [bookings, reminders],
+      },
     });
     const service = createService({ db });
 
@@ -1078,7 +1311,10 @@ describe("ServiceBookingService orchestration helpers", () => {
     const bookings = [{ id: "booking-1" }];
     const reminders = [{ id: "reminder-1" }];
     const { db } = createDbMock({
-      selectAll: [slots, bookings, reminders],
+      selectFixtures: {
+        serviceBookingSlots: [slots],
+        serviceBookings: [bookings, reminders],
+      },
     });
     const service = createService({ db });
 
@@ -1109,7 +1345,10 @@ describe("ServiceBookingService orchestration helpers", () => {
       blockReason: "Staff meeting",
     };
     const { db } = createDbMock({
-      selectGet: [{ id: 10, restaurantId: "rest-1" }, slot],
+      selectFixtures: {
+        restaurantServiceItems: [[{ id: 10, restaurantId: "rest-1" }]],
+        serviceBookingSlots: [[slot]],
+      },
     });
     const service = createService({ d1: d1 as never, db });
 
@@ -1140,7 +1379,9 @@ describe("ServiceBookingService orchestration helpers", () => {
     await expect(
       createService({
         db: createDbMock({
-          selectGet: [{ id: 10, restaurantId: "rest-2" }],
+          selectFixtures: {
+            restaurantServiceItems: [[{ id: 10, restaurantId: "rest-2" }]],
+          },
         }).db,
       }).createSlot({
         restaurantId: "rest-1",
@@ -1153,7 +1394,9 @@ describe("ServiceBookingService orchestration helpers", () => {
 
     await expect(
       createService({
-        db: createDbMock({ selectGet: [undefined] }).db,
+        db: createDbMock({
+          selectFixtures: { restaurantServiceItems: [[]] },
+        }).db,
       }).createSlot({
         restaurantId: "rest-1",
         serviceItemId: 10,
@@ -1167,7 +1410,10 @@ describe("ServiceBookingService orchestration helpers", () => {
   it("blocks slots with the default reason and reports missing blocked slots", async () => {
     const { d1, calls } = createD1Mock([{ changes: 1 }]);
     const { db } = createDbMock({
-      selectGet: [{ id: 10, restaurantId: "rest-1" }, undefined],
+      selectFixtures: {
+        restaurantServiceItems: [[{ id: 10, restaurantId: "rest-1" }]],
+        serviceBookingSlots: [[]],
+      },
     });
     const service = createService({ d1: d1 as never, db });
 
@@ -1190,7 +1436,9 @@ describe("ServiceBookingService orchestration helpers", () => {
       customerEmail: "Ada@Example.Test",
     };
     const createLookupService = () => {
-      const { db } = createDbMock({ selectGet: [booking] });
+      const { db } = createDbMock({
+        selectFixtures: { serviceBookings: [[booking]] },
+      });
       return createService({ db });
     };
 
@@ -1206,7 +1454,9 @@ describe("ServiceBookingService orchestration helpers", () => {
     ).resolves.toBe(booking);
     await expect(
       createService({
-        db: createDbMock({ selectGet: [undefined] }).db,
+        db: createDbMock({
+          selectFixtures: { serviceBookings: [[]] },
+        }).db,
       }).getByConfirmationCode("missing", {
         customerPhone: "+886900000000",
       }),
@@ -1223,7 +1473,9 @@ describe("ServiceBookingService orchestration helpers", () => {
 
   it("reports missing confirmation-code cancellations", async () => {
     const service = createService({
-      db: createDbMock({ selectGet: [undefined] }).db,
+      db: createDbMock({
+        selectFixtures: { serviceBookings: [[]] },
+      }).db,
     });
 
     await expect(
@@ -1253,7 +1505,7 @@ describe("ServiceBookingService orchestration helpers", () => {
       { changes: 1 },
     ]);
     const { db } = createDbMock({
-      selectGet: [booking, cancelled],
+      selectFixtures: { serviceBookings: [[booking], [cancelled]] },
     });
     const service = createService({ d1: d1 as never, db });
 
@@ -1299,10 +1551,12 @@ describe("ServiceBookingService orchestration helpers", () => {
     };
     const { d1, calls } = createD1Mock([{ changes: 1 }]);
     const { db } = createDbMock({
-      selectGet: [
-        booking,
-        { ...booking, status: SERVICE_BOOKING_STATUS.CANCELLED },
-      ],
+      selectFixtures: {
+        serviceBookings: [
+          [booking],
+          [{ ...booking, status: SERVICE_BOOKING_STATUS.CANCELLED }],
+        ],
+      },
     });
     const service = createService({ d1: d1 as never, db });
 
@@ -1318,10 +1572,12 @@ describe("ServiceBookingService orchestration helpers", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     const { db, updateSets } = createDbMock({
-      selectGet: [
-        { id: "booking-1", status: SERVICE_BOOKING_STATUS.CONFIRMED },
-        { id: "booking-1", status: SERVICE_BOOKING_STATUS.CONFIRMED },
-      ],
+      selectFixtures: {
+        serviceBookings: [
+          [{ id: "booking-1", status: SERVICE_BOOKING_STATUS.CONFIRMED }],
+          [{ id: "booking-1", status: SERVICE_BOOKING_STATUS.CONFIRMED }],
+        ],
+      },
       updateReturning: [
         { id: "booking-1", reminderSentAt: new Date() },
         { id: "booking-1", status: SERVICE_BOOKING_STATUS.COMPLETED },
@@ -1352,10 +1608,12 @@ describe("ServiceBookingService orchestration helpers", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     const { db, updateSets } = createDbMock({
-      selectGet: [
-        { id: "booking-1", status: SERVICE_BOOKING_STATUS.CONFIRMED },
-        { id: "booking-2", status: SERVICE_BOOKING_STATUS.PENDING },
-      ],
+      selectFixtures: {
+        serviceBookings: [
+          [{ id: "booking-1", status: SERVICE_BOOKING_STATUS.CONFIRMED }],
+          [{ id: "booking-2", status: SERVICE_BOOKING_STATUS.PENDING }],
+        ],
+      },
       updateReturning: [
         { id: "booking-1", status: SERVICE_BOOKING_STATUS.NO_SHOW },
       ],
@@ -1398,7 +1656,7 @@ describe("ServiceBookingService orchestration helpers", () => {
     };
     const { d1, calls } = createD1Mock([{ changes: 1 }, { changes: 1 }]);
     const { db } = createDbMock({
-      selectGet: [booking, confirmed],
+      selectFixtures: { serviceBookings: [[booking], [confirmed]] },
     });
     const service = createService({ d1: d1 as never, db });
 
@@ -1449,7 +1707,7 @@ describe("ServiceBookingService orchestration helpers", () => {
     const confirmed = { ...booking, status: SERVICE_BOOKING_STATUS.CONFIRMED };
     const { d1, calls } = createD1Mock([{ changes: 1 }]);
     const { db } = createDbMock({
-      selectGet: [booking, confirmed],
+      selectFixtures: { serviceBookings: [[booking], [confirmed]] },
     });
     const service = createService({ d1: d1 as never, db });
 
@@ -1466,9 +1724,11 @@ describe("ServiceBookingService orchestration helpers", () => {
 
   it("rejects payment for non-pending bookings", async () => {
     const { db } = createDbMock({
-      selectGet: [
-        { id: "booking-1", status: SERVICE_BOOKING_STATUS.CONFIRMED },
-      ],
+      selectFixtures: {
+        serviceBookings: [
+          [{ id: "booking-1", status: SERVICE_BOOKING_STATUS.CONFIRMED }],
+        ],
+      },
     });
     const service = createService({ db });
 
