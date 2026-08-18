@@ -5,11 +5,7 @@
       <div class="w-12 h-12 rounded-xl overflow-hidden bg-gray-100">
         <img
           v-if="item.menuItem?.imageUrl"
-          :src="
-            getImageUrl(
-              item.menuItem.imageVariants?.thumbnail || item.menuItem.imageUrl,
-            )
-          "
+          :src="getImageUrl(item.menuItem.imageUrl)"
           :alt="getLocalizedMenuName(item.menuItem, currentLanguage)"
           class="w-full h-full object-cover"
           loading="lazy"

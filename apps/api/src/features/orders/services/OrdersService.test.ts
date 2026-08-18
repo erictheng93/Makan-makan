@@ -1021,7 +1021,7 @@ describe("OrdersService workflows", () => {
     const env = createEnv();
     getBaseOrder.mockResolvedValue(
       createOrder({
-        restaurantId: "1",
+        restaurantId: "019fc320-c159-700c-a66c-39c9b98ed964",
         status: "delivered",
         paymentStatus: "paid",
         paidAt: "2026-06-07T01:30:00.000Z",
@@ -1035,7 +1035,9 @@ describe("OrdersService workflows", () => {
     expect(receipt).toMatchObject({
       orderNumber: "ORD-42",
       restaurantInfo: {
-        id: 1,
+        // restaurants.id is a TEXT UUID v7; receipts must carry it verbatim
+        // rather than through Number(), which yields NaN.
+        id: "019fc320-c159-700c-a66c-39c9b98ed964",
         name: "Makan Test",
       },
       customerInfo: {
@@ -1085,7 +1087,7 @@ describe("OrdersService workflows", () => {
     const env = createEnv();
     getBaseOrder.mockResolvedValue(
       createOrder({
-        restaurantId: "2",
+        restaurantId: "019fc320-c159-700c-a66c-39c9b98ed965",
         restaurant: undefined,
         customerInfo: undefined,
         tableId: undefined,
@@ -1112,7 +1114,7 @@ describe("OrdersService workflows", () => {
 
     expect(receipt).toMatchObject({
       restaurantInfo: {
-        id: 2,
+        id: "019fc320-c159-700c-a66c-39c9b98ed965",
         name: "Restaurant",
       },
       customerInfo: {},

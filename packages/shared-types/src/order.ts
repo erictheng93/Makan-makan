@@ -11,7 +11,8 @@ export type PlatformSource =
 
 // Delivery/fulfillment information interface
 export interface DeliveryInfo {
-  type: "dine_in" | "takeaway" | "delivery";
+  /** Optional: the stored `orders.delivery_info` JSON does not guarantee it. */
+  type?: "dine_in" | "takeaway" | "delivery";
   address?: string;
   phone?: string;
   instructions?: string;
@@ -32,14 +33,16 @@ export interface CustomerInfo {
 export interface TableInfo {
   id: number;
   number: string;
-  seats: number;
+  /** Optional: order queries select only id + number from `tables`. */
+  seats?: number;
   location?: string;
   qrCode?: string;
 }
 
 // Restaurant information interface
 export interface RestaurantInfo {
-  id: number;
+  /** `restaurants.id` is a TEXT UUID v7 (packages/database/src/schema/restaurants.ts). */
+  id: string;
   name: string;
   address?: string;
   phone?: string;
@@ -143,7 +146,26 @@ export const ORDER_PAYMENT_STATUSES = [
 
 export type OrderPaymentStatus = (typeof ORDER_PAYMENT_STATUSES)[number];
 
-export type OrderPaymentMethod = "cash" | "card" | "online" | "ewallet";
+/**
+ * Canonical OrderPaymentMethod — the union of every value that actually reaches
+ * the unconstrained TEXT `orders.payment_method` column. "cash" / "card" /
+ * "online" / "ewallet" come from the API query schema
+ * (apps/api/src/features/orders/schemas/validation.ts); "digital_wallet" /
+ * "bank_transfer" / "other" are what the cashier UI and PAYMENT_METHODS in
+ * packages/database/src/schema/orders.ts write. Declaring only the first four
+ * meant the rest had to be cast through the order DTO to survive.
+ */
+export const ORDER_PAYMENT_METHODS = [
+  "cash",
+  "card",
+  "online",
+  "ewallet",
+  "digital_wallet",
+  "bank_transfer",
+  "other",
+] as const;
+
+export type OrderPaymentMethod = (typeof ORDER_PAYMENT_METHODS)[number];
 
 export interface OrderItem extends BaseEntity {
   orderId: string;
@@ -159,7 +181,23 @@ export interface OrderItem extends BaseEntity {
   name?: string;
   description?: string;
   imageUrl?: string;
-  menuItem?: MenuItem; // populated when needed
+  menuItem?: OrderItemMenuItem; // populated when needed
+}
+
+/**
+ * The menu-item projection order queries actually select
+ * (`orderMenuItemSummaryColumns` in packages/database/src/services/order.ts),
+ * with `price` filled from the order-time snapshot. The full `MenuItem` was
+ * never populated on this path — declaring it here only worked because the
+ * order mapper cast its result.
+ */
+export interface OrderItemMenuItem {
+  id: number;
+  name: string;
+  nameEn?: string | null;
+  description?: string | null;
+  imageUrl?: string | null;
+  price?: number;
 }
 
 export interface OrderItemSnapshot {

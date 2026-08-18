@@ -964,7 +964,7 @@ export class OrdersService implements IOrdersService {
       const receipt: OrderReceipt = {
         orderNumber: order.orderNumber,
         restaurantInfo: {
-          id: Number(order.restaurantId),
+          id: order.restaurantId,
           name: order.restaurant?.name || "Restaurant",
           address: order.restaurant?.address,
           phone: order.restaurant?.phone,

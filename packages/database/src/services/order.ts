@@ -23,9 +23,20 @@ import {
   couponUsage,
   ORDER_STATUS,
 } from "../schema";
+import {
+  ORDER_ITEM_STATUSES,
+  ORDER_PAYMENT_METHODS,
+  ORDER_PAYMENT_STATUSES,
+  ORDER_STATUSES,
+} from "@makanmasak/shared-types";
 import type {
   MenuItemOptions as WireMenuItemOptions,
   Order,
+  OrderItem,
+  OrderItemStatus,
+  OrderPaymentMethod,
+  OrderPaymentStatus,
+  OrderStatus,
   SelectedCustomizations,
 } from "@makanmasak/shared-types";
 import { amountFromCents, fromCents, toRequiredCents } from "../utils/money";
@@ -442,6 +453,40 @@ function resolveCatalogCustomizations(
 function toMillis(value: Date | number | null | undefined): number | null {
   if (value == null) return null;
   return value instanceof Date ? value.getTime() : value;
+}
+
+// `orders.status`, `orders.payment_status`, `orders.payment_method` and
+// `order_items.status` are all unconstrained TEXT columns, so the DTO boundary
+// is where the canonical value domains get re-established. A value outside its
+// domain falls back to the column default rather than being cast through as a
+// valid-looking one — that silent cast is what let "unpaid" and friends drift
+// into the order surface unnoticed (#206).
+function toOrderStatus(value: string): OrderStatus {
+  return (ORDER_STATUSES as readonly string[]).includes(value)
+    ? (value as OrderStatus)
+    : "pending";
+}
+
+function toOrderPaymentStatus(value: string | null): OrderPaymentStatus {
+  return value !== null &&
+    (ORDER_PAYMENT_STATUSES as readonly string[]).includes(value)
+    ? (value as OrderPaymentStatus)
+    : "pending";
+}
+
+function toOrderPaymentMethod(
+  value: string | null,
+): OrderPaymentMethod | undefined {
+  return value !== null &&
+    (ORDER_PAYMENT_METHODS as readonly string[]).includes(value)
+    ? (value as OrderPaymentMethod)
+    : undefined;
+}
+
+function toOrderItemStatus(value: string): OrderItemStatus {
+  return (ORDER_ITEM_STATUSES as readonly string[]).includes(value)
+    ? (value as OrderItemStatus)
+    : "pending";
 }
 
 export class OrderService extends BaseService {
@@ -1567,74 +1612,87 @@ export class OrderService extends BaseService {
 
   // 資料轉換
   private mapToOrder(order: OrderWithRelations): Order {
-    const mapOrderItem = (item: OrderItemWithRelations) => {
-      const snapshot = item.itemSnapshot;
+    const mapOrderItem = (item: OrderItemWithRelations): OrderItem => {
+      const snapshot = item.itemSnapshot ?? undefined;
+      const menuItem = item.menuItem ?? undefined;
       const snapshotMenuItem = snapshot
         ? {
-            ...(item.menuItem || {}),
+            ...(menuItem ?? { id: item.menuItemId }),
             name: snapshot.name,
             description: snapshot.description,
             imageUrl: snapshot.imageUrl,
-            price: snapshot.price ?? amountFromCents(item.unitPriceCents),
+            price: snapshot.price ?? amountFromCents(item.unitPriceCents) ?? 0,
           }
-        : item.menuItem;
+        : menuItem;
 
       return {
         id: item.id,
         orderId: item.orderId,
         menuItemId: item.menuItemId,
-        name: snapshot?.name ?? item.menuItem?.name,
-        description: snapshot?.description ?? item.menuItem?.description,
-        imageUrl: snapshot?.imageUrl ?? item.menuItem?.imageUrl,
+        name: snapshot?.name ?? menuItem?.name,
+        description:
+          snapshot?.description ?? menuItem?.description ?? undefined,
+        imageUrl: snapshot?.imageUrl ?? menuItem?.imageUrl ?? undefined,
         quantity: item.quantity,
-        unitPrice: amountFromCents(item.unitPriceCents),
-        totalPrice: amountFromCents(item.totalPriceCents),
-        customizations: item.customizations,
+        unitPrice: amountFromCents(item.unitPriceCents) ?? 0,
+        totalPrice: amountFromCents(item.totalPriceCents) ?? 0,
+        customizations: item.customizations ?? undefined,
         itemSnapshot: snapshot,
-        notes: item.notes,
-        status: item.status,
+        notes: item.notes ?? undefined,
+        status: toOrderItemStatus(item.status),
         menuItem: snapshotMenuItem,
-        createdAt: toMillis(item.createdAt),
-        updatedAt: toMillis(item.updatedAt),
+        createdAt: toMillis(item.createdAt)!,
+        updatedAt: toMillis(item.updatedAt)!,
       };
     };
 
     return {
       id: order.id,
       restaurantId: order.restaurantId,
-      tableId: order.tableId,
-      customerId: order.customerId,
-      waitingListId: order.waitingListId,
+      tableId: order.tableId ?? undefined,
+      customerId: order.customerId ?? undefined,
+      waitingListId: order.waitingListId ?? undefined,
       orderNumber: order.orderNumber,
-      orderType: order.orderType,
-      status: order.status,
+      orderType: order.orderType ?? undefined,
+      status: toOrderStatus(order.status),
       version: order.version,
-      orderSource: order.orderSource,
-      subtotal: amountFromCents(order.subtotalCents),
-      taxAmount: amountFromCents(order.taxAmountCents),
-      serviceCharge: amountFromCents(order.serviceChargeCents),
-      discountAmount: amountFromCents(order.discountAmountCents),
-      totalAmount: amountFromCents(order.totalAmountCents),
-      customerInfo: order.customerInfo,
-      estimatedPrepTime: order.estimatedPrepTime,
-      actualPrepTime: order.actualPrepTime,
+      orderSource: order.orderSource ?? undefined,
+      // The *_cents columns are nullable; an order that never had an amount
+      // written reads as 0 rather than as a null masquerading as a number.
+      subtotal: amountFromCents(order.subtotalCents) ?? 0,
+      taxAmount: amountFromCents(order.taxAmountCents) ?? undefined,
+      serviceCharge: amountFromCents(order.serviceChargeCents) ?? undefined,
+      discountAmount: amountFromCents(order.discountAmountCents) ?? undefined,
+      totalAmount: amountFromCents(order.totalAmountCents) ?? 0,
+      customerInfo: order.customerInfo ?? undefined,
+      estimatedPrepTime: order.estimatedPrepTime ?? undefined,
+      actualPrepTime: order.actualPrepTime ?? undefined,
       confirmedAt: toMillis(order.confirmedAt),
       preparingAt: toMillis(order.preparingAt),
       readyAt: toMillis(order.readyAt),
       deliveredAt: toMillis(order.deliveredAt),
       paidAt: toMillis(order.paidAt),
       cancelledAt: toMillis(order.cancelledAt),
-      paymentMethod: order.paymentMethod,
-      paymentStatus: order.paymentStatus,
-      rating: order.rating,
-      reviewComment: order.reviewComment,
-      notes: order.notes,
-      internalNotes: order.internalNotes,
-      deliveryInfo: order.deliveryInfo,
+      paymentMethod: toOrderPaymentMethod(order.paymentMethod),
+      paymentStatus: toOrderPaymentStatus(order.paymentStatus),
+      rating: order.rating ?? undefined,
+      reviewComment: order.reviewComment ?? undefined,
+      notes: order.notes ?? undefined,
+      internalNotes: order.internalNotes ?? undefined,
+      deliveryInfo: order.deliveryInfo ?? undefined,
       items: order.items?.map(mapOrderItem) || [],
-      restaurant: order.restaurant,
-      table: order.table,
-      customer: order.customer,
+      restaurant: order.restaurant ?? undefined,
+      table: order.table ?? undefined,
+      // `customers.display_name` / `primary_phone` are the columns the relation
+      // selects; CustomerProfile names them fullName / phone, so consumers
+      // reading `order.customer.fullName` used to always see undefined.
+      customer: order.customer
+        ? {
+            id: order.customer.id,
+            fullName: order.customer.displayName,
+            phone: order.customer.primaryPhone ?? undefined,
+          }
+        : undefined,
       createdAt: toMillis(order.createdAt)!,
       updatedAt: toMillis(order.updatedAt)!,
     };
