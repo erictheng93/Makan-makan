@@ -140,6 +140,12 @@ describe("order validation", () => {
     expect(search.status).toBeUndefined();
   });
 
+  it("accepts every canonical order payment status in list filters", () => {
+    expect(
+      orderFilterSchema.parse({ paymentStatus: "completed,refunded" }),
+    ).toMatchObject({ paymentStatus: ["completed", "refunded"] });
+  });
+
   it("parses analytics, export, receipt, and kitchen defaults", () => {
     expect(orderStatsQuerySchema.parse({})).toMatchObject({
       timeRange: "today",

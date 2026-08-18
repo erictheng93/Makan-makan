@@ -155,6 +155,10 @@ export interface OrderItem extends BaseEntity {
   itemSnapshot?: OrderItemSnapshot;
   notes?: string;
   status: OrderItemStatus;
+  /** Name captured at order time, with a menu-item fallback for older orders. */
+  name?: string;
+  description?: string;
+  imageUrl?: string;
   menuItem?: MenuItem; // populated when needed
 }
 

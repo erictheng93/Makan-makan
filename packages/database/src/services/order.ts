@@ -90,6 +90,7 @@ export interface OrderFilters {
   tableId?: number;
   customerId?: string;
   status?: string | string[];
+  paymentStatus?: string | string[];
   dateRange?: [Date, Date];
   minAmount?: number;
   maxAmount?: number;
@@ -1141,6 +1142,17 @@ export class OrderService extends BaseService {
           // Handle single status with eq
           conditions.push(eq(orders.status, filters.status));
         }
+      }
+
+      if (
+        filters.paymentStatus !== undefined &&
+        filters.paymentStatus !== null
+      ) {
+        conditions.push(
+          Array.isArray(filters.paymentStatus)
+            ? inArray(orders.paymentStatus, filters.paymentStatus)
+            : eq(orders.paymentStatus, filters.paymentStatus),
+        );
       }
 
       if (filters.dateRange) {

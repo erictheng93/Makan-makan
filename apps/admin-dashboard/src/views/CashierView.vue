@@ -873,7 +873,7 @@ import type {
   OrderItem as ApiOrderItem,
   OrderPaymentStatus,
   OrderStatus,
-} from "@makanmasak/shared";
+} from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 const { formatPrice, currencySymbol } = useCurrency();
@@ -1086,37 +1086,35 @@ const loadOrders = async () => {
   try {
     const response = await api.get("/orders", {
       status: "ready,delivered",
+      paymentStatus: "pending",
       restaurantId: authStore.restaurantId,
       limit: 50,
     });
     if (response.data.success && response.data.data) {
       const payload = response.data.data;
       const rawOrders = unwrapApiList<ApiOrder>(payload);
-      // Only pending payments remain in the cashier queue.
-      orders.value = rawOrders
-        .filter((order) => order.paymentStatus === "pending")
-        .map((order) => ({
-          id: order.id,
-          orderNumber: order.orderNumber,
-          tableNumber: order.table?.number ?? "",
-          customerName: order.customerName ?? "",
-          status: order.status,
-          paymentStatus: order.paymentStatus,
-          createdAt: order.createdAt,
-          subtotal: order.subtotal,
-          serviceCharge: order.serviceCharge ?? 0,
-          taxAmount: order.taxAmount ?? 0,
-          discountAmount: order.discountAmount ?? 0,
-          totalAmount: order.totalAmount,
-          paymentMethod: order.paymentMethod,
-          items: (order.items ?? []).map((item: ApiOrderItem) => ({
-            id: item.id,
-            menuItemName: item.itemSnapshot?.name ?? item.menuItem?.name ?? "",
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            totalPrice: item.totalPrice,
-          })),
-        }));
+      orders.value = rawOrders.map((order) => ({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        tableNumber: order.table?.number ?? "",
+        customerName: order.customerInfo?.name ?? "",
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        createdAt: order.createdAt,
+        subtotal: order.subtotal,
+        serviceCharge: order.serviceCharge ?? 0,
+        taxAmount: order.taxAmount ?? 0,
+        discountAmount: order.discountAmount ?? 0,
+        totalAmount: order.totalAmount,
+        paymentMethod: order.paymentMethod,
+        items: (order.items ?? []).map((item: ApiOrderItem) => ({
+          id: String(item.id),
+          menuItemName: item.itemSnapshot?.name ?? item.menuItem?.name ?? "",
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice,
+        })),
+      }));
     }
   } catch (error) {
     console.error("Failed to load orders:", error);

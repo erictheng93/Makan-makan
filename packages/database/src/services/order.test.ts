@@ -602,6 +602,32 @@ describe("OrderService order pricing", () => {
       ).rejects.toThrow(/Add-on egg quantity exceeds maximum/);
     });
   });
+
+  it("filters orders by canonical payment status", async () => {
+    const service = new OrderService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const pendingOrder = await service.createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+    });
+    const completedOrder = await service.createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+    });
+    await testDb.drizzle
+      .update(orders)
+      .set({ paymentStatus: "completed" })
+      .where(eq(orders.id, completedOrder.id));
+
+    const result = await service.getOrders({
+      restaurantId,
+      paymentStatus: "pending",
+    });
+
+    expect(result.orders.map((order) => order.id)).toEqual([pendingOrder.id]);
+    expect(result.pagination.total).toBe(1);
+  });
 });
 
 const INJECTED_FAILURE = "injected D1 failure";

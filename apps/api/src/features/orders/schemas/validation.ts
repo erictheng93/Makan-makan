@@ -3,7 +3,10 @@
  * Zod validation schemas for all order endpoints and operations
  */
 
-import { ORDER_STATUSES } from "@makanmasak/shared-types";
+import {
+  ORDER_PAYMENT_STATUSES,
+  ORDER_STATUSES,
+} from "@makanmasak/shared-types";
 import { z } from "zod";
 import {
   boundedLimitQuery,
@@ -42,7 +45,9 @@ const paginationSchema = z.object({
 // Order status enum matching the shared-types canonical runtime tuple.
 const orderStatusSchema = z.enum(ORDER_STATUSES);
 
-const orderPaymentStatusSchema = z.enum(["pending", "paid", "failed"]);
+// "paid" remains an accepted legacy query value and is normalized to
+// "completed" by the route before it reaches the database service.
+const orderPaymentStatusSchema = z.enum([...ORDER_PAYMENT_STATUSES, "paid"]);
 
 const orderPaymentMethodSchema = z.enum(["cash", "card", "online", "ewallet"]);
 

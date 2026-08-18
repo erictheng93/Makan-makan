@@ -1330,6 +1330,7 @@ export class OrdersService implements IOrdersService {
       restaurantId: filters.restaurantId,
       customerId: filters.customerId,
       status: filters.status,
+      paymentStatus: filters.paymentStatus,
       tableId: filters.tableId,
       dateRange:
         filters.dateFrom && filters.dateTo
