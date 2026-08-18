@@ -138,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, type Component } from "vue";
 import { useI18n } from "@/i18n";
 import {
   CreditCardIcon,
@@ -194,7 +194,7 @@ interface PaymentMethodDetails {
   displayName: string;
   description: string;
   fullDescription: string;
-  iconComponent: any;
+  iconComponent: Component;
   processingTime: string;
   fee?: string;
   features: string[];
