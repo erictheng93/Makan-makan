@@ -40,4 +40,13 @@ describe("createSelectFixtureDb", () => {
     await expect(db.select().from(shifts).get()).resolves.toBe("first");
     await expect(db.select().from(shifts).all()).resolves.toEqual(["all"]);
   });
+
+  it("supports offset pagination before resolving a fixture", async () => {
+    const shifts = {};
+    const db = createSelectFixtureDb({ shifts }, { shifts: [["shift"]] });
+
+    await expect(db.select().from(shifts).limit(1).offset(1)).resolves.toEqual([
+      "shift",
+    ]);
+  });
 });

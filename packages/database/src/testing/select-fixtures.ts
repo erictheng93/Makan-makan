@@ -62,6 +62,7 @@ export function createSelectFixtureDb<Name extends string>(
       orderBy: vi.fn(() => builder),
       groupBy: vi.fn(() => builder),
       limit: vi.fn(() => builder),
+      offset: vi.fn(() => builder),
       get: vi.fn(async () => nextResultFor(selectedTable)[0]),
       all: vi.fn(async () => nextResultFor(selectedTable)),
       then: (
