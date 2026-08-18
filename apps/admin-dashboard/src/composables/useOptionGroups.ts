@@ -88,7 +88,7 @@ export function useOptionGroups() {
   const groups = ref<OptionGroupData[]>([]);
   const isLoading = ref(false);
 
-  const normalizeGroup = (raw: any): OptionGroupData => ({
+  const normalizeGroup = (raw: OptionGroupData): OptionGroupData => ({
     id: raw.id,
     restaurantId: String(raw.restaurantId ?? ""),
     publicId: raw.publicId,
@@ -100,7 +100,7 @@ export function useOptionGroups() {
     sortOrder: raw.sortOrder ?? 0,
     usageCount: raw.usageCount ?? 0,
     choices: (raw.choices ?? []).map(
-      (choice: any): OptionChoiceData => ({
+      (choice): OptionChoiceData => ({
         id: choice.id,
         groupId: choice.groupId,
         publicId: choice.publicId,
@@ -118,7 +118,7 @@ export function useOptionGroups() {
     if (!authStore.restaurantId) return;
     isLoading.value = true;
     try {
-      const response = await api.get<any>(
+      const response = await api.get<OptionGroupData[]>(
         `/menu/${authStore.restaurantId}/option-groups`,
       );
       const payload = response.data?.success ? response.data.data : undefined;
@@ -258,23 +258,21 @@ export function useOptionGroups() {
     menuItemId: number,
   ): Promise<MenuItemOptionGroupLink[]> => {
     try {
-      const response = await api.get<any>(
+      const response = await api.get<{ groups: MenuItemOptionGroupLink[] }>(
         `/menu/items/${menuItemId}/option-groups`,
       );
       const payload = response.data?.success ? response.data.data : undefined;
       return (payload?.groups ?? []).map(
-        (group: any): MenuItemOptionGroupLink => ({
+        (group): MenuItemOptionGroupLink => ({
           groupId: group.groupId,
           sortOrder: group.sortOrder ?? 0,
           requiredOverride: group.requiredOverride ?? null,
           maxSelectionsOverride: group.maxSelectionsOverride ?? null,
-          choiceOverrides: (group.choiceOverrides ?? []).map(
-            (override: any) => ({
-              choiceId: override.choiceId,
-              isHidden: !!override.isHidden,
-              priceAdjustment: override.priceAdjustment ?? null,
-            }),
-          ),
+          choiceOverrides: (group.choiceOverrides ?? []).map((override) => ({
+            choiceId: override.choiceId,
+            isHidden: !!override.isHidden,
+            priceAdjustment: override.priceAdjustment ?? null,
+          })),
         }),
       );
     } catch (error) {
