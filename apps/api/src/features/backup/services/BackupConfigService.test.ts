@@ -19,6 +19,27 @@ vi.mock("drizzle-orm/d1", () => ({
 
 import { BackupConfigService } from "./BackupConfigService";
 
+/**
+ * Select fixtures are keyed by table, not by call order: `from(table)` decides
+ * which queue a query draws from, so adding a query against one table can no
+ * longer shift another table's results out from under it.
+ *
+ * Two things still need care when the code under test grows a new query:
+ *
+ * - Within a single table the queue is positional. The Nth read of a table
+ *   takes that table's Nth fixture, so a new query means inserting a fixture
+ *   at the matching index rather than appending one at the end.
+ * - A table has to be listed in `fixtureTables` before it can be declared. An
+ *   unregistered table matches no queue, so every read of it throws.
+ *
+ * Missing and exhausted fixtures both throw and name the table. Nothing falls
+ * back to `[]`; a silent empty result is what made the previous positional
+ * queues so hard to trace back to their cause.
+ *
+ * `BackupConfigService` catches read errors and rethrows its own message, so a
+ * fixture mistake can surface as `Failed to fetch backup configurations`
+ * instead of the harness error. Check the wiring here first.
+ */
 type SelectFixtureName = "backupConfigurations" | "backupRecords";
 type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
 

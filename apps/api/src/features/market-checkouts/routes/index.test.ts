@@ -41,6 +41,27 @@ const databaseMocks = vi.hoisted(() => ({
   updateValues: [] as unknown[],
 }));
 
+/**
+ * Select fixtures are keyed by table, not by call order: `from(table)` decides
+ * which queue a query draws from, so adding a query against one table can no
+ * longer shift another table's results out from under it.
+ *
+ * Two things still need care when the code under test grows a new query:
+ *
+ * - Within a single table the queue is positional. The Nth read of a table
+ *   takes that table's Nth fixture, so a new query means inserting a fixture
+ *   at the matching index rather than appending one at the end.
+ * - A table has to be listed in `fixtureTables` before it can be declared. An
+ *   unregistered table matches no queue, so every read of it throws.
+ *
+ * Missing and exhausted fixtures both throw and name the table. Nothing falls
+ * back to `[]`; a silent empty result is what made the previous positional
+ * queues so hard to trace back to their cause.
+ *
+ * These throws reach the route's `onError` and come back as a 500, so an
+ * unexplained `expected 500 to be 200` in this suite is usually an undeclared
+ * fixture — read the response body before suspecting the route.
+ */
 type SelectFixtureName =
   | "marketCheckoutChildOrders"
   | "marketCheckoutSessions"
@@ -91,6 +112,15 @@ function setSettlementFixtures(
     marketCheckoutSessions: [sessions.all],
     marketCheckoutChildOrders: [children.all],
   });
+}
+
+// The KV-fallback tests still read the sessions table once before falling back.
+// Each of them declares that empty read itself; a blanket default in
+// `beforeEach` would leave a spare `[]` sitting in the queue for every test
+// that never reads the table, and a newly added sessions query would silently
+// consume it instead of failing.
+function setNoPersistedCheckoutFixtures() {
+  setSelectFixtures({ marketCheckoutSessions: [[]] });
 }
 const createOrder = vi.hoisted(() => vi.fn());
 const getOrder = vi.hoisted(() => vi.fn());
@@ -554,9 +584,7 @@ function setTwoVendorCreateFixtures(options?: {
 
 describe("market checkout routes", () => {
   beforeEach(() => {
-    // Most route tests exercise the KV fallback; declare that empty database
-    // read explicitly instead of relying on an implicit `all(): []` fallback.
-    setSelectFixtures({ marketCheckoutSessions: [[]] });
+    databaseMocks.selectFixtures.clear();
     databaseMocks.insertValues.length = 0;
     databaseMocks.updateValues.length = 0;
     databaseMocks.createDatabase.mockReset();
@@ -927,7 +955,8 @@ describe("market checkout routes", () => {
   });
 
   it("blocks market checkout creation when a vendor already has an active guest order", async () => {
-    setTwoVendorCreateFixtures();
+    // The active-order lock rejects before the menu is read.
+    setTwoVendorCreateFixtures({ menuItems: [] });
     const env = createEnv();
     await env.CACHE_KV.put(
       `guest_active:restaurant-1:token:${ACTIVE_GUEST_TOKEN}`,
@@ -1011,6 +1040,10 @@ describe("market checkout routes", () => {
       setTwoVendorCreateFixtures({
         firstRestaurant: scenario.firstRestaurant,
         firstMembership: scenario.firstMembership,
+        // Every scenario here is rejected on the vendor checks, before the
+        // route reaches the menu; declare zero menu reads so a future one
+        // fails loudly instead of consuming a spare row.
+        menuItems: [],
       });
       const env = createEnv();
 
@@ -1188,6 +1221,7 @@ describe("market checkout routes", () => {
   });
 
   it("hydrates child order status when reading a market checkout", async () => {
+    setNoPersistedCheckoutFixtures();
     const env = createEnv();
     await env.CACHE_KV.put(
       "market_checkout:checkout-1",
@@ -1484,6 +1518,7 @@ describe("market checkout routes", () => {
   });
 
   it("rejects malformed guest token recovery requests before reading a checkout", async () => {
+    setNoPersistedCheckoutFixtures();
     const env = createEnv();
 
     const response = await routes.fetch(
@@ -1555,6 +1590,7 @@ describe("market checkout routes", () => {
   });
 
   it("keeps stored child order summaries when hydration misses", async () => {
+    setNoPersistedCheckoutFixtures();
     const env = createEnv();
     await env.CACHE_KV.put(
       "market_checkout:checkout-1",
@@ -1677,6 +1713,7 @@ describe("market checkout routes", () => {
   it("withholds the recovery digits on the KV branch of the public read", async () => {
     // GET /:id serializes twice — once from the persisted row, once from the
     // KV session — so the test above leaves this branch uncovered.
+    setNoPersistedCheckoutFixtures();
     const env = createEnv();
     await env.CACHE_KV.put(
       "market_checkout:checkout-1",
@@ -1902,22 +1939,8 @@ describe("market checkout routes", () => {
       { expirationTtl: 14400 },
     );
 
-    setSelectFixtures(
-      persistedSessionFixtures({
-        ...unpaidCheckoutSessionFixture(),
-        appliedVoucher: {
-          couponId: 42,
-          code: "MARKET10",
-          name: "Market 10",
-          fundedBy: "platform",
-          discountCents: 2000,
-          allocations: [
-            { orderId: 1001, amountCents: 12000, discountCents: 1200 },
-            { orderId: 1002, amountCents: 8000, discountCents: 800 },
-          ],
-        },
-      }),
-    );
+    // No fixtures are re-armed here: the apply step above wrote the checkout to
+    // KV, so removal reads it from there and never touches the sessions table.
 
     const removeResponse = await routes.fetch(
       new Request("https://test/checkout-1/voucher", { method: "DELETE" }),
@@ -1995,6 +2018,7 @@ describe("market checkout routes", () => {
   });
 
   it("rejects voucher apply requests for missing and paid checkouts", async () => {
+    setNoPersistedCheckoutFixtures();
     const missingEnv = createEnv();
     const missingResponse = await withSilencedRouteError(() =>
       routes.fetch(
@@ -2066,6 +2090,7 @@ describe("market checkout routes", () => {
   });
 
   it("rejects voucher removal for missing and paid checkouts", async () => {
+    setNoPersistedCheckoutFixtures();
     const missingEnv = createEnv();
     const missingResponse = await withSilencedRouteError(() =>
       routes.fetch(
@@ -2095,6 +2120,7 @@ describe("market checkout routes", () => {
   });
 
   it("rejects malformed and empty market checkout payment attempts", async () => {
+    setNoPersistedCheckoutFixtures();
     const missingEnv = createEnv();
     const missingResponse = await withSilencedRouteError(() =>
       routes.fetch(
@@ -2544,6 +2570,7 @@ describe("market checkout routes", () => {
   });
 
   it("rejects malformed and unpaid market checkout refund requests", async () => {
+    setNoPersistedCheckoutFixtures();
     const missingEnv = createEnv();
     const missingResponse = await withSilencedRouteError(() =>
       routes.fetch(
@@ -5159,6 +5186,7 @@ describe("market checkout routes", () => {
   });
 
   it("falls back to the KV index when no persisted checkout sessions exist", async () => {
+    setNoPersistedCheckoutFixtures();
     const env = createEnv();
     await env.CACHE_KV.put(
       "market_checkout:checkout-1",
@@ -5234,6 +5262,7 @@ describe("market checkout routes", () => {
   });
 
   it("filters KV-backed admin checkout lists by market and status with default pagination", async () => {
+    setNoPersistedCheckoutFixtures();
     const env = createEnv();
     await env.CACHE_KV.put(
       "market_checkout:index",
@@ -5280,6 +5309,7 @@ describe("market checkout routes", () => {
   });
 
   it("exports KV-backed checkouts with escaped CSV fields and empty payment defaults", async () => {
+    setNoPersistedCheckoutFixtures();
     const env = createEnv();
     await env.CACHE_KV.put(
       "market_checkout:index",
@@ -5315,6 +5345,7 @@ describe("market checkout routes", () => {
   });
 
   it("hydrates child order status when platform admins read checkout details", async () => {
+    setNoPersistedCheckoutFixtures();
     const env = createEnv();
     await env.CACHE_KV.put(
       "market_checkout:checkout-1",
@@ -5372,6 +5403,7 @@ describe("market checkout routes", () => {
   });
 
   it("hydrates parent payment from the persisted checkout payment ledger", async () => {
+    setNoPersistedCheckoutFixtures();
     const env = createEnv([
       {
         payment_id: "market_pay_checkout-1",
