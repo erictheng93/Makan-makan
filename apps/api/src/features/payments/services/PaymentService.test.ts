@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { orders } from "@makanmasak/database";
+import { createSelectFixtureDb } from "@makanmasak/database/testing";
 import type { Env } from "../../../types/env";
 import { ApiError } from "../../../shared/utils/api-error";
 import { PaymentService } from "./PaymentService";
@@ -31,23 +33,8 @@ interface PreparedStatement {
   run: ReturnType<typeof vi.fn>;
 }
 
-function createSelectQuery(result: unknown[]) {
-  const builder = {
-    from: vi.fn(() => builder),
-    where: vi.fn(() => builder),
-    limit: vi.fn(() => builder),
-    then: (
-      resolve: (value: unknown[]) => void,
-      reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
-  };
-  return builder;
-}
-
 function queueOrderRows(rows: unknown[][]) {
-  mocks.db.select.mockImplementation(() =>
-    createSelectQuery(rows.shift() ?? []),
-  );
+  Object.assign(mocks.db, createSelectFixtureDb({ orders }, { orders: rows }));
 }
 
 function mockOrderUpdate(_returningRows: unknown[] = []) {
