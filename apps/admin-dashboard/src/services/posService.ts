@@ -39,7 +39,7 @@ export interface Receipt {
   orderId: string;
   registerId: string;
   receiptNumber: string;
-  items: any[];
+  items: Array<Record<string, unknown>>;
   totalAmount: number;
   paymentMethod: string;
   createdAt: string;
@@ -166,7 +166,7 @@ export const posService = {
   async printReceipt(data: {
     orderId: string;
     registerId: string;
-    items: any[];
+    items: Array<Record<string, unknown>>;
     totalAmount: number;
     paymentMethod: string;
   }): Promise<Receipt> {
@@ -196,9 +196,9 @@ export const posService = {
     reason: string;
     operatorId: number;
     notes?: string;
-  }): Promise<any> {
+  }): Promise<unknown> {
     const response = await apiClient.post("/pos/refunds/create", data);
-    return unwrapApiData<any>(response);
+    return unwrapApiData<unknown>(response);
   },
 
   // 促銷管理
@@ -276,9 +276,9 @@ export const posService = {
     amount: number;
     paymentMethod: string;
     operatorId: number;
-  }): Promise<any> {
+  }): Promise<unknown> {
     const response = await apiClient.post("/pos/quick-payment", data);
-    return unwrapApiData<any>(response);
+    return unwrapApiData<unknown>(response);
   },
 
   async payMarketCheckout(data: {
