@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cashShifts } from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 import { ShiftService } from "./ShiftService";
 
 const mocks = vi.hoisted(() => ({
@@ -20,21 +25,11 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
 
-function createQuery(result: unknown) {
-  const builder = {
-    from: vi.fn(() => builder),
-    where: vi.fn(() => builder),
-    limit: vi.fn(() => builder),
-    then: (
-      resolve: (value: unknown) => void,
-      reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
-  };
-  return builder;
-}
+const fixtureTables = { cashShifts };
+type SelectFixtureName = keyof typeof fixtureTables;
 
-function mockSelectResults(results: unknown[]) {
-  mocks.db.select.mockImplementation(() => createQuery(results.shift() ?? []));
+function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
+  Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
 }
 
 function mockMutations() {
@@ -129,11 +124,13 @@ describe("ShiftService", () => {
       .mockReturnValueOnce("shift-1")
       .mockReturnValueOnce("movement-1");
     const mutations = mockMutations();
-    mockSelectResults([
-      [],
-      [{ registerId }],
-      [shiftRow({ id: "shift-1", registerId })],
-    ]);
+    mockSelectResults({
+      cashShifts: [
+        [],
+        [{ registerId }],
+        [shiftRow({ id: "shift-1", registerId })],
+      ],
+    });
 
     const result = await createService().startShift({
       registerId,
@@ -198,7 +195,7 @@ describe("ShiftService", () => {
     expect(mutations.inserted).toHaveLength(0);
     expect(mocks.db.select).not.toHaveBeenCalled();
 
-    mockSelectResults([[{ id: "shift-existing" }]]);
+    mockSelectResults({ cashShifts: [[{ id: "shift-existing" }]] });
     result = await createService().startShift({
       registerId,
       operatorId: "7",
@@ -214,17 +211,19 @@ describe("ShiftService", () => {
     vi.setSystemTime(new Date("2026-06-07T12:00:00.000Z"));
     uuidMocks.generateUUID.mockReturnValue("movement-1");
     const mutations = mockMutations();
-    mockSelectResults([
-      [
-        shiftRow({
-          registerId,
-          startAmountCents: 10000,
-          totalSalesCents: 50000,
-          totalRefundsCents: 5000,
-        }),
+    mockSelectResults({
+      cashShifts: [
+        [
+          shiftRow({
+            registerId,
+            startAmountCents: 10000,
+            totalSalesCents: 50000,
+            totalRefundsCents: 5000,
+          }),
+        ],
+        [{ registerId }],
       ],
-      [{ registerId }],
-    ]);
+    });
 
     const result = await createService().endShift(
       "shift-1",
@@ -274,17 +273,19 @@ describe("ShiftService", () => {
   it("uses cents for closing reconciliation to avoid float noise", async () => {
     uuidMocks.generateUUID.mockReturnValue("movement-1");
     const mutations = mockMutations();
-    mockSelectResults([
-      [
-        shiftRow({
-          registerId,
-          startAmountCents: 10000,
-          totalSalesCents: 4287733,
-          totalRefundsCents: 123456,
-        }),
+    mockSelectResults({
+      cashShifts: [
+        [
+          shiftRow({
+            registerId,
+            startAmountCents: 10000,
+            totalSalesCents: 4287733,
+            totalRefundsCents: 123456,
+          }),
+        ],
+        [{ registerId }],
       ],
-      [{ registerId }],
-    ]);
+    });
 
     const result = await createService().endShift(
       "shift-1",
@@ -332,7 +333,7 @@ describe("ShiftService", () => {
     expect(mutations.updated).toHaveLength(0);
     expect(mocks.db.select).not.toHaveBeenCalled();
 
-    mockSelectResults([[]]);
+    mockSelectResults({ cashShifts: [[]] });
     result = await createService().endShift(
       "shift-1",
       { actualAmount: 100 },
@@ -344,24 +345,26 @@ describe("ShiftService", () => {
   });
 
   it("returns current shifts and maps nullable fields to optional fields", async () => {
-    mockSelectResults([
-      [
-        shiftRow({
-          startAmountCents: 25050,
-          expectedAmountCents: 25050,
-          differenceAmountCents: 0,
-          totalSalesCents: 12345,
-          totalRefundsCents: 500,
-          cashSalesCents: 10000,
-          cardSalesCents: 2000,
-          digitalSalesCents: 345,
-          endedAt: null,
-          notes: null,
-          closingNotes: null,
-        }),
+    mockSelectResults({
+      cashShifts: [
+        [
+          shiftRow({
+            startAmountCents: 25050,
+            expectedAmountCents: 25050,
+            differenceAmountCents: 0,
+            totalSalesCents: 12345,
+            totalRefundsCents: 500,
+            cashSalesCents: 10000,
+            cardSalesCents: 2000,
+            digitalSalesCents: 345,
+            endedAt: null,
+            notes: null,
+            closingNotes: null,
+          }),
+        ],
+        [],
       ],
-      [],
-    ]);
+    });
 
     let result = await createService().getCurrentShift(registerId);
 
