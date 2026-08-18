@@ -632,31 +632,35 @@ import { useI18n } from "@/i18n";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import { useAuthStore } from "@/stores/auth";
 import { api, unwrapApiData } from "@/services/api";
+import type {
+  Order as ApiOrder,
+  OrderItem as ApiOrderItem,
+} from "@makanmasak/shared";
 
 const { t } = useI18n();
 const { formatTime, formatTimeWithSeconds } = useDateFormatter();
 const authStore = useAuthStore();
 
 // Type definitions
-interface CustomerInfo {
+interface ServiceCustomerInfo {
   name: string;
   phone: string;
 }
 
 interface ServiceOrder {
-  id: number;
+  id: string;
   orderNumber: string;
   tableNumber: string;
-  orderType: string;
-  status: string;
+  orderType: NonNullable<ApiOrder["orderType"]>;
+  status: ApiOrder["status"] | "delivering";
   priority: string;
-  readyAt: string;
-  deliveryStartTime?: string | null;
-  customerInfo: CustomerInfo;
+  readyAt: number;
+  deliveryStartTime?: string | number | null;
+  customerInfo: ServiceCustomerInfo;
   deliveryNotes?: string;
   assignedTo?: string;
-  deliveredAt?: string;
-  items: any[];
+  deliveredAt?: string | number | null;
+  items: ApiOrderItem[];
 }
 
 // 響應式數據
@@ -674,7 +678,7 @@ const selectedOrderForContact = ref<ServiceOrder | null>(null);
 
 // 問題回報數據
 const issueData = ref<{
-  orderId: number | null;
+  orderId: string | null;
   type: string;
   description: string;
 }>({
@@ -691,7 +695,7 @@ const orders = ref<ServiceOrder[]>([]);
 // 今日配送記錄 - populated from delivered orders
 const todayDeliveryRecords = ref<
   Array<{
-    id: number;
+    id: string;
     orderNumber: string;
     completedAt: string;
     duration: number;
@@ -761,23 +765,23 @@ const refreshOrders = async () => {
       status: "ready,delivering",
       restaurantId: authStore.restaurantId,
     });
-    const data = unwrapApiData<unknown[]>(response);
+    const data = unwrapApiData<ApiOrder[]>(response);
     if (Array.isArray(data)) {
-      orders.value = data.map((o: any) => ({
-        id: o.id,
-        orderNumber: o.orderNumber || `ORD-${String(o.id).padStart(3, "0")}`,
-        tableNumber: o.tableNumber || o.table?.tableNumber || "",
-        orderType: o.orderType || "dine_in",
-        status: o.status,
-        priority: o.priority || "normal",
-        readyAt: o.readyAt || o.updatedAt || o.createdAt,
-        deliveryStartTime: o.deliveryStartTime || null,
-        customerInfo: o.customerInfo || o.customer || { name: "", phone: "" },
-        deliveryNotes: o.deliveryNotes || o.notes || "",
-        assignedTo: o.assignedTo || null,
-        deliveredAt: o.deliveredAt || null,
-        items: o.items || o.orderItems || [],
-      })) as ServiceOrder[];
+      orders.value = data.map((order) => ({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        tableNumber: order.table?.number ?? "",
+        orderType: order.orderType ?? "table",
+        status: order.status,
+        priority: "normal",
+        readyAt: order.readyAt ?? order.updatedAt,
+        customerInfo: {
+          name: order.customerInfo?.name ?? order.customer?.fullName ?? "",
+          phone: order.customerInfo?.phone ?? order.customer?.phone ?? "",
+        },
+        deliveryNotes: order.notes ?? "",
+        items: order.items ?? [],
+      }));
     }
 
     // Also fetch today's delivered orders for the timeline
@@ -788,12 +792,12 @@ const refreshOrders = async () => {
       restaurantId: authStore.restaurantId,
       dateFrom: todayStart.toISOString(),
     });
-    const deliveredData = unwrapApiData<unknown[]>(deliveredResponse);
+    const deliveredData = unwrapApiData<ApiOrder[]>(deliveredResponse);
     if (Array.isArray(deliveredData)) {
       todayDelivered.value = deliveredData.length;
-      todayDeliveryRecords.value = deliveredData.map((o: any) => {
-        const completedAt = o.deliveredAt || o.updatedAt || o.createdAt;
-        const startTime = o.deliveryStartTime || o.readyAt || o.createdAt;
+      todayDeliveryRecords.value = deliveredData.map((order) => {
+        const completedAt = order.deliveredAt ?? order.updatedAt;
+        const startTime = order.readyAt ?? order.createdAt;
         const duration =
           completedAt && startTime
             ? Math.round(
@@ -803,8 +807,8 @@ const refreshOrders = async () => {
               )
             : 0;
         return {
-          id: o.id,
-          orderNumber: o.orderNumber || `ORD-${String(o.id).padStart(3, "0")}`,
+          id: order.id,
+          orderNumber: order.orderNumber,
           completedAt: formatClockTime(completedAt) || "-",
           duration,
         };
@@ -888,7 +892,7 @@ const completeDelivery = async (order: ServiceOrder) => {
           )
         : 0;
       todayDeliveryRecords.value.unshift({
-        id: Date.now(),
+        id: `local-${Date.now()}`,
         orderNumber: order.orderNumber,
         completedAt: formatClockTime(new Date()) || "-",
         duration,
@@ -1013,7 +1017,7 @@ const getTimeElapsed = (dateTime: string) => {
   return t("serviceView.hoursAgo", { hours });
 };
 
-const getDeliveryDuration = (startTime: string | null | undefined) => {
+const getDeliveryDuration = (startTime: string | number | null | undefined) => {
   if (!startTime) return "-";
   const now = new Date();
   const start = new Date(startTime);
@@ -1025,7 +1029,9 @@ const getDeliveryDuration = (startTime: string | null | undefined) => {
 
 // Keeps the null/empty guard; also converts ISO strings to a Date because
 // formatTime treats a bare string as an "HH:mm" time-of-day, not a datetime.
-const formatClockTime = (dateTime: string | Date | null | undefined) => {
+const formatClockTime = (
+  dateTime: string | number | Date | null | undefined,
+) => {
   if (!dateTime) return "-";
   const date = typeof dateTime === "string" ? new Date(dateTime) : dateTime;
   return formatTime(date);
