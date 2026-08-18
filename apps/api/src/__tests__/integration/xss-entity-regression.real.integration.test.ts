@@ -4,6 +4,7 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers, type SeedHelpers } from "./helpers/seed-helper";
+import { readData } from "../helpers/read-json";
 
 const CSRF_TOKEN = "d".repeat(64);
 const CSRF_HEADERS = {
@@ -31,7 +32,7 @@ async function loginCustomer(testApp: RealIntegrationTestApp): Promise<string> {
     }),
   );
   expect(otpRes.status).toBe(200);
-  const otpJson: any = await otpRes.json();
+  const otp = await readData<{ devOtp: string }>(otpRes);
 
   const verifyRes = await testApp.app.fetch(
     new Request("https://test/api/v1/customer/auth/verify-otp", {
@@ -39,13 +40,13 @@ async function loginCustomer(testApp: RealIntegrationTestApp): Promise<string> {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phone: "+886912345678",
-        otp: otpJson.data.devOtp,
+        otp: otp.devOtp,
       }),
     }),
   );
   expect(verifyRes.status).toBe(200);
-  const verifyJson: any = await verifyRes.json();
-  return verifyJson.data.accessToken as string;
+  const verified = await readData<{ accessToken: string }>(verifyRes);
+  return verified.accessToken;
 }
 
 describe("XSS entity decoding regression — real integration", () => {
@@ -101,8 +102,10 @@ describe("XSS entity decoding regression — real integration", () => {
       new Request(`https://test/api/v1/markets/${marketSlug}`),
     );
     expect(publicMarketRes.status).toBe(200);
-    const publicMarketJson: any = await publicMarketRes.json();
-    assertEscapedLessThan(publicMarketJson.data.market.bannerUrl);
+    const publicMarket = await readData<{ market: { bannerUrl: string } }>(
+      publicMarketRes,
+    );
+    assertEscapedLessThan(publicMarket.market.bannerUrl);
 
     const restaurant = await seed.restaurant({
       name: "XSS Entity Restaurant",
@@ -138,11 +141,13 @@ describe("XSS entity decoding regression — real integration", () => {
       ),
     );
     expect(publicContactRes.status).toBe(200);
-    const publicContactJson: any = await publicContactRes.json();
-    assertEscapedLessThan(publicContactJson.data.faqs[0].question);
-    assertEscapedLessThan(publicContactJson.data.faqs[0].answer);
-    assertEscapedLessThan(publicContactJson.data.faqs[0].keywords[0]);
-    assertNoRawLessThan(publicContactJson.data.faqs);
+    const publicContact = await readData<{
+      faqs: Array<{ question: string; answer: string; keywords: string[] }>;
+    }>(publicContactRes);
+    assertEscapedLessThan(publicContact.faqs[0].question);
+    assertEscapedLessThan(publicContact.faqs[0].answer);
+    assertEscapedLessThan(publicContact.faqs[0].keywords[0]);
+    assertNoRawLessThan(publicContact.faqs);
 
     const customerToken = await loginCustomer(testApp);
     const pushRes = await testApp.app.fetch(
@@ -161,7 +166,7 @@ describe("XSS entity decoding regression — real integration", () => {
       }),
     );
     expect(pushRes.status).toBe(201);
-    const pushJson: any = await pushRes.json();
-    assertEscapedLessThan(pushJson.data.endpoint);
+    const pushSubscription = await readData<{ endpoint: string }>(pushRes);
+    assertEscapedLessThan(pushSubscription.endpoint);
   });
 });

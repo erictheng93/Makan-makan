@@ -13,7 +13,7 @@ import { GROUP_ORDER_EXPIRY_CRON } from "../workers/group-order-expiry";
  * tests are the connection.
  */
 
-const apiRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
+const apiRoot = resolve(fileURLToPath(new URL("../..", import.meta.url).href));
 
 function readConfig(path: string): string {
   return readFileSync(resolve(apiRoot, path), "utf8");

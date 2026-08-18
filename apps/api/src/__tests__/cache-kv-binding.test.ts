@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const apiRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
+const apiRoot = resolve(fileURLToPath(new URL("../..", import.meta.url).href));
 const apiWranglerConfig = readFileSync(
   resolve(apiRoot, "wrangler.toml"),
   "utf8",

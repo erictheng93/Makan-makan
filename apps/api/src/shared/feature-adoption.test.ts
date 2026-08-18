@@ -9,7 +9,7 @@ import {
   type UnlaunchedFeatureKey,
 } from "./feature-adoption";
 
-const apiRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
+const apiRoot = resolve(fileURLToPath(new URL("../..", import.meta.url).href));
 const appFactory = readFileSync(resolve(apiRoot, "src/app-factory.ts"), "utf8");
 
 const KEYS = Object.keys(UNLAUNCHED_FEATURES) as UnlaunchedFeatureKey[];
