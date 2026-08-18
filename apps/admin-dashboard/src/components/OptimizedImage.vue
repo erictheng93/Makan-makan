@@ -52,6 +52,7 @@
 </template>
 
 <script setup lang="ts">
+import type { CSSProperties } from "vue";
 import { computed, ref } from "vue";
 import {
   useOptimizedImage,
@@ -120,7 +121,7 @@ interface Props {
   errorClass?: string;
 
   /** 自定義樣式 */
-  imageStyle?: Record<string, any>;
+  imageStyle?: CSSProperties;
 }
 
 const props = withDefaults(defineProps<Props>(), {
