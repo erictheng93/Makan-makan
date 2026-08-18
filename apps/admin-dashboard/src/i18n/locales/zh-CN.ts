@@ -1636,6 +1636,8 @@ const zhCN: Messages = {
     noResults: "找不到餐厅",
   },
   auth: {
+    invalidCredentials: "账号或密码不正确",
+    accountLocked: "连续登录失败过多次，账号已暂时锁定，请稍后再试",
     adminLogin: "管理后台登录",
     username: "账号",
     password: "密码",

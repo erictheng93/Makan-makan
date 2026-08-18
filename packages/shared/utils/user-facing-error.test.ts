@@ -23,6 +23,7 @@ const translations: Record<string, string> = {
   "errorPresentation.unknown": "發生未知錯誤，請稍後再試",
   "errors.menuItemUnavailable": "餐點目前無法供應",
   "feedback.submitError": "提交意見回饋失敗",
+  "login.invalidCredentials": "用戶名稱或密碼不正確",
 };
 
 const translate = (key: string) => translations[key] ?? key;
@@ -181,6 +182,31 @@ describe("resolveUserFacingError", () => {
 
     expect(result.message).toBe("你沒有執行此操作的權限");
     expect(result.presentation).toBe("status");
+  });
+
+  /**
+   * The shared 401 copy tells the reader to sign in again. On the sign-in form
+   * that is the one thing they are already doing.
+   */
+  it("lets a screen override the copy for a status", () => {
+    const result = resolveUserFacingError(
+      { response: { status: 401, data: {} } },
+      translate,
+      { statusKeys: { 401: "login.invalidCredentials" } },
+    );
+
+    expect(result.message).toBe("用戶名稱或密碼不正確");
+    expect(result.presentation).toBe("status");
+  });
+
+  it("still uses the shared copy for statuses the screen did not override", () => {
+    const result = resolveUserFacingError(
+      { response: { status: 429, data: {} } },
+      translate,
+      { statusKeys: { 401: "login.invalidCredentials" } },
+    );
+
+    expect(result.message).toBe("操作過於頻繁，請稍後再試");
   });
 
   it("classifies transport failures without using the thrown English message", () => {

@@ -456,6 +456,9 @@ const idID: Messages = {
     updateStatusFailed: "Pembaruan status gagal:",
   },
   login: {
+    invalidCredentials: "Nama pengguna atau kata sandi tidak benar.",
+    accountLocked:
+      "Terlalu banyak percobaan gagal. Akun ini dikunci sementara — silakan coba lagi nanti.",
     fetchRestaurantError: "Gagal mengambil info restoran",
     helpNote: "Butuh bantuan? Hubungi administrator sistem Anda",
     loggingIn: "Masuk...",

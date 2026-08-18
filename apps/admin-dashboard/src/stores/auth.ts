@@ -12,10 +12,8 @@ import {
 } from "@/utils/errorHandler";
 import { getAuthToken } from "@/utils/authTokenProvider";
 import { useModuleAccessStore } from "@makanmasak/shared/stores/moduleAccess";
-import {
-  getApiEnvelopeMessage,
-  getApiErrorStatus,
-} from "@makanmasak/shared/utils/unknown";
+import { getApiErrorStatus } from "@makanmasak/shared/utils/unknown";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 type RetryableAxiosRequestConfig = AxiosRequestConfig & {
   _retry?: boolean;
@@ -272,6 +270,30 @@ export const useAuthStore = defineStore("auth", () => {
     return hasPermission(requiredRoles);
   };
 
+  /**
+   * Discriminated on purpose: the login view reads `error` only after checking
+   * `success`, which needs the literal types to narrow.
+   */
+  type LoginResult = { success: true } | { success: false; error: string };
+
+  /**
+   * A rejected login answers 401 however it failed, so only the code separates
+   * a wrong password from a locked account -- see LOGIN_FAILURE_CODES in the
+   * API's authentication routes. And 401's shared copy ("please sign in again")
+   * is the one thing the reader is already doing, so this screen overrides it.
+   */
+  const loginFailure = (error: unknown): LoginResult => ({
+    success: false,
+    error: resolveUserFacingError(error, t, {
+      codeKeys: {
+        INVALID_CREDENTIALS: "auth.invalidCredentials",
+        ACCOUNT_LOCKED: "auth.accountLocked",
+      },
+      statusKeys: { 401: "auth.invalidCredentials" },
+      fallbackKey: "auth.loginFailed",
+    }).message,
+  });
+
   const login = async (username: string, password: string) => {
     isLoading.value = true;
     try {
@@ -299,18 +321,17 @@ export const useAuthStore = defineStore("auth", () => {
         // records its own failures.
         void useModuleAccessStore().fetch({ force: true });
 
-        return { success: true };
+        return { success: true } satisfies LoginResult;
       }
 
-      return {
-        success: false,
-        error: response.data.error?.message || "Login failed",
-      };
+      // A 2xx whose envelope says the login failed. Reshaped so the branch
+      // below classifies it the same way it classifies a rejected request.
+      return loginFailure({
+        response: { status: response.status, data: response.data },
+      });
     } catch (error: unknown) {
-      return {
-        success: false,
-        error: getApiEnvelopeMessage(error) ?? t("auth.loginFailed"),
-      };
+      console.error("Login error:", error);
+      return loginFailure(error);
     } finally {
       isLoading.value = false;
     }

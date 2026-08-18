@@ -1,6 +1,11 @@
 import { createAuthenticatedApiClient } from "@makanmasak/auth-client";
 import type { ApiResponse, User } from "@/types";
-import { getApiErrorMessage } from "@/utils/unknown";
+import {
+  getApiErrorMessage,
+  getApiErrorStatus,
+  isRecord,
+} from "@/utils/unknown";
+import { getApiErrorCode } from "@makanmasak/shared/utils/unknown";
 
 export function getKitchenApiBaseUrl(env = import.meta.env): string {
   const baseUrl = env.VITE_API_BASE_URL;
@@ -15,6 +20,13 @@ export function getKitchenApiBaseUrl(env = import.meta.env): string {
 }
 
 const LOGIN_PATH = "/login";
+
+/** axios sets `code` (ERR_NETWORK, ECONNABORTED) when there is no response. */
+function getTransportErrorCode(error: unknown): string | undefined {
+  return isRecord(error) && typeof error.code === "string"
+    ? error.code
+    : undefined;
+}
 
 interface AuthFailureLocation {
   pathname: string;
@@ -83,10 +95,17 @@ export const authApi = {
     } catch (error: unknown) {
       console.error("Login API error:", error);
 
-      const message = getApiErrorMessage(error, "登入失敗");
+      // Both, and for different readers: `code`/`status` are what the login
+      // form translates from, `error` is the server's own sentence for the
+      // console. Falling back to axios's own `code` matters -- without it a
+      // request that never left the browser looks like an empty envelope, and
+      // the form would tell someone their password is wrong when the network
+      // is down.
       return {
         success: false,
-        error: message,
+        error: getApiErrorMessage(error, "Login request failed"),
+        code: getApiErrorCode(error) ?? getTransportErrorCode(error),
+        status: getApiErrorStatus(error),
         timestamp: new Date().toISOString(),
       };
     }

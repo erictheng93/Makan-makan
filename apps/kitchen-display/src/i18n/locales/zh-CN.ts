@@ -451,6 +451,8 @@ const zhCN: Messages = {
     updateStatusFailed: "更新状态失败：",
   },
   login: {
+    invalidCredentials: "用户名称或密码不正确",
+    accountLocked: "连续登录失败过多次，账号已暂时锁定，请稍后再试",
     fetchRestaurantError: "无法获取餐厅资讯",
     helpNote: "需要协助？请联系系统管理员",
     loggingIn: "登入中...",

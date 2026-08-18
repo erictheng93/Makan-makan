@@ -456,6 +456,9 @@ const msMY: Messages = {
     updateStatusFailed: "Kemas kini status gagal:",
   },
   login: {
+    invalidCredentials: "Nama pengguna atau kata laluan tidak betul.",
+    accountLocked:
+      "Terlalu banyak percubaan gagal. Akaun ini dikunci buat sementara — sila cuba lagi nanti.",
     fetchRestaurantError: "Gagal mengambil maklumat restoran",
     helpNote: "Perlukan bantuan? Hubungi pentadbir sistem anda",
     loggingIn: "Log masuk...",

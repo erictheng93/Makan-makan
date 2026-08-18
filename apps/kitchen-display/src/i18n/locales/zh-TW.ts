@@ -52,6 +52,8 @@ const zhTW = {
   },
 
   login: {
+    invalidCredentials: "用戶名稱或密碼不正確",
+    accountLocked: "連續登入失敗過多次，帳號已暫時鎖定，請稍後再試",
     title: "廚房顯示系統",
     subtitle: "Kitchen Display System",
     username: "用戶名稱",

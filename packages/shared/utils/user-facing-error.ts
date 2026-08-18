@@ -25,6 +25,12 @@ export interface ResolveUserFacingErrorOptions {
   /** Keys for reusable, actionable API error codes. */
   codeKeys?: Record<string, string>;
   /**
+   * Per-status overrides for a screen where the shared copy is wrong. The one
+   * that matters is 401 on a login form: everywhere else it means the session
+   * lapsed, and there it means the password was rejected.
+   */
+  statusKeys?: Record<number, string>;
+  /**
    * Key to use in place of the generic unknown copy, naming the action that
    * failed ("Saving the shift template failed").
    *
@@ -144,7 +150,8 @@ export function resolveUserFacingError(
   }
 
   if (parsed.status !== undefined) {
-    const key = STATUS_KEYS[parsed.status];
+    const key =
+      options.statusKeys?.[parsed.status] ?? STATUS_KEYS[parsed.status];
     if (key) return withMessage(key, "status");
     if (parsed.status >= 500) {
       return withMessage("errorPresentation.serviceUnavailable", "status");

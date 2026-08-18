@@ -457,6 +457,9 @@ const viVN: Messages = {
     updateStatusFailed: "Trạng thái cập nhật không thành công:",
   },
   login: {
+    invalidCredentials: "Tên đăng nhập hoặc mật khẩu không đúng.",
+    accountLocked:
+      "Quá nhiều lần đăng nhập sai. Tài khoản tạm thời bị khóa — vui lòng thử lại sau.",
     fetchRestaurantError: "Không tìm nạp được thông tin nhà hàng",
     helpNote: "Cần giúp đỡ? Liên hệ với quản trị viên hệ thống của bạn",
     loggingIn: "Đang đăng nhập...",

@@ -53,7 +53,14 @@ export const useAuthStore = defineStore("auth", () => {
         // login showed the generic fallback instead of what the server
         // actually said, an account lockout included. `message` stays as a
         // secondary fallback for any route that still populates it.
-        throw new Error(response.error || response.message || "登入失敗");
+        // Rethrown with the code attached where `resolveUserFacingError`
+        // reads it, so the login form can tell a wrong password from a locked
+        // account -- the distinction #197 restored, now without shipping the
+        // server's English to say it.
+        throw Object.assign(
+          new Error(response.error || response.message || "Login failed"),
+          { code: response.code, status: response.status },
+        );
       }
     } catch (error: unknown) {
       console.error("Login error:", error);

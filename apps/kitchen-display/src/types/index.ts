@@ -127,6 +127,13 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   message?: string;
   error?: string;
+  /**
+   * The failing envelope's `error.code`, or axios's own when the request never
+   * reached the server. Callers translate from this and from `status`; `error`
+   * carries the server's sentence, which is English and belongs in a log.
+   */
+  code?: string;
+  status?: number;
   timestamp: string;
 }
 

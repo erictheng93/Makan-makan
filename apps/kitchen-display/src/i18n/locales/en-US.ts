@@ -54,6 +54,9 @@ const enUS: Messages = {
   },
 
   login: {
+    invalidCredentials: "That username or password is not correct.",
+    accountLocked:
+      "Too many failed attempts. This account is locked for now — please try again later.",
     title: "Kitchen Display System",
     subtitle: "Kitchen Display System",
     username: "Username",
