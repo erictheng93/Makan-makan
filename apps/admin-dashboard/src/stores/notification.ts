@@ -8,8 +8,10 @@ export interface Notification {
     | "error"
     | "warning"
     | "info"
+    | "order_new"
     | "order_ready"
-    | "order_urgent";
+    | "order_urgent"
+    | "system_alert";
   title: string;
   message: string;
   sound?: boolean;

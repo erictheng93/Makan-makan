@@ -206,7 +206,7 @@ import { computed, ref, onMounted } from "vue";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
-import { useNotificationStore } from "@/stores/notification";
+import { useNotificationStore, type Notification } from "@/stores/notification";
 import { useRouter } from "vue-router";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import {
@@ -279,7 +279,7 @@ const markAsRead = (id: string) => {
   notificationStore.markAsRead(id);
 };
 
-const handleNotificationClick = (notification: any) => {
+const handleNotificationClick = (notification: Notification) => {
   if (!notification.read) {
     markAsRead(notification.id);
   }
@@ -301,7 +301,7 @@ const handleNotificationClick = (notification: any) => {
   }
 };
 
-const handleOrderAction = (notification: any, action: string) => {
+const handleOrderAction = (notification: Notification, action: string) => {
   console.log("Handle order action:", action, notification);
 
   if (action === "deliver") {
@@ -317,7 +317,7 @@ const showAllNotifications = () => {
   router.push("/dashboard/notifications");
 };
 
-const hasActionButtons = (notification: any) => {
+const hasActionButtons = (notification: Notification) => {
   return ["order_ready", "order_urgent"].includes(notification.type);
 };
 
