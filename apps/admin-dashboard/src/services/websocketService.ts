@@ -306,7 +306,7 @@ class WebSocketService {
   /**
    * 發送訊息
    */
-  send(data: any): void {
+  send(data: unknown): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(typeof data === "string" ? data : JSON.stringify(data));
     } else {
