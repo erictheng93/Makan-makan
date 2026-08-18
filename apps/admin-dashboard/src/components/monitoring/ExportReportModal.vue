@@ -23,7 +23,7 @@ import {
 // Props
 interface Props {
   show: boolean;
-  data: any[];
+  data: Array<Record<string, unknown>>;
   defaultDataType?: ExportDataType;
 }
 
