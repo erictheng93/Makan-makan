@@ -22,6 +22,14 @@ interface AIAnalyticsErrorResponse {
   message?: string;
 }
 
+interface AIAnalyticsConfigResponse {
+  config?: {
+    provider: LLMProvider;
+    model?: string;
+    custom_base_url?: string;
+  };
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -47,7 +55,9 @@ interface UseAIAnalyticsReturn {
   error: Ref<string | null>;
 
   // AI Configuration
-  getConfig: (restaurantId: string) => Promise<any>;
+  getConfig: (
+    restaurantId: string,
+  ) => Promise<AIAnalyticsConfigResponse | null>;
   saveConfig: (
     data: ConfigureAIRequest,
   ) => Promise<{ success: boolean; message?: string }>;
@@ -89,7 +99,7 @@ interface UseAIAnalyticsReturn {
     restaurantId: string,
     startDate?: string,
     endDate?: string,
-  ) => Promise<any[]>;
+  ) => Promise<unknown[]>;
 }
 
 export function useAIAnalytics(): UseAIAnalyticsReturn {
@@ -150,7 +160,10 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
 
   // AI Configuration APIs
   const getConfig = async (restaurantId: string) => {
-    const data = await requestAI("GET", `/config/${restaurantId}`);
+    const data = await requestAI<AIAnalyticsConfigResponse>(
+      "GET",
+      `/config/${restaurantId}`,
+    );
     return data;
   };
 
@@ -260,8 +273,8 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
     restaurantId: string,
     startDate?: string,
     endDate?: string,
-  ): Promise<any[]> => {
-    const data = await requestAI<{ success: boolean; usage?: any[] }>(
+  ): Promise<unknown[]> => {
+    const data = await requestAI<{ success: boolean; usage?: unknown[] }>(
       "GET",
       `/usage/${restaurantId}`,
       { params: { startDate, endDate } },
