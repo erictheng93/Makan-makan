@@ -189,6 +189,7 @@ import type {
   PaymentMethod,
   CountryCode,
   CurrencyCode,
+  Order as ApiOrder,
 } from "@makanmasak/shared-types";
 
 // 組件引入
@@ -283,7 +284,13 @@ const availablePaymentMethods = computed(() =>
   paymentStore.getAvailableMethodsForCountry(props.country),
 );
 
-const orderData = ref<any>(null);
+interface OrderPaymentDetails {
+  totalAmount?: number;
+  items?: ApiOrder["items"];
+  tax?: number;
+}
+
+const orderData = ref<OrderPaymentDetails | null>(null);
 
 const orderDetails = computed(() => ({
   id: props.orderId,
@@ -292,7 +299,13 @@ const orderDetails = computed(() => ({
   currency: props.currency,
   subtotal: orderData.value?.totalAmount ?? props.amount,
   total: orderData.value?.totalAmount ?? props.amount,
-  items: orderData.value?.items || [],
+  items: (orderData.value?.items ?? []).map((item) => ({
+    id: String(item.id),
+    name: item.itemSnapshot?.name ?? item.menuItem?.name ?? "",
+    price: item.unitPrice,
+    quantity: item.quantity,
+    notes: item.notes,
+  })),
   tax: orderData.value?.tax ?? 0,
 }));
 
@@ -376,7 +389,7 @@ const processPayment = async () => {
 
 const handlePaymentSuccess = (data: {
   transactionId: string;
-  paymentMethod: any;
+  paymentMethod: PaymentMethod;
 }) => {
   paymentStatus.value = "success";
   emit("payment-success", data.transactionId);
