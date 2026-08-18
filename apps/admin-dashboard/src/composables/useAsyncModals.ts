@@ -1,4 +1,8 @@
-import { defineAsyncComponent, Component } from "vue";
+import {
+  defineAsyncComponent,
+  type AsyncComponentLoader,
+  type Component,
+} from "vue";
 
 /**
  * 異步 Modal/Dialog 組件加載 Composable
@@ -49,7 +53,7 @@ interface AsyncModalComponents {
  * @param timeout - 超時時間 (默認 30秒)
  */
 function createAsyncModal(
-  loader: () => Promise<any>,
+  loader: AsyncComponentLoader,
   delay = 200,
   timeout = 30000,
 ): Component {
@@ -138,7 +142,7 @@ export { createAsyncModal };
  * preloadModal(() => import('@/components/MyModal.vue'))
  * ```
  */
-export function preloadModal(loader: () => Promise<any>): void {
+export function preloadModal(loader: AsyncComponentLoader): void {
   // 使用 requestIdleCallback 在瀏覽器空閒時預加載
   if ("requestIdleCallback" in window) {
     requestIdleCallback(() => {
@@ -168,7 +172,7 @@ export function preloadModal(loader: () => Promise<any>): void {
  * ])
  * ```
  */
-export function preloadModals(loaders: Array<() => Promise<any>>): void {
+export function preloadModals(loaders: AsyncComponentLoader[]): void {
   loaders.forEach((loader, index) => {
     // 錯開加載時間，避免同時請求
     setTimeout(() => {
