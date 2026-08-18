@@ -12,6 +12,12 @@ vi.mock("bcryptjs", () => ({
 
 import { CreditService } from "./CreditService";
 import type { Env } from "../../../types/env";
+import {
+  creditAccounts,
+  creditCards,
+  creditLedgerEntries,
+  creditTopupIntents,
+} from "@makanmasak/database";
 
 const account = {
   id: "account-1",
@@ -37,36 +43,129 @@ const card = {
   updatedAt: new Date("2026-06-01T00:00:00.000Z"),
 };
 
-interface QueueItem {
-  get?: unknown;
-  all?: unknown[];
+/**
+ * Select fixtures are keyed by table, not by call order: `from(table)`
+ * decides which queue a query draws from, so adding a query against one
+ * table can no longer shift another table's results out from under it.
+ *
+ * Two things still need care when the code under test grows a new query:
+ *
+ * - Within a single table the queue is positional. The Nth read of a table
+ *   takes that table's Nth fixture, so a new query means inserting a fixture
+ *   at the matching index rather than appending one at the end.
+ * - A table has to be listed in `fixtureTables` before it can be declared. An
+ *   unregistered table matches no queue, so every read of it throws.
+ *
+ * Missing and exhausted fixtures both throw and name the table. Nothing
+ * falls back to `[]`/`null`; a silent empty/null result is what made the
+ * previous positional queue so hard to trace back to its cause.
+ *
+ * `CreditService` terminates its selects with `.get()` (single row, or
+ * `undefined` when the fixture entry is `[]`) or `.all()` (the whole array)
+ * instead of awaiting the builder directly. Both consume the next fixture
+ * queued for the table passed to `from()` — `.get()` just takes index 0 of
+ * it.
+ *
+ * `creditAccounts`, `creditCards`, and `creditLedgerEntries` are all read
+ * directly somewhere in this service (`loadCardAndAccount`, `refund`,
+ * `expireStaleAccounts`, `findBalanceLedgerDrift`, `listLedger`,
+ * `listLedgerForExport`, `findLedgerByIdempotencyKey`), so all three are
+ * registered below. `findBalanceLedgerDrift` left-joins `creditLedgerEntries`
+ * but selects `from(creditAccounts)`, so that call still routes to
+ * `creditAccounts` — joins never change the routing table.
+ * `creditTopupIntents` belongs to `CreditTopupService`, not this file's
+ * service, and is never selected here; it is imported only so the
+ * regression test below has a real, unregistered table to demonstrate the
+ * "<unknown table>" case.
+ *
+ * Neither this service's selects nor its mutations are wrapped in try/catch
+ * on the read paths — the one try/catch, in `expireStaleAccounts`, wraps
+ * only its per-account update/insert calls, after the select already ran.
+ * A harness throw from a missing/exhausted select fixture therefore always
+ * surfaces as a rejected promise here; no swallowing caveat applies.
+ */
+type SelectFixtureName =
+  | "creditAccounts"
+  | "creditCards"
+  | "creditLedgerEntries";
+type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
+
+const fixtureTables: Record<SelectFixtureName, unknown> = {
+  creditAccounts,
+  creditCards,
+  creditLedgerEntries,
+};
+const fixtureTableNames = new Map<unknown, SelectFixtureName>(
+  Object.entries(fixtureTables).map(([name, table]) => [
+    table,
+    name as SelectFixtureName,
+  ]),
+);
+const unselectedTable = Symbol("unselectedTable");
+
+function createQuery(nextResultFor: (table: unknown) => unknown) {
+  let selectedTable: unknown = unselectedTable;
+  const builder = {
+    from: vi.fn((table: unknown) => {
+      selectedTable = table;
+      return builder;
+    }),
+    where: vi.fn(() => builder),
+    leftJoin: vi.fn(() => builder),
+    groupBy: vi.fn(() => builder),
+    having: vi.fn(() => builder),
+    orderBy: vi.fn(() => builder),
+    limit: vi.fn(() => builder),
+    offset: vi.fn(() => builder),
+    get: vi.fn(async () => {
+      if (selectedTable === unselectedTable) {
+        throw new Error("Select fixture query never called from(table)");
+      }
+      return (nextResultFor(selectedTable) as unknown[])[0];
+    }),
+    all: vi.fn(async () => {
+      if (selectedTable === unselectedTable) {
+        throw new Error("Select fixture query never called from(table)");
+      }
+      return nextResultFor(selectedTable);
+    }),
+  };
+  return builder;
+}
+
+interface MutationQueueItem {
   returning?: unknown[];
 }
 
 function createFakeDb() {
   const queues = {
-    select: [] as QueueItem[],
-    insert: [] as QueueItem[],
-    update: [] as QueueItem[],
+    insert: [] as MutationQueueItem[],
+    update: [] as MutationQueueItem[],
     insertValues: [] as unknown[],
     updateValues: [] as unknown[],
   };
 
-  const createSelectChain = () => {
-    const chain = {
-      from: vi.fn(() => chain),
-      where: vi.fn(() => chain),
-      leftJoin: vi.fn(() => chain),
-      groupBy: vi.fn(() => chain),
-      having: vi.fn(() => chain),
-      orderBy: vi.fn(() => chain),
-      limit: vi.fn(() => chain),
-      offset: vi.fn(() => chain),
-      get: vi.fn(async () => queues.select.shift()?.get ?? null),
-      all: vi.fn(async () => queues.select.shift()?.all ?? []),
+  const selectFn = vi.fn();
+
+  function mockSelectResults(fixtures: SelectFixtures = {}) {
+    const selectResults = new Map<unknown, unknown[][]>(
+      Object.entries(fixtures).map(([name, results]) => [
+        fixtureTables[name as SelectFixtureName],
+        [...(results ?? [])],
+      ]),
+    );
+    const nextResultFor = (table: unknown) => {
+      const name = fixtureTableNames.get(table) ?? "<unknown table>";
+      const queue = selectResults.get(table);
+      if (!queue) throw new Error(`Missing select fixture for ${name}`);
+      const result = queue.shift();
+      if (result === undefined) {
+        throw new Error(`No select fixtures remaining for ${name}`);
+      }
+      return result;
     };
-    return chain;
-  };
+    selectFn.mockImplementation(() => createQuery(nextResultFor));
+  }
 
   const createInsertChain = () => {
     const chain = {
@@ -89,7 +188,7 @@ function createFakeDb() {
   };
 
   const db = {
-    select: vi.fn(() => createSelectChain()),
+    select: selectFn,
     insert: vi.fn(() => createInsertChain()),
     update: vi.fn(() => ({
       set: vi.fn((values: unknown) => {
@@ -99,7 +198,7 @@ function createFakeDb() {
     })),
   };
 
-  return { db, queues };
+  return { db, queues, mockSelectResults };
 }
 
 function createService(options: Partial<Env> = {}) {
@@ -121,6 +220,34 @@ describe("CreditService", () => {
     bcryptCompare.mockResolvedValue(true);
     vi.spyOn(crypto, "randomUUID").mockReturnValue(
       "card-public-id" as `${string}-${string}-${string}-${string}-${string}`,
+    );
+  });
+
+  it("routes select fixtures by table and reports missing fixtures", async () => {
+    const { db, mockSelectResults } = createService();
+    mockSelectResults({
+      creditAccounts: [[account], [{ ...account, id: "account-2" }]],
+      creditCards: [[card]],
+    });
+
+    // Read in reverse declaration order: routing follows the table passed to
+    // from(), not the execution order.
+    await expect(db.select().from(creditCards).get()).resolves.toEqual(card);
+    await expect(db.select().from(creditAccounts).get()).resolves.toEqual(
+      account,
+    );
+    await expect(db.select().from(creditAccounts).get()).resolves.toEqual({
+      ...account,
+      id: "account-2",
+    });
+    await expect(db.select().from(creditAccounts).get()).rejects.toThrow(
+      "No select fixtures remaining for creditAccounts",
+    );
+    // creditTopupIntents is selected by CreditTopupService, not
+    // CreditService, so it stays out of fixtureTables here and reports
+    // <unknown table>.
+    await expect(db.select().from(creditTopupIntents).get()).rejects.toThrow(
+      "Missing select fixture for <unknown table>",
     );
   });
 
@@ -163,8 +290,8 @@ describe("CreditService", () => {
   });
 
   it("returns balances and validates card/account lookup failures", async () => {
-    const { service, queues } = createService();
-    queues.select.push({ get: card }, { get: account });
+    const { service, mockSelectResults } = createService();
+    mockSelectResults({ creditCards: [[card]], creditAccounts: [[account]] });
 
     await expect(service.getBalance("public-1")).resolves.toEqual({
       publicId: "public-1",
@@ -176,27 +303,31 @@ describe("CreditService", () => {
       expiresAtMs: account.expiresAtMs.getTime(),
     });
 
-    queues.select.push({ get: null });
+    mockSelectResults({ creditCards: [[]] });
     await expect(service.getBalance("missing")).rejects.toMatchObject({
       code: "CREDIT_CARD_NOT_FOUND",
     });
 
-    queues.select.push({ get: card }, { get: null });
+    mockSelectResults({ creditCards: [[card]], creditAccounts: [[]] });
     await expect(service.getBalance("orphan")).rejects.toMatchObject({
       code: "CREDIT_ACCOUNT_NOT_FOUND",
     });
   });
 
   it("spends with replay, guard, PIN, deduction, and ledger compensation branches", async () => {
-    const { service, queues } = createService({
+    const { service, queues, mockSelectResults } = createService({
       CREDIT_PIN_THRESHOLD_CENTS: "1000",
     } as Partial<Env>);
-    queues.select.push({
-      get: {
-        id: "ledger-existing",
-        accountId: "account-1",
-        balanceAfterCents: 49000,
-      },
+    mockSelectResults({
+      creditLedgerEntries: [
+        [
+          {
+            id: "ledger-existing",
+            accountId: "account-1",
+            balanceAfterCents: 49000,
+          },
+        ],
+      ],
     });
     await expect(
       service.spend({
@@ -222,11 +353,11 @@ describe("CreditService", () => {
       }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
-    queues.select.push(
-      { get: null },
-      { get: card },
-      { get: { ...account, status: "suspended" } },
-    );
+    mockSelectResults({
+      creditLedgerEntries: [[]],
+      creditCards: [[card]],
+      creditAccounts: [[{ ...account, status: "suspended" }]],
+    });
     await expect(
       service.spend({
         publicId: "public-1",
@@ -237,11 +368,11 @@ describe("CreditService", () => {
       }),
     ).rejects.toMatchObject({ code: "CREDIT_ACCOUNT_INACTIVE" });
 
-    queues.select.push(
-      { get: null },
-      { get: card },
-      { get: { ...account, currency: "MYR" } },
-    );
+    mockSelectResults({
+      creditLedgerEntries: [[]],
+      creditCards: [[card]],
+      creditAccounts: [[{ ...account, currency: "MYR" }]],
+    });
     await expect(
       service.spend({
         publicId: "public-1",
@@ -252,7 +383,11 @@ describe("CreditService", () => {
       }),
     ).rejects.toMatchObject({ code: "CREDIT_CURRENCY_MISMATCH" });
 
-    queues.select.push({ get: null }, { get: card }, { get: account });
+    mockSelectResults({
+      creditLedgerEntries: [[]],
+      creditCards: [[card]],
+      creditAccounts: [[account]],
+    });
     await expect(
       service.spend({
         publicId: "public-1",
@@ -264,7 +399,11 @@ describe("CreditService", () => {
     ).rejects.toMatchObject({ code: "CREDIT_PIN_REQUIRED" });
 
     bcryptCompare.mockResolvedValueOnce(false);
-    queues.select.push({ get: null }, { get: card }, { get: account });
+    mockSelectResults({
+      creditLedgerEntries: [[]],
+      creditCards: [[card]],
+      creditAccounts: [[account]],
+    });
     await expect(
       service.spend({
         publicId: "public-1",
@@ -277,7 +416,11 @@ describe("CreditService", () => {
     ).rejects.toMatchObject({ code: "CREDIT_PIN_INVALID" });
     expect(queues.updateValues.at(-1)).toMatchObject({ pinRetryCount: 1 });
 
-    queues.select.push({ get: null }, { get: card }, { get: account });
+    mockSelectResults({
+      creditLedgerEntries: [[]],
+      creditCards: [[card]],
+      creditAccounts: [[account]],
+    });
     queues.update.push({ returning: [] });
     await expect(
       service.spend({
@@ -290,7 +433,11 @@ describe("CreditService", () => {
       }),
     ).rejects.toMatchObject({ code: "INSUFFICIENT_BALANCE" });
 
-    queues.select.push({ get: null }, { get: card }, { get: account });
+    mockSelectResults({
+      creditLedgerEntries: [[]],
+      creditCards: [[card]],
+      creditAccounts: [[account]],
+    });
     queues.update.push({ returning: [{ balanceAfter: 48000 }] });
     queues.insert.push({ returning: [{ id: "ledger-1" }] });
     await expect(
@@ -317,19 +464,25 @@ describe("CreditService", () => {
       marketCheckoutPaymentId: "pay-1",
     });
 
-    queues.select.push({ get: null }, { get: card }, { get: account });
+    mockSelectResults({
+      creditLedgerEntries: [
+        [],
+        [
+          {
+            id: "ledger-canonical",
+            accountId: "account-1",
+            balanceAfterCents: 47000,
+          },
+        ],
+      ],
+      creditCards: [[card]],
+      creditAccounts: [[account]],
+    });
     queues.update.push(
       { returning: [{ balanceAfter: 47000 }] },
       { returning: [{ balanceAfter: 50000 }] },
     );
     queues.insert.push({ returning: [] });
-    queues.select.push({
-      get: {
-        id: "ledger-canonical",
-        accountId: "account-1",
-        balanceAfterCents: 47000,
-      },
-    });
     await expect(
       service.spend({
         publicId: "public-1",
@@ -347,14 +500,18 @@ describe("CreditService", () => {
   });
 
   it("topups, refunds, and resolves refunds from original spend keys", async () => {
-    const { service, queues } = createService();
+    const { service, queues, mockSelectResults } = createService();
 
-    queues.select.push({
-      get: {
-        id: "topup-existing",
-        accountId: "account-1",
-        balanceAfterCents: 55000,
-      },
+    mockSelectResults({
+      creditLedgerEntries: [
+        [
+          {
+            id: "topup-existing",
+            accountId: "account-1",
+            balanceAfterCents: 55000,
+          },
+        ],
+      ],
     });
     await expect(
       service.topup({
@@ -376,11 +533,11 @@ describe("CreditService", () => {
       }),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
 
-    queues.select.push(
-      { get: null },
-      { get: card },
-      { get: { ...account, currency: "MYR" } },
-    );
+    mockSelectResults({
+      creditLedgerEntries: [[]],
+      creditCards: [[card]],
+      creditAccounts: [[{ ...account, currency: "MYR" }]],
+    });
     await expect(
       service.topup({
         publicId: "public-1",
@@ -391,7 +548,11 @@ describe("CreditService", () => {
       }),
     ).rejects.toMatchObject({ code: "CREDIT_CURRENCY_MISMATCH" });
 
-    queues.select.push({ get: null }, { get: card }, { get: account });
+    mockSelectResults({
+      creditLedgerEntries: [[]],
+      creditCards: [[card]],
+      creditAccounts: [[account]],
+    });
     queues.update.push({ returning: [{ balanceAfter: 55000 }] });
     queues.insert.push({ returning: [{ id: "topup-ledger" }] });
     await expect(
@@ -409,7 +570,10 @@ describe("CreditService", () => {
       balanceAfterCents: 55000,
     });
 
-    queues.select.push({ get: null }, { get: null });
+    mockSelectResults({
+      creditLedgerEntries: [[]],
+      creditAccounts: [[]],
+    });
     await expect(
       service.refund({
         accountId: "missing",
@@ -420,7 +584,10 @@ describe("CreditService", () => {
       }),
     ).rejects.toMatchObject({ code: "CREDIT_ACCOUNT_NOT_FOUND" });
 
-    queues.select.push({ get: null }, { get: { ...account, currency: "MYR" } });
+    mockSelectResults({
+      creditLedgerEntries: [[]],
+      creditAccounts: [[{ ...account, currency: "MYR" }]],
+    });
     await expect(
       service.refund({
         accountId: "account-1",
@@ -431,7 +598,10 @@ describe("CreditService", () => {
       }),
     ).rejects.toMatchObject({ code: "CREDIT_CURRENCY_MISMATCH" });
 
-    queues.select.push({ get: null }, { get: account });
+    mockSelectResults({
+      creditLedgerEntries: [[]],
+      creditAccounts: [[account]],
+    });
     queues.update.push({ returning: [{ balanceAfter: 51000 }] });
     queues.insert.push({ returning: [{ id: "refund-ledger" }] });
     await expect(
@@ -448,7 +618,7 @@ describe("CreditService", () => {
       balanceAfterCents: 51000,
     });
 
-    queues.select.push({ get: null });
+    mockSelectResults({ creditLedgerEntries: [[]] });
     await expect(
       service.refundByOriginalSpend({
         spendIdempotencyKey: "unknown-spend",
@@ -459,14 +629,19 @@ describe("CreditService", () => {
       }),
     ).rejects.toMatchObject({ code: "CREDIT_SPEND_NOT_FOUND" });
 
-    queues.select.push({
-      get: {
-        id: "spend-ledger",
-        accountId: "account-1",
-        balanceAfterCents: 49000,
-      },
+    mockSelectResults({
+      creditLedgerEntries: [
+        [
+          {
+            id: "spend-ledger",
+            accountId: "account-1",
+            balanceAfterCents: 49000,
+          },
+        ],
+        [],
+      ],
+      creditAccounts: [[account]],
     });
-    queues.select.push({ get: null }, { get: account });
     queues.update.push({ returning: [{ balanceAfter: 50000 }] });
     queues.insert.push({ returning: [{ id: "refund-from-spend" }] });
     await expect(
@@ -481,9 +656,9 @@ describe("CreditService", () => {
   });
 
   it("manages cards and reads ledger/export/drift reports", async () => {
-    const { service, queues } = createService();
+    const { service, queues, mockSelectResults } = createService();
 
-    queues.select.push({ get: card }, { get: account });
+    mockSelectResults({ creditCards: [[card]], creditAccounts: [[account]] });
     await service.setPin("public-1", "4321");
     expect(queues.updateValues.at(-1)).toMatchObject({
       secretHash: "hash:new-pin",
@@ -491,12 +666,15 @@ describe("CreditService", () => {
       lockedUntilMs: null,
     });
 
-    queues.select.push({ get: card }, { get: account });
+    mockSelectResults({ creditCards: [[card]], creditAccounts: [[account]] });
     await service.setCardStatus("public-1", "frozen");
     expect(queues.updateValues.at(-1)).toMatchObject({ status: "frozen" });
 
-    queues.select.push({ get: card }, { get: account });
-    queues.select.push({ all: [{ id: "ledger-1" }] });
+    mockSelectResults({
+      creditCards: [[card]],
+      creditAccounts: [[account]],
+      creditLedgerEntries: [[{ id: "ledger-1" }]],
+    });
     await expect(
       service.listLedger("public-1", { limit: 500, offset: -5 }),
     ).resolves.toEqual({
@@ -504,12 +682,12 @@ describe("CreditService", () => {
       entries: [{ id: "ledger-1" }],
     });
 
-    queues.select.push({ all: [{ id: "export-1" }] });
+    mockSelectResults({ creditLedgerEntries: [[{ id: "export-1" }]] });
     await expect(service.listLedgerForExport({ limit: 0 })).resolves.toEqual([
       { id: "export-1" },
     ]);
 
-    queues.select.push({ all: [{ id: "export-2" }] });
+    mockSelectResults({ creditLedgerEntries: [[{ id: "export-2" }]] });
     await expect(
       service.listLedgerForExport({
         fromMs: Date.parse("2026-06-01T00:00:00.000Z"),
@@ -517,9 +695,9 @@ describe("CreditService", () => {
       }),
     ).resolves.toEqual([{ id: "export-2" }]);
 
-    queues.select.push({
-      all: [
-        { accountId: "account-1", balanceCents: 5000, ledgerSumCents: 4500 },
+    mockSelectResults({
+      creditAccounts: [
+        [{ accountId: "account-1", balanceCents: 5000, ledgerSumCents: 4500 }],
       ],
     });
     await expect(service.findBalanceLedgerDrift()).resolves.toEqual([
@@ -533,30 +711,32 @@ describe("CreditService", () => {
   });
 
   it("expires stale accounts with isolated failures and concurrent-update skips", async () => {
-    const { service, queues } = createService();
-    queues.select.push({
-      all: [
-        {
-          id: "account-skip",
-          balanceCents: 1000,
-          version: 1,
-          currency: "TWD",
-          expiresAtMs: new Date("2026-01-01T00:00:00.000Z"),
-        },
-        {
-          id: "account-expire",
-          balanceCents: 2000,
-          version: 2,
-          currency: "TWD",
-          expiresAtMs: new Date("2026-01-02T00:00:00.000Z"),
-        },
-        {
-          id: "account-fail",
-          balanceCents: 3000,
-          version: 3,
-          currency: "TWD",
-          expiresAtMs: new Date("2026-01-03T00:00:00.000Z"),
-        },
+    const { service, queues, mockSelectResults } = createService();
+    mockSelectResults({
+      creditAccounts: [
+        [
+          {
+            id: "account-skip",
+            balanceCents: 1000,
+            version: 1,
+            currency: "TWD",
+            expiresAtMs: new Date("2026-01-01T00:00:00.000Z"),
+          },
+          {
+            id: "account-expire",
+            balanceCents: 2000,
+            version: 2,
+            currency: "TWD",
+            expiresAtMs: new Date("2026-01-02T00:00:00.000Z"),
+          },
+          {
+            id: "account-fail",
+            balanceCents: 3000,
+            version: 3,
+            currency: "TWD",
+            expiresAtMs: new Date("2026-01-03T00:00:00.000Z"),
+          },
+        ],
       ],
     });
     queues.update.push(
