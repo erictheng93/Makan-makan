@@ -37,15 +37,15 @@ function withBackfillAudit(
       }
       return db.prepare(sqlText);
     },
-    batch: async (statements: any[]) => {
+    batch: async (statements: D1PreparedStatement[]) => {
       audit.batchSizes.push(statements.length);
       if (audit.failBatch === audit.batchSizes.length) {
         throw new Error(`Injected backfill batch ${audit.failBatch} failure`);
       }
       return db.batch(statements);
     },
-    exec: (query: string) => (db as any).exec(query),
-    dump: () => (db as any).dump?.(),
+    exec: (query: string) => db.exec(query),
+    dump: () => db.dump(),
   } as unknown as D1Database;
 }
 
@@ -810,7 +810,7 @@ describe("menu item option rows", () => {
 
   it("does not hide query-layer mistakes behind a JSON fallback", async () => {
     await expect(
-      loadAssembledMenuItemOptions({} as any, [
+      loadAssembledMenuItemOptions({} as D1Database, [
         {
           id: 1,
           options: {

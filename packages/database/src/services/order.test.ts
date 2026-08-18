@@ -617,7 +617,15 @@ function withFailureInjection(
   db: D1Database,
   shouldFail: (sql: string) => boolean,
 ): D1Database {
-  const wrapStatement = (stmt: any, sqlText: string): any => ({
+  type WrappedStatement = D1PreparedStatement & {
+    __sql: string;
+    __real: D1PreparedStatement;
+  };
+
+  const wrapStatement = (
+    stmt: D1PreparedStatement,
+    sqlText: string,
+  ): WrappedStatement => ({
     __sql: sqlText,
     __real: stmt,
     bind: (...args: unknown[]) => wrapStatement(stmt.bind(...args), sqlText),
@@ -641,14 +649,25 @@ function withFailureInjection(
 
   return {
     prepare: (sqlText: string) => wrapStatement(db.prepare(sqlText), sqlText),
-    batch: async (statements: any[]) => {
-      if (statements.some((s) => s.__sql && shouldFail(s.__sql))) {
+    batch: async (statements: D1PreparedStatement[]) => {
+      if (
+        statements.some(
+          (statement) =>
+            "__sql" in statement &&
+            typeof statement.__sql === "string" &&
+            shouldFail(statement.__sql),
+        )
+      ) {
         throw new Error(INJECTED_FAILURE);
       }
-      return db.batch(statements.map((s) => s.__real ?? s));
+      return db.batch(
+        statements.map((statement) =>
+          "__real" in statement ? statement.__real : statement,
+        ),
+      );
     },
-    exec: (query: string) => (db as any).exec(query),
-    dump: () => (db as any).dump?.(),
+    exec: (query: string) => db.exec(query),
+    dump: () => db.dump(),
   } as unknown as D1Database;
 }
 

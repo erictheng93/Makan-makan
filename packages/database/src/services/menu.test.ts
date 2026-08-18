@@ -519,13 +519,17 @@ describe("MenuService engagement counters", () => {
  * and the dashboard had no control to put it back.
  */
 describe("MenuService category visibility", () => {
+  interface MenuQueryConfig {
+    with: { categories: { where: unknown } };
+  }
+
   function buildMenuService(categoryRows: Record<string, unknown>[]) {
-    const capturedConfigs: any[] = [];
+    const capturedConfigs: MenuQueryConfig[] = [];
     const db = {
       select: vi.fn(() => createQuery([], [])),
       query: {
         restaurants: {
-          findFirst: vi.fn(async (config: any) => {
+          findFirst: vi.fn(async (config: MenuQueryConfig) => {
             capturedConfigs.push(config);
             return { id: "restaurant-1", categories: categoryRows };
           }),

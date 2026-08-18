@@ -7,7 +7,9 @@ describe("ReservationService confirmation credentials", () => {
       JWT_SECRET: "test",
     });
     const codes = Array.from({ length: 32 }, () =>
-      (service as any).generateConfirmationCode(),
+      (
+        service as unknown as { generateConfirmationCode: () => string }
+      ).generateConfirmationCode(),
     );
 
     expect(new Set(codes)).toHaveLength(codes.length);

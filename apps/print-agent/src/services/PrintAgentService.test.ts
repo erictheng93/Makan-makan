@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { PrintAgentService } from "./PrintAgentService";
 import type { LocalPrintServiceConfig } from "../LocalPrintService";
+import type { PrintRequest } from "@makanmasak/shared-types";
 
 const buildConfig = (
   overrides: Partial<LocalPrintServiceConfig> = {},
@@ -37,7 +38,7 @@ const buildPrintRequest = (overrides: Record<string, unknown> = {}) =>
       },
     },
     ...overrides,
-  }) as any;
+  }) as PrintRequest;
 
 describe("PrintAgentService health semantics", () => {
   let agent: PrintAgentService | undefined;
