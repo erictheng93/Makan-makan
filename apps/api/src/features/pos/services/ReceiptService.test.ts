@@ -1,4 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { orderItems, orders, receipts } from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 import { ReceiptService } from "./ReceiptService";
 
 const mocks = vi.hoisted(() => ({
@@ -20,20 +25,8 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
 
-function createQuery(result: unknown) {
-  const builder = {
-    from: vi.fn(() => builder),
-    where: vi.fn(() => builder),
-    orderBy: vi.fn(() => builder),
-    limit: vi.fn(() => builder),
-    offset: vi.fn(() => builder),
-    then: (
-      resolve: (value: unknown) => void,
-      reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
-  };
-  return builder;
-}
+const fixtureTables = { orderItems, orders, receipts };
+type SelectFixtureName = keyof typeof fixtureTables;
 
 function createRejectedQuery(error: Error) {
   const builder = {
@@ -50,8 +43,8 @@ function createRejectedQuery(error: Error) {
   return builder;
 }
 
-function mockSelectResults(results: unknown[]) {
-  mocks.db.select.mockImplementation(() => createQuery(results.shift() ?? []));
+function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
+  Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
 }
 
 function mockMutations() {
@@ -170,7 +163,11 @@ describe("ReceiptService", () => {
       throw new Error("Math.random should not be used for receipt numbers");
     });
     const mutations = mockMutations();
-    mockSelectResults([[orderRow()], [itemRow()], [receiptRow()]]);
+    mockSelectResults({
+      orders: [[orderRow()]],
+      orderItems: [[itemRow()]],
+      receipts: [[receiptRow()]],
+    });
 
     const result = await createService().printReceipt(
       { orderId: "101" },
@@ -232,7 +229,7 @@ describe("ReceiptService", () => {
 
   it("rejects missing orders before inserting receipts", async () => {
     const mutations = mockMutations();
-    mockSelectResults([[]]);
+    mockSelectResults({ orders: [[]] });
 
     await expect(
       createService().printReceipt({ orderId: "101" }, "register-1"),
@@ -242,21 +239,23 @@ describe("ReceiptService", () => {
   });
 
   it("lists receipts with parsed content and pagination metadata", async () => {
-    mockSelectResults([
-      [
-        receiptRow({
-          id: "receipt-1",
-          content: JSON.stringify({ orderNumber: "A001" }),
-          rawContent: "printer bytes",
-          printedAt: new Date("2026-06-07T01:00:00.000Z"),
-        }),
-        receiptRow({
-          id: "receipt-2",
-          shiftId: null,
-          content: "",
-        }),
+    mockSelectResults({
+      receipts: [
+        [
+          receiptRow({
+            id: "receipt-1",
+            content: JSON.stringify({ orderNumber: "A001" }),
+            rawContent: "printer bytes",
+            printedAt: new Date("2026-06-07T01:00:00.000Z"),
+          }),
+          receiptRow({
+            id: "receipt-2",
+            shiftId: null,
+            content: "",
+          }),
+        ],
       ],
-    ]);
+    });
 
     await expect(
       createService().getReceipts("register-1", {
@@ -288,7 +287,7 @@ describe("ReceiptService", () => {
   });
 
   it("returns receipt details and missing receipt responses", async () => {
-    mockSelectResults([[receiptRow()], []]);
+    mockSelectResults({ receipts: [[receiptRow()], []] });
 
     await expect(
       createService().getReceiptDetail("receipt-1"),
@@ -306,7 +305,7 @@ describe("ReceiptService", () => {
 
   it("reprints and cancels receipts with the expected update payloads", async () => {
     const mutations = mockMutations();
-    mockSelectResults([[receiptRow()], []]);
+    mockSelectResults({ receipts: [[receiptRow()], []] });
 
     await expect(createService().reprintReceipt("receipt-1")).resolves.toEqual({
       success: true,
@@ -336,11 +335,11 @@ describe("ReceiptService", () => {
   it("marks the receipt printed synchronously before returning", async () => {
     uuidMocks.generateUUID.mockReturnValue("receipt-async");
     const mutations = mockMutations();
-    mockSelectResults([
-      [orderRow()],
-      [itemRow()],
-      [receiptRow({ id: "receipt-async" })],
-    ]);
+    mockSelectResults({
+      orders: [[orderRow()]],
+      orderItems: [[itemRow()]],
+      receipts: [[receiptRow({ id: "receipt-async" })]],
+    });
 
     // Print completion is now awaited (no timer): by the time printReceipt
     // resolves, the "printed" write has already run — the row never lingers in
@@ -358,7 +357,7 @@ describe("ReceiptService", () => {
   });
 
   it("marks print attempts failed when the printed-status write fails", async () => {
-    mockSelectResults([[receiptRow()]]);
+    mockSelectResults({ receipts: [[receiptRow()]] });
     const updated: unknown[] = [];
     let updateAttempt = 0;
     mocks.db.update.mockImplementation(() => {
