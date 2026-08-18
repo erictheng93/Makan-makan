@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { platformMenuMappings, platformOrders } from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 import { PlatformOrderService } from "./PlatformOrderService";
 import type { Env } from "../../../types/env";
 
@@ -49,8 +54,11 @@ function createQuery(result: unknown) {
   return builder;
 }
 
-function mockSelectResults(results: unknown[]) {
-  mocks.db.select.mockImplementation(() => createQuery(results.shift() ?? []));
+const fixtureTables = { platformMenuMappings, platformOrders };
+type SelectFixtureName = keyof typeof fixtureTables;
+
+function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
+  Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
 }
 
 function mockMutations() {
@@ -147,9 +155,11 @@ describe("PlatformOrderService", () => {
 
   it("creates internal platform orders and skips unmapped items", async () => {
     const mutations = mockMutations();
-    mockSelectResults([
-      [{ platformItemId: "platform-item-1", menuItemId: 501 }],
-    ]);
+    mockSelectResults({
+      platformMenuMappings: [
+        [{ platformItemId: "platform-item-1", menuItemId: 501 }],
+      ],
+    });
 
     await expect(
       createService().processWebhook(
@@ -197,9 +207,11 @@ describe("PlatformOrderService", () => {
 
   it("auto-accepts configured platform orders and confirms the internal order", async () => {
     const mutations = mockMutations();
-    mockSelectResults([
-      [{ platformItemId: "platform-item-1", menuItemId: 501 }],
-    ]);
+    mockSelectResults({
+      platformMenuMappings: [
+        [{ platformItemId: "platform-item-1", menuItemId: 501 }],
+      ],
+    });
     mocks.integrationService.getIntegration.mockResolvedValueOnce({
       config: { autoAcceptOrders: true },
     });
@@ -224,9 +236,11 @@ describe("PlatformOrderService", () => {
 
   it("does not fail webhook processing when auto-accept fails", async () => {
     const mutations = mockMutations();
-    mockSelectResults([
-      [{ platformItemId: "platform-item-1", menuItemId: 501 }],
-    ]);
+    mockSelectResults({
+      platformMenuMappings: [
+        [{ platformItemId: "platform-item-1", menuItemId: 501 }],
+      ],
+    });
     mocks.integrationService.getIntegration.mockResolvedValueOnce({
       config: { autoAcceptOrders: true },
     });
@@ -250,48 +264,50 @@ describe("PlatformOrderService", () => {
 
   it("syncs platform status transitions for accepted, denied, cancelled, and ready orders", async () => {
     const mutations = mockMutations();
-    mockSelectResults([
-      [
-        {
-          id: "platform-row-1",
-          orderId: 101,
-          restaurantId: "restaurant-1",
-          platform: "uber_eats",
-          platformOrderId: "uber-order-1",
-          platformStatus: "received",
-        },
+    mockSelectResults({
+      platformOrders: [
+        [
+          {
+            id: "platform-row-1",
+            orderId: 101,
+            restaurantId: "restaurant-1",
+            platform: "uber_eats",
+            platformOrderId: "uber-order-1",
+            platformStatus: "received",
+          },
+        ],
+        [
+          {
+            id: "platform-row-2",
+            orderId: 102,
+            restaurantId: "restaurant-1",
+            platform: "uber_eats",
+            platformOrderId: "uber-order-2",
+            platformStatus: "received",
+          },
+        ],
+        [
+          {
+            id: "platform-row-3",
+            orderId: 103,
+            restaurantId: "restaurant-1",
+            platform: "uber_eats",
+            platformOrderId: "uber-order-3",
+            platformStatus: "accepted",
+          },
+        ],
+        [
+          {
+            id: "platform-row-4",
+            orderId: 104,
+            restaurantId: "restaurant-1",
+            platform: "uber_eats",
+            platformOrderId: "uber-order-4",
+            platformStatus: "accepted",
+          },
+        ],
       ],
-      [
-        {
-          id: "platform-row-2",
-          orderId: 102,
-          restaurantId: "restaurant-1",
-          platform: "uber_eats",
-          platformOrderId: "uber-order-2",
-          platformStatus: "received",
-        },
-      ],
-      [
-        {
-          id: "platform-row-3",
-          orderId: 103,
-          restaurantId: "restaurant-1",
-          platform: "uber_eats",
-          platformOrderId: "uber-order-3",
-          platformStatus: "accepted",
-        },
-      ],
-      [
-        {
-          id: "platform-row-4",
-          orderId: 104,
-          restaurantId: "restaurant-1",
-          platform: "uber_eats",
-          platformOrderId: "uber-order-4",
-          platformStatus: "accepted",
-        },
-      ],
-    ]);
+    });
     vi.spyOn(console, "log").mockImplementation(() => undefined);
 
     await createService().syncStatusToPlatform(101, "confirmed");
@@ -322,7 +338,9 @@ describe("PlatformOrderService", () => {
 
   it("ignores status sync when no platform order exists and lists filtered platform orders", async () => {
     const mutations = mockMutations();
-    mockSelectResults([[], [{ id: "platform-row-1", platform: "uber_eats" }]]);
+    mockSelectResults({
+      platformOrders: [[], [{ id: "platform-row-1", platform: "uber_eats" }]],
+    });
 
     await createService().syncStatusToPlatform(404, "confirmed");
     const results = await createService().getPlatformOrders("restaurant-1", {
