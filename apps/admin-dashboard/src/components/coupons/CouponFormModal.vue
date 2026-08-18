@@ -432,10 +432,26 @@ const props = withDefaults(defineProps<Props>(), {
   coupon: undefined,
 });
 
+interface CouponSavePayload {
+  name: string;
+  code: string;
+  description: string;
+  discountType: "percentage" | "fixed" | "";
+  discountValue: number;
+  maxDiscountAmount?: number;
+  minOrderAmount: number;
+  usageLimit?: number;
+  usageLimitPerUser?: number;
+  validFrom: string;
+  validTo: string;
+  isActive: boolean;
+  isVisible: boolean;
+}
+
 // Emits
 const emit = defineEmits<{
   close: [];
-  save: [couponData: any];
+  save: [couponData: CouponSavePayload];
 }>();
 
 // Reactive state
