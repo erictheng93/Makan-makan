@@ -15,6 +15,13 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
 
+import {
+  backupAlerts,
+  backupAuditLogs,
+  backupConfigurations,
+  backupRecords,
+  restoreOperations,
+} from "@makanmasak/database";
 import { BackupService } from "./BackupService";
 
 function createService(
@@ -59,9 +66,65 @@ function createService(
   return { service, storageService, configService, validationService };
 }
 
-function createQuery(result: unknown) {
+/**
+ * Select fixtures are keyed by table, not by call order: `from(table)` decides
+ * which queue a query draws from, so adding a query against one table can no
+ * longer shift another table's results out from under it.
+ *
+ * Two things still need care when the code under test grows a new query:
+ *
+ * - Within a single table the queue is positional. The Nth read of a table
+ *   takes that table's Nth fixture, so a new query means inserting a fixture
+ *   at the matching index rather than appending one at the end.
+ * - A table has to be listed in `fixtureTables` before it can be declared. An
+ *   unregistered table matches no queue, so every read of it throws.
+ *
+ * Missing and exhausted fixtures both throw and name the table. Nothing falls
+ * back to `[]`; a silent empty result is what made the previous positional
+ * queue so hard to trace back to its cause.
+ *
+ * Every public method on `BackupService` wraps its body in try/catch and
+ * rethrows a wrapped `Error` (e.g. "Failed to list backups: <message>"). A
+ * harness throw from a missing/exhausted fixture therefore never surfaces
+ * verbatim from `rejects.toThrow()` on those methods — it comes back wrapped
+ * in that method's own error message, so match on the wrapper text (as the
+ * existing "wraps ... failures" tests already do) rather than the raw
+ * "Missing/No select fixtures..." string. The regression test below calls
+ * `mocks.db.select().from(table)` directly, bypassing the service, so it
+ * still sees the raw message.
+ *
+ * `backupAuditLogs` is written to (via `createAuditLog`) but never selected
+ * from, so it deliberately stays out of `fixtureTables` — it is the
+ * unregistered-table case exercised by the regression test below.
+ */
+type SelectFixtureName =
+  | "backupRecords"
+  | "backupConfigurations"
+  | "backupAlerts"
+  | "restoreOperations";
+type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
+
+const fixtureTables: Record<SelectFixtureName, unknown> = {
+  backupRecords,
+  backupConfigurations,
+  backupAlerts,
+  restoreOperations,
+};
+const fixtureTableNames = new Map<unknown, SelectFixtureName>(
+  Object.entries(fixtureTables).map(([name, table]) => [
+    table,
+    name as SelectFixtureName,
+  ]),
+);
+const unselectedTable = Symbol("unselectedTable");
+
+function createQuery(nextResultFor: (table: unknown) => unknown) {
+  let selectedTable: unknown = unselectedTable;
   const builder = {
-    from: vi.fn(() => builder),
+    from: vi.fn((table: unknown) => {
+      selectedTable = table;
+      return builder;
+    }),
     where: vi.fn(() => builder),
     orderBy: vi.fn(() => builder),
     limit: vi.fn(() => builder),
@@ -69,13 +132,39 @@ function createQuery(result: unknown) {
     then: (
       resolve: (value: unknown) => void,
       reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
+    ) => {
+      if (selectedTable === unselectedTable) {
+        return Promise.reject(
+          new Error("Select fixture query never called from(table)"),
+        ).then(resolve, reject);
+      }
+      return Promise.resolve(nextResultFor(selectedTable)).then(
+        resolve,
+        reject,
+      );
+    },
   };
   return builder;
 }
 
-function mockSelectResults(results: unknown[]) {
-  mocks.db.select.mockImplementation(() => createQuery(results.shift() ?? []));
+function mockSelectResults(fixtures: SelectFixtures = {}) {
+  const selectResults = new Map<unknown, unknown[][]>(
+    Object.entries(fixtures).map(([name, results]) => [
+      fixtureTables[name as SelectFixtureName],
+      [...(results ?? [])],
+    ]),
+  );
+  const nextResultFor = (table: unknown) => {
+    const name = fixtureTableNames.get(table) ?? "<unknown table>";
+    const queue = selectResults.get(table);
+    if (!queue) throw new Error(`Missing select fixture for ${name}`);
+    const result = queue.shift();
+    if (result === undefined) {
+      throw new Error(`No select fixtures remaining for ${name}`);
+    }
+    return result;
+  };
+  mocks.db.select.mockImplementation(() => createQuery(nextResultFor));
 }
 
 function mockMutations() {
@@ -170,6 +259,31 @@ describe("BackupService", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("routes select fixtures by table and reports missing fixtures", async () => {
+    mockSelectResults({
+      backupRecords: [[{ id: "backup-1" }]],
+      backupAlerts: [[{ id: "alert-1" }]],
+    });
+
+    // backupAlerts is declared after backupRecords but read first: routing
+    // follows the table passed to from(), not declaration order.
+    await expect(mocks.db.select().from(backupAlerts)).resolves.toEqual([
+      { id: "alert-1" },
+    ]);
+    await expect(mocks.db.select().from(backupRecords)).resolves.toEqual([
+      { id: "backup-1" },
+    ]);
+    await expect(mocks.db.select().from(backupRecords)).rejects.toThrow(
+      "No select fixtures remaining for backupRecords",
+    );
+    // backupAuditLogs is written to but never selected from, so it is
+    // deliberately absent from fixtureTables — an unregistered table can
+    // never match a fixture.
+    await expect(mocks.db.select().from(backupAuditLogs)).rejects.toThrow(
+      "Missing select fixture for <unknown table>",
+    );
   });
 
   it("normalizes backup records from camel and snake case database rows", () => {
@@ -411,7 +525,9 @@ describe("BackupService", () => {
       createdBy: "user-1",
       metadata: { manifest: { tables: ["orders"] } },
     };
-    mockSelectResults([[backupRow], [{ total: 1 }], [backupRow]]);
+    mockSelectResults({
+      backupRecords: [[backupRow], [{ total: 1 }], [backupRow]],
+    });
 
     await expect(
       service.listBackups({
@@ -447,19 +563,21 @@ describe("BackupService", () => {
   it("deletes backups from storage, database, and audit log", async () => {
     const { service, storageService } = createService();
     const mutations = mockMutations();
-    mockSelectResults([
-      [
-        {
-          id: "backup-1",
-          restaurantId: "restaurant-1",
-          name: "Nightly backup",
-          tablesIncluded: ["orders"],
-          storageProvider: "r2",
-          storagePath: "backup.json",
-          encryptionEnabled: false,
-        },
+    mockSelectResults({
+      backupRecords: [
+        [
+          {
+            id: "backup-1",
+            restaurantId: "restaurant-1",
+            name: "Nightly backup",
+            tablesIncluded: ["orders"],
+            storageProvider: "r2",
+            storagePath: "backup.json",
+            encryptionEnabled: false,
+          },
+        ],
       ],
-    ]);
+    });
 
     await expect(service.deleteBackup("backup-1", "user-1")).resolves
       .toBeUndefined();
@@ -480,31 +598,33 @@ describe("BackupService", () => {
 
   it("reports system health and restaurant metrics from aggregate rows", async () => {
     const { service } = createService();
-    mockSelectResults([
-      [
-        {
-          totalRestaurants: 3,
-          totalBackups: 20,
-          runningBackups: 2,
-          failedBackups24h: 6,
-          avgSize: 2048,
-          avgDurationMs: 180000,
-          avgCompressionRatio: 2.5,
-        },
+    mockSelectResults({
+      backupRecords: [
+        [
+          {
+            totalRestaurants: 3,
+            totalBackups: 20,
+            runningBackups: 2,
+            failedBackups24h: 6,
+            avgSize: 2048,
+            avgDurationMs: 180000,
+            avgCompressionRatio: 2.5,
+          },
+        ],
+        [{ totalBytes: 4096, totalFiles: 2 }],
+        [
+          {
+            total_backups: 5,
+            successful_backups: 4,
+            failed_backups: 1,
+            avg_backup_size: 1024,
+            total_storage_used: 5120,
+          },
+        ],
       ],
-      [{ totalBytes: 4096, totalFiles: 2 }],
-      [{ total: 4 }],
-      [{ severity: "critical" }, { severity: "high" }],
-      [
-        {
-          total_backups: 5,
-          successful_backups: 4,
-          failed_backups: 1,
-          avg_backup_size: 1024,
-          total_storage_used: 5120,
-        },
-      ],
-    ]);
+      backupConfigurations: [[{ total: 4 }]],
+      backupAlerts: [[{ severity: "critical" }, { severity: "high" }]],
+    });
 
     await expect(service.getSystemHealth()).resolves.toEqual({
       overall_status: "warning",
@@ -549,7 +669,9 @@ describe("BackupService", () => {
       acknowledged: false,
       resolved: false,
     };
-    mockSelectResults([[alertRow], [alertRow], [alertRow], [alertRow]]);
+    mockSelectResults({
+      backupAlerts: [[alertRow], [alertRow], [alertRow], [alertRow]],
+    });
 
     await expect(
       service.getRestaurantAlerts("restaurant-1", true),
@@ -765,59 +887,63 @@ describe("BackupService", () => {
       ],
     });
     const { service, storageService, validationService } = createService(d1);
-    mockSelectResults([
-      [
-        {
-          id: "backup-1",
-          restaurantId: "restaurant-1",
-          status: "completed",
-          tablesIncluded: ["orders"],
-          storageProvider: "r2",
-          storagePath: "backup.json",
-          encryptionEnabled: false,
-          checksum: "",
-          completedAt: "2026-06-07T00:01:00.000Z",
-          metadata: {
-            manifest: {
-              row_counts: { orders: 1 },
-              tables: ["orders"],
-              created_at: "2026-06-07T00:01:00.000Z",
+    mockSelectResults({
+      backupRecords: [
+        [
+          {
+            id: "backup-1",
+            restaurantId: "restaurant-1",
+            status: "completed",
+            tablesIncluded: ["orders"],
+            storageProvider: "r2",
+            storagePath: "backup.json",
+            encryptionEnabled: false,
+            checksum: "",
+            completedAt: "2026-06-07T00:01:00.000Z",
+            metadata: {
+              manifest: {
+                row_counts: { orders: 1 },
+                tables: ["orders"],
+                created_at: "2026-06-07T00:01:00.000Z",
+              },
             },
           },
-        },
-      ],
-      [
-        {
-          id: "restore-1",
-          restaurantId: "restaurant-1",
-          backupId: "backup-1",
-          restoreType: "selective",
-          targetTables: ["orders"],
-          overwriteExisting: false,
-          performedBy: "user-1",
-        },
-      ],
-      [
-        {
-          id: "backup-1",
-          restaurantId: "restaurant-1",
-          status: "completed",
-          tablesIncluded: ["orders"],
-          storageProvider: "r2",
-          storagePath: "backup.json",
-          encryptionEnabled: false,
-          checksum: "",
-          completedAt: "2026-06-07T00:01:00.000Z",
-          metadata: {
-            manifest: {
-              row_counts: { orders: 1 },
-              tables: ["orders"],
-              created_at: "2026-06-07T00:01:00.000Z",
+        ],
+        [
+          {
+            id: "backup-1",
+            restaurantId: "restaurant-1",
+            status: "completed",
+            tablesIncluded: ["orders"],
+            storageProvider: "r2",
+            storagePath: "backup.json",
+            encryptionEnabled: false,
+            checksum: "",
+            completedAt: "2026-06-07T00:01:00.000Z",
+            metadata: {
+              manifest: {
+                row_counts: { orders: 1 },
+                tables: ["orders"],
+                created_at: "2026-06-07T00:01:00.000Z",
+              },
             },
           },
-        },
+        ],
       ],
-    ]);
+      restoreOperations: [
+        [
+          {
+            id: "restore-1",
+            restaurantId: "restaurant-1",
+            backupId: "backup-1",
+            restoreType: "selective",
+            targetTables: ["orders"],
+            overwriteExisting: false,
+            performedBy: "user-1",
+          },
+        ],
+      ],
+    });
     storageService.backupExists.mockResolvedValue(true);
     storageService.retrieveBackup.mockResolvedValue(backupData);
 
@@ -922,7 +1048,7 @@ describe("BackupService", () => {
     const mutations = mockMutations();
     const { service, storageService } = createService();
 
-    mockSelectResults([[]]);
+    mockSelectResults({ backupRecords: [[]] });
     await expect(service.executeBackup("missing-backup")).rejects.toThrow(
       "Backup record not found",
     );
@@ -1033,7 +1159,7 @@ describe("BackupService", () => {
       service.listBackups({ restaurant_id: "restaurant-1" } as any),
     ).rejects.toThrow("Failed to list backups: select down");
 
-    mockSelectResults([[]]);
+    mockSelectResults({ backupRecords: [[]] });
     await expect(service.deleteBackup("missing", "user-1")).rejects.toThrow(
       "Failed to delete backup: Backup not found",
     );
@@ -1066,11 +1192,11 @@ describe("BackupService", () => {
       "Failed to get backup alert",
     );
 
-    mockSelectResults([[]]);
+    mockSelectResults({ backupAlerts: [[]] });
     await expect(service.acknowledgeAlert("missing", "user-1")).rejects.toThrow(
       "Failed to acknowledge backup alert: Alert not found",
     );
-    mockSelectResults([[]]);
+    mockSelectResults({ backupAlerts: [[]] });
     await expect(service.resolveAlert("missing", "user-1")).rejects.toThrow(
       "Failed to resolve backup alert: Alert not found",
     );
@@ -1078,23 +1204,25 @@ describe("BackupService", () => {
 
   it("returns critical and default health/metric states from aggregate edge rows", async () => {
     const { service } = createService();
-    mockSelectResults([
-      [
-        {
-          totalRestaurants: 0,
-          totalBackups: 0,
-          runningBackups: 0,
-          failedBackups24h: 11,
-          avgSize: 0,
-          avgDurationMs: 0,
-          avgCompressionRatio: null,
-        },
+    mockSelectResults({
+      backupRecords: [
+        [
+          {
+            totalRestaurants: 0,
+            totalBackups: 0,
+            runningBackups: 0,
+            failedBackups24h: 11,
+            avgSize: 0,
+            avgDurationMs: 0,
+            avgCompressionRatio: null,
+          },
+        ],
+        [{}],
+        [],
       ],
-      [{}],
-      [],
-      [{ severity: "low", total: 3 }],
-      [],
-    ]);
+      backupConfigurations: [[]],
+      backupAlerts: [[{ severity: "low", total: 3 }]],
+    });
 
     await expect(service.getSystemHealth()).resolves.toMatchObject({
       overall_status: "critical",
@@ -1120,20 +1248,22 @@ describe("BackupService", () => {
   it("initiates background restores and logs asynchronous restore failures", async () => {
     const mutations = mockMutations();
     const { service, storageService } = createService();
-    mockSelectResults([
-      [
-        {
-          id: "backup-1",
-          restaurantId: "restaurant-1",
-          status: "completed",
-          tablesIncluded: ["orders"],
-          storageProvider: "r2",
-          storagePath: "backup.json",
-          encryptionEnabled: false,
-          checksum: "",
-        },
+    mockSelectResults({
+      backupRecords: [
+        [
+          {
+            id: "backup-1",
+            restaurantId: "restaurant-1",
+            status: "completed",
+            tablesIncluded: ["orders"],
+            storageProvider: "r2",
+            storagePath: "backup.json",
+            encryptionEnabled: false,
+            checksum: "",
+          },
+        ],
       ],
-    ]);
+    });
     storageService.backupExists.mockResolvedValue(true);
     const executeRestore = vi
       .spyOn(service as any, "executeRestore")
@@ -1182,41 +1312,45 @@ describe("BackupService", () => {
       },
     } as any;
 
-    mockSelectResults([[]]);
+    mockSelectResults({ backupRecords: [[]] });
     await expect(service.restoreFromBackup(request, "user-1")).rejects.toThrow(
       "Failed to initiate restore: Backup not found or access denied",
     );
 
-    mockSelectResults([
-      [
-        {
-          id: "backup-1",
-          restaurantId: "restaurant-1",
-          status: "failed",
-          tablesIncluded: ["orders"],
-          storageProvider: "r2",
-          storagePath: "backup.json",
-          encryptionEnabled: false,
-        },
+    mockSelectResults({
+      backupRecords: [
+        [
+          {
+            id: "backup-1",
+            restaurantId: "restaurant-1",
+            status: "failed",
+            tablesIncluded: ["orders"],
+            storageProvider: "r2",
+            storagePath: "backup.json",
+            encryptionEnabled: false,
+          },
+        ],
       ],
-    ]);
+    });
     await expect(service.restoreFromBackup(request, "user-1")).rejects.toThrow(
       "Failed to initiate restore: Cannot restore from incomplete backup",
     );
 
-    mockSelectResults([
-      [
-        {
-          id: "backup-1",
-          restaurantId: "restaurant-1",
-          status: "completed",
-          tablesIncluded: ["orders"],
-          storageProvider: "r2",
-          storagePath: "backup.json",
-          encryptionEnabled: false,
-        },
+    mockSelectResults({
+      backupRecords: [
+        [
+          {
+            id: "backup-1",
+            restaurantId: "restaurant-1",
+            status: "completed",
+            tablesIncluded: ["orders"],
+            storageProvider: "r2",
+            storagePath: "backup.json",
+            encryptionEnabled: false,
+          },
+        ],
       ],
-    ]);
+    });
     storageService.backupExists.mockResolvedValueOnce(false);
     await expect(service.restoreFromBackup(request, "user-1")).rejects.toThrow(
       "Failed to initiate restore: Backup file not found in storage",
@@ -1227,7 +1361,7 @@ describe("BackupService", () => {
     const mutations = mockMutations();
     const { service, storageService } = createService();
 
-    mockSelectResults([[]]);
+    mockSelectResults({ restoreOperations: [[]] });
     await expect((service as any).executeRestore("missing")).rejects.toThrow(
       "Restore operation not found",
     );
@@ -1241,31 +1375,35 @@ describe("BackupService", () => {
     );
 
     mutations.updated.length = 0;
-    mockSelectResults([
-      [
-        {
-          id: "restore-1",
-          restaurantId: "restaurant-1",
-          backupId: "backup-1",
-          restoreType: "selective",
-          targetTables: ["orders"],
-          overwriteExisting: false,
-          performedBy: "user-1",
-        },
+    mockSelectResults({
+      restoreOperations: [
+        [
+          {
+            id: "restore-1",
+            restaurantId: "restaurant-1",
+            backupId: "backup-1",
+            restoreType: "selective",
+            targetTables: ["orders"],
+            overwriteExisting: false,
+            performedBy: "user-1",
+          },
+        ],
       ],
-      [
-        {
-          id: "backup-1",
-          restaurantId: "restaurant-1",
-          status: "completed",
-          tablesIncluded: ["orders"],
-          storageProvider: "r2",
-          storagePath: "backup.json",
-          encryptionEnabled: false,
-          checksum: "not-the-real-checksum",
-        },
+      backupRecords: [
+        [
+          {
+            id: "backup-1",
+            restaurantId: "restaurant-1",
+            status: "completed",
+            tablesIncluded: ["orders"],
+            storageProvider: "r2",
+            storagePath: "backup.json",
+            encryptionEnabled: false,
+            checksum: "not-the-real-checksum",
+          },
+        ],
       ],
-    ]);
+    });
     storageService.retrieveBackup.mockResolvedValue('{"orders":[]}');
 
     await expect((service as any).executeRestore("restore-1")).rejects.toThrow(
@@ -1359,20 +1497,22 @@ describe("BackupService", () => {
       backupType: "full",
     });
 
-    mockSelectResults([
-      [
-        {
-          id: "backup-1",
-          restaurantId: "restaurant-1",
-          backupType: "full",
-          fileSize: 10,
-          tablesIncluded: ["orders"],
-          storageProvider: "r2",
-          startedAt: "2026-06-07T00:00:00.000Z",
-        },
+    mockSelectResults({
+      backupRecords: [
+        [
+          {
+            id: "backup-1",
+            restaurantId: "restaurant-1",
+            backupType: "full",
+            fileSize: 10,
+            tablesIncluded: ["orders"],
+            storageProvider: "r2",
+            startedAt: "2026-06-07T00:00:00.000Z",
+          },
+        ],
+        [{}],
       ],
-      [{}],
-    ]);
+    });
     await expect(
       service.listBackups({
         restaurant_id: "restaurant-1",
@@ -1384,21 +1524,23 @@ describe("BackupService", () => {
       backups: [{ id: "backup-1", backup_type: "full" }],
     });
 
-    mockSelectResults([
-      [
-        {
-          totalRestaurants: 2,
-          totalBackups: 10,
-          runningBackups: 21,
-          failedBackups24h: 6,
-          avgDurationMs: 120000,
-          avgCompressionRatio: "2.5",
-        },
+    mockSelectResults({
+      backupRecords: [
+        [
+          {
+            totalRestaurants: 2,
+            totalBackups: 10,
+            runningBackups: 21,
+            failedBackups24h: 6,
+            avgDurationMs: 120000,
+            avgCompressionRatio: "2.5",
+          },
+        ],
+        [{ totalBytes: 2048 }],
       ],
-      [{ totalBytes: 2048 }],
-      [{ total: 3 }],
-      [{ severity: "medium" }],
-    ]);
+      backupConfigurations: [[{ total: 3 }]],
+      backupAlerts: [[{ severity: "medium" }]],
+    });
     await expect(service.getSystemHealth()).resolves.toMatchObject({
       overall_status: "warning",
       total_restaurants: 2,
@@ -1460,7 +1602,7 @@ describe("BackupService", () => {
     });
     const { service, storageService } = createService(d1);
 
-    mockSelectResults([[]]);
+    mockSelectResults({ backupRecords: [[]] });
     await expect(service.executeBackup("missing")).rejects.toThrow(
       "Backup record not found",
     );
@@ -1537,18 +1679,20 @@ describe("BackupService", () => {
       checksum: undefined,
     });
 
-    mockSelectResults([
-      [
-        {
-          restaurant_id: "restaurant-1",
-          backup_id: "backup-1",
-          restore_type: "full",
-          target_tables: null,
-          overwrite_existing: 0,
-          performed_by: "user-1",
-        },
+    mockSelectResults({
+      restoreOperations: [
+        [
+          {
+            restaurant_id: "restaurant-1",
+            backup_id: "backup-1",
+            restore_type: "full",
+            target_tables: null,
+            overwrite_existing: 0,
+            performed_by: "user-1",
+          },
+        ],
       ],
-    ]);
+    });
     await expect(
       (service as any).getRestoreOperation("restore-1"),
     ).resolves.toMatchObject({
@@ -1693,32 +1837,36 @@ describe("BackupService compression/encryption wiring (#20)", () => {
       "secret-key",
     );
 
-    mockSelectResults([
-      [
-        {
-          id: "restore-1",
-          restaurantId: "restaurant-1",
-          backupId: "backup-enc",
-          restoreType: "selective",
-          targetTables: ["orders"],
-          overwriteExisting: false,
-          performedBy: "user-1",
-        },
+    mockSelectResults({
+      restoreOperations: [
+        [
+          {
+            id: "restore-1",
+            restaurantId: "restaurant-1",
+            backupId: "backup-enc",
+            restoreType: "selective",
+            targetTables: ["orders"],
+            overwriteExisting: false,
+            performedBy: "user-1",
+          },
+        ],
       ],
-      [
-        {
-          id: "backup-enc",
-          restaurantId: "restaurant-1",
-          status: "completed",
-          tablesIncluded: ["orders"],
-          storageProvider: "r2",
-          storagePath: "backup.json",
-          encryptionEnabled: true,
-          checksum: "",
-          metadata: { storage: { compressed: false, encrypted: true } },
-        },
+      backupRecords: [
+        [
+          {
+            id: "backup-enc",
+            restaurantId: "restaurant-1",
+            status: "completed",
+            tablesIncluded: ["orders"],
+            storageProvider: "r2",
+            storagePath: "backup.json",
+            encryptionEnabled: true,
+            checksum: "",
+            metadata: { storage: { compressed: false, encrypted: true } },
+          },
+        ],
       ],
-    ]);
+    });
     storageService.retrieveBackup.mockResolvedValue("ENCRYPTED-BLOB");
     // Decrypted payload with no matching tables -> restore completes trivially.
     storageService.processDataFromStorage.mockResolvedValueOnce("{}");
@@ -1742,32 +1890,36 @@ describe("BackupService compression/encryption wiring (#20)", () => {
     const mutations = mockMutations();
     const { service, storageService } = createService();
 
-    mockSelectResults([
-      [
-        {
-          id: "restore-2",
-          restaurantId: "restaurant-1",
-          backupId: "backup-enc",
-          restoreType: "selective",
-          targetTables: ["orders"],
-          overwriteExisting: false,
-          performedBy: "user-1",
-        },
+    mockSelectResults({
+      restoreOperations: [
+        [
+          {
+            id: "restore-2",
+            restaurantId: "restaurant-1",
+            backupId: "backup-enc",
+            restoreType: "selective",
+            targetTables: ["orders"],
+            overwriteExisting: false,
+            performedBy: "user-1",
+          },
+        ],
       ],
-      [
-        {
-          id: "backup-enc",
-          restaurantId: "restaurant-1",
-          status: "completed",
-          tablesIncluded: ["orders"],
-          storageProvider: "r2",
-          storagePath: "backup.json",
-          encryptionEnabled: true,
-          checksum: "",
-          metadata: { storage: { compressed: false, encrypted: true } },
-        },
+      backupRecords: [
+        [
+          {
+            id: "backup-enc",
+            restaurantId: "restaurant-1",
+            status: "completed",
+            tablesIncluded: ["orders"],
+            storageProvider: "r2",
+            storagePath: "backup.json",
+            encryptionEnabled: true,
+            checksum: "",
+            metadata: { storage: { compressed: false, encrypted: true } },
+          },
+        ],
       ],
-    ]);
+    });
     storageService.retrieveBackup.mockResolvedValue("ENCRYPTED-BLOB");
 
     await expect(
