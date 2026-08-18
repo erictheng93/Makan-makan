@@ -1867,6 +1867,25 @@ const marketServiceGapAreaDistrict = computed(() =>
 );
 
 // Shop QR 狀態
+interface ShopQrSettings {
+  displayName: string;
+  instructions: string;
+}
+
+interface ShopQrCodeInfo {
+  enabled: boolean;
+  qrCode: string | null;
+  qrUrl: string | null;
+  qrCodeImageUrl: string | null;
+  version: number;
+  settings: Partial<ShopQrSettings>;
+}
+
+type ShopQrCodeMutation = Pick<
+  ShopQrCodeInfo,
+  "qrCode" | "qrUrl" | "qrCodeImageUrl" | "version"
+>;
+
 const shopQR = reactive({
   enabled: false,
   qrCode: "",
@@ -2426,9 +2445,11 @@ const loadShopQRInfo = async () => {
   try {
     const restaurantId = authStore.restaurantId;
     if (!restaurantId) return;
-    const response = await api.get<any>(`/restaurants/${restaurantId}/qr/shop`);
+    const response = await api.get<ShopQrCodeInfo>(
+      `/restaurants/${restaurantId}/qr/shop`,
+    );
 
-    const data = response.data?.data ?? response.data;
+    const data = response.data.data;
     if (data) {
       shopQR.enabled = data.enabled || false;
       shopQR.qrCode = data.qrCode || "";
@@ -2499,16 +2520,16 @@ const generateShopQR = async () => {
     isGeneratingQR.value = true;
     const restaurantId = authStore.restaurantId;
     if (!restaurantId) return;
-    const response = await api.post<any>(
+    const response = await api.post<ShopQrCodeMutation>(
       `/restaurants/${restaurantId}/qr/shop/generate`,
     );
 
-    const data = response.data?.data ?? response.data;
+    const data = response.data.data;
     if (data) {
-      shopQR.qrCode = data.qrCode;
+      shopQR.qrCode = data.qrCode ?? "";
       shopQR.qrUrl = data.qrUrl || "";
-      shopQR.qrCodeImageUrl = data.qrCodeImageUrl;
-      shopQR.version = data.version;
+      shopQR.qrCodeImageUrl = data.qrCodeImageUrl ?? "";
+      shopQR.version = data.version ?? 1;
     }
     toast.success(t("settings.alerts.qrGenerated"));
   } catch (error) {
@@ -2532,16 +2553,16 @@ const regenerateShopQR = async () => {
     isRegeneratingQR.value = true;
     const restaurantId = authStore.restaurantId;
     if (!restaurantId) return;
-    const response = await api.post<any>(
+    const response = await api.post<ShopQrCodeMutation>(
       `/restaurants/${restaurantId}/qr/shop/regenerate`,
     );
 
-    const data = response.data?.data ?? response.data;
+    const data = response.data.data;
     if (data) {
-      shopQR.qrCode = data.qrCode;
+      shopQR.qrCode = data.qrCode ?? "";
       shopQR.qrUrl = data.qrUrl || "";
-      shopQR.qrCodeImageUrl = data.qrCodeImageUrl;
-      shopQR.version = data.version;
+      shopQR.qrCodeImageUrl = data.qrCodeImageUrl ?? "";
+      shopQR.version = data.version ?? 1;
       toast.success(
         t("settings.alerts.qrRegenerated", { version: data.version }),
       );
