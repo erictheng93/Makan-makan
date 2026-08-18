@@ -11,6 +11,15 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
 
+import {
+  categories,
+  dishSearchIndex,
+  markets,
+  menuItems,
+  restaurantMarketMemberships,
+  restaurantServiceItems,
+  restaurants,
+} from "@makanmasak/database";
 import { createDiscoveryRead, DiscoveryService } from "./DiscoveryService";
 
 function createKV(initial: Record<string, unknown> = {}) {
@@ -49,9 +58,65 @@ function createService(initialKV: Record<string, unknown> = {}) {
   return { service, kv, values };
 }
 
-function createQuery(result: unknown) {
+/**
+ * Select fixtures are keyed by table, not by call order: `from(table)` decides
+ * which queue a query draws from, so adding a query against one table can no
+ * longer shift another table's results out from under it.
+ *
+ * Two things still need care when the code under test grows a new query:
+ *
+ * - Within a single table the queue is positional. The Nth read of a table
+ *   takes that table's Nth fixture, so a new query means inserting a fixture
+ *   at the matching index rather than appending one at the end.
+ * - A table has to be listed in `fixtureTables` before it can be declared. An
+ *   unregistered table matches no queue, so every read of it throws.
+ *
+ * Missing and exhausted fixtures both throw and name the table. Nothing falls
+ * back to `[]`; a silent empty result is what made the previous positional
+ * queue (`results.shift() ?? []`) so hard to trace back to its cause.
+ *
+ * `categories` is imported but deliberately left out of `fixtureTables`:
+ * `DiscoveryService` only ever `leftJoin`s it (menu lookups, reindex) and
+ * never passes it to `from()`, so it has no queue of its own — a real table
+ * this service touches, but one whose routing is exercised by the
+ * unregistered-table branch of the regression test below.
+ *
+ * `DiscoveryService` methods have no try/catch, so a harness throw from a
+ * missing/exhausted fixture propagates verbatim out of the `await` — no
+ * wrapped-message caveat needed here.
+ */
+type SelectFixtureName =
+  | "dishSearchIndex"
+  | "restaurants"
+  | "restaurantServiceItems"
+  | "menuItems"
+  | "restaurantMarketMemberships"
+  | "markets";
+type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
+
+const fixtureTables: Record<SelectFixtureName, unknown> = {
+  dishSearchIndex,
+  restaurants,
+  restaurantServiceItems,
+  menuItems,
+  restaurantMarketMemberships,
+  markets,
+};
+const fixtureTableNames = new Map<unknown, SelectFixtureName>(
+  Object.entries(fixtureTables).map(([name, table]) => [
+    table,
+    name as SelectFixtureName,
+  ]),
+);
+const unselectedTable = Symbol("unselectedTable");
+
+function createQuery(nextResultFor: (table: unknown) => unknown) {
+  let selectedTable: unknown = unselectedTable;
   const builder = {
-    from: vi.fn(() => builder),
+    from: vi.fn((table: unknown) => {
+      selectedTable = table;
+      return builder;
+    }),
     innerJoin: vi.fn(() => builder),
     leftJoin: vi.fn(() => builder),
     where: vi.fn(() => builder),
@@ -62,13 +127,39 @@ function createQuery(result: unknown) {
     then: (
       resolve: (value: unknown) => void,
       reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
+    ) => {
+      if (selectedTable === unselectedTable) {
+        return Promise.reject(
+          new Error("Select fixture query never called from(table)"),
+        ).then(resolve, reject);
+      }
+      return Promise.resolve(nextResultFor(selectedTable)).then(
+        resolve,
+        reject,
+      );
+    },
   };
   return builder;
 }
 
-function mockSelectResults(results: unknown[]) {
-  mocks.db.select.mockImplementation(() => createQuery(results.shift() ?? []));
+function mockSelectResults(fixtures: SelectFixtures) {
+  const selectResults = new Map<unknown, unknown[][]>(
+    Object.entries(fixtures).map(([name, results]) => [
+      fixtureTables[name as SelectFixtureName],
+      [...(results ?? [])],
+    ]),
+  );
+  const nextResultFor = (table: unknown) => {
+    const name = fixtureTableNames.get(table) ?? "<unknown table>";
+    const queue = selectResults.get(table);
+    if (!queue) throw new Error(`Missing select fixture for ${name}`);
+    const result = queue.shift();
+    if (result === undefined) {
+      throw new Error(`No select fixtures remaining for ${name}`);
+    }
+    return result;
+  };
+  mocks.db.select.mockImplementation(() => createQuery(nextResultFor));
 }
 
 function createD1() {
@@ -181,7 +272,10 @@ describe("DiscoveryService", () => {
         total: 0,
       },
     });
-    mockSelectResults([[{ count: 2 }], [{ count: 3 }]]);
+    mockSelectResults({
+      dishSearchIndex: [[{ count: 2 }]],
+      restaurantServiceItems: [[{ count: 3 }]],
+    });
 
     await expect(
       service.searchDishes({ marketId: "market-1" }),
@@ -546,11 +640,13 @@ describe("DiscoveryService", () => {
       marketVendorMarketSlug: null,
       marketVendorMarketName: null,
     };
-    mockSelectResults([
-      [prefixRow],
-      [{ count: 1 }],
-      [{ ...prefixRow, menuItemId: 2, dishName: "Curry Laksa" }],
-    ]);
+    mockSelectResults({
+      dishSearchIndex: [
+        [prefixRow],
+        [{ count: 1 }],
+        [{ ...prefixRow, menuItemId: 2, dishName: "Curry Laksa" }],
+      ],
+    });
 
     await expect(
       service.searchDishes({ q: "Laksa", page: 1, limit: 10 }),
@@ -595,35 +691,37 @@ describe("DiscoveryService", () => {
       undefined,
       semanticSearch as any,
     );
-    mockSelectResults([
-      [
-        {
-          menuItemId: 4,
-          dishName: "Pickup Tea",
-          priceCents: 4000,
-          catalogType: "product",
-          categoryName: "Drinks",
-          restaurantId: "restaurant-4",
-          restaurantName: "Tea Stand",
-          district: "East",
-          businessHours: null,
-          supportsTakeaway: true,
-          supportsDelivery: false,
-          tags: null,
-          latitude: null,
-          longitude: null,
-          marketVendorMarketId: "market-1",
-          marketVendorStallNumber: null,
-          marketVendorLocationLabel: null,
-          marketVendorIsPrimary: false,
-          marketVendorMarketSlug: null,
-          marketVendorMarketName: null,
-        },
+    mockSelectResults({
+      dishSearchIndex: [
+        [
+          {
+            menuItemId: 4,
+            dishName: "Pickup Tea",
+            priceCents: 4000,
+            catalogType: "product",
+            categoryName: "Drinks",
+            restaurantId: "restaurant-4",
+            restaurantName: "Tea Stand",
+            district: "East",
+            businessHours: null,
+            supportsTakeaway: true,
+            supportsDelivery: false,
+            tags: null,
+            latitude: null,
+            longitude: null,
+            marketVendorMarketId: "market-1",
+            marketVendorStallNumber: null,
+            marketVendorLocationLabel: null,
+            marketVendorIsPrimary: false,
+            marketVendorMarketSlug: null,
+            marketVendorMarketName: null,
+          },
+        ],
+        [{ count: Number.NaN }],
+        [{ count: undefined }],
       ],
-      [{ count: Number.NaN }],
-      [{ count: undefined }],
-      [],
-    ]);
+      restaurantServiceItems: [[]],
+    });
 
     await expect(
       service.searchDishes({
@@ -681,7 +779,7 @@ describe("DiscoveryService", () => {
     };
     const { service, kv } = createService({ "search:query:version": "14" });
     (service as any).semanticSearch = semanticSearch;
-    mockSelectResults([[], [{ count: 0 }]]);
+    mockSelectResults({ dishSearchIndex: [[], [{ count: 0 }]] });
 
     await expect(
       service.searchDishes({ q: "Laksa", page: 1, limit: 10 }),
@@ -713,52 +811,55 @@ describe("DiscoveryService", () => {
       latitude: null,
       longitude: null,
     };
-    mockSelectResults([
-      [{ categoryName: "Noodles" }, { categoryName: "" }],
-      [restaurantRow],
-      [{ count: 1 }],
-      [
-        {
-          restaurantId: "restaurant-1",
-          marketVendorMarketId: "market-1",
-          marketVendorStallNumber: "A1",
-          marketVendorLocationLabel: "East wing",
-          marketVendorIsPrimary: true,
-          marketVendorMarketSlug: "night",
-          marketVendorMarketName: "Night Market",
-        },
+    mockSelectResults({
+      dishSearchIndex: [[{ categoryName: "Noodles" }, { categoryName: "" }]],
+      restaurants: [[restaurantRow], [{ count: 1 }]],
+      restaurantMarketMemberships: [
+        [
+          {
+            restaurantId: "restaurant-1",
+            marketVendorMarketId: "market-1",
+            marketVendorStallNumber: "A1",
+            marketVendorLocationLabel: "East wing",
+            marketVendorIsPrimary: true,
+            marketVendorMarketSlug: "night",
+            marketVendorMarketName: "Night Market",
+          },
+        ],
       ],
-      [{ restaurantId: "restaurant-1", count: 3 }],
-      [{ restaurantId: "restaurant-1", count: 2 }],
-      [
-        {
-          serviceItemId: 10,
-          name: "Table booking",
-          description: "Reserve seats",
-          serviceType: "booking",
-          priceCents: 0,
-          priceLabel: "Free",
-          durationMinutes: 30,
-          requiresBooking: true,
-          bookingUrl: "/book",
-          tags: ["reservation"],
-          restaurantId: "restaurant-1",
-          restaurantName: "Makan",
-          district: "Central",
-          city: "Taipei",
-          latitude: null,
-          longitude: null,
-          businessHours: null,
-          marketVendorMarketId: null,
-          marketVendorStallNumber: null,
-          marketVendorLocationLabel: null,
-          marketVendorIsPrimary: null,
-          marketVendorMarketSlug: null,
-          marketVendorMarketName: null,
-        },
+      menuItems: [[{ restaurantId: "restaurant-1", count: 3 }]],
+      restaurantServiceItems: [
+        [{ restaurantId: "restaurant-1", count: 2 }],
+        [
+          {
+            serviceItemId: 10,
+            name: "Table booking",
+            description: "Reserve seats",
+            serviceType: "booking",
+            priceCents: 0,
+            priceLabel: "Free",
+            durationMinutes: 30,
+            requiresBooking: true,
+            bookingUrl: "/book",
+            tags: ["reservation"],
+            restaurantId: "restaurant-1",
+            restaurantName: "Makan",
+            district: "Central",
+            city: "Taipei",
+            latitude: null,
+            longitude: null,
+            businessHours: null,
+            marketVendorMarketId: null,
+            marketVendorStallNumber: null,
+            marketVendorLocationLabel: null,
+            marketVendorIsPrimary: null,
+            marketVendorMarketSlug: null,
+            marketVendorMarketName: null,
+          },
+        ],
+        [{ count: 1 }],
       ],
-      [{ count: 1 }],
-    ]);
+    });
 
     await expect(
       service.listDishCategories({ city: "Taipei" }),
@@ -807,10 +908,10 @@ describe("DiscoveryService", () => {
 
   it("applies category filters and resolves market slug before querying categories", async () => {
     const { service } = createService({ "search:query:version": "8" });
-    mockSelectResults([
-      [{ id: "market-1" }],
-      [{ categoryName: "Noodles" }, { categoryName: null }],
-    ]);
+    mockSelectResults({
+      markets: [[{ id: "market-1" }]],
+      dishSearchIndex: [[{ categoryName: "Noodles" }, { categoryName: null }]],
+    });
 
     await expect(
       service.listDishCategories({
@@ -849,27 +950,29 @@ describe("DiscoveryService", () => {
       marketVendorMarketSlug: null,
       marketVendorMarketName: null,
     };
-    mockSelectResults([
-      [
-        nearOpen,
-        {
-          ...nearOpen,
-          menuItemId: 2,
-          restaurantId: "restaurant-2",
-          restaurantName: "Closed Near",
-          businessHours: closedAllWeek(),
-        },
-        {
-          ...nearOpen,
-          menuItemId: 3,
-          restaurantId: "restaurant-3",
-          restaurantName: "Missing Geo",
-          latitude: null,
-          longitude: null,
-        },
+    mockSelectResults({
+      dishSearchIndex: [
+        [
+          nearOpen,
+          {
+            ...nearOpen,
+            menuItemId: 2,
+            restaurantId: "restaurant-2",
+            restaurantName: "Closed Near",
+            businessHours: closedAllWeek(),
+          },
+          {
+            ...nearOpen,
+            menuItemId: 3,
+            restaurantId: "restaurant-3",
+            restaurantName: "Missing Geo",
+            latitude: null,
+            longitude: null,
+          },
+        ],
+        [{ count: 3 }],
       ],
-      [{ count: 3 }],
-    ]);
+    });
 
     await expect(
       service.searchDishes({
@@ -911,28 +1014,30 @@ describe("DiscoveryService", () => {
       latitude: 25,
       longitude: 121,
     };
-    mockSelectResults([
-      [
-        row,
-        {
-          ...row,
-          id: "restaurant-2",
-          name: "Closed Near",
-          businessHours: closedAllWeek(),
-        },
-        {
-          ...row,
-          id: "restaurant-3",
-          name: "Missing Geo",
-          latitude: null,
-          longitude: null,
-        },
+    mockSelectResults({
+      restaurants: [
+        [
+          row,
+          {
+            ...row,
+            id: "restaurant-2",
+            name: "Closed Near",
+            businessHours: closedAllWeek(),
+          },
+          {
+            ...row,
+            id: "restaurant-3",
+            name: "Missing Geo",
+            latitude: null,
+            longitude: null,
+          },
+        ],
+        [{ count: 3 }],
       ],
-      [{ count: 3 }],
-      [],
-      [],
-      [],
-    ]);
+      restaurantMarketMemberships: [[]],
+      menuItems: [[]],
+      restaurantServiceItems: [[]],
+    });
 
     await expect(
       service.browseRestaurants({
@@ -983,29 +1088,31 @@ describe("DiscoveryService", () => {
       marketVendorMarketSlug: "night",
       marketVendorMarketName: "Night Market",
     };
-    mockSelectResults([
-      [
-        serviceRow,
-        {
-          ...serviceRow,
-          serviceItemId: 11,
-          restaurantId: "restaurant-2",
-          restaurantName: "Closed Near",
-          businessHours: closedAllWeek(),
-        },
-        {
-          ...serviceRow,
-          serviceItemId: 12,
-          restaurantId: "restaurant-3",
-          restaurantName: "Missing Geo",
-          latitude: null,
-          longitude: null,
-        },
+    mockSelectResults({
+      restaurantServiceItems: [
+        [
+          serviceRow,
+          {
+            ...serviceRow,
+            serviceItemId: 11,
+            restaurantId: "restaurant-2",
+            restaurantName: "Closed Near",
+            businessHours: closedAllWeek(),
+          },
+          {
+            ...serviceRow,
+            serviceItemId: 12,
+            restaurantId: "restaurant-3",
+            restaurantName: "Missing Geo",
+            latitude: null,
+            longitude: null,
+          },
+        ],
+        [{ count: 3 }],
+        [{ count: 1 }],
       ],
-      [{ count: 3 }],
-      [{ count: 1 }],
-      [{ count: 1 }],
-    ]);
+      dishSearchIndex: [[{ count: 1 }]],
+    });
 
     await expect(
       service.searchServices({
@@ -1044,15 +1151,17 @@ describe("DiscoveryService", () => {
 
   it("counts only currently open service types and sorts ties by name", async () => {
     const { service } = createService();
-    mockSelectResults([
-      [
-        { serviceType: "delivery", businessHours: openAllWeek() },
-        { serviceType: "booking", businessHours: openAllWeek() },
-        { serviceType: "booking", businessHours: openAllWeek() },
-        { serviceType: "activity", businessHours: openAllWeek() },
-        { serviceType: "tour", businessHours: closedAllWeek() },
+    mockSelectResults({
+      restaurantServiceItems: [
+        [
+          { serviceType: "delivery", businessHours: openAllWeek() },
+          { serviceType: "booking", businessHours: openAllWeek() },
+          { serviceType: "booking", businessHours: openAllWeek() },
+          { serviceType: "activity", businessHours: openAllWeek() },
+          { serviceType: "tour", businessHours: closedAllWeek() },
+        ],
       ],
-    ]);
+    });
 
     await expect(
       service.listServiceTypes({
@@ -1073,29 +1182,31 @@ describe("DiscoveryService", () => {
 
   it("returns negative takeaway eligibility reasons", async () => {
     const { service } = createService();
-    mockSelectResults([
-      [],
-      [
-        {
-          isActive: true,
-          deletedAt: null,
-          supportsTakeaway: false,
-          enableShopMode: true,
-          shopQrCode: "SHOPQR",
-          businessHours: openAllWeek(),
-        },
+    mockSelectResults({
+      restaurants: [
+        [],
+        [
+          {
+            isActive: true,
+            deletedAt: null,
+            supportsTakeaway: false,
+            enableShopMode: true,
+            shopQrCode: "SHOPQR",
+            businessHours: openAllWeek(),
+          },
+        ],
+        [
+          {
+            isActive: true,
+            deletedAt: null,
+            supportsTakeaway: true,
+            enableShopMode: true,
+            shopQrCode: "SHOPQR",
+            businessHours: closedAllWeek(),
+          },
+        ],
       ],
-      [
-        {
-          isActive: true,
-          deletedAt: null,
-          supportsTakeaway: true,
-          enableShopMode: true,
-          shopQrCode: "SHOPQR",
-          businessHours: closedAllWeek(),
-        },
-      ],
-    ]);
+    });
 
     await expect(
       service.getTakeawayEligibility("missing-restaurant"),
@@ -1111,33 +1222,33 @@ describe("DiscoveryService", () => {
 
   it("handles missing market slugs and duplicate restaurant market vendors", async () => {
     const { service } = createService({ "search:query:version": "30" });
-    mockSelectResults([
-      [],
-      [],
-      [{ count: 0 }],
-      [{ count: 0 }],
-      [{ count: 0 }],
-      [
-        {
-          restaurantId: "restaurant-1",
-          marketVendorMarketId: "market-1",
-          marketVendorStallNumber: "A1",
-          marketVendorLocationLabel: "East",
-          marketVendorIsPrimary: true,
-          marketVendorMarketSlug: "night",
-          marketVendorMarketName: "Night Market",
-        },
-        {
-          restaurantId: "restaurant-1",
-          marketVendorMarketId: "market-2",
-          marketVendorStallNumber: "B2",
-          marketVendorLocationLabel: "West",
-          marketVendorIsPrimary: false,
-          marketVendorMarketSlug: "day",
-          marketVendorMarketName: "Day Market",
-        },
+    mockSelectResults({
+      markets: [[]],
+      restaurantServiceItems: [[], [{ count: 0 }], [{ count: 0 }]],
+      dishSearchIndex: [[{ count: 0 }]],
+      restaurantMarketMemberships: [
+        [
+          {
+            restaurantId: "restaurant-1",
+            marketVendorMarketId: "market-1",
+            marketVendorStallNumber: "A1",
+            marketVendorLocationLabel: "East",
+            marketVendorIsPrimary: true,
+            marketVendorMarketSlug: "night",
+            marketVendorMarketName: "Night Market",
+          },
+          {
+            restaurantId: "restaurant-1",
+            marketVendorMarketId: "market-2",
+            marketVendorStallNumber: "B2",
+            marketVendorLocationLabel: "West",
+            marketVendorIsPrimary: false,
+            marketVendorMarketSlug: "day",
+            marketVendorMarketName: "Day Market",
+          },
+        ],
       ],
-    ]);
+    });
 
     await expect(
       service.searchServices({ marketSlug: "missing" }),
@@ -1181,86 +1292,96 @@ describe("DiscoveryService", () => {
       tags: [],
       orderCount: 20,
     };
-    mockSelectResults([
-      [
-        { serviceType: "booking", count: 3 },
-        { serviceType: "delivery", count: 1 },
-      ],
-      [
-        dishRow,
-        {
-          ...dishRow,
-          menuItemId: 2,
-          dishName: "Mystery",
-          price: null,
-          priceCents: null,
-          tags: null,
-        },
-      ],
-      [],
-      [{ count: 0 }],
-      [
-        {
-          id: 1,
-          name: "Laksa",
-          description: "Soup",
-          catalogType: "menu_item",
-          price: 9,
-          is_available: true,
-          image_url: null,
-          category_name: "Noodles",
-        },
-      ],
-      [
-        {
-          id: 10,
-          restaurantId: "restaurant-1",
-          name: "Booking",
-          description: "Reserve",
-          serviceType: "booking",
-          priceCents: 0,
-          priceLabel: "Free",
-          durationMinutes: 30,
-          requiresBooking: true,
-          bookingUrl: "/book",
-          availableHours: null,
-          tags: null,
-          keywords: ["reserve"],
-          sortOrder: 1,
-        },
-      ],
-      [
-        {
-          isActive: true,
-          deletedAt: null,
-          supportsTakeaway: true,
-          enableShopMode: true,
-          shopQrCode: "SHOPQR",
-          businessHours: {
-            sunday: { open: "00:00", close: "23:59", closed: false },
-            monday: { open: "00:00", close: "23:59", closed: false },
-            tuesday: { open: "00:00", close: "23:59", closed: false },
-            wednesday: { open: "00:00", close: "23:59", closed: false },
-            thursday: { open: "00:00", close: "23:59", closed: false },
-            friday: { open: "00:00", close: "23:59", closed: false },
-            saturday: { open: "00:00", close: "23:59", closed: false },
+    mockSelectResults({
+      restaurantServiceItems: [
+        [
+          { serviceType: "booking", count: 3 },
+          { serviceType: "delivery", count: 1 },
+        ],
+        [
+          {
+            id: 10,
+            restaurantId: "restaurant-1",
+            name: "Booking",
+            description: "Reserve",
+            serviceType: "booking",
+            priceCents: 0,
+            priceLabel: "Free",
+            durationMinutes: 30,
+            requiresBooking: true,
+            bookingUrl: "/book",
+            availableHours: null,
+            tags: null,
+            keywords: ["reserve"],
+            sortOrder: 1,
           },
-        },
+        ],
       ],
-      [
-        {
-          marketId: "market-1",
-          stallNumber: "A1",
-          locationLabel: "East",
-          isPrimary: true,
-          marketSlug: "night",
-          marketName: "Night Market",
-          marketType: "night",
-          city: "Taipei",
-          district: "Central",
-        },
+      dishSearchIndex: [
+        [
+          dishRow,
+          {
+            ...dishRow,
+            menuItemId: 2,
+            dishName: "Mystery",
+            price: null,
+            priceCents: null,
+            tags: null,
+          },
+        ],
       ],
-    ]);
+      restaurants: [
+        [],
+        [{ count: 0 }],
+        [
+          {
+            isActive: true,
+            deletedAt: null,
+            supportsTakeaway: true,
+            enableShopMode: true,
+            shopQrCode: "SHOPQR",
+            businessHours: {
+              sunday: { open: "00:00", close: "23:59", closed: false },
+              monday: { open: "00:00", close: "23:59", closed: false },
+              tuesday: { open: "00:00", close: "23:59", closed: false },
+              wednesday: { open: "00:00", close: "23:59", closed: false },
+              thursday: { open: "00:00", close: "23:59", closed: false },
+              friday: { open: "00:00", close: "23:59", closed: false },
+              saturday: { open: "00:00", close: "23:59", closed: false },
+            },
+          },
+        ],
+      ],
+      menuItems: [
+        [
+          {
+            id: 1,
+            name: "Laksa",
+            description: "Soup",
+            catalogType: "menu_item",
+            price: 9,
+            is_available: true,
+            image_url: null,
+            category_name: "Noodles",
+          },
+        ],
+      ],
+      restaurantMarketMemberships: [
+        [
+          {
+            marketId: "market-1",
+            stallNumber: "A1",
+            locationLabel: "East",
+            isPrimary: true,
+            marketSlug: "night",
+            marketName: "Night Market",
+            marketType: "night",
+            city: "Taipei",
+            district: "Central",
+          },
+        ],
+      ],
+    });
 
     await expect(service.listServiceTypes({ city: "Taipei" })).resolves.toEqual(
       {
@@ -1322,89 +1443,93 @@ describe("DiscoveryService", () => {
       undefined,
       semanticSearch as any,
     );
-    mockSelectResults([
-      [
-        {
-          menuItemId: 1,
-          name: "Laksa",
-          priceCents: 900,
-          catalogType: null,
-          isAvailable: true,
-          tags: ["spicy"],
-          keywords: ["noodle"],
-          deletedAtMs: null,
-          categoryName: "Noodles",
-          categoryActive: true,
-          categoryVisible: true,
-          categoryDeleted: null,
-          restaurantId: "restaurant-1",
-          district: "Central",
-          restaurantType: "malaysian",
-          supportsTakeaway: true,
-          supportsDelivery: false,
-          restaurantDeleted: null,
-          latitude: 25,
-          longitude: 121,
-          marketIds: '["market-1"]',
-          primaryMarketId: "market-1",
-        },
-        {
-          menuItemId: 2,
-          name: "Hidden Tea",
-          priceCents: 500,
-          catalogType: "product",
-          isAvailable: true,
-          tags: null,
-          keywords: null,
-          deletedAtMs: 123,
-          categoryName: null,
-          categoryActive: true,
-          categoryVisible: true,
-          categoryDeleted: null,
-          restaurantId: "restaurant-2",
-          district: "East",
-          restaurantType: "tea",
-          supportsTakeaway: false,
-          supportsDelivery: true,
-          restaurantDeleted: null,
-          latitude: null,
-          longitude: null,
-          marketIds: null,
-          primaryMarketId: null,
-        },
+    mockSelectResults({
+      menuItems: [
+        [
+          {
+            menuItemId: 1,
+            name: "Laksa",
+            priceCents: 900,
+            catalogType: null,
+            isAvailable: true,
+            tags: ["spicy"],
+            keywords: ["noodle"],
+            deletedAtMs: null,
+            categoryName: "Noodles",
+            categoryActive: true,
+            categoryVisible: true,
+            categoryDeleted: null,
+            restaurantId: "restaurant-1",
+            district: "Central",
+            restaurantType: "malaysian",
+            supportsTakeaway: true,
+            supportsDelivery: false,
+            restaurantDeleted: null,
+            latitude: 25,
+            longitude: 121,
+            marketIds: '["market-1"]',
+            primaryMarketId: "market-1",
+          },
+          {
+            menuItemId: 2,
+            name: "Hidden Tea",
+            priceCents: 500,
+            catalogType: "product",
+            isAvailable: true,
+            tags: null,
+            keywords: null,
+            deletedAtMs: 123,
+            categoryName: null,
+            categoryActive: true,
+            categoryVisible: true,
+            categoryDeleted: null,
+            restaurantId: "restaurant-2",
+            district: "East",
+            restaurantType: "tea",
+            supportsTakeaway: false,
+            supportsDelivery: true,
+            restaurantDeleted: null,
+            latitude: null,
+            longitude: null,
+            marketIds: null,
+            primaryMarketId: null,
+          },
+        ],
       ],
-      [
-        {
-          menuItemId: 1,
-          restaurantId: "restaurant-1",
-          dishName: "Laksa",
-          categoryName: "Noodles",
-          price: 9,
-          priceCents: 900,
-          catalogType: "menu_item",
-          tags: ["spicy"],
-          primaryMarketId: "market-1",
-        },
-        {
-          menuItemId: 2,
-          restaurantId: "restaurant-2",
-          dishName: "Hidden Tea",
-          categoryName: null,
-          price: null,
-          priceCents: null,
-          catalogType: null,
-          tags: null,
-          primaryMarketId: null,
-        },
+      dishSearchIndex: [
+        [
+          {
+            menuItemId: 1,
+            restaurantId: "restaurant-1",
+            dishName: "Laksa",
+            categoryName: "Noodles",
+            price: 9,
+            priceCents: 900,
+            catalogType: "menu_item",
+            tags: ["spicy"],
+            primaryMarketId: "market-1",
+          },
+          {
+            menuItemId: 2,
+            restaurantId: "restaurant-2",
+            dishName: "Hidden Tea",
+            categoryName: null,
+            price: null,
+            priceCents: null,
+            catalogType: null,
+            tags: null,
+            primaryMarketId: null,
+          },
+        ],
+        [
+          {
+            indexedDishCount: 4,
+            availableDishCount: 3,
+            indexedRestaurantCount: 2,
+          },
+        ],
       ],
-      [
-        {
-          indexedDishCount: 4,
-          availableDishCount: 3,
-          indexedRestaurantCount: 2,
-        },
-      ],
-    ]);
+    });
 
     await expect(service.reindex()).resolves.toEqual({
       dishes: 2,
@@ -1464,5 +1589,30 @@ describe("DiscoveryService", () => {
       restaurantsWithUnindexedAvailableDishes: 1,
     });
     vi.useRealTimers();
+  });
+
+  it("routes select fixtures by table and reports missing fixtures", async () => {
+    mockSelectResults({
+      dishSearchIndex: [[{ categoryName: "Noodles" }]],
+      restaurants: [[{ id: "restaurant-1" }]],
+    });
+
+    // Read in reverse declaration order: routing follows the table passed to
+    // from(), not the execution order.
+    await expect(mocks.db.select().from(restaurants)).resolves.toEqual([
+      { id: "restaurant-1" },
+    ]);
+    await expect(mocks.db.select().from(dishSearchIndex)).resolves.toEqual([
+      { categoryName: "Noodles" },
+    ]);
+    await expect(mocks.db.select().from(dishSearchIndex)).rejects.toThrow(
+      "No select fixtures remaining for dishSearchIndex",
+    );
+    // categories is never passed to from() in DiscoveryService (only
+    // leftJoin'd), so it is not registered in fixtureTables and reports
+    // <unknown table>.
+    await expect(mocks.db.select().from(categories)).rejects.toThrow(
+      "Missing select fixture for <unknown table>",
+    );
   });
 });
