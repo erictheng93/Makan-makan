@@ -1637,6 +1637,6 @@ export class OrderService extends BaseService {
       customer: order.customer,
       createdAt: toMillis(order.createdAt)!,
       updatedAt: toMillis(order.updatedAt)!,
-    } as Order;
+    };
   }
 }
