@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { menuItemIngredients, menuItems } from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 import { RecipeService } from "./RecipeService";
 
 const mocks = vi.hoisted(() => ({
@@ -30,8 +35,11 @@ function createQuery(result: unknown) {
   return builder;
 }
 
-function mockSelectResults(results: unknown[]) {
-  mocks.db.select.mockImplementation(() => createQuery(results.shift() ?? []));
+const fixtureTables = { menuItemIngredients, menuItems };
+type SelectFixtureName = keyof typeof fixtureTables;
+
+function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
+  Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
 }
 
 function mockSelectDistinctResult(result: unknown = []) {
@@ -70,24 +78,26 @@ describe("RecipeService", () => {
   });
 
   it("maps recipe rows with default ingredient names", async () => {
-    mockSelectResults([
-      [
-        {
-          ingredientId: 2,
-          ingredientName: "Rice",
-          quantityPerServing: 120,
-          unit: "g",
-          isOptional: false,
-        },
-        {
-          ingredientId: 3,
-          ingredientName: null,
-          quantityPerServing: 10,
-          unit: "ml",
-          isOptional: true,
-        },
+    mockSelectResults({
+      menuItemIngredients: [
+        [
+          {
+            ingredientId: 2,
+            ingredientName: "Rice",
+            quantityPerServing: 120,
+            unit: "g",
+            isOptional: false,
+          },
+          {
+            ingredientId: 3,
+            ingredientName: null,
+            quantityPerServing: 10,
+            unit: "ml",
+            isOptional: true,
+          },
+        ],
       ],
-    ]);
+    });
 
     await expect(createService().getRecipe(51)).resolves.toEqual([
       {
@@ -169,25 +179,27 @@ describe("RecipeService", () => {
   });
 
   it("validates missing, deleted, inactive, and valid recipe entries", async () => {
-    mockSelectResults([
-      [],
-      [
-        { ingredientId: 2, name: null, isActive: null, deletedAt: null },
-        {
-          ingredientId: 3,
-          name: "Old Rice",
-          isActive: true,
-          deletedAt: new Date("2026-06-01T00:00:00.000Z"),
-        },
-        {
-          ingredientId: 4,
-          name: "Sambal",
-          isActive: false,
-          deletedAt: null,
-        },
+    mockSelectResults({
+      menuItemIngredients: [
+        [],
+        [
+          { ingredientId: 2, name: null, isActive: null, deletedAt: null },
+          {
+            ingredientId: 3,
+            name: "Old Rice",
+            isActive: true,
+            deletedAt: new Date("2026-06-01T00:00:00.000Z"),
+          },
+          {
+            ingredientId: 4,
+            name: "Sambal",
+            isActive: false,
+            deletedAt: null,
+          },
+        ],
+        [{ ingredientId: 5, name: "Salt", isActive: true, deletedAt: null }],
       ],
-      [{ ingredientId: 5, name: "Salt", isActive: true, deletedAt: null }],
-    ]);
+    });
 
     await expect(createService().validateRecipe(51)).resolves.toEqual({
       valid: false,
@@ -212,16 +224,20 @@ describe("RecipeService", () => {
       { menuItemId: 51 },
       { menuItemId: 52 },
     ]);
-    mockSelectResults([
-      [
-        { id: 61, name: "Laksa" },
-        { id: 62, name: "Nasi Lemak" },
+    mockSelectResults({
+      menuItems: [
+        [
+          { id: 61, name: "Laksa" },
+          { id: 62, name: "Nasi Lemak" },
+        ],
       ],
-      [
-        { menuItemId: 51, menuItemName: "Laksa" },
-        { menuItemId: 52, menuItemName: "Nasi Lemak" },
+      menuItemIngredients: [
+        [
+          { menuItemId: 51, menuItemName: "Laksa" },
+          { menuItemId: 52, menuItemName: "Nasi Lemak" },
+        ],
       ],
-    ]);
+    });
 
     await expect(
       createService().getMenuItemsWithoutRecipes("restaurant-1"),
