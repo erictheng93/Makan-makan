@@ -1,4 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  categories,
+  menuItems,
+  platformMenuMappings,
+} from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 import type { Env } from "../../../types/env";
 import { PlatformMenuSyncService } from "./PlatformMenuSyncService";
 
@@ -30,23 +39,11 @@ vi.mock("./PlatformIntegrationService", () => ({
   }),
 }));
 
-function createSelectQuery(result: unknown[]) {
-  const builder = {
-    from: vi.fn(() => builder),
-    limit: vi.fn(() => builder),
-    where: vi.fn(() => builder),
-    then: (
-      resolve: (value: unknown[]) => void,
-      reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
-  };
-  return builder;
-}
+const fixtureTables = { categories, menuItems, platformMenuMappings };
+type SelectFixtureName = keyof typeof fixtureTables;
 
-function queueSelectResults(results: unknown[][]) {
-  mocks.db.select.mockImplementation(() =>
-    createSelectQuery(results.shift() ?? []),
-  );
+function queueSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
+  Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
 }
 
 function mockMutations() {
@@ -101,34 +98,37 @@ describe("PlatformMenuSyncService", () => {
 
   it("syncs active menu items and upserts returned platform mappings", async () => {
     const mutations = mockMutations();
-    queueSelectResults([
-      [
-        { id: 1, name: "Noodles" },
-        { id: 2, name: "Drinks" },
+    queueSelectResults({
+      categories: [
+        [
+          { id: 1, name: "Noodles" },
+          { id: 2, name: "Drinks" },
+        ],
       ],
-      [
-        {
-          id: 101,
-          categoryId: 1,
-          name: "Laksa",
-          description: null,
-          imageUrl: null,
-          isAvailable: true,
-          priceCents: 18000,
-        },
-        {
-          id: 102,
-          categoryId: 2,
-          name: "Tea",
-          description: "Cold tea",
-          imageUrl: "https://cdn.example.test/tea.jpg",
-          isAvailable: true,
-          priceCents: 6000,
-        },
+      menuItems: [
+        [
+          {
+            id: 101,
+            categoryId: 1,
+            name: "Laksa",
+            description: null,
+            imageUrl: null,
+            isAvailable: true,
+            priceCents: 18000,
+          },
+          {
+            id: 102,
+            categoryId: 2,
+            name: "Tea",
+            description: "Cold tea",
+            imageUrl: "https://cdn.example.test/tea.jpg",
+            isAvailable: true,
+            priceCents: 6000,
+          },
+        ],
       ],
-      [{ id: 901 }],
-      [],
-    ]);
+      platformMenuMappings: [[{ id: 901 }], []],
+    });
 
     await expect(
       createService().syncMenu("restaurant-1", "uber_eats"),
@@ -198,20 +198,22 @@ describe("PlatformMenuSyncService", () => {
 
   it("marks menu sync as error and rethrows adapter failures", async () => {
     const mutations = mockMutations();
-    queueSelectResults([
-      [{ id: 1, name: "Noodles" }],
-      [
-        {
-          id: 101,
-          categoryId: 1,
-          name: "Laksa",
-          description: "Spicy",
-          imageUrl: null,
-          isAvailable: true,
-          priceCents: 18000,
-        },
+    queueSelectResults({
+      categories: [[{ id: 1, name: "Noodles" }]],
+      menuItems: [
+        [
+          {
+            id: 101,
+            categoryId: 1,
+            name: "Laksa",
+            description: "Spicy",
+            imageUrl: null,
+            isAvailable: true,
+            priceCents: 18000,
+          },
+        ],
       ],
-    ]);
+    });
     mocks.adapter.syncMenu.mockRejectedValue(new Error("platform offline"));
 
     await expect(
