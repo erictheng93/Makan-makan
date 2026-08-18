@@ -91,9 +91,7 @@ describe("SignedOrderEntryView", () => {
       localStorage.getItem("makanmakan_table_qr:restaurant-1:10"),
     ).toBeNull();
     expect(wrapper.text()).toContain("toast.qrValidationFailed");
-    expect(wrapper.text()).toContain(
-      "此 QR Code 已過期或簽章無效，請重新掃描桌上的 QR Code。",
-    );
+    expect(wrapper.text()).toContain("toast.qrProcessError");
     expect(wrapper.text()).not.toContain("Invalid QR signature");
   });
 });

@@ -102,6 +102,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "@makanmasak/shared": fileURLToPath(
+        new URL("../../packages/shared", import.meta.url),
+      ),
       "@makanmasak/shared-types": fileURLToPath(
         new URL("../../packages/shared-types/src", import.meta.url),
       ),

@@ -114,8 +114,8 @@ onMounted(async () => {
     await customerIdentityApi.verifyEmail(token);
     state.value = "verified";
   } catch (err: unknown) {
-    error.value =
-      (err instanceof Error && err.message) || t("messages.networkError");
+    void err;
+    error.value = t("messages.networkError");
     state.value = "failed";
   }
 });

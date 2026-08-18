@@ -159,7 +159,7 @@ class ApiClient {
           throw new ApiException(
             "NETWORK_ERROR" as ApiErrorCodeValue,
             translate("messages.networkError"),
-            error.message,
+            undefined,
           );
         }
 
@@ -373,13 +373,8 @@ export const useApiState = () => {
 
 // 錯誤處理工具函數
 export const handleApiError = (error: unknown): string => {
-  if (error instanceof ApiException) {
-    return error.message;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
+  // Do not render unknown Error messages. They may contain unlocalized server
+  // text; API callers should use a context-specific translated fallback.
+  void error;
   return translate("errors.unknown");
 };

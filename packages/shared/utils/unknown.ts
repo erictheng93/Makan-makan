@@ -13,92 +13,33 @@ export function isRecord(value: unknown): value is UnknownRecord {
 }
 
 /**
- * 取一個被 throw 的值的訊息。空字串視同沒有訊息，改用 fallback —— 顯示
- * 一則空的錯誤提示比顯示通用訊息更難懂。
+ * 回傳呼叫端提供的在地化 fallback。被 throw 的原始訊息可能來自 API、proxy
+ * 或瀏覽器執行期，僅能用於診斷，不能作為使用者介面文案。
  */
 export function getErrorMessage(
-  error: unknown,
+  _error: unknown,
   fallback = "發生未知錯誤",
 ): string {
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  if (isRecord(error)) {
-    const message = error.message;
-    if (typeof message === "string" && message.length > 0) {
-      return message;
-    }
-  }
-
+  // Error prose is diagnostic data from an untrusted boundary. Callers own
+  // presentation through their current-locale fallback or the shared resolver.
   return fallback;
 }
 
 /**
- * 只取後端回應主體裡的訊息，取不到就回 `undefined`。
- *
- * 本專案強制的錯誤格式是 `{ success: false, error: { code, message } }`
- * （見 CLAUDE.md），所以先找 `data.error.message`；`data.message` 是尚未
- * 遷移的舊路由才會有的形狀，留著當後備。
- *
- * 刻意不退回 axios 自身的 `message` —— 那是 "Network Error" 這種未在地化
- * 的英文字串，蓋掉呼叫端的 `?? t("...")` 只會讓 UI 更難懂。需要那層退路的
- * 用 {@link getApiErrorMessage}。
+ * 舊 API 信封 helper，保留相容性但不再回傳後端文字。介面層必須以
+ * `resolveUserFacingError` 或在地化 fallback 產生文案。
  */
 export function getApiEnvelopeMessage(error: unknown): string | undefined {
-  const data =
-    isRecord(error) && isRecord(error.response)
-      ? error.response.data
-      : undefined;
-
-  if (!isRecord(data)) {
-    return undefined;
-  }
-
-  const enveloped = isRecord(data.error) ? data.error.message : undefined;
-  if (typeof enveloped === "string" && enveloped.length > 0) {
-    return enveloped;
-  }
-  if (typeof data.message === "string" && data.message.length > 0) {
-    return data.message;
-  }
+  void error;
   return undefined;
 }
 
 /**
- * 從**回應主體**取錯誤訊息，不管它是哪一種形狀。
- *
- * 上面幾個 helper 吃的是 axios 風格的錯誤（`error.response.data`），但用
- * `fetch` 的呼叫端手上只有 `await res.json()` 的結果。而 API 目前同時存在
- * 兩種錯誤形狀 —— CLAUDE.md 強制的 `error: { code, message }`，以及尚未
- * 遷移的 `error: "文字"`（2026-08 實測 85 處）。
- *
- * 讀取端要能同時吃這兩種，否則遷移那 85 處的那一刻，只讀字串的呼叫端會把
- * 物件丟進字串位置，畫面出現 `[object Object]`。
+ * 舊 fetch 回應 helper，保留相容性但不再回傳 API 文字。使用者介面應以目前
+ * 語系的 fallback 或共用 error resolver 顯示錯誤。
  */
 export function getResponseErrorMessage(body: unknown): string | undefined {
-  if (!isRecord(body)) {
-    return undefined;
-  }
-
-  // 信封形狀優先：它是本專案的目標格式。
-  if (isRecord(body.error)) {
-    const message = body.error.message;
-    if (typeof message === "string" && message.length > 0) {
-      return message;
-    }
-  }
-
-  // 尚未遷移的裸字串。
-  if (typeof body.error === "string" && body.error.length > 0) {
-    return body.error;
-  }
-
-  // 有些舊路由把失敗文字放在 `message`（見 /auth/forgot-password）。
-  if (typeof body.message === "string" && body.message.length > 0) {
-    return body.message;
-  }
-
+  void body;
   return undefined;
 }
 
@@ -117,8 +58,7 @@ export function getApiErrorCode(error: unknown): string | undefined {
 }
 
 /**
- * axios 風格的錯誤優先取後端回的訊息，取不到再退回該錯誤自身的訊息，
- * 最後才是 fallback。
+ * Axios 相容 helper；一律回傳呼叫端提供的在地化 fallback。
  */
 export function getApiErrorMessage(error: unknown, fallback: string): string {
   return getApiEnvelopeMessage(error) ?? getErrorMessage(error, fallback);

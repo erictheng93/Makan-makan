@@ -53,13 +53,7 @@ const toCustomerUser = (customer: CustomerSummary): CustomerUser => ({
   role: 5,
 });
 
-/**
- * Both sign-in paths surface the server's own sentence. For a failed password
- * login that sentence is deliberately identical whether the account is unknown
- * or the password is wrong — never re-derive a more specific message here.
- */
-const failureMessage = (err: unknown): string =>
-  (err instanceof Error && err.message) || t("messages.networkError");
+const failureMessage = (_err: unknown): string => t("auth.loginFailed");
 
 const failureCode = (err: unknown): string | undefined => {
   const code = (err as { code?: unknown } | null)?.code;

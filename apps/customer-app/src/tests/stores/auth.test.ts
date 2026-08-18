@@ -74,7 +74,7 @@ describe("customer auth store", () => {
     expect(store.token).toBeNull();
   });
 
-  it("requests an OTP and exposes API errors without leaving loading enabled", async () => {
+  it("requests an OTP with a localized fallback without leaving loading enabled", async () => {
     vi.mocked(customerIdentityApi.requestOtp)
       .mockResolvedValueOnce({
         phone: "0912345678",
@@ -95,9 +95,9 @@ describe("customer auth store", () => {
 
     await expect(store.requestOtp("0912345678")).resolves.toEqual({
       success: false,
-      error: "SMS quota exceeded",
+      error: "auth.loginFailed",
     });
-    expect(store.error).toBe("SMS quota exceeded");
+    expect(store.error).toBe("auth.loginFailed");
     expect(store.isLoading).toBe(false);
   });
 
@@ -207,7 +207,7 @@ describe("customer auth store", () => {
     });
   });
 
-  it("passes the server's login failure through untouched", async () => {
+  it("uses a localized fallback for a server login failure", async () => {
     // The API answers unknown accounts and wrong passwords with one identical
     // sentence. The store must not enrich or replace it.
     vi.mocked(customerIdentityApi.loginWithPassword).mockRejectedValue(
@@ -219,7 +219,7 @@ describe("customer auth store", () => {
       store.loginWithPassword("ghost@example.com", "whatever-long-enough"),
     ).resolves.toEqual({
       success: false,
-      error: "Invalid identifier or password",
+      error: "auth.loginFailed",
     });
     expect(store.isAuthenticated).toBe(false);
     expect(store.isLoading).toBe(false);
@@ -279,7 +279,7 @@ describe("customer auth store", () => {
       }),
     ).resolves.toEqual({
       success: false,
-      error: "Account created, but the verification email could not be sent",
+      error: "auth.loginFailed",
       code: "VERIFICATION_EMAIL_FAILED",
     });
     expect(store.isLoading).toBe(false);

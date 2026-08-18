@@ -475,6 +475,20 @@ const msMY: Messages = {
     username: "Nama pengguna",
     usernamePlaceholder: "Masukkan nama pengguna",
   },
+
+  errorPresentation: {
+    invalidRequest: "Permintaan tidak sah. Sila semak dan cuba lagi.",
+    sessionExpired: "Sesi anda telah tamat. Sila log masuk semula.",
+    permissionDenied: "Anda tidak mempunyai kebenaran untuk tindakan ini.",
+    notFound: "Sumber yang diminta tidak ditemui.",
+    conflict: "Data telah berubah. Sila muat semula dan cuba lagi.",
+    tooManyRequests: "Terlalu banyak permintaan. Sila cuba lagi kemudian.",
+    serviceUnavailable:
+      "Perkhidmatan tidak tersedia buat sementara waktu. Sila cuba lagi kemudian.",
+    network: "Sambungan rangkaian gagal. Sila semak sambungan dan cuba lagi.",
+    timeout: "Operasi tamat masa. Sila cuba lagi.",
+    unknown: "Ralat tidak dijangka berlaku. Sila cuba lagi kemudian.",
+  },
   offlineStatus: {
     conflictResolved: 'Semua konflik diselesaikan menggunakan "{strategy}"',
     keepLocal: "Kekalkan Versi Tempatan",

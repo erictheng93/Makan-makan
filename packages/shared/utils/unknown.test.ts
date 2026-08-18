@@ -22,12 +22,9 @@ describe("isRecord", () => {
 });
 
 describe("getErrorMessage", () => {
-  it("reads an Error's message", () => {
-    expect(getErrorMessage(new Error("boom"))).toBe("boom");
-  });
-
-  it("reads a plain object's message", () => {
-    expect(getErrorMessage({ message: "boom" })).toBe("boom");
+  it("never exposes an Error or plain-object message", () => {
+    expect(getErrorMessage(new Error("boom"), "fallback")).toBe("fallback");
+    expect(getErrorMessage({ message: "boom" }, "fallback")).toBe("fallback");
   });
 
   it("falls back when the message is empty, not just when it is absent", () => {
@@ -43,11 +40,11 @@ describe("getErrorMessage", () => {
 });
 
 describe("getApiEnvelopeMessage", () => {
-  it("reads the unified envelope", () => {
+  it("never exposes a unified envelope message", () => {
     const error = {
       response: { data: { error: { message: "此優惠券已過期" } } },
     };
-    expect(getApiEnvelopeMessage(error)).toBe("此優惠券已過期");
+    expect(getApiEnvelopeMessage(error)).toBeUndefined();
   });
 
   it("leaves the localized fallback to the caller instead of surfacing axios' English", () => {
@@ -84,7 +81,7 @@ describe("getApiErrorCode", () => {
 });
 
 describe("getApiErrorMessage", () => {
-  it("reads the unified envelope this API actually returns", () => {
+  it("falls back instead of reading a unified envelope message", () => {
     const error = {
       message: "Request failed with status code 400",
       response: {
@@ -94,20 +91,20 @@ describe("getApiErrorMessage", () => {
         },
       },
     };
-    expect(getApiErrorMessage(error, "fallback")).toBe("此優惠券已過期");
+    expect(getApiErrorMessage(error, "fallback")).toBe("fallback");
   });
 
-  it("still reads the flat shape un-migrated routes return", () => {
+  it("falls back instead of reading a flat error shape", () => {
     const error = {
       message: "Request failed with status code 400",
       response: { data: { message: "此優惠券已過期" } },
     };
-    expect(getApiErrorMessage(error, "fallback")).toBe("此優惠券已過期");
+    expect(getApiErrorMessage(error, "fallback")).toBe("fallback");
   });
 
-  it("falls back to the error's own message when the body carries none", () => {
+  it("does not fall back to the error's own message", () => {
     const error = { message: "Network Error", response: { data: {} } };
-    expect(getApiErrorMessage(error, "fallback")).toBe("Network Error");
+    expect(getApiErrorMessage(error, "fallback")).toBe("fallback");
   });
 
   it("falls back to the supplied string when neither exists", () => {
@@ -130,54 +127,54 @@ describe("getApiErrorStatus / getApiErrorStatusText", () => {
 });
 
 describe("getResponseErrorMessage", () => {
-  it("reads the enveloped message, the target shape", () => {
+  it("never exposes an enveloped response message", () => {
     expect(
       getResponseErrorMessage({
         success: false,
         error: { code: "SHOP_MODE_DISABLED", message: "店家未開放掃碼點餐" },
       }),
-    ).toBe("店家未開放掃碼點餐");
+    ).toBeUndefined();
   });
 
   /**
    * 85 個端點還在回這個形狀（2026-08 實測）。只讀信封的呼叫端會漏掉它們，
    * 只讀字串的呼叫端會在遷移那天把物件塞進字串位置。兩種都要吃。
    */
-  it("reads a not-yet-migrated bare string error", () => {
+  it("never exposes a not-yet-migrated bare string error", () => {
     expect(
       getResponseErrorMessage({
         success: false,
         error: "Insufficient permissions",
       }),
-    ).toBe("Insufficient permissions");
+    ).toBeUndefined();
   });
 
-  it("reads message for the routes that put the failure text there", () => {
+  it("never exposes a flat response message", () => {
     expect(
       getResponseErrorMessage({
         success: false,
         message: "Reset link expired",
       }),
-    ).toBe("Reset link expired");
+    ).toBeUndefined();
   });
 
-  it("prefers the envelope over the sibling message", () => {
+  it("does not select between server message fields", () => {
     expect(
       getResponseErrorMessage({
         success: false,
         error: { code: "X", message: "from envelope" },
         message: "from sibling",
       }),
-    ).toBe("from envelope");
+    ).toBeUndefined();
   });
 
-  it("skips an envelope whose message is missing or empty", () => {
+  it("returns undefined for every response body", () => {
     expect(
       getResponseErrorMessage({ error: { code: "X" }, message: "fallback" }),
-    ).toBe("fallback");
+    ).toBeUndefined();
     expect(
       getResponseErrorMessage({ error: { message: "" }, message: "fallback" }),
-    ).toBe("fallback");
+    ).toBeUndefined();
   });
 
   it("returns undefined when there is nothing to show, so callers keep their own copy", () => {

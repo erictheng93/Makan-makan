@@ -476,6 +476,20 @@ const viVN: Messages = {
     username: "Tên người dùng",
     usernamePlaceholder: "Nhập tên người dùng",
   },
+
+  errorPresentation: {
+    invalidRequest: "Yêu cầu không hợp lệ. Vui lòng kiểm tra và thử lại.",
+    sessionExpired: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+    permissionDenied: "Bạn không có quyền thực hiện thao tác này.",
+    notFound: "Không tìm thấy tài nguyên được yêu cầu.",
+    conflict: "Dữ liệu đã thay đổi. Vui lòng làm mới và thử lại.",
+    tooManyRequests: "Có quá nhiều yêu cầu. Vui lòng thử lại sau.",
+    serviceUnavailable:
+      "Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau.",
+    network: "Kết nối mạng thất bại. Vui lòng kiểm tra kết nối và thử lại.",
+    timeout: "Thao tác đã hết thời gian chờ. Vui lòng thử lại.",
+    unknown: "Đã xảy ra lỗi không xác định. Vui lòng thử lại sau.",
+  },
   offlineStatus: {
     conflictResolved:
       'Tất cả các xung đột được giải quyết bằng cách sử dụng "{strategy}"',

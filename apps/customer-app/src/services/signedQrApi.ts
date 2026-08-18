@@ -61,10 +61,6 @@ export const signedQrApi = {
         throw new Error(translate("toast.qrProcessError"));
       }
 
-      if (error instanceof Error && error.message) {
-        throw error;
-      }
-
       throw new Error(translate("toast.qrProcessError"));
     }
   },

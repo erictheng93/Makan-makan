@@ -187,7 +187,7 @@ describe("kitchen auth API", () => {
     });
   });
 
-  it("returns the API error message when refresh fails", async () => {
+  it("returns locale-safe copy when refresh fails", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     mockApi.post.mockRejectedValueOnce({
       response: { data: { message: "Refresh denied" } },
@@ -197,7 +197,7 @@ describe("kitchen auth API", () => {
 
     expect(result).toMatchObject({
       success: false,
-      error: "Refresh denied",
+      error: "發生未知錯誤，請稍後再試",
     });
   });
 
@@ -219,7 +219,7 @@ describe("kitchen auth API", () => {
     });
   });
 
-  it("returns the API error message when token validation fails", async () => {
+  it("returns locale-safe copy when token validation fails", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     mockApi.get.mockRejectedValueOnce({
       response: { data: { message: "Token expired" } },
@@ -230,7 +230,7 @@ describe("kitchen auth API", () => {
     expect(mockApi.get).toHaveBeenCalledWith("/auth/validate");
     expect(result).toMatchObject({
       success: false,
-      error: "Token expired",
+      error: "發生未知錯誤，請稍後再試",
     });
   });
 
@@ -252,7 +252,7 @@ describe("kitchen auth API", () => {
     });
   });
 
-  it("returns a fallback message when fetching the current user fails", async () => {
+  it("returns locale-safe copy when fetching the current user fails", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     mockApi.get.mockRejectedValueOnce(new Error("network down"));
 
@@ -261,7 +261,7 @@ describe("kitchen auth API", () => {
     expect(mockApi.get).toHaveBeenCalledWith("/auth/me");
     expect(result).toMatchObject({
       success: false,
-      error: "network down",
+      error: "發生未知錯誤，請稍後再試",
     });
   });
 });

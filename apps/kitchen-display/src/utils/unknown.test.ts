@@ -1,10 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { getApiErrorMessage, getErrorMessage } from "./unknown";
 
 describe("getApiErrorMessage", () => {
-  // 這是後端唯一會送的錯誤形狀（CLAUDE.md 強制），而 kitchen 的登入 /
-  // 抓單路徑全部走這支。讀錯層級的話伺服器說什麼都不會顯示。
-  it("reads the unified envelope the API actually returns", () => {
+  it("maps a unified envelope by code instead of displaying server prose", () => {
     const error = {
       message: "Request failed with status code 401",
       response: {
@@ -16,25 +14,30 @@ describe("getApiErrorMessage", () => {
       },
     };
 
-    expect(getApiErrorMessage(error, "登入失敗")).toBe("帳號已鎖定");
-  });
-
-  it("still reads the flat shape un-migrated routes return", () => {
-    const error = { response: { data: { message: "舊路由訊息" } } };
-    expect(getApiErrorMessage(error, "登入失敗")).toBe("舊路由訊息");
-  });
-
-  it("falls back to the error's own message, then to the caller's string", () => {
-    expect(getApiErrorMessage(new Error("Network Error"), "登入失敗")).toBe(
-      "Network Error",
+    expect(getApiErrorMessage(error, "登入失敗")).toBe(
+      "帳號已被鎖定，請稍後再試或聯繫管理員",
     );
-    expect(getApiErrorMessage({}, "登入失敗")).toBe("登入失敗");
+  });
+
+  it("maps legacy server messages by HTTP status instead of displaying them", () => {
+    const error = { response: { data: { message: "舊路由訊息" } } };
+    expect(getApiErrorMessage(error, "登入失敗")).toBe(
+      "發生未知錯誤，請稍後再試",
+    );
+  });
+
+  it("does not expose error messages or caller fallbacks", () => {
+    expect(getApiErrorMessage(new Error("Network Error"), "登入失敗")).toBe(
+      "發生未知錯誤，請稍後再試",
+    );
+    expect(getApiErrorMessage({}, "登入失敗")).toBe("發生未知錯誤，請稍後再試");
   });
 });
 
 describe("getErrorMessage", () => {
-  it("treats an empty message as absent", () => {
-    expect(getErrorMessage(new Error(""), "fallback")).toBe("fallback");
-    expect(getErrorMessage({ message: "" }, "fallback")).toBe("fallback");
+  it("never presents an Error message", () => {
+    expect(
+      getErrorMessage(new Error("Internal server detail"), "fallback"),
+    ).toBe("發生未知錯誤，請稍後再試");
   });
 });

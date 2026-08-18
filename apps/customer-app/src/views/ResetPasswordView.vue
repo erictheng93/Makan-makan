@@ -203,8 +203,8 @@ const handleSubmit = async () => {
     await customerIdentityApi.resetPassword(token.value, form.newPassword);
     done.value = true;
   } catch (err: unknown) {
-    error.value =
-      (err instanceof Error && err.message) || t("messages.networkError");
+    void err;
+    error.value = t("messages.networkError");
   } finally {
     isLoading.value = false;
   }

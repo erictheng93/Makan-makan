@@ -70,6 +70,19 @@ const zhTW = {
     accountLocked: "帳號已被鎖定，請稍後再試或聯繫管理員",
   },
 
+  errorPresentation: {
+    invalidRequest: "請求無效，請檢查後再試",
+    sessionExpired: "登入已過期，請重新登入",
+    permissionDenied: "您沒有執行此操作的權限",
+    notFound: "找不到所需資源",
+    conflict: "資料已變更，請重新整理後再試",
+    tooManyRequests: "操作過於頻繁，請稍後再試",
+    serviceUnavailable: "服務暫時無法使用，請稍後再試",
+    network: "網路連線失敗，請檢查網路後再試",
+    timeout: "操作逾時，請稍後再試",
+    unknown: "發生未知錯誤，請稍後再試",
+  },
+
   header: {
     title: "廚房看板",
     connected: "已連線",

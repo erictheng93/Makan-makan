@@ -39,8 +39,7 @@ export const useAppStore = defineStore("app", () => {
       // 從 URL 或 localStorage 恢復餐廳上下文
       await restoreContext();
     } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : translate("toast.appLoadFailed");
+      error.value = translate("toast.appLoadFailed");
       throw err;
     } finally {
       isLoading.value = false;

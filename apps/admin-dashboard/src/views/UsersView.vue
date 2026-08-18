@@ -468,7 +468,7 @@ import { useDateFormatter } from "@/composables/useDateFormatter";
 import { api } from "@/services/api";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
-import { getApiEnvelopeMessage } from "@makanmasak/shared/utils/unknown";
+import { resolveAdminUserFacingError } from "@/utils/userFacingError";
 
 import {
   PlusIcon,
@@ -694,7 +694,9 @@ const resetPassword = async (user: User) => {
     });
     toast.success(t("users.confirm.resetPasswordSuccess"));
   } catch (error: unknown) {
-    toast.error(getApiEnvelopeMessage(error) || t("users.errors.resetFailed"));
+    toast.error(
+      resolveAdminUserFacingError(error, t, "users.errors.resetFailed"),
+    );
   }
 };
 
@@ -718,7 +720,9 @@ const toggleUserStatus = async (user: User) => {
     await api.patch(`/users/${user.id}/status`, { isActive: newIsActive });
     await fetchUsers();
   } catch (error: unknown) {
-    toast.error(getApiEnvelopeMessage(error) || t("users.errors.toggleFailed"));
+    toast.error(
+      resolveAdminUserFacingError(error, t, "users.errors.toggleFailed"),
+    );
   }
 };
 
@@ -757,7 +761,9 @@ const saveUser = async () => {
     closeUserModal();
     await fetchUsers();
   } catch (error: unknown) {
-    toast.error(getApiEnvelopeMessage(error) || t("users.errors.saveFailed"));
+    toast.error(
+      resolveAdminUserFacingError(error, t, "users.errors.saveFailed"),
+    );
   }
 };
 

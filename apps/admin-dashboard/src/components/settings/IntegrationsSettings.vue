@@ -386,7 +386,7 @@ import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { apiClient, unwrapApiPayload } from "@/services/api";
 import { useDateFormatter } from "@/composables/useDateFormatter";
-import { getApiEnvelopeMessage } from "@makanmasak/shared/utils/unknown";
+import { resolveAdminUserFacingError } from "@/utils/userFacingError";
 
 const { t } = useI18n();
 const { formatShortDateTime } = useDateFormatter();
@@ -487,7 +487,7 @@ async function connectUberEats() {
   } catch (err: unknown) {
     showMsg(
       "error",
-      getApiEnvelopeMessage(err) ?? t("integrations.alerts.connectFailed"),
+      resolveAdminUserFacingError(err, t, "integrations.alerts.connectFailed"),
     );
   } finally {
     isConnecting.value = false;
@@ -530,7 +530,7 @@ async function syncMenu() {
   } catch (err: unknown) {
     showMsg(
       "error",
-      getApiEnvelopeMessage(err) ?? t("integrations.alerts.syncFailed"),
+      resolveAdminUserFacingError(err, t, "integrations.alerts.syncFailed"),
     );
   } finally {
     isSyncing.value = false;

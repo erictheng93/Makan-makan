@@ -385,7 +385,7 @@ import {
   type PlanTier,
 } from "@/services/subscriptionService";
 import UsageTab from "@/components/billing/UsageTab.vue";
-import { getApiEnvelopeMessage } from "@makanmasak/shared/utils/unknown";
+import { resolveAdminUserFacingError } from "@/utils/userFacingError";
 
 const { t } = useI18n();
 const { formatDate } = useDateFormatter();
@@ -441,8 +441,11 @@ async function loadSubscriptions() {
   try {
     subscriptions.value = await subscriptionService.getAll();
   } catch (err: unknown) {
-    errorMessage.value =
-      getApiEnvelopeMessage(err) ?? t("subscriptions.loadError");
+    errorMessage.value = resolveAdminUserFacingError(
+      err,
+      t,
+      "subscriptions.loadError",
+    );
   } finally {
     isLoading.value = false;
   }
@@ -580,8 +583,11 @@ async function onCreateSubscription() {
     subscriptions.value.unshift(created);
     closeCreateModal();
   } catch (err: unknown) {
-    createError.value =
-      getApiEnvelopeMessage(err) ?? t("subscriptions.form.createError");
+    createError.value = resolveAdminUserFacingError(
+      err,
+      t,
+      "subscriptions.form.createError",
+    );
   } finally {
     isCreating.value = false;
   }

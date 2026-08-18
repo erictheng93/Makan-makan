@@ -686,7 +686,7 @@ import { useI18n } from "@/i18n";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
 import { ReservationService } from "@/services/reservationService";
-import { getApiEnvelopeMessage } from "@makanmasak/shared/utils/unknown";
+import { resolveAdminUserFacingError } from "@/utils/userFacingError";
 import {
   ReservationStatus,
   type Reservation,
@@ -811,7 +811,9 @@ async function createReservation() {
     await loadReservations();
   } catch (error: unknown) {
     console.error("Create reservation error:", error);
-    toast.error(getApiEnvelopeMessage(error) ?? t("reservation.createError"));
+    toast.error(
+      resolveAdminUserFacingError(error, t, "reservation.createError"),
+    );
   } finally {
     submitting.value = false;
   }
@@ -835,7 +837,9 @@ async function confirmReservation(id: string) {
     await loadReservations();
   } catch (error: unknown) {
     console.error("Confirm reservation error:", error);
-    toast.error(getApiEnvelopeMessage(error) ?? t("reservation.confirmError"));
+    toast.error(
+      resolveAdminUserFacingError(error, t, "reservation.confirmError"),
+    );
   }
 }
 
@@ -849,7 +853,9 @@ async function markArrived(id: string) {
     await loadReservations();
   } catch (error: unknown) {
     console.error("Mark arrived error:", error);
-    toast.error(getApiEnvelopeMessage(error) ?? t("reservation.arrivedError"));
+    toast.error(
+      resolveAdminUserFacingError(error, t, "reservation.arrivedError"),
+    );
   }
 }
 
@@ -863,7 +869,9 @@ async function markSeated(id: string) {
     await loadReservations();
   } catch (error: unknown) {
     console.error("Mark seated error:", error);
-    toast.error(getApiEnvelopeMessage(error) ?? t("reservation.seatedError"));
+    toast.error(
+      resolveAdminUserFacingError(error, t, "reservation.seatedError"),
+    );
   }
 }
 
@@ -885,7 +893,9 @@ async function cancelReservation(id: string) {
     await loadReservations();
   } catch (error: unknown) {
     console.error("Cancel reservation error:", error);
-    toast.error(getApiEnvelopeMessage(error) ?? t("reservation.cancelError"));
+    toast.error(
+      resolveAdminUserFacingError(error, t, "reservation.cancelError"),
+    );
   }
 }
 

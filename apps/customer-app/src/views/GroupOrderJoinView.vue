@@ -81,7 +81,7 @@ function isNotFoundError(error: unknown): boolean {
     const status = (error as { status?: unknown }).status;
     if (status === 404) return true;
   }
-  return error instanceof Error && /\b404\b/.test(error.message);
+  return false;
 }
 
 function openJoinForm(): void {

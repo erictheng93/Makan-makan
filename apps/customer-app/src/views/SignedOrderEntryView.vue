@@ -87,8 +87,7 @@ async function processQrCode() {
         : {}),
     });
   } catch (error) {
-    errorMessage.value =
-      error instanceof Error ? error.message : t("toast.qrProcessError");
+    errorMessage.value = t("toast.qrProcessError");
   }
 }
 

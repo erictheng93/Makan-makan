@@ -96,7 +96,7 @@ describe("signedQrApi", () => {
     );
   });
 
-  it("preserves already localized non-QR API messages", async () => {
+  it("uses the QR fallback instead of a non-QR API message", async () => {
     const qrCode =
       "https://customer.example.test/order?t=table&r=restaurant-1&d=10&v=4&f=2&sig=valid";
     vi.mocked(apiClient.get).mockRejectedValue(
@@ -106,7 +106,7 @@ describe("signedQrApi", () => {
     );
 
     await expect(signedQrApi.verify("table", qrCode)).rejects.toThrow(
-      "網路連線失敗，請檢查您的網路連線",
+      "QR Code 處理失敗，請稍後再試。",
     );
   });
 

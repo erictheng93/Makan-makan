@@ -468,6 +468,19 @@ const zhCN: Messages = {
     username: "用户名称",
     usernamePlaceholder: "请输入用户名称",
   },
+
+  errorPresentation: {
+    invalidRequest: "请求无效，请检查后重试",
+    sessionExpired: "登录已过期，请重新登录",
+    permissionDenied: "您没有执行此操作的权限",
+    notFound: "找不到所需资源",
+    conflict: "数据已变更，请刷新后重试",
+    tooManyRequests: "操作过于频繁，请稍后重试",
+    serviceUnavailable: "服务暂时不可用，请稍后重试",
+    network: "网络连接失败，请检查网络后重试",
+    timeout: "操作超时，请稍后重试",
+    unknown: "发生未知错误，请稍后重试",
+  },
   offlineStatus: {
     conflictResolved: "已使用「{strategy}」解决所有冲突",
     keepLocal: "保持本机版本",

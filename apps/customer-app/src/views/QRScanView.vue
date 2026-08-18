@@ -430,7 +430,7 @@ const handleQRCodeDetected = async (qrContent: string) => {
     }
   } catch (err) {
     console.error("QR碼處理失敗:", err);
-    setError(err instanceof Error ? err.message : t("toast.qrProcessError"));
+    setError(t("toast.qrProcessError"));
     scanStatus.value = t("qrScanView.aimAtQR");
   } finally {
     isLoading.value = false;

@@ -73,6 +73,20 @@ const enUS: Messages = {
       "Your account is locked. Please try again later or contact an administrator",
   },
 
+  errorPresentation: {
+    invalidRequest: "The request is invalid. Please check it and try again.",
+    sessionExpired: "Your session has expired. Please sign in again.",
+    permissionDenied: "You do not have permission to perform this action.",
+    notFound: "The requested resource could not be found.",
+    conflict: "The data has changed. Refresh and try again.",
+    tooManyRequests: "Too many requests. Please try again later.",
+    serviceUnavailable:
+      "The service is temporarily unavailable. Please try again later.",
+    network: "Network connection failed. Check your connection and try again.",
+    timeout: "The operation timed out. Please try again.",
+    unknown: "An unexpected error occurred. Please try again later.",
+  },
+
   header: {
     title: "Kitchen Board",
     connected: "Connected",
