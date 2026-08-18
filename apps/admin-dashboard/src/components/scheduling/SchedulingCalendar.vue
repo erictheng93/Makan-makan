@@ -152,6 +152,15 @@ interface Props {
   loading?: boolean;
 }
 
+interface CalendarDay {
+  dayNumber: number;
+  date: string;
+  isOtherMonth: boolean;
+  isToday: boolean;
+  isWeekend: boolean;
+  scheduleCount: number;
+}
+
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
 });
@@ -191,7 +200,7 @@ const calendarDays = computed(() => {
   const daysInMonth = lastDay.getDate();
   const startDayOfWeek = firstDay.getDay();
 
-  const days: any[] = [];
+  const days: CalendarDay[] = [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
