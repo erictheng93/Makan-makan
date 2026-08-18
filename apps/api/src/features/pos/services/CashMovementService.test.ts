@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cashMovements, cashShifts } from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 import { CashMovementService } from "./CashMovementService";
 
 const mocks = vi.hoisted(() => ({
@@ -20,23 +25,11 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
 
-function createQuery(result: unknown) {
-  const builder = {
-    from: vi.fn(() => builder),
-    where: vi.fn(() => builder),
-    orderBy: vi.fn(() => builder),
-    limit: vi.fn(() => builder),
-    offset: vi.fn(() => builder),
-    then: (
-      resolve: (value: unknown) => void,
-      reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
-  };
-  return builder;
-}
+const fixtureTables = { cashMovements, cashShifts };
+type SelectFixtureName = keyof typeof fixtureTables;
 
-function mockSelectResults(results: unknown[]) {
-  mocks.db.select.mockImplementation(() => createQuery(results.shift() ?? []));
+function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
+  Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
 }
 
 function mockMutations() {
@@ -133,7 +126,9 @@ describe("CashMovementService", () => {
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     uuidMocks.generateUUID.mockReturnValue("movement-1");
     const mutations = mockMutations();
-    mockSelectResults([[{ status: "active", registerId: "register-1" }]]);
+    mockSelectResults({
+      cashShifts: [[{ status: "active", registerId: "register-1" }]],
+    });
 
     const result = await createService().processCashMovement(
       "shift-1",
@@ -178,7 +173,9 @@ describe("CashMovementService", () => {
     expect(mutations.inserted).toHaveLength(0);
     expect(mocks.db.select).not.toHaveBeenCalled();
 
-    mockSelectResults([[{ status: "closed", registerId: "register-1" }], []]);
+    mockSelectResults({
+      cashShifts: [[{ status: "closed", registerId: "register-1" }], []],
+    });
     result = await createService().processCashMovement(
       "shift-1",
       movementRequest(),
@@ -199,16 +196,18 @@ describe("CashMovementService", () => {
   });
 
   it("lists cash movements with parsed JSON fields and pagination", async () => {
-    mockSelectResults([
-      [
-        movementRow({ id: "movement-1" }),
-        movementRow({
-          id: "movement-2",
-          denominationBreakdown: "",
-          metadata: "",
-        }),
+    mockSelectResults({
+      cashMovements: [
+        [
+          movementRow({ id: "movement-1" }),
+          movementRow({
+            id: "movement-2",
+            denominationBreakdown: "",
+            metadata: "",
+          }),
+        ],
       ],
-    ]);
+    });
 
     const result = await createService().getCashMovements("shift-1", {
       type: "cash_in",
@@ -237,17 +236,19 @@ describe("CashMovementService", () => {
   });
 
   it("returns register cash counts with optional date filtering", async () => {
-    mockSelectResults([
-      [
-        movementRow({
-          id: "count-1",
-          type: "count",
-          denominationBreakdown: JSON.stringify({ "500": 2 }),
-          metadata: JSON.stringify({ countedBy: "cashier" }),
-        }),
+    mockSelectResults({
+      cashMovements: [
+        [
+          movementRow({
+            id: "count-1",
+            type: "count",
+            denominationBreakdown: JSON.stringify({ "500": 2 }),
+            metadata: JSON.stringify({ countedBy: "cashier" }),
+          }),
+        ],
+        [],
       ],
-      [],
-    ]);
+    });
 
     let result = await createService().getCashCount("register-1", "2026-06-07");
 
