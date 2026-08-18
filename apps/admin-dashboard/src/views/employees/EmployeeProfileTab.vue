@@ -156,7 +156,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, type Component } from "vue";
 import { useI18n } from "@/i18n";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import type { Employee, LeaveBalance, LeaveRequest } from "@/types/employee";
@@ -198,7 +198,7 @@ const recentActivity = computed(() => {
     subtitle: string;
     badge: string;
     badgeClass: string;
-    icon: any;
+    icon: Component;
     bgClass: string;
     iconClass: string;
     date: Date;

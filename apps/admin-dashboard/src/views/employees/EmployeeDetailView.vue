@@ -115,6 +115,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import { useEmployeeData } from "@/composables/useEmployeeData";
+import type { Employee } from "@/types/employee";
 import {
   useEmployeeDisplay,
   getInitials as getInitialsHelper,
@@ -187,5 +188,5 @@ const isActiveTab = (path: string) => {
 };
 
 // Helpers
-const getInitials = (emp: any) => getInitialsHelper(emp);
+const getInitials = (emp: Employee) => getInitialsHelper(emp);
 </script>
