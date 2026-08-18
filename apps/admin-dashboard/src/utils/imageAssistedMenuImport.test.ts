@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { validateImageAssistedMenuItems } from "./imageAssistedMenuImport";
+import {
+  validateImageAssistedMenuCategories,
+  validateImageAssistedMenuItems,
+} from "./imageAssistedMenuImport";
 
 describe("validateImageAssistedMenuItems", () => {
   it("maps corrected rows to the existing bulk import contract with defaults", () => {
@@ -52,11 +55,45 @@ describe("validateImageAssistedMenuItems", () => {
     expect(result.items).toEqual([]);
     expect(result.errors).toEqual({
       "item-1": {
-        name: "名稱必填。",
-        price: "價格必須是 0 以上整數分。",
-        categoryKey: "請選擇分類。",
-        sortOrder: "排序必須是 0 以上整數。",
+        name: "nameRequired",
+        price: "priceInvalid",
+        categoryKey: "categoryRequired",
+        sortOrder: "sortOrderInvalid",
       },
     });
+  });
+
+  it("rejects blank numeric fields instead of treating them as zero", () => {
+    const result = validateImageAssistedMenuItems(
+      [
+        {
+          id: "item-1",
+          name: "牛肉麵",
+          price: "",
+          categoryKey: "category-1",
+          description: "",
+          isAvailable: true,
+          sortOrder: "",
+        },
+      ],
+      new Map([["category-1", 7]]),
+    );
+
+    expect(result.items).toEqual([]);
+    expect(result.errors).toEqual({
+      "item-1": {
+        price: "priceRequired",
+        sortOrder: "sortOrderRequired",
+      },
+    });
+  });
+
+  it("returns an error for each blank category name", () => {
+    expect(
+      validateImageAssistedMenuCategories([
+        { key: "new-1", name: "", sortOrder: 0 },
+        { key: "new-2", name: " 飲料 ", sortOrder: 1 },
+      ]),
+    ).toEqual({ "new-1": "categoryNameRequired" });
   });
 });

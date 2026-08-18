@@ -6,7 +6,7 @@ import { useI18n } from "@/i18n";
 import type { MenuItemImportInput } from "@/utils/menuItemImport";
 import type { ImageMenuCategoryDraft } from "@/utils/imageAssistedMenuImport";
 import type { ImageVariants } from "@/composables/useImageUpload";
-import { getApiErrorCode } from "@makanmasak/shared/utils/unknown";
+import { getApiErrorCode, isRecord } from "@makanmasak/shared/utils/unknown";
 import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 export interface CategoryData {
@@ -65,6 +65,41 @@ export interface MenuItemData {
  */
 export type SaveMenuItemOutcome = "saved" | "failed" | "conflict";
 
+interface ApiValidationDetail {
+  field?: string;
+  index?: number;
+  message?: string;
+}
+
+interface ApiErrorPayload {
+  message?: string;
+  details?: ApiValidationDetail[];
+}
+
+function getApiErrorPayload(error: unknown): ApiErrorPayload | undefined {
+  if (
+    !isRecord(error) ||
+    !isRecord(error.response) ||
+    !isRecord(error.response.data) ||
+    !isRecord(error.response.data.error)
+  ) {
+    return undefined;
+  }
+
+  const payload = error.response.data.error;
+  return {
+    message: typeof payload.message === "string" ? payload.message : undefined,
+    details: Array.isArray(payload.details)
+      ? payload.details.filter(isRecord).map((detail) => ({
+          field: typeof detail.field === "string" ? detail.field : undefined,
+          index: typeof detail.index === "number" ? detail.index : undefined,
+          message:
+            typeof detail.message === "string" ? detail.message : undefined,
+        }))
+      : undefined,
+  };
+}
+
 // Singleton state — shared across components within the same page
 const categories = ref<CategoryData[]>([]);
 const menuItems = ref<MenuItemData[]>([]);
@@ -100,19 +135,20 @@ export function useMenuManagement() {
     if (!authStore.restaurantId) return;
     isLoading.value = true;
     try {
-      const response = await api.get<{ categories: any[]; menuItems: any[] }>(
-        `/menu/${authStore.restaurantId}?includeAll=true`,
-      );
+      const response = await api.get<{
+        categories: CategoryData[];
+        menuItems: MenuItemData[];
+      }>(`/menu/${authStore.restaurantId}?includeAll=true`);
       const payload = response.data?.success ? response.data.data : undefined;
       if (payload) {
-        categories.value = payload.categories.map((c: any) => ({
+        categories.value = payload.categories.map((c) => ({
           ...c,
           nameEn: c.nameEn || "",
         }));
         // No client-side deleted-item filter: soft-deleted items carry
         // deleted_at_ms and the API excludes them at the source (#80). The old
         // sortOrder !== -1 convention is retired.
-        menuItems.value = payload.menuItems.map((item: any) => ({
+        menuItems.value = payload.menuItems.map((item) => ({
           ...item,
           nameEn: item.nameEn || "",
           catalogType: item.catalogType ?? "menu_item",
@@ -292,12 +328,12 @@ export function useMenuManagement() {
    * issue naming the offending key — the one piece of information the owner
    * needed to fix it. Same source `describeImportFailure` reads for CSV rows.
    */
-  const describeSaveFailure = (error: any): string => {
-    const apiError = error?.response?.data?.error;
-    const details = Array.isArray(apiError?.details) ? apiError.details : [];
-    const issue = details.find((detail: any) => detail?.message);
+  const describeSaveFailure = (error: unknown): string => {
+    const apiError = getApiErrorPayload(error);
+    const details = apiError?.details ?? [];
+    const issue = details.find((detail) => detail.message);
 
-    if (issue) {
+    if (issue?.message) {
       return issue.field ? `${issue.field}: ${issue.message}` : issue.message;
     }
     return apiError?.message || t("menu.errors.saveFailed");
@@ -312,9 +348,9 @@ export function useMenuManagement() {
    * is CSV line `index + 2` (line 1 is the header, matching the wording
    * parseMenuItemImport already uses).
    */
-  const describeImportFailure = (error: any): string => {
-    const apiError = error?.response?.data?.error;
-    const details = Array.isArray(apiError?.details) ? apiError.details : [];
+  const describeImportFailure = (error: unknown): string => {
+    const apiError = getApiErrorPayload(error);
+    const details = apiError?.details ?? [];
 
     for (const detail of details) {
       const index =
@@ -362,11 +398,12 @@ export function useMenuManagement() {
    */
   const createImageAssistedCategories = async (
     drafts: ImageMenuCategoryDraft[],
+    ids: Map<string, number> = new Map(),
   ): Promise<Map<string, number>> => {
-    const ids = new Map<string, number>();
     if (!authStore.restaurantId) return ids;
 
     for (const draft of drafts) {
+      if (ids.has(draft.key)) continue;
       const response = await api.post<CategoryData>(
         `/menu/${authStore.restaurantId}/categories`,
         { name: draft.name, sortOrder: draft.sortOrder },

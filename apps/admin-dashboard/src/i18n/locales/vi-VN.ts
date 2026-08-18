@@ -198,6 +198,30 @@ const viVN: Messages = {
       fileTooLarge: "File is too large",
       invalidType: "Unsupported file type",
     },
+    imageImport: {
+      title: "Tạo từ ảnh thực đơn",
+      temporaryNotice: "Ảnh chỉ dùng tạm thời và sẽ bị xóa sau 48 giờ.",
+      selectImages: "Chọn ảnh thực đơn",
+      sourceImages: "Ảnh nguồn",
+      sourceImagesAlt: "Ảnh nguồn thực đơn đã tải lên",
+      emptySource: "Tải ảnh lên rồi nhập kết quả hiệu đính ở bên phải.",
+      row: "Hàng {number}",
+      priceCents: "Giá (xu)",
+      publishing: "Đang xuất bản…",
+      publish: "Xuất bản thực đơn có cấu trúc",
+      fixFields: "Hãy sửa các trường được đánh dấu trước khi xuất bản.",
+      publishFailed:
+        "Xuất bản thất bại: {message}. Danh mục trống đã tạo được giữ lại để thử lại.",
+      validation: {
+        nameRequired: "Tên là bắt buộc.",
+        priceRequired: "Giá là bắt buộc.",
+        priceInvalid: "Giá phải là số nguyên không âm tính theo xu.",
+        categoryRequired: "Chọn danh mục.",
+        sortOrderRequired: "Thứ tự là bắt buộc.",
+        sortOrderInvalid: "Thứ tự phải là số nguyên không âm.",
+        categoryNameRequired: "Tên danh mục là bắt buộc.",
+      },
+    },
     confirms: {
       deleteItem: 'Bạn có chắc muốn xóa "{name}" không?',
       deleteCategory:

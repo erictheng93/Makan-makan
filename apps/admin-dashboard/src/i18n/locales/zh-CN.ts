@@ -196,6 +196,30 @@ const zhCN: Messages = {
       fileTooLarge: "文件过大",
       invalidType: "格式不符",
     },
+    imageImport: {
+      title: "从菜单图片校对建立",
+      temporaryNotice: "图片仅供本次校对，48 小时后移除。",
+      selectImages: "选择菜单图片",
+      sourceImages: "来源图片",
+      sourceImagesAlt: "上传的菜单来源图片",
+      emptySource: "上传图片后，在右侧输入校对结果。",
+      row: "第 {number} 行",
+      priceCents: "价格（分）",
+      publishing: "发布中…",
+      publish: "发布结构化菜单",
+      fixFields: "请修正标示的字段后再发布。",
+      publishFailed:
+        "发布失败：{message}。已建立的空分类会保留，可修正后重试。",
+      validation: {
+        nameRequired: "名称必填。",
+        priceRequired: "价格必填。",
+        priceInvalid: "价格必须是 0 以上整数分。",
+        categoryRequired: "请选择分类。",
+        sortOrderRequired: "排序必填。",
+        sortOrderInvalid: "排序必须是 0 以上整数。",
+        categoryNameRequired: "分类名称必填。",
+      },
+    },
     confirms: {
       deleteItem: "确定要删除「{name}」吗？",
       deleteCategory:

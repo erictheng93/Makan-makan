@@ -12,6 +12,7 @@ describe("ImageAssistedMenuImport", () => {
         sourceImages: ["https://images.example.test/menu.jpg"],
         isPublishing: false,
         errors: {},
+        categoryErrors: {},
       },
     });
 

@@ -18,8 +18,28 @@ export interface ImageAssistedMenuItemDraft {
 
 export type ImageAssistedMenuItemErrors = Record<
   string,
-  Partial<Record<keyof ImageAssistedMenuItemDraft, string>>
+  Partial<Record<keyof ImageAssistedMenuItemDraft, ImageAssistedMenuErrorCode>>
 >;
+
+export type ImageAssistedMenuErrorCode =
+  | "nameRequired"
+  | "priceRequired"
+  | "priceInvalid"
+  | "categoryRequired"
+  | "sortOrderRequired"
+  | "sortOrderInvalid";
+
+export type ImageMenuCategoryErrors = Record<string, "categoryNameRequired">;
+
+export function validateImageAssistedMenuCategories(
+  drafts: ImageMenuCategoryDraft[],
+): ImageMenuCategoryErrors {
+  return Object.fromEntries(
+    drafts
+      .filter((draft) => !draft.name.trim())
+      .map((draft) => [draft.key, "categoryNameRequired"]),
+  );
+}
 
 export function validateImageAssistedMenuItems(
   drafts: ImageAssistedMenuItemDraft[],
@@ -29,19 +49,24 @@ export function validateImageAssistedMenuItems(
   const items: MenuItemImportInput[] = [];
 
   for (const draft of drafts) {
-    const rowErrors: Partial<Record<keyof ImageAssistedMenuItemDraft, string>> =
-      {};
+    const rowErrors: Partial<
+      Record<keyof ImageAssistedMenuItemDraft, ImageAssistedMenuErrorCode>
+    > = {};
     const price = Number(draft.price);
     const sortOrder = Number(draft.sortOrder);
     const categoryId = categoryIds.get(draft.categoryKey);
 
-    if (!draft.name.trim()) rowErrors.name = "名稱必填。";
-    if (!Number.isInteger(price) || price < 0) {
-      rowErrors.price = "價格必須是 0 以上整數分。";
+    if (!draft.name.trim()) rowErrors.name = "nameRequired";
+    if (!draft.price.trim()) {
+      rowErrors.price = "priceRequired";
+    } else if (!Number.isInteger(price) || price < 0) {
+      rowErrors.price = "priceInvalid";
     }
-    if (categoryId === undefined) rowErrors.categoryKey = "請選擇分類。";
-    if (!Number.isInteger(sortOrder) || sortOrder < 0) {
-      rowErrors.sortOrder = "排序必須是 0 以上整數。";
+    if (categoryId === undefined) rowErrors.categoryKey = "categoryRequired";
+    if (!draft.sortOrder.trim()) {
+      rowErrors.sortOrder = "sortOrderRequired";
+    } else if (!Number.isInteger(sortOrder) || sortOrder < 0) {
+      rowErrors.sortOrder = "sortOrderInvalid";
     }
 
     if (Object.keys(rowErrors).length > 0) {

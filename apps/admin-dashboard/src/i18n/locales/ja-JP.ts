@@ -198,6 +198,30 @@ const jaJP: Messages = {
       fileTooLarge: "File is too large",
       invalidType: "Unsupported file type",
     },
+    imageImport: {
+      title: "メニュー画像から作成",
+      temporaryNotice: "画像は確認用の一時データで、48 時間後に削除されます。",
+      selectImages: "メニュー画像を選択",
+      sourceImages: "元画像",
+      sourceImagesAlt: "アップロードしたメニュー画像",
+      emptySource: "画像をアップロードしてから右側で内容を入力します。",
+      row: "{number} 行目",
+      priceCents: "価格（セント）",
+      publishing: "公開中…",
+      publish: "構造化メニューを公開",
+      fixFields: "強調表示された項目を修正してください。",
+      publishFailed:
+        "公開に失敗しました：{message}。作成済みの空カテゴリは再試行用に保持されます。",
+      validation: {
+        nameRequired: "名前は必須です。",
+        priceRequired: "価格は必須です。",
+        priceInvalid: "価格は 0 以上の整数で指定してください。",
+        categoryRequired: "カテゴリを選択してください。",
+        sortOrderRequired: "表示順は必須です。",
+        sortOrderInvalid: "表示順は 0 以上の整数で指定してください。",
+        categoryNameRequired: "カテゴリ名は必須です。",
+      },
+    },
     confirms: {
       deleteItem: "「{name}」を削除してもよろしいですか？",
       deleteCategory:

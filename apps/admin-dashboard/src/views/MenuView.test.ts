@@ -239,9 +239,10 @@ describe("MenuView", () => {
     });
     await flushPromises();
 
-    expect(createImageAssistedCategories).toHaveBeenCalledWith([
-      { key: "new-1", name: "主食", sortOrder: 0 },
-    ]);
+    expect(createImageAssistedCategories).toHaveBeenCalledWith(
+      [{ key: "new-1", name: "主食", sortOrder: 0 }],
+      expect.any(Map),
+    );
     expect(importMenuItems).toHaveBeenCalledWith([
       expect.objectContaining({
         name: "牛肉麵",
@@ -250,6 +251,47 @@ describe("MenuView", () => {
         isFeatured: false,
       }),
     ]);
+  });
+
+  it("reuses created categories when a failed bulk import is retried", async () => {
+    createImageAssistedCategories.mockImplementation(
+      async (_drafts: unknown, ids: Map<string, number>) => {
+        ids.set("new-1", 9);
+        return ids;
+      },
+    );
+    importMenuItems.mockRejectedValueOnce(new Error("第 1 列價格無效"));
+    const wrapper = mountMenuView();
+    const payload = {
+      categories: [{ key: "new-1", name: "主食", sortOrder: 0 }],
+      items: [
+        {
+          id: "item-1",
+          name: "牛肉麵",
+          price: "18000",
+          categoryKey: "new-1",
+          description: "",
+          isAvailable: true,
+          sortOrder: "0",
+        },
+      ],
+    };
+
+    wrapper.findComponent(ImageAssistedMenuImport).vm.$emit("publish", payload);
+    await flushPromises();
+    wrapper.findComponent(ImageAssistedMenuImport).vm.$emit("publish", payload);
+    await flushPromises();
+
+    expect(createImageAssistedCategories).toHaveBeenCalledTimes(1);
+    expect(importMenuItems).toHaveBeenCalledTimes(2);
+    expect(importMenuItems).toHaveBeenNthCalledWith(
+      1,
+      expect.arrayContaining([expect.objectContaining({ categoryId: 9 })]),
+    );
+    expect(importMenuItems).toHaveBeenNthCalledWith(
+      2,
+      expect.arrayContaining([expect.objectContaining({ categoryId: 9 })]),
+    );
   });
 
   it("renders the batch import panel labels through i18n", async () => {

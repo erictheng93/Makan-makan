@@ -198,6 +198,30 @@ const zhTWCore = {
       fileTooLarge: "檔案過大",
       invalidType: "格式不符",
     },
+    imageImport: {
+      title: "從菜單圖片校對建立",
+      temporaryNotice: "圖片僅供本次校對，48 小時後移除。",
+      selectImages: "選取菜單圖片",
+      sourceImages: "來源圖片",
+      sourceImagesAlt: "上傳的菜單來源圖片",
+      emptySource: "上傳圖片後，在右側輸入校對結果。",
+      row: "第 {number} 列",
+      priceCents: "價格（分）",
+      publishing: "發布中…",
+      publish: "發布結構化菜單",
+      fixFields: "請修正標示的欄位後再發布。",
+      publishFailed:
+        "發布失敗：{message}。已建立的空分類會保留，可修正後重試。",
+      validation: {
+        nameRequired: "名稱必填。",
+        priceRequired: "價格必填。",
+        priceInvalid: "價格必須是 0 以上整數分。",
+        categoryRequired: "請選擇分類。",
+        sortOrderRequired: "排序必填。",
+        sortOrderInvalid: "排序必須是 0 以上整數。",
+        categoryNameRequired: "分類名稱必填。",
+      },
+    },
     confirms: {
       deleteItem: "確定要刪除「{name}」嗎？",
       deleteCategory:

@@ -199,6 +199,32 @@ const idID: Messages = {
       fileTooLarge: "File is too large",
       invalidType: "Unsupported file type",
     },
+    imageImport: {
+      title: "Buat dari gambar menu",
+      temporaryNotice: "Gambar bersifat sementara dan dihapus setelah 48 jam.",
+      selectImages: "Pilih gambar menu",
+      sourceImages: "Gambar sumber",
+      sourceImagesAlt: "Gambar sumber menu yang diunggah",
+      emptySource:
+        "Unggah gambar lalu masukkan hasil koreksi di sebelah kanan.",
+      row: "Baris {number}",
+      priceCents: "Harga (sen)",
+      publishing: "Menerbitkan…",
+      publish: "Terbitkan menu terstruktur",
+      fixFields: "Perbaiki bidang yang ditandai sebelum menerbitkan.",
+      publishFailed:
+        "Penerbitan gagal: {message}. Kategori kosong yang telah dibuat dipertahankan untuk coba lagi.",
+      validation: {
+        nameRequired: "Nama wajib diisi.",
+        priceRequired: "Harga wajib diisi.",
+        priceInvalid:
+          "Harga harus berupa bilangan bulat tidak negatif dalam sen.",
+        categoryRequired: "Pilih kategori.",
+        sortOrderRequired: "Urutan wajib diisi.",
+        sortOrderInvalid: "Urutan harus berupa bilangan bulat tidak negatif.",
+        categoryNameRequired: "Nama kategori wajib diisi.",
+      },
+    },
     confirms: {
       deleteItem: 'Apakah Anda yakin ingin menghapus "{name}"?',
       deleteCategory:

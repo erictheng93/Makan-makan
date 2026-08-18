@@ -248,6 +248,7 @@
           :upload-error="imageMenuUploadError"
           :publish-error="imageMenuPublishError"
           :errors="imageMenuErrors"
+          :category-errors="imageMenuCategoryErrors"
           @select-images="uploadImageMenuSources"
           @publish="publishImageAssistedMenu"
         />
@@ -1325,7 +1326,9 @@ import {
 } from "@/utils/menuItemImport";
 import {
   validateImageAssistedMenuItems,
+  validateImageAssistedMenuCategories,
   type ImageAssistedMenuItemErrors,
+  type ImageMenuCategoryErrors,
   type ImageMenuCategoryDraft,
 } from "@/utils/imageAssistedMenuImport";
 
@@ -1398,6 +1401,8 @@ const imageMenuSourceImages = ref<string[]>([]);
 const imageMenuUploadError = ref("");
 const imageMenuPublishError = ref("");
 const imageMenuErrors = ref<ImageAssistedMenuItemErrors>({});
+const imageMenuCategoryErrors = ref<ImageMenuCategoryErrors>({});
+const imageMenuCreatedCategoryIds = new Map<string, number>();
 const isPublishingImageMenu = ref(false);
 const hasCompletedMarketProductGap = ref(false);
 const imageFileInput = ref<HTMLInputElement | null>(null);
@@ -2372,6 +2377,16 @@ const publishImageAssistedMenu = async (payload: {
 }) => {
   imageMenuPublishError.value = "";
   imageMenuErrors.value = {};
+  imageMenuCategoryErrors.value = {};
+
+  const categoryErrors = validateImageAssistedMenuCategories(
+    payload.categories,
+  );
+  if (Object.keys(categoryErrors).length) {
+    imageMenuCategoryErrors.value = categoryErrors;
+    imageMenuPublishError.value = t("menu.imageImport.fixFields");
+    return;
+  }
 
   const categoryIds = new Map<string, number>(
     categories.value.map((category) => [
@@ -2379,6 +2394,7 @@ const publishImageAssistedMenu = async (payload: {
       category.id,
     ]),
   );
+  imageMenuCreatedCategoryIds.forEach((id, key) => categoryIds.set(key, id));
   payload.categories.forEach((category, index) => {
     categoryIds.set(category.key, -(index + 1));
   });
@@ -2388,7 +2404,7 @@ const publishImageAssistedMenu = async (payload: {
   );
   if (Object.keys(beforeCreate.errors).length) {
     imageMenuErrors.value = beforeCreate.errors;
-    imageMenuPublishError.value = "請修正標示的品項欄位後再發布。";
+    imageMenuPublishError.value = t("menu.imageImport.fixFields");
     return;
   }
 
@@ -2396,6 +2412,7 @@ const publishImageAssistedMenu = async (payload: {
   try {
     const createdCategoryIds = await createImageAssistedCategories(
       payload.categories,
+      imageMenuCreatedCategoryIds,
     );
     createdCategoryIds.forEach((id, key) => categoryIds.set(key, id));
     const ready = validateImageAssistedMenuItems(payload.items, categoryIds);
@@ -2406,8 +2423,8 @@ const publishImageAssistedMenu = async (payload: {
   } catch (error) {
     imageMenuPublishError.value =
       error instanceof Error && error.message
-        ? `發布失敗：${error.message}。已建立的空分類會保留，可修正後重試。`
-        : "發布失敗。已建立的空分類會保留，可修正後重試。";
+        ? t("menu.imageImport.publishFailed", { message: error.message })
+        : t("menu.imageImport.publishFailed");
   } finally {
     isPublishingImageMenu.value = false;
   }

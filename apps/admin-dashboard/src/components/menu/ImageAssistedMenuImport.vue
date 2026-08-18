@@ -4,15 +4,17 @@
   >
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h3 class="text-[15px] font-bold text-[#1C1C1E]">從菜單圖片校對建立</h3>
+        <h3 class="text-[15px] font-bold text-[#1C1C1E]">
+          {{ t("menu.imageImport.title") }}
+        </h3>
         <p class="mt-1 text-[13px] text-[#8E8E93]">
-          圖片只在本次校對時使用，原檔會依既有清理機制於 48 小時後移除。
+          {{ t("menu.imageImport.temporaryNotice") }}
         </p>
       </div>
       <label
         class="cursor-pointer rounded-full bg-[#F2F2F7] px-3.5 py-2 text-[13px] font-semibold text-[#1C1C1E] hover:bg-[#E5E5EA]"
       >
-        選取菜單圖片
+        {{ t("menu.imageImport.selectImages") }}
         <input
           class="sr-only"
           type="file"
@@ -28,31 +30,35 @@
     </p>
     <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
       <div class="rounded-xl bg-[#F2F2F7] p-3">
-        <p class="mb-2 text-[13px] font-semibold text-[#1C1C1E]">來源圖片</p>
+        <p class="mb-2 text-[13px] font-semibold text-[#1C1C1E]">
+          {{ t("menu.imageImport.sourceImages") }}
+        </p>
         <div v-if="sourceImages.length" class="grid grid-cols-2 gap-2">
           <img
             v-for="src in sourceImages"
             :key="src"
             :src="src"
-            alt="上傳的菜單來源圖片"
+            :alt="t('menu.imageImport.sourceImagesAlt')"
             class="max-h-72 w-full rounded-lg object-contain bg-white"
           />
         </div>
         <p v-else class="py-10 text-center text-[13px] text-[#8E8E93]">
-          上傳一或多張圖片後，在右側輸入校對結果。
+          {{ t("menu.imageImport.emptySource") }}
         </p>
       </div>
 
       <div class="min-w-0 space-y-4">
         <div>
           <div class="mb-2 flex items-center justify-between">
-            <h4 class="text-[13px] font-semibold text-[#1C1C1E]">分類</h4>
+            <h4 class="text-[13px] font-semibold text-[#1C1C1E]">
+              {{ t("menu.form.category") }}
+            </h4>
             <button
               type="button"
               class="text-[13px] font-semibold text-[#0066D6]"
               @click="addCategory"
             >
-              新增分類
+              {{ t("menu.addCategory") }}
             </button>
           </div>
           <div class="space-y-2">
@@ -67,13 +73,19 @@
                 class="min-w-0 flex-1 rounded-lg bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
                 placeholder="分類名稱"
               />
+              <span
+                v-if="categoryErrors[category.key]"
+                class="text-[12px] text-ios-error"
+              >
+                {{ errorText(categoryErrors[category.key]) }}
+              </span>
               <button
                 type="button"
                 class="rounded-lg px-2 text-[13px] text-ios-error hover:bg-red-50"
                 aria-label="刪除分類"
                 @click="removeCategory(category.key)"
               >
-                刪除
+                {{ t("common.delete") }}
               </button>
             </div>
           </div>
@@ -81,13 +93,15 @@
 
         <div>
           <div class="mb-2 flex items-center justify-between">
-            <h4 class="text-[13px] font-semibold text-[#1C1C1E]">品項</h4>
+            <h4 class="text-[13px] font-semibold text-[#1C1C1E]">
+              {{ t("menu.title") }}
+            </h4>
             <button
               type="button"
               class="text-[13px] font-semibold text-[#0066D6]"
               @click="addItem"
             >
-              新增品項
+              {{ t("menu.addItem") }}
             </button>
           </div>
           <div class="space-y-3">
@@ -97,14 +111,15 @@
               class="rounded-xl border border-[#E5E5EA] p-3"
             >
               <div class="mb-2 flex justify-between">
-                <span class="text-[12px] font-semibold text-[#8E8E93]"
-                  >第 {{ index + 1 }} 列</span
+                <span class="text-[12px] font-semibold text-[#8E8E93]">{{
+                  t("menu.imageImport.row", { number: index + 1 })
+                }}</span
                 ><button
                   type="button"
                   class="text-[12px] text-ios-error"
                   @click="removeItem(item.id)"
                 >
-                  刪除
+                  {{ t("common.delete") }}
                 </button>
               </div>
               <div class="grid gap-2 sm:grid-cols-2">
@@ -113,26 +128,30 @@
                     v-model="item.name"
                     class="mt-1 w-full rounded-lg bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
                   /><span v-if="errors[item.id]?.name" class="text-ios-error">{{
-                    errors[item.id]?.name
+                    errorText(errors[item.id]?.name)
                   }}</span></label
                 >
                 <label class="text-[12px] text-[#636366]"
-                  >價格（分）<input
+                  >{{ t("menu.imageImport.priceCents")
+                  }}<input
                     v-model="item.price"
                     inputmode="numeric"
                     class="mt-1 w-full rounded-lg bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
                   /><span
                     v-if="errors[item.id]?.price"
                     class="text-ios-error"
-                    >{{ errors[item.id]?.price }}</span
+                    >{{ errorText(errors[item.id]?.price) }}</span
                   ></label
                 >
                 <label class="text-[12px] text-[#636366]"
-                  >分類<select
+                  >{{ t("menu.form.category")
+                  }}<select
                     v-model="item.categoryKey"
                     class="mt-1 w-full rounded-lg bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
                   >
-                    <option value="">選擇分類</option>
+                    <option value="">
+                      {{ t("menu.form.selectCategory") }}
+                    </option>
                     <option
                       v-for="category in categoryOptions"
                       :key="category.key"
@@ -143,23 +162,25 @@
                   ><span
                     v-if="errors[item.id]?.categoryKey"
                     class="text-ios-error"
-                    >{{ errors[item.id]?.categoryKey }}</span
+                    >{{ errorText(errors[item.id]?.categoryKey) }}</span
                   ></label
                 >
                 <label class="text-[12px] text-[#636366]"
-                  >排序<input
+                  >{{ t("menu.form.sortOrder")
+                  }}<input
                     v-model="item.sortOrder"
                     inputmode="numeric"
                     class="mt-1 w-full rounded-lg bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
                   /><span
                     v-if="errors[item.id]?.sortOrder"
                     class="text-ios-error"
-                    >{{ errors[item.id]?.sortOrder }}</span
+                    >{{ errorText(errors[item.id]?.sortOrder) }}</span
                   ></label
                 >
               </div>
               <label class="mt-2 block text-[12px] text-[#636366]"
-                >備註<textarea
+                >{{ t("menu.form.description")
+                }}<textarea
                   v-model="item.description"
                   rows="2"
                   class="mt-1 w-full rounded-lg bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
@@ -167,10 +188,9 @@
               </label>
               <label
                 class="mt-2 inline-flex items-center gap-2 text-[13px] text-[#1C1C1E]"
-                ><input
-                  v-model="item.isAvailable"
-                  type="checkbox"
-                />可供應</label
+                ><input v-model="item.isAvailable" type="checkbox" />{{
+                  t("menu.available")
+                }}</label
               >
             </div>
           </div>
@@ -185,7 +205,11 @@
           :disabled="isPublishing || !sourceImages.length || !draftItems.length"
           @click="publish"
         >
-          {{ isPublishing ? "發布中…" : "發布結構化菜單" }}
+          {{
+            isPublishing
+              ? t("menu.imageImport.publishing")
+              : t("menu.imageImport.publish")
+          }}
         </button>
       </div>
     </div>
@@ -194,10 +218,13 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "@/i18n";
 import type { CategoryData } from "@/composables/useMenuManagement";
 import type {
   ImageAssistedMenuItemDraft,
+  ImageAssistedMenuErrorCode,
   ImageAssistedMenuItemErrors,
+  ImageMenuCategoryErrors,
   ImageMenuCategoryDraft,
 } from "@/utils/imageAssistedMenuImport";
 
@@ -208,7 +235,9 @@ const props = defineProps<{
   uploadError?: string;
   publishError?: string;
   errors: ImageAssistedMenuItemErrors;
+  categoryErrors: ImageMenuCategoryErrors;
 }>();
+const { t } = useI18n();
 const emit = defineEmits<{
   selectImages: [files: File[]];
   publish: [
@@ -228,6 +257,9 @@ const categoryOptions = computed(() => [
   })),
   ...draftCategories.value.filter((category) => category.name.trim()),
 ]);
+const errorText = (
+  code?: ImageAssistedMenuErrorCode | "categoryNameRequired",
+) => (code ? t(`menu.imageImport.validation.${code}`) : "");
 const selectImages = (event: Event) => {
   const input = event.target as HTMLInputElement;
   emit("selectImages", Array.from(input.files ?? []));
@@ -262,9 +294,10 @@ const removeItem = (id: string) => {
 };
 const publish = () =>
   emit("publish", {
-    categories: draftCategories.value
-      .filter((category) => category.name.trim())
-      .map((category) => ({ ...category, name: category.name.trim() })),
+    categories: draftCategories.value.map((category) => ({
+      ...category,
+      name: category.name.trim(),
+    })),
     items: draftItems.value,
   });
 </script>

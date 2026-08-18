@@ -198,6 +198,31 @@ const enUS: Messages = {
       fileTooLarge: "File is too large",
       invalidType: "Unsupported file type",
     },
+    imageImport: {
+      title: "Build from menu images",
+      temporaryNotice:
+        "Images are temporary review aids and are removed after 48 hours.",
+      selectImages: "Select menu images",
+      sourceImages: "Source images",
+      sourceImagesAlt: "Uploaded menu source image",
+      emptySource: "Upload images, then enter the corrected menu on the right.",
+      row: "Row {number}",
+      priceCents: "Price (cents)",
+      publishing: "Publishing…",
+      publish: "Publish structured menu",
+      fixFields: "Correct the highlighted fields before publishing.",
+      publishFailed:
+        "Publishing failed: {message}. Empty categories already created are retained for retry.",
+      validation: {
+        nameRequired: "Name is required.",
+        priceRequired: "Price is required.",
+        priceInvalid: "Price must be a non-negative integer in cents.",
+        categoryRequired: "Select a category.",
+        sortOrderRequired: "Sort order is required.",
+        sortOrderInvalid: "Sort order must be a non-negative integer.",
+        categoryNameRequired: "Category name is required.",
+      },
+    },
     confirms: {
       deleteItem: 'Are you sure you want to delete "{name}"?',
       deleteCategory:
