@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ingredientDefinitions } from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 import { IngredientService } from "./IngredientService";
 
 const mocks = vi.hoisted(() => ({
@@ -29,8 +34,11 @@ function createQuery(result: unknown) {
   return builder;
 }
 
-function mockSelectResults(results: unknown[]) {
-  mocks.db.select.mockImplementation(() => createQuery(results.shift() ?? []));
+const fixtureTables = { ingredientDefinitions };
+type SelectFixtureName = keyof typeof fixtureTables;
+
+function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
+  Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
 }
 
 function mockDistinctResults(results: unknown[]) {
@@ -117,23 +125,25 @@ describe("IngredientService", () => {
   });
 
   it("lists ingredients with pagination metadata and response mapping", async () => {
-    mockSelectResults([
-      [{ total: 2 }],
-      [
-        ingredientRow({ costPerUnit: 999, costPerUnitCents: 1250 }),
-        ingredientRow({
-          id: 102,
-          name: "Sambal",
-          category: null,
-          costPerUnit: null,
-          costPerUnitCents: null,
-          supplier: null,
-          minStockLevel: null,
-          currentStock: null,
-          isActive: false,
-        }),
+    mockSelectResults({
+      ingredientDefinitions: [
+        [{ total: 2 }],
+        [
+          ingredientRow({ costPerUnit: 999, costPerUnitCents: 1250 }),
+          ingredientRow({
+            id: 102,
+            name: "Sambal",
+            category: null,
+            costPerUnit: null,
+            costPerUnitCents: null,
+            supplier: null,
+            minStockLevel: null,
+            currentStock: null,
+            isActive: false,
+          }),
+        ],
       ],
-    ]);
+    });
 
     await expect(
       createService().list("restaurant-1", {
@@ -173,10 +183,12 @@ describe("IngredientService", () => {
   });
 
   it("gets ingredients by restaurant scope and returns null for misses", async () => {
-    mockSelectResults([
-      [ingredientRow({ costPerUnit: 999, costPerUnitCents: 1250 })],
-      [],
-    ]);
+    mockSelectResults({
+      ingredientDefinitions: [
+        [ingredientRow({ costPerUnit: 999, costPerUnitCents: 1250 })],
+        [],
+      ],
+    });
 
     await expect(createService().get("restaurant-1", 101)).resolves.toEqual({
       id: 101,
@@ -255,21 +267,23 @@ describe("IngredientService", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     const mutations = mockUpdates();
-    mockSelectResults([
-      [ingredientRow()],
-      [ingredientRow()],
-      [
-        ingredientRow({
-          name: "Brown Rice",
-          category: null,
-          costPerUnit: null,
-          costPerUnitCents: null,
-          supplier: null,
-          minStockLevel: null,
-          currentStock: null,
-        }),
+    mockSelectResults({
+      ingredientDefinitions: [
+        [ingredientRow()],
+        [ingredientRow()],
+        [
+          ingredientRow({
+            name: "Brown Rice",
+            category: null,
+            costPerUnit: null,
+            costPerUnitCents: null,
+            supplier: null,
+            minStockLevel: null,
+            currentStock: null,
+          }),
+        ],
       ],
-    ]);
+    });
 
     await expect(
       createService().update("restaurant-1", 101, {}),
@@ -307,7 +321,7 @@ describe("IngredientService", () => {
 
   it("returns null when updating missing ingredients", async () => {
     const mutations = mockUpdates();
-    mockSelectResults([[]]);
+    mockSelectResults({ ingredientDefinitions: [[]] });
 
     await expect(
       createService().update("restaurant-1", 404, { name: "Missing" }),
