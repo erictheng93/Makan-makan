@@ -223,6 +223,7 @@ import FeedbackDetail from "@/components/feedback/FeedbackDetail.vue";
 import FeedbackStats from "@/components/feedback/FeedbackStats.vue";
 import type {
   FeedbackItem,
+  FeedbackFilters,
   FeedbackStats as FeedbackStatsType,
 } from "@/composables/useFeedback";
 
@@ -269,7 +270,7 @@ function debouncedFetch() {
 }
 
 async function loadFeedback() {
-  const params: any = { page: filters.page, limit: 20 };
+  const params: FeedbackFilters = { page: filters.page, limit: 20 };
   if (filters.search) params.search = filters.search;
   if (filters.status) params.status = filters.status;
   if (filters.category) params.category = filters.category;
