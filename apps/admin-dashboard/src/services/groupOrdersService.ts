@@ -165,8 +165,8 @@ export const groupOrdersService = {
     averageGroupSize: number;
     averageOrderValue: number;
     conversionRate: number;
-    popularTimeSlots: Array<any>;
-    paymentMethodDistribution: Record<string, any>;
+    popularTimeSlots: Array<Record<string, unknown>>;
+    paymentMethodDistribution: Record<string, unknown>;
   }> {
     const response = await apiClient.get("/orders/group/statistics", params);
     return unwrapApiData<{
@@ -175,8 +175,8 @@ export const groupOrdersService = {
       averageGroupSize: number;
       averageOrderValue: number;
       conversionRate: number;
-      popularTimeSlots: Array<any>;
-      paymentMethodDistribution: Record<string, any>;
+      popularTimeSlots: Array<Record<string, unknown>>;
+      paymentMethodDistribution: Record<string, unknown>;
     }>(response);
   },
 
