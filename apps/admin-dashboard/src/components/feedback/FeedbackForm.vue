@@ -154,11 +154,11 @@ import {
   HelpCircle,
 } from "lucide-vue-next";
 import { useI18n } from "@/i18n";
-import { useFeedback } from "@/composables/useFeedback";
+import { useFeedback, type FeedbackItem } from "@/composables/useFeedback";
 
 const emit = defineEmits<{
   cancel: [];
-  submitted: [feedback: any];
+  submitted: [feedback: FeedbackItem];
 }>();
 
 const { t } = useI18n();
