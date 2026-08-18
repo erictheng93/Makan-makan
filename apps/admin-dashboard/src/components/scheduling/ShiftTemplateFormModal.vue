@@ -373,7 +373,10 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { useI18n } from "@/i18n";
-import type { ShiftTemplate } from "@/types/scheduling";
+import type {
+  CreateShiftTemplateData,
+  ShiftTemplate,
+} from "@/types/scheduling";
 
 const { t } = useI18n();
 
@@ -385,9 +388,14 @@ interface Props {
 
 const props = defineProps<Props>();
 
+type ShiftTemplateSaveData = CreateShiftTemplateData & {
+  restaurantId: string;
+  isActive: boolean;
+};
+
 const emit = defineEmits<{
   "update:modelValue": [value: boolean];
-  save: [data: any];
+  save: [data: ShiftTemplateSaveData];
 }>();
 
 // State
@@ -535,6 +543,7 @@ const handleSubmit = async () => {
     const submitData = {
       restaurantId: props.restaurantId,
       ...form.value,
+      hourlyRate: form.value.hourlyRate ?? undefined,
       durationMinutes: Math.round(parseFloat(calculatedHours.value) * 60),
       breakDurationMinutes:
         form.value.isSplitShift &&
