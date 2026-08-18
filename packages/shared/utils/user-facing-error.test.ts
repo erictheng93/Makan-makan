@@ -22,6 +22,7 @@ const translations: Record<string, string> = {
   "errorPresentation.timeout": "連線逾時，請再試一次",
   "errorPresentation.unknown": "發生未知錯誤，請稍後再試",
   "errors.menuItemUnavailable": "餐點目前無法供應",
+  "feedback.submitError": "提交意見回饋失敗",
 };
 
 const translate = (key: string) => translations[key] ?? key;
@@ -148,6 +149,38 @@ describe("resolveUserFacingError", () => {
 
     expect(result.message).toBe("發生未知錯誤，請稍後再試");
     expect(result.presentation).toBe("unknown");
+  });
+
+  it("names the failed action instead of the generic unknown copy", () => {
+    const result = resolveUserFacingError(
+      {
+        response: {
+          status: 418,
+          data: { error: { message: "Internal detail: table_foo is missing" } },
+        },
+      },
+      translate,
+      { fallbackKey: "feedback.submitError" },
+    );
+
+    expect(result.message).toBe("提交意見回饋失敗");
+    expect(result.presentation).toBe("unknown");
+  });
+
+  /**
+   * The action name is the weakest thing the resolver can say -- it reports
+   * what the reader already knows they were doing. Anything classified says
+   * more, so `fallbackKey` must not outrank it.
+   */
+  it("leaves a classified error alone even when an action name is supplied", () => {
+    const result = resolveUserFacingError(
+      { response: { status: 403, data: { error: { code: "FORBIDDEN" } } } },
+      translate,
+      { fallbackKey: "feedback.submitError" },
+    );
+
+    expect(result.message).toBe("你沒有執行此操作的權限");
+    expect(result.presentation).toBe("status");
   });
 
   it("classifies transport failures without using the thrown English message", () => {

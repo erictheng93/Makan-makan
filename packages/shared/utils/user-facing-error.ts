@@ -24,6 +24,15 @@ export interface ResolveUserFacingErrorOptions {
   dedicatedCodeKeys?: Record<string, string>;
   /** Keys for reusable, actionable API error codes. */
   codeKeys?: Record<string, string>;
+  /**
+   * Key to use in place of the generic unknown copy, naming the action that
+   * failed ("Saving the shift template failed").
+   *
+   * It replaces only the unknown branch. A classified error already says
+   * something truer than the action name -- a 403 is "you lack permission",
+   * not "saving failed" -- so those keep their own copy.
+   */
+  fallbackKey?: string;
 }
 
 type ParsedError = {
@@ -147,5 +156,8 @@ export function resolveUserFacingError(
     // cannot find. Reaching one is a bug worth the request id, not advice.
   }
 
-  return withMessage("errorPresentation.unknown", "unknown");
+  return withMessage(
+    options.fallbackKey ?? "errorPresentation.unknown",
+    "unknown",
+  );
 }
