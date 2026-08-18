@@ -103,15 +103,21 @@ app.onError((err, c) => {
  * that exercises a select path must declare every table it reads from,
  * including the health probe (see `HEALTH_PROBE_FROM` below).
  *
- * This is a route file: `app.onError` (wired above) catches whatever the
- * harness throws and turns it into a JSON error response. A
- * "Missing select fixture for X" failure therefore does NOT show up as a
- * thrown error in the assertion diff — it shows up as an unexpected status
- * code or body (`expected 500 to be 200`, or a 200 with an unexpectedly
- * "healthy" body). When a test fails that way, the harness's thrown message
- * was swallowed by onError; it never reaches the response, so there is
- * nothing to grep for in the JSON body — only the assertion's expected-vs-
- * actual mismatch signals it.
+ * This is a route file: a harness throw does NOT show up as a thrown error
+ * in the assertion diff — it shows up as an unexpected status code or body.
+ * Most `/health*` handlers wrap their db work in their own local try/catch
+ * (`runBasicHealthCheck` in ../index.ts:373-393, `/health/ready` at
+ * index.ts:828-872) before `app.onError` (wired above) ever gets a chance,
+ * and those catch blocks put `error.message` straight into the response —
+ * `services[].error` for the basic health check, `body.error` for
+ * `/health/ready`. Routes that don't catch locally fall through to
+ * `app.onError`, which embeds `String(err)` into `error.message` of the 500
+ * JSON. Either way the harness's "Missing/No select fixtures ..." text DOES
+ * reach the response body — it just lands inside an `error`/`services[].error`
+ * field on an unexpectedly-500/degraded/unhealthy result instead of failing
+ * the assertion directly. When a test fails that way, inspect
+ * `response.json()` (or the failed assertion's actual value) for that text
+ * rather than expecting a rejected promise.
  *
  * `runBasicHealthCheck` (in ../index.ts) issues
  * `db.select({...}).from(sql\`(SELECT 1)\`)` — a raw SQL fragment, not a
