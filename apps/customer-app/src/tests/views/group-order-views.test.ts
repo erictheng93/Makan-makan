@@ -194,7 +194,12 @@ describe("GroupOrderJoinView", () => {
   });
 
   it("renders a not-found state for an unknown or expired share code", async () => {
-    groupApi.get.mockRejectedValueOnce(new Error("404"));
+    // What apiClient throws: an ApiException carrying the status. The bare
+    // Error("404") this used to pass modelled the old string match, not the
+    // client.
+    groupApi.get.mockRejectedValueOnce(
+      Object.assign(new Error("Not Found"), { status: 404, code: "NOT_FOUND" }),
+    );
 
     const wrapper = mount(GroupOrderJoinView, {
       ...mountOptions,

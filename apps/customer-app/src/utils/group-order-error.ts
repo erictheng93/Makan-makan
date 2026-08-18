@@ -74,3 +74,17 @@ export function getGroupOrderErrorI18nKey(
   const code = getGroupOrderErrorCode(error);
   return code ? GROUP_ORDER_ERROR_KEYS[code] : fallbackKey;
 }
+
+/**
+ * A share code that does not exist, or has expired, gets its own screen rather
+ * than a generic failure — the diner needs to know the link is dead, not retry
+ * it. That decision used to be made by matching "404" inside the thrown
+ * message, which broke the moment messages stopped being presentation. The
+ * signals here are the ones `ApiException` actually carries.
+ */
+export function isGroupOrderNotFound(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+
+  const { status, code } = error as { status?: unknown; code?: unknown };
+  return status === 404 || code === "NOT_FOUND";
+}
