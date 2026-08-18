@@ -158,7 +158,7 @@ export default [
         "warn",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
-      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unused-expressions": "off",
       "@typescript-eslint/no-empty-object-type": "off",
     },
@@ -201,14 +201,14 @@ export default [
       },
     },
     rules: {
-      // Left at "warn" on purpose, matching the source files beside them.
-      // Turning it off here hid 676 occurrences — 588 of them in apps/api
-      // alone — which is what made #185 read as a 317-warning admin-dashboard
-      // problem instead of the repo-wide 912 warnings across 144 files that it
-      // measures as with the rule on. The value of this rule is stopping
-      // the next `any`, and `off` is precisely what removes that; test files
-      // are not exempt from having a type. Warnings do not fail any lint script
-      // that uses this config, so surfacing them costs nothing but honesty.
+      // Production code is at zero everywhere, so the general block above is
+      // now "error". Test files still carry 663 occurrences (apps/api 588,
+      // realtime 60, management-api 15) and are tracked in #207, so this block
+      // stays at "warn" until that lands — turning it off instead would hide
+      // them again, which is what made #185 read as an admin-dashboard problem
+      // rather than a repo-wide one. admin-dashboard, customer-app and
+      // kitchen-display own their configs and are already at zero, so their
+      // test blocks are "error" too.
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/ban-ts-comment": "off",
