@@ -85,6 +85,71 @@ describe("resolveUserFacingError", () => {
     expect(result.message).not.toContain("Invalid username");
   });
 
+  /**
+   * The invariant the whole design rests on, asserted structurally rather than
+   * per-case: every message the resolver returns has to be something the
+   * translator produced. A per-case `not.toContain("…")` only guards the paths
+   * someone remembered to write a case for -- adding a server-message fallback
+   * to the terminal `unknown` branch passed all of those, because none of them
+   * reached it with a message present.
+   */
+  it("only ever returns a string the translator produced", () => {
+    const produced = new Set<string>();
+    const spy = (key: string) => {
+      const value = translations[key] ?? key;
+      produced.add(value);
+      return value;
+    };
+
+    const leakyMessage = "Internal detail: table_foo is missing";
+    const cases: unknown[] = [
+      // Status not in the map and not 5xx -- the terminal unknown branch.
+      { response: { status: 418, data: { error: { message: leakyMessage } } } },
+      // No status at all.
+      { response: { data: { error: { message: leakyMessage } } } },
+      // Legacy bare-string body, still unmigrated on some routes.
+      { response: { status: 499, data: { error: leakyMessage } } },
+      // A code with no mapping supplied by the caller.
+      {
+        response: {
+          status: 400,
+          data: {
+            error: { code: "SOME_UNMAPPED_CODE", message: leakyMessage },
+          },
+        },
+      },
+      // Nothing recognisable whatsoever.
+      { message: leakyMessage },
+      new Error(leakyMessage),
+      "a thrown string",
+      undefined,
+    ];
+
+    for (const error of cases) {
+      const result = resolveUserFacingError(error, spy, {
+        codeKeys: { MENU_ITEM_UNAVAILABLE: "errors.menuItemUnavailable" },
+      });
+      expect(produced.has(result.message), JSON.stringify(error)).toBe(true);
+      expect(result.message).not.toContain("table_foo");
+      expect(result.message).not.toContain("thrown string");
+    }
+  });
+
+  it("falls back to the localized unknown copy for an unmapped 4xx", () => {
+    const result = resolveUserFacingError(
+      {
+        response: {
+          status: 418,
+          data: { error: { message: "Internal detail: table_foo is missing" } },
+        },
+      },
+      translate,
+    );
+
+    expect(result.message).toBe("發生未知錯誤，請稍後再試");
+    expect(result.presentation).toBe("unknown");
+  });
+
   it("classifies transport failures without using the thrown English message", () => {
     const result = resolveUserFacingError(
       { code: "ECONNABORTED", message: "timeout of 10000ms exceeded" },

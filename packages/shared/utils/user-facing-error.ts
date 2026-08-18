@@ -140,6 +140,11 @@ export function resolveUserFacingError(
     if (parsed.status >= 500) {
       return withMessage("errorPresentation.serviceUnavailable", "status");
     }
+    // A 4xx with no entry above (405, 410, 415, 418 …) falls through to the
+    // unknown copy on purpose. Those statuses mean the request itself was
+    // malformed by the client, not that the person using it typed something
+    // wrong, so "check your input" would send them looking for a mistake they
+    // cannot find. Reaching one is a bug worth the request id, not advice.
   }
 
   return withMessage("errorPresentation.unknown", "unknown");
