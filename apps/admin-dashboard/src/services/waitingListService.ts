@@ -16,6 +16,13 @@ import {
   type WaitTimeEstimateResult,
 } from "@makanmasak/shared-types";
 
+export interface BatchCallResult {
+  id: string;
+  success: boolean;
+  tableId?: number;
+  message: string;
+}
+
 export class WaitingListService {
   /**
    * 取得候位列表
@@ -138,10 +145,13 @@ export class WaitingListService {
    * 批次叫號
    */
   static async batchCall(restaurantId: string, count: number = 1) {
-    const response = await api.post<any[]>(`/waiting-list/batch-call`, {
-      restaurantId,
-      count,
-    });
+    const response = await api.post<BatchCallResult[]>(
+      `/waiting-list/batch-call`,
+      {
+        restaurantId,
+        count,
+      },
+    );
     return response.data;
   }
 

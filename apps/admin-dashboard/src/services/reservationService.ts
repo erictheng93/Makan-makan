@@ -16,6 +16,7 @@ import {
   type CreateSlotRequest,
   type BatchCreateSlotsRequest,
   type ReservationStats,
+  type ReservationSlot,
 } from "@makanmasak/shared-types";
 
 export class ReservationService {
@@ -159,7 +160,10 @@ export class ReservationService {
    * 建立時段
    */
   static async createSlot(data: CreateSlotRequest) {
-    const response = await api.post<any>(`/reservations/slots`, data);
+    const response = await api.post<ReservationSlot>(
+      `/reservations/slots`,
+      data,
+    );
     return response.data;
   }
 
