@@ -3,13 +3,13 @@ import type { OfflineMenuUpdate, OfflineUserAction } from "./offline-storage";
 type MenuSyncMethod = "POST" | "PUT" | "DELETE";
 type PostSyncRequest = {
   path: string;
-  body: Record<string, any>;
+  body: Record<string, unknown>;
 };
 
 export interface MenuSyncRequest {
   path: string;
   method: MenuSyncMethod;
-  body?: Record<string, any>;
+  body?: Record<string, unknown>;
 }
 
 function normalizeRestaurantId(
@@ -19,12 +19,12 @@ function normalizeRestaurantId(
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function scopedPayload<T extends Record<string, any>>(
+function scopedPayload<T extends Record<string, unknown>>(
   payload: T,
   restaurantId?: string | number | null,
 ): T {
   const normalizedRestaurantId = normalizeRestaurantId(restaurantId);
-  const nextPayload: Record<string, any> = { ...payload };
+  const nextPayload: Record<string, unknown> = { ...payload };
 
   if (normalizedRestaurantId) {
     nextPayload.restaurant_id = normalizedRestaurantId;
@@ -85,7 +85,7 @@ export function buildAuditActionSyncRequest(
 }
 
 export function buildAnalyticsSyncRequest(
-  data: Record<string, any>,
+  data: Record<string, unknown>,
   restaurantId: string | number | null | undefined,
 ): PostSyncRequest {
   const normalizedRestaurantId = normalizeRestaurantId(restaurantId);
@@ -104,19 +104,31 @@ export function buildAnalyticsSyncRequest(
 }
 
 export function buildBackupSyncRequest(
-  data: Record<string, any>,
+  data: Record<string, unknown>,
 ): PostSyncRequest {
   return {
     path: "/backup/upload",
-    body: scopedPayload(data, data.restaurant_id),
+    body: scopedPayload(
+      data,
+      typeof data.restaurant_id === "string" ||
+        typeof data.restaurant_id === "number"
+        ? data.restaurant_id
+        : undefined,
+    ),
   };
 }
 
 export function buildSettingsSyncRequest(
-  settings: Record<string, any>,
+  settings: Record<string, unknown>,
 ): PostSyncRequest {
   return {
     path: "/admin/settings/sync",
-    body: scopedPayload(settings, settings.restaurant_id),
+    body: scopedPayload(
+      settings,
+      typeof settings.restaurant_id === "string" ||
+        typeof settings.restaurant_id === "number"
+        ? settings.restaurant_id
+        : undefined,
+    ),
   };
 }

@@ -28,7 +28,7 @@ export interface AdminSyncEvent {
     | "analytics_sync"
     | "backup_sync"
     | "settings_sync";
-  data: any;
+  data: unknown;
   timestamp: string;
   retryCount: number;
   maxRetries: number;
@@ -300,7 +300,7 @@ class AdminBackgroundSyncService {
   // Analytics data synchronization
   async queueAnalyticsSync(
     restaurantId: string,
-    analyticsData: any,
+    analyticsData: Record<string, unknown>,
   ): Promise<void> {
     const syncEvent: AdminSyncEvent = {
       id: `analytics_${restaurantId}_${Date.now()}`,
@@ -318,7 +318,7 @@ class AdminBackgroundSyncService {
   }
 
   private async syncAnalyticsData(
-    data: any,
+    data: Record<string, unknown>,
     restaurantId: string,
   ): Promise<void> {
     try {
@@ -335,7 +335,7 @@ class AdminBackgroundSyncService {
   }
 
   // Backup synchronization
-  async queueBackupSync(backupData: any): Promise<void> {
+  async queueBackupSync(backupData: Record<string, unknown>): Promise<void> {
     const syncEvent: AdminSyncEvent = {
       id: `backup_${Date.now()}`,
       type: "backup_sync",
@@ -344,7 +344,10 @@ class AdminBackgroundSyncService {
       retryCount: 0,
       maxRetries: 3,
       priority: "critical",
-      restaurant_id: backupData.restaurant_id,
+      restaurant_id:
+        typeof backupData.restaurant_id === "string"
+          ? backupData.restaurant_id
+          : "",
     };
 
     this.addOrUpdateSyncEvent(syncEvent);
@@ -355,12 +358,15 @@ class AdminBackgroundSyncService {
     }
   }
 
-  private async syncBackupData(data: any): Promise<void> {
+  private async syncBackupData(data: Record<string, unknown>): Promise<void> {
     try {
       const request = buildBackupSyncRequest(data);
       await apiClient.post(request.path, request.body);
       console.log("[Admin Background Sync] Backup data synced successfully");
-      this.notifyAdminSync("backup_sync", data.backup_id);
+      this.notifyAdminSync(
+        "backup_sync",
+        typeof data.backup_id === "string" ? data.backup_id : "",
+      );
     } catch (error) {
       console.error(
         "[Admin Background Sync] Failed to sync backup data:",
@@ -371,7 +377,7 @@ class AdminBackgroundSyncService {
   }
 
   // Settings synchronization
-  async queueSettingsSync(settings: any): Promise<void> {
+  async queueSettingsSync(settings: Record<string, unknown>): Promise<void> {
     const syncEvent: AdminSyncEvent = {
       id: `settings_${Date.now()}`,
       type: "settings_sync",
@@ -380,14 +386,17 @@ class AdminBackgroundSyncService {
       retryCount: 0,
       maxRetries: 2,
       priority: "low",
-      restaurant_id: settings.restaurant_id || "",
+      restaurant_id:
+        typeof settings.restaurant_id === "string"
+          ? settings.restaurant_id
+          : "",
     };
 
     this.addOrUpdateSyncEvent(syncEvent);
     await this.registerBackgroundSync("admin-settings-sync");
   }
 
-  private async syncSettings(settings: any): Promise<void> {
+  private async syncSettings(settings: Record<string, unknown>): Promise<void> {
     try {
       const request = buildSettingsSyncRequest(settings);
       await apiClient.post(request.path, request.body);
@@ -455,22 +464,25 @@ class AdminBackgroundSyncService {
   private async processSyncEvent(event: AdminSyncEvent): Promise<void> {
     switch (event.type) {
       case "order_update":
-        await this.syncSingleOrderUpdate(event.data);
+        await this.syncSingleOrderUpdate(event.data as OfflineOrderUpdate);
         break;
       case "menu_update":
-        await this.syncSingleMenuUpdate(event.data);
+        await this.syncSingleMenuUpdate(event.data as OfflineMenuUpdate);
         break;
       case "user_action":
-        await this.syncSingleUserAction(event.data);
+        await this.syncSingleUserAction(event.data as OfflineUserAction);
         break;
       case "analytics_sync":
-        await this.syncAnalyticsData(event.data, event.restaurant_id);
+        await this.syncAnalyticsData(
+          event.data as Record<string, unknown>,
+          event.restaurant_id,
+        );
         break;
       case "backup_sync":
-        await this.syncBackupData(event.data);
+        await this.syncBackupData(event.data as Record<string, unknown>);
         break;
       case "settings_sync":
-        await this.syncSettings(event.data);
+        await this.syncSettings(event.data as Record<string, unknown>);
         break;
       default:
         console.warn(
@@ -598,7 +610,8 @@ class AdminBackgroundSyncService {
 
   private getExistingRetryCount(type: string, dataId: string): number {
     const existing = this.syncQueue.find(
-      (e) => e.type === type && e.data.id === dataId,
+      (event) =>
+        event.type === type && this.getSyncEventDataId(event) === dataId,
     );
     return existing ? existing.retryCount : 0;
   }
