@@ -20,7 +20,7 @@ export interface AdminPushNotificationOptions {
   badge?: string;
   image?: string;
   tag?: string;
-  data?: any;
+  data?: unknown;
   actions?: Array<{
     action: string;
     title: string;
@@ -30,6 +30,23 @@ export interface AdminPushNotificationOptions {
   silent?: boolean;
   requireInteraction?: boolean;
   priority?: "low" | "normal" | "high" | "critical";
+}
+
+interface AdminNotificationSettings {
+  newOrders: boolean;
+  systemAlerts: boolean;
+  backupStatus: boolean;
+  performanceAlerts: boolean;
+  userActivity: boolean;
+  inventoryAlerts: boolean;
+  revenueUpdates: boolean;
+  sound: boolean;
+  vibration: boolean;
+  quietHours: {
+    enabled: boolean;
+    start: string;
+    end: string;
+  };
 }
 
 class AdminPushNotificationService {
@@ -490,7 +507,7 @@ class AdminPushNotificationService {
     }
   }
 
-  private getDeviceInfo(): Record<string, any> {
+  private getDeviceInfo(): Record<string, string | boolean> {
     return {
       user_agent: navigator.userAgent,
       platform: navigator.platform,
@@ -544,26 +561,32 @@ class AdminPushNotificationService {
     }
   }
 
-  getNotificationSettings(): any {
+  getNotificationSettings(): AdminNotificationSettings {
     const settings = localStorage.getItem("admin_notification_settings");
-    return settings
-      ? JSON.parse(settings)
-      : {
-          newOrders: true,
-          systemAlerts: true,
-          backupStatus: true,
-          performanceAlerts: true,
-          userActivity: false,
-          inventoryAlerts: true,
-          revenueUpdates: true,
-          sound: true,
-          vibration: true,
-          quietHours: {
-            enabled: false,
-            start: "22:00",
-            end: "08:00",
-          },
-        };
+    const defaults: AdminNotificationSettings = {
+      newOrders: true,
+      systemAlerts: true,
+      backupStatus: true,
+      performanceAlerts: true,
+      userActivity: false,
+      inventoryAlerts: true,
+      revenueUpdates: true,
+      sound: true,
+      vibration: true,
+      quietHours: {
+        enabled: false,
+        start: "22:00",
+        end: "08:00",
+      },
+    };
+
+    if (!settings) return defaults;
+
+    try {
+      return JSON.parse(settings) as AdminNotificationSettings;
+    } catch {
+      return defaults;
+    }
   }
 
   isInQuietHours(): boolean {
