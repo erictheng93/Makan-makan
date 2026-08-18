@@ -1,10 +1,19 @@
-import { ref, onMounted, onBeforeUnmount, type Ref } from "vue";
+import { ref, onMounted, onBeforeUnmount, type Component, type Ref } from "vue";
 
 interface LazyLoadOptions {
   rootMargin?: string;
   threshold?: number | number[];
   once?: boolean;
   onIntersect?: (entry: IntersectionObserverEntry) => void;
+}
+
+interface ComponentLazyLoadReturn {
+  targetRef: Ref<HTMLElement | null>;
+  component: Ref<Component | null>;
+  isLoading: Ref<boolean>;
+  hasError: Ref<boolean>;
+  isVisible: Ref<boolean>;
+  hasLoaded: Ref<boolean>;
 }
 
 /**
@@ -183,15 +192,15 @@ export function useInfiniteScroll(
  * 延遲加載組件直到需要時
  */
 export function useComponentLazyLoad(
-  loadComponent: () => Promise<any>,
+  loadComponent: () => Promise<Component | { default: Component }>,
   options: LazyLoadOptions = {},
-) {
+): ComponentLazyLoadReturn {
   const { targetRef, isVisible, hasLoaded } = useLazyLoad({
     ...options,
     once: true,
   });
 
-  const component = ref<any>(null);
+  const component = ref<Component | null>(null);
   const isLoading = ref(false);
   const hasError = ref(false);
 
@@ -203,7 +212,7 @@ export function useComponentLazyLoad(
 
     try {
       const loaded = await loadComponent();
-      component.value = loaded.default || loaded;
+      component.value = "default" in loaded ? loaded.default : loaded;
     } catch (error) {
       console.error("Failed to load component:", error);
       hasError.value = true;
