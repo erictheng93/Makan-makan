@@ -4,6 +4,7 @@ import {
   marketCheckoutSessions,
   markets,
   menuItems,
+  orders,
   restaurantMarketMemberships,
   restaurants,
 } from "@makanmasak/database";
@@ -84,6 +85,8 @@ const fixtureTables: Record<SelectFixtureName, unknown> = {
 const fixtureTableNames = new Map(
   Object.entries(fixtureTables).map(([name, table]) => [table, name]),
 );
+
+const unselectedTable = Symbol("unselectedTable");
 
 function setSelectFixtures(fixtures: SelectFixtures) {
   databaseMocks.selectFixtures.clear();
@@ -216,12 +219,16 @@ vi.mock("../services/MarketCheckoutVoucherService", async (importOriginal) => {
 
 function createMockDb() {
   const createSelectChain = () => {
-    let selectedTable: unknown;
+    let selectedTable: unknown = unselectedTable;
     const nextRows = () => {
-      const tableName = fixtureTableNames.get(selectedTable);
-      if (!tableName) {
+      if (selectedTable === unselectedTable) {
         throw new Error("Select fixture query never called from(table)");
       }
+      // An unregistered table is a distinct mistake from never calling from()
+      // at all, so it has to report the missing fixture rather than claim the
+      // query skipped from().
+      const tableName =
+        fixtureTableNames.get(selectedTable) ?? "<unknown table>";
       const fixtures = databaseMocks.selectFixtures.get(selectedTable);
       if (!fixtures) {
         throw new Error(`Missing select fixture for ${tableName}`);
@@ -624,6 +631,14 @@ describe("market checkout routes", () => {
     );
     await expect(db.select().from(menuItems).all()).rejects.toThrow(
       "Missing select fixture for menuItems",
+    );
+    // `orders` is deliberately absent from fixtureTables: an unregistered
+    // table reports the missing fixture, it does not claim from() was skipped.
+    await expect(db.select().from(orders).all()).rejects.toThrow(
+      "Missing select fixture for <unknown table>",
+    );
+    await expect(db.select().all()).rejects.toThrow(
+      "Select fixture query never called from(table)",
     );
   });
 
