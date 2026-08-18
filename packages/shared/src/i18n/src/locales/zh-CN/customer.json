@@ -485,6 +485,7 @@
     "orderCancelled": "订单已取消",
     "orderStatusUpdated": "订单状态已更新：{status}",
     "cancelOrderFailed": "取消订单失败，请稍后再试",
+    "orderNotCancellable": "订单已开始准备，无法取消，请洽询店员",
     "scanFailed": "扫描功能启动失败",
     "invalidQRFormat": "无效的二维码格式",
     "qrValidationFailed": "二维码数据验证失败",

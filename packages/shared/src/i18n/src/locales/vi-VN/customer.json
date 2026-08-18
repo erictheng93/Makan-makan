@@ -485,6 +485,7 @@
     "orderCancelled": "Đơn hàng đã hủy",
     "orderStatusUpdated": "Trạng thái đơn hàng đã cập nhật: {status}",
     "cancelOrderFailed": "Hủy đơn hàng thất bại, vui lòng thử lại sau",
+    "orderNotCancellable": "Đơn hàng đang được chuẩn bị nên không thể hủy. Vui lòng liên hệ nhân viên.",
     "scanFailed": "Khởi động chức năng quét thất bại",
     "invalidQRFormat": "Định dạng mã QR không hợp lệ",
     "qrValidationFailed": "Xác thực dữ liệu mã QR thất bại",
