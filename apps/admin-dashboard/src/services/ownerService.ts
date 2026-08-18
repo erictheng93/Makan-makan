@@ -181,7 +181,7 @@ class OwnerService {
   private getCachedData<T>(key: string): T | null {
     const cached = this.cache.get(key);
     if (cached && Date.now() - cached.timestamp < cached.ttl) {
-      return cached.data;
+      return cached.data as T;
     }
     return null;
   }

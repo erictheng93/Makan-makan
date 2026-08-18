@@ -130,6 +130,10 @@ import { useDateFormatter } from "@/composables/useDateFormatter";
 import { Clock, CalendarOff } from "lucide-vue-next";
 import type { EmployeeWithStatus } from "@/types/employee";
 
+interface AttendanceSchedule {
+  employeeName?: string;
+}
+
 defineProps<{
   usersWithStatus?: EmployeeWithStatus[];
   isLoading?: boolean;
@@ -190,7 +194,7 @@ const attendanceStats = computed(() => {
   ];
 });
 
-const getEmployeeInitials = (schedule: any) =>
+const getEmployeeInitials = (schedule: AttendanceSchedule) =>
   getInitials(schedule.employeeName || "");
 
 const getEmployeeName = (employeeId: number) => {

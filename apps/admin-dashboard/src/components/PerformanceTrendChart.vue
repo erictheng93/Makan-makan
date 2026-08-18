@@ -312,7 +312,10 @@ const chartOptions = computed(() => ({
       callbacks: {
         label: (context: TooltipItem<"line">) => {
           const label = context.dataset.label || "";
-          const value = formatValue(context.parsed.y, selectedMetric.value);
+          const value = formatValue(
+            context.parsed.y ?? 0,
+            selectedMetric.value,
+          );
           return `${label}: ${value}`;
         },
       },
@@ -333,7 +336,7 @@ const chartOptions = computed(() => ({
       },
       ticks: {
         callback: (value: string | number) =>
-          formatValue(value, selectedMetric.value),
+          formatValue(Number(value), selectedMetric.value),
       },
     },
   },

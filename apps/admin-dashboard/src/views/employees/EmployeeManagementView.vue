@@ -292,7 +292,7 @@ const handleResetPassword = async (userId: number) => {
   }
 };
 
-const handleToggleStatus = async (user: any) => {
+const handleToggleStatus = async (user: Employee) => {
   try {
     await employeeList.toggleUserStatus(user);
   } catch (error: unknown) {

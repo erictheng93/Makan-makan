@@ -24,6 +24,13 @@ const clockedInLoading = ref(false);
 const leaveLoading = ref(false);
 const error = ref<string | null>(null);
 
+interface TodayLeaveRequest {
+  employeeId: number;
+  leaveType?: { name?: string };
+  leaveTypeName?: string;
+  endDate: string;
+}
+
 function buildUsersUrl(restaurantId: string | number | null | undefined) {
   if (!restaurantId) return "/users";
 
@@ -144,13 +151,15 @@ export function useEmployeeList() {
         endDate: today,
       });
       const data = response.data?.data || response.data || [];
-      todayLeaveRequests.value = (Array.isArray(data) ? data : []).map(
-        (r: any) => ({
-          employeeId: r.employeeId,
-          leaveTypeName: r.leaveType?.name || r.leaveTypeName || "Leave",
-          endDate: r.endDate,
-        }),
-      );
+      const requests: TodayLeaveRequest[] = Array.isArray(data)
+        ? (data as TodayLeaveRequest[])
+        : [];
+      todayLeaveRequests.value = requests.map((request) => ({
+        employeeId: request.employeeId,
+        leaveTypeName:
+          request.leaveType?.name ?? request.leaveTypeName ?? "Leave",
+        endDate: request.endDate,
+      }));
     } catch (e) {
       console.error("Failed to fetch today leaves:", e);
     } finally {

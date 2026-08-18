@@ -169,7 +169,7 @@
                         </h3>
                         <p class="text-sm text-gray-600">
                           {{
-                            order.orderType === "dine_in"
+                            ["table", "seat"].includes(order.orderType)
                               ? t("serviceView.tableNumber", {
                                   number: order.tableNumber,
                                 })
@@ -635,7 +635,7 @@ import { api, unwrapApiData } from "@/services/api";
 import type {
   Order as ApiOrder,
   OrderItem as ApiOrderItem,
-} from "@makanmasak/shared";
+} from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 const { formatTime, formatTimeWithSeconds } = useDateFormatter();
@@ -645,6 +645,11 @@ const authStore = useAuthStore();
 interface ServiceCustomerInfo {
   name: string;
   phone: string;
+}
+
+interface ServiceOrderItem extends ApiOrderItem {
+  menuItemName: string;
+  specialInstructions?: string;
 }
 
 interface ServiceOrder {
@@ -660,7 +665,7 @@ interface ServiceOrder {
   deliveryNotes?: string;
   assignedTo?: string;
   deliveredAt?: string | number | null;
-  items: ApiOrderItem[];
+  items: ServiceOrderItem[];
 }
 
 // 響應式數據
@@ -780,7 +785,11 @@ const refreshOrders = async () => {
           phone: order.customerInfo?.phone ?? order.customer?.phone ?? "",
         },
         deliveryNotes: order.notes ?? "",
-        items: order.items ?? [],
+        items: (order.items ?? []).map((item) => ({
+          ...item,
+          menuItemName: item.itemSnapshot?.name ?? item.menuItem?.name ?? "",
+          specialInstructions: item.customizations?.specialInstructions,
+        })),
       }));
     }
 
@@ -1003,7 +1012,7 @@ const getPriorityText = (priority: string) => {
     : t("serviceView.priority.normal");
 };
 
-const getTimeElapsed = (dateTime: string) => {
+const getTimeElapsed = (dateTime: string | number) => {
   const now = new Date();
   const time = new Date(dateTime);
   const diffInMinutes = Math.floor(

@@ -1,11 +1,12 @@
 import { ref, watch } from "vue";
-import { api, unwrapApiList } from "@/services/api";
+import { api, unwrapApiList, unwrapApiPayload } from "@/services/api";
 import { schedulingService } from "@/services/schedulingService";
 import { useAuthStore } from "@/stores/auth";
 import type { Employee, LeaveBalance, LeaveRequest } from "@/types/employee";
 import type { EmployeeSchedule } from "@/types/scheduling";
 import { t } from "@/i18n";
 import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
+import { mapApiUser, type ApiUser } from "@/types/api-user";
 
 export function useEmployeeData(employeeId: () => number | undefined) {
   const authStore = useAuthStore();
@@ -24,21 +25,8 @@ export function useEmployeeData(employeeId: () => number | undefined) {
     employeeLoading.value = true;
     error.value = null;
     try {
-      const response = await api.get(`/users/${id}`);
-      const u: any = response.data?.data || response.data;
-      employee.value = {
-        id: u.id,
-        username: u.username,
-        fullName: u.fullName || "",
-        email: u.email || "",
-        phone: u.phone || "",
-        role: u.role,
-        status: u.isActive ? "active" : "inactive",
-        isActive: u.isActive !== false,
-        lastLoginAt: u.lastLoginAt,
-        createdAt: u.createdAt,
-        profileImageUrl: u.profileImageUrl,
-      };
+      const response = await api.get<ApiUser>(`/users/${id}`);
+      employee.value = mapApiUser(unwrapApiPayload<ApiUser>(response.data));
     } catch (e: unknown) {
       error.value = resolveUserFacingError(e, t, {
         fallbackKey: "errors.loadEmployeeFailed",
