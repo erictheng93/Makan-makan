@@ -1,4 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  cashMovements,
+  cashRegisters,
+  cashShifts,
+  orderItems,
+  orders,
+  receipts,
+  refunds,
+} from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 import { ReportService } from "./ReportService";
 
 const mocks = vi.hoisted(() => ({
@@ -19,25 +32,19 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
 
-function createQuery(result: unknown) {
-  const builder = {
-    from: vi.fn(() => builder),
-    groupBy: vi.fn(() => builder),
-    innerJoin: vi.fn(() => builder),
-    leftJoin: vi.fn(() => builder),
-    limit: vi.fn(() => builder),
-    orderBy: vi.fn(() => builder),
-    where: vi.fn(() => builder),
-    then: (
-      resolve: (value: unknown) => void,
-      reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
-  };
-  return builder;
-}
+const fixtureTables = {
+  cashMovements,
+  cashRegisters,
+  cashShifts,
+  orderItems,
+  orders,
+  receipts,
+  refunds,
+};
+type SelectFixtureName = keyof typeof fixtureTables;
 
-function mockSelectResults(results: unknown[]) {
-  mocks.db.select.mockImplementation(() => createQuery(results.shift() ?? []));
+function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
+  Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
 }
 
 function mockInsert() {
@@ -103,29 +110,33 @@ describe("ReportService", () => {
     vi.setSystemTime(new Date("2026-06-07T12:00:00.000Z"));
     uuidMocks.generateUUID.mockReturnValue("report-1");
     const inserted = mockInsert();
-    mockSelectResults([
-      [shiftRow()],
-      [
-        {
-          id: "movement-1",
-          amount: 50,
-          amountCents: 5000,
-          denominationBreakdown: JSON.stringify({ "100": 1 }),
-          metadata: JSON.stringify({ source: "cash_count" }),
-        },
+    mockSelectResults({
+      cashShifts: [[shiftRow()]],
+      cashMovements: [
+        [
+          {
+            id: "movement-1",
+            amount: 50,
+            amountCents: 5000,
+            denominationBreakdown: JSON.stringify({ "100": 1 }),
+            metadata: JSON.stringify({ source: "cash_count" }),
+          },
+        ],
       ],
-      [{ totalReceipts: 4, printedReceipts: 3 }],
-      [
-        {
-          totalOrders: 6,
-          totalSales: 425,
-          avgOrderValue: 70.83,
-          cashOrders: 3,
-          cardOrders: 2,
-          digitalOrders: 1,
-        },
+      receipts: [[{ totalReceipts: 4, printedReceipts: 3 }]],
+      orders: [
+        [
+          {
+            totalOrders: 6,
+            totalSales: 425,
+            avgOrderValue: 70.83,
+            cashOrders: 3,
+            cardOrders: 2,
+            digitalOrders: 1,
+          },
+        ],
       ],
-    ]);
+    });
 
     const result = await createService().generateShiftReport("shift-1");
 
@@ -182,7 +193,7 @@ describe("ReportService", () => {
 
   it("returns a service failure when a shift does not exist", async () => {
     const inserted = mockInsert();
-    mockSelectResults([[]]);
+    mockSelectResults({ cashShifts: [[]] });
 
     await expect(
       createService().generateShiftReport("missing-shift"),
@@ -191,26 +202,30 @@ describe("ReportService", () => {
   });
 
   it("builds daily reports from shift, order, refund, and top item stats", async () => {
-    mockSelectResults([
-      [
-        { cash_shifts: shiftRow({ id: "shift-1" }) },
-        { cash_shifts: shiftRow({ id: "shift-2" }) },
+    mockSelectResults({
+      cashShifts: [
+        [
+          { cash_shifts: shiftRow({ id: "shift-1" }) },
+          { cash_shifts: shiftRow({ id: "shift-2" }) },
+        ],
       ],
-      [
-        {
-          totalOrders: 8,
-          totalSales: 1000,
-          totalTax: 50,
-          totalDiscounts: 20,
-          avgOrderValue: 125,
-          cashOrders: 4,
-          cardOrders: 3,
-          digitalOrders: 1,
-        },
+      orders: [
+        [
+          {
+            totalOrders: 8,
+            totalSales: 1000,
+            totalTax: 50,
+            totalDiscounts: 20,
+            avgOrderValue: 125,
+            cashOrders: 4,
+            cardOrders: 3,
+            digitalOrders: 1,
+          },
+        ],
       ],
-      [{ totalRefunds: 2, totalRefundAmount: 100 }],
-      [{ name: "Laksa", totalQuantity: 5, totalRevenue: 600 }],
-    ]);
+      refunds: [[{ totalRefunds: 2, totalRefundAmount: 100 }]],
+      orderItems: [[{ name: "Laksa", totalQuantity: 5, totalRevenue: 600 }]],
+    });
 
     await expect(
       createService().getDailyReport("restaurant-1", "2026-06-07"),
@@ -240,31 +255,35 @@ describe("ReportService", () => {
   });
 
   it("returns shift and register usage stats", async () => {
-    mockSelectResults([
-      [
-        {
-          totalShifts: 3,
-          totalSales: 1200,
-          totalRefunds: 75,
-          avgSalesPerShift: 400,
-          totalCashSales: 700,
-          totalCardSales: 300,
-          totalDigitalSales: 200,
-          closedShifts: 2,
-          avgCashDifference: 5,
-        },
+    mockSelectResults({
+      cashShifts: [
+        [
+          {
+            totalShifts: 3,
+            totalSales: 1200,
+            totalRefunds: 75,
+            avgSalesPerShift: 400,
+            totalCashSales: 700,
+            totalCardSales: 300,
+            totalDigitalSales: 200,
+            closedShifts: 2,
+            avgCashDifference: 5,
+          },
+        ],
       ],
-      [
-        {
-          registerName: "Front POS",
-          period: "2026-06",
-          shiftCount: 4,
-          totalSales: 1500,
-          totalTransactions: 30,
-          avgSalesPerShift: 375,
-        },
+      cashRegisters: [
+        [
+          {
+            registerName: "Front POS",
+            period: "2026-06",
+            shiftCount: 4,
+            totalSales: 1500,
+            totalTransactions: 30,
+            avgSalesPerShift: 375,
+          },
+        ],
       ],
-    ]);
+    });
 
     await expect(
       createService().getShiftStats("restaurant-1", {
