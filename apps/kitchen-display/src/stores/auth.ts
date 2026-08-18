@@ -46,21 +46,11 @@ export const useAuthStore = defineStore("auth", () => {
 
         return { success: true };
       } else {
-        // `authApi.login` puts the server's message on `error`, not `message`
-        // (see ApiResponse, and stores/orders.ts which already reads `error`).
-        // Both fields are optional strings, so reading the wrong one compiled
-        // cleanly and silently threw the server's text away -- every failed
-        // login showed the generic fallback instead of what the server
-        // actually said, an account lockout included. `message` stays as a
-        // secondary fallback for any route that still populates it.
-        // Rethrown with the code attached where `resolveUserFacingError`
-        // reads it, so the login form can tell a wrong password from a locked
-        // account -- the distinction #197 restored, now without shipping the
-        // server's English to say it.
-        throw Object.assign(
-          new Error(response.error || response.message || "Login failed"),
-          { code: response.code, status: response.status },
-        );
+        // Reached only for a 2xx whose envelope reports failure: `authApi.login`
+        // rethrows anything the request itself raised, and the login form
+        // classifies that untouched. Nothing renders this message; it is what
+        // the console.error below prints.
+        throw new Error(response.error || response.message || "Login failed");
       }
     } catch (error: unknown) {
       console.error("Login error:", error);

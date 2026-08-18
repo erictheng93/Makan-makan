@@ -83,23 +83,27 @@ describe("kitchen auth store — failed login messages", () => {
   });
 
   /**
-   * A rejected login is a 401 whichever way it failed, so the status alone
-   * cannot tell a wrong password from a locked account. Dropping the code here
-   * would leave the form with nothing to tell them apart -- which is the same
-   * information loss #197 fixed, in a different place.
+   * The login form classifies from the response itself, so the store must not
+   * repackage it. Copying a code and a status onto a fresh Error loses whatever
+   * the copy has no field for -- axios's own `code` when the request never
+   * left the browser, for one, which is what separates a wrong password from a
+   * dead connection.
    */
-  it("carries the code and status through to whoever renders the failure", async () => {
-    vi.mocked(authApi.login).mockResolvedValue({
-      success: false,
-      error: "Account locked after repeated failures",
-      code: "ACCOUNT_LOCKED",
-      status: 401,
-      timestamp: "2026-08-17T00:00:00.000Z",
-    });
+  it("hands the login form the error the request actually raised", async () => {
+    const apiError = {
+      response: {
+        status: 401,
+        data: {
+          success: false,
+          error: {
+            code: "ACCOUNT_LOCKED",
+            message: "Account locked after repeated failures",
+          },
+        },
+      },
+    };
+    vi.mocked(authApi.login).mockRejectedValue(apiError);
 
-    await expect(useAuthStore().login(credentials)).rejects.toMatchObject({
-      code: "ACCOUNT_LOCKED",
-      status: 401,
-    });
+    await expect(useAuthStore().login(credentials)).rejects.toBe(apiError);
   });
 });
