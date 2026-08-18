@@ -41,7 +41,7 @@ interface ChartData {
 interface Props {
   type: "bar" | "line" | "pie" | "doughnut";
   data: ChartData;
-  options?: Record<string, any>;
+  options?: Record<string, unknown>;
   height?: number;
   isLoading?: boolean;
   error?: string;
@@ -323,7 +323,7 @@ const renderLegend = (
   datasets: ChartDataset[],
 ) => {
   const legendY = 20;
-  let legendX = canvas.width - 150;
+  const legendX = canvas.width - 150;
 
   datasets.forEach((dataset, index) => {
     const color = Array.isArray(dataset.backgroundColor)
