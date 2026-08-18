@@ -16,7 +16,7 @@ import { computed, watch, onMounted, onUnmounted } from "vue";
 import { WifiOff } from "lucide-vue-next";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
-import { getErrorMessage } from "@/utils/unknown";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 const { t } = useI18n();
 import { offlineService } from "@/services/offlineService";
@@ -92,7 +92,9 @@ const forcSync = async () => {
     await offlineService.forcSync();
     toast.success(t("offlineStatus.syncComplete"));
   } catch (error: unknown) {
-    toast.error(t("offlineStatus.syncFailed") + getErrorMessage(error));
+    toast.error(
+      `${t("offlineStatus.syncFailed")}：${resolveUserFacingError(error, t).message}`,
+    );
   }
 };
 

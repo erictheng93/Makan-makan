@@ -18,12 +18,19 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
+      "@makanmasak/shared": ["../../packages/shared"],
+      "@makanmasak/shared/*": ["../../packages/shared/*"],
       "@makanmasak/shared-types": ["../../packages/shared-types/src"],
       "@makanmasak/utils": ["../../packages/utils/src"],
       "@makanmasak/utils/*": ["../../packages/utils/src/*"]
     },
     "types": ["vite/client", "vitest/globals"]
   },
-  "include": ["src/**/*", "vite.config.ts"],
+  "include": [
+    "src/**/*",
+    "vite.config.ts",
+    "../../packages/shared/utils/unknown.ts",
+    "../../packages/shared/utils/user-facing-error.ts"
+  ],
   "exclude": ["node_modules", "dist", "src/__tests__/integration/**"]
 }
