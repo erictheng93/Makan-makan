@@ -5,3 +5,8 @@ export {
   type TestDatabaseBindings,
 } from "./create-test-database";
 export { runMigrations, listUserTables } from "./run-migrations";
+export {
+  createSelectFixtureDb,
+  type SelectFixtureDb,
+  type SelectFixtures,
+} from "./select-fixtures";

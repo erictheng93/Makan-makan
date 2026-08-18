@@ -38,6 +38,10 @@ export default defineConfig({
         __dirname,
         "../../packages/ai-analytics/src/index.ts",
       ),
+      "@makanmasak/database/testing": path.resolve(
+        __dirname,
+        "../../packages/database/src/testing/index.ts",
+      ),
       "@makanmasak/database": path.resolve(
         __dirname,
         "../../packages/database/src/index.ts",
