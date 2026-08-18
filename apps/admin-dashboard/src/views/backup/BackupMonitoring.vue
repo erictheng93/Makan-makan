@@ -247,7 +247,7 @@ import { ref, computed, onMounted, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { useBackupStore } from "@/stores/backup";
-import { api } from "@/services/api";
+import { api, unwrapApiList } from "@/services/api";
 import type { BackupRecord } from "@makanmasak/shared-types";
 
 // Temporary type definitions
@@ -296,6 +296,24 @@ interface BackupAlert {
   resolved_at?: string;
 }
 
+interface PerformanceDataPoint {
+  timestamp: Date;
+  value: number;
+}
+
+interface RestaurantSummary {
+  id: string;
+  name: string;
+}
+
+interface RestaurantBackupHealth extends RestaurantSummary {
+  status: "healthy" | "warning" | "critical";
+  last_backup_at: string;
+  success_rate: number;
+  total_backups: number;
+  storage_used: number;
+}
+
 import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
@@ -310,8 +328,8 @@ const backupStore = useBackupStore();
 // Reactive data
 const isLoading = ref(false);
 const systemHealth = ref<BackupSystemHealth | null>(null);
-const performanceData = ref<any[]>([]);
-const restaurants = ref<any[]>([]);
+const performanceData = ref<PerformanceDataPoint[]>([]);
+const restaurants = ref<RestaurantBackupHealth[]>([]);
 const criticalAlerts = ref<BackupAlert[]>([]);
 const selectedPeriod = ref("7d");
 const statusFilter = ref("all");
@@ -393,7 +411,7 @@ const formatDate = (dateString: string): string => {
   return date.toLocaleDateString();
 };
 
-const getRestaurantStatusClass = (restaurant: any) => {
+const getRestaurantStatusClass = (restaurant: RestaurantBackupHealth) => {
   return {
     "status-healthy": restaurant.status === "healthy",
     "status-warning": restaurant.status === "warning",
@@ -484,12 +502,11 @@ const loadPerformanceData = async () => {
 
 const loadRestaurants = async () => {
   try {
-    const response = await api.get("/restaurants");
-    const rawData = response.data?.data || response.data;
-    const restaurantList: any[] = Array.isArray(rawData) ? rawData : [];
+    const response = await api.get<RestaurantSummary[]>("/restaurants");
+    const restaurantList = unwrapApiList<RestaurantSummary>(response.data);
 
     const restaurantsWithMetrics = await Promise.all(
-      restaurantList.map(async (r: any) => {
+      restaurantList.map(async (r) => {
         try {
           const metrics = await backupStore.getRestaurantMetrics(r.id, "week");
           const successRate =
