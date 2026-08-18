@@ -309,7 +309,7 @@ interface Props {
   preselectedTypeId?: number;
 }
 
-interface LeaveRequestFormData {
+export interface LeaveRequestFormData {
   leaveTypeId: number | string;
   startDate: string;
   startPeriod: "full" | "am" | "pm";

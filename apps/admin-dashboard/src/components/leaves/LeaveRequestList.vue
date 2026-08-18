@@ -134,6 +134,23 @@ const statusFilter = ref("");
 const typeFilter = ref<number | string>("");
 const searchQuery = ref("");
 
+type ApprovalChain = NonNullable<LeaveRequest["approvalChain"]>;
+type ApprovalStep = ApprovalChain[number];
+
+function isApprovalStep(value: unknown): value is ApprovalStep {
+  if (typeof value !== "object" || value === null) return false;
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.level === "number" &&
+    typeof candidate.approverId === "number" &&
+    typeof candidate.approverName === "string" &&
+    (candidate.status === "pending" ||
+      candidate.status === "approved" ||
+      candidate.status === "rejected")
+  );
+}
+
 const filteredRequests = computed(() => {
   return props.requests.filter((request) => {
     if (statusFilter.value && request.status !== statusFilter.value)
@@ -152,13 +169,13 @@ const filteredRequests = computed(() => {
 });
 
 const parseApprovalChain = (
-  chain: string | Array<any> | undefined,
-): Array<any> => {
+  chain: string | LeaveRequest["approvalChain"],
+): ApprovalChain => {
   if (!chain) return [];
   if (Array.isArray(chain)) return chain;
   try {
-    const parsed = JSON.parse(chain);
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed: unknown = JSON.parse(chain);
+    return Array.isArray(parsed) ? parsed.filter(isApprovalStep) : [];
   } catch {
     return [];
   }

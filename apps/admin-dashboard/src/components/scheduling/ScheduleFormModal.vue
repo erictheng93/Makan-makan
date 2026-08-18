@@ -219,7 +219,19 @@ const error = ref<string | null>(null);
 const availableEmployees = ref<AvailableEmployee[]>([]);
 
 // Form Data
-const formData = reactive<any>({
+interface ScheduleFormData {
+  employeeId: number | "";
+  workDate: string;
+  shiftTemplateId: number | "";
+  startTime: string;
+  endTime: string;
+  breakDurationMinutes: number;
+  scheduledHours: number;
+  notes: string;
+  managerNotes: string;
+}
+
+const formData = reactive<ScheduleFormData>({
   employeeId: "",
   workDate: "",
   shiftTemplateId: "",

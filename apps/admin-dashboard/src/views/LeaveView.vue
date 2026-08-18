@@ -104,6 +104,7 @@ import { api } from "@/services/api";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import LeaveBalanceCard from "@/components/leaves/LeaveBalanceCard.vue";
 import LeaveRequestDialog from "@/components/leaves/LeaveRequestDialog.vue";
+import type { LeaveRequestFormData } from "@/components/leaves/LeaveRequestDialog.vue";
 import LeaveRequestList from "@/components/leaves/LeaveRequestList.vue";
 import LeaveApprovalList from "@/components/leaves/LeaveApprovalList.vue";
 import LeaveCalendar from "@/components/leaves/LeaveCalendar.vue";
@@ -232,7 +233,7 @@ const handleRequestLeave = (leaveType: LeaveType | undefined) => {
 };
 
 // 提交請假申請
-const handleSubmitRequest = async (formData: any) => {
+const handleSubmitRequest = async (formData: LeaveRequestFormData) => {
   try {
     const restaurantId = authStore.restaurantId;
     if (!restaurantId) return;
