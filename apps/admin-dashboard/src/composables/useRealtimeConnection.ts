@@ -124,11 +124,16 @@ export function useRealtimeConnection() {
   };
 
   const handleOrderEvent = (event: RealtimeEvent) => {
-    const data = event.data as Record<string, any>;
-    const order = data.order ?? data;
+    const data = event.data as Record<string, unknown>;
+    const order =
+      data.order !== null && typeof data.order === "object"
+        ? (data.order as Record<string, unknown>)
+        : data;
 
     if (order && (order.id || order.orderId)) {
-      orderStore.updateOrder(order);
+      orderStore.updateOrder(
+        order as unknown as Parameters<typeof orderStore.updateOrder>[0],
+      );
     }
 
     if (event.type === RealtimeEventType.NEW_ORDER) {
@@ -140,7 +145,7 @@ export function useRealtimeConnection() {
     }
   };
 
-  const maybeNotifyNewOrder = (data: Record<string, any>) => {
+  const maybeNotifyNewOrder = (data: Record<string, unknown>) => {
     const userRole = authStore.userRole;
     if (userRole !== 0 && userRole !== 1 && userRole !== 2) {
       return;
@@ -154,7 +159,7 @@ export function useRealtimeConnection() {
     });
   };
 
-  const maybeNotifyReadyOrder = (data: Record<string, any>) => {
+  const maybeNotifyReadyOrder = (data: Record<string, unknown>) => {
     const userRole = authStore.userRole;
     if (
       data.status !== "ready" ||
@@ -179,20 +184,30 @@ export function useRealtimeConnection() {
     });
   };
 
-  const handleSystemNotification = (data: Record<string, any>) => {
+  const handleSystemNotification = (data: Record<string, unknown>) => {
+    const type =
+      data.level === "success" ||
+      data.level === "warning" ||
+      data.level === "error"
+        ? data.level
+        : "info";
     notificationStore.addNotification({
-      type: data.level || "info",
-      title: data.title || "System notification",
-      message: data.message,
-      persistent: data.persistent || data.persistUntilRead || false,
+      type,
+      title:
+        typeof data.title === "string" ? data.title : "System notification",
+      message: typeof data.message === "string" ? data.message : "",
+      persistent: data.persistent === true || data.persistUntilRead === true,
     });
   };
 
-  const handleRestaurantStatusUpdate = (data: Record<string, any>) => {
+  const handleRestaurantStatusUpdate = (data: Record<string, unknown>) => {
     notificationStore.addNotification({
       type: "info",
       title: "Restaurant status updated",
-      message: data.message || "Restaurant realtime status changed.",
+      message:
+        typeof data.message === "string"
+          ? data.message
+          : "Restaurant realtime status changed.",
     });
   };
 
