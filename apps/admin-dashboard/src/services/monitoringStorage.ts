@@ -25,8 +25,8 @@ export class MonitoringStorageService {
       const json = localStorage.getItem(STORAGE_KEYS.FILTERS);
       if (!json) return [];
 
-      const filters = JSON.parse(json);
-      return filters.map((f: any) => ({
+      const filters = JSON.parse(json) as SavedFilter[];
+      return filters.map((f) => ({
         ...f,
         createdAt: new Date(f.createdAt),
         updatedAt: new Date(f.updatedAt),
@@ -135,8 +135,8 @@ export class MonitoringStorageService {
       const json = localStorage.getItem(STORAGE_KEYS.LAYOUTS);
       if (!json) return [];
 
-      const layouts = JSON.parse(json);
-      return layouts.map((l: any) => ({
+      const layouts = JSON.parse(json) as DashboardLayout[];
+      return layouts.map((l) => ({
         ...l,
         createdAt: new Date(l.createdAt),
         updatedAt: new Date(l.updatedAt),
@@ -242,7 +242,7 @@ export class MonitoringStorageService {
   /**
    * 獲取用戶偏好設置
    */
-  getPreferences(): Record<string, any> {
+  getPreferences(): Record<string, unknown> {
     try {
       const json = localStorage.getItem(STORAGE_KEYS.PREFERENCES);
       return json ? JSON.parse(json) : {};
@@ -254,7 +254,7 @@ export class MonitoringStorageService {
   /**
    * 更新用戶偏好設置
    */
-  updatePreferences(updates: Record<string, any>): void {
+  updatePreferences(updates: Record<string, unknown>): void {
     try {
       const current = this.getPreferences();
       const updated = { ...current, ...updates };
@@ -298,7 +298,7 @@ export class MonitoringStorageService {
   /**
    * 反序列化篩選器數據
    */
-  private deserializeFilterData(data: any): MonitoringFilter {
+  private deserializeFilterData(data: MonitoringFilter): MonitoringFilter {
     return {
       ...data,
       customDateRange: data.customDateRange
