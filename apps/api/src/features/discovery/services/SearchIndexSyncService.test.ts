@@ -1,8 +1,89 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  categories,
+  dishSearchIndex,
+  menuItems,
+  restaurantMarketMemberships,
+  restaurants,
+} from "@makanmasak/database";
 
-let whereRows: unknown[] = [];
-let selectRows: unknown[][] = [];
-let selectDistinctRows: unknown[][] = [];
+/**
+ * Select fixtures are keyed by table, not by call order: `from(table)`
+ * decides which queue a query draws from, so adding a query against one
+ * table can no longer shift another table's results out from under it.
+ * `select` and `selectDistinct` share one queue per table — `onMenuItem
+ * Changed`/`onCategoryChanged`'s `select` reads and `onRestaurantChanged`'s
+ * `selectDistinct` read of `dishSearchIndex` all draw from the same
+ * per-table queues declared below.
+ *
+ * Two things still need care when the code under test grows a new query:
+ *
+ * - Within a single table the queue is positional. The Nth read of a table
+ *   takes that table's Nth fixture, so a new query means inserting a
+ *   fixture at the matching index rather than appending one at the end.
+ * - A table has to be listed in `fixtureTables` before it can be declared.
+ *   An unregistered table matches no queue, so every read of it throws.
+ *
+ * Missing and exhausted fixtures both throw and name the table. Nothing
+ * falls back to `[]` or a shared `whereRows` value anymore — the old
+ * `selectRows.shift() ?? whereRows` fallback silently handed every
+ * unconfigured `select()` call the same rows regardless of which table it
+ * queried (and `selectDistinct` silently fell back to `[]`), which is
+ * exactly the bug this harness removes.
+ *
+ * `categories` is imported but deliberately left out of `fixtureTables`:
+ * `SearchIndexSyncService` only ever `leftJoin`s it or references it inside
+ * a `sql` fragment, never passes it to `from()`, so it has no queue of its
+ * own — a real table this service touches, but one whose routing is
+ * exercised by the unregistered-table branch of the regression test below.
+ *
+ * `SearchIndexSyncService` methods have no try/catch, so a harness throw
+ * from a missing/exhausted fixture propagates verbatim out of the `await` —
+ * no wrapped-message caveat needed here.
+ */
+type SelectFixtureName =
+  | "dishSearchIndex"
+  | "restaurants"
+  | "menuItems"
+  | "restaurantMarketMemberships";
+type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
+
+const fixtureTables: Record<SelectFixtureName, unknown> = {
+  dishSearchIndex,
+  restaurants,
+  menuItems,
+  restaurantMarketMemberships,
+};
+const fixtureTableNames = new Map<unknown, SelectFixtureName>(
+  Object.entries(fixtureTables).map(([name, table]) => [
+    table,
+    name as SelectFixtureName,
+  ]),
+);
+const unselectedTable = Symbol("unselectedTable");
+
+let selectResults = new Map<unknown, unknown[][]>();
+
+function mockSelectResults(fixtures: SelectFixtures) {
+  selectResults = new Map<unknown, unknown[][]>(
+    Object.entries(fixtures).map(([name, results]) => [
+      fixtureTables[name as SelectFixtureName],
+      [...(results ?? [])],
+    ]),
+  );
+}
+
+function nextSelectResultFor(table: unknown) {
+  const name = fixtureTableNames.get(table) ?? "<unknown table>";
+  const queue = selectResults.get(table);
+  if (!queue) throw new Error(`Missing select fixture for ${name}`);
+  const result = queue.shift();
+  if (result === undefined) {
+    throw new Error(`No select fixtures remaining for ${name}`);
+  }
+  return result;
+}
+
 const updateMock = vi.fn();
 const deleteMock = vi.fn();
 const insertMock = vi.fn();
@@ -10,24 +91,38 @@ const updatedRows: unknown[] = [];
 const insertedRows: unknown[] = [];
 const deletedRows: unknown[] = [];
 
-function query(result: unknown[]) {
+function createQuery(nextResultFor: (table: unknown) => unknown) {
+  let selectedTable: unknown = unselectedTable;
   const builder = {
-    from: vi.fn(() => builder),
+    from: vi.fn((table: unknown) => {
+      selectedTable = table;
+      return builder;
+    }),
     innerJoin: vi.fn(() => builder),
     leftJoin: vi.fn(() => builder),
     limit: vi.fn(() => builder),
     where: vi.fn(() => builder),
     then: (
-      resolve: (value: unknown[]) => void,
+      resolve: (value: unknown) => void,
       reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
+    ) => {
+      if (selectedTable === unselectedTable) {
+        return Promise.reject(
+          new Error("Select fixture query never called from(table)"),
+        ).then(resolve, reject);
+      }
+      return Promise.resolve(nextResultFor(selectedTable)).then(
+        resolve,
+        reject,
+      );
+    },
   };
   return builder;
 }
 
 const fakeDb = {
-  select: vi.fn(() => query(selectRows.shift() ?? whereRows)),
-  selectDistinct: vi.fn(() => query(selectDistinctRows.shift() ?? [])),
+  select: vi.fn(() => createQuery(nextSelectResultFor)),
+  selectDistinct: vi.fn(() => createQuery(nextSelectResultFor)),
   delete: deleteMock.mockImplementation(() => ({
     where: vi.fn((condition: unknown) => {
       deletedRows.push(condition);
@@ -133,9 +228,7 @@ const d1 = {} as unknown as D1Database;
 
 describe("SearchIndexSyncService fan-out queue", () => {
   beforeEach(() => {
-    whereRows = [];
-    selectRows = [];
-    selectDistinctRows = [];
+    selectResults = new Map();
     updatedRows.length = 0;
     insertedRows.length = 0;
     deletedRows.length = 0;
@@ -146,7 +239,11 @@ describe("SearchIndexSyncService fan-out queue", () => {
   });
 
   it("onMarketChanged enqueues one restaurant message per member, not inline", async () => {
-    whereRows = [{ restaurantId: "r1" }, { restaurantId: "r2" }];
+    mockSelectResults({
+      restaurantMarketMemberships: [
+        [{ restaurantId: "r1" }, { restaurantId: "r2" }],
+      ],
+    });
     const queue = makeQueue();
     const kv = makeKv();
     const svc = new SearchIndexSyncService(d1, kv, queue as never);
@@ -163,7 +260,7 @@ describe("SearchIndexSyncService fan-out queue", () => {
   });
 
   it("onCategoryChanged enqueues one menuItem message per item", async () => {
-    whereRows = [{ id: 11 }, { id: 22 }];
+    mockSelectResults({ menuItems: [[{ id: 11 }, { id: 22 }]] });
     const queue = makeQueue();
     const svc = new SearchIndexSyncService(d1, makeKv(), queue as never);
 
@@ -176,9 +273,13 @@ describe("SearchIndexSyncService fan-out queue", () => {
   });
 
   it("chunks fan-out into batches of at most 100 messages", async () => {
-    whereRows = Array.from({ length: 150 }, (_, i) => ({
-      restaurantId: `r${i}`,
-    }));
+    mockSelectResults({
+      restaurantMarketMemberships: [
+        Array.from({ length: 150 }, (_, i) => ({
+          restaurantId: `r${i}`,
+        })),
+      ],
+    });
     const queue = makeQueue();
     const svc = new SearchIndexSyncService(d1, makeKv(), queue as never);
 
@@ -206,14 +307,14 @@ describe("SearchIndexSyncService fan-out queue", () => {
   });
 
   it("without a queue, onMarketChanged stays on the inline path", async () => {
-    whereRows = [];
+    mockSelectResults({ restaurantMarketMemberships: [[]] });
     const svc = new SearchIndexSyncService(d1, makeKv());
 
     await expect(svc.onMarketChanged("market-empty")).resolves.toBeUndefined();
   });
 
   it("removes stale index rows when a changed menu item no longer exists", async () => {
-    selectRows = [[]];
+    mockSelectResults({ menuItems: [[]] });
     const kv = makeKv();
     const svc = new SearchIndexSyncService(d1, kv);
 
@@ -232,7 +333,7 @@ describe("SearchIndexSyncService fan-out queue", () => {
   it("denormalizes menu items into the search index with parsed markets and tags", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
-    selectRows = [[menuItemSearchRow()]];
+    mockSelectResults({ menuItems: [[menuItemSearchRow()]] });
     const svc = new SearchIndexSyncService(d1, makeKv());
 
     await svc.onMenuItemChanged(42);
@@ -265,25 +366,27 @@ describe("SearchIndexSyncService fan-out queue", () => {
   it("keeps one search row when the same menu item is synced twice", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
-    selectRows = [
-      [
-        menuItemSearchRow({
-          name: "Nasi Lemak",
-          tags: [],
-          keywords: "",
-          marketIds: '["market-1"]',
-        }),
+    mockSelectResults({
+      menuItems: [
+        [
+          menuItemSearchRow({
+            name: "Nasi Lemak",
+            tags: [],
+            keywords: "",
+            marketIds: '["market-1"]',
+          }),
+        ],
+        [
+          menuItemSearchRow({
+            name: "Nasi Lemak Special",
+            priceCents: 9000,
+            tags: ["special"],
+            keywords: "",
+            marketIds: '["market-1"]',
+          }),
+        ],
       ],
-      [
-        menuItemSearchRow({
-          name: "Nasi Lemak Special",
-          priceCents: 9000,
-          tags: ["special"],
-          keywords: "",
-          marketIds: '["market-1"]',
-        }),
-      ],
-    ];
+    });
     const svc = new SearchIndexSyncService(d1, makeKv());
 
     await svc.onMenuItemChanged(42);
@@ -304,23 +407,25 @@ describe("SearchIndexSyncService fan-out queue", () => {
   it("marks inactive restaurants unavailable and invalidates affected district caches", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
-    selectDistinctRows = [[{ district: "Old Town" }]];
-    selectRows = [
-      [
-        {
-          district: "Central",
-          type: "malaysian",
-          supportsTakeaway: true,
-          supportsDelivery: true,
-          latitude: 25.1,
-          longitude: 121.5,
-          isActive: false,
-          marketIds: null,
-          primaryMarketId: null,
-          deletedAt: null,
-        },
+    mockSelectResults({
+      dishSearchIndex: [[{ district: "Old Town" }]],
+      restaurants: [
+        [
+          {
+            district: "Central",
+            type: "malaysian",
+            supportsTakeaway: true,
+            supportsDelivery: true,
+            latitude: 25.1,
+            longitude: 121.5,
+            isActive: false,
+            marketIds: null,
+            primaryMarketId: null,
+            deletedAt: null,
+          },
+        ],
       ],
-    ];
+    });
     const kv = makeKv();
     const svc = new SearchIndexSyncService(d1, kv);
 
@@ -346,6 +451,31 @@ describe("SearchIndexSyncService fan-out queue", () => {
     expect(kv.put).toHaveBeenCalledWith(
       "search:query:version",
       expect.any(String),
+    );
+  });
+
+  it("routes select fixtures by table and reports missing fixtures", async () => {
+    mockSelectResults({
+      dishSearchIndex: [[{ district: "Old Town" }]],
+      restaurants: [[{ district: "Central" }]],
+    });
+
+    // Read in reverse declaration order: routing follows the table passed to
+    // from(), not the execution order.
+    await expect(fakeDb.select().from(restaurants)).resolves.toEqual([
+      { district: "Central" },
+    ]);
+    await expect(fakeDb.select().from(dishSearchIndex)).resolves.toEqual([
+      { district: "Old Town" },
+    ]);
+    await expect(fakeDb.select().from(dishSearchIndex)).rejects.toThrow(
+      "No select fixtures remaining for dishSearchIndex",
+    );
+    // categories is never passed to from() in SearchIndexSyncService (only
+    // leftJoin'd or referenced inside a sql fragment), so it is not
+    // registered in fixtureTables and reports <unknown table>.
+    await expect(fakeDb.select().from(categories)).rejects.toThrow(
+      "Missing select fixture for <unknown table>",
     );
   });
 });
