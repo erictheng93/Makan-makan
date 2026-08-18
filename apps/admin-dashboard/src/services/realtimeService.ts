@@ -5,13 +5,16 @@ import {
 } from "@makanmasak/shared-types";
 import { useWebSocketService } from "./websocketService";
 
-export interface RealtimeMessage {
+type RealtimeMessageFor<TEvent extends RealtimeEvent> = {
   id: string;
-  type: string;
-  data: any;
+  type: TEvent["type"];
+  data: TEvent["data"];
   timestamp: string;
   restaurantId?: string;
-}
+};
+
+export type RealtimeMessage<TEvent extends RealtimeEvent = RealtimeEvent> =
+  TEvent extends RealtimeEvent ? RealtimeMessageFor<TEvent> : never;
 
 export interface RealtimeSubscription {
   id: string;
@@ -52,14 +55,16 @@ function normalizeEventType(type: string): RealtimeEventType {
   );
 }
 
-function toRealtimeMessage(event: RealtimeEvent): RealtimeMessage {
+function toRealtimeMessage<TEvent extends RealtimeEvent>(
+  event: TEvent,
+): RealtimeMessage<TEvent> {
   return {
     id: event.eventId,
     type: event.type,
     data: event.data,
     timestamp: new Date(event.timestamp).toISOString(),
     restaurantId: String(event.restaurantId),
-  };
+  } as RealtimeMessage<TEvent>;
 }
 
 class RealtimeService {

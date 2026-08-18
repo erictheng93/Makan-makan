@@ -5,6 +5,7 @@ import {
   type RealtimeMessage,
 } from "@/services/realtimeService";
 import { useAuthStore } from "@/stores/auth";
+import { RealtimeEventType } from "@makanmasak/shared-types";
 
 export interface RealtimeQueueUpdate {
   queueId: string;
@@ -37,6 +38,57 @@ export interface RealtimeTableUpdate {
   type: "occupied" | "available" | "reserved" | "cleaning";
 }
 
+type WaitingRealtimeMessage = Extract<
+  RealtimeMessage,
+  {
+    type:
+      | RealtimeEventType.WAITING_LIST_JOINED
+      | RealtimeEventType.WAITING_LIST_CALLED
+      | RealtimeEventType.WAITING_LIST_CONFIRMED
+      | RealtimeEventType.WAITING_LIST_SEATED
+      | RealtimeEventType.WAITING_LIST_CANCELLED
+      | RealtimeEventType.WAITING_LIST_EXPIRED;
+  }
+>;
+
+type TableStatusRealtimeMessage = Extract<
+  RealtimeMessage,
+  { type: RealtimeEventType.TABLE_STATUS_UPDATE }
+>;
+
+function isWaitingRealtimeMessage(
+  message: RealtimeMessage,
+): message is WaitingRealtimeMessage {
+  return [
+    RealtimeEventType.WAITING_LIST_JOINED,
+    RealtimeEventType.WAITING_LIST_CALLED,
+    RealtimeEventType.WAITING_LIST_CONFIRMED,
+    RealtimeEventType.WAITING_LIST_SEATED,
+    RealtimeEventType.WAITING_LIST_CANCELLED,
+    RealtimeEventType.WAITING_LIST_EXPIRED,
+  ].includes(message.type as RealtimeEventType);
+}
+
+function isTableStatusRealtimeMessage(
+  message: RealtimeMessage,
+): message is TableStatusRealtimeMessage {
+  return message.type === RealtimeEventType.TABLE_STATUS_UPDATE;
+}
+
+function toQueueStatus(value: string): RealtimeQueueUpdate["status"] {
+  return [
+    "waiting",
+    "called",
+    "notified",
+    "seated",
+    "no_show",
+    "cancelled",
+    "expired",
+  ].includes(value)
+    ? (value as RealtimeQueueUpdate["status"])
+    : "waiting";
+}
+
 export function useRealtimeQueue() {
   const { subscribe, unsubscribe, connect, connectionStatus } = useRealtime();
   const authStore = useAuthStore();
@@ -57,19 +109,19 @@ export function useRealtimeQueue() {
 
   // 候位更新處理函數 - 適配新模組化事件結構
   const handleQueueUpdate = (message: RealtimeMessage) => {
+    if (!isWaitingRealtimeMessage(message)) return;
+
+    const queueNumber = Number.parseInt(
+      message.data.queueDisplay.replace(/\D/g, ""),
+      10,
+    );
     const update: RealtimeQueueUpdate = {
-      queueId: message.data.queueId || message.data.id,
-      queueNumber: message.data.queueNumber || message.data.queue_number,
-      customerName: message.data.customerName || message.data.customer_name,
-      partySize: message.data.partySize || message.data.party_size || 1,
-      status: message.data.status || "waiting",
-      waitTime: message.data.waitTime || message.data.actualWaitMinutes,
-      tableNumber: message.data.tableNumber || message.data.table_number,
-      estimatedWaitMinutes:
-        message.data.estimatedWaitMinutes ||
-        message.data.estimated_wait_minutes,
-      actualWaitMinutes:
-        message.data.actualWaitMinutes || message.data.actual_wait_minutes,
+      queueId: message.data.entryId,
+      queueNumber: Number.isNaN(queueNumber) ? 0 : queueNumber,
+      customerName: message.data.customerName,
+      partySize: 1,
+      status: toQueueStatus(message.data.status),
+      tableNumber: message.data.tableId?.toString(),
       timestamp: message.timestamp,
       type: message.type.includes("joined")
         ? "joined"
@@ -127,12 +179,13 @@ export function useRealtimeQueue() {
 
   // 桌位更新處理函數
   const handleTableUpdate = (message: RealtimeMessage) => {
+    if (!isTableStatusRealtimeMessage(message)) return;
+
     const update: RealtimeTableUpdate = {
-      tableId: message.data.id,
-      tableNumber: message.data.number,
+      tableId: message.data.tableId,
+      tableNumber: message.data.tableName,
       status: message.data.status,
-      capacity: message.data.capacity,
-      occupiedSince: message.data.occupiedSince,
+      capacity: message.data.customerCount ?? 0,
       timestamp: message.timestamp,
       type: message.type.includes("occupied")
         ? "occupied"
