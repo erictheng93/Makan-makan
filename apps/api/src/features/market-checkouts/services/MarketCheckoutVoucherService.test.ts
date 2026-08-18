@@ -6,9 +6,158 @@ import {
   redeemCachedMarketCheckoutVoucher,
   totalAppliedVoucherDiscountCents,
 } from "./MarketCheckoutVoucherService";
+import {
+  coupons,
+  couponUsage,
+  marketCheckoutChildOrders,
+  marketCheckoutSessions,
+} from "@makanmasak/database";
+
+/**
+ * Select fixtures are keyed by table, not by call order: `from(table)`
+ * decides which queue a query draws from, so adding a query against one
+ * table can no longer shift another table's results out from under it.
+ *
+ * Two things still need care when the code under test grows a new query:
+ *
+ * - Within a single table the queue is positional. The Nth read of a table
+ *   takes that table's Nth fixture, so a new query means inserting a fixture
+ *   at the matching index rather than appending one at the end.
+ * - A table has to be listed in `fixtureTables` before it can be declared. An
+ *   unregistered table matches no queue, so every read of it throws.
+ *
+ * Missing and exhausted fixtures both throw and name the table. Nothing
+ * falls back to `[]`/`undefined`; a silent empty/undefined result is exactly
+ * what let the old `makeRefundUnitService`'s positional
+ * `selectRows.shift() ?? []` queue mis-route one test's `usageRows` behind a
+ * skipped `childRows` read without the test ever failing.
+ *
+ * `MarketCheckoutVoucherService` terminates its selects with `.get()`
+ * (single row, or `undefined` when the fixture entry is `[]`) or `.all()`
+ * (the whole array) instead of awaiting the builder directly. Both consume
+ * the next fixture queued for the table passed to `from()` — `.get()` just
+ * takes index 0 of it.
+ *
+ * `coupons` (`validateAndPrice`), `couponUsage` (`redeem`,
+ * `getFullyRefundedVoucherClaimOrderId`), and `marketCheckoutChildOrders`
+ * (`resolveRefundOrderGroups` — twice: unconditionally for `checkoutRows`,
+ * then again for `childRows` only when `checkoutRows` produced a
+ * `checkoutId`) are all read via `db.select` somewhere in this service, so
+ * all three are registered below. `marketCheckoutSessions` is also read in
+ * production (by the free function `readPersistedAppliedMarketCheckoutVoucher`),
+ * but that function builds its own `drizzle(env.DB)` from a raw D1 binding —
+ * the `redeemCachedMarketCheckoutVoucher` tests below exercise that path
+ * through `env.DB.prepare(...).bind(...)` mocks, never through this file's
+ * `db.select().from()` harness. It is imported only so the regression test
+ * has a real, unregistered table to demonstrate the "<unknown table>" case.
+ *
+ * None of the selects covered by this harness are wrapped in try/catch:
+ * `redeem`'s only try/catch wraps the per-allocation `insert`, after its
+ * select has already resolved, and `markRefunded` / `resolveRefundOrderGroups`
+ * / `getFullyRefundedVoucherClaimOrderId` have no try/catch at all. A harness
+ * throw from a missing/exhausted select fixture therefore always surfaces as
+ * a rejected promise from the awaited service call — no route/envelope
+ * caveat applies in this file, since these tests call service methods
+ * directly rather than going through an HTTP route.
+ */
+type SelectFixtureName =
+  | "coupons"
+  | "couponUsage"
+  | "marketCheckoutChildOrders";
+type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
+
+const fixtureTables: Record<SelectFixtureName, unknown> = {
+  coupons,
+  couponUsage,
+  marketCheckoutChildOrders,
+};
+const fixtureTableNames = new Map<unknown, SelectFixtureName>(
+  Object.entries(fixtureTables).map(([name, table]) => [
+    table,
+    name as SelectFixtureName,
+  ]),
+);
+const unselectedTable = Symbol("unselectedTable");
+
+function createSelectQuery(nextResultFor: (table: unknown) => unknown) {
+  let selectedTable: unknown = unselectedTable;
+  const builder = {
+    from: vi.fn((table: unknown) => {
+      selectedTable = table;
+      return builder;
+    }),
+    where: vi.fn(() => builder),
+    get: vi.fn(async () => {
+      if (selectedTable === unselectedTable) {
+        throw new Error("Select fixture query never called from(table)");
+      }
+      return (nextResultFor(selectedTable) as unknown[])[0];
+    }),
+    all: vi.fn(async () => {
+      if (selectedTable === unselectedTable) {
+        throw new Error("Select fixture query never called from(table)");
+      }
+      return nextResultFor(selectedTable);
+    }),
+  };
+  return builder;
+}
+
+function createSelectMock(fixtures: SelectFixtures = {}) {
+  const selectResults = new Map<unknown, unknown[][]>(
+    Object.entries(fixtures).map(([name, results]) => [
+      fixtureTables[name as SelectFixtureName],
+      [...(results ?? [])],
+    ]),
+  );
+  const nextResultFor = (table: unknown) => {
+    const name = fixtureTableNames.get(table) ?? "<unknown table>";
+    const queue = selectResults.get(table);
+    if (!queue) throw new Error(`Missing select fixture for ${name}`);
+    const result = queue.shift();
+    if (result === undefined) {
+      throw new Error(`No select fixtures remaining for ${name}`);
+    }
+    return result;
+  };
+  return vi.fn(() => createSelectQuery(nextResultFor));
+}
 
 afterEach(() => {
   vi.useRealTimers();
+});
+
+describe("select fixture harness", () => {
+  it("routes select fixtures by table and reports missing fixtures", async () => {
+    const select = createSelectMock({
+      coupons: [[{ id: 7, code: "SAVE10" }]],
+      couponUsage: [[{ orderId: 1001 }], [{ orderId: 1002 }]],
+    });
+    const db = { select };
+
+    // Read in reverse declaration order: routing follows the table passed to
+    // from(), not the execution order.
+    await expect(db.select().from(couponUsage).all()).resolves.toEqual([
+      { orderId: 1001 },
+    ]);
+    await expect(db.select().from(coupons).get()).resolves.toEqual({
+      id: 7,
+      code: "SAVE10",
+    });
+    await expect(db.select().from(couponUsage).all()).resolves.toEqual([
+      { orderId: 1002 },
+    ]);
+    await expect(db.select().from(couponUsage).all()).rejects.toThrow(
+      "No select fixtures remaining for couponUsage",
+    );
+    // marketCheckoutSessions is read only via the raw D1 prepare/bind mocks
+    // in the redeemCachedMarketCheckoutVoucher tests below, never through
+    // this db.select().from() harness, so it stays out of fixtureTables and
+    // reports <unknown table>.
+    await expect(
+      db.select().from(marketCheckoutSessions).get(),
+    ).rejects.toThrow("Missing select fixture for <unknown table>");
+  });
 });
 
 describe("MarketCheckoutVoucherService.computeDiscountCents", () => {
@@ -484,7 +633,12 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
 
   it("rejects invalid voucher states with voucher-specific errors", async () => {
     await expect(
-      makeValidateUnitService(null).validateAndPrice({
+      // validateAndPrice throws on the empty code before it ever touches
+      // db.select(), so no coupons fixture is registered here — the third
+      // arg overrides makeValidateUnitService's default fixture, and any
+      // stray select() call would throw "Missing select fixture for
+      // coupons" instead of silently falling back.
+      makeValidateUnitService(null, {}).validateAndPrice({
         code: "",
         subtotalCents: 1000,
         childOrders: [{ orderId: 1, amountCents: 1000 }],
@@ -684,10 +838,9 @@ describe("MarketCheckoutVoucherService.markRefunded", () => {
   it("returns without writes when no order ids are provided", async () => {
     const updateRun = vi.fn(async () => undefined);
     const decrementRun = vi.fn(async () => undefined);
+    // markRefunded returns before any db call when orderIds is empty, so no
+    // select fixtures are registered at all.
     const service = makeRefundUnitService({
-      checkoutRows: [],
-      childRows: [],
-      usageRows: [],
       releaseRows: [],
       updateRun,
       decrementRun,
@@ -703,15 +856,24 @@ describe("MarketCheckoutVoucherService.markRefunded", () => {
     const updateRun = vi.fn(async () => undefined);
     const decrementRun = vi.fn(async () => undefined);
     const service = makeRefundUnitService({
-      checkoutRows: [{ checkoutId: "checkout-1", orderId: 1001 }],
-      childRows: [
-        { checkoutId: "checkout-1", orderId: 1001 },
-        { checkoutId: "checkout-1", orderId: 1002 },
-      ],
-      usageRows: [
-        { orderId: 1001, status: "refunded" },
-        { orderId: 1002, status: "refunded" },
-      ],
+      selectFixtures: {
+        // resolveRefundOrderGroups reads marketCheckoutChildOrders twice:
+        // once for checkoutRows, then again for childRows because
+        // checkoutRows produced a checkoutId.
+        marketCheckoutChildOrders: [
+          [{ checkoutId: "checkout-1", orderId: 1001 }],
+          [
+            { checkoutId: "checkout-1", orderId: 1001 },
+            { checkoutId: "checkout-1", orderId: 1002 },
+          ],
+        ],
+        couponUsage: [
+          [
+            { orderId: 1001, status: "refunded" },
+            { orderId: 1002, status: "refunded" },
+          ],
+        ],
+      },
       releaseRows: [{ id: 1 }],
       updateRun,
       decrementRun,
@@ -730,9 +892,13 @@ describe("MarketCheckoutVoucherService.markRefunded", () => {
     const updateRun = vi.fn(async () => undefined);
     const decrementRun = vi.fn(async () => undefined);
     const service = makeRefundUnitService({
-      checkoutRows: [],
-      childRows: [],
-      usageRows: [{ orderId: 1001, status: "active" }],
+      selectFixtures: {
+        // checkoutRows is empty here, so resolveRefundOrderGroups never
+        // issues the second (childRows) marketCheckoutChildOrders read —
+        // only one fixture is queued for it.
+        marketCheckoutChildOrders: [[]],
+        couponUsage: [[{ orderId: 1001, status: "active" }]],
+      },
       releaseRows: [],
       updateRun,
       decrementRun,
@@ -748,7 +914,10 @@ describe("MarketCheckoutVoucherService.markRefunded", () => {
   });
 });
 
-function makeValidateUnitService(coupon: unknown) {
+function makeValidateUnitService(
+  coupon: unknown,
+  fixtures: SelectFixtures = { coupons: [coupon == null ? [] : [coupon]] },
+) {
   const service = Object.create(MarketCheckoutVoucherService.prototype) as {
     db: {
       select: ReturnType<typeof vi.fn>;
@@ -756,13 +925,7 @@ function makeValidateUnitService(coupon: unknown) {
     validateAndPrice: MarketCheckoutVoucherService["validateAndPrice"];
   };
   service.db = {
-    select: vi.fn(() => ({
-      from: vi.fn(() => ({
-        where: vi.fn(() => ({
-          get: vi.fn(async () => coupon),
-        })),
-      })),
-    })),
+    select: createSelectMock(fixtures),
   };
   return service;
 }
@@ -781,13 +944,7 @@ function makeRedeemUnitService(
     redeem: MarketCheckoutVoucherService["redeem"];
   };
   service.db = {
-    select: vi.fn(() => ({
-      from: vi.fn(() => ({
-        where: vi.fn(() => ({
-          all: vi.fn(async () => existingRows),
-        })),
-      })),
-    })),
+    select: createSelectMock({ couponUsage: [existingRows] }),
     insert: vi.fn(() => ({
       values: vi.fn(() => ({
         run: insertRun,
@@ -825,18 +982,11 @@ function makeReservationUnitService(couponUpdateRun: ReturnType<typeof vi.fn>) {
 }
 
 function makeRefundUnitService(options: {
-  checkoutRows: Array<{ checkoutId: string; orderId: string }>;
-  childRows: Array<{ checkoutId: string; orderId: string }>;
-  usageRows: Array<{ orderId: string; status: string | null }>;
+  selectFixtures?: SelectFixtures;
   releaseRows: Array<{ id: number }>;
   updateRun: ReturnType<typeof vi.fn>;
   decrementRun: ReturnType<typeof vi.fn>;
 }) {
-  const selectRows = [
-    options.checkoutRows,
-    options.childRows,
-    options.usageRows,
-  ];
   let updateCall = 0;
   const service = Object.create(MarketCheckoutVoucherService.prototype) as {
     db: {
@@ -846,16 +996,7 @@ function makeRefundUnitService(options: {
     markRefunded: MarketCheckoutVoucherService["markRefunded"];
   };
   service.db = {
-    select: vi.fn(() => {
-      const rows = selectRows.shift() ?? [];
-      return {
-        from: vi.fn(() => ({
-          where: vi.fn(() => ({
-            all: vi.fn(async () => rows),
-          })),
-        })),
-      };
-    }),
+    select: createSelectMock(options.selectFixtures),
     update: vi.fn(() => {
       updateCall += 1;
       if (updateCall === 1) {
