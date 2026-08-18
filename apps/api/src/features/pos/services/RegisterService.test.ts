@@ -1,4 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cashRegisters, cashShifts } from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 import { RegisterService } from "./RegisterService";
 
 const mocks = vi.hoisted(() => ({
@@ -21,22 +26,11 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
 
-function createQuery(result: unknown) {
-  const builder = {
-    from: vi.fn(() => builder),
-    where: vi.fn(() => builder),
-    orderBy: vi.fn(() => builder),
-    limit: vi.fn(() => builder),
-    then: (
-      resolve: (value: unknown) => void,
-      reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
-  };
-  return builder;
-}
+const fixtureTables = { cashRegisters, cashShifts };
+type SelectFixtureName = keyof typeof fixtureTables;
 
-function mockSelectResults(results: unknown[]) {
-  mocks.db.select.mockImplementation(() => createQuery(results.shift() ?? []));
+function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
+  Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
 }
 
 function mockMutations() {
@@ -127,14 +121,16 @@ describe("RegisterService", () => {
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     uuidMocks.generateUUID.mockReturnValue("register-1");
     const mutations = mockMutations();
-    mockSelectResults([
-      [
-        registerRow({
-          currentShiftId: null,
-          lastMaintenanceAt: null,
-        }),
+    mockSelectResults({
+      cashRegisters: [
+        [
+          registerRow({
+            currentShiftId: null,
+            lastMaintenanceAt: null,
+          }),
+        ],
       ],
-    ]);
+    });
 
     const result = await createService().createRegister(
       {
@@ -194,22 +190,24 @@ describe("RegisterService", () => {
   });
 
   it("lists registers and reports status with shift activity", async () => {
-    mockSelectResults([
-      [
-        registerRow({ id: "register-1" }),
-        registerRow({
-          id: "register-2",
-          location: null,
-          currentShiftId: null,
-          hardwareConfig: "",
-          peripherals: "",
-          settings: "",
-          lastMaintenanceAt: null,
-        }),
+    mockSelectResults({
+      cashRegisters: [
+        [
+          registerRow({ id: "register-1" }),
+          registerRow({
+            id: "register-2",
+            location: null,
+            currentShiftId: null,
+            hardwareConfig: "",
+            peripherals: "",
+            settings: "",
+            lastMaintenanceAt: null,
+          }),
+        ],
+        [registerRow({ currentShiftId: "shift-1" })],
+        [],
       ],
-      [registerRow({ currentShiftId: "shift-1" })],
-      [],
-    ]);
+    });
 
     await expect(
       createService().getRegisters("restaurant-1"),
@@ -244,7 +242,9 @@ describe("RegisterService", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     const mutations = mockMutations();
-    mockSelectResults([[registerRow({ name: "Updated Counter" })]]);
+    mockSelectResults({
+      cashRegisters: [[registerRow({ name: "Updated Counter" })]],
+    });
 
     await expect(
       createService().updateRegister("register-1", {}),
@@ -284,7 +284,7 @@ describe("RegisterService", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     const mutations = mockMutations();
-    mockSelectResults([[{ id: "shift-1" }], []]);
+    mockSelectResults({ cashShifts: [[{ id: "shift-1" }], []] });
 
     await expect(
       createService().toggleRegisterStatus("register-1", false),
