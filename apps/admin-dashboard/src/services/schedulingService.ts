@@ -182,7 +182,7 @@ class SchedulingService {
     date: string,
     shiftTemplateId?: number,
   ): Promise<AvailableEmployee[]> {
-    const params: any = { date };
+    const params: { date: string; shiftTemplateId?: number } = { date };
     if (shiftTemplateId) {
       params.shiftTemplateId = shiftTemplateId;
     }
@@ -218,16 +218,20 @@ class SchedulingService {
     startDate: string,
     endDate: string,
     employeeId?: number,
-  ): Promise<ApiResponse<any>> {
-    const params: any = { startDate, endDate };
+  ): Promise<ApiResponse<unknown>> {
+    const params: {
+      startDate: string;
+      endDate: string;
+      employeeId?: number;
+    } = { startDate, endDate };
     if (employeeId) {
       params.employeeId = employeeId;
     }
-    const response = await this.api.get<any>(
+    const response = await this.api.get<unknown>(
       `/scheduling/${restaurantId}/attendance-report`,
       params,
     );
-    return response.data as ApiResponse<any>;
+    return response.data as ApiResponse<unknown>;
   }
 
   /**
