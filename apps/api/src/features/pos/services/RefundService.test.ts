@@ -1,4 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cashShifts, orders, refunds } from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 import { RefundService } from "./RefundService";
 
 const mocks = vi.hoisted(() => ({
@@ -21,23 +26,11 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
 
-function createQuery(result: unknown) {
-  const builder = {
-    from: vi.fn(() => builder),
-    where: vi.fn(() => builder),
-    orderBy: vi.fn(() => builder),
-    limit: vi.fn(() => builder),
-    offset: vi.fn(() => builder),
-    then: (
-      resolve: (value: unknown) => void,
-      reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
-  };
-  return builder;
-}
+const fixtureTables = { cashShifts, orders, refunds };
+type SelectFixtureName = keyof typeof fixtureTables;
 
-function mockSelectResults(results: unknown[]) {
-  mocks.db.select.mockImplementation(() => createQuery(results.shift() ?? []));
+function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
+  Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
 }
 
 function mockMutations(options: { failSecondInsert?: boolean } = {}) {
@@ -161,12 +154,11 @@ describe("RefundService", () => {
       throw new Error("Math.random should not be used for refund numbers");
     });
     const mutations = mockMutations();
-    mockSelectResults([
-      [{ id: 101, totalAmount: 100, totalAmountCents: 10000 }],
-      [{ totalRefunded: 10 }],
-      [{ status: "active" }],
-      [refundRow()],
-    ]);
+    mockSelectResults({
+      orders: [[{ id: 101, totalAmount: 100, totalAmountCents: 10000 }]],
+      refunds: [[{ totalRefunded: 10 }], [refundRow()]],
+      cashShifts: [[{ status: "active" }]],
+    });
 
     const result = await createService().processRefund(
       refundRequest(),
@@ -212,12 +204,18 @@ describe("RefundService", () => {
   it("records post-close refunds without mutating the live cash ledger", async () => {
     vi.useFakeTimers();
     const mutations = mockMutations();
-    mockSelectResults([
-      [{ id: 101, totalAmount: 100, totalAmountCents: 10000 }],
-      [{ totalRefunded: 0 }],
-      [{ status: "closed" }],
-      [refundRow({ metadata: JSON.stringify({ postCloseAdjustment: true }) })],
-    ]);
+    mockSelectResults({
+      orders: [[{ id: 101, totalAmount: 100, totalAmountCents: 10000 }]],
+      refunds: [
+        [{ totalRefunded: 0 }],
+        [
+          refundRow({
+            metadata: JSON.stringify({ postCloseAdjustment: true }),
+          }),
+        ],
+      ],
+      cashShifts: [[{ status: "closed" }]],
+    });
 
     const result = await createService().processRefund(
       refundRequest(),
@@ -248,11 +246,11 @@ describe("RefundService", () => {
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
     const mutations = mockMutations({ failSecondInsert: true });
-    mockSelectResults([
-      [{ id: 101, totalAmount: 100, totalAmountCents: 10000 }],
-      [{ totalRefunded: 0 }],
-      [{ status: "active" }],
-    ]);
+    mockSelectResults({
+      orders: [[{ id: 101, totalAmount: 100, totalAmountCents: 10000 }]],
+      refunds: [[{ totalRefunded: 0 }]],
+      cashShifts: [[{ status: "active" }]],
+    });
 
     try {
       await expect(
@@ -299,11 +297,10 @@ describe("RefundService", () => {
       };
       return builder;
     });
-    mockSelectResults([
-      [{ id: 101, totalAmount: 100, totalAmountCents: 10000 }],
-      [{ totalRefunded: 0 }],
-      [refundRow()],
-    ]);
+    mockSelectResults({
+      orders: [[{ id: 101, totalAmount: 100, totalAmountCents: 10000 }]],
+      refunds: [[{ totalRefunded: 0 }], [refundRow()]],
+    });
     const consoleError = vi
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
@@ -346,11 +343,10 @@ describe("RefundService", () => {
 
   it("marks the refund completed synchronously before returning", async () => {
     const mutations = mockMutations();
-    mockSelectResults([
-      [{ id: 101, totalAmount: 100, totalAmountCents: 10000 }],
-      [{ totalRefunded: 0 }],
-      [refundRow()],
-    ]);
+    mockSelectResults({
+      orders: [[{ id: 101, totalAmount: 100, totalAmountCents: 10000 }]],
+      refunds: [[{ totalRefunded: 0 }], [refundRow()]],
+    });
 
     const result = await createService().processRefund(
       refundRequest({ refundMethod: "card" }),
@@ -368,17 +364,19 @@ describe("RefundService", () => {
 
   it("allows cent-exact cumulative refunds that reach the order total", async () => {
     const mutations = mockMutations();
-    mockSelectResults([
-      [{ id: 101, totalAmount: 19.99, totalAmountCents: 1999 }],
-      [{ totalRefunded: 19.98 }],
-      [
-        refundRow({
-          originalAmountCents: 1999,
-          refundAmountCents: 1,
-          refundMethod: "card",
-        }),
+    mockSelectResults({
+      orders: [[{ id: 101, totalAmount: 19.99, totalAmountCents: 1999 }]],
+      refunds: [
+        [{ totalRefunded: 19.98 }],
+        [
+          refundRow({
+            originalAmountCents: 1999,
+            refundAmountCents: 1,
+            refundMethod: "card",
+          }),
+        ],
       ],
-    ]);
+    });
 
     const result = await createService().processRefund(
       refundRequest({ refundAmount: 0.01, refundMethod: "card" }),
@@ -402,12 +400,12 @@ describe("RefundService", () => {
   it("rejects invalid refund requests before inserting rows", async () => {
     const mutations = mockMutations();
 
-    mockSelectResults([[]]);
+    mockSelectResults({ orders: [[]] });
     await expect(
       createService().processRefund(refundRequest(), "register-1", 7),
     ).resolves.toMatchObject({ success: false });
 
-    mockSelectResults([[{ id: 101, totalAmount: 100 }]]);
+    mockSelectResults({ orders: [[{ id: 101, totalAmount: 100 }]] });
     await expect(
       createService().processRefund(
         refundRequest({ refundAmount: 125 }),
@@ -416,15 +414,15 @@ describe("RefundService", () => {
       ),
     ).resolves.toMatchObject({ success: false });
 
-    mockSelectResults([
-      [{ id: 101, totalAmount: 100 }],
-      [{ totalRefunded: 90 }],
-    ]);
+    mockSelectResults({
+      orders: [[{ id: 101, totalAmount: 100 }]],
+      refunds: [[{ totalRefunded: 90 }]],
+    });
     await expect(
       createService().processRefund(refundRequest(), "register-1", 7),
     ).resolves.toMatchObject({ success: false });
 
-    mockSelectResults([[{ id: 101, totalAmount: 100 }]]);
+    mockSelectResults({ orders: [[{ id: 101, totalAmount: 100 }]] });
     await expect(
       createService().processRefund(
         refundRequest({ refundAmount: 19.995 }),
@@ -437,20 +435,22 @@ describe("RefundService", () => {
   });
 
   it("lists refunds with parsed JSON fields and pagination metadata", async () => {
-    mockSelectResults([
-      [
-        refundRow({
-          id: "refund-1",
-          itemsRefunded: JSON.stringify([{ itemId: 1 }]),
-          metadata: JSON.stringify({ channel: "pos" }),
-        }),
-        refundRow({
-          id: "refund-2",
-          itemsRefunded: "",
-          metadata: "",
-        }),
+    mockSelectResults({
+      refunds: [
+        [
+          refundRow({
+            id: "refund-1",
+            itemsRefunded: JSON.stringify([{ itemId: 1 }]),
+            metadata: JSON.stringify({ channel: "pos" }),
+          }),
+          refundRow({
+            id: "refund-2",
+            itemsRefunded: "",
+            metadata: "",
+          }),
+        ],
       ],
-    ]);
+    });
 
     await expect(
       createService().getRefunds("register-1", {
@@ -479,7 +479,7 @@ describe("RefundService", () => {
 
   it("returns refund details, missing refunds, and status transition updates", async () => {
     const mutations = mockMutations();
-    mockSelectResults([[refundRow()], []]);
+    mockSelectResults({ refunds: [[refundRow()], []] });
 
     await expect(
       createService().getRefundDetail("refund-1"),
