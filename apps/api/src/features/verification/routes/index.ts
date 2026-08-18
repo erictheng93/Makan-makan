@@ -66,10 +66,7 @@ routes.get("/reset-password/verify", async (c) => {
     return c.json(
       {
         valid: false,
-        error: {
-          code: "MISSING_PARAM",
-          message: "缺少 Token 參數",
-        },
+        error: { code: "MISSING_PARAM", message: "缺少 Token 參數" },
       },
       400,
     );
@@ -105,7 +102,7 @@ routes.get("/reset-password/verify", async (c) => {
       {
         valid: false,
         error: {
-          code: "RESET_TOKEN_VERIFICATION_FAILED",
+          code: "TOKEN_VERIFICATION_FAILED",
           message: "驗證 Token 時發生錯誤",
         },
       },

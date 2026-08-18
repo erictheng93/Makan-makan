@@ -485,6 +485,7 @@
     "orderCancelled": "訂單已取消",
     "orderStatusUpdated": "訂單狀態已更新：{status}",
     "cancelOrderFailed": "取消訂單失敗，請稍後再試",
+    "orderNotCancellable": "訂單已開始準備，無法取消，請洽詢店員",
     "scanFailed": "掃描功能啟動失敗",
     "invalidQRFormat": "無效的QR碼格式",
     "qrValidationFailed": "QR碼資料驗證失敗",

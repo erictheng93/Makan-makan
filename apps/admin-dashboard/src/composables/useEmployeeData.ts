@@ -4,7 +4,8 @@ import { schedulingService } from "@/services/schedulingService";
 import { useAuthStore } from "@/stores/auth";
 import type { Employee, LeaveBalance, LeaveRequest } from "@/types/employee";
 import type { EmployeeSchedule } from "@/types/scheduling";
-import { getErrorMessage } from "@makanmasak/shared/utils/unknown";
+import { t } from "@/i18n";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 export function useEmployeeData(employeeId: () => number | undefined) {
   const authStore = useAuthStore();
@@ -39,7 +40,9 @@ export function useEmployeeData(employeeId: () => number | undefined) {
         profileImageUrl: u.profileImageUrl,
       };
     } catch (e: unknown) {
-      error.value = getErrorMessage(e, "Failed to fetch employee");
+      error.value = resolveUserFacingError(e, t, {
+        fallbackKey: "errors.loadEmployeeFailed",
+      }).message;
       console.error("Failed to fetch employee:", e);
     } finally {
       employeeLoading.value = false;

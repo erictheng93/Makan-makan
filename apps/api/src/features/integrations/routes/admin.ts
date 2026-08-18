@@ -10,6 +10,7 @@ import type {
 } from "@makanmasak/shared-types";
 import type { Env } from "../../../types/env";
 import { authMiddleware, requireRole } from "../../../shared/middleware";
+import { ApiError, notFound } from "../../../shared/utils/api-error";
 import { moduleGate } from "../../../middleware/moduleGate";
 import { forbidden } from "../../../shared/utils/api-error";
 import { PlatformIntegrationService } from "../services/PlatformIntegrationService";
@@ -99,16 +100,7 @@ adminRoutes.get("/:restaurantId/:platform", async (c) => {
 
   const integration = await service.getIntegration(restaurantId, platform);
   if (!integration) {
-    return c.json(
-      {
-        success: false,
-        error: {
-          code: "INTEGRATION_NOT_FOUND",
-          message: "Integration not found",
-        },
-      },
-      404,
-    );
+    throw notFound("Integration not found", "INTEGRATION_NOT_FOUND");
   }
 
   return c.json({ data: integration });
@@ -121,14 +113,9 @@ adminRoutes.post("/:restaurantId/:platform/connect", async (c) => {
   const body = await c.req.json<ConnectPlatformRequest>();
 
   if (!isPlatformAdapterSupported(platform)) {
-    return c.json(
-      {
-        success: false,
-        error: {
-          code: "INTEGRATION_NOT_AVAILABLE",
-          message: `${platform} integration is not available yet`,
-        },
-      },
+    throw new ApiError(
+      "INTEGRATION_NOT_AVAILABLE",
+      `${platform} integration is not available yet`,
       501,
     );
   }
@@ -146,14 +133,9 @@ adminRoutes.put("/:restaurantId/:platform", async (c) => {
   const body = await c.req.json<UpdatePlatformConfigRequest>();
 
   if (!isPlatformAdapterSupported(platform)) {
-    return c.json(
-      {
-        success: false,
-        error: {
-          code: "INTEGRATION_NOT_AVAILABLE",
-          message: `${platform} integration is not available yet`,
-        },
-      },
+    throw new ApiError(
+      "INTEGRATION_NOT_AVAILABLE",
+      `${platform} integration is not available yet`,
       501,
     );
   }
@@ -181,14 +163,9 @@ adminRoutes.post("/:restaurantId/:platform/menu-sync", async (c) => {
   const platform = c.req.param("platform") as PlatformType;
 
   if (!isPlatformAdapterSupported(platform)) {
-    return c.json(
-      {
-        success: false,
-        error: {
-          code: "INTEGRATION_NOT_AVAILABLE",
-          message: `${platform} integration is not available yet`,
-        },
-      },
+    throw new ApiError(
+      "INTEGRATION_NOT_AVAILABLE",
+      `${platform} integration is not available yet`,
       501,
     );
   }

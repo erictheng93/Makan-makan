@@ -386,7 +386,7 @@ import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { apiClient, unwrapApiPayload } from "@/services/api";
 import { useDateFormatter } from "@/composables/useDateFormatter";
-import { resolveAdminUserFacingError } from "@/utils/userFacingError";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 const { t } = useI18n();
 const { formatShortDateTime } = useDateFormatter();
@@ -487,7 +487,9 @@ async function connectUberEats() {
   } catch (err: unknown) {
     showMsg(
       "error",
-      resolveAdminUserFacingError(err, t, "integrations.alerts.connectFailed"),
+      resolveUserFacingError(err, t, {
+        fallbackKey: "integrations.alerts.connectFailed",
+      }).message,
     );
   } finally {
     isConnecting.value = false;
@@ -530,7 +532,9 @@ async function syncMenu() {
   } catch (err: unknown) {
     showMsg(
       "error",
-      resolveAdminUserFacingError(err, t, "integrations.alerts.syncFailed"),
+      resolveUserFacingError(err, t, {
+        fallbackKey: "integrations.alerts.syncFailed",
+      }).message,
     );
   } finally {
     isSyncing.value = false;

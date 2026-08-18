@@ -152,7 +152,7 @@ import { Loader2Icon, AlertTriangle, ChevronDownIcon } from "lucide-vue-next";
 import { useI18n } from "@/i18n";
 import { useOrderManagementStore } from "@/stores/orderManagement";
 import { useToast } from "vue-toastification";
-import { getErrorMessage } from "@/utils/unknown";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 const { t } = useI18n();
 import { storeToRefs } from "pinia";
@@ -236,7 +236,9 @@ const executeBatchStart = async () => {
     );
     deselectAll();
   } catch (error: unknown) {
-    toast.error(t("batch.startFailed") + getErrorMessage(error));
+    toast.error(
+      `${t("batch.startFailed")}：${resolveUserFacingError(error, t).message}`,
+    );
   } finally {
     isProcessing.value = false;
     pendingOperation.value = null;
@@ -256,7 +258,9 @@ const executeBatchReady = async () => {
     );
     deselectAll();
   } catch (error: unknown) {
-    toast.error(t("batch.completeFailed") + getErrorMessage(error));
+    toast.error(
+      `${t("batch.completeFailed")}：${resolveUserFacingError(error, t).message}`,
+    );
   } finally {
     isProcessing.value = false;
     pendingOperation.value = null;
@@ -284,7 +288,9 @@ const setBatchPriority = async (priority: "urgent" | "high" | "normal") => {
     );
     deselectAll();
   } catch (error: unknown) {
-    toast.error(t("batch.priorityFailed") + getErrorMessage(error));
+    toast.error(
+      `${t("batch.priorityFailed")}：${resolveUserFacingError(error, t).message}`,
+    );
   } finally {
     isProcessing.value = false;
   }

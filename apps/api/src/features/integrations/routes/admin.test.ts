@@ -103,6 +103,20 @@ vi.mock("@makanmasak/database", () => ({
 }));
 
 import routes from "./admin";
+import { ApiError } from "../../../shared/utils/api-error";
+
+// The routes throw ApiError and leave rendering to the app-wide handler that
+// app-factory installs; mounted bare there is none, so Hono's default answers
+// 500 for every guard.
+routes.onError((err, c) => {
+  if (err instanceof ApiError) {
+    return c.json(
+      { success: false, error: { code: err.code, message: err.message } },
+      err.status as 400 | 401 | 403 | 404 | 409 | 500 | 501,
+    );
+  }
+  return c.json({ success: false, error: { message: String(err) } }, 500);
+});
 
 function request(path: string, init: RequestInit = {}) {
   return routes.request(path, init, {
@@ -114,7 +128,7 @@ function request(path: string, init: RequestInit = {}) {
 async function json(response: Response) {
   return (await response.json()) as {
     data?: unknown;
-    error?: { code: string; message: string };
+    error?: string;
     success?: boolean;
     message?: string;
   };
@@ -191,7 +205,10 @@ describe("integrations admin routes", () => {
       request("/restaurant-2"),
     );
 
-    expect(response.status).toBe(500);
+    // Was 500: this file had no app-wide error handler, so the 403 the route
+    // throws surfaced as Hono's default. The status the caller really gets is
+    // the one asserted here.
+    expect(response.status).toBe(403);
     expect(mocks.integrationService.getIntegrations).not.toHaveBeenCalled();
   });
 
@@ -218,12 +235,9 @@ describe("integrations admin routes", () => {
     const body = await json(response);
 
     expect(response.status).toBe(404);
-    expect(body).toMatchObject({
-      success: false,
-      error: {
-        code: "INTEGRATION_NOT_FOUND",
-        message: "Integration not found",
-      },
+    expect(body.error).toEqual({
+      code: "INTEGRATION_NOT_FOUND",
+      message: "Integration not found",
     });
   });
 
@@ -281,8 +295,8 @@ describe("integrations admin routes", () => {
       }),
     );
 
-    expect(updateResponse.status).toBe(500);
-    expect(deleteResponse.status).toBe(500);
+    expect(updateResponse.status).toBe(403);
+    expect(deleteResponse.status).toBe(403);
     expect(mocks.integrationService.updateConfig).not.toHaveBeenCalled();
     expect(mocks.integrationService.disconnect).not.toHaveBeenCalled();
   });
@@ -302,12 +316,9 @@ describe("integrations admin routes", () => {
       const response = await request(path, init);
       const body = await json(response);
       expect(response.status).toBe(501);
-      expect(body).toMatchObject({
-        success: false,
-        error: {
-          code: "INTEGRATION_NOT_AVAILABLE",
-          message: "foodpanda integration is not available yet",
-        },
+      expect(body.error).toEqual({
+        code: "INTEGRATION_NOT_AVAILABLE",
+        message: "foodpanda integration is not available yet",
       });
     }
     expect(mocks.integrationService.connect).not.toHaveBeenCalled();
@@ -359,8 +370,8 @@ describe("integrations admin routes", () => {
       request("/restaurant-2/uber_eats/orders"),
     );
 
-    expect(syncResponse.status).toBe(500);
-    expect(ordersResponse.status).toBe(500);
+    expect(syncResponse.status).toBe(403);
+    expect(ordersResponse.status).toBe(403);
     expect(mocks.menuSyncService.syncMenu).not.toHaveBeenCalled();
     expect(mocks.orderService.getPlatformOrders).not.toHaveBeenCalled();
   });

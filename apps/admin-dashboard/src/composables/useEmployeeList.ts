@@ -9,7 +9,8 @@ import type {
   EmployeeFormData,
 } from "@/types/employee";
 import type { EmployeeSchedule } from "@/types/scheduling";
-import { getErrorMessage } from "@makanmasak/shared/utils/unknown";
+import { t } from "@/i18n";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 // Module-level shared state — all callers share the same data
 const users = ref<Employee[]>([]);
@@ -118,7 +119,9 @@ export function useEmployeeList() {
           profileImageUrl: u.profileImageUrl,
         }));
       } catch (e: unknown) {
-        error.value = getErrorMessage(e, "Failed to fetch users");
+        error.value = resolveUserFacingError(e, t, {
+          fallbackKey: "errors.loadUsersFailed",
+        }).message;
         console.error("Failed to fetch users:", e);
       } finally {
         isLoading.value = false;

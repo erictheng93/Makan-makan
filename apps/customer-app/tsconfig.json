@@ -14,6 +14,7 @@
         "../../packages/shared/src/i18n/src/static-messages.ts"
       ],
       "@makanmasak/i18n/types": ["../../packages/shared/src/i18n/src/types.ts"],
+      "@makanmasak/shared": ["../../packages/shared"],
       "@makanmasak/shared/*": ["../../packages/shared/*"],
       "@makanmasak/shared-types": ["../../packages/shared-types/src"],
       "@makanmasak/shared-types/*": ["../../packages/shared-types/src/*"],
@@ -27,8 +28,9 @@
     "*.config.*",
     "../../packages/shared-types/src/**/*",
     "../../packages/utils/src/**/*",
-    "../../packages/shared/utils/**/*",
-    "../../packages/shared/src/i18n/src/**/*"
+    "../../packages/shared/src/i18n/src/**/*",
+    "../../packages/shared/utils/unknown.ts",
+    "../../packages/shared/utils/user-facing-error.ts"
   ],
   "exclude": ["node_modules", "dist", "src/__tests__/integration/**"]
 }

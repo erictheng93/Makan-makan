@@ -107,7 +107,7 @@ import { leavesService } from "@/services/leavesService";
 import EmployeeFormModal from "@/components/employees/EmployeeFormModal.vue";
 import type { Employee, EmployeeFormData } from "@/types/employee";
 import { isRecord } from "@makanmasak/shared/utils/unknown";
-import { resolveAdminUserFacingError } from "@/utils/userFacingError";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 import {
   Users,
   Plus,
@@ -272,7 +272,9 @@ const handleSave = async (form: EmployeeFormData, isEdit: boolean) => {
     toast.error(
       fieldMessages.length > 0
         ? fieldMessages.join("\n")
-        : resolveAdminUserFacingError(error, t, "users.errors.saveFailed"),
+        : resolveUserFacingError(error, t, {
+            fallbackKey: "users.errors.saveFailed",
+          }).message,
     );
   }
 };
@@ -283,7 +285,9 @@ const handleResetPassword = async (userId: number) => {
     toast.success(t("users.confirm.resetPasswordSuccess"));
   } catch (error: unknown) {
     toast.error(
-      resolveAdminUserFacingError(error, t, "users.errors.resetFailed"),
+      resolveUserFacingError(error, t, {
+        fallbackKey: "users.errors.resetFailed",
+      }).message,
     );
   }
 };
@@ -293,7 +297,9 @@ const handleToggleStatus = async (user: any) => {
     await employeeList.toggleUserStatus(user);
   } catch (error: unknown) {
     toast.error(
-      resolveAdminUserFacingError(error, t, "users.errors.toggleFailed"),
+      resolveUserFacingError(error, t, {
+        fallbackKey: "users.errors.toggleFailed",
+      }).message,
     );
   }
 };

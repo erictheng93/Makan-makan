@@ -175,7 +175,7 @@ describe("CartView seat orders", () => {
     );
   });
 
-  it("shows the generic submit failure toast for network errors", async () => {
+  it("names the network as the problem instead of blaming the order", async () => {
     createGuestOrder.mockRejectedValue(
       Object.assign(new Error("Network Error"), {
         code: "NETWORK_ERROR",
@@ -191,7 +191,11 @@ describe("CartView seat orders", () => {
     await wrapper.find("button[data-testid='confirm']").trigger("click");
     await flushPromises();
 
-    expect(toastError).toHaveBeenCalledWith("toast.orderSubmitFailed");
+    // Was `toast.orderSubmitFailed` -- accurate but unhelpful, since the order
+    // never reached the server. The shared resolver classifies the transport
+    // failure instead, so the toast points at the connection rather than
+    // leaving the customer wondering what was wrong with their cart.
+    expect(toastError).toHaveBeenCalledWith("errorPresentation.network");
   });
 
   it("uses localized copy for API business errors", async () => {
@@ -221,7 +225,7 @@ describe("CartView seat orders", () => {
     );
   });
 
-  it("falls back to generic localized copy for unmapped API errors", async () => {
+  it("uses the status copy for an unmapped code, never the server prose", async () => {
     createGuestOrder.mockRejectedValue(
       Object.assign(new Error("Unexpected backend implementation detail"), {
         code: "UNMAPPED_BACKEND_ERROR",
@@ -238,6 +242,14 @@ describe("CartView seat orders", () => {
     await wrapper.find("button[data-testid='confirm']").trigger("click");
     await flushPromises();
 
-    expect(toastError).toHaveBeenCalledWith("toast.orderSubmitFailed");
+    // The code has no mapping, so the 429 decides the copy: "too many
+    // requests" is something the customer can act on, unlike a generic submit
+    // failure. What must never surface is the server's own sentence.
+    expect(toastError).toHaveBeenCalledWith(
+      "errorPresentation.tooManyRequests",
+    );
+    expect(toastError).not.toHaveBeenCalledWith(
+      expect.stringContaining("Unexpected backend"),
+    );
   });
 });

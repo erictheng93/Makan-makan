@@ -790,7 +790,26 @@ const enUS: Messages = {
     workHours: "{hours}h",
     rangeSeparator: "-",
   },
+  // Copy resolveUserFacingError picks from an HTTP status or transport error.
+  errorPresentation: {
+    invalidRequest: "Please check your input and try again.",
+    sessionExpired: "Your session has expired. Please sign in again.",
+    permissionDenied: "You do not have permission to do that.",
+    notFound: "The requested resource could not be found.",
+    conflict:
+      "This action is not available in the current state. Please refresh and try again.",
+    tooManyRequests: "Too many requests. Please try again shortly.",
+    serviceUnavailable:
+      "The system cannot process this right now. Please try again later.",
+    network:
+      "There is a network problem. Please check your connection and try again.",
+    timeout: "The connection timed out. Please try again.",
+    unknown: "Something went wrong. Please try again later.",
+  },
+
   errors: {
+    loadUsersFailed: "Loading the employee list failed.",
+    loadEmployeeFailed: "Loading the employee record failed.",
     generic: "Operation failed, please try again",
     networkError: "Network error, please check your connection",
     notFound: "Data not found",
@@ -1732,6 +1751,9 @@ const enUS: Messages = {
     noResults: "No restaurants found",
   },
   auth: {
+    invalidCredentials: "That username or password is not correct.",
+    accountLocked:
+      "Too many failed attempts. This account is locked for now — please try again later.",
     adminLogin: "Admin Dashboard Login",
     username: "Username",
     password: "Password",
@@ -2197,6 +2219,8 @@ const enUS: Messages = {
       calendar: "Calendar View",
     },
     messages: {
+      loadFailed: "Loading the leave data failed.",
+      initFailed: "Initializing the leave data failed.",
       submitSuccess: "Leave request submitted successfully!",
       submitFailed: "Failed to submit leave request",
       cancelConfirm: "Are you sure you want to cancel this leave request?",

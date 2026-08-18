@@ -21,6 +21,7 @@ vi.mock("@/services/offlineService", () => ({
     queueAction: vi.fn(),
     cacheOrders: vi.fn(),
     getCachedOrders: vi.fn(() => []),
+    setActiveRestaurant: vi.fn(),
   },
 }));
 
@@ -52,6 +53,43 @@ const order = (status: KitchenOrder["items"][number]["status"]) => {
     elapsedTime: 5,
   } satisfies KitchenOrder;
 };
+
+describe("orders store — fetch failures", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    vi.clearAllMocks();
+  });
+
+  /**
+   * `error` is rendered, so it must not carry the server's own sentence. This
+   * used to be `getErrorMessage(err)`, which returns exactly that whenever the
+   * thrown value has a message.
+   */
+  it("stores localized copy rather than the server's sentence", async () => {
+    vi.mocked(offlineService.isOnline).value = true;
+    vi.mocked(kitchenApi.getOrders).mockRejectedValue(
+      Object.assign(new Error("Internal detail: kitchen_orders view missing"), {
+        response: {
+          status: 503,
+          data: {
+            success: false,
+            error: {
+              code: "SOMETHING_INTERNAL",
+              message: "Internal detail: kitchen_orders view missing",
+            },
+          },
+        },
+      }),
+    );
+
+    const store = useOrdersStore();
+    await store.fetchOrders("restaurant-1");
+
+    expect(store.error).toBeTruthy();
+    expect(store.error).not.toContain("kitchen_orders");
+    expect(store.error).not.toContain("Internal detail");
+  });
+});
 
 describe("orders store actions", () => {
   beforeEach(() => {

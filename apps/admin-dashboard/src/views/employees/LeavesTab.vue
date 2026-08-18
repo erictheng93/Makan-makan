@@ -101,6 +101,8 @@
 import { ref, computed, onMounted } from "vue";
 import { Plus } from "lucide-vue-next";
 import { useAuthStore } from "@/stores/auth";
+import { t } from "@/i18n";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 import { leavesService } from "@/services/leavesService";
 import { api as apiClient } from "@/services/api";
 import { useEmployeeList } from "@/composables/useEmployeeList";
@@ -158,19 +160,6 @@ const employeeList = computed(() =>
   })),
 );
 
-const getErrorMessage = (err: unknown, fallback: string): string => {
-  if (err instanceof Error) return err.message;
-  if (
-    typeof err === "object" &&
-    err !== null &&
-    "message" in err &&
-    typeof err.message === "string"
-  ) {
-    return err.message;
-  }
-  return fallback;
-};
-
 const loadData = async () => {
   const restaurantId = authStore.restaurantId;
   if (!restaurantId) return;
@@ -188,7 +177,9 @@ const loadData = async () => {
     allRequests.value = reqs;
     balances.value = allBalances;
   } catch (e) {
-    error.value = getErrorMessage(e, "載入請假資料失敗");
+    error.value = resolveUserFacingError(e, t, {
+      fallbackKey: "leaves.messages.loadFailed",
+    }).message;
     console.error("Failed to load leaves data:", e);
   } finally {
     isLoading.value = false;
@@ -203,7 +194,9 @@ const handleApprove = async (requestId: number) => {
     if (req) req.status = "approved";
   } catch (e) {
     console.error("Failed to approve request:", e);
-    error.value = getErrorMessage(e, "批准失敗，請重試");
+    error.value = resolveUserFacingError(e, t, {
+      fallbackKey: "leaves.messages.approveFailed",
+    }).message;
     await loadData(); // Refresh on error
   }
 };
@@ -219,7 +212,9 @@ const handleReject = async (requestId: number, reason?: string) => {
     }
   } catch (e) {
     console.error("Failed to reject request:", e);
-    error.value = getErrorMessage(e, "拒絕失敗，請重試");
+    error.value = resolveUserFacingError(e, t, {
+      fallbackKey: "leaves.messages.rejectFailed",
+    }).message;
     await loadData(); // Refresh on error
   }
 };
@@ -248,7 +243,9 @@ const handleLeaveRequest = async (formData: LeaveRequestFormData) => {
     showRequestDialog.value = false;
     await loadData();
   } catch (e) {
-    error.value = getErrorMessage(e, "申請失敗");
+    error.value = resolveUserFacingError(e, t, {
+      fallbackKey: "leaves.messages.submitFailed",
+    }).message;
   }
 };
 
@@ -261,7 +258,9 @@ const handleAccrue = async () => {
     });
     await loadData();
   } catch (e) {
-    error.value = getErrorMessage(e, "初始化失敗");
+    error.value = resolveUserFacingError(e, t, {
+      fallbackKey: "leaves.messages.initFailed",
+    }).message;
   }
 };
 

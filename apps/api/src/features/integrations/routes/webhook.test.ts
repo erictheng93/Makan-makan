@@ -179,7 +179,10 @@ describe("platform webhook routes", () => {
     let body = await json(response);
 
     expect(response.status).toBe(400);
-    expect(body).toEqual({ error: "Invalid JSON payload" });
+    expect(body).toEqual({
+      success: false,
+      error: { code: "INVALID_JSON", message: "Invalid JSON payload" },
+    });
     expect(mocks.db.select).not.toHaveBeenCalled();
 
     response = await request("/uber-eats", {
@@ -190,7 +193,10 @@ describe("platform webhook routes", () => {
     body = await json(response);
 
     expect(response.status).toBe(400);
-    expect(body).toEqual({ error: "Missing store.id in payload" });
+    expect(body).toEqual({
+      success: false,
+      error: { code: "MISSING_PARAM", message: "Missing store.id in payload" },
+    });
     expect(mocks.db.select).not.toHaveBeenCalled();
   });
 
@@ -210,7 +216,10 @@ describe("platform webhook routes", () => {
     const body = await json(response);
 
     expect(response.status).toBe(404);
-    expect(body).toEqual({ error: "Unknown store" });
+    expect(body).toEqual({
+      success: false,
+      error: { code: "INTEGRATION_NOT_FOUND", message: "Unknown store" },
+    });
     expect(mocks.adapter.verifyWebhook).not.toHaveBeenCalled();
   });
 
@@ -229,7 +238,10 @@ describe("platform webhook routes", () => {
     const body = await json(response);
 
     expect(response.status).toBe(401);
-    expect(body).toEqual({ error: "Invalid signature" });
+    expect(body).toEqual({
+      success: false,
+      error: { code: "INVALID_SIGNATURE", message: "Invalid signature" },
+    });
     expect(mocks.adapter.verifyWebhook).toHaveBeenCalledWith(
       expect.any(Request),
       "configured-secret",
@@ -321,7 +333,13 @@ describe("platform webhook routes", () => {
     const body = await json(response);
 
     expect(response.status).toBe(500);
-    expect(body).toEqual({ error: "Processing failed" });
+    expect(body).toEqual({
+      success: false,
+      error: {
+        code: "WEBHOOK_PROCESSING_FAILED",
+        message: "Processing failed",
+      },
+    });
     expect(mutations.updated[0]).toMatchObject({
       status: "failed",
       error: "menu item missing",
@@ -334,7 +352,11 @@ describe("platform webhook routes", () => {
 
     expect(response.status).toBe(501);
     expect(body).toEqual({
-      error: "Foodpanda integration not yet implemented",
+      success: false,
+      error: {
+        code: "INTEGRATION_NOT_AVAILABLE",
+        message: "Foodpanda integration not yet implemented",
+      },
     });
   });
 });

@@ -3,7 +3,7 @@ import { ref, computed, readonly } from "vue";
 import type { Order, OrderStatus } from "@/types";
 import { api, unwrapApiList } from "@/services/api";
 import { t } from "@/i18n";
-import { resolveAdminUserFacingError } from "@/utils/userFacingError";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 export const useOrderStore = defineStore("order", () => {
   const orders = ref<Order[]>([]);
@@ -80,11 +80,12 @@ export const useOrderStore = defineStore("order", () => {
         orders.value = unwrapApiList<Order>(payload);
       }
     } catch (err: unknown) {
-      error.value = resolveAdminUserFacingError(
-        err,
-        t,
-        "orderStore.fetchFailed",
-      );
+      // The resolver deliberately drops the server's sentence; keep it here,
+      // where it helps whoever is reading the console rather than the shop.
+      console.error("Failed to fetch orders:", err);
+      error.value = resolveUserFacingError(err, t, {
+        fallbackKey: "orderStore.fetchFailed",
+      }).message;
     } finally {
       isLoading.value = false;
     }
@@ -108,11 +109,10 @@ export const useOrderStore = defineStore("order", () => {
       }
       return false;
     } catch (err: unknown) {
-      error.value = resolveAdminUserFacingError(
-        err,
-        t,
-        "orderStore.updateStatusFailed",
-      );
+      console.error("Failed to update order status:", err);
+      error.value = resolveUserFacingError(err, t, {
+        fallbackKey: "orderStore.updateStatusFailed",
+      }).message;
       return false;
     }
   };
@@ -202,11 +202,10 @@ export const useOrderStore = defineStore("order", () => {
       }
       return false;
     } catch (err: unknown) {
-      error.value = resolveAdminUserFacingError(
-        err,
-        t,
-        "orderStore.cancelFailed",
-      );
+      console.error("Failed to cancel order:", err);
+      error.value = resolveUserFacingError(err, t, {
+        fallbackKey: "orderStore.cancelFailed",
+      }).message;
       return false;
     }
   };

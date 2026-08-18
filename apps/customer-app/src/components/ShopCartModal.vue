@@ -410,7 +410,7 @@ import { useI18n } from "@/composables/useI18n";
 import { useCurrency } from "@/composables/useCurrency";
 import { getLocalizedMenuName } from "@/utils/localized-menu-content";
 import { WAITING_LIST_LAST_TICKET_KEY } from "@/composables/useWaitingTicket";
-import { getErrorMessage } from "@/utils/unknown";
+import { getOrderSubmitErrorI18nKey } from "@/utils/order-submit-error";
 
 interface SubmittedOrder {
   id: string | number;
@@ -624,8 +624,10 @@ const handleCheckout = async () => {
       },
     });
   } catch (error: unknown) {
+    // The server's own sentence stays here, where it helps whoever reads the
+    // logs, and out of the toast, where it would be untranslated English.
     console.error("結帳失敗:", error);
-    toast.error(getErrorMessage(error, t("toast.orderSendFailed")));
+    toast.error(t(getOrderSubmitErrorI18nKey(error)));
   } finally {
     isSubmitting.value = false;
   }

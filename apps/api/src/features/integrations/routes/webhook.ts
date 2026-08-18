@@ -53,13 +53,28 @@ webhookRoutes.post(
     try {
       payload = JSON.parse(body) as Record<string, unknown>;
     } catch {
-      return c.json({ error: "Invalid JSON payload" }, 400);
+      return c.json(
+        {
+          success: false,
+          error: { code: "INVALID_JSON", message: "Invalid JSON payload" },
+        },
+        400,
+      );
     }
 
     const storePayload = payload as { store?: { id?: string } };
     const storeId = storePayload.store?.id;
     if (!storeId) {
-      return c.json({ error: "Missing store.id in payload" }, 400);
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "MISSING_PARAM",
+            message: "Missing store.id in payload",
+          },
+        },
+        400,
+      );
     }
 
     // Look up integration by platform — filter by enabled, then match storeId from credentials JSON
@@ -91,7 +106,13 @@ webhookRoutes.post(
       ).find((match) => match !== null) ?? null;
 
     if (!integration) {
-      return c.json({ error: "Unknown store" }, 404);
+      return c.json(
+        {
+          success: false,
+          error: { code: "INTEGRATION_NOT_FOUND", message: "Unknown store" },
+        },
+        404,
+      );
     }
 
     // Verify webhook signature
@@ -115,7 +136,13 @@ webhookRoutes.post(
 
     const isValid = await adapter.verifyWebhook(clonedRequest, webhookSecret);
     if (!isValid) {
-      return c.json({ error: "Invalid signature" }, 401);
+      return c.json(
+        {
+          success: false,
+          error: { code: "INVALID_SIGNATURE", message: "Invalid signature" },
+        },
+        401,
+      );
     }
 
     // Log webhook receipt
@@ -186,13 +213,31 @@ webhookRoutes.post(
         })
         .where(eq(platformWebhookLogs.id, logId));
 
-      return c.json({ error: "Processing failed" }, 500);
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: "WEBHOOK_PROCESSING_FAILED",
+            message: "Processing failed",
+          },
+        },
+        500,
+      );
     }
   },
 );
 
 webhookRoutes.post("/foodpanda", async (c) => {
-  return c.json({ error: "Foodpanda integration not yet implemented" }, 501);
+  return c.json(
+    {
+      success: false,
+      error: {
+        code: "INTEGRATION_NOT_AVAILABLE",
+        message: "Foodpanda integration not yet implemented",
+      },
+    },
+    501,
+  );
 });
 
 export default webhookRoutes;

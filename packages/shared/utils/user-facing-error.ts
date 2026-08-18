@@ -24,6 +24,21 @@ export interface ResolveUserFacingErrorOptions {
   dedicatedCodeKeys?: Record<string, string>;
   /** Keys for reusable, actionable API error codes. */
   codeKeys?: Record<string, string>;
+  /**
+   * Per-status overrides for a screen where the shared copy is wrong. The one
+   * that matters is 401 on a login form: everywhere else it means the session
+   * lapsed, and there it means the password was rejected.
+   */
+  statusKeys?: Record<number, string>;
+  /**
+   * Key to use in place of the generic unknown copy, naming the action that
+   * failed ("Saving the shift template failed").
+   *
+   * It replaces only the unknown branch. A classified error already says
+   * something truer than the action name -- a 403 is "you lack permission",
+   * not "saving failed" -- so those keep their own copy.
+   */
+  fallbackKey?: string;
 }
 
 type ParsedError = {
@@ -115,6 +130,22 @@ export function resolveUserFacingError(
     presentation,
   });
 
+  /**
+   * For the two answers that describe nothing: "the system cannot process this"
+   * and "something went wrong". Both are an improvement for the person reading
+   * them and a loss for whoever they then phone, who used to at least get the
+   * server's sentence repeated back. The identifier is what makes the call
+   * actionable -- brackets rather than 全形括號 because this string is appended
+   * in every locale.
+   */
+  const withReference = (key: string, presentation: ErrorPresentation) => {
+    const base = withMessage(key, presentation);
+    const reference = parsed.requestId ?? parsed.code;
+    return reference
+      ? { ...base, message: `${base.message} [${reference}]` }
+      : base;
+  };
+
   if (parsed.code) {
     const dedicatedKey = options.dedicatedCodeKeys?.[parsed.code];
     if (dedicatedKey) return withMessage(dedicatedKey, "dedicated");
@@ -135,12 +166,21 @@ export function resolveUserFacingError(
   }
 
   if (parsed.status !== undefined) {
-    const key = STATUS_KEYS[parsed.status];
+    const key =
+      options.statusKeys?.[parsed.status] ?? STATUS_KEYS[parsed.status];
     if (key) return withMessage(key, "status");
     if (parsed.status >= 500) {
-      return withMessage("errorPresentation.serviceUnavailable", "status");
+      return withReference("errorPresentation.serviceUnavailable", "status");
     }
+    // A 4xx with no entry above (405, 410, 415, 418 …) falls through to the
+    // unknown copy on purpose. Those statuses mean the request itself was
+    // malformed by the client, not that the person using it typed something
+    // wrong, so "check your input" would send them looking for a mistake they
+    // cannot find. Reaching one is a bug worth the request id, not advice.
   }
 
-  return withMessage("errorPresentation.unknown", "unknown");
+  return withReference(
+    options.fallbackKey ?? "errorPresentation.unknown",
+    "unknown",
+  );
 }

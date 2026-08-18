@@ -184,7 +184,8 @@ import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { schedulingService } from "@/services/schedulingService";
 import type { ShiftTemplate } from "@/types/scheduling";
-import { getErrorMessage } from "@makanmasak/shared/utils/unknown";
+import { t } from "@/i18n";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 const props = defineProps<{
   isOpen: boolean;
@@ -280,7 +281,9 @@ async function handleSave() {
     }
     resetForm();
   } catch (e: unknown) {
-    formError.value = getErrorMessage(e, "操作失敗，請再試一次");
+    formError.value = resolveUserFacingError(e, t, {
+      fallbackKey: "errors.generic",
+    }).message;
   } finally {
     saving.value = false;
   }
@@ -299,7 +302,10 @@ async function handleDelete(id: number) {
     emit("template-deleted", id);
     if (editingId.value === id) resetForm();
   } catch (e: unknown) {
-    toast.error(getErrorMessage(e, "刪除失敗，請再試一次"));
+    toast.error(
+      resolveUserFacingError(e, t, { fallbackKey: "errors.deleteFailed" })
+        .message,
+    );
   }
 }
 </script>

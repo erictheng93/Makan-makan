@@ -178,7 +178,7 @@ import { useSortable } from "@vueuse/integrations/useSortable";
 import { useToast } from "vue-toastification";
 import { Clock, Flame, CheckCircle } from "lucide-vue-next";
 import { useI18n } from "@/i18n";
-import { getErrorMessage } from "@/utils/unknown";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 const { t } = useI18n();
 import { useOrderManagementStore } from "@/stores/orderManagement";
@@ -298,7 +298,9 @@ const handleStatusChange = async (
     }
   } catch (error: unknown) {
     console.error("Status change failed:", error);
-    toast.error(t("kanban.statusUpdateFailed") + getErrorMessage(error));
+    toast.error(
+      `${t("kanban.statusUpdateFailed")}：${resolveUserFacingError(error, t).message}`,
+    );
   }
 };
 

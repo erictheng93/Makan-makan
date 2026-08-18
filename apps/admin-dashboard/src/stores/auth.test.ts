@@ -149,15 +149,15 @@ describe("useAuthStore", () => {
 
   it("does not load module access when login fails", async () => {
     vi.mocked(api.post).mockResolvedValue({
+      status: 401,
       data: {
         success: false,
-        error: {
-          code: "INVALID_CREDENTIALS",
-          message: "English API message that must not be displayed",
-        },
+        error: { code: "INVALID_CREDENTIALS", message: "bad credentials" },
       },
     });
 
+    // The key, not "bad credentials": the store translates now, and this test
+    // is here for `fetch`, not for the wording.
     await expect(useAuthStore().login("owner", "wrong")).resolves.toEqual({
       success: false,
       error: "auth.invalidCredentials",
@@ -165,32 +165,6 @@ describe("useAuthStore", () => {
 
     expect(moduleAccess.fetch).not.toHaveBeenCalled();
   });
-
-  it.each([
-    ["INVALID_CREDENTIALS", "auth.invalidCredentials"],
-    ["ACCOUNT_LOCKED", "auth.accountLocked"],
-  ])(
-    "localizes %s login failures instead of displaying the API message",
-    async (code, expectedError) => {
-      vi.mocked(api.post).mockRejectedValue({
-        response: {
-          status: 401,
-          data: {
-            success: false,
-            error: {
-              code,
-              message: "English API message that must not be displayed",
-            },
-          },
-        },
-      });
-
-      await expect(useAuthStore().login("owner", "wrong")).resolves.toEqual({
-        success: false,
-        error: expectedError,
-      });
-    },
-  );
 
   it("clears module access on logout so the next user starts empty", async () => {
     vi.mocked(api.post).mockResolvedValue({ data: { success: true } });
@@ -521,5 +495,76 @@ describe("useAuthStore", () => {
 
       expect(authClient.instance.post).not.toHaveBeenCalled();
     });
+  });
+});
+
+/**
+ * `t` echoes its key here, so a leaked server sentence is unmistakable.
+ */
+describe("admin auth store — what a rejected login tells the reader", () => {
+  const SERVER_PROSE =
+    "Account locked after repeated failures. Try again in 15 minutes.";
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    vi.clearAllMocks();
+  });
+
+  it("distinguishes a locked account from a wrong password", async () => {
+    vi.mocked(api.post).mockRejectedValue({
+      response: {
+        status: 401,
+        data: {
+          success: false,
+          error: { code: "ACCOUNT_LOCKED", message: SERVER_PROSE },
+        },
+      },
+    });
+
+    const result = await useAuthStore().login("owner", "hunter2");
+
+    expect(result).toEqual({ success: false, error: "auth.accountLocked" });
+  });
+
+  /**
+   * The shared 401 copy says "please sign in again", which on the sign-in form
+   * is the one thing they are already doing.
+   */
+  it("does not tell someone on the login form that their session expired", async () => {
+    vi.mocked(api.post).mockRejectedValue({
+      response: { status: 401, data: { success: false, error: {} } },
+    });
+
+    const result = await useAuthStore().login("owner", "hunter2");
+
+    expect(result).toEqual({
+      success: false,
+      error: "auth.invalidCredentials",
+    });
+  });
+
+  it("classifies a 2xx whose envelope reports the failure", async () => {
+    vi.mocked(api.post).mockResolvedValue({
+      status: 200,
+      data: {
+        success: false,
+        error: { code: "INVALID_CREDENTIALS", message: SERVER_PROSE },
+      },
+    });
+
+    const result = await useAuthStore().login("owner", "hunter2");
+
+    expect(result).toEqual({
+      success: false,
+      error: "auth.invalidCredentials",
+    });
+  });
+
+  it("names the login action when nothing classifies", async () => {
+    vi.mocked(api.post).mockRejectedValue(new Error("boom"));
+
+    const result = await useAuthStore().login("owner", "hunter2");
+
+    expect(result).toEqual({ success: false, error: "auth.loginFailed" });
   });
 });

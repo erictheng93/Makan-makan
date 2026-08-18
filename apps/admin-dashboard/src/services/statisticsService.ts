@@ -1,7 +1,8 @@
 // Comprehensive statistics dashboard service for real-time data management
 import { ref, reactive } from "vue";
 import { api } from "./api";
-import { getResponseErrorMessage } from "@makanmasak/shared/utils/unknown";
+import { t } from "@/i18n";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 export interface RealtimeStats {
   pending_orders: number;
@@ -135,16 +136,18 @@ class StatisticsService {
         Object.assign(this.dashboardData, response.data.data);
         this.lastUpdated.value = new Date();
       } else {
-        // 信封形狀下 JSON.stringify 會把整個 { code, message } 丟給使用者，
-        // 取其中的 message 才是可讀的。
-        throw new Error(
-          getResponseErrorMessage(response.data) ??
-            "Failed to fetch dashboard data",
+        // A 200 whose envelope says success:false. Rethrown in the shape the
+        // resolver reads a transport failure in, so the envelope's `code` still
+        // reaches the classifier below instead of being flattened to prose.
+        throw Object.assign(
+          new Error("realtime-dashboard returned success:false"),
+          { response: { status: response.status, data: response.data } },
         );
       }
     } catch (error) {
-      this.error.value =
-        error instanceof Error ? error.message : "Unknown error occurred";
+      this.error.value = resolveUserFacingError(error, t, {
+        fallbackKey: "dashboardStore.fetchDashboardFailed",
+      }).message;
       console.error("Failed to fetch dashboard data:", error);
     } finally {
       this.isLoading.value = false;

@@ -9,7 +9,8 @@ import type {
   OrderStatus,
   ItemStatus,
 } from "@/types";
-import { getErrorMessage } from "@/utils/unknown";
+import { t } from "@/i18n";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -213,7 +214,9 @@ export const useOrdersStore = defineStore("orders", () => {
         return;
       }
 
-      error.value = getErrorMessage(err);
+      // `error` is rendered, so it holds localized copy; the server's own text
+      // stays in the log line below where it is useful for diagnosis.
+      error.value = resolveUserFacingError(err, t).message;
       console.error("Failed to fetch orders:", err);
     } finally {
       loading.value = false;

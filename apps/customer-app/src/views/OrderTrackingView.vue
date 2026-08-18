@@ -345,7 +345,8 @@ import { orderApi } from "@/services/orderApi";
 import { hasCustomerAccessToken } from "@/services/customerAccessToken";
 import { formatDateTime } from "@/utils/format";
 import { useCurrency } from "@/composables/useCurrency";
-import { getErrorMessage, isRecord } from "@/utils/unknown";
+import { isRecord } from "@/utils/unknown";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 import {
   ClockIcon,
   CheckCircleIcon,
@@ -498,7 +499,16 @@ const { mutate: cancelOrder } = useMutation({
     refetch();
   },
   onError: (error: unknown) => {
-    toast.error(getErrorMessage(error, t("toast.cancelOrderFailed")));
+    // ORDER_NOT_CANCELLABLE is the one outcome worth naming: the generic 409
+    // copy tells the customer to refresh and try again, which will never work
+    // once the kitchen has started. Everything else falls to the shared
+    // status/network copy, and the server's sentence goes to the console.
+    console.error("取消訂單失敗:", error);
+    toast.error(
+      resolveUserFacingError(error, t, {
+        codeKeys: { ORDER_NOT_CANCELLABLE: "toast.orderNotCancellable" },
+      }).message,
+    );
   },
 });
 

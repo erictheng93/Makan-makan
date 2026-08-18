@@ -5,7 +5,7 @@ import { api } from "@/services/api";
 import { useAuthStore } from "./auth";
 import { useCurrency } from "@/composables/useCurrency";
 import { t } from "@/i18n";
-import { resolveAdminUserFacingError } from "@/utils/userFacingError";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 type AnalyticsPeriod = "daily" | "weekly" | "monthly";
 type TopMenuItemsPeriod = "today" | "week" | "month";
@@ -112,14 +112,13 @@ export const useDashboardStore = defineStore("dashboard", () => {
         stats.value = response.data.data;
         lastUpdated.value = new Date();
       } else {
-        error.value = t("dashboardStore.fetchDataFailed");
+        error.value =
+          response.data.error?.message || t("dashboardStore.fetchDataFailed");
       }
     } catch (err: unknown) {
-      error.value = resolveAdminUserFacingError(
-        err,
-        t,
-        "dashboardStore.fetchDashboardFailed",
-      );
+      error.value = resolveUserFacingError(err, t, {
+        fallbackKey: "dashboardStore.fetchDashboardFailed",
+      }).message;
       console.error("Dashboard fetch error:", err);
     } finally {
       isLoading.value = false;

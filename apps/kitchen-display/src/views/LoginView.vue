@@ -141,7 +141,7 @@ import {
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
 import { useI18n } from "@/i18n";
-import { resolveKitchenLoginError } from "@/utils/login-error";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 // Composables
 const router = useRouter();
@@ -169,6 +169,19 @@ const canSubmit = computed(() => {
   );
 });
 
+/**
+ * A failed login answers 401 whichever way it failed, so the status cannot tell
+ * a wrong password from a locked account. The code can -- see LOGIN_FAILURE_CODES
+ * in the API's authentication routes.
+ */
+const LOGIN_CODE_KEYS = {
+  INVALID_CREDENTIALS: "login.invalidCredentials",
+  ACCOUNT_LOCKED: "login.accountLocked",
+};
+
+/** A 401 here is the password being rejected, not a session running out. */
+const LOGIN_STATUS_KEYS = { 401: "login.invalidCredentials" };
+
 // Methods
 const handleLogin = async () => {
   if (!canSubmit.value) return;
@@ -189,11 +202,17 @@ const handleLogin = async () => {
     if (restaurantId) {
       await router.push(`/kitchen/${restaurantId}`);
     } else {
-      throw new Error(t("login.fetchRestaurantError"));
+      // Reported directly rather than thrown: the catch below classifies API
+      // failures, and this one is a missing field on a successful login.
+      errorMessage.value = t("login.fetchRestaurantError");
     }
   } catch (error: unknown) {
     console.error("Login failed:", error);
-    errorMessage.value = resolveKitchenLoginError(error, t);
+    errorMessage.value = resolveUserFacingError(error, t, {
+      codeKeys: LOGIN_CODE_KEYS,
+      statusKeys: LOGIN_STATUS_KEYS,
+      fallbackKey: "login.loginError",
+    }).message;
 
     // 清除密碼欄位
     credentials.value.password = "";

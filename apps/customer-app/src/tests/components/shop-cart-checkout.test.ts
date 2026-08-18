@@ -7,13 +7,14 @@ const post = vi.hoisted(() => vi.fn());
 const hasCustomerAccessToken = vi.hoisted(() => vi.fn());
 const clearCart = vi.hoisted(() => vi.fn());
 const routerPush = vi.hoisted(() => vi.fn());
+const toastError = vi.hoisted(() => vi.fn());
 
 vi.mock("vue-router", () => ({
   useRouter: () => ({ push: routerPush }),
 }));
 
 vi.mock("vue-toastification", () => ({
-  useToast: () => ({ success: vi.fn(), error: vi.fn(), warning: vi.fn() }),
+  useToast: () => ({ success: vi.fn(), error: toastError, warning: vi.fn() }),
 }));
 
 vi.mock("@/composables/useI18n", () => ({
@@ -93,6 +94,7 @@ describe("ShopCartModal checkout payload", () => {
     hasCustomerAccessToken.mockReturnValue(false);
     clearCart.mockReset();
     routerPush.mockReset();
+    toastError.mockReset();
   });
 
   it("sends no pickup digits — the order number is the pickup identifier", async () => {
@@ -106,6 +108,61 @@ describe("ShopCartModal checkout payload", () => {
         query: { type: "shop" },
       }),
     );
+  });
+
+  /**
+   * The toast used to be `getErrorMessage(error, fallback)`, which returns the
+   * thrown error's own message -- the server's English sentence -- whenever
+   * there was one. `t` is the identity function here, so a leak would show up
+   * as the sentence itself rather than a key.
+   */
+  it("shows a translation key, never the server's sentence, when checkout fails", async () => {
+    post.mockRejectedValueOnce(
+      Object.assign(new Error("Menu item 101 is not available"), {
+        response: {
+          status: 409,
+          data: {
+            success: false,
+            error: {
+              code: "MENU_ITEM_UNAVAILABLE",
+              message: "Menu item 101 is not available",
+            },
+          },
+        },
+      }),
+    );
+
+    await checkout();
+
+    expect(toastError).toHaveBeenCalledWith(
+      "toast.orderSubmitMenuItemUnavailable",
+    );
+    expect(toastError).not.toHaveBeenCalledWith(
+      expect.stringContaining("Menu item"),
+    );
+  });
+
+  it("falls back to localized copy for a code it does not know", async () => {
+    post.mockRejectedValueOnce(
+      Object.assign(new Error("Some unmapped backend detail"), {
+        response: {
+          status: 503,
+          data: {
+            success: false,
+            error: {
+              code: "SOMETHING_NEW",
+              message: "Some unmapped backend detail",
+            },
+          },
+        },
+      }),
+    );
+
+    await checkout();
+
+    const [shown] = toastError.mock.calls[0];
+    expect(shown).not.toContain("unmapped backend");
+    expect(shown).toMatch(/^(toast|errorPresentation)\./);
   });
 
   it("sends the scanned code so the server can retire an old sticker", async () => {

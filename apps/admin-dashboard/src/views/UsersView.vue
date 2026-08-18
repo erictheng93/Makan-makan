@@ -468,7 +468,7 @@ import { useDateFormatter } from "@/composables/useDateFormatter";
 import { api } from "@/services/api";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
-import { resolveAdminUserFacingError } from "@/utils/userFacingError";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 import {
   PlusIcon,
@@ -695,7 +695,9 @@ const resetPassword = async (user: User) => {
     toast.success(t("users.confirm.resetPasswordSuccess"));
   } catch (error: unknown) {
     toast.error(
-      resolveAdminUserFacingError(error, t, "users.errors.resetFailed"),
+      resolveUserFacingError(error, t, {
+        fallbackKey: "users.errors.resetFailed",
+      }).message,
     );
   }
 };
@@ -721,7 +723,9 @@ const toggleUserStatus = async (user: User) => {
     await fetchUsers();
   } catch (error: unknown) {
     toast.error(
-      resolveAdminUserFacingError(error, t, "users.errors.toggleFailed"),
+      resolveUserFacingError(error, t, {
+        fallbackKey: "users.errors.toggleFailed",
+      }).message,
     );
   }
 };
@@ -762,7 +766,9 @@ const saveUser = async () => {
     await fetchUsers();
   } catch (error: unknown) {
     toast.error(
-      resolveAdminUserFacingError(error, t, "users.errors.saveFailed"),
+      resolveUserFacingError(error, t, {
+        fallbackKey: "users.errors.saveFailed",
+      }).message,
     );
   }
 };

@@ -784,7 +784,7 @@ import { useAuthStore } from "@/stores/auth";
 import { WaitingListService } from "@/services/waitingListService";
 import { useWebSocketService } from "@/services/websocketService";
 import { format } from "date-fns";
-import { resolveAdminUserFacingError } from "@/utils/userFacingError";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 import {
   RealtimeEventType,
   WaitingStatus,
@@ -992,7 +992,10 @@ async function addToQueue() {
     await loadQueueStatus();
   } catch (error: unknown) {
     console.error("Add to queue error:", error);
-    toast.error(resolveAdminUserFacingError(error, t, "waitingList.addError"));
+    toast.error(
+      resolveUserFacingError(error, t, { fallbackKey: "waitingList.addError" })
+        .message,
+    );
   } finally {
     submitting.value = false;
   }
@@ -1030,7 +1033,10 @@ async function confirmCall() {
     await loadQueueStatus();
   } catch (error: unknown) {
     console.error("Call waiting error:", error);
-    toast.error(resolveAdminUserFacingError(error, t, "waitingList.callError"));
+    toast.error(
+      resolveUserFacingError(error, t, { fallbackKey: "waitingList.callError" })
+        .message,
+    );
   } finally {
     calling.value = false;
   }
@@ -1048,7 +1054,10 @@ async function batchCallNext() {
     await loadQueueStatus();
   } catch (error: unknown) {
     console.error("Batch call error:", error);
-    toast.error(resolveAdminUserFacingError(error, t, "waitingList.callError"));
+    toast.error(
+      resolveUserFacingError(error, t, { fallbackKey: "waitingList.callError" })
+        .message,
+    );
   } finally {
     batchCalling.value = false;
   }
@@ -1066,7 +1075,9 @@ async function markSeated(id: string) {
   } catch (error: unknown) {
     console.error("Mark seated error:", error);
     toast.error(
-      resolveAdminUserFacingError(error, t, "waitingList.seatedError"),
+      resolveUserFacingError(error, t, {
+        fallbackKey: "waitingList.seatedError",
+      }).message,
     );
   }
 }
@@ -1091,7 +1102,9 @@ async function markExpired(id: string) {
   } catch (error: unknown) {
     console.error("Mark expired error:", error);
     toast.error(
-      resolveAdminUserFacingError(error, t, "waitingList.expireError"),
+      resolveUserFacingError(error, t, {
+        fallbackKey: "waitingList.expireError",
+      }).message,
     );
   }
 }
@@ -1116,7 +1129,9 @@ async function cancelEntry(entry: WaitingListEntry) {
   } catch (error: unknown) {
     console.error("Cancel entry error:", error);
     toast.error(
-      resolveAdminUserFacingError(error, t, "waitingList.cancelError"),
+      resolveUserFacingError(error, t, {
+        fallbackKey: "waitingList.cancelError",
+      }).message,
     );
   }
 }
