@@ -388,7 +388,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-type ShiftTemplateSaveData = CreateShiftTemplateData & {
+export type ShiftTemplateSaveData = CreateShiftTemplateData & {
   restaurantId: string;
   isActive: boolean;
 };

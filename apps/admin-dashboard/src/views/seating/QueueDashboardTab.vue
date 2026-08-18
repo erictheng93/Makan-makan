@@ -682,6 +682,13 @@ interface Table {
   matchScore?: number;
 }
 
+interface QueueStatusSummary {
+  queue?: {
+    total_waiting?: number;
+    avg_estimated_wait?: number;
+  };
+}
+
 // 響應式狀態
 const authStore = useAuthStore();
 const {
@@ -703,7 +710,7 @@ const autoAssignment = ref(true);
 const queueItems = ref<QueueItem[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
-const queueStatus = ref<any>(null);
+const queueStatus = ref<QueueStatusSummary | null>(null);
 
 // 統計數據 - 從新 API 即時數據獲取
 const currentWaiting = computed(() => {
@@ -938,14 +945,32 @@ const fetchTables = async () => {
     });
     const data = unwrapApiData<unknown[]>(response);
     if (Array.isArray(data)) {
-      tables.value = data.map((t: any) => ({
-        id: String(t.id),
-        number: t.tableNumber || t.number || `T${t.id}`,
-        capacity: t.capacity ?? t.seats ?? 4,
-        status: t.status || "available",
-        occupiedSince: t.occupiedSince || null,
-        cleaningStatus: t.cleaningStatus || "clean",
-      })) as Table[];
+      tables.value = data.map((table) => {
+        const t = table as Record<string, unknown>;
+        return {
+          id: String(t.id),
+          number:
+            (typeof t.tableNumber === "string" && t.tableNumber) ||
+            (typeof t.number === "string" && t.number) ||
+            `T${t.id}`,
+          capacity:
+            (typeof t.capacity === "number" && t.capacity) ||
+            (typeof t.seats === "number" && t.seats) ||
+            4,
+          status:
+            t.status === "occupied" ||
+            t.status === "reserved" ||
+            t.status === "cleaning"
+              ? t.status
+              : "available",
+          occupiedSince:
+            typeof t.occupiedSince === "string" ? t.occupiedSince : null,
+          cleaningStatus:
+            t.cleaningStatus === "cleaning" || t.cleaningStatus === "dirty"
+              ? t.cleaningStatus
+              : "clean",
+        };
+      });
     }
   } catch (err) {
     console.error("Failed to fetch tables:", err);

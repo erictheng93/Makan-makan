@@ -297,6 +297,7 @@ import type {
   ShiftTemplate,
   SchedulingConflict,
   SwapRequest,
+  CreateScheduleData,
 } from "@/types/scheduling";
 import {
   CalendarIcon,
@@ -314,6 +315,7 @@ import SchedulingConflicts from "@/components/scheduling/SchedulingConflicts.vue
 import SwapRequests from "@/components/scheduling/SwapRequests.vue";
 import ScheduleFormModal from "@/components/scheduling/ScheduleFormModal.vue";
 import ShiftTemplateFormModal from "@/components/scheduling/ShiftTemplateFormModal.vue";
+import type { ShiftTemplateSaveData } from "@/components/scheduling/ShiftTemplateFormModal.vue";
 
 // i18n
 const { t } = useI18n();
@@ -567,7 +569,7 @@ const handleDeleteSchedule = async (schedule: EmployeeSchedule) => {
   }
 };
 
-const handleSaveSchedule = async (scheduleData: any) => {
+const handleSaveSchedule = async (scheduleData: CreateScheduleData) => {
   try {
     if (selectedSchedule.value?.id) {
       await schedulingService.updateSchedule(
@@ -598,7 +600,7 @@ const showCreateTemplateModal = () => {
   showTemplateFormModal.value = true;
 };
 
-const handleSaveTemplate = async (templateData: any) => {
+const handleSaveTemplate = async (templateData: ShiftTemplateSaveData) => {
   try {
     if (selectedTemplate.value?.id) {
       await schedulingService.updateShiftTemplate(

@@ -194,7 +194,6 @@ import type {
   ShiftTemplate,
   AvailableEmployee,
   CreateScheduleData,
-  UpdateScheduleData,
 } from "@/types/scheduling";
 
 const props = defineProps<{
@@ -203,7 +202,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  save: [data: CreateScheduleData | UpdateScheduleData];
+  save: [data: CreateScheduleData];
   close: [];
 }>();
 
@@ -350,7 +349,7 @@ const handleSubmit = async () => {
   try {
     loading.value = true;
 
-    const scheduleData: CreateScheduleData | UpdateScheduleData = {
+    const scheduleData: CreateScheduleData = {
       employeeId: Number(formData.employeeId),
       workDate: formData.workDate,
       shiftTemplateId: formData.shiftTemplateId

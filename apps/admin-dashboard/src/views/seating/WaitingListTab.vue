@@ -835,7 +835,13 @@ const waitingList = ref<WaitingListEntry[]>([]);
 const queueStatus = ref<QueueStatus | null>(null);
 const selectedEntry = ref<WaitingListEntry | null>(null);
 const estimatedWait = ref<WaitTimeEstimateResult | null>(null);
-const availableTables = ref<any[]>([]);
+interface AvailableTable {
+  id: number;
+  number: string;
+  capacity: number;
+}
+
+const availableTables = ref<AvailableTable[]>([]);
 
 // Filters
 const filters = reactive<WaitingFiltersState>({
