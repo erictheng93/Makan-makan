@@ -46,7 +46,7 @@ export interface ExportOptions {
   };
 
   // 高級選項
-  filters?: any; // 應用的篩選器
+  filters?: unknown; // 應用的篩選器
   maxRows?: number;
   compression?: boolean;
 }

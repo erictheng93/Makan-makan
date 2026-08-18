@@ -19,7 +19,7 @@ export interface Notification {
   data?: {
     orderNumber?: string;
     tableNumber?: string | number;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
