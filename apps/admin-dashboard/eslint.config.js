@@ -19,7 +19,6 @@ export default [
       "**/.backup/**",
       "**/*.backup",
       "*.config.js",
-      "src/components/charts/**",
     ],
   },
 
@@ -70,7 +69,7 @@ export default [
         },
       ],
       "no-empty-pattern": "off",
-      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-empty-object-type": "off",
       "@typescript-eslint/no-unused-expressions": "off",
       "no-redeclare": "off",
@@ -120,7 +119,7 @@ export default [
     },
     rules: {
       "@typescript-eslint/no-unused-vars": "off",
-      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-explicit-any": "error",
     },
   },
 

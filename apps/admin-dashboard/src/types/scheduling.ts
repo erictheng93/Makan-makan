@@ -31,6 +31,7 @@ export interface ShiftTemplate {
   isActive: boolean;
   isDefault?: boolean; // Added for UI
   usageCount?: number; // Added for UI - tracks how many times template has been used
+  assignedCount?: number; // Distinct non-cancelled employees scheduled on this template
   createdAt: string;
   updatedAt: string;
   createdBy: number;
@@ -328,6 +329,7 @@ export interface DailyStats {
     cancelled: number;
     noShow: number;
   };
+  shiftTypeBreakdown?: Record<string, number>;
 }
 
 export interface WeeklySummary {

@@ -229,13 +229,17 @@ const fetchData = async () => {
       fetchPromises.push(
         schedulingService
           .getDailyStats(restaurantId, dateStr)
-          .then((stats: any) => ({
+          .then((stats) => ({
             date: dateStr,
+            // "average" = hours per employee that day (issue #209); the API
+            // has no averageHours field, so it is derived client-side.
             value:
               selectedMetric.value === "schedules"
-                ? (stats.totalSchedules ?? stats.scheduleCount ?? 0)
+                ? (stats.totalSchedules ?? 0)
                 : selectedMetric.value === "average"
-                  ? (stats.averageHours ?? 0)
+                  ? stats.totalEmployees > 0
+                    ? (stats.totalHours ?? 0) / stats.totalEmployees
+                    : 0
                   : (stats.totalHours ?? 0),
           }))
           .catch(() => ({ date: dateStr, value: 0 })),

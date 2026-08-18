@@ -15,6 +15,7 @@ import {
   isNull,
   isNotNull,
   inArray,
+  ne,
 } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import type { D1Database } from "@cloudflare/workers-types";
@@ -60,6 +61,9 @@ export interface ShiftTemplate {
   icon: string | null;
   sortOrder: number;
   isActive: boolean;
+  /** Distinct non-cancelled employees scheduled on this template (issue #209).
+   *  Populated by getShiftTemplates only. */
+  assignedCount?: number;
   createdBy: string | null;
   updatedBy: string | null;
   createdAt: Date;
@@ -379,7 +383,29 @@ export class SchedulingService extends BaseService {
       .where(eq(shiftTemplates.restaurantId, restaurantId))
       .orderBy(asc(shiftTemplates.sortOrder), asc(shiftTemplates.name));
 
-    return templates.map((template) => this.mapShiftTemplate(template));
+    // ponytail: all-time distinct headcount; add a date-range param if the
+    // analytics view ever needs a bounded window.
+    const counts = await this.db
+      .select({
+        shiftTemplateId: employeeSchedules.shiftTemplateId,
+        assignedCount: sql<number>`COUNT(DISTINCT ${employeeSchedules.employeeId})`,
+      })
+      .from(employeeSchedules)
+      .where(
+        and(
+          eq(employeeSchedules.restaurantId, restaurantId),
+          ne(employeeSchedules.status, "cancelled"),
+        ),
+      )
+      .groupBy(employeeSchedules.shiftTemplateId);
+    const countByTemplate = new Map(
+      counts.map((row) => [row.shiftTemplateId, Number(row.assignedCount)]),
+    );
+
+    return templates.map((template) => ({
+      ...this.mapShiftTemplate(template),
+      assignedCount: countByTemplate.get(template.id) ?? 0,
+    }));
   }
 
   async getShiftTemplate(

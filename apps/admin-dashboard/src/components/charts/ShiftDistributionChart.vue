@@ -137,10 +137,10 @@ const fetchData = async () => {
     const templates = await schedulingService.getShiftTemplates(restaurantId);
 
     if (Array.isArray(templates) && templates.length > 0) {
-      shifts.value = templates.map((tpl: any) => ({
+      shifts.value = templates.map((tpl) => ({
         id: String(tpl.id),
         name: tpl.name || `${tpl.startTime || ""}-${tpl.endTime || ""}`,
-        count: tpl.assignedCount ?? tpl.employeeCount ?? 0,
+        count: tpl.assignedCount ?? 0,
       }));
     } else {
       shifts.value = [];
