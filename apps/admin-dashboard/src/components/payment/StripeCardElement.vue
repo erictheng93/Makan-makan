@@ -116,6 +116,7 @@ import {
   type Stripe,
   type StripeElements,
   type StripeCardElement,
+  type StripeCardElementChangeEvent,
 } from "@stripe/stripe-js";
 import {
   ExclamationCircleIcon,
@@ -337,7 +338,7 @@ const initializeStripe = async () => {
       isCardFocused.value = false;
     });
 
-    cardElement.on("change", (event: any) => {
+    cardElement.on("change", (event: StripeCardElementChangeEvent) => {
       isCardComplete.value = event.complete;
       cardError.value = event.error?.message || "";
 

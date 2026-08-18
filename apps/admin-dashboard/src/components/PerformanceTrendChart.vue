@@ -134,6 +134,7 @@ import {
   Tooltip,
   Legend,
   Filler,
+  type TooltipItem,
 } from "chart.js";
 import { Chart } from "chart.js";
 import {
@@ -309,7 +310,7 @@ const chartOptions = computed(() => ({
     },
     tooltip: {
       callbacks: {
-        label: (context: any) => {
+        label: (context: TooltipItem<"line">) => {
           const label = context.dataset.label || "";
           const value = formatValue(context.parsed.y, selectedMetric.value);
           return `${label}: ${value}`;
@@ -331,7 +332,8 @@ const chartOptions = computed(() => ({
         color: "rgba(0, 0, 0, 0.05)",
       },
       ticks: {
-        callback: (value: any) => formatValue(value, selectedMetric.value),
+        callback: (value: string | number) =>
+          formatValue(value, selectedMetric.value),
       },
     },
   },
