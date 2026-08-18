@@ -277,19 +277,6 @@ const viVN: Messages = {
     urgent: "Khẩn cấp",
   },
   // Nội dung resolveUserFacingError chọn theo mã HTTP hoặc lỗi truyền tải.
-  errorPresentation: {
-    invalidRequest: "Yêu cầu không hợp lệ. Vui lòng kiểm tra và thử lại.",
-    sessionExpired: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
-    permissionDenied: "Bạn không có quyền thực hiện thao tác này.",
-    notFound: "Không tìm thấy tài nguyên được yêu cầu.",
-    conflict: "Dữ liệu đã thay đổi. Vui lòng làm mới và thử lại.",
-    tooManyRequests: "Có quá nhiều yêu cầu. Vui lòng thử lại sau.",
-    serviceUnavailable:
-      "Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau.",
-    network: "Kết nối mạng thất bại. Vui lòng kiểm tra kết nối và thử lại.",
-    timeout: "Thao tác đã hết thời gian chờ. Vui lòng thử lại.",
-    unknown: "Đã xảy ra lỗi không xác định. Vui lòng thử lại sau.",
-  },
 
   header: {
     boardView: "Ban",
@@ -472,9 +459,6 @@ const viVN: Messages = {
     updateStatusFailed: "Trạng thái cập nhật không thành công:",
   },
   login: {
-    invalidCredentials: "Tên đăng nhập hoặc mật khẩu không đúng.",
-    accountLocked:
-      "Quá nhiều lần đăng nhập sai. Tài khoản tạm thời bị khóa — vui lòng thử lại sau.",
     fetchRestaurantError: "Không tìm nạp được thông tin nhà hàng",
     helpNote: "Cần giúp đỡ? Liên hệ với quản trị viên hệ thống của bạn",
     loggingIn: "Đang đăng nhập...",

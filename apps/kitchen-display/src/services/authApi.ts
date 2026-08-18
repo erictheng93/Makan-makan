@@ -1,7 +1,7 @@
 import { createAuthenticatedApiClient } from "@makanmasak/auth-client";
 import type { ApiResponse, User } from "@/types";
 import {
-  getApiErrorMessage,
+  describeErrorForLog,
   getApiErrorStatus,
   isRecord,
 } from "@/utils/unknown";
@@ -103,7 +103,7 @@ export const authApi = {
       // is down.
       return {
         success: false,
-        error: getApiErrorMessage(error, "Login request failed"),
+        error: describeErrorForLog(error, "Login request failed"),
         code: getApiErrorCode(error) ?? getTransportErrorCode(error),
         status: getApiErrorStatus(error),
         timestamp: new Date().toISOString(),
@@ -156,7 +156,7 @@ export const authApi = {
       console.error("Refresh token API error:", error);
       return {
         success: false,
-        error: getApiErrorMessage(error, "Token 刷新失敗"),
+        error: describeErrorForLog(error, "Token 刷新失敗"),
         timestamp: new Date().toISOString(),
       };
     }
@@ -175,7 +175,7 @@ export const authApi = {
     } catch (error: unknown) {
       console.error("Validate token API error:", error);
 
-      const message = getApiErrorMessage(error, "Token 驗證失敗");
+      const message = describeErrorForLog(error, "Token 驗證失敗");
       return {
         success: false,
         error: message,
@@ -197,7 +197,7 @@ export const authApi = {
     } catch (error: unknown) {
       console.error("Get current user API error:", error);
 
-      const message = getApiErrorMessage(error, "獲取用戶資訊失敗");
+      const message = describeErrorForLog(error, "獲取用戶資訊失敗");
       return {
         success: false,
         error: message,

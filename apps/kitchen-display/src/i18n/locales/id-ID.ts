@@ -278,19 +278,6 @@ const idID: Messages = {
     urgent: "Mendesak",
   },
   // Teks yang dipilih resolveUserFacingError dari status HTTP atau galat transport.
-  errorPresentation: {
-    invalidRequest: "Permintaan tidak valid. Periksa lalu coba lagi.",
-    sessionExpired: "Sesi Anda telah berakhir. Silakan masuk kembali.",
-    permissionDenied: "Anda tidak memiliki izin untuk tindakan ini.",
-    notFound: "Sumber yang diminta tidak ditemukan.",
-    conflict: "Data telah berubah. Segarkan lalu coba lagi.",
-    tooManyRequests: "Terlalu banyak permintaan. Silakan coba lagi nanti.",
-    serviceUnavailable:
-      "Layanan sementara tidak tersedia. Silakan coba lagi nanti.",
-    network: "Koneksi jaringan gagal. Periksa koneksi lalu coba lagi.",
-    timeout: "Operasi habis waktu. Silakan coba lagi.",
-    unknown: "Terjadi kesalahan tak terduga. Silakan coba lagi nanti.",
-  },
 
   header: {
     boardView: "Papan",
@@ -471,9 +458,6 @@ const idID: Messages = {
     updateStatusFailed: "Pembaruan status gagal:",
   },
   login: {
-    invalidCredentials: "Nama pengguna atau kata sandi tidak benar.",
-    accountLocked:
-      "Terlalu banyak percobaan gagal. Akun ini dikunci sementara — silakan coba lagi nanti.",
     fetchRestaurantError: "Gagal mengambil info restoran",
     helpNote: "Butuh bantuan? Hubungi administrator sistem Anda",
     loggingIn: "Masuk...",

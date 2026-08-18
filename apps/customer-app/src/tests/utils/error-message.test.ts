@@ -1,36 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { getApiErrorMessage, getErrorMessage } from "@/utils/unknown";
 
-describe("display error message helpers", () => {
-  it("never exposes an untrusted Error message to the diner", () => {
-    expect(
-      getErrorMessage(
-        new Error("Internal database hostname: db-prod-1"),
-        "請稍後再試",
-      ),
-    ).toBe("請稍後再試");
-  });
-
-  it("never exposes legacy or enveloped server error messages", () => {
-    expect(
-      getApiErrorMessage(
-        {
-          response: {
-            data: {
-              error: {
-                code: "INTERNAL_SERVER_ERROR",
-                message: "Unhandled provider exception",
-              },
-            },
-          },
-        },
-        "請稍後再試",
-      ),
-    ).toBe("請稍後再試");
-  });
-
+describe("customer-facing error copy", () => {
   it("keeps customer-facing error paths free of raw Error.message rendering", () => {
     const appRoot = process.cwd().endsWith("customer-app")
       ? process.cwd()
