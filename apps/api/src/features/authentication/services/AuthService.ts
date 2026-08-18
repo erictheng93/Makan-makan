@@ -40,6 +40,7 @@ import type {
   AccountSecurity,
   AuthStatistics,
   IAuthService,
+  PasswordResetFailureReason,
 } from "../types";
 
 type DatabaseSessionSummary = Awaited<
@@ -856,9 +857,11 @@ export class AuthService implements IAuthService {
   }
 
   // Password Reset Methods
-  async requestPasswordReset(
-    identifier: string,
-  ): Promise<{ success: boolean; error?: string }> {
+  async requestPasswordReset(identifier: string): Promise<{
+    success: boolean;
+    reason?: PasswordResetFailureReason;
+    error?: string;
+  }> {
     const resetTarget = await this.resolvePasswordResetTarget(identifier);
     if (!resetTarget) {
       // Do not reveal account existence.
@@ -878,7 +881,11 @@ export class AuthService implements IAuthService {
       });
     }
 
-    return { success: result.success, error: result.error };
+    return {
+      success: result.success,
+      reason: result.reason,
+      error: result.error,
+    };
   }
 
   private async resolvePasswordResetTarget(
@@ -915,7 +922,11 @@ export class AuthService implements IAuthService {
   async resetPassword(
     token: string,
     newPassword: string,
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<{
+    success: boolean;
+    reason?: PasswordResetFailureReason;
+    error?: string;
+  }> {
     const result = await this.verificationService.resetPassword({
       token,
       newPassword,
@@ -929,7 +940,11 @@ export class AuthService implements IAuthService {
       });
     }
 
-    return { success: result.success, error: result.error };
+    return {
+      success: result.success,
+      reason: result.reason,
+      error: result.error,
+    };
   }
 
   // Email Verification Methods

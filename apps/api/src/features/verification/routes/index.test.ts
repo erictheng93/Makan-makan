@@ -121,6 +121,7 @@ describe("verification routes", () => {
     serviceMethods.verifyResetToken.mockResolvedValue({
       valid: false,
       error: "expired",
+      reason: "reset_token_expired",
     });
     const invalidLookupResponse = await routes.fetch(
       new Request(`https://test/reset-password/verify?token=${token}`),
@@ -128,6 +129,31 @@ describe("verification routes", () => {
     );
 
     expect(invalidLookupResponse.status).toBe(400);
+    await expect(invalidLookupResponse.json()).resolves.toEqual({
+      valid: false,
+      error: {
+        code: "RESET_TOKEN_EXPIRED",
+        message: "expired",
+      },
+    });
+
+    serviceMethods.verifyResetToken.mockResolvedValueOnce({
+      valid: false,
+      error: "invalid",
+      reason: "reset_token_invalid",
+    });
+    const invalidTokenResponse = await routes.fetch(
+      new Request(`https://test/reset-password/verify?token=${token}`),
+      createEnv() as never,
+    );
+    expect(invalidTokenResponse.status).toBe(400);
+    await expect(invalidTokenResponse.json()).resolves.toEqual({
+      valid: false,
+      error: {
+        code: "RESET_TOKEN_INVALID",
+        message: "invalid",
+      },
+    });
 
     serviceMethods.verifyResetToken.mockRejectedValueOnce(
       new Error("database unavailable"),

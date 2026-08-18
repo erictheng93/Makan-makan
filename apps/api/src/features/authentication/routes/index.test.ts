@@ -649,6 +649,58 @@ describe("authentication routes", () => {
     expect(response.status).toBe(400);
   });
 
+  it.each([
+    [
+      "requestPasswordReset",
+      "/forgot-password",
+      { email: "owner@example.test" },
+      "reset_request_throttled",
+      "RESET_REQUEST_THROTTLED",
+    ],
+    [
+      "resetPassword",
+      "/reset-password",
+      {
+        token: "reset-token",
+        newPassword: "Secret123!",
+        confirmPassword: "Secret123!",
+      },
+      "weak_password",
+      "WEAK_PASSWORD",
+    ],
+    [
+      "resetPassword",
+      "/reset-password",
+      {
+        token: "reset-token",
+        newPassword: "Secret123!",
+        confirmPassword: "Secret123!",
+      },
+      "reset_token_expired",
+      "RESET_TOKEN_EXPIRED",
+    ],
+  ] as const)(
+    "returns %s failures in the standard error envelope",
+    async (method, path, body, reason, code) => {
+      service[method].mockResolvedValueOnce({
+        success: false,
+        reason,
+        error: "server prose must not determine the code",
+      });
+
+      const response = await request(path, "POST", body).res;
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        success: false,
+        error: {
+          code,
+          message: "server prose must not determine the code",
+        },
+      });
+    },
+  );
+
   it("returns admin auth statistics and security events", async () => {
     let response = await request("/stats?timeRange=7d").res;
 

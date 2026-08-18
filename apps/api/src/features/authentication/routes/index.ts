@@ -41,6 +41,7 @@ import type {
   DeviceInfo,
   LocationInfo,
   IAuthService,
+  PasswordResetFailureReason,
 } from "../types";
 
 // Create feature logger
@@ -64,6 +65,13 @@ const LOGIN_FAILURE_CODES: Record<AuthFailureReason, string> = {
   username_taken: "USERNAME_TAKEN",
   weak_password: "WEAK_PASSWORD",
 };
+const PASSWORD_RESET_FAILURE_CODES: Record<PasswordResetFailureReason, string> =
+  {
+    reset_token_expired: "RESET_TOKEN_EXPIRED",
+    reset_token_invalid: "RESET_TOKEN_INVALID",
+    weak_password: "WEAK_PASSWORD",
+    reset_request_throttled: "RESET_REQUEST_THROTTLED",
+  };
 const STAFF_REFRESH_COOKIE = "__Host-mm_staff_refresh";
 const STAFF_REFRESH_COOKIE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
@@ -608,12 +616,21 @@ export function createAuthRoutes(
         requestData.email || requestData.username || "",
       );
 
+      if (!result.success) {
+        throw badRequest(
+          result.error || "Password reset request failed",
+          result.reason
+            ? PASSWORD_RESET_FAILURE_CODES[result.reason]
+            : "PASSWORD_RESET_REQUEST_FAILED",
+        );
+      }
+
       return c.json(
         {
-          success: result.success,
-          message: result.success ? "Password reset email sent" : result.error,
+          success: true,
+          message: "Password reset email sent",
         },
-        result.success ? HTTP_STATUS.OK : HTTP_STATUS.BAD_REQUEST,
+        HTTP_STATUS.OK,
       );
     },
   );
@@ -630,14 +647,21 @@ export function createAuthRoutes(
       const authService = AuthService(c.env);
       const result = await authService.resetPassword(token, newPassword);
 
+      if (!result.success) {
+        throw badRequest(
+          result.error || "Password reset failed",
+          result.reason
+            ? PASSWORD_RESET_FAILURE_CODES[result.reason]
+            : "PASSWORD_RESET_FAILED",
+        );
+      }
+
       return c.json(
         {
-          success: result.success,
-          message: result.success
-            ? "Password reset successfully"
-            : result.error,
+          success: true,
+          message: "Password reset successfully",
         },
-        result.success ? HTTP_STATUS.OK : HTTP_STATUS.BAD_REQUEST,
+        HTTP_STATUS.OK,
       );
     },
   );

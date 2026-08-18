@@ -1823,6 +1823,8 @@ const idID: Messages = {
     invalidEmail: "Silakan masukkan format email yang valid",
     resetEmailSent: "Email atur ulang kata sandi telah dikirim",
     sendFailed: "Gagal mengirim, silakan coba lagi nanti",
+    resetRequestThrottled:
+      "Terlalu banyak permintaan reset. Silakan coba lagi nanti.",
     networkError: "Kesalahan jaringan, silakan periksa koneksi Anda",
     resetPasswordSubtitle: "Dasbor Admin - Atur Ulang Kata Sandi",
     verifyingLink: "Memverifikasi tautan atur ulang...",
@@ -1858,6 +1860,10 @@ const idID: Messages = {
     passwordMismatch: "Kata sandi tidak cocok",
     passwordResetSuccess: "Kata sandi berhasil diatur ulang",
     resetFailed: "Gagal mengatur ulang kata sandi, silakan coba lagi",
+    resetTokenExpired:
+      "Tautan reset ini telah kedaluwarsa. Silakan minta yang baru.",
+    resetTokenInvalid: "Tautan reset ini tidak valid. Silakan minta yang baru.",
+    weakPassword: "Kata sandi terlalu lemah. Gunakan setidaknya 6 karakter.",
     tokenInvalid: "Token tidak valid atau sudah kedaluwarsa",
     tokenVerifyError: "Kesalahan saat memverifikasi token",
     missingToken: "Token atur ulang tidak ditemukan",

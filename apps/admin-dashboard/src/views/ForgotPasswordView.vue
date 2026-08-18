@@ -141,13 +141,18 @@ import { ref, reactive } from "vue";
 import { useI18n } from "@/i18n";
 import { CheckCircle, AlertCircle, Info } from "lucide-vue-next";
 import { api } from "@/services/api";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 
 const { t } = useI18n();
 
 type ForgotPasswordResponse = {
   success: boolean;
   message?: string;
-  error?: string;
+  error?: { code?: string; message?: string };
+};
+
+const passwordResetCodeKeys = {
+  RESET_REQUEST_THROTTLED: "auth.resetRequestThrottled",
 };
 
 const isLoading = ref(false);
@@ -207,10 +212,14 @@ const handleSubmit = async () => {
       success.value = true;
       successMessage.value = data.message || t("auth.resetEmailSent");
     } else {
-      // The endpoint answers { success, message } with no code, so there is
-      // nothing to classify and its sentence is English. Until it emits a code,
-      // this is the whole truth the client has.
-      error.value = t("auth.sendFailed");
+      error.value = resolveUserFacingError(
+        { response: { status: response.status, data } },
+        t,
+        {
+          codeKeys: passwordResetCodeKeys,
+          fallbackKey: "auth.sendFailed",
+        },
+      ).message;
     }
   } catch (err) {
     console.error("Forgot password error:", err);

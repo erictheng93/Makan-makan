@@ -1715,6 +1715,8 @@ const viVN: Messages = {
     invalidEmail: "Vui lòng nhập định dạng email hợp lệ",
     resetEmailSent: "Email đặt lại mật khẩu đã được gửi",
     sendFailed: "Gửi thất bại, vui lòng thử lại sau",
+    resetRequestThrottled:
+      "Có quá nhiều yêu cầu đặt lại. Vui lòng thử lại sau.",
     networkError: "Lỗi mạng, vui lòng kiểm tra kết nối",
     resetPasswordSubtitle: "Quản trị - Đặt lại mật khẩu",
     verifyingLink: "Đang xác minh liên kết đặt lại...",
@@ -1750,6 +1752,11 @@ const viVN: Messages = {
     passwordMismatch: "Mật khẩu không khớp",
     passwordResetSuccess: "Mật khẩu đã được đặt lại thành công",
     resetFailed: "Đặt lại mật khẩu thất bại, vui lòng thử lại",
+    resetTokenExpired:
+      "Liên kết đặt lại đã hết hạn. Vui lòng yêu cầu liên kết mới.",
+    resetTokenInvalid:
+      "Liên kết đặt lại không hợp lệ. Vui lòng yêu cầu liên kết mới.",
+    weakPassword: "Mật khẩu quá yếu. Hãy dùng ít nhất 6 ký tự.",
     tokenInvalid: "Token không hợp lệ hoặc đã hết hạn",
     tokenVerifyError: "Lỗi khi xác minh token",
     missingToken: "Thiếu token đặt lại",

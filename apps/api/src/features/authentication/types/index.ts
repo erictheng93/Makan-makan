@@ -165,6 +165,12 @@ export type AuthFailureReason =
   | "weak_password"
   | "rate_limited";
 
+export type PasswordResetFailureReason =
+  | "reset_token_expired"
+  | "reset_token_invalid"
+  | "weak_password"
+  | "reset_request_throttled";
+
 export interface AuthResult {
   success: boolean;
   /** Set on every failure path; absent on success. */
@@ -360,13 +366,19 @@ export interface IAuthService {
   generateBackupCodes(userId: string): Promise<TwoFactorBackupCodes>;
 
   // Password reset
-  requestPasswordReset(
-    identifier: string,
-  ): Promise<{ success: boolean; error?: string }>;
+  requestPasswordReset(identifier: string): Promise<{
+    success: boolean;
+    reason?: PasswordResetFailureReason;
+    error?: string;
+  }>;
   resetPassword(
     token: string,
     newPassword: string,
-  ): Promise<{ success: boolean; error?: string }>;
+  ): Promise<{
+    success: boolean;
+    reason?: PasswordResetFailureReason;
+    error?: string;
+  }>;
 
   // Email verification
   requestEmailVerification(

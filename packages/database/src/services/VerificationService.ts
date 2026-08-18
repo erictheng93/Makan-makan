@@ -32,6 +32,12 @@ export interface PasswordResetRequestParams {
   userAgent?: string;
 }
 
+export type PasswordResetFailureReason =
+  | "reset_token_expired"
+  | "reset_token_invalid"
+  | "weak_password"
+  | "reset_request_throttled";
+
 export interface VerifyResetTokenParams {
   token: string;
   ipAddress?: string;
@@ -137,6 +143,7 @@ export class VerificationService extends BaseService {
   async requestPasswordReset(params: PasswordResetRequestParams): Promise<{
     success: boolean;
     message: string;
+    reason?: PasswordResetFailureReason;
     error?: string;
   }> {
     const { identifier, method, ipAddress, userAgent } = params;
@@ -234,6 +241,7 @@ export class VerificationService extends BaseService {
     valid: boolean;
     userId?: string;
     email?: string;
+    reason?: PasswordResetFailureReason;
     error?: string;
   }> {
     const { token } = params;
@@ -254,18 +262,30 @@ export class VerificationService extends BaseService {
         .get();
 
       if (!resetToken) {
-        return { valid: false, error: "Token 不存在或無效" };
+        return {
+          valid: false,
+          reason: "reset_token_invalid",
+          error: "Token 不存在或無效",
+        };
       }
 
       // Check if already used
       if (resetToken.usedAt) {
-        return { valid: false, error: "Token 已被使用" };
+        return {
+          valid: false,
+          reason: "reset_token_invalid",
+          error: "Token 已被使用",
+        };
       }
 
       // Check if expired
       const now = new Date();
       if (resetToken.expiresAt && resetToken.expiresAt < now) {
-        return { valid: false, error: "Token 已過期" };
+        return {
+          valid: false,
+          reason: "reset_token_expired",
+          error: "Token 已過期",
+        };
       }
 
       // Mask email for privacy
@@ -293,6 +313,7 @@ export class VerificationService extends BaseService {
   async resetPassword(params: ResetPasswordParams): Promise<{
     success: boolean;
     message: string;
+    reason?: PasswordResetFailureReason;
     error?: string;
   }> {
     const { token, newPassword, ipAddress, userAgent } = params;
@@ -304,6 +325,7 @@ export class VerificationService extends BaseService {
         return {
           success: false,
           message: "無效的重設連結",
+          reason: verification.reason ?? "reset_token_invalid",
           error: verification.error,
         };
       }
@@ -313,6 +335,7 @@ export class VerificationService extends BaseService {
         return {
           success: false,
           message: "密碼至少需要 6 個字符",
+          reason: "weak_password",
         };
       }
 

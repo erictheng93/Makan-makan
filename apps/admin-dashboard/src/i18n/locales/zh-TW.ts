@@ -1874,6 +1874,7 @@ const zhTWCore = {
     invalidEmail: "請輸入有效的電子郵件格式",
     resetEmailSent: "密碼重設郵件已發送",
     sendFailed: "發送失敗，請稍後再試",
+    resetRequestThrottled: "重設請求過於頻繁，請稍後再試。",
     networkError: "網路錯誤，請檢查您的網路連線",
     // 重設密碼
     resetPasswordSubtitle: "管理後台 - 重設密碼",
@@ -1909,6 +1910,9 @@ const zhTWCore = {
     passwordMismatch: "兩次輸入的密碼不一致",
     passwordResetSuccess: "密碼已成功重設",
     resetFailed: "重設密碼失敗，請重試",
+    resetTokenExpired: "重設連結已過期，請重新申請。",
+    resetTokenInvalid: "重設連結無效，請重新申請。",
+    weakPassword: "密碼強度不足，請使用至少 6 個字元的密碼。",
     tokenInvalid: "Token 無效或已過期",
     tokenVerifyError: "驗證 Token 時發生錯誤",
     missingToken: "缺少重設 Token",

@@ -1712,6 +1712,8 @@ const jaJP: Messages = {
     invalidEmail: "有効なメールアドレスを入力してください",
     resetEmailSent: "パスワードリセットメールを送信しました",
     sendFailed: "送信に失敗しました。後でもう一度お試しください",
+    resetRequestThrottled:
+      "リセット要求が多すぎます。後でもう一度お試しください。",
     networkError: "ネットワークエラー。接続を確認してください",
     resetPasswordSubtitle: "管理ダッシュボード - パスワードリセット",
     verifyingLink: "リセットリンクを検証中...",
@@ -1747,6 +1749,10 @@ const jaJP: Messages = {
     passwordMismatch: "パスワードが一致しません",
     passwordResetSuccess: "パスワードが正常にリセットされました",
     resetFailed: "パスワードリセットに失敗しました。再試行してください",
+    resetTokenExpired:
+      "リセットリンクの有効期限が切れています。もう一度申請してください。",
+    resetTokenInvalid: "リセットリンクが無効です。もう一度申請してください。",
+    weakPassword: "パスワードが弱すぎます。6文字以上で設定してください。",
     tokenInvalid: "トークンが無効または期限切れです",
     tokenVerifyError: "トークンの検証中にエラーが発生しました",
     missingToken: "リセットトークンがありません",

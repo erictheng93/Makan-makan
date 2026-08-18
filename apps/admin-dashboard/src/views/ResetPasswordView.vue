@@ -338,6 +338,7 @@ import { ref, reactive, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { api } from "@/services/api";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 import {
   Eye,
   EyeOff,
@@ -355,13 +356,20 @@ const router = useRouter();
 type ResetTokenVerificationResponse = {
   valid: boolean;
   email?: string;
-  error?: string;
+  error?: { code?: string; message?: string };
 };
 
 type ResetPasswordResponse = {
   success: boolean;
   message?: string;
-  error?: string;
+  error?: { code?: string; message?: string };
+};
+
+const passwordResetCodeKeys = {
+  RESET_TOKEN_EXPIRED: "auth.resetTokenExpired",
+  RESET_TOKEN_INVALID: "auth.resetTokenInvalid",
+  WEAK_PASSWORD: "auth.weakPassword",
+  RESET_REQUEST_THROTTLED: "auth.resetRequestThrottled",
 };
 
 const verifying = ref(true);
@@ -443,7 +451,14 @@ const verifyToken = async () => {
     if (data.valid) {
       maskedEmail.value = data.email || "";
     } else {
-      tokenError.value = t("auth.tokenInvalid");
+      tokenError.value = resolveUserFacingError(
+        { response: { status: response.status, data } },
+        t,
+        {
+          codeKeys: passwordResetCodeKeys,
+          fallbackKey: "auth.tokenInvalid",
+        },
+      ).message;
     }
   } catch (err) {
     console.error("Token verification error:", err);
@@ -512,7 +527,14 @@ const handleSubmit = async () => {
         router.push("/login");
       }, 2000);
     } else {
-      error.value = t("auth.resetFailed");
+      error.value = resolveUserFacingError(
+        { response: { status: response.status, data } },
+        t,
+        {
+          codeKeys: passwordResetCodeKeys,
+          fallbackKey: "auth.resetFailed",
+        },
+      ).message;
     }
   } catch (err) {
     console.error("Reset password error:", err);

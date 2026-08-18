@@ -96,7 +96,24 @@ routes.get("/reset-password/verify", async (c) => {
       ipAddress,
     });
 
-    return c.json(result, result.valid ? 200 : 400);
+    if (!result.valid) {
+      const code =
+        result.reason === "reset_token_expired"
+          ? "RESET_TOKEN_EXPIRED"
+          : "RESET_TOKEN_INVALID";
+      return c.json(
+        {
+          valid: false,
+          error: {
+            code,
+            message: result.error || "Token 不存在或無效",
+          },
+        },
+        400,
+      );
+    }
+
+    return c.json(result, 200);
   } catch {
     return c.json(
       {
