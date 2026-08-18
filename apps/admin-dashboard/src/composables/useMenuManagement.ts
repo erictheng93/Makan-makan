@@ -4,6 +4,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/i18n";
 import type { MenuItemImportInput } from "@/utils/menuItemImport";
+import type { ImageMenuCategoryDraft } from "@/utils/imageAssistedMenuImport";
 import type { ImageVariants } from "@/composables/useImageUpload";
 import { getApiErrorCode } from "@makanmasak/shared/utils/unknown";
 import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
@@ -353,6 +354,32 @@ export function useMenuManagement() {
     }
   };
 
+  /**
+   * Categories deliberately remain individual requests: the existing API has
+   * no category bulk endpoint. Callers then use importMenuItems once for the
+   * atomic item write; if that write fails, these empty categories are kept for
+   * a safe retry rather than attempting an unreliable cross-request rollback.
+   */
+  const createImageAssistedCategories = async (
+    drafts: ImageMenuCategoryDraft[],
+  ): Promise<Map<string, number>> => {
+    const ids = new Map<string, number>();
+    if (!authStore.restaurantId) return ids;
+
+    for (const draft of drafts) {
+      const response = await api.post<CategoryData>(
+        `/menu/${authStore.restaurantId}/categories`,
+        { name: draft.name, sortOrder: draft.sortOrder },
+      );
+      const category = response.data?.data;
+      if (!category?.id) {
+        throw new Error("Category creation returned no category id");
+      }
+      ids.set(draft.key, category.id);
+    }
+    return ids;
+  };
+
   const deleteMenuItem = async (item: MenuItemData) => {
     try {
       await api.delete(`/menu/items/${item.id}`);
@@ -412,6 +439,7 @@ export function useMenuManagement() {
     reorderCategories,
     saveMenuItem,
     importMenuItems,
+    createImageAssistedCategories,
     deleteMenuItem,
     toggleMenuItemStatus,
   };

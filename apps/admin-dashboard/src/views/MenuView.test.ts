@@ -4,8 +4,10 @@ import { mount } from "@vue/test-utils";
 import { computed, nextTick, ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import MenuView from "./MenuView.vue";
+import ImageAssistedMenuImport from "@/components/menu/ImageAssistedMenuImport.vue";
 
 const importMenuItems = vi.fn();
+const createImageAssistedCategories = vi.fn();
 const saveMenuItem = vi.fn();
 const fetchMenu = vi.fn();
 const push = vi.fn();
@@ -66,6 +68,7 @@ vi.mock("@/composables/useMenuManagement", () => ({
     reorderCategories: vi.fn(),
     saveMenuItem,
     importMenuItems,
+    createImageAssistedCategories,
     deleteMenuItem: vi.fn(),
     toggleMenuItemStatus: vi.fn(),
     restaurantId: computed(() => MANAGED_RESTAURANT_ID),
@@ -214,6 +217,39 @@ describe("MenuView", () => {
     expect(wrapper.get('[data-testid="menu-item-import-success"]').text()).toBe(
       "menu.import.successBanner 1",
     );
+  });
+
+  it("creates image-import categories before one atomic item bulk request", async () => {
+    createImageAssistedCategories.mockResolvedValue(new Map([["new-1", 9]]));
+    const wrapper = mountMenuView();
+
+    wrapper.findComponent(ImageAssistedMenuImport).vm.$emit("publish", {
+      categories: [{ key: "new-1", name: "主食", sortOrder: 0 }],
+      items: [
+        {
+          id: "item-1",
+          name: "牛肉麵",
+          price: "18000",
+          categoryKey: "new-1",
+          description: "",
+          isAvailable: true,
+          sortOrder: "0",
+        },
+      ],
+    });
+    await flushPromises();
+
+    expect(createImageAssistedCategories).toHaveBeenCalledWith([
+      { key: "new-1", name: "主食", sortOrder: 0 },
+    ]);
+    expect(importMenuItems).toHaveBeenCalledWith([
+      expect.objectContaining({
+        name: "牛肉麵",
+        categoryId: 9,
+        catalogType: "menu_item",
+        isFeatured: false,
+      }),
+    ]);
   });
 
   it("renders the batch import panel labels through i18n", async () => {

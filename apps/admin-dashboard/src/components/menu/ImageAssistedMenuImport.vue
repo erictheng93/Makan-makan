@@ -1,0 +1,270 @@
+<template>
+  <section
+    class="mb-4 rounded-2xl bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
+  >
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h3 class="text-[15px] font-bold text-[#1C1C1E]">從菜單圖片校對建立</h3>
+        <p class="mt-1 text-[13px] text-[#8E8E93]">
+          圖片只在本次校對時使用，原檔會依既有清理機制於 48 小時後移除。
+        </p>
+      </div>
+      <label
+        class="cursor-pointer rounded-full bg-[#F2F2F7] px-3.5 py-2 text-[13px] font-semibold text-[#1C1C1E] hover:bg-[#E5E5EA]"
+      >
+        選取菜單圖片
+        <input
+          class="sr-only"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          multiple
+          @change="selectImages"
+        />
+      </label>
+    </div>
+
+    <p v-if="uploadError" class="mt-3 text-[13px] text-ios-error">
+      {{ uploadError }}
+    </p>
+    <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+      <div class="rounded-xl bg-[#F2F2F7] p-3">
+        <p class="mb-2 text-[13px] font-semibold text-[#1C1C1E]">來源圖片</p>
+        <div v-if="sourceImages.length" class="grid grid-cols-2 gap-2">
+          <img
+            v-for="src in sourceImages"
+            :key="src"
+            :src="src"
+            alt="上傳的菜單來源圖片"
+            class="max-h-72 w-full rounded-lg object-contain bg-white"
+          />
+        </div>
+        <p v-else class="py-10 text-center text-[13px] text-[#8E8E93]">
+          上傳一或多張圖片後，在右側輸入校對結果。
+        </p>
+      </div>
+
+      <div class="min-w-0 space-y-4">
+        <div>
+          <div class="mb-2 flex items-center justify-between">
+            <h4 class="text-[13px] font-semibold text-[#1C1C1E]">分類</h4>
+            <button
+              type="button"
+              class="text-[13px] font-semibold text-[#0066D6]"
+              @click="addCategory"
+            >
+              新增分類
+            </button>
+          </div>
+          <div class="space-y-2">
+            <div
+              v-for="category in draftCategories"
+              :key="category.key"
+              class="flex gap-2"
+            >
+              <input
+                v-model="category.name"
+                aria-label="分類名稱"
+                class="min-w-0 flex-1 rounded-lg bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                placeholder="分類名稱"
+              />
+              <button
+                type="button"
+                class="rounded-lg px-2 text-[13px] text-ios-error hover:bg-red-50"
+                aria-label="刪除分類"
+                @click="removeCategory(category.key)"
+              >
+                刪除
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="mb-2 flex items-center justify-between">
+            <h4 class="text-[13px] font-semibold text-[#1C1C1E]">品項</h4>
+            <button
+              type="button"
+              class="text-[13px] font-semibold text-[#0066D6]"
+              @click="addItem"
+            >
+              新增品項
+            </button>
+          </div>
+          <div class="space-y-3">
+            <div
+              v-for="(item, index) in draftItems"
+              :key="item.id"
+              class="rounded-xl border border-[#E5E5EA] p-3"
+            >
+              <div class="mb-2 flex justify-between">
+                <span class="text-[12px] font-semibold text-[#8E8E93]"
+                  >第 {{ index + 1 }} 列</span
+                ><button
+                  type="button"
+                  class="text-[12px] text-ios-error"
+                  @click="removeItem(item.id)"
+                >
+                  刪除
+                </button>
+              </div>
+              <div class="grid gap-2 sm:grid-cols-2">
+                <label class="text-[12px] text-[#636366]"
+                  >名稱<input
+                    v-model="item.name"
+                    class="mt-1 w-full rounded-lg bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                  /><span v-if="errors[item.id]?.name" class="text-ios-error">{{
+                    errors[item.id]?.name
+                  }}</span></label
+                >
+                <label class="text-[12px] text-[#636366]"
+                  >價格（分）<input
+                    v-model="item.price"
+                    inputmode="numeric"
+                    class="mt-1 w-full rounded-lg bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                  /><span
+                    v-if="errors[item.id]?.price"
+                    class="text-ios-error"
+                    >{{ errors[item.id]?.price }}</span
+                  ></label
+                >
+                <label class="text-[12px] text-[#636366]"
+                  >分類<select
+                    v-model="item.categoryKey"
+                    class="mt-1 w-full rounded-lg bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                  >
+                    <option value="">選擇分類</option>
+                    <option
+                      v-for="category in categoryOptions"
+                      :key="category.key"
+                      :value="category.key"
+                    >
+                      {{ category.name }}
+                    </option></select
+                  ><span
+                    v-if="errors[item.id]?.categoryKey"
+                    class="text-ios-error"
+                    >{{ errors[item.id]?.categoryKey }}</span
+                  ></label
+                >
+                <label class="text-[12px] text-[#636366]"
+                  >排序<input
+                    v-model="item.sortOrder"
+                    inputmode="numeric"
+                    class="mt-1 w-full rounded-lg bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                  /><span
+                    v-if="errors[item.id]?.sortOrder"
+                    class="text-ios-error"
+                    >{{ errors[item.id]?.sortOrder }}</span
+                  ></label
+                >
+              </div>
+              <label class="mt-2 block text-[12px] text-[#636366]"
+                >備註<textarea
+                  v-model="item.description"
+                  rows="2"
+                  class="mt-1 w-full rounded-lg bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                />
+              </label>
+              <label
+                class="mt-2 inline-flex items-center gap-2 text-[13px] text-[#1C1C1E]"
+                ><input
+                  v-model="item.isAvailable"
+                  type="checkbox"
+                />可供應</label
+              >
+            </div>
+          </div>
+        </div>
+        <p v-if="publishError" class="text-[13px] text-ios-error">
+          {{ publishError }}
+        </p>
+        <button
+          type="button"
+          data-testid="image-menu-import-publish"
+          class="rounded-full bg-[#0066D6] px-5 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50"
+          :disabled="isPublishing || !sourceImages.length || !draftItems.length"
+          @click="publish"
+        >
+          {{ isPublishing ? "發布中…" : "發布結構化菜單" }}
+        </button>
+      </div>
+    </div>
+  </section>
+</template>
+
+<script setup lang="ts">
+import { computed, ref } from "vue";
+import type { CategoryData } from "@/composables/useMenuManagement";
+import type {
+  ImageAssistedMenuItemDraft,
+  ImageAssistedMenuItemErrors,
+  ImageMenuCategoryDraft,
+} from "@/utils/imageAssistedMenuImport";
+
+const props = defineProps<{
+  categories: CategoryData[];
+  sourceImages: string[];
+  isPublishing: boolean;
+  uploadError?: string;
+  publishError?: string;
+  errors: ImageAssistedMenuItemErrors;
+}>();
+const emit = defineEmits<{
+  selectImages: [files: File[]];
+  publish: [
+    value: {
+      categories: ImageMenuCategoryDraft[];
+      items: ImageAssistedMenuItemDraft[];
+    },
+  ];
+}>();
+let nextId = 1;
+const draftCategories = ref<ImageMenuCategoryDraft[]>([]);
+const draftItems = ref<ImageAssistedMenuItemDraft[]>([]);
+const categoryOptions = computed(() => [
+  ...props.categories.map((category) => ({
+    key: `existing-${category.id}`,
+    name: category.name,
+  })),
+  ...draftCategories.value.filter((category) => category.name.trim()),
+]);
+const selectImages = (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  emit("selectImages", Array.from(input.files ?? []));
+  input.value = "";
+};
+const addCategory = () =>
+  draftCategories.value.push({
+    key: `new-${nextId++}`,
+    name: "",
+    sortOrder: props.categories.length + draftCategories.value.length,
+  });
+const removeCategory = (key: string) => {
+  draftCategories.value = draftCategories.value.filter(
+    (category) => category.key !== key,
+  );
+  draftItems.value.forEach((item) => {
+    if (item.categoryKey === key) item.categoryKey = "";
+  });
+};
+const addItem = () =>
+  draftItems.value.push({
+    id: `item-${nextId++}`,
+    name: "",
+    price: "",
+    categoryKey: "",
+    description: "",
+    isAvailable: true,
+    sortOrder: String(draftItems.value.length),
+  });
+const removeItem = (id: string) => {
+  draftItems.value = draftItems.value.filter((item) => item.id !== id);
+};
+const publish = () =>
+  emit("publish", {
+    categories: draftCategories.value
+      .filter((category) => category.name.trim())
+      .map((category) => ({ ...category, name: category.name.trim() })),
+    items: draftItems.value,
+  });
+</script>

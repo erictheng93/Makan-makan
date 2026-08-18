@@ -241,6 +241,17 @@
           </div>
         </section>
 
+        <ImageAssistedMenuImport
+          :categories="categories"
+          :source-images="imageMenuSourceImages"
+          :is-publishing="isPublishingImageMenu"
+          :upload-error="imageMenuUploadError"
+          :publish-error="imageMenuPublishError"
+          :errors="imageMenuErrors"
+          @select-images="uploadImageMenuSources"
+          @publish="publishImageAssistedMenu"
+        />
+
         <!-- VirtualMenuGrid -->
         <VirtualMenuGrid
           v-if="filteredItems.length > 0"
@@ -1295,6 +1306,7 @@ import CategoryPanel from "@/components/menu/CategoryPanel.vue";
 import CategoryEditForm from "@/components/menu/CategoryEditForm.vue";
 import MenuItemCard from "@/components/menu/MenuItemCard.vue";
 import MenuItemOptionGroups from "@/components/menu/MenuItemOptionGroups.vue";
+import ImageAssistedMenuImport from "@/components/menu/ImageAssistedMenuImport.vue";
 import {
   useOptionGroups,
   type MenuItemOptionGroupLink,
@@ -1311,6 +1323,11 @@ import {
   buildMenuItemImportTemplate,
   parseMenuItemImport,
 } from "@/utils/menuItemImport";
+import {
+  validateImageAssistedMenuItems,
+  type ImageAssistedMenuItemErrors,
+  type ImageMenuCategoryDraft,
+} from "@/utils/imageAssistedMenuImport";
 
 type NumericFormValue = number | "" | null | undefined;
 type SizeOptionForm = {
@@ -1357,6 +1374,7 @@ const {
   reorderCategories,
   saveMenuItem,
   importMenuItems,
+  createImageAssistedCategories,
   deleteMenuItem,
   toggleMenuItemStatus,
   restaurantId,
@@ -1376,6 +1394,11 @@ const menuItemImportText = ref("");
 const menuItemImportError = ref("");
 const menuItemImportResult = ref<number | null>(null);
 const isImportingMenuItems = ref(false);
+const imageMenuSourceImages = ref<string[]>([]);
+const imageMenuUploadError = ref("");
+const imageMenuPublishError = ref("");
+const imageMenuErrors = ref<ImageAssistedMenuItemErrors>({});
+const isPublishingImageMenu = ref(false);
 const hasCompletedMarketProductGap = ref(false);
 const imageFileInput = ref<HTMLInputElement | null>(null);
 const {
@@ -2325,6 +2348,68 @@ const importMenuItemsFromCsv = async () => {
         : t("menu.errors.importFailed");
   } finally {
     isImportingMenuItems.value = false;
+  }
+};
+
+const uploadImageMenuSources = async (files: File[]) => {
+  imageMenuUploadError.value = "";
+  for (const file of files) {
+    const uploaded = await uploadImage(file, {
+      restaurantId: restaurantId.value,
+    });
+    if (!uploaded) {
+      imageMenuUploadError.value =
+        imageUploadError.value || t("menu.upload.failed");
+      return;
+    }
+    imageMenuSourceImages.value.push(uploaded.imageUrl);
+  }
+};
+
+const publishImageAssistedMenu = async (payload: {
+  categories: ImageMenuCategoryDraft[];
+  items: Parameters<typeof validateImageAssistedMenuItems>[0];
+}) => {
+  imageMenuPublishError.value = "";
+  imageMenuErrors.value = {};
+
+  const categoryIds = new Map<string, number>(
+    categories.value.map((category) => [
+      `existing-${category.id}`,
+      category.id,
+    ]),
+  );
+  payload.categories.forEach((category, index) => {
+    categoryIds.set(category.key, -(index + 1));
+  });
+  const beforeCreate = validateImageAssistedMenuItems(
+    payload.items,
+    categoryIds,
+  );
+  if (Object.keys(beforeCreate.errors).length) {
+    imageMenuErrors.value = beforeCreate.errors;
+    imageMenuPublishError.value = "請修正標示的品項欄位後再發布。";
+    return;
+  }
+
+  isPublishingImageMenu.value = true;
+  try {
+    const createdCategoryIds = await createImageAssistedCategories(
+      payload.categories,
+    );
+    createdCategoryIds.forEach((id, key) => categoryIds.set(key, id));
+    const ready = validateImageAssistedMenuItems(payload.items, categoryIds);
+    await importMenuItems(ready.items);
+    await fetchMenu();
+    imageMenuPublishError.value = "";
+    imageMenuErrors.value = {};
+  } catch (error) {
+    imageMenuPublishError.value =
+      error instanceof Error && error.message
+        ? `發布失敗：${error.message}。已建立的空分類會保留，可修正後重試。`
+        : "發布失敗。已建立的空分類會保留，可修正後重試。";
+  } finally {
+    isPublishingImageMenu.value = false;
   }
 };
 
