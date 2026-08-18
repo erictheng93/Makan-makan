@@ -599,7 +599,7 @@ import { useDateFormatter } from "@/composables/useDateFormatter";
 import { useOrderStore } from "@/stores/order";
 import { useVirtualScroll } from "@/composables/useVirtualScroll";
 import { useConfirmModal } from "@/composables/useConfirmModal";
-import type { Order, OrderStatus } from "@/types";
+import type { Order, OrderItem, OrderStatus } from "@/types";
 import {
   ClockIcon,
   CheckCircleIcon,
@@ -670,10 +670,10 @@ const getSourceText = (source: string) => {
   };
   return texts[source] || source;
 };
-const getMenuItemName = (item: any) =>
+const getMenuItemName = (item: OrderItem) =>
   item.menuItem?.name || `#${item.menuItemId}`;
 
-const navigateToMenuItem = (item: any) => {
+const navigateToMenuItem = (item: OrderItem) => {
   if (item.menuItemId) {
     selectedOrder.value = null;
     router.push({

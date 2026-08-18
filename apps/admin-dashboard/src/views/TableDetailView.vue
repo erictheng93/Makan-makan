@@ -237,6 +237,7 @@ import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useRouter, useRoute } from "vue-router";
 import { api, unwrapApiList, unwrapApiPayload } from "@/services/api";
+import type { Seat } from "@makanmasak/shared-types";
 import { ArrowLeftIcon, XMarkIcon } from "@heroicons/vue/24/outline";
 import QRCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
 import SeatManagement from "../components/tables/SeatManagement.vue";
@@ -267,7 +268,7 @@ const table = ref({
   totalUsage: 0,
 });
 
-const seats = ref<any[]>([]);
+const seats = ref<Seat[]>([]);
 const showEditModal = ref(false);
 const showModeSwitchModal = ref(false);
 
@@ -315,7 +316,7 @@ const loadSeats = async () => {
       tableId: table.value.id,
     });
     if (response.data.success && response.data.data) {
-      seats.value = unwrapApiList(response.data.data);
+      seats.value = unwrapApiList<Seat>(response.data.data);
     }
   } catch (error) {
     console.error("Failed to load seats:", error);

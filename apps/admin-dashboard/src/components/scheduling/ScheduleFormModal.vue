@@ -306,7 +306,7 @@ const handleTemplateChange = () => {
   if (!formData.shiftTemplateId) return;
 
   const template = props.shiftTemplates.find(
-    (t) => t.id === parseInt(formData.shiftTemplateId),
+    (t) => t.id === Number(formData.shiftTemplateId),
   );
 
   if (template) {
@@ -351,10 +351,10 @@ const handleSubmit = async () => {
     loading.value = true;
 
     const scheduleData: CreateScheduleData | UpdateScheduleData = {
-      employeeId: parseInt(formData.employeeId),
+      employeeId: Number(formData.employeeId),
       workDate: formData.workDate,
       shiftTemplateId: formData.shiftTemplateId
-        ? parseInt(formData.shiftTemplateId)
+        ? Number(formData.shiftTemplateId)
         : undefined,
       startTime: formData.startTime,
       endTime: formData.endTime,
