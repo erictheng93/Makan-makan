@@ -46,6 +46,18 @@ interface RealtimeOrder {
   elapsed_minutes: number;
 }
 
+interface RealtimeDashboardData {
+  active_orders?: RealtimeOrder[];
+}
+
+interface StaffUser {
+  id: number;
+  fullName?: string;
+  username: string;
+  roleName?: string;
+  status?: string;
+}
+
 interface StaffActivity {
   id: number;
   name: string;
@@ -87,7 +99,7 @@ class OwnerService {
 
   async getRealtimeOrders(restaurantId?: string): Promise<RealtimeOrder[]> {
     try {
-      const response = await api.get<any>(
+      const response = await api.get<RealtimeDashboardData>(
         "/analytics/realtime-dashboard",
         this.buildParams({ restaurantId }),
       );
@@ -104,7 +116,7 @@ class OwnerService {
 
   async getStaffActivity(restaurantId?: string): Promise<StaffActivity[]> {
     try {
-      const response = await api.get<any[]>(
+      const response = await api.get<StaffUser[]>(
         "/users",
         this.buildParams({ restaurantId, limit: "10" }),
       );
@@ -163,7 +175,7 @@ class OwnerService {
   // 緩存管理
   private cache = new Map<
     string,
-    { data: any; timestamp: number; ttl: number }
+    { data: unknown; timestamp: number; ttl: number }
   >();
 
   private getCachedData<T>(key: string): T | null {
