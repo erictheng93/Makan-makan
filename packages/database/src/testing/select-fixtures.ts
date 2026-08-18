@@ -6,6 +6,7 @@ export type SelectFixtures<Name extends string> = Partial<
 
 export interface SelectFixtureDb<Name extends string> {
   select: ReturnType<typeof vi.fn>;
+  selectDistinct: ReturnType<typeof vi.fn>;
 }
 
 /**
@@ -76,5 +77,8 @@ export function createSelectFixtureDb<Name extends string>(
     return builder;
   };
 
-  return { select: vi.fn(createQuery) };
+  return {
+    select: vi.fn(createQuery),
+    selectDistinct: vi.fn(createQuery),
+  };
 }

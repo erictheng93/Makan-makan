@@ -49,4 +49,11 @@ describe("createSelectFixtureDb", () => {
       "shift",
     ]);
   });
+
+  it("shares table queues with selectDistinct", async () => {
+    const shifts = {};
+    const db = createSelectFixtureDb({ shifts }, { shifts: [["shift"]] });
+
+    await expect(db.selectDistinct().from(shifts)).resolves.toEqual(["shift"]);
+  });
 });
