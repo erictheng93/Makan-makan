@@ -194,4 +194,9 @@ if (require.main === module) {
   );
 }
 
-module.exports = { checkStrictTables, parseTableEvents, migrationRank };
+module.exports = {
+  checkStrictTables,
+  parseTableEvents,
+  migrationRank,
+  findMatchingParen,
+};
