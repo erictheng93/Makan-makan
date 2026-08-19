@@ -1,7 +1,11 @@
 import { vi } from "vitest";
 
+/**
+ * A queue entry is the rows one read resolves with, or an `Error` to make that
+ * read reject — some subjects are only exercised by a failing query.
+ */
 export type SelectFixtures<Name extends string> = Partial<
-  Record<Name, unknown[][]>
+  Record<Name, (unknown[] | Error)[]>
 >;
 
 export interface SelectFixtureDb<Name extends string> {
@@ -24,12 +28,12 @@ export function createSelectFixtureDb<Name extends string>(
   const tableNamesByValue = new Map<unknown, Name>(
     Object.entries(fixtureTables).map(([name, table]) => [table, name as Name]),
   );
-  const results = new Map<unknown, unknown[][]>(
+  const results = new Map<unknown, (unknown[] | Error)[]>(
     // Object.entries widens the value type of a Partial<Record<…>> to `{}`,
     // so the queue has to be re-stated to stay spreadable.
-    (Object.entries(fixtures) as [Name, unknown[][] | undefined][]).map(
-      ([name, queue]) => [fixtureTables[name], [...(queue ?? [])]],
-    ),
+    (
+      Object.entries(fixtures) as [Name, (unknown[] | Error)[] | undefined][]
+    ).map(([name, queue]) => [fixtureTables[name], [...(queue ?? [])]]),
   );
   const unselectedTable = Symbol("unselectedTable");
 
@@ -48,6 +52,7 @@ export function createSelectFixtureDb<Name extends string>(
     if (result === undefined) {
       throw new Error(`No select fixtures remaining for ${name}`);
     }
+    if (result instanceof Error) throw result;
     return result;
   };
 

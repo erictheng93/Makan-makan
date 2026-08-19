@@ -59,6 +59,15 @@ describe("createSelectFixtureDb", () => {
     ]);
   });
 
+  it("rejects with a queued Error instead of resolving rows", async () => {
+    const shifts = {};
+    const failure = new Error("db unavailable");
+    const db = createSelectFixtureDb({ shifts }, { shifts: [failure, ["ok"]] });
+
+    await expect(db.select().from(shifts)).rejects.toThrow("db unavailable");
+    await expect(db.select().from(shifts)).resolves.toEqual(["ok"]);
+  });
+
   it("shares table queues with selectDistinct", async () => {
     const shifts = {};
     const db = createSelectFixtureDb({ shifts }, { shifts: [["shift"]] });
