@@ -77,6 +77,7 @@ else
     CHECK_PRODUCTION_CONFIG_REQUIRE_DEPLOYMENT_SECRETS=false \
     pnpm run check:prod-config
   step "migration dual-track" pnpm run check:migration-dual-track
+  step "STRICT tables" pnpm run check:strict-tables
   step "no destructive wrangler" pnpm run check:no-automated-destructive-wrangler
   step "guard script regressions" pnpm run test:ci-guards
   step "package tests" pnpm exec turbo run test
