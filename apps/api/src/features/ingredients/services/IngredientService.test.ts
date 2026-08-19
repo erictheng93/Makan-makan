@@ -19,32 +19,11 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
 
-function createQuery(result: unknown) {
-  const builder = {
-    from: vi.fn(() => builder),
-    where: vi.fn(() => builder),
-    orderBy: vi.fn(() => builder),
-    limit: vi.fn(() => builder),
-    offset: vi.fn(() => builder),
-    then: (
-      resolve: (value: unknown) => void,
-      reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
-  };
-  return builder;
-}
-
 const fixtureTables = { ingredientDefinitions };
 type SelectFixtureName = keyof typeof fixtureTables;
 
 function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
   Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
-}
-
-function mockDistinctResults(results: unknown[]) {
-  mocks.db.selectDistinct.mockImplementation(() =>
-    createQuery(results.shift() ?? []),
-  );
 }
 
 function mockInsertions() {
@@ -338,7 +317,13 @@ describe("IngredientService", () => {
       { meta: { changes: 1 } },
       { meta: { changes: 0 } },
     ]);
-    mockDistinctResults([[{ category: "Dry goods" }, { category: "Sauces" }]]);
+    // getCategories reads ingredientDefinitions through selectDistinct, which
+    // draws from the same per-table queue as select.
+    mockSelectResults({
+      ingredientDefinitions: [
+        [{ category: "Dry goods" }, { category: "Sauces" }],
+      ],
+    });
 
     await expect(createService().delete("restaurant-1", 101)).resolves.toBe(
       true,
