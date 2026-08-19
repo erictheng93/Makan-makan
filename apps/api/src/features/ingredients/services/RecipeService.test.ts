@@ -20,32 +20,11 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
 
-function createQuery(result: unknown) {
-  const builder = {
-    from: vi.fn(() => builder),
-    innerJoin: vi.fn(() => builder),
-    leftJoin: vi.fn(() => builder),
-    where: vi.fn(() => builder),
-    orderBy: vi.fn(() => builder),
-    then: (
-      resolve: (value: unknown) => void,
-      reject?: (reason: unknown) => void,
-    ) => Promise.resolve(result).then(resolve, reject),
-  };
-  return builder;
-}
-
 const fixtureTables = { menuItemIngredients, menuItems };
 type SelectFixtureName = keyof typeof fixtureTables;
 
 function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
   Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
-}
-
-function mockSelectDistinctResult(result: unknown = []) {
-  const query = createQuery(result);
-  mocks.db.selectDistinct.mockReturnValue(query);
-  return query;
 }
 
 function mockBatch() {
@@ -220,10 +199,6 @@ describe("RecipeService", () => {
   });
 
   it("lists menu items missing recipes and ingredient usage", async () => {
-    const distinctQuery = mockSelectDistinctResult([
-      { menuItemId: 51 },
-      { menuItemId: 52 },
-    ]);
     mockSelectResults({
       menuItems: [
         [
@@ -246,7 +221,11 @@ describe("RecipeService", () => {
       { id: 62, name: "Nasi Lemak" },
     ]);
     expect(mocks.db.selectDistinct).toHaveBeenCalledTimes(1);
-    expect(distinctQuery.from).toHaveBeenCalled();
+    // createSelectFixtureDb owns both select mocks, so the distinct builder has
+    // to be read back off the mock rather than captured before the call.
+    expect(
+      mocks.db.selectDistinct.mock.results[0]?.value.from,
+    ).toHaveBeenCalled();
 
     await expect(createService().getIngredientUsage(2)).resolves.toEqual([
       { menuItemId: 51, menuItemName: "Laksa" },
