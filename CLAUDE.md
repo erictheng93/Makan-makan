@@ -437,7 +437,37 @@ expect(wrapper.vm.statusClass).toBe("active");
 
 Use `data-testid`, `data-status`, `aria-*` attributes, text content, or Vue computed state instead.
 
-**4. Pre-commit checks:** `lint-staged` itself runs ESLint and Prettier only,
+**4. Never cold-import a large module graph inside a timed test body** (#211):
+
+```typescript
+// BAD — the first await import() of a big graph pays its whole transform cost
+// against the 5s (10s in apps/api) testTimeout. Measured in this repo:
+// @/router ~3s, an api feature ./index ~7s, vite.config ~1.5s, the i18n
+// static-messages catalog ~2.3s — and a loaded machine multiplies that 3-4x,
+// which is exactly the "fails under turbo, passes standalone" flake.
+it("resolves routes", async () => {
+  const { default: router } = await import("@/router");
+});
+
+// GOOD — pay the first import once in beforeAll under the hook's own budget;
+// in-body imports then only re-evaluate already-transformed modules (~100ms).
+beforeAll(async () => {
+  await import("@/router");
+}, 30_000);
+```
+
+- If tests call `vi.resetModules()` (or need import-time side effects under
+  per-test mocks/fake timers), add `vi.resetModules()` at the end of the
+  warm-up `beforeAll` — the transform cache survives; only cheap re-evaluation
+  runs per test.
+- A test that times out mid-navigation can leak its pending async work (e.g.
+  `location.assign`) into the next test — a second sub-second failure right
+  after a timeout is usually contamination, not a separate bug.
+- Known-heavy imports: `@/router` (any Vite app), `./api` / service clients,
+  `vite.config`, api feature `./index` barrels, `@makanmasak/i18n/static-messages`.
+  A graph that is fully `vi.mock`ed is fine — the mocks keep it small.
+
+**5. Pre-commit checks:** `lint-staged` itself runs ESLint and Prettier only,
 but it is not the whole hook. Husky invokes `.husky/pre-commit` with `sh -e`,
 so the first non-zero exit aborts the commit, and three more scripts run after
 lint-staged:
