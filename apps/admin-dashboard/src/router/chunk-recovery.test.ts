@@ -1,6 +1,14 @@
 // @vitest-environment jsdom
 
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 // A deploy replaces every hashed chunk, so a dashboard left open asks for
 // filenames that are gone. With no error view to fall back to, the app used to
@@ -16,6 +24,15 @@ const CHUNK_ERROR = new TypeError(
 
 describe("admin dashboard recovery from a stale build", () => {
   let assign: ReturnType<typeof vi.fn>;
+
+  // The first import of @/router pulls in every view component; transforming
+  // that graph can alone eat the 5s test timeout on a loaded machine (#211) —
+  // and a test that times out mid-navigation leaks its pending location.assign
+  // into the next test. Warm the transform cache under the hook's own budget.
+  beforeAll(async () => {
+    await import("@/router");
+    vi.resetModules();
+  }, 30_000);
 
   beforeEach(() => {
     vi.resetModules();

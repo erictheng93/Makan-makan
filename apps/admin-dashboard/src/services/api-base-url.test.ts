@@ -1,8 +1,17 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 describe("admin API base URL", () => {
+  // The first import of ./api transforms the whole auth-client/axios graph,
+  // which alone can eat the 5s test timeout on a loaded machine (#211). Pay
+  // that cost here, under the hook's own budget, so the timed test bodies
+  // only measure the re-import of already-transformed modules.
+  beforeAll(async () => {
+    await import("./api");
+    vi.resetModules();
+  }, 30_000);
+
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.resetModules();
