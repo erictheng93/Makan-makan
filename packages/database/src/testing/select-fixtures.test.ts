@@ -50,6 +50,15 @@ describe("createSelectFixtureDb", () => {
     ]);
   });
 
+  it("supports grouped aggregates filtered by having", async () => {
+    const shifts = {};
+    const db = createSelectFixtureDb({ shifts }, { shifts: [["shift"]] });
+
+    await expect(db.select().from(shifts).groupBy().having()).resolves.toEqual([
+      "shift",
+    ]);
+  });
+
   it("shares table queues with selectDistinct", async () => {
     const shifts = {};
     const db = createSelectFixtureDb({ shifts }, { shifts: [["shift"]] });
