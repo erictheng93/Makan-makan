@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "@makanmasak/database",
   "version": "1.0.0",
   "description": "Database layer with Drizzle ORM for MakanMasak",
@@ -21,10 +21,10 @@
     "lint": "eslint src",
     "typecheck": "tsc -p tsconfig.typecheck.json --noEmit",
     "dev": "tsup --no-clean && tsup --watch --no-clean",
-    "test": "NODE_OPTIONS='--max-old-space-size=6144 --expose-gc' vitest run",
-    "test:run": "NODE_OPTIONS='--max-old-space-size=6144 --expose-gc' vitest run",
-    "test:watch": "NODE_OPTIONS='--max-old-space-size=6144 --expose-gc' vitest --watch",
-    "test:coverage": "NODE_OPTIONS='--max-old-space-size=6144 --expose-gc' vitest run --coverage",
+    "test": "cross-env NODE_OPTIONS=\"--max-old-space-size=6144 --expose-gc\" vitest run",
+    "test:run": "cross-env NODE_OPTIONS=\"--max-old-space-size=6144 --expose-gc\" vitest run",
+    "test:watch": "cross-env NODE_OPTIONS=\"--max-old-space-size=6144 --expose-gc\" vitest --watch",
+    "test:coverage": "cross-env NODE_OPTIONS=\"--max-old-space-size=6144 --expose-gc\" vitest run --coverage",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 execute makanmakan-local --local --file=./migrations/0001_initial_schema.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0002_seed_data.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0003_qrcode_system.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0008_create_error_reports.sql && wrangler d1 execute makanmakan-local --local --file=./migrations/0009_additional_tables.sql",
     "db:migrate:prod": "wrangler d1 migrations apply makanmasak-prod --remote --env production --config=../../apps/api/wrangler.toml",
@@ -45,6 +45,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^24.3.0",
+    "cross-env": "^10.1.0",
     "drizzle-kit": "^0.31.6",
     "miniflare": "^3.20250718.3",
     "tsup": "^8.0.0",

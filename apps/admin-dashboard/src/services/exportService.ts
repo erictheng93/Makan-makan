@@ -254,6 +254,9 @@ export class ExportService {
         formatted[key] = this.formatDate(value);
       } else if (typeof value === "object" && value !== null) {
         formatted[key] = JSON.stringify(value) ?? "";
+      } else if (value === undefined) {
+        // ponytail: undefined 要留空白格，不能被 String() 變成文字 "undefined"
+        formatted[key] = null;
       } else {
         formatted[key] =
           typeof value === "string" ||

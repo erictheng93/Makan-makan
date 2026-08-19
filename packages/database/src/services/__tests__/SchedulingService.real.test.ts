@@ -620,3 +620,45 @@ describe("SchedulingService.createSchedule", () => {
     expect(conflicts.results).toEqual([]);
   });
 });
+
+describe("SchedulingService.getShiftTemplates", () => {
+  // Issue #209: ShiftDistributionChart reads `assignedCount`, which this
+  // projection must supply — distinct non-cancelled employees per template.
+  it("returns assignedCount of distinct non-cancelled employees per template", async () => {
+    await testDb.db
+      .prepare(
+        `INSERT INTO shift_templates
+           (id, restaurant_id, name, start_time, end_time, duration_minutes,
+            sort_order, created_at_ms, updated_at_ms)
+         VALUES
+           (1, 'sched-rest', 'Morning', '09:00', '13:00', 240, 1, 1735689600000, 1735689600000),
+           (2, 'sched-rest', 'Evening', '18:00', '22:00', 240, 2, 1735689600000, 1735689600000)`,
+      )
+      .run();
+    await testDb.db
+      .prepare(
+        `INSERT INTO employee_schedules
+           (restaurant_id, employee_id, shift_template_id, work_date, start_time,
+            end_time, break_duration_minutes, scheduled_hours, status, created_by,
+            created_at_ms, updated_at_ms)
+         VALUES
+           ('sched-rest', '${employeeId}', 1, '2026-06-01', '09:00', '13:00', 0, 4, 'scheduled', '${ownerId}', 1735689600000, 1735689600000),
+           ('sched-rest', '${employeeId}', 1, '2026-06-02', '09:00', '13:00', 0, 4, 'confirmed', '${ownerId}', 1735689600000, 1735689600000),
+           ('sched-rest', '${ownerId}', 1, '2026-06-01', '09:00', '13:00', 0, 4, 'scheduled', '${ownerId}', 1735689600000, 1735689600000),
+           ('sched-rest', '${employeeId}', 2, '2026-06-01', '18:00', '22:00', 0, 4, 'cancelled', '${ownerId}', 1735689600000, 1735689600000)`,
+      )
+      .run();
+    const service = new SchedulingService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+
+    const templates = await service.getShiftTemplates("sched-rest");
+
+    expect(
+      templates.map((t) => ({ id: t.id, assignedCount: t.assignedCount })),
+    ).toEqual([
+      { id: 1, assignedCount: 2 }, // employee counted once across 2 shifts, plus owner
+      { id: 2, assignedCount: 0 }, // cancelled schedules do not count
+    ]);
+  });
+});

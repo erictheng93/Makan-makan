@@ -49,6 +49,14 @@ MakanMasak is a modern, serverless restaurant management system built on Cloudfl
 - **ID Strategy**: mixed by design while legacy modules remain. New domain tables should prefer `TEXT` UUID v7 primary keys, but existing integer-autoincrement tables are still valid until a scoped migration retires them. Do not claim the whole database is UUID-only.
 - **Timestamp Strategy**: use `INTEGER` Unix milliseconds via Drizzle `{ mode: "timestamp_ms" }`. Avoid new `TEXT` timestamp columns.
 - **Idempotency Strategy**: nullable idempotency/event keys on payment, webhook, billing, or retryable write paths require a DB-level partial unique index such as `WHERE idempotency_key IS NOT NULL`.
+- **STRICT Tables**: D1 supports `CREATE TABLE ... ) STRICT`, and without it SQLite's
+  flexible typing silently stores TEXT in an `INTEGER NOT NULL` column. New tables
+  must be created `STRICT`. drizzle-kit cannot emit the keyword, so after
+  `pnpm db:generate` you add it by hand — including to the `__new_*` staging table
+  in its recreate-table dance, which otherwise renames a non-STRICT table over a
+  STRICT one and drops the constraint with no visible diff. Policy and checkpoints
+  live in `packages/database/strict-table-policy.json`; `pnpm check:strict-tables`
+  enforces both rules.
 - **Secret Storage**: OAuth credentials, access/refresh tokens, client secrets, and webhook secrets must be stored only in encrypted payload fields. JSON config columns are for non-secret flags and preferences.
 
 ```bash
@@ -159,7 +167,7 @@ meaningful change; `pnpm verify:push` once, before pushing. Both live in
 | | `pnpm verify` | `pnpm verify:push` |
 | --- | --- | --- |
 | Scope | packages affected vs the merge-base with `main` | every package, the root `tests/` project, and real integrations |
-| Contents | typecheck, lint, test | plus prettier, i18n coverage, the five `check:*` guards, and real integrations — mirrors `.github/workflows/test.yml` |
+| Contents | typecheck, lint, test | plus prettier, i18n coverage, the `check:*` guards, and real integrations — mirrors `.github/workflows/test.yml` |
 | When | after each edit | once, before pushing |
 
 Both tiers go through turbo, so unchanged packages are cache hits rather than

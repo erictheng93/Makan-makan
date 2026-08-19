@@ -1044,6 +1044,9 @@ importers:
       '@types/node':
         specifier: ^24.3.0
         version: 24.10.7
+      cross-env:
+        specifier: ^10.1.0
+        version: 10.1.0
       drizzle-kit:
         specifier: ^0.31.6
         version: 0.31.8

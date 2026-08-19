@@ -1,0 +1,16 @@
+{
+  "note": "STRICT table policy. D1 supports `CREATE TABLE ... ) STRICT` (verified against a live D1 instance: a TEXT write into an INTEGER column fails with SQLITE_CONSTRAINT). Without STRICT, SQLite's flexible typing silently stores TEXT in INTEGER columns. drizzle-kit cannot emit STRICT, so any table created or recreated by `pnpm db:generate` needs the keyword added by hand before the migration is committed. scripts/check-strict-tables.cjs enforces this.",
+  "tracks": [
+    {
+      "dir": "packages/database/migrations_fresh",
+      "enforceFrom": 85,
+      "reason": "0000-0084 predate the policy. New fresh-baseline migrations start at 0085."
+    },
+    {
+      "dir": "packages/database/migrations",
+      "enforceFrom": 97,
+      "reason": "0001-0096 predate the policy. New deployment-track migrations start at 0097."
+    }
+  ],
+  "exemptTables": []
+}

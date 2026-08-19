@@ -231,15 +231,16 @@ const fetchData = async () => {
           .getDailyStats(restaurantId, dateStr)
           .then((stats) => ({
             date: dateStr,
+            // "average" = hours per employee that day (issue #209); the API
+            // has no averageHours field, so it is derived client-side.
             value:
               selectedMetric.value === "schedules"
-                ? stats.totalSchedules
+                ? (stats.totalSchedules ?? 0)
                 : selectedMetric.value === "average"
-                  ? // DailyStats has no averageHours — the endpoint returns
-                    // totals only — so this metric has always plotted 0.
-                    // See #209.
-                    0
-                  : stats.totalHours,
+                  ? stats.totalEmployees > 0
+                    ? (stats.totalHours ?? 0) / stats.totalEmployees
+                    : 0
+                  : (stats.totalHours ?? 0),
           }))
           .catch(() => ({ date: dateStr, value: 0 })),
       );
