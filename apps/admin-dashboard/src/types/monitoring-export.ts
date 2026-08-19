@@ -52,7 +52,8 @@ export interface ExportOptions {
   };
 
   // 高級選項
-  filters?: unknown; // 應用的篩選器
+  // 已宣告但尚未接線：exportService 從未讀取它，導出結果不受影響。
+  filters?: Record<string, unknown>; // 應用的篩選器
   maxRows?: number;
   compression?: boolean;
 }
