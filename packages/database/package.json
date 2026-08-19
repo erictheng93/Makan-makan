@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "@makanmasak/database",
   "version": "1.0.0",
   "description": "Database layer with Drizzle ORM for MakanMasak",
