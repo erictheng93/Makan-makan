@@ -1,0 +1,964 @@
+<meta charset="utf-8">
+<title>MakanMasak Master User Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+
+<style>
+/* ── tokens ─────────────────────────────────────────────────────────── */
+:root{
+  --ground:#F2F2F7;
+  --surface:#FFFFFF;
+  --surface-2:#F8F8FB;
+  --ink:#1C1C1E;
+  --ink-2:#55555C;
+  --ink-3:#8A8A92;
+  --hair:rgba(28,28,30,.10);
+  --hair-2:rgba(28,28,30,.06);
+  --shadow:0 1px 1.5px rgba(24,24,45,.05), 0 5px 16px rgba(24,24,45,.05);
+  --shadow-sm:0 1px 1px rgba(24,24,45,.05), 0 3px 10px rgba(24,24,45,.05);
+
+  --visitor:#5E5CE6;   --visitor-ink:#4340C6;
+  --cust:#007AFF;      --cust-ink:#0A5FC2;
+  --shop:#34C759;      --shop-ink:#17803D;
+  --floor:#AF52DE;     --floor-ink:#7B2FB5;
+  --plat:#FF9500;      --plat-ink:#A85F04;
+  --shared:#30B0C7;    --shared-ink:#0D7C8F;
+  --ext:#A2845E;       --ext-ink:#7A5F3F;
+
+  --flow-main:#3A3A40;
+  --flow-notify:#007AFF;
+  --flow-money:#1D9C4A;
+  --flow-data:#8B3FCB;
+  --flow-ext:#C2751A;
+
+  --board-w:2640px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0F0F13;
+    --surface:#1B1B21;
+    --surface-2:#212128;
+    --ink:#F0F0F4;
+    --ink-2:#B4B4BE;
+    --ink-3:#7E7E8A;
+    --hair:rgba(255,255,255,.14);
+    --hair-2:rgba(255,255,255,.07);
+    --shadow:0 1px 1.5px rgba(0,0,0,.4), 0 5px 16px rgba(0,0,0,.35);
+    --shadow-sm:0 1px 1px rgba(0,0,0,.35), 0 3px 10px rgba(0,0,0,.3);
+
+    --visitor:#8785FF;   --visitor-ink:#A9A8FF;
+    --cust:#3B9BFF;      --cust-ink:#7CBEFF;
+    --shop:#4CD97A;      --shop-ink:#84E5A3;
+    --floor:#C77BEB;     --floor-ink:#DBA9F4;
+    --plat:#FFB03D;      --plat-ink:#FFC978;
+    --shared:#4ECBE0;    --shared-ink:#8CE0EE;
+    --ext:#C4A67C;       --ext-ink:#D9C3A3;
+
+    --flow-main:#C9C9D2;
+    --flow-notify:#3B9BFF;
+    --flow-money:#4CD97A;
+    --flow-data:#C77BEB;
+    --flow-ext:#FFB03D;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0F0F13;
+  --surface:#1B1B21;
+  --surface-2:#212128;
+  --ink:#F0F0F4;
+  --ink-2:#B4B4BE;
+  --ink-3:#7E7E8A;
+  --hair:rgba(255,255,255,.14);
+  --hair-2:rgba(255,255,255,.07);
+  --shadow:0 1px 1.5px rgba(0,0,0,.4), 0 5px 16px rgba(0,0,0,.35);
+  --shadow-sm:0 1px 1px rgba(0,0,0,.35), 0 3px 10px rgba(0,0,0,.3);
+
+  --visitor:#8785FF;   --visitor-ink:#A9A8FF;
+  --cust:#3B9BFF;      --cust-ink:#7CBEFF;
+  --shop:#4CD97A;      --shop-ink:#84E5A3;
+  --floor:#C77BEB;     --floor-ink:#DBA9F4;
+  --plat:#FFB03D;      --plat-ink:#FFC978;
+  --shared:#4ECBE0;    --shared-ink:#8CE0EE;
+  --ext:#C4A67C;       --ext-ink:#D9C3A3;
+
+  --flow-main:#C9C9D2;
+  --flow-notify:#3B9BFF;
+  --flow-money:#4CD97A;
+  --flow-data:#C77BEB;
+  --flow-ext:#FFB03D;
+}
+
+/* ── base ───────────────────────────────────────────────────────────── */
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"IBM Plex Sans","Noto Sans TC",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+
+/* ── chrome ─────────────────────────────────────────────────────────── */
+.chrome{
+  position:sticky; top:0; z-index:20;
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  padding:12px 22px;
+  background:color-mix(in srgb, var(--ground) 88%, transparent);
+  backdrop-filter:saturate(1.6) blur(14px);
+  border-bottom:1px solid var(--hair-2);
+}
+.chrome-title{display:flex; align-items:baseline; gap:10px; margin-right:auto}
+.chrome-title b{font-size:15px; font-weight:700; letter-spacing:-.01em}
+.chrome-title span{font-size:12px; color:var(--ink-3)}
+.zoomer{display:flex; align-items:center; gap:4px}
+.zbtn{
+  appearance:none; border:1px solid var(--hair); background:var(--surface); color:var(--ink-2);
+  font:inherit; font-size:12px; font-weight:600;
+  height:30px; min-width:34px; padding:0 11px; border-radius:999px; cursor:pointer;
+  transition:background .18s ease, color .18s ease, border-color .18s ease;
+}
+.zbtn:hover{background:var(--surface-2); color:var(--ink)}
+.zbtn[aria-pressed="true"]{background:var(--ink); color:var(--ground); border-color:transparent}
+.zbtn:focus-visible{outline:2px solid var(--cust); outline-offset:2px}
+.zlevel{font-size:12px; color:var(--ink-3); min-width:44px; text-align:center}
+
+/* ── frame + board ──────────────────────────────────────────────────── */
+.frame{overflow-x:auto; overflow-y:hidden; padding:20px 22px 40px; cursor:grab}
+.frame.dragging{cursor:grabbing; user-select:none}
+.frame:focus-visible{outline:2px solid var(--cust); outline-offset:-2px}
+.panhint{font-size:11px; color:var(--ink-3); white-space:nowrap}
+.board{
+  width:var(--board-w); min-width:var(--board-w);
+  display:flex; flex-direction:column; gap:14px;
+}
+
+/* ── masthead ───────────────────────────────────────────────────────── */
+.masthead{display:flex; align-items:flex-start; gap:28px}
+.mast-l h1{
+  margin:0; font-size:34px; font-weight:900; letter-spacing:-.025em; line-height:1.1;
+  text-wrap:balance;
+}
+.mast-l p{margin:6px 0 0; font-size:13.5px; color:var(--ink-2)}
+.mast-r{margin-left:auto; display:flex; align-items:flex-start; gap:12px}
+.legend{
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+  background:var(--surface); border-radius:16px; padding:11px 18px; box-shadow:var(--shadow);
+}
+.legend-h{font-size:11px; font-weight:700; letter-spacing:.14em; color:var(--ink-3)}
+.lg{display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--ink-2); white-space:nowrap}
+.lg svg{flex:none}
+.stamp{
+  background:var(--surface); border-radius:16px; padding:11px 16px; box-shadow:var(--shadow);
+  font-size:11.5px; color:var(--ink-2); line-height:1.7; white-space:nowrap;
+}
+.stamp b{color:var(--ink); font-weight:600}
+
+/* ── lanes ──────────────────────────────────────────────────────────── */
+.lane{
+  --ac:var(--ink-3); --ac-ink:var(--ink-2);
+  display:flex; align-items:stretch; gap:0;
+  border-radius:20px;
+  background:color-mix(in srgb, var(--ac) 5%, var(--surface));
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.rail{
+  flex:none; width:52px;
+  display:flex; align-items:center; justify-content:center;
+  background:color-mix(in srgb, var(--ac) 15%, var(--surface));
+  color:var(--ac-ink);
+  font-size:13px; font-weight:700; letter-spacing:.18em;
+  writing-mode:vertical-rl; text-orientation:upright;
+}
+.lane-body{flex:1; min-width:0; padding:16px 18px}
+.lane-body.row{display:flex; align-items:center}
+
+/* ── nodes ──────────────────────────────────────────────────────────── */
+.flow{display:flex; align-items:stretch; gap:0}
+.node{
+  flex:none; width:104px;
+  background:var(--surface); border-radius:14px;
+  box-shadow:var(--shadow-sm);
+  padding:9px 8px 10px;
+  display:flex; flex-direction:column; align-items:center; gap:5px; text-align:center;
+}
+.node.wide{width:150px}
+.node.xwide{width:206px}
+.node.portal-list{align-items:flex-start; text-align:left; padding:11px 14px}
+.node-ico{width:22px; height:22px; color:var(--ac); flex:none}
+.node-t{font-size:12px; font-weight:700; line-height:1.25; letter-spacing:-.005em}
+.node-s{font-size:9.5px; line-height:1.5; color:var(--ink-3); font-weight:400}
+.node-s em{font-style:normal; color:var(--ac-ink); font-weight:500}
+
+.dia{
+  flex:none; width:132px;
+  background:var(--surface);
+  border:1.5px dashed color-mix(in srgb, var(--ac) 55%, transparent);
+  border-radius:14px;
+  padding:9px 10px 10px;
+  display:flex; flex-direction:column; align-items:center; gap:5px; text-align:center;
+}
+.dia .node-t{color:var(--ac-ink)}
+
+.arr{flex:none; align-self:center; width:26px; height:12px; color:var(--flow-main); opacity:.75}
+.arr.tight{width:14px}
+
+/* ── portal grid ────────────────────────────────────────────────────── */
+.portals{display:grid; grid-template-columns:repeat(4,1fr); gap:14px}
+.col{
+  --ac:var(--ink-3); --ac-ink:var(--ink-2);
+  border-radius:20px;
+  background:color-mix(in srgb, var(--ac) 6%, var(--surface));
+  box-shadow:var(--shadow);
+  padding:0 0 14px; overflow:hidden;
+}
+.col-head{
+  display:flex; align-items:center; gap:10px;
+  padding:12px 16px 11px;
+  background:color-mix(in srgb, var(--ac) 15%, var(--surface));
+  border-bottom:1px solid color-mix(in srgb, var(--ac) 22%, transparent);
+}
+.col-head svg{width:22px; height:22px; color:var(--ac-ink); flex:none}
+.col-head h2{margin:0; font-size:15px; font-weight:800; letter-spacing:-.01em; color:var(--ac-ink)}
+.col-head .who{margin-left:auto; font-size:10.5px; color:var(--ink-3); text-align:right; line-height:1.4}
+
+.grp{margin:12px 12px 0; padding:9px 10px 11px; border-radius:15px; background:var(--surface-2)}
+.grp-h{
+  display:block; text-align:center;
+  font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--ac-ink);
+  margin-bottom:8px;
+}
+.grp .flow{justify-content:center}
+.col-foot{
+  margin:12px 12px 0; padding:8px 11px; border-radius:12px;
+  background:color-mix(in srgb, var(--ac) 10%, transparent);
+  font-size:10.5px; line-height:1.6; color:var(--ink-2);
+}
+.col-foot b{color:var(--ac-ink); font-weight:600}
+
+/* dashed tie between portals and shared services */
+.ties{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; height:18px}
+.tie{display:flex; justify-content:center}
+.tie i{
+  display:block; width:0; height:100%;
+  border-left:2px dashed color-mix(in srgb, var(--ac) 60%, transparent);
+}
+
+/* ── service grid ───────────────────────────────────────────────────── */
+.svc{display:grid; grid-template-columns:repeat(5,1fr); gap:10px}
+.svc.ext{grid-template-columns:repeat(5,1fr)}
+.scard{
+  display:flex; gap:10px; align-items:flex-start;
+  background:var(--surface); border-radius:14px; padding:10px 12px;
+  box-shadow:var(--shadow-sm);
+}
+.scard svg{width:20px; height:20px; color:var(--ac); flex:none; margin-top:1px}
+.scard h3{margin:0 0 2px; font-size:12px; font-weight:700; letter-spacing:-.005em}
+.scard p{margin:0; font-size:10px; line-height:1.55; color:var(--ink-3)}
+
+/* ── status chain ───────────────────────────────────────────────────── */
+.chain{display:flex; align-items:center; gap:0; flex-wrap:wrap}
+.pill{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:10.5px; font-weight:500;
+  padding:4px 11px; border-radius:999px;
+  background:color-mix(in srgb, var(--ac) 14%, var(--surface));
+  color:var(--ac-ink); white-space:nowrap;
+}
+.pill.term{background:color-mix(in srgb, var(--ink-3) 16%, var(--surface)); color:var(--ink-2)}
+.chain .arr{width:20px}
+.chain-note{font-size:10.5px; color:var(--ink-3); margin-left:10px}
+
+/* ── footnotes ──────────────────────────────────────────────────────── */
+.notes{display:grid; grid-template-columns:1fr 1.05fr 1.25fr; gap:14px}
+.ncard{background:var(--surface); border-radius:20px; padding:16px 20px 18px; box-shadow:var(--shadow)}
+.ncard h3{
+  margin:0 0 11px; font-size:12px; font-weight:700; letter-spacing:.1em; color:var(--ink-3);
+}
+.ncard ul{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px}
+.ncard li{
+  font-size:12px; line-height:1.65; color:var(--ink-2);
+  position:relative; padding-left:14px;
+}
+.ncard li::before{
+  content:""; position:absolute; left:0; top:8px;
+  width:5px; height:5px; border-radius:50%; background:var(--ink-3);
+}
+.ncard li code{overflow-wrap:anywhere}
+.ncard li b{color:var(--ink); font-weight:600}
+.ncard li code{
+  font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px;
+  background:var(--surface-2); padding:1px 5px; border-radius:5px; color:var(--ink);
+}
+.dataflow li{padding-left:0}
+.dataflow li::before{display:none}
+.dataflow svg{vertical-align:-1px; margin-right:6px}
+
+.callout{
+  margin-left:22px; flex:1; min-width:280px; align-self:center;
+  background:color-mix(in srgb, var(--ac) 11%, transparent);
+  border-radius:14px; padding:10px 14px;
+  font-size:11px; line-height:1.65; color:var(--ink-2);
+}
+.callout b{color:var(--ac-ink); font-weight:700}
+
+/* ── responsive ──────────────────────────────────────────────────────
+   Below the board threshold the diagram stops scaling down (6px type is
+   not a diagram, it is a texture) and reflows: lanes stack, the four
+   portals become one column, and each sub-flow runs top-to-bottom at
+   full-size text. */
+@media (max-width:1279px){
+  .zoomer,.panhint{display:none}
+  .frame{padding:14px 12px 32px; cursor:auto}
+  .board{width:100%; min-width:0; gap:12px}
+
+  .masthead{flex-direction:column; gap:14px}
+  .mast-l h1{font-size:26px}
+  .mast-r{margin-left:0; flex-wrap:wrap; gap:10px}
+
+  .lane{flex-direction:column}
+  .rail{
+    width:auto; writing-mode:horizontal-tb; text-orientation:mixed;
+    padding:9px 16px; justify-content:flex-start; font-size:12px; letter-spacing:.14em;
+  }
+  .lane-body,.lane-body.row{display:block; padding:14px}
+
+  .portals{grid-template-columns:1fr}
+  .callout{margin:14px 0 0; width:auto; min-width:0}
+
+  .flow,.grp .flow{flex-direction:column; align-items:stretch; justify-content:flex-start}
+  .node,.dia,.node.wide,.node.xwide,.node.portal-list{
+    width:auto; flex-direction:row; align-items:center;
+    text-align:left; gap:12px; padding:10px 13px;
+  }
+  .node.portal-list{align-items:flex-start}
+  .node-t,.node-s{text-align:left}
+  .node-t{font-size:13px; flex:none; min-width:100px}
+  .node-s{font-size:11px}
+  .arr{width:24px; height:11px; transform:rotate(90deg); margin:8px auto}
+
+  .ties{display:none}
+  .svc,.svc.ext{grid-template-columns:repeat(2,1fr)}
+  .notes{grid-template-columns:1fr}
+  .chain{gap:3px}
+  .chain .arr{transform:none; margin:0}
+}
+@media (max-width:720px){
+  .chrome{padding:10px 14px}
+  .mast-l h1{font-size:22px}
+  .svc,.svc.ext{grid-template-columns:1fr}
+  .node,.dia,.node.wide,.node.xwide,.node.portal-list{
+    flex-direction:column; align-items:flex-start; gap:7px;
+  }
+  .node-t{min-width:0}
+}
+
+@media print{
+  .chrome{display:none}
+  .frame{overflow:visible; padding:0}
+  body{background:#fff}
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important; animation:none !important}
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+<symbol id="i-qr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 14h3v3h-3zM19 19h2v2h-2z"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20.5 20.5-4-4"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 6H21M8.5 12H21M8.5 18H21M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></symbol>
+<symbol id="i-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.5" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3.5H5l2.4 11.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.6L21 7.5H5.4"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3 10.5 13.5"/><path d="M21 3 14.6 21l-4.1-7.5L3 9.4Z"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8.2 12.4 2.6 2.6 5-5.4"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10.2c0 5.8-8 11.8-8 11.8s-8-6-8-11.8a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.8"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.2 2"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 20.5v-1.8a4 4 0 0 0-4-4h-4a4 4 0 0 0-4 4v1.8"/><circle cx="9.5" cy="7.5" r="3.4"/><path d="M21.5 20.5v-1.8a4 4 0 0 0-3-3.85M16.5 4.2a4 4 0 0 1 0 6.7"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M8 3v4M16 3v4M3 10h18"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.5a6 6 0 1 0-12 0c0 6.5-2.6 8-2.6 8h17.2s-2.6-1.5-2.6-8"/><path d="M10.2 20.5a2.1 2.1 0 0 0 3.6 0"/></symbol>
+<symbol id="i-dash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="9" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="5.5" rx="1.5"/><rect x="13.5" y="12" width="7.5" height="9" rx="1.5"/><rect x="3" y="15.5" width="7.5" height="5.5" rx="1.5"/></symbol>
+<symbol id="i-receipt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 3v18l2.2-1.4 2.1 1.4 2.2-1.4 2.1 1.4 2.2-1.4 2.2 1.4V3Z"/><path d="M9 8.5h6M9 12.5h6M9 16.5h3.5"/></symbol>
+<symbol id="i-utensils" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5v7.5a2.4 2.4 0 0 0 4.8 0V2.5"/><path d="M8.4 12.4V21.5"/><path d="M17.5 2.5c-1.7 1.6-2.6 3.7-2.6 6.2 0 1.8.9 3 2.2 3.4V21.5"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h8M17 6.5h3M4 12h3M12 12h8M4 17.5h11M20 17.5h0"/><circle cx="14.5" cy="6.5" r="2"/><circle cx="9.5" cy="12" r="2"/><circle cx="17.5" cy="17.5" r="2"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M3 9.5h18M3 15h18M9 3v18M15 3v18"/></symbol>
+<symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 8.4v7.2a2 2 0 0 1-1 1.75l-6.8 3.8a2 2 0 0 1-2 0l-6.8-3.8a2 2 0 0 1-1-1.75V8.4a2 2 0 0 1 1-1.75l6.8-3.8a2 2 0 0 1 2 0l6.8 3.8a2 2 0 0 1 1 1.75Z"/><path d="m3.5 7.6 8.5 4.7 8.5-4.7M12 21.2v-8.9"/></symbol>
+<symbol id="i-ticket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.2V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.2a3 3 0 0 0 0 5.6V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.2a3 3 0 0 0 0-5.6Z"/><path d="M13.5 6v2M13.5 11v2M13.5 16v2"/></symbol>
+<symbol id="i-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5a2.5 2.5 0 0 1-2.5 2.5H8l-4.5 4V5.5A2.5 2.5 0 0 1 6 3h12a2.5 2.5 0 0 1 2.5 2.5Z"/></symbol>
+<symbol id="i-trend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17.5 6-6 4 4 8-8.5"/><path d="M15.5 7H21v5.5"/></symbol>
+<symbol id="i-userplus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20.5v-1.6a4.6 4.6 0 0 1 4.6-4.6h3.8a4.6 4.6 0 0 1 4.6 4.6v1.6"/><path d="M19.5 8.5v5M22 11h-5"/></symbol>
+<symbol id="i-chef" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 21h11v-8.4a4.4 4.4 0 0 0 .7-8.5A4 4 0 0 0 12 3a4 4 0 0 0-6.2 1.1 4.4 4.4 0 0 0 .7 8.5Z"/><path d="M6.5 17.2h11"/></symbol>
+<symbol id="i-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.5a6 6 0 0 0 6-6c0-4-3-5.2-3-9.2 0-2-1.6-3.9-3.2-4.8 0 4-2.5 5-4 8a7 7 0 0 0-1.8 6 6 6 0 0 0 6 6Z"/></symbol>
+<symbol id="i-truck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="6" width="12.5" height="10" rx="1.8"/><path d="M14 9.5h4.2L21.5 13v3H14z"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+<symbol id="i-card" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M2 10h20M6 15h4"/></symbol>
+<symbol id="i-printer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 9V3h11v6"/><rect x="2.5" y="9" width="19" height="8" rx="2.2"/><path d="M6.5 14.5h11V21h-11z"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 12a8.8 8.8 0 0 1 14.9-6.4L21 8.2"/><path d="M21 3.5v4.9h-4.9"/><path d="M20.8 12a8.8 8.8 0 0 1-14.9 6.4L3 15.8"/><path d="M3 20.5v-4.9h4.9"/></symbol>
+<symbol id="i-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M9 7.5h1.5M13.5 7.5H15M9 11.5h1.5M13.5 11.5H15M10 21v-3.6h4V21"/></symbol>
+<symbol id="i-filecheck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2.5H7A2.2 2.2 0 0 0 4.8 4.7v14.6A2.2 2.2 0 0 0 7 21.5h10a2.2 2.2 0 0 0 2.2-2.2V7.7Z"/><path d="M14 2.5v5.2h5.2"/><path d="m9 15.2 2 2 4-4.2"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.6s7.8-3.9 7.8-9.8V5.2L12 2.4 4.2 5.2v6.6c0 5.9 7.8 9.8 7.8 9.8Z"/><path d="m9 11.8 2.1 2.1 4-4.2"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.6" cy="15.6" r="4.4"/><path d="m10.9 12.4 8.4-8.4M17 5.9l2.6 2.6M14.4 8.5 17 11.1"/></symbol>
+<symbol id="i-rocket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.2 15.4c-1.5 1.5-2 6.2-2 6.2s4.7-.5 6.2-2a2.9 2.9 0 0 0-4.2-4.2Z"/><path d="M9.3 13.8 5.6 13 13.2 5.4a7.4 7.4 0 0 1 6.2-2.1 7.4 7.4 0 0 1-2.1 6.2L9.7 17.5Z"/><circle cx="15.7" cy="7.6" r="1.4"/></symbol>
+<symbol id="i-activity" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4.2l2.9 7.6L14 4.4l2.7 7.6H21"/></symbol>
+<symbol id="i-scroll" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 3.5h11.6a2 2 0 0 1 2 2v11.8a3.2 3.2 0 0 1-3.2 3.2H7.4a3.2 3.2 0 0 1-3.2-3.2V5.5a2 2 0 0 1 2-2Z"/><path d="M9 9h7M9 13h7"/></symbol>
+<symbol id="i-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.8" rx="7.8" ry="3.1"/><path d="M4.2 5.8v6.1c0 1.7 3.5 3.1 7.8 3.1s7.8-1.4 7.8-3.1V5.8"/><path d="M4.2 11.9V18c0 1.7 3.5 3.1 7.8 3.1s7.8-1.4 7.8-3.1v-6.1"/></symbol>
+<symbol id="i-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17.6 19.3a4.6 4.6 0 0 0 .3-9.2 6.6 6.6 0 0 0-12.7 1 3.6 3.6 0 0 0 .6 8.2Z"/></symbol>
+<symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13.2 2 4 14h7l-1 8 9.2-12h-7Z"/></symbol>
+<symbol id="i-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4.5" width="15" height="15" rx="2.5"/><rect x="9.2" y="9.2" width="5.6" height="5.6" rx="1"/><path d="M9 2v2.5M15 2v2.5M9 19.5V22M15 19.5V22M2 9h2.5M2 15h2.5M19.5 9H22M19.5 15H22"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13.5 13.5 0 0 1 0 18 13.5 13.5 0 0 1 0-18Z"/></symbol>
+<symbol id="i-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.6" cy="9.6" r="1.8"/><path d="m4 18.5 5.2-5 3.8 3.8 3-3 5 5"/></symbol>
+<symbol id="i-lang" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.2h9M7.5 4.2v2M10.2 6.2s-.4 5.2-6.2 8.4"/><path d="M5.4 11.2c2 2.7 5.1 4.2 5.1 4.2"/><path d="m12.8 20.5 4.1-9.8 4.1 9.8M14.4 17.2h5"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7.2a4 4 0 0 1 8 0V10"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 21h17.6"/><rect x="5" y="11" width="3.6" height="7" rx="1.2"/><rect x="10.2" y="5.5" width="3.6" height="12.5" rx="1.2"/><rect x="15.4" y="14" width="3.6" height="4" rx="1.2"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2v12.4"/><path d="m7.4 11.2 4.6 4.6 4.6-4.6"/><path d="M4 20.5h16"/></symbol>
+<symbol id="i-store" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 10.4V19a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-8.6"/><path d="M3 5.5h18l1 4.2a2.9 2.9 0 0 1-5.3 1.7 2.9 2.9 0 0 1-4.7 0 2.9 2.9 0 0 1-4.7 0A2.9 2.9 0 0 1 2 9.7Z"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 8.5V6.2A2.2 2.2 0 0 0 17.8 4H5.2a2.2 2.2 0 0 0 0 4.5h15A1.3 1.3 0 0 1 21.5 10v7.8a2.2 2.2 0 0 1-2.2 2.2H5.2A2.2 2.2 0 0 1 3 17.8V6.2"/><circle cx="17.2" cy="14" r="1.2"/></symbol>
+<symbol id="i-wifi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.8 8.9a14.5 14.5 0 0 1 18.4 0"/><path d="M6.4 12.6a9.5 9.5 0 0 1 11.2 0"/><path d="M9.8 16.3a4.8 4.8 0 0 1 4.4 0"/><circle cx="12" cy="19.8" r="1.1"/></symbol>
+<symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="m3.2 7.2 8.8 5.9 8.8-5.9"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"/><path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4 5.3 5.3"/></symbol>
+<symbol id="i-login" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3.5h4a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-4"/><path d="m10.5 16.5 4.5-4.5-4.5-4.5"/><path d="M15 12H3.5"/></symbol>
+<symbol id="i-monitor" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3.5" width="20" height="13.5" rx="2.5"/><path d="M8.5 21h7M12 17v4"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10.4 18.5h3.2"/></symbol>
+<symbol id="i-branch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="2.2"/><circle cx="6" cy="19" r="2.2"/><circle cx="18" cy="8" r="2.2"/><path d="M6 7.2v9.6"/><path d="M18 10.2a5.2 5.2 0 0 1-5.2 5.2H6"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 28 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h19"/><path d="m17.5 2.2 4 3.8-4 3.8"/></symbol>
+</defs>
+</svg>
+
+<div class="chrome">
+  <div class="chrome-title">
+    <b>MakanMasak Master User Flow</b>
+    <span>六大角色 · 五個前端 · 四個 Worker</span>
+  </div>
+  <div class="zoomer">
+    <button class="zbtn" id="zfit" aria-pressed="true">符合寬度</button>
+    <button class="zbtn" id="zout" aria-label="縮小">−</button>
+    <span class="zlevel mono" id="zval">—</span>
+    <button class="zbtn" id="zin" aria-label="放大">＋</button>
+    <button class="zbtn" id="zone">100%</button>
+  </div>
+  <span class="panhint">可拖曳平移 · 方向鍵捲動</span>
+</div>
+
+<div class="frame" id="frame" tabindex="0" role="region" aria-label="流程圖看板，可橫向捲動">
+<div class="board" id="board">
+
+  <!-- ── masthead ───────────────────────────────────────────────── -->
+  <header class="masthead">
+    <div class="mast-l">
+      <h1>MakanMasak 平台 Master User Flow</h1>
+      <p>邊緣運算餐飲 / 夜市 SaaS 點餐與營運平台 — 四大門戶總覽流程圖</p>
+    </div>
+    <div class="mast-r">
+      <div class="legend">
+        <span class="legend-h">圖例</span>
+        <span class="lg"><svg width="30" height="10" viewBox="0 0 30 10" fill="none" stroke="var(--flow-main)" stroke-width="1.7" stroke-linecap="round"><path d="M1 5h22"/><path d="m20 2 3.5 3-3.5 3"/></svg>主要流程</span>
+        <span class="lg"><svg width="30" height="10" viewBox="0 0 30 10" fill="none" stroke="var(--flow-notify)" stroke-width="1.7" stroke-linecap="round"><path d="M1 5h22" stroke-dasharray="4 3"/><path d="m20 2 3.5 3-3.5 3"/></svg>訊息／通知</span>
+        <span class="lg"><svg width="30" height="10" viewBox="0 0 30 10" fill="none" stroke="var(--flow-money)" stroke-width="1.7" stroke-linecap="round"><path d="M1 5h22"/><path d="m20 2 3.5 3-3.5 3"/></svg>金流／退款</span>
+        <span class="lg"><svg width="30" height="10" viewBox="0 0 30 10" fill="none" stroke="var(--flow-data)" stroke-width="1.7" stroke-linecap="round"><path d="M1 5h22" stroke-dasharray="4 3"/><path d="m20 2 3.5 3-3.5 3"/></svg>資料／事件流</span>
+        <span class="lg"><svg width="30" height="10" viewBox="0 0 30 10" fill="none" stroke="var(--flow-ext)" stroke-width="1.7" stroke-linecap="round"><path d="M1 5h22" stroke-dasharray="2 3"/><path d="m20 2 3.5 3-3.5 3"/></svg>外部系統互動</span>
+      </div>
+      <div class="stamp">
+        版本：<b class="mono">v1.0</b><br>
+        日期：<b class="mono">2026/08/19</b>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── visitor lane ───────────────────────────────────────────── -->
+  <section class="lane" style="--ac:var(--visitor); --ac-ink:var(--visitor-ink)">
+    <div class="rail">訪客／未登入</div>
+    <div class="lane-body row">
+      <div class="flow">
+        <div class="node"><svg class="node-ico"><use href="#i-qr"/></svg><span class="node-t">進入入口</span><span class="node-s">掃描 QR<br>首頁 · 探索頁<br><em class="mono">:3000</em></span></div>
+        <svg class="arr"><use href="#i-arrow"/></svg>
+        <div class="node"><svg class="node-ico"><use href="#i-search"/></svg><span class="node-t">瀏覽／搜尋</span><span class="node-s">餐點搜尋<br>分類瀏覽<br>市集與熱門</span></div>
+        <svg class="arr"><use href="#i-arrow"/></svg>
+        <div class="node"><svg class="node-ico"><use href="#i-list"/></svg><span class="node-t">菜單詳情</span><span class="node-s">品項與圖片<br>選項群組<br>價格規則</span></div>
+        <svg class="arr"><use href="#i-arrow"/></svg>
+        <div class="node"><svg class="node-ico"><use href="#i-login"/></svg><span class="node-t">會員入口</span><span class="node-s">登入 · 註冊<br>忘記密碼<br>重設密碼</span></div>
+        <svg class="arr"><use href="#i-arrow"/></svg>
+        <div class="dia"><svg class="node-ico"><use href="#i-lock"/></svg><span class="node-t">身分驗證</span><span class="node-s">bcrypt 密碼驗證<br>Email 驗證信<br>JWT 簽發／換發</span></div>
+        <svg class="arr"><use href="#i-arrow"/></svg>
+        <div class="dia"><svg class="node-ico"><use href="#i-shield"/></svg><span class="node-t">角色與權限檢核</span><span class="node-s">role 0–5 · restaurantId<br>Token Blacklist 撤銷<br>前端路由守衛</span></div>
+        <svg class="arr"><use href="#i-arrow"/></svg>
+        <div class="node xwide portal-list">
+          <span class="node-t" style="align-self:center; margin-bottom:2px">進入對應門戶</span>
+          <span class="node-s" style="text-align:left; line-height:1.85">
+            <em class="mono">:3000</em> 顧客端 Customer App<br>
+            <em class="mono">:3001</em> 店家後台 Admin Dashboard<br>
+            <em class="mono">:3002</em> 廚房顯示 Kitchen Display<br>
+            <em class="mono">:3010</em> 管理總控台 Management Portal<br>
+            <em class="mono">:3011</em> 入駐申請 Onboarding App
+          </span>
+        </div>
+      </div>
+      <div class="callout">
+        <b>免登入路徑：</b>掃描桌位／座位 QR 可直接以訪客身分下單（<span class="mono">guest-orders</span>），不進入會員入口。
+        濫用防護不依賴登入，而是以 <b>（餐廳, IP）</b> 雙層限流，疊在全域 per-IP 限流之下。
+      </div>
+    </div>
+  </section>
+
+  <!-- ── four portals ───────────────────────────────────────────── -->
+  <section class="lane" style="--ac:var(--ink-3); --ac-ink:var(--ink-2)">
+    <div class="rail">四大門戶主要流程</div>
+    <div class="lane-body">
+      <div class="portals">
+
+        <!-- 1. Customer -->
+        <div class="col" style="--ac:var(--cust); --ac-ink:var(--cust-ink)">
+          <div class="col-head">
+            <svg><use href="#i-phone"/></svg>
+            <h2>1. 顧客端</h2>
+            <span class="who">Customer App<br>role 5 ／ 訪客</span>
+          </div>
+
+          <div class="grp">
+            <span class="grp-h">點餐主流程</span>
+            <div class="flow">
+              <div class="node"><svg class="node-ico"><use href="#i-qr"/></svg><span class="node-t">掃描 QR</span><span class="node-s">桌位 · 座位<br>店家公開碼</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-branch"/></svg><span class="node-t">選擇取餐</span><span class="node-s">內用 · 外帶<br>外送</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-utensils"/></svg><span class="node-t">瀏覽菜單</span><span class="node-s">分類 · 客製<br>加購選項</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-cart"/></svg><span class="node-t">加入購物車</span><span class="node-s">數量 · 備註<br>優惠券折抵</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-send"/></svg><span class="node-t">送出訂單</span><span class="node-s">建立訂單<br>取得訂單編號</span></div>
+            </div>
+          </div>
+
+          <div class="grp">
+            <span class="grp-h">訂單追蹤流程</span>
+            <div class="flow">
+              <div class="node"><svg class="node-ico"><use href="#i-clock"/></svg><span class="node-t">待確認</span><span class="node-s"><em class="mono">pending</em></span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-check"/></svg><span class="node-t">已確認</span><span class="node-s"><em class="mono">confirmed</em></span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-flame"/></svg><span class="node-t">製作中</span><span class="node-s"><em class="mono">preparing</em></span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-bell"/></svg><span class="node-t">可取餐</span><span class="node-s"><em class="mono">ready</em></span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-wallet"/></svg><span class="node-t">送達／付訖</span><span class="node-s"><em class="mono">delivered → paid</em></span></div>
+            </div>
+          </div>
+
+          <div class="grp">
+            <span class="grp-h">座位與預約流程</span>
+            <div class="flow">
+              <div class="node"><svg class="node-ico"><use href="#i-users"/></svg><span class="node-t">候位登記</span><span class="node-s">取號 · 查看<br>前方組數</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-bell"/></svg><span class="node-t">叫號通知</span><span class="node-s">即時推送<br>入座確認</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-calendar"/></svg><span class="node-t">線上訂位</span><span class="node-s">時段 · 人數<br>訂位確認</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-clock"/></svg><span class="node-t">預約服務</span><span class="node-s">服務品項<br>時段預約</span></div>
+            </div>
+          </div>
+
+          <div class="grp">
+            <span class="grp-h">揪團與夜市市集流程</span>
+            <div class="flow">
+              <div class="node"><svg class="node-ico"><use href="#i-users"/></svg><span class="node-t">建立揪團</span><span class="node-s">分享碼邀請<br>同桌合單</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-store"/></svg><span class="node-t">探索市集</span><span class="node-s">夜市頁面<br>攤位總覽</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-cart"/></svg><span class="node-t">跨攤結帳</span><span class="node-s">多攤合併<br>一次付款</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-ticket"/></svg><span class="node-t">代幣／優惠卷</span><span class="node-s">儲值扣抵<br>卷碼核銷</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-card"/></svg><span class="node-t">完成付款</span><span class="node-s">結果回調<br>逐攤分帳</span></div>
+            </div>
+          </div>
+
+          <div class="col-foot">
+            <b>對外事件：</b>建立訂單 · 付款完成 · 候位入座 → 即時推播至廚房／送菜／收銀端
+          </div>
+        </div>
+
+        <!-- 2. Merchant -->
+        <div class="col" style="--ac:var(--shop); --ac-ink:var(--shop-ink)">
+          <div class="col-head">
+            <svg><use href="#i-store"/></svg>
+            <h2>2. 店家後台</h2>
+            <span class="who">Admin Dashboard<br>role 1 店主</span>
+          </div>
+
+          <div class="grp">
+            <span class="grp-h">店務主流程</span>
+            <div class="flow">
+              <div class="node"><svg class="node-ico"><use href="#i-dash"/></svg><span class="node-t">營運儀表板</span><span class="node-s">今日營收<br>即時單量</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-receipt"/></svg><span class="node-t">訂單管理</span><span class="node-s">確認 · 改單<br>取消 · 退款</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-utensils"/></svg><span class="node-t">菜單管理</span><span class="node-s">品項 · 圖片<br>上下架 · 售罄</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-sliders"/></svg><span class="node-t">選項群組</span><span class="node-s">客製選項<br>加價規則</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-grid"/></svg><span class="node-t">桌位設定</span><span class="node-s">桌位 · 座位<br>QR 批次產生</span></div>
+            </div>
+          </div>
+
+          <div class="grp">
+            <span class="grp-h">營運管理流程</span>
+            <div class="flow">
+              <div class="node"><svg class="node-ico"><use href="#i-box"/></svg><span class="node-t">食材庫存</span><span class="node-s">進出料<br>低量提醒</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-ticket"/></svg><span class="node-t">優惠券</span><span class="node-s">建立 · 發放<br>使用統計</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-chat"/></svg><span class="node-t">顧客回饋</span><span class="node-s">評價彙整<br>回覆處理</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-trend"/></svg><span class="node-t">需求預測</span><span class="node-s">備料建議<br>尖峰預估</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-users"/></svg><span class="node-t">揪團訂單</span><span class="node-s">合單檢視<br>分攤結帳</span></div>
+            </div>
+          </div>
+
+          <div class="grp">
+            <span class="grp-h">人事流程</span>
+            <div class="flow">
+              <div class="node"><svg class="node-ico"><use href="#i-userplus"/></svg><span class="node-t">員工列表</span><span class="node-s">建立帳號<br>指派角色</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-calendar"/></svg><span class="node-t">排班管理</span><span class="node-s">班表編排<br>人力分析</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-clock"/></svg><span class="node-t">出勤紀錄</span><span class="node-s">上下班<br>工時統計</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-filecheck"/></svg><span class="node-t">請假審核</span><span class="node-s">申請 · 核准<br>假別餘額</span></div>
+            </div>
+          </div>
+
+          <div class="grp">
+            <span class="grp-h">分析與設定</span>
+            <div class="flow">
+              <div class="node"><svg class="node-ico"><use href="#i-chart"/></svg><span class="node-t">營運分析</span><span class="node-s">營收 · 品項<br>時段熱度</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-cpu"/></svg><span class="node-t">AI 洞察</span><span class="node-s">商品分析<br>建議產生</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-wallet"/></svg><span class="node-t">訂閱與帳務</span><span class="node-s">方案 · 用量<br>帳單明細</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-settings"/></svg><span class="node-t">系統設定</span><span class="node-s">營業時間<br>稅率 · 服務費</span></div>
+            </div>
+          </div>
+
+          <div class="col-foot">
+            <b>對外事件：</b>菜單異動 → 搜尋索引重建 · 品項售罄 → 顧客端菜單快取失效
+          </div>
+        </div>
+
+        <!-- 3. Floor ops -->
+        <div class="col" style="--ac:var(--floor); --ac-ink:var(--floor-ink)">
+          <div class="col-head">
+            <svg><use href="#i-chef"/></svg>
+            <h2>3. 現場作業</h2>
+            <span class="who">Kitchen · Service · Cashier<br>role 2 ／ 3 ／ 4</span>
+          </div>
+
+          <div class="grp">
+            <span class="grp-h">廚房流程 — 廚師 role 2</span>
+            <div class="flow">
+              <div class="node"><svg class="node-ico"><use href="#i-monitor"/></svg><span class="node-t">接收新單</span><span class="node-s">KDS 即時進單<br><em class="mono">:3002</em></span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-flame"/></svg><span class="node-t">開始製作</span><span class="node-s">認領工單<br>計時追蹤</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-check"/></svg><span class="node-t">逐項完成</span><span class="node-s">單品項標記<br>缺料回報</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-bell"/></svg><span class="node-t">整單出餐</span><span class="node-s">狀態轉 <em class="mono">ready</em><br>呼叫送餐</span></div>
+            </div>
+          </div>
+
+          <div class="grp">
+            <span class="grp-h">送菜流程 — 送菜員 role 3</span>
+            <div class="flow">
+              <div class="node"><svg class="node-ico"><use href="#i-list"/></svg><span class="node-t">待送清單</span><span class="node-s">依桌號排序<br>等待時間</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-box"/></svg><span class="node-t">取餐核對</span><span class="node-s">品項比對<br>備註確認</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-pin"/></svg><span class="node-t">送達桌位</span><span class="node-s">桌號 · 座位<br>外帶取餐檯</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-check"/></svg><span class="node-t">標記送達</span><span class="node-s">狀態轉<br><em class="mono">delivered</em></span></div>
+            </div>
+          </div>
+
+          <div class="grp">
+            <span class="grp-h">收銀流程 — 收銀 role 4</span>
+            <div class="flow">
+              <div class="node"><svg class="node-ico"><use href="#i-receipt"/></svg><span class="node-t">開立帳單</span><span class="node-s">POS 結帳<br>合併桌單</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-card"/></svg><span class="node-t">選擇付款</span><span class="node-s">現金 · 刷卡<br>行動支付</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-wallet"/></svg><span class="node-t">收款找零</span><span class="node-s">金額以「分」<br>整數計算</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-check"/></svg><span class="node-t">訂單付訖</span><span class="node-s"><em class="mono">payment_status</em><br><em class="mono">= completed</em></span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-refresh"/></svg><span class="node-t">退款處理</span><span class="node-s">全額 · 部分<br>金流退回</span></div>
+            </div>
+          </div>
+
+          <div class="grp">
+            <span class="grp-h">出單與列印流程</span>
+            <div class="flow">
+              <div class="node"><svg class="node-ico"><use href="#i-zap"/></svg><span class="node-t">訂單事件</span><span class="node-s">建立 · 改單<br>結帳完成</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-wifi"/></svg><span class="node-t">WebSocket</span><span class="node-s">Durable Object<br>工作階段廣播</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-cloud"/></svg><span class="node-t">列印代理</span><span class="node-s">店內本機常駐<br><em class="mono">:3003 / :3004</em></span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-printer"/></svg><span class="node-t">ESC/POS 出單</span><span class="node-s">廚房單 · 收據<br>重印補單</span></div>
+            </div>
+          </div>
+
+          <div class="col-foot">
+            <b>三端同源：</b>廚房、送菜、收銀共用同一份訂單狀態機，任一端變更即時廣播給其餘兩端與顧客追蹤頁
+          </div>
+        </div>
+
+        <!-- 4. Platform -->
+        <div class="col" style="--ac:var(--plat); --ac-ink:var(--plat-ink)">
+          <div class="col-head">
+            <svg><use href="#i-shield"/></svg>
+            <h2>4. 平台管理</h2>
+            <span class="who">Management Portal · Onboarding<br>role 0 平台管理者</span>
+          </div>
+
+          <div class="grp">
+            <span class="grp-h">入駐流程</span>
+            <div class="flow">
+              <div class="node"><svg class="node-ico"><use href="#i-store"/></svg><span class="node-t">申請入駐</span><span class="node-s">公開申請頁<br><em class="mono">:3011</em></span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-filecheck"/></svg><span class="node-t">提交資料</span><span class="node-s">店家資訊<br>營業證明</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-search"/></svg><span class="node-t">平台審核</span><span class="node-s">申請列表<br>資格檢核</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-check"/></svg><span class="node-t">核准／駁回</span><span class="node-s">核准開通<br>駁回通知</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-building"/></svg><span class="node-t">建立租戶</span><span class="node-s">初始資料<br>店主帳號</span></div>
+            </div>
+          </div>
+
+          <div class="grp">
+            <span class="grp-h">租戶與授權管理</span>
+            <div class="flow">
+              <div class="node"><svg class="node-ico"><use href="#i-building"/></svg><span class="node-t">租戶列表</span><span class="node-s">狀態 · 方案<br>停用 · 復用</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-db"/></svg><span class="node-t">資源配額</span><span class="node-s">用量統計<br>上限調整</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-key"/></svg><span class="node-t">授權管理</span><span class="node-s">License 發放<br>到期控管</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-rocket"/></svg><span class="node-t">部署管理</span><span class="node-s">版本推送<br>灰度更新</span></div>
+            </div>
+          </div>
+
+          <div class="grp">
+            <span class="grp-h">平台營運流程</span>
+            <div class="flow">
+              <div class="node"><svg class="node-ico"><use href="#i-store"/></svg><span class="node-t">市集管理</span><span class="node-s">夜市建立<br>攤位編排</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-wallet"/></svg><span class="node-t">跨攤對帳</span><span class="node-s">結帳彙總<br>逐攤分帳</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-refresh"/></svg><span class="node-t">退款作業</span><span class="node-s">跨攤退款<br>金流商狀態</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-download"/></svg><span class="node-t">匯出報表</span><span class="node-s">結帳明細<br>攤商清單</span></div>
+            </div>
+          </div>
+
+          <div class="grp">
+            <span class="grp-h">監控與稽核</span>
+            <div class="flow">
+              <div class="node"><svg class="node-ico"><use href="#i-activity"/></svg><span class="node-t">健康檢查</span><span class="node-s">D1 · KV 探針<br>非僅靠計數器</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-chart"/></svg><span class="node-t">監控指標</span><span class="node-s">延遲 · 錯誤率<br>告警門檻</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-scroll"/></svg><span class="node-t">稽核日誌</span><span class="node-s">操作軌跡<br>權限異動</span></div>
+              <svg class="arr tight"><use href="#i-arrow"/></svg>
+              <div class="node"><svg class="node-ico"><use href="#i-db"/></svg><span class="node-t">備份還原</span><span class="node-s">排程匯出<br>還原演練</span></div>
+            </div>
+          </div>
+
+          <div class="col-foot">
+            <b>控制平面分離：</b>租戶／授權／部署走 Management API，與各店營運用的主 API 為兩個獨立 Worker
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- dashed ties down to shared services -->
+  <div class="ties" style="padding-left:70px; padding-right:18px">
+    <div class="tie" style="--ac:var(--cust)"><i></i></div>
+    <div class="tie" style="--ac:var(--shop)"><i></i></div>
+    <div class="tie" style="--ac:var(--floor)"><i></i></div>
+    <div class="tie" style="--ac:var(--plat)"><i></i></div>
+  </div>
+
+  <!-- ── shared services ────────────────────────────────────────── -->
+  <section class="lane" style="--ac:var(--shared); --ac-ink:var(--shared-ink)">
+    <div class="rail">全平台共通服務</div>
+    <div class="lane-body">
+      <div class="svc">
+        <div class="scard"><svg><use href="#i-lock"/></svg><div><h3>認證與授權</h3><p>JWT 簽發與換發 · RBAC role 0–5 · Token Blacklist 撤銷</p></div></div>
+        <div class="scard"><svg><use href="#i-wifi"/></svg><div><h3>即時推播</h3><p>Durable Object WebSocket · SSE 串流 · Web Push 訂閱</p></div></div>
+        <div class="scard"><svg><use href="#i-mail"/></svg><div><h3>通知中心</h3><p>Email 驗證信 · 手機 OTP · Slack 錯誤告警</p></div></div>
+        <div class="scard"><svg><use href="#i-image"/></svg><div><h3>影像服務</h3><p>R2 上傳與存放 · medium／thumbnail 兩把 variant</p></div></div>
+        <div class="scard"><svg><use href="#i-qr"/></svg><div><h3>QR 碼服務</h3><p>桌位／座位簽章 QR · 店家公開碼 · 批次產生與汰換</p></div></div>
+        <div class="scard"><svg><use href="#i-search"/></svg><div><h3>搜尋與探索</h3><p>FTS5 trigram 全文檢索 · Vectorize 語意相似推薦</p></div></div>
+        <div class="scard"><svg><use href="#i-lang"/></svg><div><h3>多語系與幣別</h3><p>zh-TW ／ en ／ ms 語系切換 · 金額一律以「分」儲存</p></div></div>
+        <div class="scard"><svg><use href="#i-zap"/></svg><div><h3>快取與限流</h3><p>KV 查詢快取 · 全域 per-IP 與 per-user 速率限制</p></div></div>
+        <div class="scard"><svg><use href="#i-scroll"/></svg><div><h3>稽核與備份</h3><p>完整操作軌跡 · Cron 排程備份匯出至 R2</p></div></div>
+        <div class="scard"><svg><use href="#i-activity"/></svg><div><h3>健康與監控</h3><p><span class="mono">/info</span> 存活探針 · <span class="mono">/monitoring/health</span> 相依健檢</p></div></div>
+      </div>
+
+      <div style="margin-top:14px; display:flex; align-items:center; gap:14px; flex-wrap:wrap">
+        <span class="grp-h" style="margin:0; text-align:left">訂單狀態機</span>
+        <div class="chain" style="--ac:var(--cust); --ac-ink:var(--cust-ink)">
+          <span class="pill">pending</span><svg class="arr"><use href="#i-arrow"/></svg>
+          <span class="pill">confirmed</span><svg class="arr"><use href="#i-arrow"/></svg>
+          <span class="pill">preparing</span><svg class="arr"><use href="#i-arrow"/></svg>
+          <span class="pill">ready</span><svg class="arr"><use href="#i-arrow"/></svg>
+          <span class="pill">delivered</span><svg class="arr"><use href="#i-arrow"/></svg>
+          <span class="pill">paid</span>
+          <span class="chain-note">終止態：</span>
+          <span class="pill term">cancelled</span>
+          <span style="width:6px"></span>
+          <span class="pill term">refunded</span>
+          <span class="chain-note">付款另有獨立欄位 <span class="mono">payment_status</span>：pending / completed / failed / refunded</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── external systems ───────────────────────────────────────── -->
+  <section class="lane" style="--ac:var(--ext); --ac-ink:var(--ext-ink)">
+    <div class="rail">第三方／外部系統</div>
+    <div class="lane-body">
+      <div class="svc ext">
+        <div class="scard"><svg><use href="#i-db"/></svg><div><h3>Cloudflare D1</h3><p>主資料庫（SQLite 相容）· 讀取副本分流</p></div></div>
+        <div class="scard"><svg><use href="#i-zap"/></svg><div><h3>Cloudflare KV</h3><p>查詢快取 · 速率限制 · Token 黑名單</p></div></div>
+        <div class="scard"><svg><use href="#i-cloud"/></svg><div><h3>Cloudflare R2</h3><p>菜單圖片存放 · 資料庫備份保存</p></div></div>
+        <div class="scard"><svg><use href="#i-wifi"/></svg><div><h3>Durable Objects</h3><p>即時工作階段 · WebSocket 休眠省費</p></div></div>
+        <div class="scard"><svg><use href="#i-branch"/></svg><div><h3>Cloudflare Queues</h3><p>搜尋索引同步 fan-out · 尖峰削峰</p></div></div>
+        <div class="scard"><svg><use href="#i-cpu"/></svg><div><h3>Workers AI · Vectorize</h3><p>商品分析與洞察 · 向量語意檢索</p></div></div>
+        <div class="scard"><svg><use href="#i-card"/></svg><div><h3>第三方金流</h3><p>綠界 ECPay · 藍新 NewebPay · LINE Pay · FPX · Touch'n Go</p></div></div>
+        <div class="scard"><svg><use href="#i-truck"/></svg><div><h3>外送平台</h3><p>Uber Eats · foodpanda · GrabFood 菜單與訂單同步</p></div></div>
+        <div class="scard"><svg><use href="#i-printer"/></svg><div><h3>本地列印代理</h3><p>店內常駐 Node 服務 · WebSocket 收單 · ESC/POS</p></div></div>
+        <div class="scard"><svg><use href="#i-chat"/></svg><div><h3>Slack Webhook</h3><p>錯誤追蹤與營運告警自動通知</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── footnotes ──────────────────────────────────────────────── -->
+  <section class="notes">
+    <div class="ncard">
+      <h3>流程說明</h3>
+      <ul>
+        <li>訪客可瀏覽公開資訊；掃描桌位／座位 QR 亦可<b>免登入下單</b>，登入僅用於歷史訂單、優惠與會員權益。</li>
+        <li>六個角色（<b>0</b> 管理者／<b>1</b> 店主／<b>2</b> 廚師／<b>3</b> 送菜／<b>4</b> 收銀／<b>5</b> 顧客）共用同一組 JWT，前端依 <code>role</code> 分流到不同門戶與路由。</li>
+        <li>訂單事件經 Durable Object 廣播，同時到達廚房顯示、送菜清單、收銀台與顧客追蹤頁，四端看到的是同一份狀態。</li>
+        <li>金流結果由金流商 webhook 回寫；夜市跨攤結帳另走 market-checkouts，付款一次、分帳逐攤。</li>
+        <li>租戶／授權／部署屬控制平面，由獨立的 Management API 承接，與各店營運 API 分開部署。</li>
+      </ul>
+    </div>
+
+    <div class="ncard dataflow">
+      <h3>主要資料流向（範例）</h3>
+      <ul>
+        <li><svg width="30" height="10" viewBox="0 0 30 10" fill="none" stroke="var(--flow-money)" stroke-width="1.7" stroke-linecap="round"><path d="M1 5h22"/><path d="m20 2 3.5 3-3.5 3"/></svg>顧客付款 → 第三方金流 → webhook 回調 → 訂單 <code>payment_status = completed</code></li>
+        <li><svg width="30" height="10" viewBox="0 0 30 10" fill="none" stroke="var(--flow-notify)" stroke-width="1.7" stroke-linecap="round"><path d="M1 5h22" stroke-dasharray="4 3"/><path d="m20 2 3.5 3-3.5 3"/></svg>系統通知 → Email／OTP／Web Push → 顧客與各角色</li>
+        <li><svg width="30" height="10" viewBox="0 0 30 10" fill="none" stroke="var(--flow-data)" stroke-width="1.7" stroke-linecap="round"><path d="M1 5h22" stroke-dasharray="4 3"/><path d="m20 2 3.5 3-3.5 3"/></svg>訂單事件 → Durable Object → 廚房／送菜／收銀／顧客追蹤</li>
+        <li><svg width="30" height="10" viewBox="0 0 30 10" fill="none" stroke="var(--flow-data)" stroke-width="1.7" stroke-linecap="round"><path d="M1 5h22" stroke-dasharray="4 3"/><path d="m20 2 3.5 3-3.5 3"/></svg>菜單異動 → Queue fan-out → FTS5 全文索引 ＋ Vectorize 向量重建</li>
+        <li><svg width="30" height="10" viewBox="0 0 30 10" fill="none" stroke="var(--flow-ext)" stroke-width="1.7" stroke-linecap="round"><path d="M1 5h22" stroke-dasharray="2 3"/><path d="m20 2 3.5 3-3.5 3"/></svg>每日排程 → D1 匯出 → R2 備份保存 ／ 異常 → Slack 告警</li>
+      </ul>
+    </div>
+
+    <div class="ncard">
+      <h3>備註（容易踩到的四件事）</h3>
+      <ul>
+        <li><b>店家 QR 是公開識別碼，不是憑證。</b><code>GET /api/v1/restaurants/:id</code> 會直接回傳它，任何人都拿得到。它只用來辨識「這是哪一家店」以及「手上的貼紙是不是現行版本」，不可當作到店證明。</li>
+        <li><b>桌位／座位 QR 則帶 HMAC 簽章</b>（<code>buildSignedQRUrl</code>），性質與店家 QR 完全不同，不要把上一條的結論套用到它們身上。</li>
+        <li><b>金額一律以「分」為單位的整數儲存</b>，時間戳一律 <code>INTEGER</code> Unix 毫秒；新資料表一律建為 <code>STRICT</code>，否則 SQLite 會靜默把 TEXT 塞進 INTEGER 欄位。</li>
+        <li><b>訪客點餐的濫用防護以（餐廳, IP）為 key</b>，疊在全域 per-IP 限流之下。不可把全域限流器改成以餐廳為 key——那會讓攻擊者的額度乘上餐廳數量。</li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+</div>
+
+<script>
+(function(){
+  var frame = document.getElementById('frame');
+  var board = document.getElementById('board');
+  var val   = document.getElementById('zval');
+  var bFit  = document.getElementById('zfit');
+  var bOne  = document.getElementById('zone');
+  var bIn   = document.getElementById('zin');
+  var bOut  = document.getElementById('zout');
+  var BOARD_W = 2640, PAD = 44;
+  // below this the node labels stop being legible, so we open panned
+  // rather than shrunk; "符合寬度" is still one click away for the shape
+  var MIN_READABLE = 0.72;
+  var stacked = window.matchMedia('(max-width: 1279px)');
+  var fitMode = true, zoom = 1;
+
+  function fitZoom(){
+    return Math.min(1, Math.max(0.3, (frame.clientWidth - PAD) / BOARD_W));
+  }
+  function apply(){
+    // stacked mode reflows at full size; scaling there would undo the point
+    if (stacked.matches){ board.style.zoom = ''; return; }
+    board.style.zoom = zoom;
+    val.textContent = Math.round(zoom * 100) + '%';
+    bFit.setAttribute('aria-pressed', String(fitMode));
+    bOne.setAttribute('aria-pressed', String(!fitMode && Math.abs(zoom - 1) < 0.001));
+  }
+  function setZoom(z, isFit){
+    fitMode = !!isFit;
+    zoom = Math.min(2, Math.max(0.3, z));
+    apply();
+  }
+
+  bFit.addEventListener('click', function(){ setZoom(fitZoom(), true); });
+  bOne.addEventListener('click', function(){ setZoom(1, false); });
+  bIn.addEventListener('click',  function(){ setZoom(zoom + 0.1, false); });
+  bOut.addEventListener('click', function(){ setZoom(zoom - 0.1, false); });
+
+  window.addEventListener('resize', function(){
+    if (stacked.matches){ board.style.zoom = ''; return; }
+    if (fitMode) setZoom(fitZoom(), true); else apply();
+  });
+  if (stacked.addEventListener){
+    stacked.addEventListener('change', function(){
+      if (stacked.matches) board.style.zoom = '';
+      else setZoom(fitMode ? fitZoom() : zoom, fitMode);
+    });
+  }
+
+  // drag to pan the wide board (mouse only — touch already scrolls natively)
+  var down = false, sx = 0, sl = 0;
+  frame.addEventListener('pointerdown', function(e){
+    if (stacked.matches || e.pointerType !== 'mouse' || e.button !== 0) return;
+    if (e.target.closest('button, a')) return;
+    down = true; sx = e.clientX; sl = frame.scrollLeft;
+    frame.classList.add('dragging');
+    frame.setPointerCapture(e.pointerId);
+  });
+  frame.addEventListener('pointermove', function(e){
+    if (down) frame.scrollLeft = sl - (e.clientX - sx);
+  });
+  function endDrag(e){
+    if (!down) return;
+    down = false;
+    frame.classList.remove('dragging');
+    if (e && e.pointerId != null && frame.hasPointerCapture(e.pointerId)){
+      frame.releasePointerCapture(e.pointerId);
+    }
+  }
+  frame.addEventListener('pointerup', endDrag);
+  frame.addEventListener('pointercancel', endDrag);
+
+  var start = Math.max(fitZoom(), MIN_READABLE);
+  setZoom(start, start <= fitZoom() + 0.001);
+})();
+</script>
