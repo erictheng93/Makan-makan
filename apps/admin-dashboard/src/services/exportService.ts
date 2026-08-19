@@ -11,10 +11,10 @@ import type {
   ExportResult,
   ExportFormat,
   ExportDataType,
+  ExportRow,
 } from "@/types/monitoring-export";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 
-type ExportRow = Record<string, unknown>;
 type FormattedExportRow = Record<string, string | number | boolean | null>;
 type PdfTableData = { headers: string[]; rows: string[][] };
 

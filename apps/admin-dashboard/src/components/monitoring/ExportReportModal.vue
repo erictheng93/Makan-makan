@@ -13,6 +13,7 @@ import type {
   ExportOptions,
   ExportFormat,
   ExportDataType,
+  ExportRow,
   ReportTemplate,
 } from "@/types/monitoring-export";
 import {
@@ -23,7 +24,7 @@ import {
 // Props
 interface Props {
   show: boolean;
-  data: Array<Record<string, unknown>>;
+  data: ExportRow[];
   defaultDataType?: ExportDataType;
 }
 
