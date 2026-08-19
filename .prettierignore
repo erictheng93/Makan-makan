@@ -19,6 +19,8 @@ pnpm-lock.yaml
 
 # Claude Code config
 .claude/
+# gstack-installed agent skills (vendored, untracked)
+.agents/
 
 # Legacy/archived code
 legacy/
