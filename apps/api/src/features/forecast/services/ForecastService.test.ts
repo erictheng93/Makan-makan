@@ -11,6 +11,10 @@ import {
   orderItems,
   orders,
 } from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 
 function createKV(initial: Record<string, unknown> = {}) {
   const values = new Map<string, string>(
@@ -70,8 +74,8 @@ function createKV(initial: Record<string, unknown> = {}) {
  * "<unknown table>" case.
  *
  * One extension beyond the base recipe: a queued entry may be an `Error`
- * instance instead of a rows array, in which case `nextResultFor` throws
- * that exact error instead of returning rows. This is only for genuinely
+ * instance instead of a rows array, in which case the read rejects with that
+ * exact error instead of returning rows. This is only for genuinely
  * simulating a backend failure (e.g. the "ingredient db unavailable" case
  * below) — it never fires unless a test deliberately queues an `Error`, so
  * the missing/exhausted-fixture throws for every other read are unaffected.
@@ -88,72 +92,15 @@ function createKV(initial: Record<string, unknown> = {}) {
  * try/catch of its own, so a harness throw there surfaces directly as a
  * rejected promise.
  */
-type SelectFixtureName = "forecastCache" | "menuItems" | "orderItems";
-type SelectFixtureRow = unknown[] | Error;
-type SelectFixtures = Partial<Record<SelectFixtureName, SelectFixtureRow[]>>;
-
-const fixtureTables: Record<SelectFixtureName, unknown> = {
+const fixtureTables = {
   forecastCache,
   menuItems,
   orderItems,
 };
-const fixtureTableNames = new Map<unknown, SelectFixtureName>(
-  Object.entries(fixtureTables).map(([name, table]) => [
-    table,
-    name as SelectFixtureName,
-  ]),
-);
-const unselectedTable = Symbol("unselectedTable");
+type SelectFixtureName = keyof typeof fixtureTables;
 
-function createQuery(nextResultFor: (table: unknown) => unknown) {
-  let selectedTable: unknown = unselectedTable;
-  const query = {
-    from: vi.fn((table: unknown) => {
-      selectedTable = table;
-      return query;
-    }),
-    where: vi.fn(() => query),
-    limit: vi.fn(() => query),
-    innerJoin: vi.fn(() => query),
-    groupBy: vi.fn(() => query),
-    orderBy: vi.fn(() => query),
-    then: (
-      resolve: (value: unknown) => void,
-      reject?: (reason: unknown) => void,
-    ) => {
-      if (selectedTable === unselectedTable) {
-        return Promise.reject(
-          new Error("Select fixture query never called from(table)"),
-        ).then(resolve, reject);
-      }
-      return Promise.resolve(nextResultFor(selectedTable)).then(
-        resolve,
-        reject,
-      );
-    },
-  };
-  return query;
-}
-
-function createSelectDb(fixtures: SelectFixtures = {}) {
-  const selectResults = new Map<unknown, SelectFixtureRow[]>(
-    Object.entries(fixtures).map(([name, results]) => [
-      fixtureTables[name as SelectFixtureName],
-      [...(results ?? [])],
-    ]),
-  );
-  const nextResultFor = (table: unknown) => {
-    const name = fixtureTableNames.get(table) ?? "<unknown table>";
-    const queue = selectResults.get(table);
-    if (!queue) throw new Error(`Missing select fixture for ${name}`);
-    const result = queue.shift();
-    if (result === undefined) {
-      throw new Error(`No select fixtures remaining for ${name}`);
-    }
-    if (result instanceof Error) throw result;
-    return result;
-  };
-  return { select: vi.fn(() => createQuery(nextResultFor)) };
+function createSelectDb(fixtures: SelectFixtures<SelectFixtureName> = {}) {
+  return createSelectFixtureDb(fixtureTables, fixtures);
 }
 
 describe("ForecastService", () => {

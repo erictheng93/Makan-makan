@@ -13,6 +13,10 @@ import {
   SERVICE_BOOKING_WAITLIST_STATUS,
   users,
 } from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 import { CreditService } from "../../credits/services/CreditService";
 import { ServiceBookingService } from "./ServiceBookingService";
 
@@ -61,52 +65,14 @@ import { ServiceBookingService } from "./ServiceBookingService";
  * therefore still surfaces with its original message as a rejected promise;
  * no swallowing caveat applies anywhere in this file.
  */
-type SelectFixtureName =
-  | "restaurantServiceItems"
-  | "users"
-  | "employeeAvailability"
-  | "serviceBookingSlots"
-  | "serviceBookings";
-type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
-
-const fixtureTables: Record<SelectFixtureName, unknown> = {
+const fixtureTables = {
   restaurantServiceItems,
   users,
   employeeAvailability,
   serviceBookingSlots,
   serviceBookings,
 };
-const fixtureTableNames = new Map<unknown, SelectFixtureName>(
-  Object.entries(fixtureTables).map(([name, table]) => [
-    table,
-    name as SelectFixtureName,
-  ]),
-);
-const unselectedTable = Symbol("unselectedTable");
-
-function createSelectQuery(nextResultFor: (table: unknown) => unknown) {
-  let selectedTable: unknown = unselectedTable;
-  const builder = {
-    from: vi.fn((table: unknown) => {
-      selectedTable = table;
-      return builder;
-    }),
-    where: vi.fn(() => builder),
-    get: vi.fn(async () => {
-      if (selectedTable === unselectedTable) {
-        throw new Error("Select fixture query never called from(table)");
-      }
-      return (nextResultFor(selectedTable) as unknown[])[0];
-    }),
-    all: vi.fn(async () => {
-      if (selectedTable === unselectedTable) {
-        throw new Error("Select fixture query never called from(table)");
-      }
-      return nextResultFor(selectedTable);
-    }),
-  };
-  return builder;
-}
+type SelectFixtureName = keyof typeof fixtureTables;
 
 afterEach(() => {
   vi.useRealTimers();
@@ -202,7 +168,7 @@ describe("ServiceBookingService orchestration helpers", () => {
   }
 
   function createDbMock(input: {
-    selectFixtures?: SelectFixtures;
+    selectFixtures?: SelectFixtures<SelectFixtureName>;
     insertReturning?: unknown[];
     updateReturning?: unknown[];
   }) {
@@ -211,25 +177,13 @@ describe("ServiceBookingService orchestration helpers", () => {
     const insertValues: unknown[] = [];
     const updateSets: unknown[] = [];
 
-    const selectResults = new Map<unknown, unknown[][]>(
-      Object.entries(input.selectFixtures ?? {}).map(([name, results]) => [
-        fixtureTables[name as SelectFixtureName],
-        [...(results ?? [])],
-      ]),
+    const fixtureDb = createSelectFixtureDb(
+      fixtureTables,
+      input.selectFixtures,
     );
-    const nextResultFor = (table: unknown) => {
-      const name = fixtureTableNames.get(table) ?? "<unknown table>";
-      const queue = selectResults.get(table);
-      if (!queue) throw new Error(`Missing select fixture for ${name}`);
-      const result = queue.shift();
-      if (result === undefined) {
-        throw new Error(`No select fixtures remaining for ${name}`);
-      }
-      return result;
-    };
 
     const db = {
-      select: vi.fn(() => createSelectQuery(nextResultFor)),
+      select: fixtureDb.select,
       insert: vi.fn(() => ({
         values: vi.fn((values: unknown) => {
           insertValues.push(values);
