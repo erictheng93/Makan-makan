@@ -3,12 +3,19 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import type { UserConfig } from "vite";
 
 const appRoot = resolve(__dirname, "../..");
 
 describe("customer-app production config", () => {
+  // Importing vite.config loads esbuild and friends; on a loaded machine that
+  // first import alone can eat the 5s test timeout (#211). Pay it here under
+  // the hook's own budget.
+  beforeAll(async () => {
+    await import("../../vite.config");
+  }, 30_000);
+
   it("serves a restrictive Cloudflare Pages security policy", () => {
     const headers = readFileSync(resolve(appRoot, "public/_headers"), "utf-8");
 

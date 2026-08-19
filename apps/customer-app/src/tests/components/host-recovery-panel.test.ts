@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeAll, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 
 const recoverHost = vi.hoisted(() => vi.fn());
@@ -23,6 +23,13 @@ function apiError(status: number) {
 }
 
 describe("HostRecoveryPanel", () => {
+  // The first import of the static message catalog transforms every locale
+  // file; on a loaded machine that alone approaches the 5s test timeout
+  // (#211). Pay it here under the hook's own budget.
+  beforeAll(async () => {
+    await import("@makanmasak/i18n/static-messages");
+  }, 30_000);
+
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();

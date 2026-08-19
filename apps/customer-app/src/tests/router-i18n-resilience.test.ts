@@ -26,11 +26,15 @@ vi.mock("@/i18n", () => ({
 }));
 
 describe("router resilience against a broken i18n runtime", () => {
-  beforeAll(() => {
+  beforeAll(async () => {
     // Navigating for real resolves the route component, which loads the API
     // client, which requires this to be configured.
     vi.stubEnv("VITE_API_BASE_URL", "http://localhost:8787/api/v1");
-  });
+    // First import of @/router transforms its eager dependency graph, which
+    // alone approaches the 5s test timeout on a loaded machine (#211). Pay it
+    // here under the hook's own budget.
+    await import("@/router");
+  }, 30_000);
 
   it("still completes navigation when translation throws", async () => {
     const { default: router } = await import("@/router");

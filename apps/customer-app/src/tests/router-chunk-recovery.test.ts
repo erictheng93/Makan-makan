@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // A deploy replaces every hashed chunk, so a tab still holding the previous
 // index.html requests filenames that no longer exist. Observed in production:
@@ -47,6 +47,16 @@ function stubLocation() {
 }
 
 describe("router recovery from a stale build", () => {
+  // The first import of @/router transforms its eager dependency graph, which
+  // alone approaches the 5s test timeout on a loaded machine (#211). Pay that
+  // cost here under the hook's own budget; beforeEach resets the registry, so
+  // per-test imports re-evaluate from already-transformed modules.
+  beforeAll(async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "http://localhost:8787/api/v1");
+    await import("@/router");
+    vi.resetModules();
+  }, 30_000);
+
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();

@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 const loggerFns = vi.hoisted(() => ({
   info: vi.fn(),
@@ -19,6 +19,14 @@ vi.mock("./routes", () => {
 });
 
 describe("tables feature module", () => {
+  // On a cold transform cache the first import of ./index (services, schemas,
+  // @makanmasak/database) alone can eat most of the 10s test timeout (#211).
+  // Pay it here under the hook's own budget; the in-body import then returns
+  // the cached module.
+  beforeAll(async () => {
+    await import("./index");
+  }, 60_000);
+
   it("initializes metadata, health status, routes, and singleton exports", async () => {
     const consoleLog = vi.spyOn(console, "log").mockImplementation(() => {});
     vi.useFakeTimers();

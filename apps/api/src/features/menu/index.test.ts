@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 const loggerFns = vi.hoisted(() => ({
   info: vi.fn(),
@@ -21,12 +21,18 @@ vi.mock("./routes", () => {
 });
 
 describe("menu feature module", () => {
+  // On a cold transform cache the first import of ./index pulls in
+  // @makanmasak/database and @makanmasak/shared-types and can take well over
+  // the 10s test timeout (#211). Pay it here under the hook's own budget; the
+  // in-body import then returns the cached module.
+  beforeAll(async () => {
+    await import("./index");
+  }, 60_000);
+
   it("initializes metadata, health, diagnostics, routes, and cleanup exports", async () => {
-    // Import before installing fake timers. This pulls in @makanmasak/database
-    // and @makanmasak/shared-types, so on a cold transform cache — any change
-    // to those packages — it can take well over the default 10s timeout, and
-    // under fake timers that stall is unrecoverable. The clock only needs to be
-    // frozen for the assertions below, not for module loading.
+    // Import before installing fake timers: under fake timers a slow load
+    // would stall unrecoverably. The clock only needs to be frozen for the
+    // assertions below, not for module loading.
     const menuFeature = await import("./index");
 
     vi.useFakeTimers();
