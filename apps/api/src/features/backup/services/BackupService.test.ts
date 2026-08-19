@@ -22,6 +22,10 @@ import {
   backupRecords,
   restoreOperations,
 } from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 import { BackupService } from "./BackupService";
 
 function createService(
@@ -97,74 +101,18 @@ function createService(
  * from, so it deliberately stays out of `fixtureTables` — it is the
  * unregistered-table case exercised by the regression test below.
  */
-type SelectFixtureName =
-  | "backupRecords"
-  | "backupConfigurations"
-  | "backupAlerts"
-  | "restoreOperations";
-type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
-
-const fixtureTables: Record<SelectFixtureName, unknown> = {
+const fixtureTables = {
   backupRecords,
   backupConfigurations,
   backupAlerts,
   restoreOperations,
 };
-const fixtureTableNames = new Map<unknown, SelectFixtureName>(
-  Object.entries(fixtureTables).map(([name, table]) => [
-    table,
-    name as SelectFixtureName,
-  ]),
-);
-const unselectedTable = Symbol("unselectedTable");
+type SelectFixtureName = keyof typeof fixtureTables;
 
-function createQuery(nextResultFor: (table: unknown) => unknown) {
-  let selectedTable: unknown = unselectedTable;
-  const builder = {
-    from: vi.fn((table: unknown) => {
-      selectedTable = table;
-      return builder;
-    }),
-    where: vi.fn(() => builder),
-    orderBy: vi.fn(() => builder),
-    limit: vi.fn(() => builder),
-    offset: vi.fn(() => builder),
-    then: (
-      resolve: (value: unknown) => void,
-      reject?: (reason: unknown) => void,
-    ) => {
-      if (selectedTable === unselectedTable) {
-        return Promise.reject(
-          new Error("Select fixture query never called from(table)"),
-        ).then(resolve, reject);
-      }
-      return Promise.resolve(nextResultFor(selectedTable)).then(
-        resolve,
-        reject,
-      );
-    },
-  };
-  return builder;
-}
 
-function mockSelectResults(fixtures: SelectFixtures = {}) {
-  const selectResults = new Map<unknown, unknown[][]>(
-    Object.entries(fixtures).map(([name, results]) => [
-      fixtureTables[name as SelectFixtureName],
-      [...(results ?? [])],
-    ]),
-  );
-  const nextResultFor = (table: unknown) => {
-    const name = fixtureTableNames.get(table) ?? "<unknown table>";
-    const queue = selectResults.get(table);
-    if (!queue) throw new Error(`Missing select fixture for ${name}`);
-    const result = queue.shift();
-    if (result === undefined) {
-      throw new Error(`No select fixtures remaining for ${name}`);
-    }
-    return result;
-  };
-  mocks.db.select.mockImplementation(() => createQuery(nextResultFor));
+function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName> = {}) {
+  const fixtureDb = createSelectFixtureDb(fixtureTables, fixtures);
+  mocks.db.select.mockImplementation(fixtureDb.select);
 }
 
 function mockMutations() {

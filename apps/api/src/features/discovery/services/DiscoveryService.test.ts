@@ -20,6 +20,10 @@ import {
   restaurantServiceItems,
   restaurants,
 } from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 import { createDiscoveryRead, DiscoveryService } from "./DiscoveryService";
 
 function createKV(initial: Record<string, unknown> = {}) {
@@ -85,16 +89,7 @@ function createService(initialKV: Record<string, unknown> = {}) {
  * missing/exhausted fixture propagates verbatim out of the `await` — no
  * wrapped-message caveat needed here.
  */
-type SelectFixtureName =
-  | "dishSearchIndex"
-  | "restaurants"
-  | "restaurantServiceItems"
-  | "menuItems"
-  | "restaurantMarketMemberships"
-  | "markets";
-type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
-
-const fixtureTables: Record<SelectFixtureName, unknown> = {
+const fixtureTables = {
   dishSearchIndex,
   restaurants,
   restaurantServiceItems,
@@ -102,64 +97,11 @@ const fixtureTables: Record<SelectFixtureName, unknown> = {
   restaurantMarketMemberships,
   markets,
 };
-const fixtureTableNames = new Map<unknown, SelectFixtureName>(
-  Object.entries(fixtureTables).map(([name, table]) => [
-    table,
-    name as SelectFixtureName,
-  ]),
-);
-const unselectedTable = Symbol("unselectedTable");
+type SelectFixtureName = keyof typeof fixtureTables;
 
-function createQuery(nextResultFor: (table: unknown) => unknown) {
-  let selectedTable: unknown = unselectedTable;
-  const builder = {
-    from: vi.fn((table: unknown) => {
-      selectedTable = table;
-      return builder;
-    }),
-    innerJoin: vi.fn(() => builder),
-    leftJoin: vi.fn(() => builder),
-    where: vi.fn(() => builder),
-    groupBy: vi.fn(() => builder),
-    orderBy: vi.fn(() => builder),
-    limit: vi.fn(() => builder),
-    offset: vi.fn(() => builder),
-    then: (
-      resolve: (value: unknown) => void,
-      reject?: (reason: unknown) => void,
-    ) => {
-      if (selectedTable === unselectedTable) {
-        return Promise.reject(
-          new Error("Select fixture query never called from(table)"),
-        ).then(resolve, reject);
-      }
-      return Promise.resolve(nextResultFor(selectedTable)).then(
-        resolve,
-        reject,
-      );
-    },
-  };
-  return builder;
-}
-
-function mockSelectResults(fixtures: SelectFixtures) {
-  const selectResults = new Map<unknown, unknown[][]>(
-    Object.entries(fixtures).map(([name, results]) => [
-      fixtureTables[name as SelectFixtureName],
-      [...(results ?? [])],
-    ]),
-  );
-  const nextResultFor = (table: unknown) => {
-    const name = fixtureTableNames.get(table) ?? "<unknown table>";
-    const queue = selectResults.get(table);
-    if (!queue) throw new Error(`Missing select fixture for ${name}`);
-    const result = queue.shift();
-    if (result === undefined) {
-      throw new Error(`No select fixtures remaining for ${name}`);
-    }
-    return result;
-  };
-  mocks.db.select.mockImplementation(() => createQuery(nextResultFor));
+function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
+  const fixtureDb = createSelectFixtureDb(fixtureTables, fixtures);
+  mocks.db.select.mockImplementation(fixtureDb.select);
 }
 
 function createD1() {

@@ -25,6 +25,10 @@ import {
   creditCards,
   creditTopupIntents,
 } from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 
 /**
  * Select fixtures are keyed by table, not by call order: `from(table)`
@@ -65,58 +69,15 @@ import {
  * from a missing/exhausted select fixture therefore always surfaces as a
  * rejected promise here; no swallowing caveat applies.
  */
-type SelectFixtureName = "creditCards" | "creditTopupIntents";
-type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
-
-const fixtureTables: Record<SelectFixtureName, unknown> = {
+const fixtureTables = {
   creditCards,
   creditTopupIntents,
 };
-const fixtureTableNames = new Map<unknown, SelectFixtureName>(
-  Object.entries(fixtureTables).map(([name, table]) => [
-    table,
-    name as SelectFixtureName,
-  ]),
-);
-const unselectedTable = Symbol("unselectedTable");
+type SelectFixtureName = keyof typeof fixtureTables;
 
-function createQuery(nextResultFor: (table: unknown) => unknown) {
-  let selectedTable: unknown = unselectedTable;
-  const builder = {
-    from: vi.fn((table: unknown) => {
-      selectedTable = table;
-      return builder;
-    }),
-    innerJoin: vi.fn(() => builder), // joins don't change selectedTable
-    where: vi.fn(() => builder),
-    get: vi.fn(async () => {
-      if (selectedTable === unselectedTable) {
-        throw new Error("Select fixture query never called from(table)");
-      }
-      return (nextResultFor(selectedTable) as unknown[])[0];
-    }),
-  };
-  return builder;
-}
-
-function mockSelectResults(fixtures: SelectFixtures = {}) {
-  const selectResults = new Map<unknown, unknown[][]>(
-    Object.entries(fixtures).map(([name, results]) => [
-      fixtureTables[name as SelectFixtureName],
-      [...(results ?? [])],
-    ]),
-  );
-  const nextResultFor = (table: unknown) => {
-    const name = fixtureTableNames.get(table) ?? "<unknown table>";
-    const queue = selectResults.get(table);
-    if (!queue) throw new Error(`Missing select fixture for ${name}`);
-    const result = queue.shift();
-    if (result === undefined) {
-      throw new Error(`No select fixtures remaining for ${name}`);
-    }
-    return result;
-  };
-  mocks.db.select.mockImplementation(() => createQuery(nextResultFor));
+function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName> = {}) {
+  const fixtureDb = createSelectFixtureDb(fixtureTables, fixtures);
+  mocks.db.select.mockImplementation(fixtureDb.select);
 }
 
 interface MutationQueueItem {

@@ -1,4 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 
 const auth = vi.hoisted(() => ({
   user: undefined as
@@ -121,96 +125,33 @@ app.onError((err, c) => {
  *
  * `runBasicHealthCheck` (in ../index.ts) issues
  * `db.select({...}).from(sql\`(SELECT 1)\`)` — a raw SQL fragment, not a
- * schema table. It DOES call `from()`, so the `unselectedTable` guard below
- * doesn't fire for it, but it also has no real table identity to register in
- * `fixtureTables`, which exists only for the four tables the route handlers
- * actually import: orders, users, restaurants, auditLogs. Inventing a
- * pseudo-table entry for it (e.g. registering some `healthProbe` symbol as
- * if it were a schema table) would blur that registry's meaning. Instead its
- * fixture is declared through a separate `healthProbe` key on
- * `SelectFixtures` that is intentionally NOT part of `fixtureTables` /
- * `SelectFixtureName` — see `HEALTH_PROBE_FROM`.
+ * schema table. It DOES call `from()`, so the "never called from(table)"
+ * guard never fires for it. `fixtureTables` maps whatever value reaches
+ * `from()` to the name its fixtures are declared under, so the fragment is
+ * registered as `healthProbe` alongside the four schema tables the route
+ * handlers import. That keeps the probe's queue independent of theirs and
+ * lets a missing fixture name itself instead of reporting `<unknown table>`
+ * — see `HEALTH_PROBE_FROM`.
  */
-type SelectFixtureName = "orders" | "users" | "restaurants" | "auditLogs";
-type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>> & {
-  healthProbe?: unknown[][];
-};
+// The mocked `sql` tag above returns the raw template text for any template
+// with no interpolations, so `sql\`(SELECT 1)\`` — the exact argument
+// `runBasicHealthCheck` passes to `.from()` — always evaluates to this
+// string. It stands in for a raw SQL fragment, never a real schema table.
+const HEALTH_PROBE_FROM = "(SELECT 1)";
 
-const fixtureTables: Record<SelectFixtureName, unknown> = {
+const fixtureTables = {
   orders: database.orders,
   users: database.users,
   restaurants: database.restaurants,
   auditLogs: database.auditLogs,
+  healthProbe: HEALTH_PROBE_FROM,
 };
-const fixtureTableNames = new Map<unknown, SelectFixtureName>(
-  Object.entries(fixtureTables).map(([name, table]) => [
-    table,
-    name as SelectFixtureName,
-  ]),
-);
-const unselectedTable = Symbol("unselectedTable");
-
-// The mocked `sql` tag above returns the raw template text for any template
-// with no interpolations, so `sql\`(SELECT 1)\`` — the exact argument
-// `runBasicHealthCheck` passes to `.from()` — always evaluates to this
-// string. It stands in for a raw SQL fragment, never a real schema table, so
-// it stays out of `fixtureTables` and draws from its own `healthProbe` queue
-// instead (see the doc comment above).
-const HEALTH_PROBE_FROM = "(SELECT 1)";
-
-function createQuery(nextResultFor: (table: unknown) => unknown) {
-  let selectedTable: unknown = unselectedTable;
-  const builder = {
-    from: vi.fn((table: unknown) => {
-      selectedTable = table;
-      return builder;
-    }),
-    where: vi.fn(() => builder),
-    orderBy: vi.fn(() => builder),
-    limit: vi.fn(() => builder),
-    then: (
-      resolve: (value: unknown) => void,
-      reject?: (reason: unknown) => void,
-    ) => {
-      if (selectedTable === unselectedTable) {
-        return Promise.reject(
-          new Error("Select fixture query never called from(table)"),
-        ).then(resolve, reject);
-      }
-      return Promise.resolve(nextResultFor(selectedTable)).then(
-        resolve,
-        reject,
-      );
-    },
-  };
-  return builder;
-}
-
-function mockSelectResults(fixtures: SelectFixtures = {}) {
-  const { healthProbe, ...tableFixtures } = fixtures;
-  const selectResults = new Map<unknown, unknown[][]>(
-    Object.entries(tableFixtures).map(([name, results]) => [
-      fixtureTables[name as SelectFixtureName],
-      [...(results ?? [])],
-    ]),
-  );
-  selectResults.set(HEALTH_PROBE_FROM, [...(healthProbe ?? [])]);
-  const nextResultFor = (table: unknown) => {
-    const name =
-      table === HEALTH_PROBE_FROM
-        ? "healthProbe"
-        : (fixtureTableNames.get(table) ?? "<unknown table>");
-    const queue = selectResults.get(table);
-    if (!queue) throw new Error(`Missing select fixture for ${name}`);
-    const result = queue.shift();
-    if (result === undefined) {
-      throw new Error(`No select fixtures remaining for ${name}`);
-    }
-    return result;
-  };
+type SelectFixtureName = keyof typeof fixtureTables;
+function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName> = {}) {
+  const fixtureDb = createSelectFixtureDb(fixtureTables, fixtures);
   database.select.mockImplementation((selection: unknown) => {
     database.selectCalls.push(selection);
-    return createQuery(nextResultFor);
+    return fixtureDb.select();
   });
 }
 
@@ -1037,7 +978,7 @@ describe("system routes", () => {
     ]);
     // A query that never calls from() reports distinctly from either
     // missing-fixture case above.
-    await expect(Promise.resolve(createQuery(() => []))).rejects.toThrow(
+    await expect(Promise.resolve(database.select({}))).rejects.toThrow(
       "Select fixture query never called from(table)",
     );
   });

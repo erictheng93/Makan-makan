@@ -12,6 +12,10 @@ import {
   marketCheckoutChildOrders,
   marketCheckoutSessions,
 } from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 
 /**
  * Select fixtures are keyed by table, not by call order: `from(table)`
@@ -60,67 +64,16 @@ import {
  * caveat applies in this file, since these tests call service methods
  * directly rather than going through an HTTP route.
  */
-type SelectFixtureName =
-  | "coupons"
-  | "couponUsage"
-  | "marketCheckoutChildOrders";
-type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
-
-const fixtureTables: Record<SelectFixtureName, unknown> = {
+const fixtureTables = {
   coupons,
   couponUsage,
   marketCheckoutChildOrders,
 };
-const fixtureTableNames = new Map<unknown, SelectFixtureName>(
-  Object.entries(fixtureTables).map(([name, table]) => [
-    table,
-    name as SelectFixtureName,
-  ]),
-);
-const unselectedTable = Symbol("unselectedTable");
+type SelectFixtureName = keyof typeof fixtureTables;
 
-function createSelectQuery(nextResultFor: (table: unknown) => unknown) {
-  let selectedTable: unknown = unselectedTable;
-  const builder = {
-    from: vi.fn((table: unknown) => {
-      selectedTable = table;
-      return builder;
-    }),
-    where: vi.fn(() => builder),
-    get: vi.fn(async () => {
-      if (selectedTable === unselectedTable) {
-        throw new Error("Select fixture query never called from(table)");
-      }
-      return (nextResultFor(selectedTable) as unknown[])[0];
-    }),
-    all: vi.fn(async () => {
-      if (selectedTable === unselectedTable) {
-        throw new Error("Select fixture query never called from(table)");
-      }
-      return nextResultFor(selectedTable);
-    }),
-  };
-  return builder;
-}
-
-function createSelectMock(fixtures: SelectFixtures = {}) {
-  const selectResults = new Map<unknown, unknown[][]>(
-    Object.entries(fixtures).map(([name, results]) => [
-      fixtureTables[name as SelectFixtureName],
-      [...(results ?? [])],
-    ]),
-  );
-  const nextResultFor = (table: unknown) => {
-    const name = fixtureTableNames.get(table) ?? "<unknown table>";
-    const queue = selectResults.get(table);
-    if (!queue) throw new Error(`Missing select fixture for ${name}`);
-    const result = queue.shift();
-    if (result === undefined) {
-      throw new Error(`No select fixtures remaining for ${name}`);
-    }
-    return result;
-  };
-  return vi.fn(() => createSelectQuery(nextResultFor));
+function createSelectMock(fixtures: SelectFixtures<SelectFixtureName> = {}) {
+  const fixtureDb = createSelectFixtureDb(fixtureTables, fixtures);
+  return fixtureDb.select;
 }
 
 afterEach(() => {
@@ -916,7 +869,9 @@ describe("MarketCheckoutVoucherService.markRefunded", () => {
 
 function makeValidateUnitService(
   coupon: unknown,
-  fixtures: SelectFixtures = { coupons: [coupon == null ? [] : [coupon]] },
+  fixtures: SelectFixtures<SelectFixtureName> = {
+    coupons: [coupon == null ? [] : [coupon]],
+  },
 ) {
   const service = Object.create(MarketCheckoutVoucherService.prototype) as {
     db: {
@@ -982,7 +937,7 @@ function makeReservationUnitService(couponUpdateRun: ReturnType<typeof vi.fn>) {
 }
 
 function makeRefundUnitService(options: {
-  selectFixtures?: SelectFixtures;
+  selectFixtures?: SelectFixtures<SelectFixtureName>;
   releaseRows: Array<{ id: number }>;
   updateRun: ReturnType<typeof vi.fn>;
   decrementRun: ReturnType<typeof vi.fn>;

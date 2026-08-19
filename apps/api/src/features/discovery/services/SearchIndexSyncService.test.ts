@@ -6,6 +6,10 @@ import {
   restaurantMarketMemberships,
   restaurants,
 } from "@makanmasak/database";
+import {
+  createSelectFixtureDb,
+  type SelectFixtures,
+} from "@makanmasak/database/testing";
 
 /**
  * Select fixtures are keyed by table, not by call order: `from(table)`
@@ -41,47 +45,20 @@ import {
  * from a missing/exhausted fixture propagates verbatim out of the `await` —
  * no wrapped-message caveat needed here.
  */
-type SelectFixtureName =
-  | "dishSearchIndex"
-  | "restaurants"
-  | "menuItems"
-  | "restaurantMarketMemberships";
-type SelectFixtures = Partial<Record<SelectFixtureName, unknown[][]>>;
-
-const fixtureTables: Record<SelectFixtureName, unknown> = {
+const fixtureTables = {
   dishSearchIndex,
   restaurants,
   menuItems,
   restaurantMarketMemberships,
 };
-const fixtureTableNames = new Map<unknown, SelectFixtureName>(
-  Object.entries(fixtureTables).map(([name, table]) => [
-    table,
-    name as SelectFixtureName,
-  ]),
-);
-const unselectedTable = Symbol("unselectedTable");
+type SelectFixtureName = keyof typeof fixtureTables;
 
-let selectResults = new Map<unknown, unknown[][]>();
+// `fakeDb` is built once at module scope, so the queues it reads have to be
+// swappable behind it rather than captured at construction.
+let fixtureDb = createSelectFixtureDb(fixtureTables);
 
-function mockSelectResults(fixtures: SelectFixtures) {
-  selectResults = new Map<unknown, unknown[][]>(
-    Object.entries(fixtures).map(([name, results]) => [
-      fixtureTables[name as SelectFixtureName],
-      [...(results ?? [])],
-    ]),
-  );
-}
-
-function nextSelectResultFor(table: unknown) {
-  const name = fixtureTableNames.get(table) ?? "<unknown table>";
-  const queue = selectResults.get(table);
-  if (!queue) throw new Error(`Missing select fixture for ${name}`);
-  const result = queue.shift();
-  if (result === undefined) {
-    throw new Error(`No select fixtures remaining for ${name}`);
-  }
-  return result;
+function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
+  fixtureDb = createSelectFixtureDb(fixtureTables, fixtures);
 }
 
 const updateMock = vi.fn();
@@ -91,38 +68,9 @@ const updatedRows: unknown[] = [];
 const insertedRows: unknown[] = [];
 const deletedRows: unknown[] = [];
 
-function createQuery(nextResultFor: (table: unknown) => unknown) {
-  let selectedTable: unknown = unselectedTable;
-  const builder = {
-    from: vi.fn((table: unknown) => {
-      selectedTable = table;
-      return builder;
-    }),
-    innerJoin: vi.fn(() => builder),
-    leftJoin: vi.fn(() => builder),
-    limit: vi.fn(() => builder),
-    where: vi.fn(() => builder),
-    then: (
-      resolve: (value: unknown) => void,
-      reject?: (reason: unknown) => void,
-    ) => {
-      if (selectedTable === unselectedTable) {
-        return Promise.reject(
-          new Error("Select fixture query never called from(table)"),
-        ).then(resolve, reject);
-      }
-      return Promise.resolve(nextResultFor(selectedTable)).then(
-        resolve,
-        reject,
-      );
-    },
-  };
-  return builder;
-}
-
 const fakeDb = {
-  select: vi.fn(() => createQuery(nextSelectResultFor)),
-  selectDistinct: vi.fn(() => createQuery(nextSelectResultFor)),
+  select: vi.fn(() => fixtureDb.select()),
+  selectDistinct: vi.fn(() => fixtureDb.selectDistinct()),
   delete: deleteMock.mockImplementation(() => ({
     where: vi.fn((condition: unknown) => {
       deletedRows.push(condition);
@@ -228,7 +176,7 @@ const d1 = {} as unknown as D1Database;
 
 describe("SearchIndexSyncService fan-out queue", () => {
   beforeEach(() => {
-    selectResults = new Map();
+    mockSelectResults({});
     updatedRows.length = 0;
     insertedRows.length = 0;
     deletedRows.length = 0;
