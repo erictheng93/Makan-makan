@@ -17,6 +17,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Context, Next } from "hono";
 import type { AuthUser } from "../../../middleware/auth";
 
 // Mutable current user injected by the mocked auth middleware.
@@ -35,7 +36,7 @@ const currentUser = vi.hoisted(() => {
 const authMiddlewareCalls = vi.hoisted(() => ({ count: 0 }));
 
 vi.mock("../../../middleware/auth", () => ({
-  authMiddleware: vi.fn(async (c: any, next: any) => {
+  authMiddleware: vi.fn(async (c: Context, next: Next) => {
     authMiddlewareCalls.count += 1;
     c.set("user", currentUser.value);
     await next();

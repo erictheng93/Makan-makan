@@ -14,6 +14,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
+import type { Context, Next } from "hono";
 import type { AuthUser } from "../../../middleware/auth";
 import { Hono } from "hono";
 import { ApiError } from "../../../shared/utils/api-error";
@@ -27,7 +28,7 @@ const currentUser: AuthUser = {
 };
 
 vi.mock("../../../middleware/auth", () => ({
-  authMiddleware: vi.fn(async (c: any, next: any) => {
+  authMiddleware: vi.fn(async (c: Context, next: Next) => {
     c.set("user", currentUser);
     await next();
   }),

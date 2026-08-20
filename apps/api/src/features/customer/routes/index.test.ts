@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Context, Next } from "hono";
 import type { NotificationPayload } from "@makanmasak/database";
 
 const auth = vi.hoisted(() => ({
@@ -21,7 +22,7 @@ const jwt = vi.hoisted(() => ({
 }));
 
 vi.mock("../../../middleware/auth", () => ({
-  canonicalCustomerAuthMiddleware: vi.fn(async (c: any, next: any) => {
+  canonicalCustomerAuthMiddleware: vi.fn(async (c: Context, next: Next) => {
     c.set("customer", auth.customer);
     await next();
   }),

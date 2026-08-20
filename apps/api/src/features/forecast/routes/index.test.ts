@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Context, Next } from "hono";
 import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
 
@@ -14,7 +15,7 @@ const serviceFns = vi.hoisted(() => ({
 }));
 
 vi.mock("../../../middleware/auth", () => ({
-  authMiddleware: vi.fn(async (c: any, next: any) => {
+  authMiddleware: vi.fn(async (c: Context, next: Next) => {
     c.set("user", {
       id: "user-7",
       username: "owner",

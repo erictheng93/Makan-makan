@@ -16,6 +16,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Context, Next } from "hono";
 import type { AuthUser } from "../../../middleware/auth";
 
 const currentUser = vi.hoisted(() => {
@@ -29,11 +30,11 @@ const currentUser = vi.hoisted(() => {
 });
 
 vi.mock("../../../middleware/auth", () => ({
-  authMiddleware: vi.fn(async (c: any, next: any) => {
+  authMiddleware: vi.fn(async (c: Context, next: Next) => {
     c.set("user", currentUser.value);
     await next();
   }),
-  optionalAuth: vi.fn(async (c: any, next: any) => {
+  optionalAuth: vi.fn(async (c: Context, next: Next) => {
     c.set("user", currentUser.value);
     await next();
   }),

@@ -9,17 +9,20 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import type { Context, Next } from "hono";
 
 // Mutable current user injected by the mocked auth middleware.
 const auth = vi.hoisted(() => ({
-  user: { role: 1, restaurantId: "rest-A" } as {
-    role: number;
-    restaurantId: string | number | undefined;
+  user: {
+    id: "user-1",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-A" as string | number | undefined,
   },
 }));
 
 vi.mock("../../../middleware/auth", () => ({
-  authMiddleware: vi.fn(async (c: any, next: any) => {
+  authMiddleware: vi.fn(async (c: Context, next: Next) => {
     c.set("user", auth.user);
     await next();
   }),
@@ -112,7 +115,12 @@ beforeEach(() => {
     currentBookings: 0,
     isAvailable: 0,
   });
-  auth.user = { role: 1, restaurantId: "rest-A" };
+  auth.user = {
+    id: "user-1",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-A",
+  };
 });
 
 function req(path: string, method = "GET", body?: unknown) {
@@ -133,40 +141,70 @@ function req(path: string, method = "GET", body?: unknown) {
 
 describe("service-bookings staff route scoping", () => {
   it("forbids a non-admin from reading another restaurant's booking", async () => {
-    auth.user = { role: 1, restaurantId: "rest-A" };
+    auth.user = {
+      id: "user-1",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-A",
+    };
     const res = await req("/bk-1");
     expect(res.status).toBe(403);
   });
 
   it("forbids a non-admin from cancelling another restaurant's booking", async () => {
-    auth.user = { role: 1, restaurantId: "rest-A" };
+    auth.user = {
+      id: "user-1",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-A",
+    };
     const res = await req("/bk-1", "DELETE");
     expect(res.status).toBe(403);
     expect(cancelBooking).not.toHaveBeenCalled();
   });
 
   it("forbids a non-admin from confirming another restaurant's booking", async () => {
-    auth.user = { role: 4, restaurantId: "rest-A" };
+    auth.user = {
+      id: "user-1",
+      username: "owner",
+      role: 4,
+      restaurantId: "rest-A",
+    };
     const res = await req("/bk-1/confirm-cash", "POST");
     expect(res.status).toBe(403);
     expect(confirmCash).not.toHaveBeenCalled();
   });
 
   it("allows a staff member to read their own restaurant's booking", async () => {
-    auth.user = { role: 1, restaurantId: "rest-B" };
+    auth.user = {
+      id: "user-1",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-B",
+    };
     const res = await req("/bk-1");
     expect(res.status).toBe(200);
   });
 
   it("allows an admin (role 0) to act across restaurants", async () => {
-    auth.user = { role: 0, restaurantId: undefined };
+    auth.user = {
+      id: "user-1",
+      username: "owner",
+      role: 0,
+      restaurantId: undefined,
+    };
     const res = await req("/bk-1", "DELETE");
     expect(res.status).toBe(200);
     expect(cancelBooking).toHaveBeenCalledWith("bk-1");
   });
 
   it("forbids a non-admin from creating slots for another restaurant", async () => {
-    auth.user = { role: 1, restaurantId: "rest-A" };
+    auth.user = {
+      id: "user-1",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-A",
+    };
     const res = await req("/slots", "POST", {
       restaurantId: "rest-B",
       serviceItemId: 10,
@@ -179,7 +217,12 @@ describe("service-bookings staff route scoping", () => {
   });
 
   it("allows a staff member to create slots for their own restaurant", async () => {
-    auth.user = { role: 1, restaurantId: "rest-B" };
+    auth.user = {
+      id: "user-1",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-B",
+    };
     const res = await req("/slots", "POST", {
       restaurantId: "rest-B",
       serviceItemId: 10,
@@ -199,7 +242,12 @@ describe("service-bookings staff route scoping", () => {
   });
 
   it("forbids a non-admin from batch creating slots for another restaurant", async () => {
-    auth.user = { role: 1, restaurantId: "rest-A" };
+    auth.user = {
+      id: "user-1",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-A",
+    };
     const res = await req("/slots/batch", "POST", {
       restaurantId: "rest-B",
       serviceItemId: 10,
@@ -213,7 +261,12 @@ describe("service-bookings staff route scoping", () => {
   });
 
   it("rejects batch slot creation when date count times time slots is too large", async () => {
-    auth.user = { role: 1, restaurantId: "rest-B" };
+    auth.user = {
+      id: "user-1",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-B",
+    };
     const timeSlots = Array.from(
       { length: 96 },
       (_, index) =>
@@ -235,7 +288,12 @@ describe("service-bookings staff route scoping", () => {
   });
 
   it("forbids a non-admin from blocking slots for another restaurant", async () => {
-    auth.user = { role: 1, restaurantId: "rest-A" };
+    auth.user = {
+      id: "user-1",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-A",
+    };
     const res = await req("/slots/block", "POST", {
       restaurantId: "rest-B",
       serviceItemId: 10,
