@@ -46,7 +46,9 @@ import {
   systemAlerts,
 } from "@makanmasak/database";
 import {
+  createMutationFixtureDb,
   createSelectFixtureDb,
+  type MutationFixtures,
   type SelectFixtures,
 } from "@makanmasak/database/testing";
 import { MarketsService } from "./MarketsService";
@@ -91,9 +93,8 @@ function createService(version?: string) {
  * back to `[]`; a silent empty result is what made the previous positional
  * queue so hard to trace back to its cause.
  *
- * Only select fixtures are affected. `mockMutationResults` (insert/update
- * `.returning()`) is a separate, unchanged positional queue — out of scope
- * for this conversion.
+ * Writes follow the same rules through `mockMutationResults` below, keyed by
+ * table and operation.
  */
 const fixtureTables = {
   markets,
@@ -104,40 +105,30 @@ const fixtureTables = {
   restaurants,
   marketJoinRequests,
 };
-type SelectFixtureName = keyof typeof fixtureTables;
+type FixtureName = keyof typeof fixtureTables;
 
-function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
+function mockSelectResults(fixtures: SelectFixtures<FixtureName>) {
   const fixtureDb = createSelectFixtureDb(fixtureTables, fixtures);
   mocks.db.select.mockImplementation(fixtureDb.select);
 }
 
-function mockMutationResults(results: unknown[] = []) {
-  const inserted: unknown[] = [];
-  const updated: unknown[] = [];
-
-  mocks.db.insert.mockImplementation(() => {
-    const builder = {
-      values: vi.fn((payload: unknown) => {
-        inserted.push(payload);
-        return builder;
-      }),
-      returning: vi.fn(async () => results.shift() ?? []),
-    };
-    return builder;
-  });
-  mocks.db.update.mockImplementation(() => {
-    const builder = {
-      set: vi.fn((payload: unknown) => {
-        updated.push(payload);
-        return builder;
-      }),
-      where: vi.fn(() => builder),
-      returning: vi.fn(async () => results.shift() ?? []),
-    };
-    return builder;
-  });
-
-  return { inserted, updated };
+/**
+ * Writes are declared per table *and* operation. This file is why the
+ * operation has to be part of the key: `addVendor` inserts and updates
+ * `restaurantMarketMemberships` on two different branches, and
+ * `approveJoinRequest` writes memberships and join requests in one call, so a
+ * single queue per table — let alone the one shared queue this harness used to
+ * hand to both insert and update — lets one write eat another's fixture.
+ *
+ * Writes that are awaited without `.returning()` still consume a fixture:
+ * declare them as `{ changes: n }`. `softDeleteMarket` and
+ * `clearPrimaryMembership` are the two that look invisible but are not.
+ */
+function mockMutationResults(fixtures: MutationFixtures<FixtureName> = {}) {
+  const fixtureDb = createMutationFixtureDb(fixtureTables, fixtures);
+  mocks.db.insert.mockImplementation(fixtureDb.insert);
+  mocks.db.update.mockImplementation(fixtureDb.update);
+  return fixtureDb;
 }
 
 function createD1(
@@ -996,12 +987,22 @@ describe("MarketsService", () => {
     const { service, values } = createService("10");
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
-    const mutations = mockMutationResults([
-      [{ id: "market-1", slug: "created" }],
-      [{ id: "market-1", name: "Updated" }],
-      [{ id: 1, marketId: "market-1", restaurantId: "restaurant-1" }],
-      [{ id: 1, leftAt: new Date("2026-06-07T00:00:00.000Z") }],
-    ]);
+    const mutations = mockMutationResults({
+      markets: {
+        insert: [[{ id: "market-1", slug: "created" }]],
+        // updateMarket reads its row back; softDeleteMarket does not.
+        update: [[{ id: "market-1", name: "Updated" }], { changes: 1 }],
+      },
+      restaurantMarketMemberships: {
+        insert: [
+          [{ id: 1, marketId: "market-1", restaurantId: "restaurant-1" }],
+        ],
+        update: [
+          { changes: 1 }, // addVendor(isPrimary) clears the previous primary
+          [{ id: 1, leftAt: new Date("2026-06-07T00:00:00.000Z") }],
+        ],
+      },
+    });
     mockSelectResults({
       markets: [
         [{ id: "market-1", deletedAt: null }],
@@ -1064,7 +1065,10 @@ describe("MarketsService", () => {
       marketHours: { monday: { open: "09:00", close: "17:00" } },
       isPrimary: true,
     };
-    const mutations = mockMutationResults([[]]);
+    // No returned row: addVendor falls back to the membership it read.
+    const mutations = mockMutationResults({
+      restaurantMarketMemberships: { update: [[]] },
+    });
     mockSelectResults({
       markets: [[{ id: "market-1", deletedAt: null }]],
       restaurantMarketMemberships: [[existingMembership]],
@@ -1108,7 +1112,9 @@ describe("MarketsService", () => {
       marketHours: null,
       isPrimary: false,
     };
-    const mutations = mockMutationResults([[updatedMembership]]);
+    const mutations = mockMutationResults({
+      restaurantMarketMemberships: { update: [[updatedMembership]] },
+    });
     mockSelectResults({
       markets: [[{ id: "market-1", deletedAt: null }]],
       restaurantMarketMemberships: [[existingMembership]],
@@ -1139,10 +1145,14 @@ describe("MarketsService", () => {
 
   it("handles missing vendor membership targets and insert defaults", async () => {
     const { service, values } = createService("40");
-    const mutations = mockMutationResults([
-      [{ id: 12, marketId: "market-1", restaurantId: "restaurant-2" }],
-      [],
-    ]);
+    const mutations = mockMutationResults({
+      restaurantMarketMemberships: {
+        insert: [
+          [{ id: 12, marketId: "market-1", restaurantId: "restaurant-2" }],
+        ],
+        update: [[]], // removeVendor matches no live membership
+      },
+    });
     mockSelectResults({
       markets: [
         [],
@@ -1476,7 +1486,9 @@ describe("MarketsService", () => {
       restaurantMarketMemberships: [[]],
       marketJoinRequests: [[]],
     });
-    mockMutationResults([[{ id: 12, status: "pending" }]]);
+    mockMutationResults({
+      marketJoinRequests: { insert: [[{ id: 12, status: "pending" }]] },
+    });
     await expect(
       service.createJoinRequest("restaurant-1", {
         marketId: "market-1",
@@ -1513,10 +1525,15 @@ describe("MarketsService", () => {
       markets: [[market]],
       restaurantMarketMemberships: [[]],
     });
-    mockMutationResults([
-      [{ id: 1, marketId: "market-1", restaurantId: "restaurant-1" }],
-      [{ id: 3, status: "approved" }],
-    ]);
+    mockMutationResults({
+      restaurantMarketMemberships: {
+        insert: [
+          [{ id: 1, marketId: "market-1", restaurantId: "restaurant-1" }],
+        ],
+        update: [{ changes: 1 }], // isPrimary clears the previous primary
+      },
+      marketJoinRequests: { update: [[{ id: 3, status: "approved" }]] },
+    });
     await expect(
       service.approveJoinRequest(3, { stallNumber: "A1", isPrimary: true }),
     ).resolves.toMatchObject({
@@ -1528,7 +1545,9 @@ describe("MarketsService", () => {
     mockSelectResults({
       marketJoinRequests: [[{ id: 4, status: "pending" }]],
     });
-    mockMutationResults([[{ id: 4, status: "rejected" }]]);
+    mockMutationResults({
+      marketJoinRequests: { update: [[{ id: 4, status: "rejected" }]] },
+    });
     await expect(service.rejectJoinRequest(4)).resolves.toEqual({
       status: "rejected",
       request: { id: 4, status: "rejected" },
