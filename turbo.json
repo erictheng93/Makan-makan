@@ -71,7 +71,16 @@
     ".env",
     ".env.local",
     "tsconfig.json",
-    "wrangler.toml"
+    "wrangler.toml",
+    // The per-package vitest worker ceiling lives here. It sits outside every
+    // package's $TURBO_DEFAULT$ inputs, so without this line a change to the
+    // ceiling would come back as a stale cache HIT instead of re-running.
+    "vitest.shared.ts"
   ],
-  "globalEnv": ["NODE_ENV", "CI"]
+  "globalEnv": ["NODE_ENV", "CI"],
+  // A parallelism knob only: it changes how many workers run, never what a
+  // test asserts, so it is passed through WITHOUT entering the cache key.
+  // turbo defaults to strict env mode and drops any variable not named here,
+  // which is why exporting VITEST_MAX_WORKERS alone had no effect on tasks.
+  "globalPassThroughEnv": ["VITEST_MAX_WORKERS"]
 }

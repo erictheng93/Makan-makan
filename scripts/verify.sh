@@ -27,6 +27,22 @@ elif [ $# -gt 0 ]; then
   exit 1
 fi
 
+# Cap turbo's half of the test-process product.
+#
+# `turbo run test` starts one vitest per package and each of those forks its
+# own workers, so the number of live node processes is
+# (this number) x (workers per package). vitest.shared.ts bounds the second
+# factor; without this line the first one is turbo's default of 10 and the
+# product runs away on any machine (issue #202: ~40 processes on 4 cores /
+# 8 GB, ~260 on 24 cores / 16 GB).
+#
+# Half the cores keeps the product near the core count. Raise both factors
+# together where there is room:
+#   TURBO_CONCURRENCY=10 VITEST_MAX_WORKERS=4 pnpm verify:push
+TURBO_CONCURRENCY="${TURBO_CONCURRENCY:-$(( $(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4) / 2 ))}"
+if [ "$TURBO_CONCURRENCY" -lt 1 ]; then TURBO_CONCURRENCY=1; fi
+export TURBO_CONCURRENCY
+
 FAILED=()
 
 step() {
@@ -57,7 +73,7 @@ if [ "$MODE" = "affected" ]; then
   echo "Run 'pnpm verify:push' before pushing for the full gate."
 
   step "typecheck + lint + test (affected)" \
-    pnpm exec turbo run typecheck lint test --affected
+    pnpm exec turbo run typecheck lint test --affected --concurrency="$TURBO_CONCURRENCY"
 
   if root_tests_changed; then
     step "root tests (tests/ changed)" \
@@ -80,7 +96,7 @@ else
   step "STRICT tables" pnpm run check:strict-tables
   step "no destructive wrangler" pnpm run check:no-automated-destructive-wrangler
   step "guard script regressions" pnpm run test:ci-guards
-  step "package tests" pnpm exec turbo run test
+  step "package tests" pnpm exec turbo run test --concurrency="$TURBO_CONCURRENCY"
   step "root tests" pnpm exec vitest run --project root
   step "real integration tests" pnpm test:real-integration
 fi

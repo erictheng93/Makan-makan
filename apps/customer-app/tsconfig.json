@@ -26,6 +26,11 @@
     "*.d.ts",
     "src/**/*",
     "*.config.*",
+    // `*.config.*` pulls in vitest.config.ts, which imports the repo-root
+    // worker ceiling. This project is `composite`, and composite demands that
+    // every reachable file be listed -- without this the import fails with
+    // TS6307. No other composite project includes its config files.
+    "../../vitest.shared.ts",
     "../../packages/shared-types/src/**/*",
     "../../packages/utils/src/**/*",
     "../../packages/shared/src/i18n/src/**/*",

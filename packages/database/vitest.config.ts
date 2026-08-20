@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config";
 import path from "path";
+import { sharedTestConfig } from "../../vitest.shared";
 
 // packages/database was the one workspace project listed in the root
 // vitest.config.ts without a config file of its own. Running vitest from this
@@ -16,6 +17,7 @@ import path from "path";
 // file imports describe/it/expect from "vitest" explicitly.
 export default defineConfig({
   test: {
+    ...sharedTestConfig,
     // Must stay in sync with the package name: `pnpm test:packages` and
     // `vitest --project @makanmasak/database` select on it.
     name: "@makanmasak/database",

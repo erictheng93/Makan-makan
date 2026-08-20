@@ -1,8 +1,10 @@
 import { defineConfig } from "vitest/config";
 import path from "path";
+import { sharedTestConfig } from "../../vitest.shared";
 
 export default defineConfig({
   test: {
+    ...sharedTestConfig,
     name: "@makanmasak/queue-service",
     environment: "node",
     globals: true,

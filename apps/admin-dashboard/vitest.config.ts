@@ -1,5 +1,6 @@
 import { defineConfig, mergeConfig } from "vitest/config";
 import viteConfig from "./vite.config";
+import { sharedTestConfig } from "../../vitest.shared";
 
 // The default unit-test config reuses vite.config (vue plugin, @ alias, the
 // pinia/vue dedupe for pnpm). The *.real.integration.test.ts suites boot
@@ -11,6 +12,7 @@ export default mergeConfig(
   viteConfig,
   defineConfig({
     test: {
+      ...sharedTestConfig,
       globals: true,
       exclude: [
         "**/node_modules/**",

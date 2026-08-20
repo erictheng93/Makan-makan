@@ -1,10 +1,12 @@
 import { defineConfig } from "vitest/config";
 import { resolve } from "path";
 import vue from "@vitejs/plugin-vue";
+import { sharedTestConfig } from "../../vitest.shared";
 
 export default defineConfig({
   plugins: [vue()],
   test: {
+    ...sharedTestConfig,
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/__tests__/setup.ts"],

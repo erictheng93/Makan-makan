@@ -1,8 +1,10 @@
 import { defineConfig } from "vitest/config";
 import { resolve } from "path";
+import { sharedTestConfig } from "../../vitest.shared";
 
 export default defineConfig({
   test: {
+    ...sharedTestConfig,
     environment: "node",
     globals: true,
     setupFiles: ["./src/__tests__/setup.ts"],
