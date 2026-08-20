@@ -520,8 +520,8 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
           providerTransactionId: "pi_market_1",
           authorizedAmountCents: 20000,
           allocations: [
-            { orderId: 1001, paymentId: "alloc-1001", amountCents: 12000 },
-            { orderId: 1002, paymentId: "alloc-1002", amountCents: 8000 },
+            { orderId: "1001", paymentId: "alloc-1001", amountCents: 12000 },
+            { orderId: "1002", paymentId: "alloc-1002", amountCents: 8000 },
           ],
         }),
         { status: 200 },
@@ -576,8 +576,8 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       providerTransactionId: "pi_market_1",
       authorizedAmountCents: 20000,
       allocations: [
-        { orderId: 1001, paymentId: "alloc-1001", amountCents: 12000 },
-        { orderId: 1002, paymentId: "alloc-1002", amountCents: 8000 },
+        { orderId: "1001", paymentId: "alloc-1001", amountCents: 12000 },
+        { orderId: "1002", paymentId: "alloc-1002", amountCents: 8000 },
       ],
     });
   });
@@ -591,7 +591,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
             providerTransactionId: "pi_market_1",
             authorizedAmountCents: 12000,
             allocations: [
-              { orderId: 1001, paymentId: "alloc-1001", amountCents: 12000 },
+              { orderId: "1001", paymentId: "alloc-1001", amountCents: 12000 },
             ],
           }),
         ),

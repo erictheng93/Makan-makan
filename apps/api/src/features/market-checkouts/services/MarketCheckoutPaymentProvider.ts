@@ -903,7 +903,8 @@ function parseHttpGatewayResult(
     authorizedAmountCents: payload.authorizedAmountCents,
     allocations: payload.allocations.map((allocation) => {
       if (
-        typeof allocation?.orderId !== "number" ||
+        typeof allocation?.orderId !== "string" ||
+        !allocation.orderId ||
         typeof allocation.amountCents !== "number"
       ) {
         throw new Error(
