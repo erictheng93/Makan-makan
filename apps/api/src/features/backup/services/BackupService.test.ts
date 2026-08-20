@@ -27,6 +27,66 @@ import {
   type SelectFixtures,
 } from "@makanmasak/database/testing";
 import { BackupService } from "./BackupService";
+import type {
+  BackupRecord,
+  ListBackupsQuery,
+} from "@makanmasak/shared-types";
+import type { BackupStorageService } from "./BackupStorageService";
+import type { BackupConfigService } from "./BackupConfigService";
+import type { BackupValidationService } from "./BackupValidationService";
+
+/** The metadata block a record carries before any manifest is written. */
+function emptyBackupMetadata(): BackupRecord["metadata"] {
+  return {
+    tables_info: [],
+    performance_metrics: {
+      backup_duration_ms: 0,
+      compression_ratio: 0,
+      upload_speed_mbps: 0,
+    },
+    database_snapshot: {
+      version: "1",
+      schema_hash: "hash",
+      total_tables: 0,
+      total_records: 0,
+    },
+  };
+}
+
+/**
+ * The list route reads sort_by straight off the query string, so a value
+ * outside the union really can reach the service — that is what its identifier
+ * guard is for.
+ */
+function untypedSortBy(value: string): ListBackupsQuery["sort_by"] {
+  return value as ListBackupsQuery["sort_by"];
+}
+
+function buildBackupRecord(
+  overrides: Partial<BackupRecord> = {},
+): BackupRecord {
+  return {
+    id: "backup-1",
+    restaurant_id: "restaurant-1",
+    configuration_id: "config-1",
+    name: "backup",
+    backup_type: "full",
+    status: "completed",
+    file_size: 0,
+    compressed_size: 0,
+    records_count: 0,
+    tables_included: [],
+    storage_provider: "r2",
+    storage_path: "backups/backup-1.json",
+    encryption_enabled: false,
+    compression_enabled: false,
+    checksum: "",
+    started_at: "2026-06-07T00:00:00.000Z",
+    created_by: "user-1",
+    metadata: emptyBackupMetadata(),
+    ...overrides,
+  };
+}
 
 function createService(
   d1: D1Database = {} as D1Database,
@@ -61,9 +121,9 @@ function createService(
   };
   const service = new BackupService(
     d1,
-    storageService as any,
-    configService as any,
-    validationService as any,
+    storageService as unknown as BackupStorageService,
+    configService as unknown as BackupConfigService,
+    validationService as unknown as BackupValidationService,
     encryptionKey,
   );
 
@@ -238,7 +298,7 @@ describe("BackupService", () => {
     const { service } = createService();
 
     expect(
-      (service as any).parseBackupRecord({
+      service["parseBackupRecord"]({
         id: "backup-1",
         restaurantId: "restaurant-1",
         configuration_id: "config-1",
@@ -276,17 +336,18 @@ describe("BackupService", () => {
 
   it("derives manifests from metadata or backup payload row counts", () => {
     const { service } = createService();
-    const backup = {
+    const backup = buildBackupRecord({
       tables_included: ["orders", "payments"],
       completed_at: "2026-06-07T00:01:00.000Z",
       checksum: "backup-checksum",
-    };
+    });
 
     expect(
-      (service as any).getManifestFromBackup(
+      service["getManifestFromBackup"](
         {
           ...backup,
           metadata: {
+            ...emptyBackupMetadata(),
             manifest: {
               row_counts: { orders: 2 },
               tables: ["orders"],
@@ -304,8 +365,8 @@ describe("BackupService", () => {
       checksum: "manifest-checksum",
     });
     expect(
-      (service as any).getManifestFromBackup(
-        { ...backup, metadata: {} },
+      service["getManifestFromBackup"](
+        buildBackupRecord({ ...backup, metadata: emptyBackupMetadata() }),
         { orders: [{ id: 1 }, { id: 2 }], payments: [] },
       ),
     ).toEqual({
@@ -320,7 +381,7 @@ describe("BackupService", () => {
     const { service } = createService();
 
     expect(
-      (service as any).parseBackupAlerts([
+      service["parseBackupAlerts"]([
         {
           id: "alert-1",
           restaurantId: "restaurant-1",
@@ -379,7 +440,7 @@ describe("BackupService", () => {
       },
     ]);
     expect(
-      (service as any).buildAlertSummary([
+      service["buildAlertSummary"]([
         { severity: "critical", total: 2 },
         { severity: "high" },
         { severity: "unknown", total: 10 },
@@ -391,20 +452,20 @@ describe("BackupService", () => {
     const { service } = createService();
 
     expect(() =>
-      (service as any).assertSafeIdentifier("orders_2026"),
+      service["assertSafeIdentifier"]("orders_2026"),
     ).not.toThrow();
-    expect(() => (service as any).assertSafeIdentifier("orders;drop")).toThrow(
+    expect(() => service["assertSafeIdentifier"]("orders;drop")).toThrow(
       "Unsafe SQL identifier: orders;drop",
     );
-    expect((service as any).resolvePhysicalTableName("menus")).toBe(
+    expect(service["resolvePhysicalTableName"]("menus")).toBe(
       "menu_items",
     );
-    expect((service as any).resolvePhysicalTableName("orders")).toBe("orders");
-    expect((service as any).toD1Value(undefined)).toBeNull();
-    expect((service as any).toD1Value(false)).toBe(0);
-    expect((service as any).toD1Value(true)).toBe(1);
-    expect((service as any).toD1Value(42)).toBe(42);
-    expect((service as any).toD1Value({ nested: true })).toBe(
+    expect(service["resolvePhysicalTableName"]("orders")).toBe("orders");
+    expect(service["toD1Value"](undefined)).toBeNull();
+    expect(service["toD1Value"](false)).toBe(0);
+    expect(service["toD1Value"](true)).toBe(1);
+    expect(service["toD1Value"](42)).toBe(42);
+    expect(service["toD1Value"]({ nested: true })).toBe(
       JSON.stringify({ nested: true }),
     );
   });
@@ -414,13 +475,13 @@ describe("BackupService", () => {
     const response = new Response("backup data");
     storageService.generateDownloadResponse.mockResolvedValue(response);
 
-    await expect(service.downloadBackup({ id: "backup-1" } as any)).resolves
+    await expect(service.downloadBackup(buildBackupRecord())).resolves
       .toBe(response);
 
     storageService.generateDownloadResponse.mockRejectedValue(
       new Error("storage offline"),
     );
-    await expect(service.downloadBackup({ id: "backup-1" } as any)).rejects
+    await expect(service.downloadBackup(buildBackupRecord())).rejects
       .toThrow("Failed to download backup");
   });
 
@@ -433,7 +494,7 @@ describe("BackupService", () => {
       userAgent: "Vitest",
     });
 
-    await (service as any).createAuditLog({
+    await service["createAuditLog"]({
       restaurant_id: "restaurant-1",
       action: "backup_deleted",
       details: { backup_id: "backup-1" },
@@ -685,7 +746,7 @@ describe("BackupService", () => {
         restaurant_id: "restaurant-1",
         name: "Nightly",
         force_immediate: false,
-      } as any,
+      },
       "user-1",
     );
 
@@ -760,7 +821,7 @@ describe("BackupService", () => {
         backup_type: "full",
         include_tables: ["orders"],
         force_immediate: true,
-      } as any,
+      },
       "user-1",
     );
 
@@ -899,14 +960,15 @@ describe("BackupService", () => {
       {
         restaurant_id: "restaurant-1",
         backup_id: "backup-1",
-        restore_type: "selective",
+        restore_type: "selective" as const,
         target_tables: ["orders"],
         overwrite_existing: false,
         safety_confirmation: {
           backup_integrity_verified: true,
           data_loss_risk_acknowledged: true,
+          confirmation_phrase: "I understand the risks",
         },
-      } as any,
+      },
       "user-1",
     );
 
@@ -961,7 +1023,7 @@ describe("BackupService", () => {
     configService.getDefaultConfiguration.mockResolvedValueOnce(null);
     await expect(
       service.createBackup(
-        { restaurant_id: "restaurant-1", name: "Missing config" } as any,
+        { restaurant_id: "restaurant-1", name: "Missing config" },
         "user-1",
       ),
     ).rejects.toThrow(
@@ -984,7 +1046,7 @@ describe("BackupService", () => {
           restaurant_id: "restaurant-1",
           configuration_id: "config-2",
           name: "Wrong config",
-        } as any,
+        },
         "user-1",
       ),
     ).rejects.toThrow(
@@ -1011,16 +1073,13 @@ describe("BackupService", () => {
     mutations.updated.length = 0;
     storageService.storeBackup.mockRejectedValueOnce(new Error("r2 down"));
     await expect(
-      service.executeBackup("backup-1", {
-        id: "backup-1",
-        restaurant_id: "restaurant-1",
-        tables_included: [],
-        storage_provider: "r2",
-        started_at: new Date().toISOString(),
-        created_by: "user-1",
-        compression_enabled: false,
-        metadata: {},
-      } as any),
+      service.executeBackup(
+        "backup-1",
+        buildBackupRecord({
+          tables_included: [],
+          started_at: new Date().toISOString(),
+        }),
+      ),
     ).rejects.toThrow("r2 down");
     expect(mutations.updated).toEqual(
       expect.arrayContaining([
@@ -1047,26 +1106,26 @@ describe("BackupService", () => {
     const { service } = createService(d1);
 
     await expect(
-      (service as any).getRestaurantScopeClause("restaurants", "public-1"),
+      service["getRestaurantScopeClause"]("restaurants", "public-1"),
     ).resolves.toEqual({ clause: "public_id = ?", values: ["public-1"] });
     await expect(
-      (service as any).getRestaurantScopeClause("missing", "restaurant-1"),
+      service["getRestaurantScopeClause"]("missing", "restaurant-1"),
     ).resolves.toBeNull();
     await expect(
-      (service as any).extractTableData("restaurant-1", "orders"),
+      service["extractTableData"]("restaurant-1", "orders"),
     ).resolves.toEqual([{ id: 1, restaurant_id: "restaurant-1" }]);
     await expect(
-      (service as any).countTableRows("restaurant-1", "orders"),
+      service["countTableRows"]("restaurant-1", "orders"),
     ).resolves.toBe(4);
 
     await expect(
-      (service as any).validateRestoreSchemaCompatibility(
+      service["validateRestoreSchemaCompatibility"](
         ["orders"],
         { orders: [{ id: 1, missing_column: true }] },
       ),
     ).rejects.toThrow("Restore schema mismatch for orders: missing_column");
 
-    const inserted = await (service as any).restoreTableData({
+    const inserted = await service["restoreTableData"]({
       tableName: "orders",
       restaurantId: "restaurant-1",
       rows: [
@@ -1094,7 +1153,7 @@ describe("BackupService", () => {
 
     const noPrepare = createService({} as D1Database).service;
     await expect(
-      (noPrepare as any).runPreparedAll("SELECT 1"),
+      noPrepare["runPreparedAll"]("SELECT 1"),
     ).resolves.toEqual([]);
   });
 
@@ -1104,7 +1163,7 @@ describe("BackupService", () => {
       throw new Error("select down");
     });
     await expect(
-      service.listBackups({ restaurant_id: "restaurant-1" } as any),
+      service.listBackups({ restaurant_id: "restaurant-1" }),
     ).rejects.toThrow("Failed to list backups: select down");
 
     mockSelectResults({ backupRecords: [[]] });
@@ -1214,7 +1273,10 @@ describe("BackupService", () => {
     });
     storageService.backupExists.mockResolvedValue(true);
     const executeRestore = vi
-      .spyOn(service as any, "executeRestore")
+      .spyOn(
+        service as unknown as { executeRestore: (id: string) => Promise<void> },
+        "executeRestore",
+      )
       .mockRejectedValue(new Error("restore worker down"));
 
     const operationId = await service.restoreFromBackup(
@@ -1227,8 +1289,9 @@ describe("BackupService", () => {
         safety_confirmation: {
           backup_integrity_verified: true,
           data_loss_risk_acknowledged: true,
+          confirmation_phrase: "I understand the risks",
         },
-      } as any,
+      },
       "user-1",
     );
     await Promise.resolve();
@@ -1252,13 +1315,14 @@ describe("BackupService", () => {
     const request = {
       restaurant_id: "restaurant-1",
       backup_id: "backup-1",
-      restore_type: "selective",
+      restore_type: "selective" as const,
       overwrite_existing: false,
       safety_confirmation: {
         backup_integrity_verified: true,
         data_loss_risk_acknowledged: true,
+        confirmation_phrase: "I understand the risks",
       },
-    } as any;
+    };
 
     mockSelectResults({ backupRecords: [[]] });
     await expect(service.restoreFromBackup(request, "user-1")).rejects.toThrow(
@@ -1310,7 +1374,7 @@ describe("BackupService", () => {
     const { service, storageService } = createService();
 
     mockSelectResults({ restoreOperations: [[]] });
-    await expect((service as any).executeRestore("missing")).rejects.toThrow(
+    await expect(service["executeRestore"]("missing")).rejects.toThrow(
       "Restore operation not found",
     );
     expect(mutations.updated).toEqual(
@@ -1354,7 +1418,7 @@ describe("BackupService", () => {
     });
     storageService.retrieveBackup.mockResolvedValue('{"orders":[]}');
 
-    await expect((service as any).executeRestore("restore-1")).rejects.toThrow(
+    await expect(service["executeRestore"]("restore-1")).rejects.toThrow(
       "Backup checksum verification failed",
     );
     expect(mutations.updated).toEqual(
@@ -1376,13 +1440,17 @@ describe("BackupService", () => {
       estimated_duration_minutes: 5,
       message: "scheduled",
       manifest: { rowCounts: {}, tables: [], createdAt: "" },
-    } as any);
+    });
     const executeBackup = vi
       .spyOn(service, "executeBackup")
-      .mockResolvedValue({} as any);
+      .mockResolvedValue({
+        checksum: "",
+        manifest: { rowCounts: {}, tables: [], createdAt: "" },
+        backup: buildBackupRecord(),
+      });
 
     await expect(
-      (service as any).createPreRestoreSafetyBackup({
+      service["createPreRestoreSafetyBackup"]({
         restaurantId: "restaurant-1",
         targetTables: ["orders"],
         userId: "user-1",
@@ -1430,7 +1498,7 @@ describe("BackupService", () => {
         restaurant_id: "restaurant-1",
         name: "Empty",
         force_immediate: false,
-      } as any,
+      },
       "user-1",
     );
 
@@ -1464,9 +1532,9 @@ describe("BackupService", () => {
     await expect(
       service.listBackups({
         restaurant_id: "restaurant-1",
-        sort_by: "unsafe_column",
+        sort_by: untypedSortBy("unsafe_column"),
         sort_order: "asc",
-      } as any),
+      }),
     ).resolves.toMatchObject({
       total: 0,
       backups: [{ id: "backup-1", backup_type: "full" }],
@@ -1505,10 +1573,10 @@ describe("BackupService", () => {
     });
 
     await expect(
-      (service as any).getRestaurantScopeClause("restaurants", "restaurant-1"),
+      service["getRestaurantScopeClause"]("restaurants", "restaurant-1"),
     ).resolves.toEqual({ clause: "id = ?", values: ["restaurant-1"] });
 
-    const inserted = await (service as any).restoreTableData({
+    const inserted = await service["restoreTableData"]({
       tableName: "orders",
       restaurantId: "restaurant-1",
       rows: [
@@ -1585,8 +1653,8 @@ describe("BackupService", () => {
         checksum: "",
         started_at: new Date().toISOString(),
         created_by: "user-1",
-        metadata: null,
-      } as any),
+        metadata: emptyBackupMetadata(),
+      }),
     ).resolves.toMatchObject({
       checksum: "checksum-compressed",
       manifest: { rowCounts: { orders: 0 }, tables: ["orders"] },
@@ -1607,24 +1675,31 @@ describe("BackupService", () => {
     );
 
     await expect(
-      (service as any).getRestaurantTables("restaurant-1", undefined, [
+      service["getRestaurantTables"]("restaurant-1", undefined, [
         "orders",
         "users",
       ]),
     ).resolves.toEqual(["order_items", "menu_items", "categories", "tables"]);
     expect(
-      (service as any).getManifestFromBackup(
-        {
+      service["getManifestFromBackup"](
+        buildBackupRecord({
           tables_included: ["orders"],
-          metadata: { manifest: { createdAt: "2026-06-07T00:00:00.000Z" } },
-        },
+          checksum: "",
+          completed_at: undefined,
+          metadata: {
+            ...emptyBackupMetadata(),
+            manifest: { createdAt: "2026-06-07T00:00:00.000Z" },
+          },
+        }),
         { orders: [{ id: 1 }] },
       ),
     ).toEqual({
       rowCounts: { orders: 1 },
       tables: ["orders"],
       createdAt: "2026-06-07T00:00:00.000Z",
-      checksum: undefined,
+      // BackupRecord.checksum is a required string, so a record with no
+      // manifest checksum falls back to the record's own empty one.
+      checksum: "",
     });
 
     mockSelectResults({
@@ -1642,7 +1717,7 @@ describe("BackupService", () => {
       ],
     });
     await expect(
-      (service as any).getRestoreOperation("restore-1"),
+      service["getRestoreOperation"]("restore-1"),
     ).resolves.toMatchObject({
       restaurantId: "restaurant-1",
       backupId: "backup-1",
@@ -1653,7 +1728,7 @@ describe("BackupService", () => {
     });
 
     expect(
-      (service as any).parseBackupAlerts([
+      service["parseBackupAlerts"]([
         {
           id: "alert-1",
           restaurantId: "restaurant-1",
@@ -1690,28 +1765,15 @@ describe("BackupService", () => {
 });
 
 describe("BackupService compression/encryption wiring (#20)", () => {
-  function encBackupOverride(overrides: Record<string, unknown> = {}) {
-    return {
+  function encBackupOverride(overrides: Partial<BackupRecord> = {}) {
+    return buildBackupRecord({
       id: "enc-backup",
-      restaurant_id: "restaurant-1",
-      configuration_id: "config-1",
       name: "Enc",
-      backup_type: "full",
-      status: "pending",
-      file_size: 0,
-      compressed_size: 0,
-      compression_enabled: false,
-      records_count: 0,
       tables_included: ["orders"],
-      storage_provider: "r2",
-      storage_path: "",
       encryption_enabled: true,
-      checksum: "",
       started_at: new Date().toISOString(),
-      created_by: "user-1",
-      metadata: null,
       ...overrides,
-    } as any;
+    });
   }
 
   it("rejects backup creation when encryption is enabled without a key", async () => {
@@ -1819,7 +1881,7 @@ describe("BackupService compression/encryption wiring (#20)", () => {
     // Decrypted payload with no matching tables -> restore completes trivially.
     storageService.processDataFromStorage.mockResolvedValueOnce("{}");
 
-    await (service as any).executeRestore("restore-1");
+    await service["executeRestore"]("restore-1");
 
     expect(storageService.processDataFromStorage).toHaveBeenCalledWith(
       "ENCRYPTED-BLOB",
@@ -1871,7 +1933,7 @@ describe("BackupService compression/encryption wiring (#20)", () => {
     storageService.retrieveBackup.mockResolvedValue("ENCRYPTED-BLOB");
 
     await expect(
-      (service as any).executeRestore("restore-2"),
+      service["executeRestore"]("restore-2"),
     ).rejects.toThrow(/encryption key/i);
     expect(storageService.processDataFromStorage).not.toHaveBeenCalled();
     expect(mutations.updated).toEqual(

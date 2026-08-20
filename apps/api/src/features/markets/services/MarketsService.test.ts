@@ -53,6 +53,154 @@ import {
 } from "@makanmasak/database/testing";
 import { MarketsService } from "./MarketsService";
 
+/**
+ * `vi.spyOn` cannot name a private method, but an indexed-access type can — so
+ * the target is viewed through an object carrying each method's real signature
+ * rather than through `any`.
+ */
+type MarketsServicePrivates = {
+  queryMarkets: MarketsService["queryMarkets"];
+  queryAreas: MarketsService["queryAreas"];
+  queryVendors: MarketsService["queryVendors"];
+  queryMarketBySlug: MarketsService["queryMarketBySlug"];
+  countCatalogCoverage: MarketsService["countCatalogCoverage"];
+  catalogCoverageWithVendorBreakdown: MarketsService["catalogCoverageWithVendorBreakdown"];
+};
+
+function spyOnPrivate<K extends keyof MarketsServicePrivates>(
+  service: MarketsService,
+  key: K,
+) {
+  return vi.spyOn(service as unknown as MarketsServicePrivates, key);
+}
+
+type QueriedMarkets = Awaited<ReturnType<MarketsService["queryMarkets"]>>;
+type QueriedMarket = QueriedMarkets["markets"][number];
+type MarketBySlugResult = NonNullable<
+  Awaited<ReturnType<MarketsService["queryMarketBySlug"]>>
+>;
+type MarketBySlugRow = MarketBySlugResult["market"];
+
+function buildReadiness(
+  overrides: Partial<QueriedMarket["publicReadiness"]> = {},
+): QueriedMarket["publicReadiness"] {
+  return {
+    score: 100,
+    ready: true,
+    completedCount: 8,
+    totalCount: 8,
+    issues: [],
+    ...overrides,
+  };
+}
+
+function buildCoverage(
+  overrides: Partial<QueriedMarket["catalogCoverage"]> = {},
+): QueriedMarket["catalogCoverage"] {
+  return { searchableProductCount: 0, publicServiceCount: 0, ...overrides };
+}
+
+/** catalogCoverageWithVendorBreakdown promises every optional field. */
+function buildFullCoverage(
+  overrides: Partial<Required<QueriedMarket["catalogCoverage"]>> = {},
+): Required<QueriedMarket["catalogCoverage"]> {
+  return {
+    searchableProductCount: 0,
+    publicServiceCount: 0,
+    bookingRequiredServiceCount: 0,
+    bookingUrlMissingServiceCount: 0,
+    vendorsWithSearchableProducts: 0,
+    vendorsMissingSearchableProducts: 0,
+    vendorsWithPublicServices: 0,
+    vendorsMissingPublicServices: 0,
+    vendorsMissingBookingUrls: 0,
+    vendorsMissingStallNumbers: 0,
+    vendorsMissingMapPositions: 0,
+    vendorsMissingSearchEntrypoints: 0,
+    missingProductVendors: [],
+    missingServiceVendors: [],
+    missingBookingUrlVendors: [],
+    missingStallNumberVendors: [],
+    missingMapPositionVendors: [],
+    missingSearchEntrypointVendors: [],
+    ...overrides,
+  };
+}
+
+function buildQueriedMarket(
+  overrides: Partial<QueriedMarket> = {},
+): QueriedMarket {
+  return {
+    id: "market-1",
+    slug: "market-1",
+    name: "Market",
+    type: "night_market",
+    description: null,
+    city: "台中市",
+    district: "西屯區",
+    address: "文華路",
+    latitude: 24.1,
+    longitude: 120.6,
+    boundaryGeojson: null,
+    openingHours: null,
+    mapLayout: null,
+    bannerUrl: null,
+    logoUrl: null,
+    imageUrls: null,
+    tags: null,
+    updatedAt: new Date(0),
+    vendorCount: 0,
+    catalogCoverage: buildCoverage(),
+    publicReadiness: buildReadiness(),
+    ...overrides,
+  };
+}
+
+function buildMarketRow(
+  overrides: Partial<MarketBySlugRow> = {},
+): MarketBySlugRow {
+  const {
+    vendorCount: _vendorCount,
+    catalogCoverage: _catalogCoverage,
+    publicReadiness: _publicReadiness,
+    ...columns
+  } = buildQueriedMarket();
+  return {
+    ...columns,
+    platformFeeRateBps: 0,
+    isActive: true,
+    createdAt: new Date(0),
+    deletedAt: null,
+    ...overrides,
+  };
+}
+
+function buildMarketBySlug(
+  overrides: Partial<MarketBySlugResult> = {},
+): MarketBySlugResult {
+  return {
+    market: buildMarketRow(),
+    vendorCount: 0,
+    catalogCoverage: buildCoverage(),
+    explorationSummary: {
+      dishSearchUrl: "",
+      serviceSearchUrl: "",
+      dishCategories: [],
+      menuItemCategories: [],
+      productCategories: [],
+      serviceTypes: [],
+    },
+    publicReadiness: buildReadiness(),
+    ...overrides,
+  };
+}
+
+function buildQueriedMarkets(
+  markets: QueriedMarket[],
+): Awaited<ReturnType<MarketsService["queryMarkets"]>> {
+  return { markets, total: markets.length, page: 1, limit: 20 };
+}
+
 function createKV(version = "1") {
   const values = new Map<string, string>([["markets:version", version]]);
 
@@ -63,7 +211,7 @@ function createKV(version = "1") {
       put: vi.fn(async (key: string, value: string) => {
         values.set(key, value);
       }),
-    } as any,
+    } as unknown as KVNamespace,
   };
 }
 
@@ -142,30 +290,25 @@ function createD1(
         all: vi.fn(async () => ({ results: allResults.shift() ?? [] })),
       })),
     })),
-  } as any;
+  } as unknown as D1Database;
 }
 
-const marketResult = {
-  markets: [
-    {
-      id: "market-1",
-      slug: "night-market",
-      name: "Night Market",
-      type: "night_market",
-      city: "Taipei",
-      district: "Central",
-      vendorCount: 2,
-      catalogCoverage: {
-        searchableProductCount: 3,
-        publicServiceCount: 1,
-      },
-      publicReadiness: { score: 80 },
-    },
-  ],
-  total: 1,
-  page: 1,
-  limit: 20,
-};
+const marketResult = buildQueriedMarkets([
+  buildQueriedMarket({
+    id: "market-1",
+    slug: "night-market",
+    name: "Night Market",
+    type: "night_market",
+    city: "Taipei",
+    district: "Central",
+    vendorCount: 2,
+    catalogCoverage: buildCoverage({
+      searchableProductCount: 3,
+      publicServiceCount: 1,
+    }),
+    publicReadiness: buildReadiness({ score: 80 }),
+  }),
+]);
 
 describe("MarketsService", () => {
   beforeEach(() => {
@@ -179,7 +322,7 @@ describe("MarketsService", () => {
   it("returns cached public list data and skips market queries", async () => {
     mocks.cache.get.mockResolvedValue(marketResult);
     const { service, kv } = createService("4");
-    const querySpy = vi.spyOn(service as any, "queryMarkets");
+    const querySpy = spyOnPrivate(service, "queryMarkets");
 
     await expect(
       service.listMarkets({ district: "Central", city: "Taipei" }),
@@ -195,25 +338,29 @@ describe("MarketsService", () => {
   it("queries and caches public list, area, and detail misses", async () => {
     mocks.cache.get.mockResolvedValue(null);
     const { service } = createService("2");
-    vi.spyOn(service as any, "queryMarkets").mockResolvedValue(marketResult);
-    vi.spyOn(service as any, "queryAreas").mockResolvedValue({
+    spyOnPrivate(service, "queryMarkets").mockResolvedValue(marketResult);
+    spyOnPrivate(service, "queryAreas").mockResolvedValue({
       areas: [{ city: "Taipei", districts: ["Central"] }],
     });
-    vi.spyOn(service as any, "queryMarketBySlug").mockResolvedValue({
-      market: { id: "market-1", slug: "night-market" },
-      vendorCount: 2,
-    });
+    spyOnPrivate(service, "queryMarketBySlug").mockResolvedValue(
+      buildMarketBySlug({
+        market: buildMarketRow({ id: "market-1", slug: "night-market" }),
+        vendorCount: 2,
+      }),
+    );
 
     await expect(service.listMarkets({ limit: 5 })).resolves.toBe(marketResult);
     await expect(service.listAreas()).resolves.toEqual({
       areas: [{ city: "Taipei", districts: ["Central"] }],
     });
-    await expect(service.getMarketBySlug("night-market")).resolves.toEqual({
+    await expect(
+      service.getMarketBySlug("night-market"),
+    ).resolves.toMatchObject({
       market: { id: "market-1", slug: "night-market" },
       vendorCount: 2,
     });
 
-    expect((service as any).queryMarkets).toHaveBeenCalledWith(
+    expect(service["queryMarkets"]).toHaveBeenCalledWith(
       { limit: 5 },
       { publicReadyOnly: true },
     );
@@ -229,7 +376,13 @@ describe("MarketsService", () => {
     );
     expect(mocks.cache.set).toHaveBeenCalledWith(
       "markets:v2:detail:night-market",
-      { market: { id: "market-1", slug: "night-market" }, vendorCount: 2 },
+      expect.objectContaining({
+        market: expect.objectContaining({
+          id: "market-1",
+          slug: "night-market",
+        }),
+        vendorCount: 2,
+      }),
       expect.any(Number),
     );
   });
@@ -246,8 +399,8 @@ describe("MarketsService", () => {
       .mockResolvedValueOnce(cachedAreas)
       .mockResolvedValueOnce(cachedVendors);
     const { service } = createService("7");
-    const queryAreasSpy = vi.spyOn(service as any, "queryAreas");
-    const queryVendorsSpy = vi.spyOn(service as any, "queryVendors");
+    const queryAreasSpy = spyOnPrivate(service, "queryAreas");
+    const queryVendorsSpy = spyOnPrivate(service, "queryVendors");
 
     await expect(service.listAreas()).resolves.toBe(cachedAreas);
     await expect(
@@ -264,9 +417,9 @@ describe("MarketsService", () => {
 
   it("aggregates market area readiness and sorts largest gaps first", async () => {
     const { service } = createService();
-    vi.spyOn(service as any, "queryMarkets").mockResolvedValue({
-      markets: [
-        {
+    spyOnPrivate(service, "queryMarkets").mockResolvedValue(
+      buildQueriedMarkets([
+        buildQueriedMarket({
           city: "Taipei",
           district: "Central",
           vendorCount: 2,
@@ -276,9 +429,9 @@ describe("MarketsService", () => {
             vendorsMissingSearchableProducts: 1,
             vendorsMissingPublicServices: 2,
           },
-          publicReadiness: { score: 80 },
-        },
-        {
+          publicReadiness: buildReadiness({ score: 80 }),
+        }),
+        buildQueriedMarket({
           city: "Taipei",
           district: "Central",
           vendorCount: 0,
@@ -288,9 +441,9 @@ describe("MarketsService", () => {
             vendorsMissingSearchableProducts: 1,
             vendorsMissingPublicServices: 0,
           },
-          publicReadiness: { score: 40 },
-        },
-        {
+          publicReadiness: buildReadiness({ score: 40 }),
+        }),
+        buildQueriedMarket({
           city: "Kaohsiung",
           district: "West",
           vendorCount: 1,
@@ -300,10 +453,10 @@ describe("MarketsService", () => {
             vendorsMissingSearchableProducts: 0,
             vendorsMissingPublicServices: 0,
           },
-          publicReadiness: { score: 90 },
-        },
-      ],
-    });
+          publicReadiness: buildReadiness({ score: 90 }),
+        }),
+      ]),
+    );
 
     await expect(service.listAreaReadiness(10)).resolves.toEqual({
       areas: [
@@ -337,17 +490,17 @@ describe("MarketsService", () => {
         },
       ],
     });
-    expect((service as any).queryMarkets).toHaveBeenCalledWith(
+    expect(service["queryMarkets"]).toHaveBeenCalledWith(
       { limit: 10 },
       { includeVendorBreakdown: true },
     );
   });
 
-  it("sorts tied area readiness by city and district without readiness scores", async () => {
+  it("sorts tied area readiness by city and district when every score ties", async () => {
     const { service } = createService();
-    vi.spyOn(service as any, "queryMarkets").mockResolvedValue({
-      markets: [
-        {
+    spyOnPrivate(service, "queryMarkets").mockResolvedValue(
+      buildQueriedMarkets([
+        buildQueriedMarket({
           city: "Taipei",
           district: "West",
           vendorCount: 1,
@@ -357,8 +510,13 @@ describe("MarketsService", () => {
             vendorsMissingSearchableProducts: undefined,
             vendorsMissingPublicServices: undefined,
           },
-        },
-        {
+          publicReadiness: buildReadiness({
+            score: 0,
+            ready: false,
+            completedCount: 0,
+          }),
+        }),
+        buildQueriedMarket({
           city: "Taipei",
           district: "East",
           vendorCount: 1,
@@ -368,8 +526,13 @@ describe("MarketsService", () => {
             vendorsMissingSearchableProducts: 0,
             vendorsMissingPublicServices: 0,
           },
-        },
-        {
+          publicReadiness: buildReadiness({
+            score: 0,
+            ready: false,
+            completedCount: 0,
+          }),
+        }),
+        buildQueriedMarket({
           city: "Kaohsiung",
           district: "North",
           vendorCount: 1,
@@ -379,9 +542,14 @@ describe("MarketsService", () => {
             vendorsMissingSearchableProducts: 0,
             vendorsMissingPublicServices: 0,
           },
-        },
-      ],
-    });
+          publicReadiness: buildReadiness({
+            score: 0,
+            ready: false,
+            completedCount: 0,
+          }),
+        }),
+      ]),
+    );
 
     await expect(service.listAreaReadiness()).resolves.toEqual({
       areas: [
@@ -409,11 +577,13 @@ describe("MarketsService", () => {
 
   it("delegates admin and readiness helpers without public cache", async () => {
     const { service } = createService();
-    vi.spyOn(service as any, "queryMarkets").mockResolvedValue(marketResult);
-    vi.spyOn(
-      service as any,
+    spyOnPrivate(service, "queryMarkets").mockResolvedValue(marketResult);
+    spyOnPrivate(
+      service,
       "catalogCoverageWithVendorBreakdown",
-    ).mockResolvedValue({ searchableProductCount: 1, publicServiceCount: 2 });
+    ).mockResolvedValue(
+      buildFullCoverage({ searchableProductCount: 1, publicServiceCount: 2 }),
+    );
     // `getMarketById` destructures its single-row select, so TypeScript infers
     // a non-nullable return and a `mockResolvedValue(null)` spy will not type.
     // Drive the missing-market branch through an empty fixture queue instead,
@@ -423,13 +593,15 @@ describe("MarketsService", () => {
     await expect(service.listAdminReadiness({ city: "Taipei" })).resolves.toBe(
       marketResult,
     );
-    await expect(service.getCatalogReadiness("market-1")).resolves.toEqual({
+    await expect(
+      service.getCatalogReadiness("market-1"),
+    ).resolves.toMatchObject({
       searchableProductCount: 1,
       publicServiceCount: 2,
     });
     await expect(service.getPublicReadiness("missing")).resolves.toBeNull();
 
-    expect((service as any).queryMarkets).toHaveBeenCalledWith(
+    expect(service["queryMarkets"]).toHaveBeenCalledWith(
       { city: "Taipei" },
       { includeVendorBreakdown: true },
     );
@@ -438,23 +610,25 @@ describe("MarketsService", () => {
 
   it("computes public readiness for an existing market", async () => {
     const { service } = createService();
-    vi.spyOn(service, "getMarketById").mockResolvedValue({
-      id: "market-1",
-      description: "Night market",
-      city: "Taipei",
-      district: "Central",
-      address: "Main Street",
-      latitude: 25,
-      longitude: 121,
-      openingHours: {
-        monday: { open: "10:00", close: "22:00", closed: false },
-      },
-      bannerUrl: "https://example.test/banner.jpg",
-      logoUrl: null,
-      imageUrls: [],
-      mapLayout: { title: "Map" },
-    } as any);
-    vi.spyOn(service as any, "countCatalogCoverage").mockResolvedValue({
+    vi.spyOn(service, "getMarketById").mockResolvedValue(
+      buildMarketRow({
+        id: "market-1",
+        description: "Night market",
+        city: "Taipei",
+        district: "Central",
+        address: "Main Street",
+        latitude: 25,
+        longitude: 121,
+        openingHours: {
+          monday: { open: "10:00", close: "22:00", closed: false },
+        },
+        bannerUrl: "https://example.test/banner.jpg",
+        logoUrl: null,
+        imageUrls: [],
+        mapLayout: { title: "Map" },
+      }),
+    );
+    spyOnPrivate(service, "countCatalogCoverage").mockResolvedValue({
       searchableProductCount: 4,
       publicServiceCount: 1,
     });
@@ -468,14 +642,12 @@ describe("MarketsService", () => {
       totalCount: 8,
       issues: [],
     });
-    expect((service as any).countCatalogCoverage).toHaveBeenCalledWith(
-      "market-1",
-    );
+    expect(service["countCatalogCoverage"]).toHaveBeenCalledWith("market-1");
   });
 
   it("builds catalog readiness gaps for empty and mixed vendor coverage", async () => {
     const { service } = createService();
-    vi.spyOn(service as any, "countCatalogCoverage")
+    spyOnPrivate(service, "countCatalogCoverage")
       .mockResolvedValueOnce({
         searchableProductCount: 0,
         publicServiceCount: 0,
@@ -491,7 +663,7 @@ describe("MarketsService", () => {
 
     mockSelectResults({ restaurantMarketMemberships: [[]] });
     await expect(
-      (service as any).catalogCoverageWithVendorBreakdown("empty-market"),
+      service["catalogCoverageWithVendorBreakdown"]("empty-market"),
     ).resolves.toMatchObject({
       vendorsWithSearchableProducts: 0,
       vendorsMissingSearchableProducts: 0,
@@ -499,7 +671,7 @@ describe("MarketsService", () => {
       missingSearchEntrypointVendors: [],
     });
 
-    (service as any).d1 = createD1(
+    service["d1"] = createD1(
       [],
       [[{ restaurantId: "restaurant-2" }], [{ restaurantId: "restaurant-3" }]],
     );
@@ -533,7 +705,7 @@ describe("MarketsService", () => {
     });
 
     await expect(
-      (service as any).catalogCoverageWithVendorBreakdown("market-1"),
+      service["catalogCoverageWithVendorBreakdown"]("market-1"),
     ).resolves.toMatchObject({
       searchableProductCount: 5,
       publicServiceCount: 2,
@@ -563,10 +735,12 @@ describe("MarketsService", () => {
     const { service } = createService();
     vi.spyOn(service, "getMarketBySlug")
       .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        market: { id: "market-1" },
-        publicReadiness: { ready: false },
-      } as any);
+      .mockResolvedValueOnce(
+        buildMarketBySlug({
+          market: buildMarketRow({ id: "market-1" }),
+          publicReadiness: buildReadiness({ ready: false }),
+        }),
+      );
 
     await expect(service.listVendors("missing", {})).resolves.toBeNull();
     await expect(service.listVendors("draft-market", {})).resolves.toBeNull();
@@ -577,14 +751,14 @@ describe("MarketsService", () => {
     const { service, values } = createService("9");
 
     await expect(
-      (service as any).publicCacheKey("list", {
+      service["publicCacheKey"]("list", {
         z: 1,
         a: { b: 2, a: 1 },
         skipped: undefined,
       }),
     ).resolves.toBe('markets:v9:list:{"a":{"a":1,"b":2},"z":1}');
 
-    await (service as any).bumpPublicCacheVersion();
+    await service["bumpPublicCacheVersion"]();
 
     expect(values.get("markets:version")).toBe("10");
   });
@@ -593,16 +767,16 @@ describe("MarketsService", () => {
     const serviceWithoutKV = new MarketsService({} as D1Database);
 
     await expect(
-      (serviceWithoutKV as any).publicCacheKey("areas", null),
+      serviceWithoutKV["publicCacheKey"]("areas", null),
     ).resolves.toBe("markets:v1:areas:null");
     await expect(
-      (serviceWithoutKV as any).bumpPublicCacheVersion(),
+      serviceWithoutKV["bumpPublicCacheVersion"](),
     ).resolves.toBeUndefined();
 
     const { service, values } = createService("invalid");
     const nowSpy = vi.spyOn(Date, "now").mockReturnValue(1_785_456_000_000);
 
-    await (service as any).bumpPublicCacheVersion();
+    await service["bumpPublicCacheVersion"]();
 
     expect(values.get("markets:version")).toBe("1785456000000");
     nowSpy.mockRestore();
@@ -611,7 +785,7 @@ describe("MarketsService", () => {
   it("maps uncached market list rows with catalog coverage and public readiness", async () => {
     mocks.cache.get.mockResolvedValue(null);
     const { service, values } = createService("3");
-    (service as any).d1 = createD1([
+    service["d1"] = createD1([
       { count: 2 },
       {
         booking_required_service_count: 1,
@@ -682,7 +856,7 @@ describe("MarketsService", () => {
   it("builds market detail exploration facets and readiness on cache misses", async () => {
     mocks.cache.get.mockResolvedValue(null);
     const { service } = createService("4");
-    (service as any).d1 = createD1([
+    service["d1"] = createD1([
       { count: 1 },
       {
         booking_required_service_count: 2,
@@ -766,14 +940,14 @@ describe("MarketsService", () => {
 
   it("maps filtered admin market queries with vendor breakdown coverage", async () => {
     const { service } = createService();
-    const coverage = {
+    const coverage = buildFullCoverage({
       searchableProductCount: 2,
       publicServiceCount: 3,
       vendorsWithSearchableProducts: 1,
       vendorsMissingSearchableProducts: 0,
-    };
-    vi.spyOn(
-      service as any,
+    });
+    spyOnPrivate(
+      service,
       "catalogCoverageWithVendorBreakdown",
     ).mockResolvedValue(coverage);
     mockSelectResults({
@@ -801,7 +975,7 @@ describe("MarketsService", () => {
     });
 
     await expect(
-      (service as any).queryMarkets(
+      service["queryMarkets"](
         {
           q: "rice",
           district: "Central",
@@ -826,18 +1000,17 @@ describe("MarketsService", () => {
         },
       ],
     });
-    expect(
-      (service as any).catalogCoverageWithVendorBreakdown,
-    ).toHaveBeenCalledWith("market-1");
+    expect(service["catalogCoverageWithVendorBreakdown"]).toHaveBeenCalledWith(
+      "market-1",
+    );
   });
 
   it("lists vendors with open and distance filters plus menu/service access counts", async () => {
     mocks.cache.get.mockResolvedValue(null);
     const { service } = createService("5");
-    vi.spyOn(service, "getMarketBySlug").mockResolvedValue({
-      market: { id: "market-1" },
-      publicReadiness: { ready: true },
-    } as any);
+    vi.spyOn(service, "getMarketBySlug").mockResolvedValue(
+      buildMarketBySlug({ market: buildMarketRow({ id: "market-1" }) }),
+    );
     mockSelectResults({
       restaurantMarketMemberships: [
         [
@@ -910,10 +1083,9 @@ describe("MarketsService", () => {
   it("lists vendors with keyword, capability filters, rating order, and default access counts", async () => {
     mocks.cache.get.mockResolvedValue(null);
     const { service } = createService("11");
-    vi.spyOn(service, "getMarketBySlug").mockResolvedValue({
-      market: { id: "market-1" },
-      publicReadiness: { ready: true },
-    } as any);
+    vi.spyOn(service, "getMarketBySlug").mockResolvedValue(
+      buildMarketBySlug({ market: buildMarketRow({ id: "market-1" }) }),
+    );
     mockSelectResults({
       restaurantMarketMemberships: [
         [
@@ -978,7 +1150,7 @@ describe("MarketsService", () => {
   it("returns empty vendor access lists without running count queries", async () => {
     const { service } = createService();
 
-    await expect((service as any).withVendorAccess([])).resolves.toEqual([]);
+    await expect(service["withVendorAccess"]([])).resolves.toEqual([]);
 
     expect(mocks.db.select).not.toHaveBeenCalled();
   });
@@ -1017,10 +1189,16 @@ describe("MarketsService", () => {
         id: "market-1",
         slug: "created",
         name: "Created",
-      } as any),
+        type: "night_market",
+        city: "台中市",
+        district: "西屯區",
+        address: "文華路",
+        latitude: 24.1,
+        longitude: 120.6,
+      }),
     ).resolves.toEqual({ id: "market-1", slug: "created" });
     await expect(
-      service.updateMarket("market-1", { name: "Updated" } as any),
+      service.updateMarket("market-1", { name: "Updated" }),
     ).resolves.toEqual({ id: "market-1", name: "Updated" });
     await expect(service.softDeleteMarket("market-1")).resolves.toBe(true);
     await expect(
@@ -1205,7 +1383,7 @@ describe("MarketsService", () => {
   it("lists sitemap entries, uncached areas, nearby markets, and direct market lookup", async () => {
     mocks.cache.get.mockResolvedValue(null);
     const { service } = createService("6");
-    (service as any).d1 = createD1([
+    service["d1"] = createD1([
       { count: 1 },
       {
         booking_required_service_count: 0,

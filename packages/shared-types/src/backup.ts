@@ -75,10 +75,17 @@ export interface BackupRecord {
       total_tables: number;
       total_records: number;
     };
+    /**
+     * Stored manifests are partial and may be snake_case: BackupService's
+     * getManifestFromBackup reads both spellings and falls back to the record's
+     * own tables_included/completed_at/checksum for whatever is missing.
+     */
     manifest?: {
-      rowCounts: Record<string, number>;
-      tables: string[];
-      createdAt: string;
+      rowCounts?: Record<string, number>;
+      row_counts?: Record<string, number>;
+      tables?: string[];
+      createdAt?: string;
+      created_at?: string;
       checksum?: string;
     };
   };

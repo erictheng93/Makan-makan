@@ -17,6 +17,13 @@ vi.mock("drizzle-orm/d1", () => ({
 }));
 
 import { BackupValidationService } from "./BackupValidationService";
+import type { Context } from "hono";
+import type {
+  BackupConfiguration,
+  BackupType,
+  CreateBackupRequest,
+  RestoreBackupRequest,
+} from "@makanmasak/shared-types";
 
 const restaurantId = "019469a0-0001-7000-8000-000000000001";
 const backupId = "019469a0-0002-7000-8000-000000000002";
@@ -33,16 +40,37 @@ function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
   Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
 }
 
-function createContext(user: Record<string, unknown>) {
+/**
+ * verifyRestaurantAccess only reads `c.get("user")`, so the stub names that
+ * slice of Hono's Context rather than standing in for the whole thing.
+ */
+function createContext(user: Record<string, unknown>): Context {
   return {
     get: vi.fn((key: string) => {
       if (key === "user") return user;
       return undefined;
     }),
-  } as any;
+  } as unknown as Context;
 }
 
-function validCreateRequest(overrides: Record<string, unknown> = {}) {
+/**
+ * These validators exist because the values arrive off the wire, where nothing
+ * has narrowed them to their union yet — the route hands the parsed body over
+ * before any of this has been checked.
+ */
+function untypedBackupType(value: string): BackupType {
+  return value as BackupType;
+}
+
+function untypedRestoreType(
+  value: string,
+): RestoreBackupRequest["restore_type"] {
+  return value as RestoreBackupRequest["restore_type"];
+}
+
+function validCreateRequest(
+  overrides: Partial<CreateBackupRequest> = {},
+): CreateBackupRequest {
   return {
     restaurant_id: restaurantId,
     name: "Daily backup",
@@ -50,24 +78,29 @@ function validCreateRequest(overrides: Record<string, unknown> = {}) {
     backup_type: "full",
     configuration_id: configurationId,
     ...overrides,
-  } as any;
+  };
 }
 
-function validRestoreRequest(overrides: Record<string, unknown> = {}) {
+function validRestoreRequest(
+  overrides: Partial<RestoreBackupRequest> = {},
+): RestoreBackupRequest {
   return {
     restaurant_id: restaurantId,
     backup_id: backupId,
     restore_type: "full",
+    overwrite_existing: false,
     safety_confirmation: {
       confirmation_phrase: "I understand the risks",
       backup_integrity_verified: true,
       data_loss_risk_acknowledged: true,
     },
     ...overrides,
-  } as any;
+  };
 }
 
-function validConfiguration(overrides: Record<string, unknown> = {}) {
+function validConfiguration(
+  overrides: Partial<BackupConfiguration> = {},
+): Partial<BackupConfiguration> {
   return {
     restaurant_id: restaurantId,
     name: "Default backup",
@@ -79,7 +112,7 @@ function validConfiguration(overrides: Record<string, unknown> = {}) {
     schedule_cron: "*/15 0-23 1,15 * 0-7",
     notification_channels: ["email", "slack"],
     ...overrides,
-  } as any;
+  };
 }
 
 describe("BackupValidationService", () => {
@@ -121,7 +154,7 @@ describe("BackupValidationService", () => {
       ),
     ).rejects.toThrow("Backup description must be 500 characters or less");
     await expect(
-      service.validateCreateBackupRequest(validCreateRequest({ backup_type: "snapshot" })),
+      service.validateCreateBackupRequest(validCreateRequest({ backup_type: untypedBackupType("snapshot") })),
     ).rejects.toThrow("Invalid backup type");
     await expect(
       service.validateCreateBackupRequest(
@@ -137,7 +170,7 @@ describe("BackupValidationService", () => {
       service.validateRestoreRequest(validRestoreRequest({ backup_id: "bad" })),
     ).rejects.toThrow("Valid backup ID is required");
     await expect(
-      service.validateRestoreRequest(validRestoreRequest({ restore_type: "partial" })),
+      service.validateRestoreRequest(validRestoreRequest({ restore_type: untypedRestoreType("partial") })),
     ).rejects.toThrow("Invalid restore type");
     await expect(
       service.validateRestoreRequest(validRestoreRequest({ safety_confirmation: undefined })),
@@ -200,7 +233,7 @@ describe("BackupValidationService", () => {
       ),
     ).rejects.toThrow("Configuration description must be 500 characters or less");
     await expect(
-      service.validateConfigurationRequest(validConfiguration({ backup_type: "archive" })),
+      service.validateConfigurationRequest(validConfiguration({ backup_type: untypedBackupType("archive") })),
     ).rejects.toThrow("Invalid backup type");
     await expect(
       service.validateConfigurationRequest(validConfiguration({ retention_days: 0 })),

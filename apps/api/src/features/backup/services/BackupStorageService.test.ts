@@ -10,9 +10,14 @@ function createR2() {
 
   return {
     objects,
-    put: vi.fn(async (key: string, data: string, options?: any) => {
-      objects.set(key, { data, customMetadata: options?.customMetadata });
-    }),
+    put: vi.fn(
+      async (key: string, data: string, options?: R2PutOptions) => {
+        objects.set(key, {
+          data,
+          customMetadata: options?.customMetadata,
+        });
+      },
+    ),
     get: vi.fn(async (key: string) => {
       const object = objects.get(key);
       return object ? { text: vi.fn(async () => object.data) } : null;
@@ -42,9 +47,15 @@ function createKv() {
 
   return {
     values,
-    put: vi.fn(async (key: string, value: string, options?: any) => {
-      values.set(key, { value, metadata: options?.metadata });
-    }),
+    put: vi.fn(
+      async (
+        key: string,
+        value: string,
+        options?: KVNamespacePutOptions,
+      ) => {
+        values.set(key, { value, metadata: options?.metadata ?? undefined });
+      },
+    ),
     get: vi.fn(async (key: string) => values.get(key)?.value ?? null),
     getWithMetadata: vi.fn(async (key: string) => ({
       value: values.get(key)?.value ?? null,
