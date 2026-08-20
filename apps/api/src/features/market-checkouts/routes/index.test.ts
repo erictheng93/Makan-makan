@@ -162,10 +162,21 @@ const adminUser = vi.hoisted(
       restaurantId: "platform",
     }) as AuthUser,
 );
+// Whether the shopper driving the next request is signed in, as the optional
+// customer auth middleware would report it.
+const signedInCustomer = vi.hoisted(
+  () => ({ value: null }) as { value: { id: string } | null },
+);
 
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c, next) => {
     c.set("user", adminUser);
+    await next();
+  }),
+  optionalCanonicalCustomerAuthMiddleware: vi.fn(async (c, next) => {
+    if (signedInCustomer.value) {
+      c.set("customer", signedInCustomer.value);
+    }
     await next();
   }),
   requireRole: vi.fn(
@@ -638,6 +649,7 @@ function setTwoVendorCreateFixtures(options?: {
 
 describe("market checkout routes", () => {
   beforeEach(() => {
+    signedInCustomer.value = null;
     databaseMocks.selectFixtures.clear();
     databaseMocks.insertValues.length = 0;
     databaseMocks.updateValues.length = 0;
@@ -1054,6 +1066,67 @@ describe("market checkout routes", () => {
 
     await expectApiError(response, 409, "MARKET_VENDOR_ACTIVE_ORDER_EXISTS");
     expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it("links every child order to the shopper's account when they are signed in", async () => {
+    // The same route serves anonymous and signed-in shoppers, and a child order
+    // with a null customer_id never shows up in `GET /customers/me/orders`.
+    signedInCustomer.value = { id: "customer-9" };
+    setTwoVendorCreateFixtures();
+    createOrder
+      .mockResolvedValueOnce({
+        id: 1001,
+        orderNumber: "A001",
+        totalAmount: 120,
+        totalAmountCents: 12000,
+      })
+      .mockResolvedValueOnce({
+        id: 1002,
+        orderNumber: "A002",
+        totalAmount: 80,
+        totalAmountCents: 8000,
+      });
+    const env = createEnv();
+
+    const response = await routes.fetch(
+      twoVendorRequestWithHeaders({}),
+      env as never,
+    );
+
+    expect(response.status).toBe(201);
+    expect(createOrder).toHaveBeenCalledTimes(2);
+    for (const call of createOrder.mock.calls) {
+      expect(call[0]).toMatchObject({ customerId: "customer-9" });
+    }
+  });
+
+  it("leaves an anonymous shopper's child orders unlinked", async () => {
+    setTwoVendorCreateFixtures();
+    createOrder
+      .mockResolvedValueOnce({
+        id: 1001,
+        orderNumber: "A001",
+        totalAmount: 120,
+        totalAmountCents: 12000,
+      })
+      .mockResolvedValueOnce({
+        id: 1002,
+        orderNumber: "A002",
+        totalAmount: 80,
+        totalAmountCents: 8000,
+      });
+    const env = createEnv();
+
+    const response = await routes.fetch(
+      twoVendorRequestWithHeaders({}),
+      env as never,
+    );
+
+    expect(response.status).toBe(201);
+    expect(createOrder).toHaveBeenCalledTimes(2);
+    for (const call of createOrder.mock.calls) {
+      expect(call[0].customerId).toBeUndefined();
+    }
   });
 
   it("keys every vendor's lock on the shopper's device id", async () => {

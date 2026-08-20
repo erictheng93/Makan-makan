@@ -27,7 +27,11 @@ import {
   type GuestLockIdentity,
   type GuestTokenData,
 } from "../../../middleware/guestAuth";
-import { authMiddleware, requireRole } from "../../../middleware/auth";
+import {
+  authMiddleware,
+  optionalCanonicalCustomerAuthMiddleware,
+  requireRole,
+} from "../../../middleware/auth";
 import { OrdersService } from "../../orders/services/OrdersService";
 import type { OrderPaymentStatus, OrderStatus } from "../../orders/types";
 import {
@@ -338,7 +342,7 @@ interface MarketCheckoutProviderPayloadSummary {
   failureReason?: string;
 }
 
-app.post("/", async (c) => {
+app.post("/", optionalCanonicalCustomerAuthMiddleware, async (c) => {
   const body = await c.req.json();
   const parsed = createMarketCheckoutSchema.safeParse(body);
   if (!parsed.success) {
@@ -493,6 +497,11 @@ app.post("/", async (c) => {
     for (const { vendor, restaurant } of vendors) {
       const childOrder = await ordersService.createOrder({
         restaurantId: vendor.restaurantId,
+        // A shopper with an account still checks out through this guest route,
+        // so without this the order lands with a null customer_id and never
+        // reaches `GET /customers/me/orders`, which filters on exactly that
+        // column. Anonymous shoppers keep an unlinked order, as before.
+        customerId: c.get("customer")?.id,
         customerInfo: {
           name: data.guestName,
         },
