@@ -12,6 +12,7 @@ import {
 import routes from "./index";
 import type { AppliedMarketCheckoutVoucher } from "../services/MarketCheckoutVoucherService";
 import { ApiError } from "../../../shared/utils/api-error";
+import { GUEST_DEVICE_ID_HEADER } from "../../../middleware/guestAuth";
 import {
   mockMarketCheckoutProviderPaidWebhookPayload,
   mockMarketCheckoutProviderPaidStatusResponse,
@@ -556,6 +557,31 @@ async function expectApiError(
 // present it in the Authorization header.
 const ACTIVE_GUEST_TOKEN = `gt_${"a".repeat(64)}`;
 
+// An opaque device id as the customer app generates it (crypto.randomUUID()).
+const GUEST_DEVICE_ID = "01890a5d-ac96-774b-bcce-b302099a8057";
+
+function twoVendorRequestWithHeaders(headers: Record<string, string>) {
+  return new Request("https://test/", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      marketSlug: "fengjia",
+      guestName: "Guest",
+      phoneLastDigits: "789",
+      vendors: [
+        {
+          restaurantId: "restaurant-1",
+          items: [{ menuItemId: 101, quantity: 1 }],
+        },
+        {
+          restaurantId: "restaurant-2",
+          items: [{ menuItemId: 202, quantity: 1 }],
+        },
+      ],
+    }),
+  });
+}
+
 function setTwoVendorCreateFixtures(options?: {
   firstRestaurant?: unknown;
   firstMembership?: unknown;
@@ -840,14 +866,17 @@ describe("market checkout routes", () => {
       .filter((key: string) => key.startsWith("guest_active:"));
     expect(activeLookups).toEqual([]);
 
-    // Each vendor's lock is written under that vendor's own issued token.
+    // Every vendor's lock is written under one identity — the first child's
+    // token, which is the one the customer app keeps as its bearer. Keying each
+    // vendor on its own minted token would leave every lock but the first
+    // unreadable on the next checkout.
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
       "guest_active:restaurant-1:token:guest-token-1",
       "1001",
       { expirationTtl: 7200 },
     );
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
-      "guest_active:restaurant-2:token:guest-token-2",
+      "guest_active:restaurant-2:token:guest-token-1",
       "1002",
       { expirationTtl: 7200 },
     );
@@ -1018,6 +1047,99 @@ describe("market checkout routes", () => {
               },
             ],
           }),
+        }),
+        env as never,
+      ),
+    );
+
+    await expectApiError(response, 409, "MARKET_VENDOR_ACTIVE_ORDER_EXISTS");
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it("keys every vendor's lock on the shopper's device id", async () => {
+    setTwoVendorCreateFixtures();
+    createOrder
+      .mockResolvedValueOnce({
+        id: 1001,
+        orderNumber: "A001",
+        totalAmount: 120,
+        totalAmountCents: 12000,
+      })
+      .mockResolvedValueOnce({
+        id: 1002,
+        orderNumber: "A002",
+        totalAmount: 80,
+        totalAmountCents: 8000,
+      });
+    const env = createEnv();
+
+    const response = await routes.fetch(
+      twoVendorRequestWithHeaders({
+        [GUEST_DEVICE_ID_HEADER]: GUEST_DEVICE_ID,
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(201);
+    const activeLookups = env.CACHE_KV.get.mock.calls
+      .map(([key]: [string]) => key)
+      .filter((key: string) => key.startsWith("guest_active:"));
+    expect(activeLookups).toEqual([
+      `guest_active:restaurant-1:device:${GUEST_DEVICE_ID}`,
+      `guest_active:restaurant-2:device:${GUEST_DEVICE_ID}`,
+    ]);
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      `guest_active:restaurant-1:device:${GUEST_DEVICE_ID}`,
+      "1001",
+      { expirationTtl: 7200 },
+    );
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      `guest_active:restaurant-2:device:${GUEST_DEVICE_ID}`,
+      "1002",
+      { expirationTtl: 7200 },
+    );
+  });
+
+  it("blocks a later checkout at a vendor that was not the first of the earlier one", async () => {
+    // The vendor holding the open order is the *second* of this checkout, and
+    // the lock was written during a checkout whose first child minted a
+    // different token. Only a device-wide identity finds it.
+    setTwoVendorCreateFixtures({ menuItems: [] });
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      `guest_active:restaurant-2:device:${GUEST_DEVICE_ID}`,
+      "1002",
+    );
+
+    const response = await withSilencedRouteError(() =>
+      routes.fetch(
+        twoVendorRequestWithHeaders({
+          [GUEST_DEVICE_ID_HEADER]: GUEST_DEVICE_ID,
+        }),
+        env as never,
+      ),
+    );
+
+    await expectApiError(response, 409, "MARKET_VENDOR_ACTIVE_ORDER_EXISTS");
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it("still checks the lock when a signed-in shopper's bearer token is a customer JWT", async () => {
+    // Market checkout runs through this guest route even for a shopper with an
+    // account, and the customer app sends the customer JWT in Authorization.
+    // Reading the identity off that header alone would skip the check entirely.
+    setTwoVendorCreateFixtures({ menuItems: [] });
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      `guest_active:restaurant-1:device:${GUEST_DEVICE_ID}`,
+      "1001",
+    );
+
+    const response = await withSilencedRouteError(() =>
+      routes.fetch(
+        twoVendorRequestWithHeaders({
+          [GUEST_DEVICE_ID_HEADER]: GUEST_DEVICE_ID,
+          Authorization: "Bearer eyJhbGciOiJIUzI1NiJ9.e30.signature",
         }),
         env as never,
       ),

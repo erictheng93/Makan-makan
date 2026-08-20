@@ -22,8 +22,9 @@ import { meterEmit } from "../../../shared/utils/meter";
 import { rateLimitMiddleware } from "../../../middleware/rateLimiter";
 import {
   generateGuestToken,
-  getGuestBearerToken,
   guestActiveOrderKey,
+  resolveGuestLockIdentity,
+  type GuestLockIdentity,
   type GuestTokenData,
 } from "../../../middleware/guestAuth";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
@@ -371,16 +372,22 @@ app.post("/", async (c) => {
     throw badRequest("Each vendor can appear only once in a market checkout");
   }
 
-  // Active-order locks are scoped to the guest token this device already
-  // holds. A brand-new anonymous shopper has no stable identity yet, so there
-  // is nothing to check — deliberately, because the previous IP-derived
-  // identifier made a market's shared WiFi (or a carrier's CGNAT address) the
-  // lock and let one shopper's open order block every other shopper at every
-  // vendor they touched. See the same fix in guest-orders.
-  const requestGuestToken = getGuestBearerToken(c.req.header("Authorization"));
-  const activeOrderKeys = requestGuestToken
+  // Active-order locks are scoped to the identity this device already holds —
+  // its device id, or the guest token it carries when it predates the device
+  // id. A brand-new anonymous shopper has neither, so there is nothing to
+  // check — deliberately, because the previous IP-derived identifier made a
+  // market's shared WiFi (or a carrier's CGNAT address) the lock and let one
+  // shopper's open order block every other shopper at every vendor they
+  // touched. See the same fix in guest-orders.
+  //
+  // One identity covers the whole checkout. Keying each vendor's lock on that
+  // vendor's own minted token would make the locks unreadable: the customer app
+  // can only carry one token as its bearer, so every other vendor's lock would
+  // be invisible on the next checkout.
+  const requestLockIdentity = resolveGuestLockIdentity(c.req);
+  const activeOrderKeys = requestLockIdentity
     ? restaurantIds.map((restaurantId) =>
-        guestActiveOrderKey(restaurantId, requestGuestToken),
+        guestActiveOrderKey(restaurantId, requestLockIdentity),
       )
     : [];
 
@@ -467,6 +474,7 @@ app.post("/", async (c) => {
   const ordersService = new OrdersService(c.env);
   const checkoutId = generateUUID();
   const children = [];
+  let checkoutLockIdentity: GuestLockIdentity | null = requestLockIdentity;
 
   // Compensation ledger. D1 has no cross-statement transaction, so each vendor
   // order is committed independently as the loop advances. If a later vendor's
@@ -520,9 +528,13 @@ app.post("/", async (c) => {
 
       const fourHoursInSeconds = 4 * 60 * 60;
       const twoHoursInSeconds = 2 * 60 * 60;
+      // A device that presented no identity gets the whole checkout's locks
+      // keyed on the first child's token — the one the customer app stores as
+      // its bearer, so its next checkout arrives holding the matching key.
+      checkoutLockIdentity ??= { kind: "token", value: guestToken };
       const activeOrderKey = guestActiveOrderKey(
         vendor.restaurantId,
-        guestToken,
+        checkoutLockIdentity,
       );
 
       // Record for compensation before writing locks: if the KV writes below

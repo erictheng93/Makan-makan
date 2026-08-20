@@ -88,6 +88,7 @@ export const corsMiddleware = async (
       "X-Request-ID",
       "X-Restaurant-ID",
       "X-Table-ID",
+      "X-Guest-Device-Id",
     ].join(", "),
   );
 

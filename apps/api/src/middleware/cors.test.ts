@@ -28,6 +28,7 @@ describe("corsMiddleware", () => {
             "x-request-id",
             "x-restaurant-id",
             "x-table-id",
+            "x-guest-device-id",
           ].join(", "),
         },
       }),
@@ -49,6 +50,7 @@ describe("corsMiddleware", () => {
     expect(allowedHeaders).toContain("x-request-id");
     expect(allowedHeaders).toContain("x-restaurant-id");
     expect(allowedHeaders).toContain("x-table-id");
+    expect(allowedHeaders).toContain("x-guest-device-id");
     expect(response.headers.get("Access-Control-Expose-Headers")).toContain(
       "X-Request-ID",
     );

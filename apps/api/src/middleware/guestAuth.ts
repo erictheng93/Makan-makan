@@ -121,18 +121,68 @@ export function getGuestBearerToken(
   return /^gt_[0-9a-f]{64}$/i.test(token) ? token : null;
 }
 
+/** Header carrying the customer app's opaque, per-device guest identifier. */
+export const GUEST_DEVICE_ID_HEADER = "X-Guest-Device-Id";
+
+/**
+ * Extract the caller's device identifier from `X-Guest-Device-Id`.
+ * The value is opaque and client-generated, so it proves nothing — it only
+ * says "the same browser storage that ordered before is ordering again".
+ * Charset and length are bounded because the value lands in a KV key.
+ */
+export function getGuestDeviceId(deviceId: string | undefined): string | null {
+  const trimmed = deviceId?.trim();
+  if (!trimmed) return null;
+  return /^[A-Za-z0-9_-]{16,64}$/.test(trimmed) ? trimmed : null;
+}
+
+/**
+ * Which identity a device's active-order locks hang off. The two kinds live in
+ * separate key namespaces so a lock written under one can never be read back
+ * under the other.
+ */
+export type GuestLockIdentity =
+  | { kind: "device"; value: string }
+  | { kind: "token"; value: string };
+
+/**
+ * Resolve the active-order lock identity for a request.
+ *
+ * Prefers the device id, because a guest token identifies one *order*, not one
+ * device: a market checkout mints one token per vendor and the customer app can
+ * only carry one of them as its bearer, so a token-keyed lock is unreadable for
+ * every other vendor in that checkout. The device id is also the only identity
+ * that survives sign-in — the customer app sends its customer JWT in
+ * `Authorization` once the shopper has an account, which leaves no guest token
+ * to key on at all.
+ *
+ * Returns null when the request carries neither, which is a legitimate state
+ * (a brand-new shopper) and simply means there is nothing to check yet. Never
+ * key this on the client IP: a market's shared WiFi (or a carrier's CGNAT) puts
+ * every customer behind one address, which would make one guest's open order
+ * block the whole venue.
+ */
+export function resolveGuestLockIdentity(req: {
+  header(name: string): string | undefined;
+}): GuestLockIdentity | null {
+  const deviceId = getGuestDeviceId(req.header(GUEST_DEVICE_ID_HEADER));
+  if (deviceId) return { kind: "device", value: deviceId };
+
+  const guestToken = getGuestBearerToken(req.header("Authorization"));
+  return guestToken ? { kind: "token", value: guestToken } : null;
+}
+
 /**
  * Build the per-device active-order lock key for a restaurant.
- * The lock must be scoped to something the customer's own device holds — a
- * guest token — never to the client IP: a restaurant's shared WiFi (or a
- * carrier's CGNAT) puts every customer behind one address, which would make
- * one guest's open order block the whole venue.
+ * The lock must be scoped to something the customer's own device holds, never
+ * to the client IP. Both the check and the write must pass the same identity —
+ * see `resolveGuestLockIdentity`.
  */
 export function guestActiveOrderKey(
   restaurantId: string,
-  guestToken: string,
+  identity: GuestLockIdentity,
 ): string {
-  return `guest_active:${restaurantId}:token:${guestToken}`;
+  return `guest_active:${restaurantId}:${identity.kind}:${identity.value}`;
 }
 
 /**

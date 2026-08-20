@@ -17,8 +17,8 @@ import type { Env } from "../../../types/env";
 import {
   guestTokenAuth,
   generateGuestToken,
-  getGuestBearerToken,
   guestActiveOrderKey,
+  resolveGuestLockIdentity,
 } from "../../../middleware/guestAuth";
 import type { GuestTokenData } from "../../../middleware/guestAuth";
 import {
@@ -84,12 +84,12 @@ app.post("/", validateBody(createGuestOrderSchema), async (c) => {
     assertShopQrCurrent(restaurant.shopQrCode, data.shopQrCode);
   }
 
-  // 2. Check active order limit for this device when it already has a guest
-  // token. Brand-new anonymous guests have no stable identity yet; using IP
-  // here incorrectly makes a restaurant's shared WiFi/CGNAT address the lock.
-  const requestGuestToken = getGuestBearerToken(c.req.header("Authorization"));
-  const existingActiveOrderKey = requestGuestToken
-    ? guestActiveOrderKey(data.restaurantId, requestGuestToken)
+  // 2. Check active order limit for this device when it already carries an
+  // identity. Brand-new anonymous guests have none yet; using IP here
+  // incorrectly makes a restaurant's shared WiFi/CGNAT address the lock.
+  const requestLockIdentity = resolveGuestLockIdentity(c.req);
+  const existingActiveOrderKey = requestLockIdentity
+    ? guestActiveOrderKey(data.restaurantId, requestLockIdentity)
     : null;
   const existingActiveOrder = existingActiveOrderKey
     ? await c.env.CACHE_KV.get(existingActiveOrderKey)
@@ -219,9 +219,14 @@ app.post("/", validateBody(createGuestOrderSchema), async (c) => {
     { expirationTtl: fourHoursInSeconds },
   );
 
-  // 6. Set active order KV key (2hr TTL)
+  // 6. Set active order KV key (2hr TTL). A device that presented no identity
+  // gets its lock keyed on the token minted just above — the customer app
+  // stores that token, so its next order arrives holding the matching key.
   const twoHoursInSeconds = 2 * 60 * 60;
-  const activeOrderKey = guestActiveOrderKey(data.restaurantId, guestToken);
+  const activeOrderKey = guestActiveOrderKey(
+    data.restaurantId,
+    requestLockIdentity ?? { kind: "token", value: guestToken },
+  );
   await c.env.CACHE_KV.put(activeOrderKey, String(order.id), {
     expirationTtl: twoHoursInSeconds,
   });
@@ -332,18 +337,18 @@ app.post("/:id/cancel", guestTokenAuth, async (c) => {
     "Cancelled by guest",
   );
 
-  // Clean up KV keys. The active-order lock is keyed by the guest token that
-  // created the order, so resolve it via the `guest_active_lookup:{orderId}`
-  // reverse mapping written at creation (same as the admin cancel path).
-  // Fall back to rebuilding the key from the token this request presented —
-  // for a guest cancelling their own order that is the same token.
+  // Clean up KV keys. The active-order lock is keyed by whatever identity the
+  // device held when the order was created, so resolve it via the
+  // `guest_active_lookup:{orderId}` reverse mapping written at creation (same
+  // as the admin cancel path). Fall back to rebuilding the key from the
+  // identity this request presents — usually the same one.
   const guestData = c.get("guestOrder");
-  const requestGuestToken = getGuestBearerToken(c.req.header("Authorization"));
+  const requestLockIdentity = resolveGuestLockIdentity(c.req);
   const lookupKey = `guest_active_lookup:${orderId}`;
   const activeOrderKey =
     (await c.env.CACHE_KV.get(lookupKey)) ??
-    (requestGuestToken
-      ? guestActiveOrderKey(guestData.restaurantId, requestGuestToken)
+    (requestLockIdentity
+      ? guestActiveOrderKey(guestData.restaurantId, requestLockIdentity)
       : null);
   await Promise.allSettled([
     activeOrderKey ? c.env.CACHE_KV.delete(activeOrderKey) : Promise.resolve(),

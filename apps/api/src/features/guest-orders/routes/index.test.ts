@@ -560,6 +560,68 @@ describe("guest order routes", () => {
     expect(createOrder).not.toHaveBeenCalled();
   });
 
+  it("locks on the device id when the shopper presents one", async () => {
+    // A guest token identifies one order — a market checkout mints one per
+    // vendor and the app can only carry one of them — so the device id, not
+    // the bearer token, is the identity the lock hangs off.
+    const deviceId = "01890a5d-ac96-774b-bcce-b302099a8057";
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      `guest_active:restaurant-1:device:${deviceId}`,
+      "501",
+    );
+    setSelectFixtures({ restaurants: [[activeGuestRestaurant()]] });
+    const app = createRoutesWithApiErrorHandler();
+
+    const response = await app.fetch(
+      new Request("https://test/", {
+        method: "POST",
+        headers: {
+          "X-Guest-Device-Id": deviceId,
+          Authorization: `Bearer gt_${"b".repeat(64)}`,
+        },
+        body: JSON.stringify(validGuestOrderBody()),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(429);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: { code: "ACTIVE_GUEST_ORDER_EXISTS" },
+    });
+    expect(createOrder).not.toHaveBeenCalled();
+  });
+
+  it("writes the new order's lock under the device id", async () => {
+    const deviceId = "01890a5d-ac96-774b-bcce-b302099a8057";
+    setSelectFixtures({ restaurants: [[activeGuestRestaurant()]] });
+    createOrder.mockResolvedValueOnce({ id: 501, orderNumber: "G001" });
+    const env = createEnv();
+    const app = createRoutesWithApiErrorHandler();
+
+    const response = await app.fetch(
+      new Request("https://test/", {
+        method: "POST",
+        headers: { "X-Guest-Device-Id": deviceId },
+        body: JSON.stringify(validGuestOrderBody()),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(201);
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      `guest_active:restaurant-1:device:${deviceId}`,
+      "501",
+      { expirationTtl: 7200 },
+    );
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "guest_active_lookup:501",
+      `guest_active:restaurant-1:device:${deviceId}`,
+      { expirationTtl: 7200 },
+    );
+  });
+
   it("does not block separate anonymous guests sharing the same restaurant, table, and IP", async () => {
     setSelectFixtures({
       restaurants: [[activeGuestRestaurant()], [activeGuestRestaurant()]],

@@ -1,6 +1,13 @@
 import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
-import { guestSessionAuth, guestTokenAuth } from "./guestAuth";
+import {
+  GUEST_DEVICE_ID_HEADER,
+  getGuestDeviceId,
+  guestActiveOrderKey,
+  guestSessionAuth,
+  guestTokenAuth,
+  resolveGuestLockIdentity,
+} from "./guestAuth";
 import { ApiError } from "../shared/utils/api-error";
 
 /**
@@ -221,5 +228,70 @@ describe("guestSessionAuth", () => {
         throw downstreamError;
       }),
     ).rejects.toBe(downstreamError);
+  });
+});
+
+describe("guest lock identity", () => {
+  function reqWith(headers: Record<string, string>) {
+    return { header: (name: string) => headers[name] };
+  }
+
+  const guestToken = `gt_${"a".repeat(64)}`;
+  const deviceId = "0197f0b2-4b2c-7c11-9f3a-6b1d0c9e4d55";
+
+  it("prefers the device id over the guest token", () => {
+    expect(
+      resolveGuestLockIdentity(
+        reqWith({
+          [GUEST_DEVICE_ID_HEADER]: deviceId,
+          Authorization: `Bearer ${guestToken}`,
+        }),
+      ),
+    ).toEqual({ kind: "device", value: deviceId });
+  });
+
+  it("keeps a signed-in shopper's device identity, which the customer JWT would otherwise shadow", () => {
+    // The customer app sends the customer JWT in Authorization once the shopper
+    // has an account, and market checkout still runs through the guest route.
+    expect(
+      resolveGuestLockIdentity(
+        reqWith({
+          [GUEST_DEVICE_ID_HEADER]: deviceId,
+          Authorization: "Bearer eyJhbGciOiJIUzI1NiJ9.e30.signature",
+        }),
+      ),
+    ).toEqual({ kind: "device", value: deviceId });
+  });
+
+  it("falls back to the guest token for a device that predates the device id", () => {
+    expect(
+      resolveGuestLockIdentity(
+        reqWith({ Authorization: `Bearer ${guestToken}` }),
+      ),
+    ).toEqual({ kind: "token", value: guestToken });
+  });
+
+  it("returns null for a shopper carrying neither", () => {
+    expect(resolveGuestLockIdentity(reqWith({}))).toBeNull();
+  });
+
+  it("rejects device ids that are absent, malformed, or unbounded", () => {
+    // The value lands in a KV key, so anything outside the accepted charset or
+    // length is treated as no identity at all rather than being sanitised.
+    expect(getGuestDeviceId(undefined)).toBeNull();
+    expect(getGuestDeviceId("   ")).toBeNull();
+    expect(getGuestDeviceId("short")).toBeNull();
+    expect(getGuestDeviceId("a".repeat(65))).toBeNull();
+    expect(getGuestDeviceId("has:colon:and:more")).toBeNull();
+    expect(getGuestDeviceId(` ${deviceId} `)).toBe(deviceId);
+  });
+
+  it("keeps device and token locks in separate key namespaces", () => {
+    expect(
+      guestActiveOrderKey("restaurant-1", { kind: "device", value: deviceId }),
+    ).toBe(`guest_active:restaurant-1:device:${deviceId}`);
+    expect(
+      guestActiveOrderKey("restaurant-1", { kind: "token", value: guestToken }),
+    ).toBe(`guest_active:restaurant-1:token:${guestToken}`);
   });
 });

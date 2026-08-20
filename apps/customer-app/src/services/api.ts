@@ -5,6 +5,7 @@ import type {
   PaginatedResponse,
 } from "@makanmasak/shared-types";
 import { translate } from "@/utils/i18n";
+import { getOrCreateGuestDeviceId } from "@/utils/guestDevice";
 import {
   clearCustomerAccessToken,
   getCustomerAccessToken,
@@ -58,6 +59,16 @@ export class ApiException extends Error {
   }
 }
 
+/** Paths whose active-order lock is keyed on the guest device id. */
+const GUEST_DEVICE_IDENTITY_PATHS = ["/guest-orders", "/market-checkouts"];
+
+function usesGuestDeviceIdentity(url: string | undefined): boolean {
+  if (!url) return false;
+  return GUEST_DEVICE_IDENTITY_PATHS.some(
+    (path) => url === path || url.startsWith(`${path}/`),
+  );
+}
+
 // API 客戶端類
 class ApiClient {
   private instance: AxiosInstance;
@@ -96,6 +107,21 @@ class ApiClient {
 
         // 添加請求 ID
         config.headers["X-Request-ID"] = crypto.randomUUID();
+
+        // Guest ordering endpoints key their "one active order per vendor"
+        // lock on this device id. It goes out on those two paths only — not on
+        // every request, because a stable per-device id everywhere is a
+        // tracking identifier we have no use for. It is sent regardless of
+        // sign-in state: `Authorization` carries the customer JWT once the
+        // shopper has an account, and market checkout still runs through the
+        // guest route, so the JWT would otherwise leave the server no identity
+        // to lock on at all.
+        if (usesGuestDeviceIdentity(config.url)) {
+          const deviceId = getOrCreateGuestDeviceId();
+          if (deviceId) {
+            config.headers["X-Guest-Device-Id"] = deviceId;
+          }
+        }
 
         // 添加餐廳上下文
         const context = localStorage.getItem("makanmakan_restaurant_context");
