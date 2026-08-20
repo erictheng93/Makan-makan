@@ -521,14 +521,14 @@ describe("IngredientForecastService", () => {
       createForecastService() as never,
     );
 
-    expect((service as any).getDateRange("2026-06-08", "2026-06-10")).toEqual([
+    expect(service["getDateRange"]("2026-06-08", "2026-06-10")).toEqual([
       "2026-06-08",
       "2026-06-09",
       "2026-06-10",
     ]);
 
     expect(
-      (service as any).explodeForecast(
+      service["explodeForecast"](
         [
           {
             menuItemId: 1,

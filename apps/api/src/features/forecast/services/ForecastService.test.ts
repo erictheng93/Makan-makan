@@ -53,7 +53,7 @@ function createKV(initial: Record<string, unknown> = {}) {
           values.set(key, value);
         },
       ),
-    } as any,
+    } as unknown as KVNamespace,
   };
 }
 
@@ -63,7 +63,7 @@ function createKV(initial: Record<string, unknown> = {}) {
  * table can no longer shift another table's results out from under it.
  * `ForecastService` doesn't share a hoisted `db` mock (its `drizzle-orm/d1`
  * mock just returns `{}`) — each test that needs a select assigns
- * `(service as any).db = createSelectDb({...})` directly after constructing
+ * `service["db"] = createSelectDb({...})` directly after constructing
  * the service, matching the file's existing convention.
  *
  * Two things still need care when the code under test grows a new query:
@@ -117,6 +117,34 @@ type SelectFixtureName = keyof typeof fixtureTables;
 
 function createSelectDb(fixtures: SelectFixtures<SelectFixtureName> = {}) {
   return createSelectFixtureDb(fixtureTables, fixtures);
+}
+
+/**
+ * `service["db"]` is the drizzle instance; the fixture stands in for it and
+ * implements only the reads this suite drives.
+ */
+/**
+ * vi.spyOn cannot name a private method, but an indexed-access type can — so
+ * the target is viewed through an object carrying each method's real signature.
+ */
+type ForecastServicePrivates = {
+  getHistoricalSales: ForecastService["getHistoricalSales"];
+  saveForecastToDb: ForecastService["saveForecastToDb"];
+  getStaleCache: ForecastService["getStaleCache"];
+};
+
+function spyOnPrivate<K extends keyof ForecastServicePrivates>(
+  service: ForecastService,
+  key: K,
+) {
+  return vi.spyOn(service as unknown as ForecastServicePrivates, key);
+}
+
+function useSelectDb(
+  service: ForecastService,
+  db: ReturnType<typeof createSelectDb>,
+): void {
+  (service as unknown as { db: unknown }).db = db;
 }
 
 describe("ForecastService", () => {
@@ -185,12 +213,12 @@ describe("ForecastService", () => {
   it("generates weighted forecasts and persists them to KV and DB", async () => {
     const { kv, values } = createKV();
     const service = new ForecastService({} as D1Database, kv);
-    vi.spyOn(service as any, "getHistoricalSales").mockResolvedValue({
+    spyOnPrivate(service, "getHistoricalSales").mockResolvedValue({
       1: { name: "Tea", weeklySales: [20, 10, 10, 10] },
       2: { name: "Rice", weeklySales: [] },
     });
     const saveSpy = vi
-      .spyOn(service as any, "saveForecastToDb")
+      .spyOn(service as unknown as ForecastServicePrivates, "saveForecastToDb")
       .mockResolvedValue(undefined);
 
     const forecasts = await service.generateForecast("restaurant-1", {
@@ -231,15 +259,20 @@ describe("ForecastService", () => {
   it("returns stale DB cache when generation fails", async () => {
     const { kv } = createKV();
     const service = new ForecastService({} as D1Database, kv);
-    vi.spyOn(service as any, "getHistoricalSales").mockRejectedValue(
+    spyOnPrivate(service, "getHistoricalSales").mockRejectedValue(
       new Error("db unavailable"),
     );
-    vi.spyOn(service as any, "getStaleCache").mockResolvedValue({
+    spyOnPrivate(service, "getStaleCache").mockResolvedValue({
       date: "2026-06-08",
       type: "item_level",
       items: [],
       generatedBy: "statistical",
-      metadata: { generatedAt: "old" },
+      metadata: {
+        generatedAt: "old",
+        dataSourceDays: 28,
+        model: "statistical",
+        weights: {},
+      },
     });
 
     await expect(
@@ -258,14 +291,14 @@ describe("ForecastService", () => {
   it("computes date ranges and weighted prediction details", () => {
     const service = new ForecastService({} as D1Database, createKV().kv);
 
-    expect((service as any).getDateRange("2026-06-08", "2026-06-10")).toEqual([
+    expect(service["getDateRange"]("2026-06-08", "2026-06-10")).toEqual([
       "2026-06-08",
       "2026-06-09",
       "2026-06-10",
     ]);
 
     expect(
-      (service as any).calculatePrediction(7, {
+      service["calculatePrediction"](7, {
         name: "Nasi Lemak",
         weeklySales: [10, 10, 10, 10],
       }),
@@ -280,7 +313,7 @@ describe("ForecastService", () => {
     });
 
     expect(
-      (service as any).calculatePrediction(7, {
+      service["calculatePrediction"](7, {
         name: "Nasi Lemak",
         weeklySales: [],
       }),
@@ -290,27 +323,30 @@ describe("ForecastService", () => {
   it("hydrates fresh DB cache misses back into KV", async () => {
     const { kv } = createKV();
     const service = new ForecastService({} as D1Database, kv);
-    (service as any).db = createSelectDb({
-      forecastCache: [
-        [
-          {
-            data: {
-              1: {
-                predicted: 14,
-                confidence: 0.9,
-                trend: "up",
-                menuItemName: "Tea",
-                trendPercent: 25,
-                historicalAvg: 10,
+    useSelectDb(
+      service,
+      createSelectDb({
+        forecastCache: [
+          [
+            {
+              data: {
+                1: {
+                  predicted: 14,
+                  confidence: 0.9,
+                  trend: "up",
+                  menuItemName: "Tea",
+                  trendPercent: 25,
+                  historicalAvg: 10,
+                },
               },
+              metadata: { generatedAt: "2026-06-07T00:00:00.000Z" },
+              generatedBy: "statistical",
+              expiresAt: new Date("2026-06-07T06:00:00.000Z"),
             },
-            metadata: { generatedAt: "2026-06-07T00:00:00.000Z" },
-            generatedBy: "statistical",
-            expiresAt: new Date("2026-06-07T06:00:00.000Z"),
-          },
+          ],
         ],
-      ],
-    });
+      }),
+    );
 
     const result = await service.getForecast(
       "restaurant-1",
@@ -347,18 +383,21 @@ describe("ForecastService", () => {
   it("falls back from expired DB cache by generating a fresh forecast", async () => {
     const { kv } = createKV();
     const service = new ForecastService({} as D1Database, kv);
-    (service as any).db = createSelectDb({
-      forecastCache: [
-        [
-          {
-            data: {},
-            metadata: { generatedAt: "old" },
-            generatedBy: "statistical",
-            expiresAt: new Date("2026-06-06T00:00:00.000Z"),
-          },
+    useSelectDb(
+      service,
+      createSelectDb({
+        forecastCache: [
+          [
+            {
+              data: {},
+              metadata: { generatedAt: "old" },
+              generatedBy: "statistical",
+              expiresAt: new Date("2026-06-06T00:00:00.000Z"),
+            },
+          ],
         ],
-      ],
-    });
+      }),
+    );
     const generateSpy = vi
       .spyOn(service, "generateForecast")
       .mockResolvedValue([
@@ -394,29 +433,32 @@ describe("ForecastService", () => {
         { predicted: index === 0 ? 20 : 10 },
       ]),
     );
-    (service as any).db = createSelectDb({
-      forecastCache: [[{ forecastDate: "2026-06-08", data: predictions }]],
-      menuItems: [
-        Array.from({ length: 90 }, (_, index) => ({
-          id: index + 1,
-          name: `Item ${index + 1}`,
-        })),
-        [
-          { id: 91, name: "Item 91" },
-          { id: 92, name: "Item 92" },
+    useSelectDb(
+      service,
+      createSelectDb({
+        forecastCache: [[{ forecastDate: "2026-06-08", data: predictions }]],
+        menuItems: [
+          Array.from({ length: 90 }, (_, index) => ({
+            id: index + 1,
+            name: `Item ${index + 1}`,
+          })),
+          [
+            { id: 91, name: "Item 91" },
+            { id: 92, name: "Item 92" },
+          ],
         ],
-      ],
-      orderItems: [
-        [
-          {
-            menuItemId: 1,
-            itemName: "Tea",
-            actualQuantity: 15,
-            orderDate: "2026-06-08",
-          },
+        orderItems: [
+          [
+            {
+              menuItemId: 1,
+              itemName: "Tea",
+              actualQuantity: 15,
+              orderDate: "2026-06-08",
+            },
+          ],
         ],
-      ],
-    });
+      }),
+    );
 
     const accuracy = await service.getAccuracy(
       "restaurant-1",
@@ -439,14 +481,17 @@ describe("ForecastService", () => {
       actual: 0,
       deviation: 100,
     });
-    expect((service as any).db.select).toHaveBeenCalledTimes(4);
+    expect(service["db"].select).toHaveBeenCalledTimes(4);
   });
 
   it("returns no accuracy rows when no forecasts exist", async () => {
     const service = new ForecastService({} as D1Database, createKV().kv);
-    (service as any).db = createSelectDb({
-      forecastCache: [[]],
-    });
+    useSelectDb(
+      service,
+      createSelectDb({
+        forecastCache: [[]],
+      }),
+    );
 
     await expect(
       service.getAccuracy("restaurant-1", "2026-06-08", "2026-06-08"),
@@ -474,37 +519,40 @@ describe("ForecastService", () => {
         ],
       },
     ]);
-    (service as any).db = createSelectDb({
-      menuItems: [[{ id: 1, name: "Tea", inventoryCount: 20 }]],
-      forecastCache: [
-        [
-          {
-            data: [
-              {
-                ingredientId: 7,
-                ingredientName: "Milk",
-                unit: "L",
-                predictedQuantity: 5,
-                currentStock: 2,
-              },
-              {
-                ingredientId: 8,
-                ingredientName: "Sugar",
-                unit: "kg",
-                predictedQuantity: 10,
-                currentStock: 40,
-              },
-              {
-                ingredientId: 9,
-                ingredientName: "Ignored",
-                unit: "kg",
-                predictedQuantity: 10,
-              },
-            ],
-          },
+    useSelectDb(
+      service,
+      createSelectDb({
+        menuItems: [[{ id: 1, name: "Tea", inventoryCount: 20 }]],
+        forecastCache: [
+          [
+            {
+              data: [
+                {
+                  ingredientId: 7,
+                  ingredientName: "Milk",
+                  unit: "L",
+                  predictedQuantity: 5,
+                  currentStock: 2,
+                },
+                {
+                  ingredientId: 8,
+                  ingredientName: "Sugar",
+                  unit: "kg",
+                  predictedQuantity: 10,
+                  currentStock: 40,
+                },
+                {
+                  ingredientId: 9,
+                  ingredientName: "Ignored",
+                  unit: "kg",
+                  predictedQuantity: 10,
+                },
+              ],
+            },
+          ],
         ],
-      ],
-    });
+      }),
+    );
 
     const alerts = await service.getAlerts("restaurant-1");
 
@@ -553,10 +601,13 @@ describe("ForecastService", () => {
     // it (see doc comment above), so this never surfaces as a rejection —
     // only as the console.error call and a shorter alert list, asserted
     // below.
-    (service as any).db = createSelectDb({
-      menuItems: [[{ id: 1, name: "Tea", inventoryCount: null }]],
-      forecastCache: [new Error("ingredient db unavailable")],
-    });
+    useSelectDb(
+      service,
+      createSelectDb({
+        menuItems: [[{ id: 1, name: "Tea", inventoryCount: null }]],
+        forecastCache: [new Error("ingredient db unavailable")],
+      }),
+    );
 
     await expect(service.getAlerts("restaurant-1")).resolves.toEqual([
       expect.objectContaining({ type: "high_demand" }),
@@ -570,33 +621,36 @@ describe("ForecastService", () => {
 
   it("groups historical sales by menu item in descending query order", async () => {
     const service = new ForecastService({} as D1Database, createKV().kv);
-    (service as any).db = createSelectDb({
-      orderItems: [
-        [
-          {
-            menuItemId: 1,
-            itemName: "Tea",
-            quantitySum: 12,
-            orderDate: "2026-06-01",
-          },
-          {
-            menuItemId: 1,
-            itemName: "Tea",
-            quantitySum: 8,
-            orderDate: "2026-05-25",
-          },
-          {
-            menuItemId: 2,
-            itemName: "Rice",
-            quantitySum: 4,
-            orderDate: "2026-06-01",
-          },
+    useSelectDb(
+      service,
+      createSelectDb({
+        orderItems: [
+          [
+            {
+              menuItemId: 1,
+              itemName: "Tea",
+              quantitySum: 12,
+              orderDate: "2026-06-01",
+            },
+            {
+              menuItemId: 1,
+              itemName: "Tea",
+              quantitySum: 8,
+              orderDate: "2026-05-25",
+            },
+            {
+              menuItemId: 2,
+              itemName: "Rice",
+              quantitySum: 4,
+              orderDate: "2026-06-01",
+            },
+          ],
         ],
-      ],
-    });
+      }),
+    );
 
     await expect(
-      (service as any).getHistoricalSales("restaurant-1", "2026-06-08", 1),
+      service["getHistoricalSales"]("restaurant-1", "2026-06-08", 1),
     ).resolves.toEqual({
       1: { name: "Tea", weeklySales: [12, 8] },
       2: { name: "Rice", weeklySales: [4] },

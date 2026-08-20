@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RealtimeEventType } from "@makanmasak/shared-types";
+import type { Order, OrderItem } from "@makanmasak/shared-types";
 import { OrdersService } from "./OrdersService";
 
 const createBaseOrder = vi.hoisted(() => vi.fn());
@@ -221,7 +222,22 @@ describe("OrdersService realtime broadcasts", () => {
   });
 });
 
-function createOrder(overrides: Record<string, unknown> = {}) {
+function buildOrderItem(overrides: Partial<OrderItem> = {}): OrderItem {
+  return {
+    id: 501,
+    orderId: "42",
+    menuItemId: 101,
+    quantity: 1,
+    unitPrice: 100,
+    totalPrice: 100,
+    status: "pending",
+    createdAt: Date.parse("2026-06-07T01:00:00.000Z"),
+    updatedAt: Date.parse("2026-06-07T01:00:00.000Z"),
+    ...overrides,
+  };
+}
+
+function createOrder(overrides: Partial<Order> = {}): Order {
   return {
     id: "42",
     restaurantId: "restaurant-1",
@@ -243,7 +259,8 @@ function createOrder(overrides: Record<string, unknown> = {}) {
       email: "ada@example.test",
     },
     restaurant: {
-      id: 1,
+      // restaurants.id is a TEXT UUID v7, not an integer.
+      id: "restaurant-1",
       name: "Makan Test",
       address: "1 Test St",
       phone: "02-1234-5678",
@@ -257,35 +274,51 @@ function createOrder(overrides: Record<string, unknown> = {}) {
     items: [
       {
         id: 501,
+        orderId: "42",
         menuItemId: 101,
         quantity: 2,
         unitPrice: 100,
         totalPrice: 200,
+        status: "pending",
         notes: "less ice",
         customizations: {
-          size: { id: 1, name: "Large", price: 20 },
+          size: { id: "size-1", name: "Large", priceAdjustment: 20 },
           options: [
             {
-              optionId: 2,
+              id: "opt-2",
               optionName: "Sugar",
-              choiceId: 3,
+              choiceId: "choice-3",
               choiceName: "Half",
-              price: 0,
+              priceAdjustment: 0,
             },
           ],
-          addOns: [{ id: 4, name: "Pearls", price: 10, quantity: 2 }],
+          addOns: [
+            {
+              id: "addon-4",
+              name: "Pearls",
+              unitPrice: 10,
+              quantity: 2,
+              totalPrice: 20,
+            },
+          ],
         },
-        menuItem: { name: "Milk Tea" },
+        menuItem: { id: 101, name: "Milk Tea" },
+        createdAt: Date.parse("2026-06-07T01:00:00.000Z"),
+        updatedAt: Date.parse("2026-06-07T01:00:00.000Z"),
       },
     ],
     notes: "counter pickup",
     version: 3,
-    createdAt: "2026-06-07T01:00:00.000Z",
-    updatedAt: "2026-06-07T01:10:00.000Z",
-    confirmedAt: "2026-06-07T01:02:00.000Z",
-    readyAt: undefined,
-    deliveredAt: undefined,
-    paidAt: undefined,
+    // Order timestamps are Unix ms, not ISO text — see the wire-contract
+    // assertion in the orders real-integration suite.
+    createdAt: Date.parse("2026-06-07T01:00:00.000Z"),
+    updatedAt: Date.parse("2026-06-07T01:10:00.000Z"),
+    confirmedAt: Date.parse("2026-06-07T01:02:00.000Z"),
+    preparingAt: null,
+    readyAt: null,
+    deliveredAt: null,
+    paidAt: null,
+    cancelledAt: null,
     ...overrides,
   };
 }
@@ -491,7 +524,7 @@ describe("OrdersService workflows", () => {
           id: "1",
           restaurantId: "restaurant-1",
           status: "pending",
-          orderSource: "guest_qr",
+          orderSource: "direct",
         }),
       ],
       pagination: { page: 1, limit: 100, total: 1, totalPages: 1 },
@@ -745,7 +778,7 @@ describe("OrdersService workflows", () => {
       createOrder({
         status: "ready",
         notes: "ready for pickup",
-        updatedAt: "2026-06-07T01:25:00.000Z",
+        updatedAt: Date.parse("2026-06-07T01:25:00.000Z"),
       }),
     );
     await expect(service.getOrderStatusHistory("42")).resolves.toEqual([
@@ -1023,9 +1056,11 @@ describe("OrdersService workflows", () => {
       createOrder({
         restaurantId: "019fc320-c159-700c-a66c-39c9b98ed964",
         status: "delivered",
-        paymentStatus: "paid",
-        paidAt: "2026-06-07T01:30:00.000Z",
-        deliveredAt: "2026-06-07T01:28:00.000Z",
+        // orders.payment_status is pending/completed/failed/refunded; "paid"
+        // was never one of them.
+        paymentStatus: "completed",
+        paidAt: Date.parse("2026-06-07T01:30:00.000Z"),
+        deliveredAt: Date.parse("2026-06-07T01:28:00.000Z"),
       }),
     );
     const service = new OrdersService(env as never);
@@ -1067,7 +1102,7 @@ describe("OrdersService workflows", () => {
       },
       paymentInfo: {
         method: "cash",
-        status: "paid",
+        status: "completed",
       },
     });
     expect(receipt.timestamps.orderedAt).toEqual(
@@ -1093,17 +1128,21 @@ describe("OrdersService workflows", () => {
         tableId: undefined,
         table: { id: 9, number: "", seats: 0 },
         paymentMethod: undefined,
-        readyAt: "2026-06-07T01:20:00.000Z",
+        readyAt: Date.parse("2026-06-07T01:20:00.000Z"),
         items: [
           {
             id: 502,
+            orderId: "42",
             menuItemId: 102,
             quantity: 1,
             unitPrice: 80,
             totalPrice: 80,
+            status: "pending",
             notes: undefined,
             customizations: undefined,
             menuItem: undefined,
+            createdAt: Date.parse("2026-06-07T01:00:00.000Z"),
+            updatedAt: Date.parse("2026-06-07T01:00:00.000Z"),
           },
         ],
       }),
@@ -1163,8 +1202,8 @@ describe("OrdersService workflows", () => {
       id: "42",
       status: "confirmed",
       items: [
-        { id: 1, menuItemId: 100, quantity: 1 },
-        { id: 2, menuItemId: 101, quantity: 2 },
+        buildOrderItem({ id: 1, menuItemId: 100, quantity: 1 }),
+        buildOrderItem({ id: 2, menuItemId: 101, quantity: 2 }),
       ],
     });
     addBaseOrderItems.mockResolvedValue(updated);
@@ -1345,19 +1384,19 @@ describe("OrdersService workflows", () => {
         })
         .mockRejectedValueOnce(new Error("realtime down"));
       await expect(
-        (service as any).broadcastOrderStatusUpdate(
+        service["broadcastOrderStatusUpdate"](
           createOrder({ orderNumber: undefined, tableId: undefined }),
           "confirmed",
           "preparing",
-          0,
+          "",
         ),
       ).resolves.toBeUndefined();
       await expect(
-        (service as any).broadcastOrderStatusUpdate(
+        service["broadcastOrderStatusUpdate"](
           createOrder(),
           "confirmed",
           "preparing",
-          20,
+          "user-20",
         ),
       ).resolves.toBeUndefined();
 
@@ -1368,23 +1407,23 @@ describe("OrdersService workflows", () => {
         })
         .mockRejectedValueOnce(new Error("cancel down"));
       await expect(
-        (service as any).broadcastOrderCancelled(
+        service["broadcastOrderCancelled"](
           createOrder({ orderNumber: undefined }),
           "customer request",
-          0,
+          "",
         ),
       ).resolves.toBeUndefined();
       await expect(
-        (service as any).broadcastOrderCancelled(
+        service["broadcastOrderCancelled"](
           createOrder(),
           "customer request",
-          20,
+          "user-20",
         ),
       ).resolves.toBeUndefined();
 
       broadcastNewOrder.mockRejectedValueOnce(new Error("new order down"));
       await expect(
-        (service as any).broadcastNewOrder(
+        service["broadcastNewOrder"](
           createOrder({
             orderNumber: undefined,
             tableId: undefined,
@@ -1392,11 +1431,16 @@ describe("OrdersService workflows", () => {
             items: [
               {
                 id: 1,
+                orderId: "42",
                 menuItemId: 2,
                 quantity: 1,
                 unitPrice: 50,
+                totalPrice: 50,
+                status: "pending",
                 notes: undefined,
                 menuItem: undefined,
+                createdAt: Date.parse("2026-06-07T01:00:00.000Z"),
+                updatedAt: Date.parse("2026-06-07T01:00:00.000Z"),
               },
             ],
           }),
@@ -1410,20 +1454,30 @@ describe("OrdersService workflows", () => {
   it("formats receipt customization fallbacks without optional groups", async () => {
     const service = new OrdersService(createEnv() as never);
 
-    expect((service as any).formatCustomizations(null)).toEqual([]);
+    expect(service["formatCustomizations"](null)).toEqual([]);
     expect(
-      (service as any).formatCustomizations({
+      service["formatCustomizations"]({
         options: [
           {
+            id: "opt-ice",
             optionName: "Ice",
+            choiceId: "choice-less",
             choiceName: "Less",
           },
         ],
       }),
     ).toEqual(["Ice: Less"]);
     expect(
-      (service as any).formatCustomizations({
-        addOns: [{ name: "Pearls", quantity: 3 }],
+      service["formatCustomizations"]({
+        addOns: [
+          {
+            id: "addon-pearls",
+            name: "Pearls",
+            unitPrice: 10,
+            quantity: 3,
+            totalPrice: 30,
+          },
+        ],
       }),
     ).toEqual(["Pearls x3"]);
   });

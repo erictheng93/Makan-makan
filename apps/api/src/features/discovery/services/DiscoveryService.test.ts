@@ -151,6 +151,14 @@ function closedAllWeek() {
   };
 }
 
+/**
+ * The semantic stub implements only the calls this suite drives, so it is
+ * installed through a named helper rather than cast at the assignment.
+ */
+function useSemanticSearch(service: DiscoveryService, stub: unknown): void {
+  (service as unknown as { semanticSearch: unknown }).semanticSearch = stub;
+}
+
 describe("DiscoveryService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -720,7 +728,7 @@ describe("DiscoveryService", () => {
       upsertDishes: vi.fn(),
     };
     const { service, kv } = createService({ "search:query:version": "14" });
-    (service as any).semanticSearch = semanticSearch;
+    useSemanticSearch(service, semanticSearch);
     mockSelectResults({ dishSearchIndex: [[], [{ count: 0 }]] });
 
     await expect(
@@ -1204,7 +1212,7 @@ describe("DiscoveryService", () => {
       },
     });
 
-    const vendors = await (service as any).restaurantBrowseMarketVendors(
+    const vendors = await service["restaurantBrowseMarketVendors"](
       ["restaurant-1"],
       undefined,
     );

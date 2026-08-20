@@ -328,6 +328,14 @@ function totalCents(result: { totalAmount: number }[]) {
   );
 }
 
+/**
+ * `service["db"]` is the drizzle instance; these fixtures stand in for it and
+ * implement only the reads and writes each test drives.
+ */
+function useDb(service: GroupOrdersService, db: unknown): void {
+  (service as unknown as { db: unknown }).db = db;
+}
+
 describe("GroupOrdersService formatting and cache behavior", () => {
   it("routes select fixtures by table instead of global query order", async () => {
     const db = createDb({
@@ -483,13 +491,16 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
   it("lists group orders with cents-first totals", async () => {
     const service = createService();
-    (service as any).db = createDb({
-      groupOrders: [
-        [{ ...baseGroupOrder, totalAmount: 99, totalAmountCents: 12345 }],
-      ],
-      groupMembers: [[hostMember]],
-      groupCartItems: [[]],
-    });
+    useDb(
+      service,
+      createDb({
+        groupOrders: [
+          [{ ...baseGroupOrder, totalAmount: 99, totalAmountCents: 12345 }],
+        ],
+        groupMembers: [[hostMember]],
+        groupCartItems: [[]],
+      }),
+    );
 
     await expect(service.listGroupOrders("restaurant-1")).resolves.toEqual([
       expect.objectContaining({
@@ -513,11 +524,11 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     };
     values.set("group_order_summary:group-1", JSON.stringify(cached));
     const service = new GroupOrdersService({} as D1Database, kv);
-    (service as any).db = {
+    useDb(service, {
       select: vi.fn(() => {
         throw new Error("db should not be queried");
       }),
-    };
+    });
 
     await expect(service.getGroupOrder("group-1")).resolves.toEqual(cached);
   });
@@ -542,65 +553,68 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       updatedAt: new Date("2026-06-07T00:00:00.000Z"),
     };
 
-    (service as any).db = createDb({
-      groupOrders: [[groupOrder]],
-      groupMembers: [
-        [
-          {
-            id: "member-1",
-            groupOrderId: "group-1",
-            name: "Host",
-            phone: null,
-            email: null,
-            role: "creator",
-            joinedAt: new Date("2026-06-07T00:00:00.000Z"),
-            lastActiveAt: new Date("2026-06-07T00:00:00.000Z"),
-            leftAt: null,
-          },
+    useDb(
+      service,
+      createDb({
+        groupOrders: [[groupOrder]],
+        groupMembers: [
+          [
+            {
+              id: "member-1",
+              groupOrderId: "group-1",
+              name: "Host",
+              phone: null,
+              email: null,
+              role: "creator",
+              joinedAt: new Date("2026-06-07T00:00:00.000Z"),
+              lastActiveAt: new Date("2026-06-07T00:00:00.000Z"),
+              leftAt: null,
+            },
+          ],
         ],
-      ],
-      groupCartItems: [
-        [
-          {
-            cartItem: {
-              id: "item-1",
+        groupCartItems: [
+          [
+            {
+              cartItem: {
+                id: "item-1",
+                groupOrderId: "group-1",
+                memberId: "member-1",
+                menuItemId: 10,
+                quantity: 2,
+                unitPrice: 9,
+                totalPrice: 18,
+                unitPriceCents: 1250,
+                totalPriceCents: 2500,
+                customizations: {},
+                specialInstructions: "Less spicy",
+                addedAt: new Date("2026-06-07T00:00:00.000Z"),
+                updatedAt: new Date("2026-06-07T00:00:00.000Z"),
+              },
+              menuItemName: "Nasi Lemak",
+              menuItemPrice: 999,
+              menuItemPriceCents: 1250,
+              menuItemImageUrl: null,
+            },
+          ],
+        ],
+        groupActivityLogs: [
+          [
+            {
+              id: "activity-1",
               groupOrderId: "group-1",
               memberId: "member-1",
-              menuItemId: 10,
-              quantity: 2,
-              unitPrice: 9,
-              totalPrice: 18,
-              unitPriceCents: 1250,
-              totalPriceCents: 2500,
-              customizations: {},
-              specialInstructions: "Less spicy",
-              addedAt: new Date("2026-06-07T00:00:00.000Z"),
-              updatedAt: new Date("2026-06-07T00:00:00.000Z"),
+              action: "item_added",
+              description: "Added item",
+              metadata: {},
+              createdAt: new Date("2026-06-07T00:00:00.000Z"),
             },
-            menuItemName: "Nasi Lemak",
-            menuItemPrice: 999,
-            menuItemPriceCents: 1250,
-            menuItemImageUrl: null,
-          },
+          ],
         ],
-      ],
-      groupActivityLogs: [
-        [
-          {
-            id: "activity-1",
-            groupOrderId: "group-1",
-            memberId: "member-1",
-            action: "item_added",
-            description: "Added item",
-            metadata: {},
-            createdAt: new Date("2026-06-07T00:00:00.000Z"),
-          },
-        ],
-      ],
-      // Empty until the host splits, which is the normal state for a group
-      // still ordering.
-      splitBills: [[]],
-    });
+        // Empty until the host splits, which is the normal state for a group
+        // still ordering.
+        splitBills: [[]],
+      }),
+    );
 
     const result = await service.getGroupOrder("group-1");
 
