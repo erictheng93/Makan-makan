@@ -8,6 +8,51 @@ import {
 import { buildSeedHelpers, type SeedHelpers } from "./helpers/seed-helper";
 import { CUSTOMER_CONSENT_VERSIONS } from "@makanmasak/shared-types";
 import { pruneStaleCustomerPushSubscriptions } from "../../features/customer/routes";
+import { readData } from "../helpers/read-json";
+import { CUSTOMER_REFRESH_COOKIE } from "../../features/customer/services/CustomerSessionService";
+
+// The customer identity routes assemble their payloads inline
+// (apps/api/src/features/customer/routes/index.ts), so the shapes this suite
+// reads are stated here.
+interface OtpChallenge {
+  devOtp?: string;
+}
+
+interface CustomerSession {
+  accessToken: string;
+  expiresIn: number;
+  customer: { id: string; primaryPhone: string | null };
+}
+
+/**
+ * The refresh token is never in the response body — issueCustomerSession only
+ * sets it as an HttpOnly cookie. A test that wants to revoke one has to read it
+ * from there; taking `data.refreshToken` yields undefined, and then every
+ * "revoked" assertion passes for the wrong reason.
+ */
+function readSetCookie(response: Response, name: string): string {
+  const header = response.headers.get("set-cookie") ?? "";
+  const match = new RegExp(`${name}=([^;]+)`).exec(header);
+  if (!match) {
+    throw new Error(`${name} cookie missing from the response`);
+  }
+  return decodeURIComponent(match[1]);
+}
+
+interface CustomerMe {
+  customer: { id: string };
+  preferences: { waitingListOptIn: boolean };
+}
+
+interface FavoriteSummary {
+  id: number;
+  targetType: string;
+  targetId: string;
+}
+
+type PushSubscriptionList = Array<{ endpoint: string }>;
+type RecentMarketList = Array<{ marketId: string; visitedAtMs: number }>;
+type ConsentList = Array<{ consentType: string; version: string }>;
 
 const BASE = "https://test/api/v1/customer";
 const CSRF = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -39,8 +84,8 @@ describe("Customer Identity API - real integration", () => {
     );
 
     expect(otpRes.status).toBe(200);
-    const otpJson: any = await otpRes.json();
-    expect(otpJson.data.devOtp).toMatch(/^\d{6}$/);
+    const otpJson = await readData<OtpChallenge>(otpRes);
+    expect(otpJson.devOtp).toMatch(/^\d{6}$/);
 
     const verifyRes = await testApp.app.fetch(
       new Request(`${BASE}/auth/verify-otp`, {
@@ -48,26 +93,26 @@ describe("Customer Identity API - real integration", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           phone: "+886912345678",
-          otp: otpJson.data.devOtp,
+          otp: otpJson.devOtp,
         }),
       }),
     );
 
     expect(verifyRes.status).toBe(200);
-    const verifyJson: any = await verifyRes.json();
-    expect(verifyJson.data.accessToken).toBeTruthy();
-    expect(verifyJson.data.customer.primaryPhone).toBe("+886912345678");
+    const verifyJson = await readData<CustomerSession>(verifyRes);
+    expect(verifyJson.accessToken).toBeTruthy();
+    expect(verifyJson.customer.primaryPhone).toBe("+886912345678");
 
     const meRes = await testApp.app.fetch(
       new Request(`${BASE}/me`, {
-        headers: { authorization: `Bearer ${verifyJson.data.accessToken}` },
+        headers: { authorization: `Bearer ${verifyJson.accessToken}` },
       }),
     );
 
     expect(meRes.status).toBe(200);
-    const meJson: any = await meRes.json();
-    expect(meJson.data.customer.id).toBe(verifyJson.data.customer.id);
-    expect(meJson.data.preferences.waitingListOptIn).toBe(true);
+    const meJson = await readData<CustomerMe>(meRes);
+    expect(meJson.customer.id).toBe(verifyJson.customer.id);
+    expect(meJson.preferences.waitingListOptIn).toBe(true);
   });
 
   it("normalizes Taiwan local phone numbers to E.164", async () => {
@@ -80,7 +125,7 @@ describe("Customer Identity API - real integration", () => {
     );
 
     expect(otpRes.status).toBe(200);
-    const otpJson: any = await otpRes.json();
+    const otpJson = await readData<OtpChallenge>(otpRes);
 
     const verifyRes = await testApp.app.fetch(
       new Request(`${BASE}/auth/verify-otp`, {
@@ -88,14 +133,14 @@ describe("Customer Identity API - real integration", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           phone: "0912345678",
-          otp: otpJson.data.devOtp,
+          otp: otpJson.devOtp,
         }),
       }),
     );
 
     expect(verifyRes.status).toBe(200);
-    const verifyJson: any = await verifyRes.json();
-    expect(verifyJson.data.customer.primaryPhone).toBe("+886912345678");
+    const verifyJson = await readData<CustomerSession>(verifyRes);
+    expect(verifyJson.customer.primaryPhone).toBe("+886912345678");
   });
 
   it("reclaims a phone from a deleted customer when the number is reused", async () => {
@@ -114,7 +159,7 @@ describe("Customer Identity API - real integration", () => {
         body: JSON.stringify({ phone: "+886977777777" }),
       }),
     );
-    const otpJson: any = await otpRes.json();
+    const otpJson = await readData<OtpChallenge>(otpRes);
 
     const verifyRes = await testApp.app.fetch(
       new Request(`${BASE}/auth/verify-otp`, {
@@ -122,15 +167,15 @@ describe("Customer Identity API - real integration", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           phone: "+886977777777",
-          otp: otpJson.data.devOtp,
+          otp: otpJson.devOtp,
         }),
       }),
     );
 
     expect(verifyRes.status).toBe(200);
-    const verifyJson: any = await verifyRes.json();
-    expect(verifyJson.data.customer.id).not.toBe("deleted-customer");
-    expect(verifyJson.data.customer.primaryPhone).toBe("+886977777777");
+    const verifyJson = await readData<CustomerSession>(verifyRes);
+    expect(verifyJson.customer.id).not.toBe("deleted-customer");
+    expect(verifyJson.customer.primaryPhone).toBe("+886977777777");
 
     const oldCustomer = await testApp.env.DB.prepare(
       `SELECT primary_phone, status
@@ -203,9 +248,9 @@ describe("Customer Identity API - real integration", () => {
         headers: { authorization: `Bearer ${accessToken}` },
       }),
     );
-    const listJson: any = await listRes.json();
-    expect(listJson.data).toHaveLength(1);
-    expect(listJson.data[0].endpoint).toBe("https://push.example.test/abc");
+    const listJson = await readData<PushSubscriptionList>(listRes);
+    expect(listJson).toHaveLength(1);
+    expect(listJson[0].endpoint).toBe("https://push.example.test/abc");
   });
 
   it("prunes stale failed push subscriptions on the daily cadence", async () => {
@@ -215,8 +260,8 @@ describe("Customer Identity API - real integration", () => {
         headers: { authorization: `Bearer ${accessToken}` },
       }),
     );
-    const meJson: any = await meRes.json();
-    const customerId = meJson.data.customer.id;
+    const meJson = await readData<CustomerMe>(meRes);
+    const customerId = meJson.customer.id;
     const now = Date.now();
     const ninetyOneDaysAgo = now - 91 * 24 * 60 * 60 * 1000;
 
@@ -254,17 +299,17 @@ describe("Customer Identity API - real integration", () => {
       targetId: String(restaurant.id),
     });
     expect(createRes.status).toBe(201);
-    const createJson: any = await createRes.json();
-    expect(createJson.data.targetType).toBe("restaurant");
-    expect(createJson.data.targetId).toBe(String(restaurant.id));
+    const createJson = await readData<FavoriteSummary>(createRes);
+    expect(createJson.targetType).toBe("restaurant");
+    expect(createJson.targetId).toBe(String(restaurant.id));
 
     const duplicateRes = await authedPost(accessToken, `${BASE}/favorites`, {
       targetType: "restaurant",
       targetId: String(restaurant.id),
     });
     expect(duplicateRes.status).toBe(200);
-    const duplicateJson: any = await duplicateRes.json();
-    expect(duplicateJson.data.id).toBe(createJson.data.id);
+    const duplicateJson = await readData<FavoriteSummary>(duplicateRes);
+    expect(duplicateJson.id).toBe(createJson.id);
 
     const invalidRes = await authedPost(accessToken, `${BASE}/favorites`, {
       targetType: "restaurant",
@@ -278,11 +323,11 @@ describe("Customer Identity API - real integration", () => {
       }),
     );
     expect(listRes.status).toBe(200);
-    const listJson: any = await listRes.json();
-    expect(listJson.data).toHaveLength(1);
+    const listJson = await readData<FavoriteSummary[]>(listRes);
+    expect(listJson).toHaveLength(1);
 
     const deleteRes = await testApp.app.fetch(
-      new Request(`${BASE}/favorites/${createJson.data.id}`, {
+      new Request(`${BASE}/favorites/${createJson.id}`, {
         method: "DELETE",
         headers: {
           authorization: `Bearer ${accessToken}`,
@@ -305,17 +350,17 @@ describe("Customer Identity API - real integration", () => {
       targetId: market.id,
     });
     expect(createRes.status).toBe(201);
-    const createJson: any = await createRes.json();
-    expect(createJson.data.targetType).toBe("market");
-    expect(createJson.data.targetId).toBe(market.id);
+    const createJson = await readData<FavoriteSummary>(createRes);
+    expect(createJson.targetType).toBe("market");
+    expect(createJson.targetId).toBe(market.id);
 
     const duplicateRes = await authedPost(accessToken, `${BASE}/favorites`, {
       targetType: "market",
       targetId: market.id,
     });
     expect(duplicateRes.status).toBe(200);
-    const duplicateJson: any = await duplicateRes.json();
-    expect(duplicateJson.data.id).toBe(createJson.data.id);
+    const duplicateJson = await readData<FavoriteSummary>(duplicateRes);
+    expect(duplicateJson.id).toBe(createJson.id);
 
     const listRes = await testApp.app.fetch(
       new Request(`${BASE}/favorites?targetType=market`, {
@@ -323,10 +368,10 @@ describe("Customer Identity API - real integration", () => {
       }),
     );
     expect(listRes.status).toBe(200);
-    const listJson: any = await listRes.json();
-    expect(listJson.data).toEqual([
+    const listJson = await readData<FavoriteSummary[]>(listRes);
+    expect(listJson).toEqual([
       expect.objectContaining({
-        id: createJson.data.id,
+        id: createJson.id,
         targetType: "market",
         targetId: market.id,
       }),
@@ -374,8 +419,8 @@ describe("Customer Identity API - real integration", () => {
       }),
     );
     expect(listRes.status).toBe(200);
-    const listJson: any = await listRes.json();
-    expect(listJson.data).toEqual([
+    const listJson = await readData<RecentMarketList>(listRes);
+    expect(listJson).toEqual([
       { marketId: firstMarket.id, visitedAtMs: 1_780_000_003_000 },
       { marketId: secondMarket.id, visitedAtMs: 1_780_000_002_000 },
     ]);
@@ -397,8 +442,8 @@ describe("Customer Identity API - real integration", () => {
         headers: { authorization: `Bearer ${accessToken}` },
       }),
     );
-    let activeJson: any = await activeRes.json();
-    expect(activeJson.data).toHaveLength(1);
+    let activeConsents = await readData<ConsentList>(activeRes);
+    expect(activeConsents).toHaveLength(1);
 
     const revokeRes = await authedPost(accessToken, `${BASE}/consents`, {
       consentType: "marketing",
@@ -413,8 +458,8 @@ describe("Customer Identity API - real integration", () => {
         headers: { authorization: `Bearer ${accessToken}` },
       }),
     );
-    activeJson = await activeRes.json();
-    expect(activeJson.data).toHaveLength(0);
+    activeConsents = await readData<ConsentList>(activeRes);
+    expect(activeConsents).toHaveLength(0);
 
     const ledger = await testApp.env.DB.prepare(
       `SELECT granted, revoked_at_ms
@@ -459,19 +504,19 @@ describe("Customer Identity API - real integration", () => {
         body: JSON.stringify({ phone }),
       }),
     );
-    const otpJson: any = await otpRes.json();
+    const otpJson = await readData<OtpChallenge>(otpRes);
 
     const verifyRes = await testApp.app.fetch(
       new Request(`${BASE}/auth/verify-otp`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ phone, otp: otpJson.data.devOtp }),
+        body: JSON.stringify({ phone, otp: otpJson.devOtp }),
       }),
     );
-    const verifyJson: any = await verifyRes.json();
+    const verifyJson = await readData<CustomerSession>(verifyRes);
     return {
-      accessToken: verifyJson.data.accessToken,
-      refreshToken: verifyJson.data.refreshToken,
+      accessToken: verifyJson.accessToken,
+      refreshToken: readSetCookie(verifyRes, CUSTOMER_REFRESH_COOKIE),
     };
   }
 

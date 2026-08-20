@@ -27,6 +27,23 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
+import { readData, readEnvelope } from "../helpers/read-json";
+
+// POST /auth/login and GET /auth/me assemble their payload in the route
+// (apps/api/src/features/authentication/routes/index.ts), so the shapes are
+// stated here rather than derived from a service return type.
+interface LoginData {
+  token?: string;
+  expiresAt?: number;
+  user?: { id: string; username: string; role: number };
+}
+
+interface MeData {
+  username?: string;
+  role?: number;
+  restaurantId?: string | number | null;
+  user?: { username?: string };
+}
 describe("Auth API — real integration", () => {
   let testApp: RealIntegrationTestApp;
   let seed: ReturnType<typeof buildSeedHelpers>;
@@ -67,7 +84,7 @@ describe("Auth API — real integration", () => {
       );
 
       expect(res.status).toBe(410);
-      const body: any = await res.json();
+      const body = await readEnvelope(res);
       expect(body.success).toBe(false);
       expect(body.error?.code).toBe("CUSTOMER_PASSWORD_REGISTRATION_RETIRED");
 
@@ -98,7 +115,7 @@ describe("Auth API — real integration", () => {
       );
 
       expect(res.status).toBe(410);
-      const body: any = await res.json();
+      const body = await readEnvelope(res);
       expect(body.success).toBe(false);
       expect(body.error?.code).toBe("CUSTOMER_PASSWORD_REGISTRATION_RETIRED");
     });
@@ -117,7 +134,7 @@ describe("Auth API — real integration", () => {
       );
 
       expect(res.status).toBe(400);
-      const body: any = await res.json();
+      const body = await readEnvelope(res);
       expect(body.success).toBe(false);
       expect(body.error).toBeDefined();
     });
@@ -150,7 +167,7 @@ describe("Auth API — real integration", () => {
       );
 
       expect(loginRes.status).toBe(200);
-      const body: any = await loginRes.json();
+      const body = await readEnvelope<LoginData>(loginRes);
       expect(body.success).toBe(true);
       expect(body.data?.token).toBeDefined();
       expect(body.data).not.toHaveProperty("refreshToken");
@@ -184,7 +201,7 @@ describe("Auth API — real integration", () => {
       );
 
       expect(res.status).toBe(401);
-      const body: any = await res.json();
+      const body = await readEnvelope(res);
       expect(body.success).toBe(false);
     });
 
@@ -210,7 +227,7 @@ describe("Auth API — real integration", () => {
       );
 
       expect(res.status).toBe(401);
-      const body: any = await res.json();
+      const body = await readEnvelope(res);
       expect(body.success).toBe(false);
     });
 
@@ -227,7 +244,7 @@ describe("Auth API — real integration", () => {
       );
 
       expect(res.status).toBe(401);
-      const body: any = await res.json();
+      const body = await readEnvelope(res);
       expect(body.success).toBe(false);
     });
   });
@@ -261,8 +278,7 @@ describe("Auth API — real integration", () => {
         }),
       );
       expect(loginRes.status).toBe(200);
-      const loginJson: any = await loginRes.json();
-      const token: string = loginJson.data?.token;
+      const { token } = await readData<LoginData>(loginRes);
       expect(token).toBeTruthy();
 
       const meRes = await testApp.app.fetch(
@@ -271,7 +287,7 @@ describe("Auth API — real integration", () => {
         }),
       );
       expect(meRes.status).toBe(200);
-      const meJson: any = await meRes.json();
+      const meJson = await readEnvelope<MeData>(meRes);
       expect(meJson.success).toBe(true);
       expect(meJson.data?.username ?? meJson.data?.user?.username).toBe(
         "pilot-staff",
@@ -304,8 +320,7 @@ describe("Auth API — real integration", () => {
         }),
       );
       expect(firstLogin.status).toBe(200);
-      const firstJson: any = await firstLogin.json();
-      const firstToken: string = firstJson.data?.token;
+      const { token: firstToken } = await readData<LoginData>(firstLogin);
       expect(firstToken).toBeTruthy();
 
       const secondLogin = await testApp.app.fetch(
@@ -326,7 +341,7 @@ describe("Auth API — real integration", () => {
         }),
       );
       expect(meRes.status).toBe(200);
-      const meJson: any = await meRes.json();
+      const meJson = await readEnvelope(meRes);
       expect(meJson).toMatchObject({
         success: true,
         data: {
@@ -343,7 +358,7 @@ describe("Auth API — real integration", () => {
       );
 
       expect(res.status).toBe(401);
-      const body: any = await res.json();
+      const body = await readEnvelope(res);
       expect(body.success).toBe(false);
       expect(body.error?.code).toBe("MISSING_AUTH_HEADER");
     });
@@ -356,7 +371,7 @@ describe("Auth API — real integration", () => {
       );
 
       expect(res.status).toBe(401);
-      const body: any = await res.json();
+      const body = await readEnvelope(res);
       expect(body.success).toBe(false);
     });
 
@@ -383,7 +398,7 @@ describe("Auth API — real integration", () => {
       );
 
       expect(res.status).toBe(401);
-      const body: any = await res.json();
+      const body = await readEnvelope(res);
       expect(body.success).toBe(false);
     });
   });
@@ -415,7 +430,7 @@ describe("Auth API — real integration", () => {
       );
 
       expect(res.status).toBe(200);
-      const body: any = await res.json();
+      const body = await readEnvelope(res);
       expect(body.success).toBe(true);
       expect(body.data).toBeDefined();
     });
@@ -439,7 +454,7 @@ describe("Auth API — real integration", () => {
       );
 
       expect(res.status).toBe(403);
-      const body: any = await res.json();
+      const body = await readEnvelope(res);
       expect(body.success).toBe(false);
       expect(body.error?.code).toBe("INSUFFICIENT_ROLE");
     });
@@ -464,7 +479,7 @@ describe("Auth API — real integration", () => {
       );
 
       expect(res.status).toBe(403);
-      const body: any = await res.json();
+      const body = await readEnvelope(res);
       expect(body.success).toBe(false);
     });
   });
@@ -503,7 +518,7 @@ describe("Auth API — real integration", () => {
       // Kitchen route's inline check throws forbidden when
       // user.restaurantId !== URL restaurantId.
       expect(res.status).toBe(403);
-      const body: any = await res.json();
+      const body = await readEnvelope(res);
       expect(body.success).toBe(false);
     });
 
@@ -531,7 +546,7 @@ describe("Auth API — real integration", () => {
       );
 
       expect(res.status).toBe(200);
-      const body: any = await res.json();
+      const body = await readEnvelope(res);
       expect(body.success).toBe(true);
     });
   });
