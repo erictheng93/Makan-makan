@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config";
 import path from "path";
+import { sharedTestConfig } from "../../vitest.shared";
 
 // Standalone config for the `api` project. It used to live inline in the root
 // vitest.config.ts, which forced `pnpm --filter @makanmasak/api test` to bounce
@@ -13,6 +14,7 @@ import path from "path";
 // from the default unit run — under the 10s timeout here they would time out.
 export default defineConfig({
   test: {
+    ...sharedTestConfig,
     name: "api",
     include: ["src/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
     exclude: [

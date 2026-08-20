@@ -201,6 +201,32 @@ repeat the `@makanmasak/*` aliases in it. Dropping them silently switches
 resolution from package source to built `dist/`, which is a different thing to
 be testing.
 
+**Bound both factors of the test-process product.** `turbo run test` starts one
+vitest per package and each of those forks its own workers, so the number of
+live node processes is `(turbo concurrency) x (workers per package)`. Neither
+factor is bounded by default: vitest picks `availableParallelism() - 1` — 23 on
+a 24-core box, 3 on a 4-core one — and turbo's default concurrency is 10.
+Measured on a 24-core host, `apps/kitchen-display` alone peaked at 26 node
+processes, so a full `turbo run test` reaches ~260 against 16 GB of RAM. That is
+issue #202: the gate failed for want of memory, not for want of a passing test.
+
+- Every per-package `vitest.config.ts` spreads `sharedTestConfig` from the root
+  `vitest.shared.ts`. The ceiling cannot live in the root `vitest.config.ts` —
+  a per-package vitest invocation reads that package's own config as its root
+  and never sees the root file. `scripts/check-package-test-scripts.cjs` fails
+  if a config omits the spread.
+- `scripts/verify.sh` caps the other factor with `--concurrency`, defaulting to
+  half the cores. Bounding one factor alone is not enough; #202 recorded that
+  `--concurrency=2` by itself still ran the machine out of memory.
+- Raise both together where there is room:
+  `TURBO_CONCURRENCY=10 VITEST_MAX_WORKERS=4 pnpm verify:push`.
+- `VITEST_MAX_WORKERS` only reaches the tasks because `turbo.json` lists it in
+  `globalPassThroughEnv` — turbo's strict env mode silently drops anything not
+  declared, which makes a broken override look like a working one. For the same
+  class of reason `vitest.shared.ts` is in `globalDependencies`: it sits outside
+  every package's `$TURBO_DEFAULT$` inputs, so without that entry a changed
+  ceiling comes back as a stale cache HIT.
+
 ### One worktree per session
 
 `turbo --affected` and `vitest --changed` both derive scope from the git diff of

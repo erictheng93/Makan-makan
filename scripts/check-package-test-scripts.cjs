@@ -2,7 +2,7 @@
 /**
  * Keeps `turbo run test` executable and cacheable per package.
  *
- * Four ways a package falls out of the per-package test run, all of which have
+ * Five ways a package falls out of the per-package test run, all of which have
  * actually happened in this repo:
  *
  *  1. `"test": "vitest"` is watch mode. Under turbo it never exits, so the
@@ -16,6 +16,12 @@
  *     turbo, so its suite rots unnoticed.
  *  4. A package with no test files yet exits 1 on "No test files found" under
  *     plain `vitest run`, reddening the whole run (packages/queue-service).
+ *  5. A package whose vitest.config.* does not spread the shared worker
+ *     ceiling lets vitest pick its default of availableParallelism() - 1.
+ *     `turbo run test` then multiplies that by its own concurrency, which
+ *     is how issue #202 put ~260 node processes on a 16 GB machine. The
+ *     ceiling lives in vitest.shared.ts; a per-package config never sees
+ *     the root vitest.config.ts, so each one has to spread it itself.
  *
  * Run standalone: node scripts/check-package-test-scripts.cjs
  */
@@ -87,6 +93,19 @@ function hasTestFiles(dir, nested) {
 const hasOwnVitestConfig = (dir) =>
   fs.readdirSync(dir).some((f) => /^vitest\.config\.(c|m)?[jt]s$/.test(f));
 
+const vitestConfigFiles = (dir) =>
+  fs
+    .readdirSync(dir)
+    .filter((f) => /^vitest\.config\.(c|m)?[jt]s$/.test(f))
+    .map((f) => path.join(dir, f));
+
+// The ceiling only bites if the config both imports vitest.shared and actually
+// spreads it into `test`. Importing without spreading is a no-op.
+const spreadsSharedCeiling = (file) => {
+  const src = fs.readFileSync(file, "utf8");
+  return src.includes("vitest.shared") && src.includes("...sharedTestConfig");
+};
+
 // A single-shot invocation. `vitest run`, `vitest --run` and an explicit
 // `--watch=false` all terminate; a bare `vitest` does not.
 const isSingleShot = (script) =>
@@ -139,6 +158,21 @@ for (const dir of packages) {
         `    vitest will walk up to the root config and resolve its \`projects\`\n` +
         `    entries relative to ${rel}, failing with "Projects definition\n` +
         `    references a non-existing file or a directory". Add a local config.`,
+    );
+  }
+
+  // A per-package config never sees the root vitest.config.ts, so the worker
+  // ceiling has to be spread into each one. Without it vitest defaults to
+  // availableParallelism() - 1 and `turbo run test` multiplies that by its own
+  // concurrency -- issue #202.
+  for (const config of vitestConfigFiles(dir)) {
+    if (spreadsSharedCeiling(config)) continue;
+    problems.push(
+      `${path.relative(ROOT, config)}: does not spread the shared worker ceiling.\n` +
+        `    vitest will default to availableParallelism() - 1 workers here, and\n` +
+        `    \`turbo run test\` multiplies that by its own concurrency (#202).\n` +
+        `    Add:  import { sharedTestConfig } from "../../vitest.shared";\n` +
+        `          test: { ...sharedTestConfig, /* ... */ }`,
     );
   }
 
