@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Env } from "../../../types/env";
 
 const mocks = vi.hoisted(() => {
   const dbAuthService = {
@@ -81,7 +82,7 @@ function createService(waitUntil?: (work: Promise<unknown>) => void) {
     {
       DB: {} as D1Database,
       CACHE_KV: {} as KVNamespace,
-    } as any,
+    } as Env,
     waitUntil,
   );
 }

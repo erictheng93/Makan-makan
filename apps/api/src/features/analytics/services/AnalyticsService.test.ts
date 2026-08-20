@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Env } from "../../../types/env";
 
 const mocks = vi.hoisted(() => {
   const databaseService = {
@@ -61,7 +62,7 @@ import { AnalyticsService } from "./AnalyticsService";
 function createService() {
   return new AnalyticsService(
     {} as D1Database,
-    { DB: {} as D1Database, CACHE_KV: {} as KVNamespace } as any,
+    { DB: {} as D1Database, CACHE_KV: {} as KVNamespace } as Env,
     {} as KVNamespace,
   );
 }
@@ -265,12 +266,13 @@ describe("AnalyticsService", () => {
     vi.spyOn(service, "getDashboardData").mockResolvedValue(dashboardSummary);
     vi.spyOn(service, "getRevenueAnalytics").mockResolvedValue([
       {
-        date: "2026-06-07",
+        // RevenueData has no free-text column, so the quoting case rides on
+        // `date`, the one string field the CSV writer emits.
+        date: 'quoted, "value"',
         revenue: 100,
         orderCount: 2,
         averageOrderValue: 50,
-        notes: 'quoted, "value"',
-      } as any,
+      },
     ]);
 
     const jsonExport = await service.generateExport({

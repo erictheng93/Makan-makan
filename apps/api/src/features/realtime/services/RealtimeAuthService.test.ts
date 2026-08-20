@@ -151,6 +151,11 @@ vi.mock("@makanmasak/utils", async () => {
 });
 
 import { RealtimeAuthService } from "./RealtimeAuthService";
+import type {
+  RealtimeAuthPayload,
+  RealtimeAuthTokenRequest,
+} from "@makanmasak/shared-types";
+import type { Env } from "../../../types/env";
 
 const realtimeSecret = "realtime-secret-with-at-least-32-chars";
 const jwtSecret = "session-secret-with-at-least-32-chars";
@@ -188,7 +193,11 @@ function createKV(values: Record<string, unknown> = {}) {
     }),
     put: vi.fn(),
     delete: vi.fn(),
-  } as any;
+  } as unknown as KVNamespace;
+}
+
+function untypedRoomType(value: string): RealtimeAuthTokenRequest["roomType"] {
+  return value as RealtimeAuthTokenRequest["roomType"];
 }
 
 function createService(env: Record<string, unknown> = {}) {
@@ -201,7 +210,7 @@ function createService(env: Record<string, unknown> = {}) {
     REALTIME_WS_URL: "wss://realtime.example.test",
     NODE_ENV: "test",
     ...env,
-  } as any);
+  } as unknown as Env);
 }
 
 function createSessionToken(
@@ -286,7 +295,7 @@ describe("RealtimeAuthService", () => {
           CACHE_KV: createKV(),
           REALTIME_JWT_SECRET: "short",
           JWT_SECRET: jwtSecret,
-        } as any),
+        } as unknown as Env),
     ).toThrow("REALTIME_JWT_SECRET must be set and at least 32 characters");
   });
 
@@ -373,7 +382,9 @@ describe("RealtimeAuthService", () => {
 
     await expect(
       service.generateWebSocketToken({
-        roomType: "unknown" as any,
+        // The route reads roomType off the request body, so a value outside
+        // the union really can reach this guard.
+        roomType: untypedRoomType("unknown"),
         roomId: "room-1",
         restaurantId: "restaurant-1",
       }),
@@ -457,7 +468,7 @@ describe("RealtimeAuthService", () => {
       const payload = {
         scope: "group-order-realtime",
         groupOrderId,
-      } as any;
+      } as RealtimeAuthPayload;
 
       expect(service.verifyChannelAccess(payload, groupOrderId)).toEqual({
         allowed: true,

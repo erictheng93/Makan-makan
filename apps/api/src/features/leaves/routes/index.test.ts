@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Context, Next } from "hono";
 import type { AuthUser } from "../../../middleware/auth";
 import app from "./index";
 import { ApiError } from "../../../shared/utils/api-error";
@@ -40,17 +41,16 @@ vi.mock("../../../shared/middleware", async () => {
 
   return {
     ...validation,
-    authMiddleware: async (c: any, next: () => Promise<void>) => {
+    authMiddleware: async (c: Context, next: Next) => {
       c.set("user", mocks.currentUser);
       await next();
     },
-    requireRole: () => async (_c: any, next: () => Promise<void>) => {
+    requireRole: () => async (_c: Context, next: Next) => {
       await next();
     },
-    requireRestaurantAccess:
-      () => async (_c: any, next: () => Promise<void>) => {
-        await next();
-      },
+    requireRestaurantAccess: () => async (_c: Context, next: Next) => {
+      await next();
+    },
   };
 });
 

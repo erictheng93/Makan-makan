@@ -208,7 +208,7 @@ describe("feedback routes", () => {
   });
 
   it("rejects feedback creation when the owner has no restaurant", async () => {
-    mocks.currentUser.restaurantId = undefined as any;
+    mocks.currentUser.restaurantId = undefined;
 
     const response = await routes.fetch(
       jsonRequest("https://test/", "POST", createFeedbackBody()),
@@ -278,7 +278,7 @@ describe("feedback routes", () => {
       id: "user-10",
       username: "admin",
       role: 0,
-      restaurantId: undefined as any,
+      restaurantId: undefined,
     };
 
     const response = await routes.fetch(

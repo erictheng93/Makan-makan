@@ -463,7 +463,7 @@ describe("PaymentService", () => {
 
     const event = JSON.parse(
       String(setup.fetch.mock.calls[0]?.[1]?.body),
-    ) as Record<string, any>;
+    ) as Record<string, unknown>;
     expect(event).toMatchObject({
       type: "order_status_update",
       restaurantId: "restaurant-1",

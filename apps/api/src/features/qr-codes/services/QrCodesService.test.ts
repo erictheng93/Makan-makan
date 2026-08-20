@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Env } from "../../../types/env";
 
 type PreparedResult = {
   first?: unknown;
@@ -111,7 +112,7 @@ function createService(
   return new QrCodesService({
     DB: env.DB ?? ({} as D1Database),
     CACHE_KV: env.CACHE_KV ?? ({} as KVNamespace),
-  } as any);
+  } as Env);
 }
 
 describe("QrCodesService", () => {
@@ -221,7 +222,7 @@ describe("QrCodesService", () => {
     await expect(
       createService().generateBulkQR({
         tables: [{ id: 1, name: "A1", content: "table-1" }],
-      } as any),
+      }),
     ).rejects.toThrow("Restaurant ID and User ID are required");
   });
 
@@ -238,7 +239,7 @@ describe("QrCodesService", () => {
     const result = await createService().downloadQR(qrId, {
       userRole: 1,
       userRestaurantId: "restaurant-1",
-    } as any);
+    });
 
     expect(mocks.qrService.getQRCode).toHaveBeenCalledWith(qrId);
     expect(mocks.qrService.recordDownload).toHaveBeenCalledWith(qrId, "png");
@@ -262,7 +263,7 @@ describe("QrCodesService", () => {
     });
 
     await expect(
-      (createService() as any).downloadQR(qrId, {
+      createService()["downloadQR"](qrId, {
         userRole: 1,
         userRestaurantId: "restaurant-1",
       }),
@@ -282,7 +283,7 @@ describe("QrCodesService", () => {
     const result = await createService().downloadBatch("batch-1", {
       userRole: 1,
       userRestaurantId: "restaurant-1",
-    } as any);
+    });
 
     expect(result).toMatchObject({
       contentType: "application/zip",
@@ -301,7 +302,7 @@ describe("QrCodesService", () => {
     });
 
     await expect(
-      (createService() as any).downloadBatch("batch-1", {
+      createService()["downloadBatch"]("batch-1", {
         userRole: 1,
         userRestaurantId: "restaurant-1",
       }),

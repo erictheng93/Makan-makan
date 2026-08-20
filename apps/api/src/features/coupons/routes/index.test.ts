@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Context, Next } from "hono";
 import type { AuthUser } from "../../../middleware/auth";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
@@ -32,17 +33,17 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../../../middleware/auth", () => ({
-  authMiddleware: async (c: any, next: () => Promise<void>) => {
+  authMiddleware: async (c: Context, next: Next) => {
     c.set("user", mocks.currentUser);
     await next();
   },
-  requireRole: () => async (_c: any, next: () => Promise<void>) => {
+  requireRole: () => async (_c: Context, next: Next) => {
     await next();
   },
 }));
 
 vi.mock("../../../middleware/moduleGate", () => ({
-  moduleGate: () => async (_c: any, next: () => Promise<void>) => {
+  moduleGate: () => async (_c: Context, next: Next) => {
     await next();
   },
 }));

@@ -22,6 +22,10 @@ import {
 } from "@makanmasak/database/testing";
 import { CreditService } from "../../credits/services/CreditService";
 import { ServiceBookingService } from "./ServiceBookingService";
+import type { CreateServiceBookingSlotInput } from "./ServiceBookingService";
+
+type ServiceBookingRow = typeof serviceBookings.$inferSelect;
+type ServiceBookingSlotRow = typeof serviceBookingSlots.$inferSelect;
 
 /**
  * Select fixtures are keyed by table, not by call order: `from(table)`
@@ -117,6 +121,56 @@ afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
+
+/**
+ * vi.spyOn cannot name a private method, but an indexed-access type can — so
+ * the target is viewed through an object carrying each method's real signature.
+ */
+type ServiceBookingPrivates = {
+  requireBooking: ServiceBookingService["requireBooking"];
+  loadPayableBooking: ServiceBookingService["loadPayableBooking"];
+  markConfirmed: ServiceBookingService["markConfirmed"];
+};
+
+function spyOnPrivate<K extends keyof ServiceBookingPrivates>(
+  service: ServiceBookingService,
+  key: K,
+) {
+  return vi.spyOn(service as unknown as ServiceBookingPrivates, key);
+}
+
+/**
+ * The stored row for a slot the caller just asked for. `isAvailable` is the one
+ * field that changes shape on the way in: the input takes a boolean, the column
+ * stores an integer.
+ */
+function buildSlotRow(
+  input: CreateServiceBookingSlotInput,
+): ServiceBookingSlotRow {
+  return {
+    id: "slot-1",
+    restaurantId: input.restaurantId,
+    serviceItemId: input.serviceItemId,
+    date: input.date,
+    timeSlot: input.timeSlot,
+    maxCapacity: input.maxCapacity,
+    currentBookings: 0,
+    isAvailable: input.isAvailable === false ? 0 : 1,
+    blockReason: input.blockReason ?? null,
+    createdAt: new Date(0),
+    updatedAt: new Date(0),
+  };
+}
+
+/** A stored booking row; each test overrides only what it asserts on. */
+function buildBookingRow(
+  overrides: Partial<ServiceBookingRow> = {},
+): ServiceBookingRow {
+  return {
+    id: "booking-1",
+    ...overrides,
+  } as ServiceBookingRow;
+}
 
 describe("ServiceBookingService.blockSlot", () => {
   it("does not overwrite existing slot capacity when a stale read races with slot creation", async () => {
@@ -297,7 +351,9 @@ describe("ServiceBookingService orchestration helpers", () => {
     const service = createService();
     const createBooking = vi
       .spyOn(service, "createBooking")
-      .mockImplementation(async (input) => ({ id: input.bookingDate }) as any);
+      .mockImplementation(async (input) =>
+        buildBookingRow({ id: input.bookingDate }),
+      );
 
     await expect(
       service.createRecurringBookings({
@@ -365,7 +421,7 @@ describe("ServiceBookingService orchestration helpers", () => {
     const service = createService();
     const createSlot = vi
       .spyOn(service, "createSlot")
-      .mockImplementation(async (input) => input as any);
+      .mockImplementation(async (input) => buildSlotRow(input));
 
     await expect(
       service.batchCreateSlots({
@@ -1836,14 +1892,13 @@ describe("ServiceBookingService orchestration helpers", () => {
 
   it("confirms cash bookings through the shared confirmation path", async () => {
     const service = createService();
-    const booking = {
-      id: "booking-1",
+    const booking = buildBookingRow({
       status: SERVICE_BOOKING_STATUS.PENDING,
       amountDueCents: 1200,
-    };
-    vi.spyOn(service as any, "loadPayableBooking").mockResolvedValue(booking);
+    });
+    spyOnPrivate(service, "loadPayableBooking").mockResolvedValue(booking);
     const markConfirmed = vi
-      .spyOn(service as any, "markConfirmed")
+      .spyOn(service as unknown as ServiceBookingPrivates, "markConfirmed")
       .mockResolvedValue({
         ...booking,
         status: SERVICE_BOOKING_STATUS.CONFIRMED,
@@ -1862,10 +1917,9 @@ describe("ServiceBookingService orchestration helpers", () => {
 
   it("blocks cancellation for terminal booking statuses", async () => {
     const service = createService();
-    vi.spyOn(service as any, "requireBooking").mockResolvedValue({
-      id: "booking-1",
-      status: SERVICE_BOOKING_STATUS.COMPLETED,
-    });
+    spyOnPrivate(service, "requireBooking").mockResolvedValue(
+      buildBookingRow({ status: SERVICE_BOOKING_STATUS.COMPLETED }),
+    );
 
     await expect(service.cancelBooking("booking-1")).rejects.toThrow(
       "Booking cannot be cancelled",
@@ -1876,17 +1930,18 @@ describe("ServiceBookingService orchestration helpers", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     const service = createService();
-    vi.spyOn(service as any, "requireBooking").mockResolvedValue({
-      id: "booking-1",
-      bookingDate: "2026-06-10",
-      bookingTime: "10:30",
-      durationMinutesSnapshot: 90,
-      serviceNameSnapshot: "Massage, Spa; Deluxe",
-      confirmationCode: "ABC123",
-      specialRequests: "Quiet room\nNo perfume",
-      calendarUid: "uid-1@example.test",
-      status: SERVICE_BOOKING_STATUS.CONFIRMED,
-    });
+    spyOnPrivate(service, "requireBooking").mockResolvedValue(
+      buildBookingRow({
+        bookingDate: "2026-06-10",
+        bookingTime: "10:30",
+        durationMinutesSnapshot: 90,
+        serviceNameSnapshot: "Massage, Spa; Deluxe",
+        confirmationCode: "ABC123",
+        specialRequests: "Quiet room\nNo perfume",
+        calendarUid: "uid-1@example.test",
+        status: SERVICE_BOOKING_STATUS.CONFIRMED,
+      }),
+    );
 
     await expect(
       service.generateCalendarInvite("booking-1"),

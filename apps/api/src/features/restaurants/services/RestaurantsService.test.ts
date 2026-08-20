@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Env } from "../../../types/env";
 
 const mocks = vi.hoisted(() => {
   const dbService = {
@@ -91,7 +92,7 @@ function createService() {
       },
       INTERNAL_API_TOKEN: "internal-token",
       MANAGEMENT_API: mocks.managementApi,
-    } as any,
+    } as unknown as Env,
     {} as KVNamespace,
   );
 }
@@ -588,7 +589,7 @@ describe("RestaurantsService", () => {
 
   it("maps service item rows with null-safe optional collections", () => {
     expect(
-      (createService() as any).mapServiceItem({
+      createService()["mapServiceItem"]({
         id: 1,
         restaurantId: "restaurant-1",
         name: "Table styling",
@@ -605,6 +606,9 @@ describe("RestaurantsService", () => {
         sortOrder: 3,
         isActive: true,
         isPublic: true,
+        createdAt: new Date("2026-06-07T00:00:00.000Z"),
+        updatedAt: new Date("2026-06-07T00:00:00.000Z"),
+        deletedAt: null,
       }),
     ).toEqual({
       id: 1,

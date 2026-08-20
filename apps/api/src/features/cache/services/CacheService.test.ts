@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from "vitest";
 import {
   CACHE_STRATEGIES,
   CacheKeys,
@@ -32,7 +40,14 @@ function createKV() {
       list: vi.fn(async () => ({
         keys: Array.from(values.keys()).map((name) => ({ name })),
       })),
-    } as any,
+      // The assertions below drive these through their vi.fn surface, so the
+      // stub keeps both.
+    } as unknown as KVNamespace & {
+      get: Mock;
+      put: Mock;
+      delete: Mock;
+      list: Mock;
+    },
   };
 }
 

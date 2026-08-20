@@ -15,7 +15,7 @@ const auth = vi.hoisted(() => ({
 const jwt = vi.hoisted(() => ({
   decoded: undefined as unknown,
   sign: vi.fn(
-    async (payload: any) =>
+    async (payload: { type: string; sub: string; jti?: string }) =>
       `signed:${payload.type}:${payload.sub}:${payload.jti ?? "access"}`,
   ),
   verify: vi.fn(() => jwt.decoded),

@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock,
+} from "vitest";
 import {
   DEFAULT_ALERT_RULES,
   MonitoringService,
@@ -27,7 +35,14 @@ function createKV() {
       list: vi.fn(async () => ({
         keys: Array.from(values.keys()).map((name) => ({ name })),
       })),
-    } as any,
+      // The assertions below read `.mock` off these, so the stub keeps its
+      // vi.fn types alongside the binding's.
+    } as unknown as KVNamespace & {
+      get: Mock;
+      put: Mock;
+      delete: Mock;
+      list: Mock;
+    },
   };
 }
 
@@ -237,7 +252,7 @@ describe("MonitoringService", () => {
 
     expect(prepare).toHaveBeenCalledTimes(1);
     const probeReads = kv.get.mock.calls.filter(
-      ([key]: [string]) => key === "_health_probe",
+      ([key]) => key === "_health_probe",
     );
     expect(probeReads).toHaveLength(1);
   });
@@ -320,7 +335,7 @@ describe("MonitoringService", () => {
     // no reader and must stay gone. Matching on the key alone rather than on a
     // full argument list so a reintroduced write is caught whatever options it
     // passes.
-    const writtenKeys = kv.put.mock.calls.map(([key]: [string]) => key);
+    const writtenKeys = kv.put.mock.calls.map(([key]) => key);
     expect(writtenKeys).not.toContain("_system_health");
   });
 
@@ -338,7 +353,7 @@ describe("MonitoringService", () => {
     ]);
 
     const metricsReads = kv.get.mock.calls.filter(
-      ([key]: [string]) => key === "_system_metrics",
+      ([key]) => key === "_system_metrics",
     );
     expect(metricsReads).toHaveLength(1);
   });
@@ -354,7 +369,7 @@ describe("MonitoringService", () => {
     await Promise.all([service.getHealthStatus(), service.getMetrics()]);
 
     const metricsReads = kv.get.mock.calls.filter(
-      ([key]: [string]) => key === "_system_metrics",
+      ([key]) => key === "_system_metrics",
     );
     expect(metricsReads).toHaveLength(1);
   });
@@ -370,7 +385,7 @@ describe("MonitoringService", () => {
     await service.getMetrics();
 
     const metricsReads = kv.get.mock.calls.filter(
-      ([key]: [string]) => key === "_system_metrics",
+      ([key]) => key === "_system_metrics",
     );
     expect(metricsReads).toHaveLength(2);
   });
@@ -756,7 +771,7 @@ describe("MonitoringService", () => {
       prepare: vi.fn(() => ({
         first: vi.fn(async () => ({ ok: 1 })),
       })),
-    } as any;
+    } as unknown as D1Database;
     const service = new MonitoringService(kv, { DB: db });
 
     const health = await service.getHealthStatus();
