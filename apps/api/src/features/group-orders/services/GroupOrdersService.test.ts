@@ -20,6 +20,10 @@ import {
   restaurants,
   splitBills,
 } from "@makanmasak/database";
+import {
+  createMutationFixtureDb,
+  type MutationFixtures,
+} from "@makanmasak/database/testing";
 import { GroupOrdersService } from "./GroupOrdersService";
 
 function createKV() {
@@ -151,10 +155,19 @@ function createQuery(nextResultFor: (table: unknown) => unknown) {
  * A `.from()` argument that is not one of the registered tables (a raw SQL
  * subquery) falls into the shared `rawSqlSubquery` bucket. New tables must be
  * added to `fixtureTables` or they land there too and silently share its queue.
+ * That bucket is why the reads here are not on the shared
+ * `createSelectFixtureDb`: it has no catch-all, and an unregistered `from()`
+ * argument throws there rather than routing anywhere.
+ *
+ * Writes: only `.returning()` draws a fixture, declared per table and
+ * operation through `createMutationFixtureDb`. Every other write in this
+ * service is fire-and-forget — the D1 result is never read — so there is no
+ * queue for it to misfeed, and `inserts`/`updates`/`deletes` below stay plain
+ * recorders of what was written.
  */
 function createDb(
   fixtures: SelectFixtures = {},
-  updateResults: unknown[] = [],
+  mutationFixtures: MutationFixtures<SelectFixtureName> = {},
 ) {
   const selectResults = new Map<unknown, unknown[][]>(
     Object.entries(fixtures).map(([name, results]) => [
@@ -165,6 +178,7 @@ function createDb(
   const inserts: Array<{ table: unknown; payload: unknown }> = [];
   const updates: Array<{ table: unknown; payload: unknown }> = [];
   const deletes: unknown[] = [];
+  const mutationDb = createMutationFixtureDb(fixtureTables, mutationFixtures);
 
   const nextResultFor = (table: unknown) => {
     const name = tableName(table);
@@ -194,13 +208,20 @@ function createDb(
       }),
     })),
     update: vi.fn((table: unknown) => {
+      // Only `.returning()` draws a fixture. This service ignores the D1
+      // result of every other update — it never reads a change count — so
+      // those have no queue to misfeed. The one update that does read rows
+      // back (the finalizing-mutex claim) is declared per table and
+      // operation, and an undeclared or exhausted queue throws there and
+      // names both.
+      const fixtures = mutationDb.update(table);
       const builder = {
         set: vi.fn((payload: unknown) => {
           updates.push({ table, payload });
           return builder;
         }),
         where: vi.fn(() => builder),
-        returning: vi.fn(async () => updateResults.shift() ?? []),
+        returning: vi.fn(() => fixtures.returning()),
       };
       return builder;
     }),
@@ -2399,13 +2420,13 @@ describe("GroupOrdersService formatting and cache behavior", () => {
           customizations: { spice: "mild" },
         },
       ],
-      claimRows = [{ id: "group-1" }],
+      claimQueue = [[{ id: "group-1" }]],
       order = finalizedOrder,
       existingOrderRows = [],
     }: {
       groupOrder?: unknown;
       cartItems?: unknown[];
-      claimRows?: unknown[];
+      claimQueue?: unknown[][];
       order?: Record<string, unknown>;
       existingOrderRows?: unknown[];
     } = {}) {
@@ -2421,7 +2442,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
           groupCartItems: [cartItems],
           orders: [existingOrderRows],
         },
-        [claimRows],
+        { groupOrders: { update: claimQueue } },
       );
       service.db = db;
       return { service, createOrder, db };
@@ -2559,7 +2580,8 @@ describe("GroupOrdersService formatting and cache behavior", () => {
           ],
           orders: [[]],
         },
-        [[{ id: "group-1" }], []],
+        // The loser's claim matches no row.
+        { groupOrders: { update: [[{ id: "group-1" }], []] } },
       );
 
       const [first, second] = await Promise.all([
@@ -2579,7 +2601,9 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
 
     it("defines finalize boundaries for empty, completed, and cancelled groups", async () => {
-      const empty = createFinalizeService({ cartItems: [] });
+      // Each of these three bails before claiming the finalizing mutex, so
+      // none of them may draw an update fixture — an empty queue says so.
+      const empty = createFinalizeService({ cartItems: [], claimQueue: [] });
       await expect(
         empty.service.finalizeGroupOrder("group-1"),
       ).resolves.toEqual({
@@ -2594,6 +2618,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
           status: "completed",
           masterOrderId: "order-1",
         },
+        claimQueue: [],
       });
       await expect(
         completed.service.finalizeGroupOrder("group-1"),
@@ -2605,6 +2630,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
 
       const cancelled = createFinalizeService({
         groupOrder: { ...baseGroupOrder, status: "cancelled" },
+        claimQueue: [],
       });
       await expect(
         cancelled.service.finalizeGroupOrder("group-1"),
