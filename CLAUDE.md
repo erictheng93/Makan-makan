@@ -227,6 +227,28 @@ issue #202: the gate failed for want of memory, not for want of a passing test.
   every package's `$TURBO_DEFAULT$` inputs, so without that entry a changed
   ceiling comes back as a stale cache HIT.
 
+**Keep `@types/node`, `jsdom` and `terser` on one version each.** These three are
+peer dependencies of vite/vitest, and pnpm keys an instance by its whole peer
+set — so a package declaring `@types/node: ^20` while the root declares `^25`
+does not get a shared vitest, it gets a *second copy*. The repo carried 7 vitest
+and 5 vite instances that way. The root workspace runner (`pnpm exec vitest run`,
+which is what CI runs) loads every project's config through `Promise.all`, and
+two different vite copies mid-load trip a Node race:
+
+```
+Cannot require() ES Module .../vite/dist/node/index.js because it is not yet
+fully loaded.   code: 'ERR_INTERNAL_ASSERTION'
+```
+
+That surfaces as the whole suite failing at startup with zero tests run, roughly
+one run in six — the kind of red that gets waved through as "just re-run it".
+`pnpm.overrides` in the root `package.json` pins all three, and the per-package
+declarations were aligned to match so they do not contradict the override.
+`package.json` takes no comments, which is why the reason is recorded here.
+
+Adding a package that declares its own version of any of the three re-splits the
+graph. To check, `ls node_modules/.pnpm/vitest@*` should list exactly one entry.
+
 ### One worktree per session
 
 `turbo --affected` and `vitest --changed` both derive scope from the git diff of

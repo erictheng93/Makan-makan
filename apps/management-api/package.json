@@ -32,7 +32,7 @@
     "@makanmasak/database": "workspace:*",
     "@makanmasak/shared-types": "workspace:*",
     "@types/bcryptjs": "^2.4.6",
-    "@types/node": "^22.15.29",
+    "@types/node": "^25.0.5",
     "typescript": "^5.8.3",
     "vitest": "^4.1.0",
     "wrangler": "^4.118.0"
