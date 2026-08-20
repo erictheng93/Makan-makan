@@ -10,3 +10,10 @@ export {
   type SelectFixtureDb,
   type SelectFixtures,
 } from "./select-fixtures";
+export {
+  createMutationFixtureDb,
+  type MutationFixtureDb,
+  type MutationFixtures,
+  type MutationOperation,
+  type MutationResult,
+} from "./mutation-fixtures";
