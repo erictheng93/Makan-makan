@@ -13,7 +13,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:real-integration": "cross-env NODE_OPTIONS='--max-old-space-size=8192' vitest run --config vitest.real-integration.config.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
     "lint": "eslint src"
   },
   "dependencies": {

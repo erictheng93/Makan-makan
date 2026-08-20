@@ -1,0 +1,27 @@
+{
+  // Typechecks the test files that tsconfig.json deliberately excludes.
+  // `extends` REPLACES `exclude` rather than merging it, so everything the base
+  // config skips has to be restated here minus the test globs.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // The base config is `composite` for project references. Composite demands
+    // that every file reachable from the program be listed in `include`, which
+    // test files' imports routinely are not — that produced ~400 spurious
+    // TS6307s. Nothing references this config as a project, so it is off here.
+    "composite": false,
+    "types": ["vitest/globals"],
+    "tsBuildInfoFile": "./node_modules/.cache/vue-tsc/test-typecheck.tsbuildinfo"
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.stories.ts",
+    // Mirrors the same exclude in vitest.config.ts. These suites run under
+    // vitest.real-integration.config.ts against miniflare, and they import
+    // helpers from apps/api/src — which drags the whole Worker source tree into
+    // this browser-typed program (DOM lib, no @cloudflare/workers-types) and
+    // reports hundreds of errors against files this app does not own. apps/api
+    // typechecks those same helpers correctly under its own config.
+    "**/*.real.integration.test.ts"
+  ]
+}

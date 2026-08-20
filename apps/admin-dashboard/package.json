@@ -8,7 +8,7 @@
     "build": "vue-tsc && vite build && node ../../scripts/check-csp-safe-bundle.cjs dist",
     "build:analyze": "ANALYZE=true vue-tsc && vite build",
     "preview": "vite preview --host",
-    "typecheck": "vue-tsc --noEmit",
+    "typecheck": "NODE_OPTIONS='--max-old-space-size=6144' vue-tsc -p tsconfig.json --noEmit && NODE_OPTIONS='--max-old-space-size=6144' vue-tsc -p tsconfig.test.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:real-integration": "vitest --config vitest.real-integration.config.ts",

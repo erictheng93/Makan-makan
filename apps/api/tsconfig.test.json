@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["@cloudflare/workers-types", "vitest/globals", "node"],
+    "tsBuildInfoFile": "./node_modules/.cache/tsc/test-typecheck.tsbuildinfo"
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/shared/templates",
+    "../../packages/database/src/**/__tests__/**",
+    "../../packages/database/src/**/*.test.ts",
+    "../../packages/database/src/testing/**",
+    "../../packages/utils/src/**/*"
+  ]
+}
