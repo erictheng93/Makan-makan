@@ -261,6 +261,9 @@ importers:
       autoprefixer:
         specifier: ^10.4.0
         version: 10.4.23(postcss@8.5.10)
+      cross-env:
+        specifier: ^10.1.0
+        version: 10.1.0
       jsdom:
         specifier: ^23.0.0
         version: 23.2.0
@@ -482,6 +485,9 @@ importers:
       '@vue/test-utils':
         specifier: ^2.4.0
         version: 2.4.6
+      cross-env:
+        specifier: ^10.1.0
+        version: 10.1.0
       jsdom:
         specifier: ^23.0.0
         version: 23.2.0
