@@ -48,7 +48,7 @@ describe("PlatformMarketsView", () => {
   const selectRestaurant = vi.fn();
   const push = vi.fn();
   const replace = vi.fn();
-  const createObjectURL = vi.fn(() => "blob:market-catalog-gaps");
+  const createObjectURL = vi.fn((_blob: Blob) => "blob:market-catalog-gaps");
   const revokeObjectURL = vi.fn();
   const click = vi.fn();
   const print = vi.fn();
@@ -1016,7 +1016,7 @@ describe("PlatformMarketsView", () => {
     await wrapper.get('[data-testid="export-catalog-gaps"]').trigger("click");
 
     expect(createObjectURL).toHaveBeenCalledOnce();
-    const blob = createObjectURL.mock.calls[0][0] as Blob;
+    const blob = createObjectURL.mock.calls[0][0];
     expect(blob.type).toBe("text/csv;charset=utf-8;");
     expect(click).toHaveBeenCalledOnce();
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:market-catalog-gaps");
@@ -1066,7 +1066,7 @@ describe("PlatformMarketsView", () => {
     await exportButton.trigger("click");
 
     expect(createObjectURL).toHaveBeenCalledOnce();
-    const blob = createObjectURL.mock.calls[0][0] as Blob;
+    const blob = createObjectURL.mock.calls[0][0];
     expect(blob.type).toBe("text/csv;charset=utf-8;");
     expect(click).toHaveBeenCalledOnce();
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:market-catalog-gaps");
@@ -1113,7 +1113,7 @@ describe("PlatformMarketsView", () => {
 
     await exportButton.trigger("click");
 
-    const blob = createObjectURL.mock.calls[0][0] as Blob;
+    const blob = createObjectURL.mock.calls[0][0];
     expect(blob.type).toBe("text/csv;charset=utf-8;");
     expect(click).toHaveBeenCalledOnce();
   });
@@ -1125,7 +1125,7 @@ describe("PlatformMarketsView", () => {
     await wrapper.get('[data-testid="export-area-readiness"]').trigger("click");
 
     expect(createObjectURL).toHaveBeenCalledOnce();
-    const blob = createObjectURL.mock.calls[0][0] as Blob;
+    const blob = createObjectURL.mock.calls[0][0];
     expect(blob.type).toBe("text/csv;charset=utf-8;");
     expect(click).toHaveBeenCalledOnce();
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:market-catalog-gaps");
@@ -1671,6 +1671,14 @@ describe("PlatformMarketsView", () => {
       stallNumber: "D-08",
       isPrimary: false,
       joinedAt: new Date(),
+      market: {
+        id: "market-1",
+        slug: "fengjia",
+        name: "逢甲夜市",
+        type: "night_market",
+        city: "台中市",
+        district: "西屯區",
+      },
     });
     const wrapper = mount(PlatformMarketsView);
     await flushPromises();
@@ -1743,9 +1751,16 @@ describe("PlatformMarketsView", () => {
       restaurantId: "restaurant-1",
       marketId: "market-1",
       stallNumber: "A-02",
-      mapPosition: { x: 40, y: 55 },
       isPrimary: true,
       joinedAt: new Date(),
+      market: {
+        id: "market-1",
+        slug: "fengjia",
+        name: "逢甲夜市",
+        type: "night_market",
+        city: "台中市",
+        district: "西屯區",
+      },
     });
     vi.mocked(marketsService.removeVendor).mockResolvedValue(true);
     const wrapper = mount(PlatformMarketsView);
@@ -1858,6 +1873,14 @@ describe("PlatformMarketsView", () => {
       stallNumber: "A-02",
       isPrimary: true,
       joinedAt: new Date(),
+      market: {
+        id: "market-1",
+        slug: "fengjia",
+        name: "逢甲夜市",
+        type: "night_market",
+        city: "台中市",
+        district: "西屯區",
+      },
     });
     const wrapper = mount(PlatformMarketsView);
     await flushPromises();

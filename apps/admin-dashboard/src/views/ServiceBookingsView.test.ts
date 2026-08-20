@@ -60,10 +60,15 @@ const pendingBooking = {
   partySize: 2,
   status: "pending" as const,
   confirmationCode: "ABC123",
+  paymentRequirement: "none" as const,
+  depositRequiredCents: 0,
+  balanceDueCents: 12000,
   amountDueCents: 12000,
   amountPaidCents: 0,
   paymentStatus: "unpaid" as const,
   paymentMethod: "none" as const,
+  reminderOptIn: 0,
+  calendarUid: "booking-1@makanmasak.com",
   specialRequests: "靠窗",
 };
 
@@ -72,8 +77,11 @@ const confirmedBooking = {
   id: "booking-2",
   status: "confirmed" as const,
   confirmationCode: "DEF456",
+  balanceDueCents: 0,
+  amountPaidCents: 12000,
   paymentStatus: "paid" as const,
   paymentMethod: "credits" as const,
+  calendarUid: "booking-2@makanmasak.com",
 };
 
 describe("ServiceBookingsView", () => {

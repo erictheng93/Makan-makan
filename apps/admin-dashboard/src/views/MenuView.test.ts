@@ -1,10 +1,92 @@
 // @vitest-environment jsdom
 
-import { mount } from "@vue/test-utils";
+import { mount, type VueWrapper } from "@vue/test-utils";
 import { computed, nextTick, ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import MenuView from "./MenuView.vue";
 import ImageAssistedMenuImport from "@/components/menu/ImageAssistedMenuImport.vue";
+import type { ImageVariants } from "@/composables/useImageUpload";
+import type { MenuItemData } from "@/composables/useMenuManagement";
+
+// MenuView is a `<script setup>` component, so none of the bindings this file
+// drives are on the public instance type. The repo idiom is to name them once
+// and cast the wrapper once (see `components/tables/SeatManagement.test.ts`);
+// `mountMenuView` below is the single cast site.
+//
+// The form shapes mirror the types declared inside MenuView.vue's `<script
+// setup>` block, which cannot be imported from a `.vue` file.
+type NumericFormValue = number | "" | null | undefined;
+
+interface SizeOptionForm {
+  id: string;
+  name: string;
+  priceAdjustment: NumericFormValue;
+  isDefault: boolean;
+}
+
+interface AddOnOptionForm {
+  id: string;
+  name: string;
+  price: NumericFormValue;
+  maxQuantity: NumericFormValue;
+  available: boolean;
+}
+
+interface CustomizationChoiceForm {
+  id: string;
+  name: string;
+  priceAdjustment: NumericFormValue;
+  isDefault: boolean;
+}
+
+interface CustomizationGroupForm {
+  id: string;
+  name: string;
+  type: "single" | "multiple";
+  required: boolean;
+  maxSelections: NumericFormValue;
+  choices: CustomizationChoiceForm[];
+}
+
+interface MenuItemFormState {
+  name: string;
+  nameEn: string;
+  description: string;
+  price: number;
+  originalPrice: number | undefined;
+  ingredients: string;
+  spiceLevel: number;
+  // MenuView.vue declares this as `number` because the initial value is 15,
+  // but `v-model.number` writes "" back when the field is cleared and the save
+  // builder branches on that empty value. NumericFormValue is what it holds.
+  preparationTime: NumericFormValue;
+  calories: number | undefined;
+  tagsText: string;
+  keywords: string;
+  allergensText: string;
+  dietaryInfo: Record<string, boolean>;
+  sizes: SizeOptionForm[];
+  addOns: AddOnOptionForm[];
+  customizations: CustomizationGroupForm[];
+  categoryId: string | number;
+  catalogType: "menu_item" | "product";
+  imageUrl: string;
+  imageId: string;
+  imageVariants: ImageVariants | null;
+  isFeatured: boolean;
+  isAvailable: boolean;
+  sortOrder: number;
+  inventoryCount: NumericFormValue;
+  minInventoryAlert: NumericFormValue;
+  updatedAt: number | undefined;
+}
+
+interface MenuViewInternals {
+  menuItemForm: MenuItemFormState;
+  usesSharedOptionGroups: boolean;
+  editMenuItem: (item: MenuItemData) => void;
+  handleImageFileSelected: (event: Event) => Promise<void>;
+}
 
 const importMenuItems = vi.fn();
 const createImageAssistedCategories = vi.fn();
@@ -21,7 +103,7 @@ const categories = ref([
   { id: 1, name: "主食", sortOrder: 0 },
   { id: 2, name: "飲料", sortOrder: 1 },
 ]);
-const menuItems = ref([]);
+const menuItems = ref<MenuItemData[]>([]);
 const selectedCategoryId = ref<number | null>(null);
 
 vi.mock("@/i18n", () => ({
@@ -562,7 +644,7 @@ describe("MenuView", () => {
       saveMenuItem.mockResolvedValue("conflict");
       const wrapper = mountMenuView();
       const stale = menuItem({ name: "牛肉麵", price: 7000 });
-      menuItems.value = [stale] as never;
+      menuItems.value = [stale];
 
       await editItem(wrapper, stale);
       await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
@@ -572,7 +654,7 @@ describe("MenuView", () => {
       fetchMenu.mockImplementation(async () => {
         menuItems.value = [
           menuItem({ name: "牛肉麵", price: 9000, isAvailable: false }),
-        ] as never;
+        ];
       });
       // onMounted already fetched once; the reload has to fetch again.
       const fetchesBeforeReload = fetchMenu.mock.calls.length;
@@ -616,7 +698,7 @@ describe("MenuView", () => {
       saveMenuItem.mockResolvedValue("conflict");
       const wrapper = mountMenuView();
       const stale = menuItem({ name: "牛肉麵", price: 7000 });
-      menuItems.value = [stale] as never;
+      menuItems.value = [stale];
 
       await editItem(wrapper, stale);
       // The owner renamed it and never touched the price.
@@ -626,7 +708,7 @@ describe("MenuView", () => {
 
       // Someone else repriced it in the meantime.
       fetchMenu.mockImplementation(async () => {
-        menuItems.value = [menuItem({ name: "牛肉麵", price: 9000 })] as never;
+        menuItems.value = [menuItem({ name: "牛肉麵", price: 9000 })];
       });
       await wrapper
         .get('[data-testid="menu-item-conflict-reload"]')
@@ -652,7 +734,7 @@ describe("MenuView", () => {
       saveMenuItem.mockResolvedValue("conflict");
       const wrapper = mountMenuView();
       const stale = menuItem({ price: 7000 });
-      menuItems.value = [stale] as never;
+      menuItems.value = [stale];
 
       await editItem(wrapper, stale);
       wrapper.vm.menuItemForm.price = 7500;
@@ -660,7 +742,7 @@ describe("MenuView", () => {
       await flushPromises();
 
       fetchMenu.mockImplementation(async () => {
-        menuItems.value = [menuItem({ price: 9000 })] as never;
+        menuItems.value = [menuItem({ price: 9000 })];
       });
       await wrapper
         .get('[data-testid="menu-item-conflict-reload"]')
@@ -679,14 +761,14 @@ describe("MenuView", () => {
       saveMenuItem.mockResolvedValue("conflict");
       const wrapper = mountMenuView();
       const stale = menuItem();
-      menuItems.value = [stale] as never;
+      menuItems.value = [stale];
 
       await editItem(wrapper, stale);
       await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
       await flushPromises();
 
       fetchMenu.mockImplementation(async () => {
-        menuItems.value = [] as never;
+        menuItems.value = [];
       });
       await wrapper
         .get('[data-testid="menu-item-conflict-reload"]')
@@ -705,15 +787,12 @@ describe("MenuView", () => {
     it("sends the version the form was loaded with", async () => {
       const wrapper = mountMenuView();
 
-      await editItem(
-        wrapper,
-        menuItem({ updatedAt: "2026-07-30T08:15:30.250Z" }),
-      );
+      await editItem(wrapper, menuItem({ updatedAt: 1785399330250 }));
       await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
       await flushPromises();
 
       expect(saveMenuItem).toHaveBeenCalledWith(
-        expect.objectContaining({ updatedAt: "2026-07-30T08:15:30.250Z" }),
+        expect.objectContaining({ updatedAt: 1785399330250 }),
         1,
       );
     });
@@ -878,7 +957,7 @@ describe("MenuView", () => {
           ],
         },
       }),
-    ] as never;
+    ];
 
     await wrapper
       .findAll("button")
@@ -969,7 +1048,7 @@ describe("MenuView", () => {
     it("opens an item with links in shared mode", async () => {
       const wrapper = mountMenuView();
       const existing = menuItem();
-      menuItems.value = [existing] as never;
+      menuItems.value = [existing];
       fetchItemGroups.mockResolvedValue(linked());
 
       await editItem(wrapper, existing);
@@ -986,7 +1065,7 @@ describe("MenuView", () => {
     it("leaves an item without links on the inline editor", async () => {
       const wrapper = mountMenuView();
       const existing = menuItem();
-      menuItems.value = [existing] as never;
+      menuItems.value = [existing];
       fetchItemGroups.mockResolvedValue([]);
 
       await editItem(wrapper, existing);
@@ -1004,7 +1083,7 @@ describe("MenuView", () => {
     it("saves links separately and leaves the JSON column alone", async () => {
       const wrapper = mountMenuView();
       const existing = menuItem();
-      menuItems.value = [existing] as never;
+      menuItems.value = [existing];
       fetchItemGroups.mockResolvedValue(linked());
 
       await editItem(wrapper, existing);
@@ -1025,7 +1104,7 @@ describe("MenuView", () => {
     it("keeps the modal open when the links fail to save", async () => {
       const wrapper = mountMenuView();
       const existing = menuItem();
-      menuItems.value = [existing] as never;
+      menuItems.value = [existing];
       fetchItemGroups.mockResolvedValue(linked());
       saveItemGroups.mockResolvedValue(false);
 
@@ -1137,7 +1216,7 @@ describe("MenuView", () => {
         keywords: "oyster,omelette",
         allergens: ["seafood", "egg"],
         dietaryInfo: { glutenFree: true },
-        updatedAt: "2026-07-30T08:15:30.250Z",
+        updatedAt: 1785399330250,
       });
 
     it("loads the stored advanced fields into the form", async () => {
@@ -1174,7 +1253,7 @@ describe("MenuView", () => {
           ],
         },
       });
-      menuItems.value = [existing] as never;
+      menuItems.value = [existing];
 
       await editItem(wrapper, existing);
 
@@ -1212,7 +1291,7 @@ describe("MenuView", () => {
           ],
         },
       });
-      menuItems.value = [existing] as never;
+      menuItems.value = [existing];
 
       await editItem(wrapper, existing);
 
@@ -1235,7 +1314,7 @@ describe("MenuView", () => {
     it("writes them back untouched when nothing was edited", async () => {
       const wrapper = mountMenuView();
       const existing = stored();
-      menuItems.value = [existing] as never;
+      menuItems.value = [existing];
 
       await editItem(wrapper, existing);
       await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
@@ -1264,7 +1343,7 @@ describe("MenuView", () => {
     it("clears a stored field instead of leaving the old value behind", async () => {
       const wrapper = mountMenuView();
       const existing = stored();
-      menuItems.value = [existing] as never;
+      menuItems.value = [existing];
 
       await editItem(wrapper, existing);
       wrapper.vm.menuItemForm.nameEn = "";
@@ -1296,7 +1375,7 @@ describe("MenuView", () => {
         inventoryCount: null,
         minInventoryAlert: null,
       });
-      menuItems.value = [existing] as never;
+      menuItems.value = [existing];
 
       await editItem(wrapper, existing);
       await wrapper.get('[data-testid="item-modal"] form').trigger("submit");
@@ -1314,7 +1393,7 @@ describe("MenuView", () => {
     it("refuses to submit an option row that would be silently dropped", async () => {
       const wrapper = mountMenuView();
       const existing = stored();
-      menuItems.value = [existing] as never;
+      menuItems.value = [existing];
 
       await editItem(wrapper, existing);
       // A group the owner named but never gave a choice: buildStructuredOptions
@@ -1339,7 +1418,7 @@ async function flushPromises() {
   await Promise.resolve();
 }
 
-function mountMenuView() {
+function mountMenuView(): VueWrapper<MenuViewInternals> {
   return mount(MenuView, {
     global: {
       stubs: {
@@ -1349,10 +1428,10 @@ function mountMenuView() {
         VirtualMenuGrid: true,
       },
     },
-  });
+  }) as unknown as VueWrapper<MenuViewInternals>;
 }
 
-function menuItem(overrides: Partial<(typeof menuItems.value)[number]> = {}) {
+function menuItem(overrides: Partial<MenuItemData> = {}): MenuItemData {
   return {
     id: 1,
     categoryId: 1,

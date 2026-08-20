@@ -3,7 +3,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { useAuthStore } from "./auth";
-import { UserRole, type User } from "@/types";
+import { AxiosHeaders, type AxiosResponse } from "axios";
+import { UserRole, type ApiResponse, type User } from "@/types";
 import { api, authClient, managementAuthClient } from "@/services/api";
 import { getAuthToken } from "@/utils/authTokenProvider";
 
@@ -49,6 +50,21 @@ const moduleAccess = vi.hoisted(() => ({
 vi.mock("@makanmasak/shared/stores/moduleAccess", () => ({
   useModuleAccessStore: () => moduleAccess,
 }));
+
+// api.* return a full AxiosResponse, so a mock has to supply the whole envelope
+// rather than just `data`.
+function axiosResponse<T>(response: {
+  data: ApiResponse<T>;
+  status?: number;
+}): AxiosResponse<ApiResponse<T>> {
+  return {
+    data: response.data,
+    status: response.status ?? 200,
+    statusText: "OK",
+    headers: new AxiosHeaders(),
+    config: { headers: new AxiosHeaders() },
+  };
+}
 
 const user = (overrides: Partial<User> = {}): User => ({
   id: 1,
@@ -97,16 +113,18 @@ describe("useAuthStore", () => {
   });
 
   it("logs in, persists auth data through auth-client, and exposes owner permissions", async () => {
-    vi.mocked(api.post).mockResolvedValue({
-      data: {
-        success: true,
+    vi.mocked(api.post).mockResolvedValue(
+      axiosResponse({
         data: {
-          token: "access-token",
-          refreshToken: "refresh-token",
-          user: user(),
+          success: true,
+          data: {
+            token: "access-token",
+            refreshToken: "refresh-token",
+            user: user(),
+          },
         },
-      },
-    });
+      }),
+    );
     const store = useAuthStore();
 
     await expect(store.login("owner", "secret")).resolves.toEqual({
@@ -130,16 +148,18 @@ describe("useAuthStore", () => {
     // Bootstrap only fetches when the app starts authenticated. Without this
     // the whole session kept an empty `effectiveModules` and every
     // module-gated feature stayed hidden until a manual reload.
-    vi.mocked(api.post).mockResolvedValue({
-      data: {
-        success: true,
+    vi.mocked(api.post).mockResolvedValue(
+      axiosResponse({
         data: {
-          token: "access-token",
-          refreshToken: "refresh-token",
-          user: user(),
+          success: true,
+          data: {
+            token: "access-token",
+            refreshToken: "refresh-token",
+            user: user(),
+          },
         },
-      },
-    });
+      }),
+    );
 
     await useAuthStore().login("owner", "secret");
 
@@ -148,13 +168,15 @@ describe("useAuthStore", () => {
   });
 
   it("does not load module access when login fails", async () => {
-    vi.mocked(api.post).mockResolvedValue({
-      status: 401,
-      data: {
-        success: false,
-        error: { code: "INVALID_CREDENTIALS", message: "bad credentials" },
-      },
-    });
+    vi.mocked(api.post).mockResolvedValue(
+      axiosResponse({
+        status: 401,
+        data: {
+          success: false,
+          error: { code: "INVALID_CREDENTIALS", message: "bad credentials" },
+        },
+      }),
+    );
 
     // The key, not "bad credentials": the store translates now, and this test
     // is here for `fetch`, not for the wording.
@@ -167,7 +189,9 @@ describe("useAuthStore", () => {
   });
 
   it("clears module access on logout so the next user starts empty", async () => {
-    vi.mocked(api.post).mockResolvedValue({ data: { success: true } });
+    vi.mocked(api.post).mockResolvedValue(
+      axiosResponse({ data: { success: true } }),
+    );
 
     await useAuthStore().logout();
 
@@ -263,7 +287,9 @@ describe("useAuthStore", () => {
     vi.mocked(getAuthToken).mockReturnValue("stored-token");
     sessionStorage.setItem("admin_selected_restaurant_id", "restaurant-42");
     vi.mocked(api.get).mockRejectedValue({ response: { status: 401 } });
-    vi.mocked(api.post).mockResolvedValue({ data: { success: true } });
+    vi.mocked(api.post).mockResolvedValue(
+      axiosResponse({ data: { success: true } }),
+    );
     const store = useAuthStore();
 
     await expect(store.checkAuth()).resolves.toBe(false);
@@ -544,13 +570,15 @@ describe("admin auth store — what a rejected login tells the reader", () => {
   });
 
   it("classifies a 2xx whose envelope reports the failure", async () => {
-    vi.mocked(api.post).mockResolvedValue({
-      status: 200,
-      data: {
-        success: false,
-        error: { code: "INVALID_CREDENTIALS", message: SERVER_PROSE },
-      },
-    });
+    vi.mocked(api.post).mockResolvedValue(
+      axiosResponse({
+        status: 200,
+        data: {
+          success: false,
+          error: { code: "INVALID_CREDENTIALS", message: SERVER_PROSE },
+        },
+      }),
+    );
 
     const result = await useAuthStore().login("owner", "hunter2");
 

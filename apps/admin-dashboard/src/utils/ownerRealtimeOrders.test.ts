@@ -13,7 +13,9 @@ describe("owner realtime order helpers", () => {
     expect(
       getOwnerOrderTableLabel({
         tableId: 2,
-        table: { id: 2, number: "A1" },
+        // getOwnerOrderTableLabel only reads `table.number`; its parameter type
+        // deliberately does not carry the internal `table.id`.
+        table: { number: "A1" },
         orderNumber: "ORDER-001",
       }),
     ).toBe("A1");

@@ -4,6 +4,8 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SettingsView from "./SettingsView.vue";
+import { AxiosHeaders, type AxiosResponse } from "axios";
+import type { ApiResponse } from "@/types";
 import { api } from "@/services/api";
 import { marketsService } from "@/services/marketsService";
 import { useAuthStore } from "@/stores/auth";
@@ -94,6 +96,18 @@ vi.mock("@/utils/qrPrintSheet", () => ({
   printQRCodeSheet,
 }));
 
+// api.get resolves a full AxiosResponse whose body is the { success, data }
+// envelope; the mock has to produce the same thing.
+function apiGetResponse<T>(data: T): AxiosResponse<ApiResponse<T>> {
+  return {
+    data: { success: true, data },
+    status: 200,
+    statusText: "OK",
+    headers: new AxiosHeaders(),
+    config: { headers: new AxiosHeaders() },
+  };
+}
+
 describe("SettingsView market join requests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -105,21 +119,21 @@ describe("SettingsView market join requests", () => {
     } as unknown as ReturnType<typeof useRoute>);
     vi.mocked(api.get).mockImplementation(async (url: string) => {
       if (url === "/restaurants/restaurant-1") {
-        return { data: { data: { name: "雞排攤" } } };
+        return apiGetResponse({ name: "雞排攤" });
       }
       if (url === "/restaurants/restaurant-1/contact-profile") {
-        return { data: { data: { messagingChannels: {}, faqs: [] } } };
+        return apiGetResponse({ messagingChannels: {}, faqs: [] });
       }
       if (url === "/restaurants/restaurant-1/qr/shop") {
-        return { data: { data: { enabled: false } } };
+        return apiGetResponse({ enabled: false });
       }
       if (url === "/restaurants/restaurant-1/service-items") {
-        return { data: { data: [] } };
+        return apiGetResponse([]);
       }
       if (url === "/service-bookings/slots") {
-        return { data: { data: { slots: [] } } };
+        return apiGetResponse({ slots: [] });
       }
-      return { data: { data: {} } };
+      return apiGetResponse({});
     });
     vi.mocked(marketsService.listMarkets).mockResolvedValue([
       {
@@ -227,35 +241,31 @@ describe("SettingsView guest ordering availability", () => {
     } as unknown as ReturnType<typeof useRoute>);
     vi.mocked(api.get).mockImplementation(async (url: string) => {
       if (url === "/restaurants/restaurant-1") {
-        return {
-          data: {
-            data: {
-              name: "雞排攤",
-              isAvailable: false,
-              settings: {
-                allowGuestOrders: false,
-                currency: "MYR",
-                enableDineIn: true,
-                enableTakeaway: true,
-                enableDelivery: false,
-              },
-            },
+        return apiGetResponse({
+          name: "雞排攤",
+          isAvailable: false,
+          settings: {
+            allowGuestOrders: false,
+            currency: "MYR",
+            enableDineIn: true,
+            enableTakeaway: true,
+            enableDelivery: false,
           },
-        };
+        });
       }
       if (url === "/restaurants/restaurant-1/contact-profile") {
-        return { data: { data: { messagingChannels: {}, faqs: [] } } };
+        return apiGetResponse({ messagingChannels: {}, faqs: [] });
       }
       if (url === "/restaurants/restaurant-1/qr/shop") {
-        return { data: { data: { enabled: false } } };
+        return apiGetResponse({ enabled: false });
       }
       if (url === "/restaurants/restaurant-1/service-items") {
-        return { data: { data: [] } };
+        return apiGetResponse([]);
       }
       if (url === "/service-bookings/slots") {
-        return { data: { data: { slots: [] } } };
+        return apiGetResponse({ slots: [] });
       }
-      return { data: { data: {} } };
+      return apiGetResponse({});
     });
     vi.mocked(marketsService.listMarkets).mockResolvedValue([]);
     vi.mocked(marketsService.listRestaurantMemberships).mockResolvedValue([]);
@@ -274,7 +284,7 @@ describe("SettingsView guest ordering availability", () => {
     await flushPromises();
 
     const guestOrderingCheckbox = wrapper
-      .findAll('input[type="checkbox"]')
+      .findAll<HTMLInputElement>('input[type="checkbox"]')
       .find((input) =>
         input.element.parentElement?.parentElement?.textContent?.includes(
           "settings.orders.acceptGuestOrders",
@@ -329,27 +339,27 @@ describe("SettingsView shop QR management", () => {
     } as unknown as ReturnType<typeof useRoute>);
     vi.mocked(api.get).mockImplementation(async (url: string) => {
       if (url === "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1/qr/shop") {
-        return { data: { data: shopQrInfo } };
+        return apiGetResponse(shopQrInfo);
       }
       if (url === "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1") {
-        return { data: { data: { name: "雞排攤" } } };
+        return apiGetResponse({ name: "雞排攤" });
       }
       if (
         url ===
         "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1/contact-profile"
       ) {
-        return { data: { data: { messagingChannels: {}, faqs: [] } } };
+        return apiGetResponse({ messagingChannels: {}, faqs: [] });
       }
       if (
         url ===
         "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1/service-items"
       ) {
-        return { data: { data: [] } };
+        return apiGetResponse([]);
       }
       if (url === "/service-bookings/slots") {
-        return { data: { data: { slots: [] } } };
+        return apiGetResponse({ slots: [] });
       }
-      return { data: { data: {} } };
+      return apiGetResponse({});
     });
     vi.mocked(marketsService.listMarkets).mockResolvedValue([]);
     vi.mocked(marketsService.listRestaurantMemberships).mockResolvedValue([]);
@@ -382,7 +392,9 @@ describe("SettingsView shop QR management", () => {
     await flushPromises();
 
     expect(anchorClick).toHaveBeenCalledOnce();
-    const anchor = anchorClick.mock.instances[0];
+    // mock.instances is typed from the spied signature (`click(): void`), so it
+    // carries no element type of its own.
+    const anchor = anchorClick.mock.instances[0] as HTMLAnchorElement;
     expect(anchor.download).toBe(`shop-qr-${shopQrCode}.png`);
     expect(anchor.href).toBe("data:image/png;base64,c2hvcA==");
 
@@ -430,7 +442,7 @@ describe("SettingsView shop QR management", () => {
     await flushPromises();
 
     const desktopCheckbox = wrapper
-      .findAll('input[type="checkbox"]')
+      .findAll<HTMLInputElement>('input[type="checkbox"]')
       .find((input) =>
         input.element.parentElement?.parentElement?.textContent?.includes(
           "settings.notifications.enableDesktop",
@@ -443,39 +455,35 @@ describe("SettingsView shop QR management", () => {
   it("blocks enabling shop mode until at least one fulfillment method is enabled", async () => {
     vi.mocked(api.get).mockImplementation(async (url: string) => {
       if (url === "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1/qr/shop") {
-        return { data: { data: { enabled: false } } };
+        return apiGetResponse({ enabled: false });
       }
       if (url === "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1") {
-        return {
-          data: {
-            data: {
-              name: "雞排攤",
-              supportsTakeaway: false,
-              settings: {
-                enableDineIn: false,
-                enableTakeaway: false,
-                enableDelivery: false,
-              },
-            },
+        return apiGetResponse({
+          name: "雞排攤",
+          supportsTakeaway: false,
+          settings: {
+            enableDineIn: false,
+            enableTakeaway: false,
+            enableDelivery: false,
           },
-        };
+        });
       }
       if (
         url ===
         "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1/contact-profile"
       ) {
-        return { data: { data: { messagingChannels: {}, faqs: [] } } };
+        return apiGetResponse({ messagingChannels: {}, faqs: [] });
       }
       if (
         url ===
         "/restaurants/019fa136-cfe3-709f-a2ab-f8a3ebcd31a1/service-items"
       ) {
-        return { data: { data: [] } };
+        return apiGetResponse([]);
       }
       if (url === "/service-bookings/slots") {
-        return { data: { data: { slots: [] } } };
+        return apiGetResponse({ slots: [] });
       }
-      return { data: { data: {} } };
+      return apiGetResponse({});
     });
     const wrapper = mount(SettingsView, {
       global: {
@@ -488,7 +496,7 @@ describe("SettingsView shop QR management", () => {
     await flushPromises();
 
     const shopModeCheckbox = wrapper
-      .findAll('input[type="checkbox"]')
+      .findAll<HTMLInputElement>('input[type="checkbox"]')
       .find((input) =>
         input.element.parentElement?.parentElement?.textContent?.includes(
           "settings.qrcode.enableShopMode",

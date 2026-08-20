@@ -2,7 +2,8 @@ import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useOrderStore } from "./order";
 import { api } from "@/services/api";
-import type { Order } from "@/types";
+import { AxiosHeaders, type AxiosResponse } from "axios";
+import type { ApiResponse, Order } from "@/types";
 
 vi.mock("@/services/api", () => ({
   api: {
@@ -17,6 +18,21 @@ vi.mock("@/services/api", () => ({
 vi.mock("@/i18n", () => ({
   t: (key: string) => key,
 }));
+
+// api.* return a full AxiosResponse, so a mock has to supply the whole envelope
+// rather than just `data`.
+function axiosResponse<T>(response: {
+  data: ApiResponse<T>;
+  status?: number;
+}): AxiosResponse<ApiResponse<T>> {
+  return {
+    data: response.data,
+    status: response.status ?? 200,
+    statusText: "OK",
+    headers: new AxiosHeaders(),
+    config: { headers: new AxiosHeaders() },
+  };
+}
 
 function buildOrder(overrides: Partial<Order> = {}): Order {
   return {
@@ -48,10 +64,14 @@ describe("admin order store — local status updates keep the API's time format"
    * which is how `createdAt` ended up crashing the orders table.
    */
   it("stamps updatedAt as Unix milliseconds after a status change", async () => {
-    vi.mocked(api.get).mockResolvedValue({
-      data: { success: true, data: [buildOrder()] },
-    });
-    vi.mocked(api.put).mockResolvedValue({ data: { success: true } });
+    vi.mocked(api.get).mockResolvedValue(
+      axiosResponse({
+        data: { success: true, data: [buildOrder()] },
+      }),
+    );
+    vi.mocked(api.put).mockResolvedValue(
+      axiosResponse({ data: { success: true } }),
+    );
     const store = useOrderStore();
     await store.fetchOrders();
     const before = Date.now();
@@ -66,10 +86,14 @@ describe("admin order store — local status updates keep the API's time format"
   });
 
   it("stamps updatedAt as Unix milliseconds after a cancellation", async () => {
-    vi.mocked(api.get).mockResolvedValue({
-      data: { success: true, data: [buildOrder({ status: "confirmed" })] },
-    });
-    vi.mocked(api.delete).mockResolvedValue({ data: { success: true } });
+    vi.mocked(api.get).mockResolvedValue(
+      axiosResponse({
+        data: { success: true, data: [buildOrder({ status: "confirmed" })] },
+      }),
+    );
+    vi.mocked(api.delete).mockResolvedValue(
+      axiosResponse({ data: { success: true } }),
+    );
     const store = useOrderStore();
     await store.fetchOrders();
     const before = Date.now();
@@ -116,9 +140,11 @@ describe("admin order store — the server's prose never reaches the banner", ()
   });
 
   it("names the failed action when the response cannot be classified", async () => {
-    vi.mocked(api.get).mockResolvedValue({
-      data: { success: true, data: [buildOrder()] },
-    });
+    vi.mocked(api.get).mockResolvedValue(
+      axiosResponse({
+        data: { success: true, data: [buildOrder()] },
+      }),
+    );
     vi.mocked(api.put).mockRejectedValue(rejectWith(418));
     const store = useOrderStore();
     await store.fetchOrders();
@@ -131,9 +157,11 @@ describe("admin order store — the server's prose never reaches the banner", ()
   });
 
   it("keeps the server's sentence out of every failure path", async () => {
-    vi.mocked(api.get).mockResolvedValue({
-      data: { success: true, data: [buildOrder({ status: "confirmed" })] },
-    });
+    vi.mocked(api.get).mockResolvedValue(
+      axiosResponse({
+        data: { success: true, data: [buildOrder({ status: "confirmed" })] },
+      }),
+    );
     vi.mocked(api.delete).mockRejectedValue(
       rejectWith(409, "ORDER_ALREADY_SERVED"),
     );

@@ -21,6 +21,9 @@ vi.mock("@/services/serviceBookingsService", () => ({
   },
 }));
 
+// BaseEntity declares createdAt/updatedAt as Unix milliseconds, not ISO strings.
+const FIXTURE_TIMESTAMP_MS = 1_780_000_000_000;
+
 describe("ServiceBookingSlotsManager", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -34,8 +37,8 @@ describe("ServiceBookingSlotsManager", () => {
         sortOrder: 0,
         isActive: true,
         isPublic: true,
-        createdAt: "",
-        updatedAt: "",
+        createdAt: FIXTURE_TIMESTAMP_MS,
+        updatedAt: FIXTURE_TIMESTAMP_MS,
       },
     ]);
     vi.mocked(serviceBookingsService.listSlots).mockResolvedValue([

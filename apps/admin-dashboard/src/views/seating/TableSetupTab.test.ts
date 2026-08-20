@@ -5,6 +5,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import TableSetupTab from "./TableSetupTab.vue";
 import { api } from "@/services/api";
+import type { PrintableQRCode } from "@/utils/qrPrintSheet";
 
 // restaurants.id is a TEXT UUID v7 — the whole point of this suite is that it
 // must reach the API as a string, never coerced through Number().
@@ -34,7 +35,9 @@ vi.mock("@/composables/useConfirmModal", () => ({
   useConfirmModal: () => ({ confirm: confirmMock }),
 }));
 
-const printQRCodeSheetMock = vi.hoisted(() => vi.fn(() => true));
+const printQRCodeSheetMock = vi.hoisted(() =>
+  vi.fn((_title: string, _qrCodes: PrintableQRCode[]) => true),
+);
 const toPrintableDataUrlMock = vi.hoisted(() =>
   vi.fn(async (content: string) => `data:image/png;base64,${content}`),
 );
@@ -425,7 +428,7 @@ describe("TableSetupTab QR print selection", () => {
     expect(printQRCodeSheetMock).toHaveBeenCalledOnce();
     const [, codes] = printQRCodeSheetMock.mock.calls[0];
     expect(codes).toHaveLength(2);
-    expect(codes.map((c: { label: string }) => c.label)).toEqual([
+    expect(codes.map((code) => code.label)).toEqual([
       "tables.qrModal.title",
       "tables.qrModal.title",
     ]);

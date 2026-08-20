@@ -5,6 +5,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import RestaurantServiceItemsManager from "./RestaurantServiceItemsManager.vue";
 import { restaurantServiceItemsService } from "@/services/restaurantServiceItemsService";
 
+// BaseEntity declares createdAt/updatedAt as Unix milliseconds, not ISO strings.
+const FIXTURE_TIMESTAMP_MS = 1_780_000_000_000;
+
 const push = vi.fn();
 
 vi.mock("@/services/restaurantServiceItemsService", () => ({
@@ -39,8 +42,8 @@ describe("RestaurantServiceItemsManager", () => {
           sortOrder: 1,
           isActive: true,
           isPublic: true,
-          createdAt: "",
-          updatedAt: "",
+          createdAt: FIXTURE_TIMESTAMP_MS,
+          updatedAt: FIXTURE_TIMESTAMP_MS,
         },
       ])
       .mockResolvedValueOnce([]);
@@ -53,8 +56,8 @@ describe("RestaurantServiceItemsManager", () => {
       sortOrder: 0,
       isActive: true,
       isPublic: true,
-      createdAt: "",
-      updatedAt: "",
+      createdAt: FIXTURE_TIMESTAMP_MS,
+      updatedAt: FIXTURE_TIMESTAMP_MS,
     });
 
     const wrapper = mount(RestaurantServiceItemsManager, {
@@ -96,8 +99,8 @@ describe("RestaurantServiceItemsManager", () => {
       sortOrder: 0,
       isActive: true,
       isPublic: true,
-      createdAt: "",
-      updatedAt: "",
+      createdAt: FIXTURE_TIMESTAMP_MS,
+      updatedAt: FIXTURE_TIMESTAMP_MS,
     };
     vi.mocked(restaurantServiceItemsService.list)
       .mockResolvedValueOnce([serviceItem])
@@ -111,8 +114,8 @@ describe("RestaurantServiceItemsManager", () => {
       sortOrder: 0,
       isActive: true,
       isPublic: true,
-      createdAt: "",
-      updatedAt: "",
+      createdAt: FIXTURE_TIMESTAMP_MS,
+      updatedAt: FIXTURE_TIMESTAMP_MS,
     });
     vi.mocked(restaurantServiceItemsService.remove).mockResolvedValueOnce();
 
@@ -157,8 +160,8 @@ describe("RestaurantServiceItemsManager", () => {
       sortOrder: 1,
       isActive: true,
       isPublic: true,
-      createdAt: "",
-      updatedAt: "",
+      createdAt: FIXTURE_TIMESTAMP_MS,
+      updatedAt: FIXTURE_TIMESTAMP_MS,
     });
     const wrapper = mount(RestaurantServiceItemsManager, {
       props: { restaurantId: "restaurant-1" },
@@ -207,8 +210,8 @@ describe("RestaurantServiceItemsManager", () => {
       sortOrder: 1,
       isActive: true,
       isPublic: true,
-      createdAt: "",
-      updatedAt: "",
+      createdAt: FIXTURE_TIMESTAMP_MS,
+      updatedAt: FIXTURE_TIMESTAMP_MS,
     });
     const wrapper = mount(RestaurantServiceItemsManager, {
       props: {
@@ -253,8 +256,8 @@ describe("RestaurantServiceItemsManager", () => {
       sortOrder: 0,
       isActive: true,
       isPublic: true,
-      createdAt: "",
-      updatedAt: "",
+      createdAt: FIXTURE_TIMESTAMP_MS,
+      updatedAt: FIXTURE_TIMESTAMP_MS,
     });
     const wrapper = mount(RestaurantServiceItemsManager, {
       props: {
@@ -294,8 +297,8 @@ describe("RestaurantServiceItemsManager", () => {
       sortOrder: 1,
       isActive: true,
       isPublic: true,
-      createdAt: "",
-      updatedAt: "",
+      createdAt: FIXTURE_TIMESTAMP_MS,
+      updatedAt: FIXTURE_TIMESTAMP_MS,
     });
     const wrapper = mount(RestaurantServiceItemsManager, {
       props: {

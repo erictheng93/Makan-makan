@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { usePaymentStore } from "./payment";
 import { apiClient } from "@/services/api";
+import { AxiosHeaders, type AxiosResponse } from "axios";
+import type { ApiResponse } from "@/types";
 import type { PaymentRequest } from "@makanmasak/shared-types";
 
 vi.mock("@/i18n", () => ({
@@ -16,6 +18,21 @@ vi.mock("@/services/api", () => ({
     get: vi.fn(),
   },
 }));
+
+// api.* return a full AxiosResponse, so a mock has to supply the whole envelope
+// rather than just `data`.
+function axiosResponse<T>(response: {
+  data: ApiResponse<T>;
+  status?: number;
+}): AxiosResponse<ApiResponse<T>> {
+  return {
+    data: response.data,
+    status: response.status ?? 200,
+    statusText: "OK",
+    headers: new AxiosHeaders(),
+    config: { headers: new AxiosHeaders() },
+  };
+}
 
 const paymentRequest = (): PaymentRequest => ({
   orderId: "order-1",
@@ -33,15 +50,17 @@ beforeEach(() => {
   vi.spyOn(crypto, "randomUUID")
     .mockReturnValueOnce("018f0000-0000-7000-8000-000000000001")
     .mockReturnValueOnce("018f0000-0000-7000-8000-000000000002");
-  vi.mocked(apiClient.post).mockResolvedValue({
-    data: {
-      success: true,
+  vi.mocked(apiClient.post).mockResolvedValue(
+    axiosResponse({
       data: {
-        transactionId: "payment-1",
-        status: "completed",
+        success: true,
+        data: {
+          transactionId: "payment-1",
+          status: "completed",
+        },
       },
-    },
-  });
+    }),
+  );
 });
 
 describe("usePaymentStore", () => {

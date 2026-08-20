@@ -225,11 +225,15 @@ describe("MenuItemOptionGroups", () => {
   it("keeps every edit when several land before a re-render", async () => {
     const wrapper = mountPicker([link()]);
 
-    const required = wrapper.get(
+    const required = wrapper.get<HTMLSelectElement>(
       '[data-testid="required-override-group-sweet"]',
     );
-    const hide = wrapper.get('[data-testid="hide-choice-choice-half"]');
-    const price = wrapper.get('[data-testid="price-override-choice-half"]');
+    const hide = wrapper.get<HTMLInputElement>(
+      '[data-testid="hide-choice-choice-half"]',
+    );
+    const price = wrapper.get<HTMLInputElement>(
+      '[data-testid="price-override-choice-half"]',
+    );
 
     required.element.value = "false";
     required.trigger("change");

@@ -141,7 +141,9 @@ describe("SeatManagement QR output", () => {
     ).downloadSeatQRCode();
 
     expect(anchorClick).toHaveBeenCalledOnce();
-    const anchor = anchorClick.mock.instances[0];
+    // mock.instances is typed from the spied signature (`click(): void`), so it
+    // carries no element type of its own.
+    const anchor = anchorClick.mock.instances[0] as HTMLAnchorElement;
     expect(anchor.download).toBe("QR-A1-01.png");
     expect(anchor.href).toBe(qrDataUrl);
   });
