@@ -26,7 +26,9 @@ import {
   creditTopupIntents,
 } from "@makanmasak/database";
 import {
+  createMutationFixtureDb,
   createSelectFixtureDb,
+  type MutationFixtures,
   type SelectFixtures,
 } from "@makanmasak/database/testing";
 
@@ -60,65 +62,38 @@ import {
  * test below has a real, unregistered table to demonstrate the
  * "<unknown table>" case. `creditTopupIntents` is both the only table
  * `getIntent`/`findIntent` select from and the table `createIntent`/
- * `confirmIntent` insert/update, so it is registered for select fixtures
- * while its mutation queue (below) stays untouched.
+ * `confirmIntent` insert and update, so it is registered once and its read,
+ * insert, and update queues are all kept apart.
  *
  * None of this service's selects are wrapped in try/catch — the one
  * try/catch, in `createIntent`, wraps only the gateway call and the update
  * that marks a failed intent, after the select already ran. A harness throw
- * from a missing/exhausted select fixture therefore always surfaces as a
- * rejected promise here; no swallowing caveat applies.
+ * from a missing/exhausted fixture therefore always surfaces as a rejected
+ * promise here, with one exception: a missing fixture for that rollback
+ * update would be reported as the gateway error instead of its own.
  */
 const fixtureTables = {
   creditCards,
   creditTopupIntents,
 };
-type SelectFixtureName = keyof typeof fixtureTables;
+type FixtureName = keyof typeof fixtureTables;
 
-function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName> = {}) {
+function mockSelectResults(fixtures: SelectFixtures<FixtureName> = {}) {
   const fixtureDb = createSelectFixtureDb(fixtureTables, fixtures);
   mocks.db.select.mockImplementation(fixtureDb.select);
 }
 
-interface MutationQueueItem {
-  returning?: unknown[];
-}
-
-function createFakeDb() {
-  const queues = {
-    insert: [] as MutationQueueItem[],
-    update: [] as MutationQueueItem[],
-    insertValues: [] as unknown[],
-    updateValues: [] as unknown[],
-  };
-
-  mocks.db.insert.mockImplementation(() => {
-    const chain = {
-      values: vi.fn((values: unknown) => {
-        queues.insertValues.push(values);
-        return chain;
-      }),
-      returning: vi.fn(async () => queues.insert.shift()?.returning ?? []),
-    };
-    return chain;
-  });
-  mocks.db.update.mockImplementation(() => {
-    const chain = {
-      set: vi.fn((values: unknown) => {
-        queues.updateValues.push(values);
-        return chain;
-      }),
-      where: vi.fn(() => chain),
-      returning: vi.fn(async () => queues.update.shift()?.returning ?? []),
-      then: (
-        resolve: (value: unknown) => void,
-        reject?: (reason: unknown) => void,
-      ) => Promise.resolve(undefined).then(resolve, reject),
-    };
-    return chain;
-  });
-
-  return { queues };
+/**
+ * Writes are declared per table *and* operation. `creditTopupIntents` is both
+ * inserted (createIntent) and updated (the gateway-failure rollback, the
+ * provider-id patch, confirmIntent), and a single queue per table would let
+ * the insert consume what the update declared.
+ */
+function mockMutationResults(fixtures: MutationFixtures<FixtureName> = {}) {
+  const fixtureDb = createMutationFixtureDb(fixtureTables, fixtures);
+  mocks.db.insert.mockImplementation(fixtureDb.insert);
+  mocks.db.update.mockImplementation(fixtureDb.update);
+  return fixtureDb;
 }
 
 function env(overrides: Partial<Env> = {}) {
@@ -182,7 +157,7 @@ describe("CreditTopupService", () => {
   });
 
   it("routes select fixtures by table and reports missing fixtures", async () => {
-    createFakeDb();
+    mockMutationResults();
     const card = { id: "account-1", currency: "TWD", status: "active" };
     mockSelectResults({
       creditTopupIntents: [[intent()], [intent({ id: "intent-2" })]],
@@ -214,15 +189,17 @@ describe("CreditTopupService", () => {
   it("creates an online top-up intent and stores provider metadata", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
-    const { queues } = createFakeDb();
     const fakeGateway = gateway();
+    const mutations = mockMutationResults({
+      creditTopupIntents: {
+        insert: [[intent({ providerTransactionId: null })]],
+        // The provider transaction id is patched in once the charge succeeds.
+        update: [[intent()]],
+      },
+    });
     mockSelectResults({
       creditCards: [[{ id: "account-1", currency: "TWD", status: "active" }]],
     });
-    queues.insert.push({
-      returning: [intent({ providerTransactionId: null })],
-    });
-    queues.update.push({ returning: [intent()] });
 
     const result = await new CreditTopupService(
       env(),
@@ -241,7 +218,7 @@ describe("CreditTopupService", () => {
         redirectUrl: "https://pay.example.test/intent-1",
       },
     });
-    expect(queues.insertValues[0]).toMatchObject({
+    expect(mutations.inserted[0]).toMatchObject({
       accountId: "account-1",
       publicId: "card-public-1",
       provider: "credit_topup",
@@ -256,7 +233,7 @@ describe("CreditTopupService", () => {
       currency: "TWD",
       idempotencyKey: "credit-topup:intent-1",
     });
-    expect(queues.updateValues.at(-1)).toMatchObject({
+    expect(mutations.updated.at(-1)).toMatchObject({
       providerTransactionId: "txn-1",
       updatedAt: expect.any(Date),
     });
@@ -264,7 +241,14 @@ describe("CreditTopupService", () => {
   });
 
   it("rejects invalid create intent states and marks gateway failures", async () => {
-    const { queues } = createFakeDb();
+    const mutations = mockMutationResults({
+      creditTopupIntents: {
+        insert: [[intent({ providerTransactionId: null })]],
+        // The gateway failure marks the orphaned intent failed without
+        // reading it back.
+        update: [{ changes: 1 }],
+      },
+    });
     const service = new CreditTopupService(
       env(),
       creditService() as never,
@@ -320,9 +304,6 @@ describe("CreditTopupService", () => {
     mockSelectResults({
       creditCards: [[{ id: "account-1", currency: "TWD", status: "active" }]],
     });
-    queues.insert.push({
-      returning: [intent({ providerTransactionId: null })],
-    });
     await expect(
       new CreditTopupService(
         env(),
@@ -334,7 +315,7 @@ describe("CreditTopupService", () => {
         currency: "TWD",
       }),
     ).rejects.toThrow("gateway down");
-    expect(queues.updateValues.at(-1)).toMatchObject({
+    expect(mutations.updated.at(-1)).toMatchObject({
       status: "failed",
       errorMessage: "gateway down",
       updatedAt: expect.any(Date),
@@ -342,8 +323,21 @@ describe("CreditTopupService", () => {
   });
 
   it("confirms failed and paid intents while preserving idempotency", async () => {
-    const { queues } = createFakeDb();
     const fakeCreditService = creditService();
+    mockMutationResults({
+      creditTopupIntents: {
+        update: [
+          [intent({ status: "failed", errorMessage: "declined" })],
+          [
+            intent({
+              status: "paid",
+              ledgerEntryId: "ledger-1",
+              paidAtMs: new Date("2026-06-07T00:01:00.000Z"),
+            }),
+          ],
+        ],
+      },
+    });
     const service = new CreditTopupService(
       env(),
       fakeCreditService as never,
@@ -351,9 +345,6 @@ describe("CreditTopupService", () => {
     );
 
     mockSelectResults({ creditTopupIntents: [[intent()]] });
-    queues.update.push({
-      returning: [intent({ status: "failed", errorMessage: "declined" })],
-    });
     await expect(
       service.confirmIntent({
         intentId: "intent-1",
@@ -368,15 +359,6 @@ describe("CreditTopupService", () => {
     });
 
     mockSelectResults({ creditTopupIntents: [[intent()]] });
-    queues.update.push({
-      returning: [
-        intent({
-          status: "paid",
-          ledgerEntryId: "ledger-1",
-          paidAtMs: new Date("2026-06-07T00:01:00.000Z"),
-        }),
-      ],
-    });
     await expect(
       service.confirmIntent({
         intentId: "intent-1",
@@ -420,7 +402,7 @@ describe("CreditTopupService", () => {
   });
 
   it("guards confirmation identifiers and reads intents by id", async () => {
-    createFakeDb();
+    mockMutationResults();
     const service = new CreditTopupService(
       env(),
       creditService() as never,
