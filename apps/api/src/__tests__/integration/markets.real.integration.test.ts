@@ -12,6 +12,110 @@ import {
   restaurantMarketMemberships,
 } from "@makanmasak/database";
 import { and, eq, isNull } from "drizzle-orm";
+import { readData, readEnvelope, type ServiceData } from "../helpers/read-json";
+import type { MarketsService } from "../../features/markets/services/MarketsService";
+import type { DiscoveryService } from "../../features/discovery/services/DiscoveryService";
+import type { RestaurantsService } from "../../features/restaurants/services/RestaurantsService";
+
+// The market routes hand a service result straight to the envelope, so the
+// response shapes are derived from the services rather than restated here —
+// a reshaped service then breaks this file at compile time.
+type MarketList = ServiceData<MarketsService["listMarkets"]>;
+type MarketDetail = ServiceData<MarketsService["getMarketBySlug"]>;
+type MarketAreas = ServiceData<MarketsService["listAreas"]>;
+type NearbyMarkets = ServiceData<MarketsService["findNearby"]>;
+type MarketVendors = ServiceData<MarketsService["listVendors"]>;
+type AdminReadiness = ServiceData<MarketsService["listAdminReadiness"]>;
+type AdminAreaReadiness = ServiceData<MarketsService["listAreaReadiness"]>;
+type VendorCandidates = ServiceData<MarketsService["listVendorCandidates"]>;
+type AdminJoinRequests = ServiceData<MarketsService["listJoinRequests"]>;
+type RestaurantMemberships = ServiceData<
+  MarketsService["listRestaurantMemberships"]
+>;
+type RestaurantJoinRequests = ServiceData<
+  MarketsService["listRestaurantJoinRequests"]
+>;
+type MarketEnvelope = { market: ServiceData<MarketsService["createMarket"]> };
+type MembershipEnvelope = {
+  membership: ServiceData<MarketsService["addVendor"]>;
+};
+type CreatedJoinRequest = Pick<
+  Extract<
+    ServiceData<MarketsService["createJoinRequest"]>,
+    { status: "created" }
+  >,
+  "request"
+>;
+type ApprovedJoinRequest = Pick<
+  Extract<
+    ServiceData<MarketsService["approveJoinRequest"]>,
+    { status: "approved" }
+  >,
+  "request" | "membership"
+>;
+type RejectedJoinRequest = Pick<
+  Extract<
+    ServiceData<MarketsService["rejectJoinRequest"]>,
+    { status: "rejected" }
+  >,
+  "request"
+>;
+type DishSearch = ServiceData<DiscoveryService["searchDishes"]>;
+type TakeawayEligibility = ServiceData<
+  DiscoveryService["getTakeawayEligibility"]
+>;
+type RestaurantMarkets = ServiceData<DiscoveryService["getRestaurantMarkets"]>;
+type ContactProfile = ServiceData<RestaurantsService["getContactProfile"]>;
+
+// The bulk-import envelopes are assembled inline by the admin routes rather
+// than returned by a service, so this file states the fields it reads.
+interface BulkImportIssue {
+  index: number;
+  code: string;
+  severity: string;
+  message: string;
+  slug?: string;
+  marketName?: string;
+  restaurantId?: string;
+  restaurantName?: string;
+}
+
+interface BulkImportRow {
+  status: string;
+  reason?: string;
+  slug?: string;
+  marketName?: string;
+  restaurantId?: string;
+  restaurantName?: string;
+  stallNumber?: string | null;
+  locationLabel?: string | null;
+  mapPosition?: unknown;
+  membershipId?: unknown;
+  market?: { id: string; slug: string };
+}
+
+interface VendorImportResult extends BulkImportResult {
+  catalogReadiness: ServiceData<MarketsService["getCatalogReadiness"]>;
+  publicReadiness: ServiceData<MarketsService["getPublicReadiness"]>;
+}
+
+interface BulkImportResult {
+  dryRun?: boolean;
+  wouldCreateMarkets?: number;
+  createdMarkets?: number;
+  wouldCreateRestaurants?: number;
+  createdRestaurants?: number;
+  wouldAttachVendors?: number;
+  attachedVendors?: number;
+  skipped: number;
+  issueCount: number;
+  blockingIssueCount: number;
+  warningIssueCount?: number;
+  issues: BulkImportIssue[];
+  results: BulkImportRow[];
+  catalogReadiness?: ServiceData<MarketsService["getCatalogReadiness"]>;
+  publicReadiness?: ServiceData<MarketsService["getPublicReadiness"]>;
+}
 
 const CSRF_HEADERS = {
   host: "test",
@@ -265,10 +369,9 @@ describe("Markets API — real integration", () => {
       new Request("https://test/api/v1/markets?city=台中市&district=西屯區"),
     );
     expect(listRes.status).toBe(200);
-    const listJson: any = await listRes.json();
-    expect(listJson.success).toBe(true);
-    expect(listJson.data.total).toBe(1);
-    expect(listJson.data.markets[0]).toMatchObject({
+    const listJson = await readData<MarketList>(listRes);
+    expect(listJson.total).toBe(1);
+    expect(listJson.markets[0]).toMatchObject({
       id: market.id,
       slug: "fengjia-night-market",
       name: "逢甲夜市",
@@ -289,11 +392,11 @@ describe("Markets API — real integration", () => {
         height: 800,
       },
     });
-    expect(listJson.data.markets[0].openingHours).toMatchObject({
+    expect(listJson.markets[0].openingHours).toMatchObject({
       friday: { open: "17:00", close: "23:30" },
       saturday: { open: "16:00", close: "23:59" },
     });
-    expect(listJson.data.markets[0].publicReadiness).toMatchObject({
+    expect(listJson.markets[0].publicReadiness).toMatchObject({
       ready: true,
       score: 100,
       completedCount: 8,
@@ -305,20 +408,20 @@ describe("Markets API — real integration", () => {
       new Request("https://test/api/v1/markets/fengjia-night-market"),
     );
     expect(detailRes.status).toBe(200);
-    const detailJson: any = await detailRes.json();
-    expect(detailJson.data.market.slug).toBe("fengjia-night-market");
-    expect(detailJson.data.market.mapLayout).toMatchObject({
+    const detailJson = await readData<MarketDetail>(detailRes);
+    expect(detailJson.market.slug).toBe("fengjia-night-market");
+    expect(detailJson.market.mapLayout).toMatchObject({
       title: "逢甲入口地圖",
       imageUrl: "https://example.com/fengjia-map.png",
       width: 1200,
       height: 800,
     });
-    expect(detailJson.data.vendorCount).toBe(1);
-    expect(detailJson.data.catalogCoverage).toMatchObject({
+    expect(detailJson.vendorCount).toBe(1);
+    expect(detailJson.catalogCoverage).toMatchObject({
       searchableProductCount: 2,
       publicServiceCount: 1,
     });
-    expect(detailJson.data.explorationSummary).toEqual({
+    expect(detailJson.explorationSummary).toEqual({
       dishSearchUrl: "/api/v1/discovery/search?marketSlug=fengjia-night-market",
       serviceSearchUrl:
         "/api/v1/discovery/services?marketSlug=fengjia-night-market",
@@ -369,7 +472,7 @@ describe("Markets API — real integration", () => {
         },
       ],
     });
-    expect(detailJson.data.publicReadiness).toMatchObject({
+    expect(detailJson.publicReadiness).toMatchObject({
       ready: true,
       score: 100,
       completedCount: 8,
@@ -459,8 +562,8 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(productRes.status).toBe(200);
-    const productJson: any = await productRes.json();
-    expect(productJson.data.markets.map((market: any) => market.slug)).toEqual([
+    const productJson = await readData<MarketList>(productRes);
+    expect(productJson.markets.map((market) => market.slug)).toEqual([
       "catalog-keyword-market",
     ]);
 
@@ -470,8 +573,8 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(serviceRes.status).toBe(200);
-    const serviceJson: any = await serviceRes.json();
-    expect(serviceJson.data.markets.map((market: any) => market.slug)).toEqual([
+    const serviceJson = await readData<MarketList>(serviceRes);
+    expect(serviceJson.markets.map((market) => market.slug)).toEqual([
       "service-keyword-market",
     ]);
   });
@@ -548,9 +651,9 @@ describe("Markets API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    expect(json.data.total).toBe(1);
-    expect(json.data.markets.map((market: any) => market.slug)).toEqual([
+    const json = await readData<MarketList>(res);
+    expect(json.total).toBe(1);
+    expect(json.markets.map((market) => market.slug)).toEqual([
       "ready-public-market",
     ]);
 
@@ -559,8 +662,8 @@ describe("Markets API — real integration", () => {
         "https://test/api/v1/markets?q=Incomplete+Profile&city=台中市&district=西屯區",
       ),
     );
-    const incompleteJson: any = await incompleteRes.json();
-    expect(incompleteJson.data.markets).toEqual([]);
+    const incompleteJson = await readData<MarketList>(incompleteRes);
+    expect(incompleteJson.markets).toEqual([]);
   });
 
   it("lists service-only markets as public exploration entrypoints", async () => {
@@ -601,9 +704,9 @@ describe("Markets API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    expect(json.data.total).toBe(1);
-    expect(json.data.markets[0]).toMatchObject({
+    const json = await readData<MarketList>(res);
+    expect(json.total).toBe(1);
+    expect(json.markets[0]).toMatchObject({
       id: market.id,
       slug: "service-only-market",
       vendorCount: 1,
@@ -691,9 +794,9 @@ describe("Markets API — real integration", () => {
       new Request("https://test/api/v1/markets?q=active-vendor-count-market"),
     );
     expect(listRes.status).toBe(200);
-    const listJson: any = await listRes.json();
-    expect(listJson.data.markets).toHaveLength(1);
-    expect(listJson.data.markets[0]).toMatchObject({
+    const listJson = await readData<MarketList>(listRes);
+    expect(listJson.markets).toHaveLength(1);
+    expect(listJson.markets[0]).toMatchObject({
       id: market.id,
       vendorCount: 1,
     });
@@ -702,9 +805,9 @@ describe("Markets API — real integration", () => {
       new Request("https://test/api/v1/markets/active-vendor-count-market"),
     );
     expect(detailRes.status).toBe(200);
-    const detailJson: any = await detailRes.json();
-    expect(detailJson.data.vendorCount).toBe(1);
-    expect(detailJson.data.publicReadiness.issues).not.toContainEqual({
+    const detailJson = await readData<MarketDetail>(detailRes);
+    expect(detailJson.vendorCount).toBe(1);
+    expect(detailJson.publicReadiness.issues).not.toContainEqual({
       key: "vendors",
       severity: "required",
     });
@@ -748,8 +851,8 @@ describe("Markets API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    expect(json.data.areas).toEqual([
+    const json = await readData<MarketAreas>(res);
+    expect(json.areas).toEqual([
       { city: "台中市", districts: ["北區", "西屯區"] },
       { city: "台北市", districts: ["萬華區"] },
     ]);
@@ -802,9 +905,9 @@ describe("Markets API — real integration", () => {
       new Request("https://test/api/v1/markets?q=逢甲"),
     );
     expect(nameRes.status).toBe(200);
-    const nameJson: any = await nameRes.json();
-    expect(nameJson.data.markets).toHaveLength(1);
-    expect(nameJson.data.markets[0]).toMatchObject({
+    const nameJson = await readData<MarketList>(nameRes);
+    expect(nameJson.markets).toHaveLength(1);
+    expect(nameJson.markets[0]).toMatchObject({
       id: fengjia.id,
       slug: "fengjia-night-market-search",
     });
@@ -812,10 +915,8 @@ describe("Markets API — real integration", () => {
     const tagRes = await testApp.app.fetch(
       new Request("https://test/api/v1/markets?q=雞排"),
     );
-    const tagJson: any = await tagRes.json();
-    expect(tagJson.data.markets.map((market: any) => market.id)).toEqual([
-      fengjia.id,
-    ]);
+    const tagJson = await readData<MarketList>(tagRes);
+    expect(tagJson.markets.map((market) => market.id)).toEqual([fengjia.id]);
   });
 
   it("reports public readiness issues for incomplete market pages", async () => {
@@ -834,8 +935,8 @@ describe("Markets API — real integration", () => {
     );
 
     expect(detailRes.status).toBe(200);
-    const detailJson: any = await detailRes.json();
-    expect(detailJson.data.publicReadiness).toEqual({
+    const detailJson = await readData<MarketDetail>(detailRes);
+    expect(detailJson.publicReadiness).toEqual({
       ready: false,
       score: 0,
       completedCount: 0,
@@ -880,7 +981,7 @@ describe("Markets API — real integration", () => {
     );
 
     expect(vendorsRes.status).toBe(404);
-    const vendorsJson: any = await vendorsRes.json();
+    const vendorsJson = await readEnvelope<MarketVendors>(vendorsRes);
     expect(vendorsJson.error).toMatchObject({
       code: "MARKET_NOT_FOUND",
     });
@@ -1070,10 +1171,11 @@ describe("Markets API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    const readinessMarket = json.data.markets.find(
-      (item: any) => item.id === market.id,
-    );
+    const json = await readData<AdminReadiness>(res);
+    const readinessMarket = json.markets.find((item) => item.id === market.id);
+    if (!readinessMarket) {
+      throw new Error(`market ${market.id} missing from the readiness list`);
+    }
     expect(readinessMarket.catalogCoverage).toMatchObject({
       searchableProductCount: 3,
       publicServiceCount: 3,
@@ -1187,10 +1289,11 @@ describe("Markets API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    const readinessMarket = json.data.markets.find(
-      (item: any) => item.id === market.id,
-    );
+    const json = await readData<AdminReadiness>(res);
+    const readinessMarket = json.markets.find((item) => item.id === market.id);
+    if (!readinessMarket) {
+      throw new Error(`market ${market.id} missing from the readiness list`);
+    }
     expect(readinessMarket.catalogCoverage.missingProductVendors).toHaveLength(
       6,
     );
@@ -1294,8 +1397,8 @@ describe("Markets API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    expect(json.data.areas[0]).toMatchObject({
+    const json = await readData<AdminAreaReadiness>(res);
+    expect(json.areas[0]).toMatchObject({
       city: "台中市",
       district: "西屯區",
       marketCount: 2,
@@ -1306,7 +1409,7 @@ describe("Markets API — real integration", () => {
       marketsWithoutVendors: 1,
       marketsWithoutSearchableCatalog: 2,
     });
-    expect(json.data.areas[1]).toMatchObject({
+    expect(json.areas[1]).toMatchObject({
       city: "台中市",
       district: "北區",
       marketCount: 1,
@@ -1526,9 +1629,9 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(vendorsRes.status).toBe(200);
-    const vendorsJson: any = await vendorsRes.json();
-    expect(vendorsJson.data.total).toBe(1);
-    expect(vendorsJson.data.vendors[0]).toMatchObject({
+    const vendorsJson = await readData<MarketVendors>(vendorsRes);
+    expect(vendorsJson.total).toBe(1);
+    expect(vendorsJson.vendors[0]).toMatchObject({
       restaurantId: String(vendor.id),
       name: "Bubble Tea Stand",
       stallNumber: "A-12",
@@ -1548,9 +1651,9 @@ describe("Markets API — real integration", () => {
         ),
       );
       expect(searchRes.status).toBe(200);
-      const searchJson: any = await searchRes.json();
-      expect(searchJson.data.total).toBe(1);
-      expect(searchJson.data.vendors[0]).toMatchObject({
+      const searchJson = await readData<MarketVendors>(searchRes);
+      expect(searchJson.total).toBe(1);
+      expect(searchJson.vendors[0]).toMatchObject({
         restaurantId: String(serviceVendor.id),
         name: "Key Cutting Booth",
         stallNumber: "R-88",
@@ -1565,9 +1668,9 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(nearbyRes.status).toBe(200);
-    const nearbyJson: any = await nearbyRes.json();
-    expect(nearbyJson.data.markets).toHaveLength(1);
-    expect(nearbyJson.data.markets[0]).toMatchObject({
+    const nearbyJson = await readData<NearbyMarkets>(nearbyRes);
+    expect(nearbyJson.markets).toHaveLength(1);
+    expect(nearbyJson.markets[0]).toMatchObject({
       slug: "near-market",
       vendorCount: 2,
       catalogCoverage: {
@@ -1578,7 +1681,7 @@ describe("Markets API — real integration", () => {
         ready: true,
       },
     });
-    expect(nearbyJson.data.markets[0].distanceKm).toBeLessThan(0.1);
+    expect(nearbyJson.markets[0].distanceKm).toBeLessThan(0.1);
   });
 
   it("finds nearby markets when the user is inside a market boundary", async () => {
@@ -1605,8 +1708,8 @@ describe("Markets API — real integration", () => {
       new Request("https://test/api/v1/markets/boundary-night-market"),
     );
     expect(detailRes.status).toBe(200);
-    const detailJson: any = await detailRes.json();
-    expect(detailJson.data.market).toMatchObject({
+    const detailJson = await readData<MarketDetail>(detailRes);
+    expect(detailJson.market).toMatchObject({
       id: market.id,
       boundaryGeojson,
     });
@@ -1617,9 +1720,9 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(nearbyRes.status).toBe(200);
-    const nearbyJson: any = await nearbyRes.json();
-    expect(nearbyJson.data.markets).toHaveLength(1);
-    expect(nearbyJson.data.markets[0]).toMatchObject({
+    const nearbyJson = await readData<NearbyMarkets>(nearbyRes);
+    expect(nearbyJson.markets).toHaveLength(1);
+    expect(nearbyJson.markets[0]).toMatchObject({
       slug: "boundary-night-market",
       boundaryGeojson,
       distanceKm: 0,
@@ -1681,10 +1784,10 @@ describe("Markets API — real integration", () => {
     );
 
     expect(vendorsRes.status).toBe(200);
-    const vendorsJson: any = await vendorsRes.json();
-    expect(vendorsJson.data.total).toBe(1);
-    expect(vendorsJson.data.vendors).toHaveLength(1);
-    expect(vendorsJson.data.vendors[0]).toMatchObject({
+    const vendorsJson = await readData<MarketVendors>(vendorsRes);
+    expect(vendorsJson.total).toBe(1);
+    expect(vendorsJson.vendors).toHaveLength(1);
+    expect(vendorsJson.vendors[0]).toMatchObject({
       restaurantId: String(openVendor.id),
       name: "Open Smaller Stand",
       stallNumber: "A-02",
@@ -1737,9 +1840,9 @@ describe("Markets API — real integration", () => {
     );
 
     expect(vendorsRes.status).toBe(200);
-    const vendorsJson: any = await vendorsRes.json();
-    expect(vendorsJson.data.total).toBe(1);
-    expect(vendorsJson.data.vendors[0]).toMatchObject({
+    const vendorsJson = await readData<MarketVendors>(vendorsRes);
+    expect(vendorsJson.total).toBe(1);
+    expect(vendorsJson.vendors[0]).toMatchObject({
       restaurantId: String(vendor.id),
       name: "Market Hours Override Stand",
       stallNumber: "H-01",
@@ -1811,14 +1914,15 @@ describe("Markets API — real integration", () => {
     );
 
     expect(vendorsRes.status).toBe(200);
-    const vendorsJson: any = await vendorsRes.json();
-    expect(vendorsJson.data.total).toBe(2);
-    expect(vendorsJson.data.vendors.map((vendor: any) => vendor.name)).toEqual([
+    const vendorsJson = await readData<MarketVendors>(vendorsRes);
+    expect(vendorsJson.total).toBe(2);
+    expect(vendorsJson.vendors.map((vendor) => vendor.name)).toEqual([
       "Near Vendor Stand",
       "Far Vendor Stand",
     ]);
-    expect(vendorsJson.data.vendors[0].distanceKm).toBeLessThan(
-      vendorsJson.data.vendors[1].distanceKm,
+    expect(typeof vendorsJson.vendors[1].distanceKm).toBe("number");
+    expect(vendorsJson.vendors[0].distanceKm).toBeLessThan(
+      Number(vendorsJson.vendors[1].distanceKm),
     );
   });
 
@@ -1892,9 +1996,9 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(marketRes.status).toBe(200);
-    const marketJson: any = await marketRes.json();
-    expect(marketJson.data.results).toHaveLength(1);
-    expect(marketJson.data.results[0].restaurantName).toBe("Inside Vendor");
+    const marketJson = await readData<DishSearch>(marketRes);
+    expect(marketJson.results).toHaveLength(1);
+    expect(marketJson.results[0].restaurantName).toBe("Inside Vendor");
 
     const nearbyRes = await testApp.app.fetch(
       new Request(
@@ -1902,9 +2006,9 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(nearbyRes.status).toBe(200);
-    const nearbyJson: any = await nearbyRes.json();
-    expect(nearbyJson.data.results).toHaveLength(1);
-    expect(nearbyJson.data.results[0].restaurantName).toBe("Inside Vendor");
+    const nearbyJson = await readData<DishSearch>(nearbyRes);
+    expect(nearbyJson.results).toHaveLength(1);
+    expect(nearbyJson.results[0].restaurantName).toBe("Inside Vendor");
   });
 
   it("returns shop QR code from takeaway eligibility only when eligible", async () => {
@@ -1927,8 +2031,8 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(eligibleRes.status).toBe(200);
-    const eligibleJson: any = await eligibleRes.json();
-    expect(eligibleJson.data).toEqual({
+    const eligibleJson = await readData<TakeawayEligibility>(eligibleRes);
+    expect(eligibleJson).toEqual({
       eligible: true,
       shopQrCode: "SHOP-ELIGIBLE",
     });
@@ -1939,8 +2043,8 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(disabledRes.status).toBe(200);
-    const disabledJson: any = await disabledRes.json();
-    expect(disabledJson.data).toEqual({
+    const disabledJson = await readData<TakeawayEligibility>(disabledRes);
+    expect(disabledJson).toEqual({
       eligible: false,
       reason: "takeaway_disabled",
     });
@@ -1990,8 +2094,8 @@ describe("Markets API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    expect(json.data.memberships).toEqual([
+    const json = await readData<RestaurantMarkets>(res);
+    expect(json.memberships).toEqual([
       {
         marketId: activeMarket.id,
         stallNumber: "A-18",
@@ -2267,8 +2371,8 @@ describe("Markets API — real integration", () => {
       }),
     );
     expect(createRes.status).toBe(201);
-    const createdJson: any = await createRes.json();
-    expect(createdJson.data.market).toMatchObject({
+    const createdJson = await readData<MarketEnvelope>(createRes);
+    expect(createdJson.market).toMatchObject({
       slug: "admin-created-market",
       name: "管理新增夜市",
       isActive: true,
@@ -2288,12 +2392,12 @@ describe("Markets API — real integration", () => {
       ],
       tags: ["夜市", "親子"],
     });
-    expect(createdJson.data.market.openingHours).toMatchObject({
+    expect(createdJson.market.openingHours).toMatchObject({
       friday: { open: "17:00", close: "23:30" },
       saturday: { open: "16:00", close: "23:59" },
     });
 
-    const marketId = createdJson.data.market.id as string;
+    const marketId = createdJson.market.id as string;
     const updateRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/admin/markets/${marketId}`, {
         method: "PUT",
@@ -2314,8 +2418,8 @@ describe("Markets API — real integration", () => {
       }),
     );
     expect(updateRes.status).toBe(200);
-    const updatedJson: any = await updateRes.json();
-    expect(updatedJson.data.market).toMatchObject({
+    const updatedJson = await readData<MarketEnvelope>(updateRes);
+    expect(updatedJson.market).toMatchObject({
       id: marketId,
       name: "更新後夜市",
       district: "西區",
@@ -2343,8 +2447,8 @@ describe("Markets API — real integration", () => {
       }),
     );
     expect(addVendorRes.status).toBe(201);
-    const vendorJson: any = await addVendorRes.json();
-    expect(vendorJson.data.membership).toMatchObject({
+    const vendorJson = await readData<MembershipEnvelope>(addVendorRes);
+    expect(vendorJson.membership).toMatchObject({
       restaurantId: String(restaurant.id),
       marketId,
       stallNumber: "A-01",
@@ -2363,13 +2467,13 @@ describe("Markets API — real integration", () => {
       }),
     );
     expect(duplicateVendorRes.status).toBe(409);
-    expect(((await duplicateVendorRes.json()) as any).error).toMatchObject({
+    expect((await readEnvelope(duplicateVendorRes)).error).toMatchObject({
       code: "MARKET_VENDOR_ALREADY_ATTACHED",
     });
 
     const updateVendorRes = await testApp.app.fetch(
       new Request(
-        `https://test/api/v1/admin/markets/${marketId}/vendors/${vendorJson.data.membership.restaurantId}`,
+        `https://test/api/v1/admin/markets/${marketId}/vendors/${vendorJson.membership.restaurantId}`,
         {
           method: "PUT",
           headers,
@@ -2383,7 +2487,7 @@ describe("Markets API — real integration", () => {
     );
     expect(updateVendorRes.status).toBe(200);
     expect(
-      ((await updateVendorRes.json()) as any).data.membership,
+      (await readData<MembershipEnvelope>(updateVendorRes)).membership,
     ).toMatchObject({
       restaurantId: String(restaurant.id),
       marketId,
@@ -2416,16 +2520,17 @@ describe("Markets API — real integration", () => {
       new Request("https://test/api/v1/markets/admin-created-market/vendors"),
     );
     expect(publicVendorsRes.status).toBe(200);
-    const publicVendorsJson: any = await publicVendorsRes.json();
-    expect(publicVendorsJson.data.total).toBe(1);
+    const publicVendorsJson = await readData<MarketVendors>(publicVendorsRes);
+    expect(publicVendorsJson.total).toBe(1);
 
     const publicDetailBeforeDeleteRes = await testApp.app.fetch(
       new Request("https://test/api/v1/markets/admin-created-market"),
     );
     expect(publicDetailBeforeDeleteRes.status).toBe(200);
-    const publicDetailBeforeDeleteJson: any =
-      await publicDetailBeforeDeleteRes.json();
-    expect(publicDetailBeforeDeleteJson.data.market).toMatchObject({
+    const publicDetailBeforeDeleteJson = await readData<MarketDetail>(
+      publicDetailBeforeDeleteRes,
+    );
+    expect(publicDetailBeforeDeleteJson.market).toMatchObject({
       slug: "admin-created-market",
       name: "更新後夜市",
       bannerUrl: "https://example.com/admin-market-banner.jpg",
@@ -2433,12 +2538,10 @@ describe("Markets API — real integration", () => {
       imageUrls: ["https://example.com/admin-market-gallery-3.jpg"],
       tags: ["美食", "宵夜"],
     });
-    expect(publicDetailBeforeDeleteJson.data.market.openingHours).toMatchObject(
-      {
-        friday: { open: "17:00", close: "23:30" },
-        saturday: { open: "16:00", close: "23:59" },
-      },
-    );
+    expect(publicDetailBeforeDeleteJson.market.openingHours).toMatchObject({
+      friday: { open: "17:00", close: "23:30" },
+      saturday: { open: "16:00", close: "23:59" },
+    });
 
     const removeVendorRes = await testApp.app.fetch(
       new Request(
@@ -2450,7 +2553,9 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(removeVendorRes.status).toBe(200);
-    expect(((await removeVendorRes.json()) as any).data.removed).toBe(true);
+    expect(
+      (await readData<{ removed: boolean }>(removeVendorRes)).removed,
+    ).toBe(true);
 
     const deleteRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/admin/markets/${marketId}`, {
@@ -2459,7 +2564,9 @@ describe("Markets API — real integration", () => {
       }),
     );
     expect(deleteRes.status).toBe(200);
-    expect(((await deleteRes.json()) as any).data.deleted).toBe(true);
+    expect((await readData<{ deleted: boolean }>(deleteRes)).deleted).toBe(
+      true,
+    );
 
     const publicDetailRes = await testApp.app.fetch(
       new Request("https://test/api/v1/markets/admin-created-market"),
@@ -2524,8 +2631,8 @@ describe("Markets API — real integration", () => {
     );
 
     expect(dryRunRes.status).toBe(200);
-    const dryRunJson: any = await dryRunRes.json();
-    expect(dryRunJson.data).toMatchObject({
+    const dryRunJson = await readData<BulkImportResult>(dryRunRes);
+    expect(dryRunJson).toMatchObject({
       dryRun: true,
       wouldCreateMarkets: 2,
       createdMarkets: 0,
@@ -2562,13 +2669,13 @@ describe("Markets API — real integration", () => {
     );
 
     expect(importRes.status).toBe(201);
-    const importJson: any = await importRes.json();
-    expect(importJson.data).toMatchObject({
+    const importJson = await readData<BulkImportResult>(importRes);
+    expect(importJson).toMatchObject({
       createdMarkets: 2,
       skipped: 0,
       issueCount: 0,
     });
-    expect(importJson.data.results).toEqual([
+    expect(importJson.results).toEqual([
       expect.objectContaining({
         status: "created",
         slug: "bulk-import-miaokou",
@@ -2670,14 +2777,14 @@ describe("Markets API — real integration", () => {
     );
 
     expect(importRes.status).toBe(201);
-    const importJson: any = await importRes.json();
-    expect(importJson.data).toMatchObject({
+    const importJson = await readData<BulkImportResult>(importRes);
+    expect(importJson).toMatchObject({
       createdMarkets: 1,
       skipped: 2,
       issueCount: 2,
       blockingIssueCount: 2,
     });
-    expect(importJson.data.issues).toEqual(
+    expect(importJson.issues).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           index: 0,
@@ -2691,7 +2798,7 @@ describe("Markets API — real integration", () => {
         }),
       ]),
     );
-    expect(importJson.data.results).toEqual([
+    expect(importJson.results).toEqual([
       expect.objectContaining({
         status: "skipped",
         reason: "slug_exists",
@@ -2773,7 +2880,7 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(cachedEmptyRes.status).toBe(200);
-    expect(((await cachedEmptyRes.json()) as any).data.total).toBe(0);
+    expect((await readData<DishSearch>(cachedEmptyRes)).total).toBe(0);
 
     const addVendorRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/admin/markets/${market.id}/vendors`, {
@@ -2807,11 +2914,11 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(afterAddSearchRes.status).toBe(200);
-    const afterAddSearchJson: any = await afterAddSearchRes.json();
-    expect(
-      afterAddSearchJson.data.results.map((r: any) => r.menuItemId),
-    ).toEqual([item.id]);
-    expect(afterAddSearchJson.data.total).toBe(1);
+    const afterAddSearchJson = await readData<DishSearch>(afterAddSearchRes);
+    expect(afterAddSearchJson.results.map((r) => r.menuItemId)).toEqual([
+      item.id,
+    ]);
+    expect(afterAddSearchJson.total).toBe(1);
 
     const removeVendorRes = await testApp.app.fetch(
       new Request(
@@ -2823,7 +2930,9 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(removeVendorRes.status).toBe(200);
-    expect(((await removeVendorRes.json()) as any).data.removed).toBe(true);
+    expect(
+      (await readData<{ removed: boolean }>(removeVendorRes)).removed,
+    ).toBe(true);
 
     const [afterRemoveIndex] = await testApp.testDb.drizzle
       .select({
@@ -2844,9 +2953,10 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(afterRemoveSearchRes.status).toBe(200);
-    const afterRemoveSearchJson: any = await afterRemoveSearchRes.json();
-    expect(afterRemoveSearchJson.data.results).toEqual([]);
-    expect(afterRemoveSearchJson.data.total).toBe(0);
+    const afterRemoveSearchJson =
+      await readData<DishSearch>(afterRemoveSearchRes);
+    expect(afterRemoveSearchJson.results).toEqual([]);
+    expect(afterRemoveSearchJson.total).toBe(0);
   });
 
   it("lets platform admins bulk import vendors into a market", async () => {
@@ -2916,8 +3026,8 @@ describe("Markets API — real integration", () => {
     );
 
     expect(importRes.status).toBe(200);
-    const importJson: any = await importRes.json();
-    expect(importJson.data).toMatchObject({
+    const importJson = await readData<VendorImportResult>(importRes);
+    expect(importJson).toMatchObject({
       createdRestaurants: 1,
       attachedVendors: 2,
       skipped: 0,
@@ -2943,7 +3053,7 @@ describe("Markets API — real integration", () => {
         ],
       },
     });
-    expect(importJson.data.results).toEqual([
+    expect(importJson.results).toEqual([
       expect.objectContaining({
         status: "attached",
         restaurantId: String(existingRestaurant.id),
@@ -2959,7 +3069,7 @@ describe("Markets API — real integration", () => {
         mapPosition: { x: 62, y: 58 },
       }),
     ]);
-    expect(importJson.data.catalogReadiness.missingProductVendors).toEqual(
+    expect(importJson.catalogReadiness.missingProductVendors).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           restaurantId: String(existingRestaurant.id),
@@ -2973,7 +3083,7 @@ describe("Markets API — real integration", () => {
         }),
       ]),
     );
-    expect(importJson.data.catalogReadiness.missingServiceVendors).toEqual(
+    expect(importJson.catalogReadiness.missingServiceVendors).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           restaurantId: String(existingRestaurant.id),
@@ -2988,7 +3098,7 @@ describe("Markets API — real integration", () => {
       ]),
     );
     expect(
-      importJson.data.catalogReadiness.missingSearchEntrypointVendors,
+      importJson.catalogReadiness.missingSearchEntrypointVendors,
     ).toHaveLength(2);
 
     const memberships = await testApp.testDb.drizzle
@@ -3047,13 +3157,13 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(duplicateRes.status).toBe(200);
-    const duplicateJson: any = await duplicateRes.json();
-    expect(duplicateJson.data).toMatchObject({
+    const duplicateJson = await readData<BulkImportResult>(duplicateRes);
+    expect(duplicateJson).toMatchObject({
       createdRestaurants: 0,
       attachedVendors: 0,
       skipped: 1,
     });
-    expect(duplicateJson.data.results[0]).toMatchObject({
+    expect(duplicateJson.results[0]).toMatchObject({
       status: "skipped",
       reason: "already_attached",
       restaurantId: String(existingRestaurant.id),
@@ -3077,13 +3187,14 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(missingRestaurantRes.status).toBe(200);
-    const missingRestaurantJson: any = await missingRestaurantRes.json();
-    expect(missingRestaurantJson.data).toMatchObject({
+    const missingRestaurantJson =
+      await readData<BulkImportResult>(missingRestaurantRes);
+    expect(missingRestaurantJson).toMatchObject({
       createdRestaurants: 0,
       attachedVendors: 0,
       skipped: 1,
     });
-    expect(missingRestaurantJson.data.results[0]).toMatchObject({
+    expect(missingRestaurantJson.results[0]).toMatchObject({
       status: "skipped",
       reason: "restaurant_not_found",
       restaurantId: "missing-import-restaurant",
@@ -3168,8 +3279,8 @@ describe("Markets API — real integration", () => {
     );
 
     expect(dryRunRes.status).toBe(200);
-    const dryRunJson: any = await dryRunRes.json();
-    expect(dryRunJson.data).toMatchObject({
+    const dryRunJson = await readData<BulkImportResult>(dryRunRes);
+    expect(dryRunJson).toMatchObject({
       dryRun: true,
       wouldCreateRestaurants: 1,
       wouldAttachVendors: 1,
@@ -3186,7 +3297,7 @@ describe("Markets API — real integration", () => {
         ],
       },
     });
-    expect(dryRunJson.data.results).toEqual([
+    expect(dryRunJson.results).toEqual([
       expect.objectContaining({
         status: "skipped",
         reason: "already_attached",
@@ -3209,7 +3320,7 @@ describe("Markets API — real integration", () => {
         stallNumber: "C-04",
       }),
     ]);
-    expect(dryRunJson.data.issues).toEqual(
+    expect(dryRunJson.issues).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           index: 0,
@@ -3333,8 +3444,8 @@ describe("Markets API — real integration", () => {
     );
 
     expect(importRes.status).toBe(200);
-    const importJson: any = await importRes.json();
-    expect(importJson.data).toMatchObject({
+    const importJson = await readData<VendorImportResult>(importRes);
+    expect(importJson).toMatchObject({
       createdRestaurants: 1,
       attachedVendors: 1,
       skipped: 2,
@@ -3342,7 +3453,7 @@ describe("Markets API — real integration", () => {
       blockingIssueCount: 2,
       warningIssueCount: 3,
     });
-    expect(importJson.data.results).toEqual([
+    expect(importJson.results).toEqual([
       expect.objectContaining({
         status: "skipped",
         reason: "already_attached",
@@ -3359,7 +3470,7 @@ describe("Markets API — real integration", () => {
         stallNumber: "C-03",
       }),
     ]);
-    expect(importJson.data.issues).toEqual(
+    expect(importJson.issues).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           index: 0,
@@ -3484,8 +3595,8 @@ describe("Markets API — real integration", () => {
     );
 
     expect(importRes.status).toBe(200);
-    const importJson: any = await importRes.json();
-    expect(importJson.data).toMatchObject({
+    const importJson = await readData<VendorImportResult>(importRes);
+    expect(importJson).toMatchObject({
       createdRestaurants: 1,
       attachedVendors: 2,
       skipped: 2,
@@ -3493,7 +3604,7 @@ describe("Markets API — real integration", () => {
       blockingIssueCount: 2,
       warningIssueCount: 1,
     });
-    expect(importJson.data.results).toEqual([
+    expect(importJson.results).toEqual([
       expect.objectContaining({
         status: "attached",
         restaurantId: String(existingRestaurant.id),
@@ -3517,7 +3628,7 @@ describe("Markets API — real integration", () => {
         stallNumber: "B-02",
       }),
     ]);
-    expect(importJson.data.issues).toEqual(
+    expect(importJson.issues).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           index: 1,
@@ -3604,8 +3715,8 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(candidatesRes.status).toBe(200);
-    const candidatesJson: any = await candidatesRes.json();
-    expect(candidatesJson.data.restaurants).toEqual([
+    const candidatesJson = await readData<VendorCandidates>(candidatesRes);
+    expect(candidatesJson.restaurants).toEqual([
       expect.objectContaining({
         id: String(candidate.id),
         name: "Searchable Bao Stand",
@@ -3614,7 +3725,7 @@ describe("Markets API — real integration", () => {
         address: "Candidate Road 1",
       }),
     ]);
-    expect(candidatesJson.data.total).toBe(1);
+    expect(candidatesJson.total).toBe(1);
   });
 
   it("lets platform admins review, approve, and reject market join requests", async () => {
@@ -3660,7 +3771,9 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(createApprovedRequest.status).toBe(201);
-    const approvedRequestJson: any = await createApprovedRequest.json();
+    const approvedRequestJson = await readData<CreatedJoinRequest>(
+      createApprovedRequest,
+    );
 
     const createRejectedRequest = await testApp.app.fetch(
       new Request(
@@ -3676,7 +3789,9 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(createRejectedRequest.status).toBe(201);
-    const rejectedRequestJson: any = await createRejectedRequest.json();
+    const rejectedRequestJson = await readData<CreatedJoinRequest>(
+      createRejectedRequest,
+    );
 
     const listRes = await testApp.app.fetch(
       new Request(
@@ -3687,17 +3802,17 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(listRes.status).toBe(200);
-    const listJson: any = await listRes.json();
-    expect(listJson.data.requests).toEqual(
+    const listJson = await readData<AdminJoinRequests>(listRes);
+    expect(listJson.requests).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          id: approvedRequestJson.data.request.id,
+          id: approvedRequestJson.request.id,
           status: "pending",
           restaurant: expect.objectContaining({ name: "Join Review Vendor" }),
           market: expect.objectContaining({ slug: "approved-review-market" }),
         }),
         expect.objectContaining({
-          id: rejectedRequestJson.data.request.id,
+          id: rejectedRequestJson.request.id,
           status: "pending",
           market: expect.objectContaining({ slug: "rejected-review-market" }),
         }),
@@ -3706,7 +3821,7 @@ describe("Markets API — real integration", () => {
 
     const approveRes = await testApp.app.fetch(
       new Request(
-        `https://test/api/v1/admin/markets/join-requests/${approvedRequestJson.data.request.id}/approve`,
+        `https://test/api/v1/admin/markets/join-requests/${approvedRequestJson.request.id}/approve`,
         {
           method: "POST",
           headers,
@@ -3718,12 +3833,12 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(approveRes.status).toBe(200);
-    const approveJson: any = await approveRes.json();
-    expect(approveJson.data.request).toMatchObject({
-      id: approvedRequestJson.data.request.id,
+    const approveJson = await readData<ApprovedJoinRequest>(approveRes);
+    expect(approveJson.request).toMatchObject({
+      id: approvedRequestJson.request.id,
       status: "approved",
     });
-    expect(approveJson.data.membership).toMatchObject({
+    expect(approveJson.membership).toMatchObject({
       restaurantId: String(restaurant.id),
       marketId: approvedMarket.id,
       stallNumber: "C-09",
@@ -3754,15 +3869,15 @@ describe("Markets API — real integration", () => {
       new Request("https://test/api/v1/markets/approved-review-market/vendors"),
     );
     expect(vendorsRes.status).toBe(200);
-    const vendorsJson: any = await vendorsRes.json();
-    expect(vendorsJson.data.vendors[0]).toMatchObject({
+    const vendorsJson = await readData<MarketVendors>(vendorsRes);
+    expect(vendorsJson.vendors[0]).toMatchObject({
       restaurantId: String(restaurant.id),
       stallNumber: "C-09",
     });
 
     const rejectRes = await testApp.app.fetch(
       new Request(
-        `https://test/api/v1/admin/markets/join-requests/${rejectedRequestJson.data.request.id}/reject`,
+        `https://test/api/v1/admin/markets/join-requests/${rejectedRequestJson.request.id}/reject`,
         {
           method: "POST",
           headers,
@@ -3770,9 +3885,9 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(rejectRes.status).toBe(200);
-    const rejectJson: any = await rejectRes.json();
-    expect(rejectJson.data.request).toMatchObject({
-      id: rejectedRequestJson.data.request.id,
+    const rejectJson = await readData<RejectedJoinRequest>(rejectRes);
+    expect(rejectJson.request).toMatchObject({
+      id: rejectedRequestJson.request.id,
       status: "rejected",
     });
   });
@@ -3813,7 +3928,7 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(requestRes.status).toBe(201);
-    const requestJson: any = await requestRes.json();
+    const requestJson = await readData<CreatedJoinRequest>(requestRes);
 
     await testApp.testDb.drizzle.insert(restaurantMarketMemberships).values({
       restaurantId: String(restaurant.id),
@@ -3824,7 +3939,7 @@ describe("Markets API — real integration", () => {
 
     const approveRes = await testApp.app.fetch(
       new Request(
-        `https://test/api/v1/admin/markets/join-requests/${requestJson.data.request.id}/approve`,
+        `https://test/api/v1/admin/markets/join-requests/${requestJson.request.id}/approve`,
         {
           method: "POST",
           headers,
@@ -3836,12 +3951,12 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(approveRes.status).toBe(200);
-    const approveJson: any = await approveRes.json();
-    expect(approveJson.data.request).toMatchObject({
-      id: requestJson.data.request.id,
+    const approveJson = await readData<ApprovedJoinRequest>(approveRes);
+    expect(approveJson.request).toMatchObject({
+      id: requestJson.request.id,
       status: "approved",
     });
-    expect(approveJson.data.membership).toMatchObject({
+    expect(approveJson.membership).toMatchObject({
       restaurantId: String(restaurant.id),
       marketId: market.id,
       stallNumber: "B-12",
@@ -3904,9 +4019,10 @@ describe("Markets API — real integration", () => {
       }),
     );
     expect(membershipsRes.status).toBe(200);
-    const membershipsJson: any = await membershipsRes.json();
-    expect(membershipsJson.data.memberships).toHaveLength(1);
-    expect(membershipsJson.data.memberships[0]).toMatchObject({
+    const membershipsJson =
+      await readData<RestaurantMemberships>(membershipsRes);
+    expect(membershipsJson.memberships).toHaveLength(1);
+    expect(membershipsJson.memberships[0]).toMatchObject({
       restaurantId: String(restaurant.id),
       marketId: activeMarket.id,
       stallNumber: "B-02",
@@ -3931,8 +4047,8 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(requestRes.status).toBe(201);
-    const requestJson: any = await requestRes.json();
-    expect(requestJson.data.request).toMatchObject({
+    const requestJson = await readData<CreatedJoinRequest>(requestRes);
+    expect(requestJson.request).toMatchObject({
       restaurantId: String(restaurant.id),
       marketId: requestedMarket.id,
       status: "pending",
@@ -3948,9 +4064,9 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(requestsRes.status).toBe(200);
-    const requestsJson: any = await requestsRes.json();
-    expect(requestsJson.data.requests).toHaveLength(1);
-    expect(requestsJson.data.requests[0]).toMatchObject({
+    const requestsJson = await readData<RestaurantJoinRequests>(requestsRes);
+    expect(requestsJson.requests).toHaveLength(1);
+    expect(requestsJson.requests[0]).toMatchObject({
       restaurantId: String(restaurant.id),
       marketId: requestedMarket.id,
       status: "pending",
@@ -4025,8 +4141,8 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(requestRes.status).toBe(201);
-    const requestJson: any = await requestRes.json();
-    expect(requestJson.data.request).toMatchObject({
+    const requestJson = await readData<CreatedJoinRequest>(requestRes);
+    expect(requestJson.request).toMatchObject({
       restaurantId: String(restaurant.id),
       marketId: requestedMarket.id,
       status: "pending",
@@ -4100,13 +4216,13 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(publicRes.status).toBe(200);
-    const publicJson: any = await publicRes.json();
-    expect(publicJson.data.messagingChannels).toEqual({
+    const publicJson = await readData<ContactProfile>(publicRes);
+    expect(publicJson.messagingChannels).toEqual({
       line: "https://line.me/ti/p/~deep-dumplings",
       whatsapp: "https://wa.me/886912345678",
       instagram: "https://ig.me/m/deepdumplings",
     });
-    expect(publicJson.data.faqs).toEqual([
+    expect(publicJson.faqs).toEqual([
       expect.objectContaining({
         question: "有素食選項嗎？",
         answer: "目前提供高麗菜素餃。",
@@ -4132,9 +4248,9 @@ describe("Markets API — real integration", () => {
       ),
     );
     expect(ownerRes.status).toBe(200);
-    const ownerJson: any = await ownerRes.json();
-    expect(ownerJson.data.faqs).toHaveLength(3);
-    expect(ownerJson.data.faqs[2]).toMatchObject({
+    const ownerJson = await readData<ContactProfile>(ownerRes);
+    expect(ownerJson.faqs).toHaveLength(3);
+    expect(ownerJson.faqs[2]).toMatchObject({
       question: "停賣品項",
       isActive: false,
     });

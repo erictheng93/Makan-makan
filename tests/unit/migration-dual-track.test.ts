@@ -87,37 +87,52 @@ describe("migration dual-track guard", () => {
     expect(result).toMatchObject({ ok: true, errors: [] });
   });
 
-  it.each([
-    [
-      "fresh",
-      "packages/database/migrations_fresh/0070_money_cents_cutover.sql",
-    ],
-    ["legacy", "packages/database/migrations/0087_money_cents_cutover.sql"],
-  ])(
-    "%s cutover drops partnership views before removing partnership money columns",
-    (_track, migrationPath) => {
-      const migration = fs.readFileSync(
-        path.resolve(process.cwd(), migrationPath),
-        "utf8",
-      );
-      const firstPartnershipMoneyDrop = migration.indexOf(
-        "ALTER TABLE `partnerships` DROP COLUMN `default_discount_value`",
-      );
+  it("legacy cutover drops partnership views before removing partnership money columns", () => {
+    const migration = fs.readFileSync(
+      path.resolve(
+        process.cwd(),
+        "packages/database/migrations/0087_money_cents_cutover.sql",
+      ),
+      "utf8",
+    );
+    const firstPartnershipMoneyDrop = migration.indexOf(
+      "ALTER TABLE `partnerships` DROP COLUMN `default_discount_value`",
+    );
 
-      expect(firstPartnershipMoneyDrop).toBeGreaterThan(-1);
-      for (const viewName of [
-        "vw_active_partnership_plans",
-        "vw_member_usage_summary",
-        "vw_partnership_statistics",
-      ]) {
-        const dropView = migration.indexOf(
-          `DROP VIEW IF EXISTS \`${viewName}\``,
-        );
-        expect(dropView).toBeGreaterThan(-1);
-        expect(dropView).toBeLessThan(firstPartnershipMoneyDrop);
-      }
-    },
-  );
+    expect(firstPartnershipMoneyDrop).toBeGreaterThan(-1);
+    for (const viewName of [
+      "vw_active_partnership_plans",
+      "vw_member_usage_summary",
+      "vw_partnership_statistics",
+    ]) {
+      const dropView = migration.indexOf(`DROP VIEW IF EXISTS \`${viewName}\``);
+      expect(dropView).toBeGreaterThan(-1);
+      expect(dropView).toBeLessThan(firstPartnershipMoneyDrop);
+    }
+  });
+
+  // The fresh track was squashed into 0000_baseline_strict.sql, so it no
+  // longer carries the cutover's ordering. What that ordering existed to
+  // guarantee is an end state, and the baseline can be asserted on directly.
+  it("fresh baseline carries the post-cutover partnership shape", () => {
+    const baseline = fs.readFileSync(
+      path.resolve(
+        process.cwd(),
+        "packages/database/migrations_fresh/0000_baseline_strict.sql",
+      ),
+      "utf8",
+    );
+
+    expect(baseline).toMatch(/`default_discount_value_cents`/);
+    expect(baseline).not.toMatch(/`default_discount_value`[^_]/);
+    for (const viewName of [
+      "vw_active_partnership_plans",
+      "vw_member_usage_summary",
+      "vw_partnership_statistics",
+    ]) {
+      expect(baseline).not.toContain(viewName);
+    }
+  });
 });
 
 function createFixture() {

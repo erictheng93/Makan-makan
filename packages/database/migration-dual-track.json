@@ -2,111 +2,16 @@
   "freshDir": "packages/database/migrations_fresh",
   "legacyDir": "packages/database/migrations",
   "reviewedThrough": {
-    "fresh": "0079_qr_two_phase_rotation.sql",
+    "fresh": "0000_baseline_strict.sql",
     "legacy": "0096_qr_two_phase_rotation.sql"
   },
-  "pairs": [
-    {
-      "fresh": "0064_employee_schedule_active_slot_guard.sql",
-      "legacy": "0083_employee_schedule_active_slot_guard.sql",
-      "reason": "Active employee schedule slot guard exists in both generated and Wrangler migration tracks."
-    },
-    {
-      "fresh": "0066_coupon_usage_refund_release_marker.sql",
-      "legacy": "0084_coupon_usage_refund_release_marker.sql",
-      "reason": "Coupon usage refund release marker exists in both tracks; SQL differs only where each track has different timestamp columns available."
-    },
-    {
-      "fresh": "0067_money_cents_retirement_rollout_guard.sql",
-      "legacy": "0085_money_cents_retirement_rollout_guard.sql",
-      "reason": "Money cents retirement rollout guard exists in both tracks; it blocks destructive table rebuild rollout until audit coverage is present and clean."
-    },
-    {
-      "fresh": "0069_discount_percentage_bps.sql",
-      "legacy": "0086_discount_percentage_bps.sql",
-      "reason": "Percentage discount values are preserved in explicit basis-point columns before polymorphic discount_value REAL columns are retired."
-    },
-    {
-      "fresh": "0070_money_cents_cutover.sql",
-      "legacy": "0087_money_cents_cutover.sql",
-      "reason": "Money cents cutover removes legacy REAL money columns after clean rollout and percentage-bps audit gates, retaining cents and basis-point columns only."
-    },
-    {
-      "fresh": "0071_market_checkout_child_order_cents_cutover.sql",
-      "legacy": "0088_market_checkout_child_order_cents_cutover.sql",
-      "reason": "Market checkout child orders now retain total_amount_cents only; API responses derive decimal totals from cents."
-    },
-    {
-      "fresh": "0072_schema_hardening_payment_idempotency_backup_timestamps.sql",
-      "legacy": "0089_schema_hardening_payment_idempotency_backup_timestamps.sql",
-      "reason": "Payment idempotency keys are unique when present and backup timestamp fields move to integer millisecond columns in both migration tracks."
-    },
-    {
-      "fresh": "0073_images_uploaded_by_text.sql",
-      "legacy": "0090_images_uploaded_by_text.sql",
-      "reason": "images.uploaded_by moves from INTEGER to TEXT so it can store users.id UUID v7 values for the image-processor upload path (issue #56)."
-    },
-    {
-      "fresh": "0074_menu_items_image_id.sql",
-      "legacy": "0091_menu_items_image_id.sql",
-      "reason": "menu_items.image_id records the owning images.id value so menu image replacement can delete the previous image."
-    },
-    {
-      "fresh": "0075_seat_number_unique.sql",
-      "legacy": "0092_seat_number_unique.sql",
-      "reason": "Duplicate seat numbers are reconciled before both migration tracks enforce one seat number per table."
-    },
-    {
-      "fresh": "0076_menu_name_en.sql",
-      "legacy": "0093_menu_name_en.sql",
-      "reason": "menu_items.name_en and categories.name_en back the admin menu forms' English-name inputs, which previously had no columns and were silently discarded (#107)."
-    },
-    {
-      "fresh": "0077_drop_categories_item_count.sql",
-      "legacy": "0094_drop_categories_item_count.sql",
-      "reason": "categories.item_count is dropped in both tracks: only createMenuItem ever wrote it, so deletes, availability toggles and category moves left it stale, and item counts are now derived live from menu_items (#84)."
-    },
-    {
-      "fresh": "0078_menu_items_soft_delete_backfill.sql",
-      "legacy": "0095_menu_items_soft_delete_backfill.sql",
-      "reason": "Menu item soft deletion now writes menu_items.deleted_at_ms instead of the sort_order=-1 convention; rows deleted under the old marker are backfilled so they stay deleted once reads filter on deleted_at_ms (#80)."
-    },
-    {
-      "fresh": "0079_qr_two_phase_rotation.sql",
-      "legacy": "0096_qr_two_phase_rotation.sql",
-      "reason": "Both tracks add the same pending QR staging columns and partial unique indexes for two-phase rotation."
-    }
-  ],
-  "freshOnly": [
-    {
-      "fresh": "0065_service_booking_employee_overlap_guard.sql",
-      "reason": "Fresh baseline owns the service_bookings overlap guard; the legacy migration track does not currently carry the service_bookings table migration."
-    },
-    {
-      "fresh": "0080_group_orders_guest_host.sql",
-      "reason": "Fresh API D1 owns group_orders for guest-hosted group orders; the local management/legacy D1 does not carry group_orders, and the packages/database legacy track has incompatible historical group_orders definitions rather than a verified live schema."
-    },
-    {
-      "fresh": "0081_shared_option_groups.sql",
-      "reason": "Fresh API D1 owns the shared customization option groups (option_groups / option_choices / menu_item_option_groups / menu_item_option_choice_overrides). The legacy management D1 carries neither menu_items nor restaurants in the shape these reference, so there is no paired legacy migration."
-    },
-    {
-      "fresh": "0082_allow_per_item_option_group_public_ids.sql",
-      "reason": "Phase A backfills one independent option group set per menu item, so group public_id values such as spice must be reusable within a restaurant while choice public_id remains unique within its group."
-    },
-    {
-      "fresh": "0083_split_bill_settled_by.sql",
-      "reason": "Fresh API D1 owns split_bills; the legacy management track does not carry group orders or their split bills, so there is no paired legacy migration."
-    },
-    {
-      "fresh": "0084_customer_auth_identities.sql",
-      "reason": "Fresh API D1 owns the customer authentication domain; the legacy management D1 does not carry customers-domain auth tables, so there is no paired legacy migration."
-    }
-  ],
+  "pairs": [],
+  "freshOnly": [],
   "legacyOnly": [
     {
       "legacy": "20251001_performance_indexes.sql",
       "reason": "Legacy operational performance-index migration predates this guard and is reviewed as legacy-only."
     }
-  ]
+  ],
+  "note": "The fresh track was squashed into 0000_baseline_strict.sql, so per-file pairings against it no longer exist. Note that no wrangler.toml points at legacyDir — see AGENTS.md/CLAUDE.md."
 }

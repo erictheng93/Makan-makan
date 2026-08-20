@@ -20,3 +20,13 @@ export async function readData<T>(response: Response): Promise<T> {
   }
   return envelope.data;
 }
+
+/**
+ * The envelope `data` produced by a route that returns a service call
+ * straight through. Deriving the shape from the service keeps the test tied to
+ * production types, so a reshaped service breaks compilation instead of
+ * silently changing what the assertions read.
+ */
+export type ServiceData<T> = T extends (...args: never[]) => Promise<infer R>
+  ? NonNullable<R>
+  : never;

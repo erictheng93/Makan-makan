@@ -2,12 +2,14 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
+// The fresh track was squashed into a single baseline, which is a stronger
+// target than the five migrations it replaced: those only showed the shape at
+// the point each was written, the baseline is the shape that ships.
+const FRESH_BASELINE =
+  "packages/database/migrations_fresh/0000_baseline_strict.sql";
+
 const migrationFiles = [
-  "packages/database/migrations_fresh/0000_loose_skin.sql",
-  "packages/database/migrations_fresh/0008_platform-integrations.sql",
-  "packages/database/migrations_fresh/0036_restaurant_fk_rebuild_ordering_core_component.sql",
-  "packages/database/migrations_fresh/0038_restaurant_fk_rebuild_users_root_apply.sql",
-  "packages/database/migrations_fresh/0039_restaurant_fk_rebuild_users_root_finalize.sql",
+  FRESH_BASELINE,
   "packages/database/migrations/0000_rich_mulholland_black.sql",
   "packages/database/migrations/0001_initial_schema.sql",
 ];
@@ -28,23 +30,26 @@ describe("UUID-native migration SQL", () => {
     },
   );
 
-  it("creates users and orders as text primary keys in the fresh baseline", () => {
-    const sql = readMigration(
-      "packages/database/migrations_fresh/0000_loose_skin.sql",
+  // Quoting and case are not stable across the baseline: SQLite rewrites a
+  // table's stored DDL when ALTER TABLE touches it, so `users` becomes
+  // "users". Match the structure, not the punctuation.
+  const createsTextPk = (table: string) =>
+    new RegExp(
+      String.raw`CREATE TABLE ["\`]?${table}["\`]?\s*\(\s*["\`]?id["\`]? TEXT PRIMARY KEY`,
+      "i",
     );
 
-    expect(sql).toMatch(/CREATE TABLE `users`\s*\(\s*`id` TEXT PRIMARY KEY/);
-    expect(sql).toMatch(/CREATE TABLE `orders`\s*\(\s*`id` TEXT PRIMARY KEY/);
+  it("creates users and orders as text primary keys in the fresh baseline", () => {
+    const sql = readMigration(FRESH_BASELINE);
+
+    expect(sql).toMatch(createsTextPk("users"));
+    expect(sql).toMatch(createsTextPk("orders"));
   });
 
   it("creates platform orders as a text primary key with a text order foreign key", () => {
-    const sql = readMigration(
-      "packages/database/migrations_fresh/0008_platform-integrations.sql",
-    );
+    const sql = readMigration(FRESH_BASELINE);
 
-    expect(sql).toMatch(
-      /CREATE TABLE IF NOT EXISTS platform_orders\s*\(\s*id TEXT PRIMARY KEY/,
-    );
+    expect(sql).toMatch(createsTextPk("platform_orders"));
     expect(sql).toMatch(/order_id TEXT NOT NULL REFERENCES orders\(id\)/);
   });
 });

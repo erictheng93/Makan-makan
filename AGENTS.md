@@ -31,7 +31,7 @@ Vitest is the primary test runner; Playwright covers end-to-end and visual flows
 
 ## Database Schema & Migration Guidelines
 
-Drizzle schema files in `packages/database/src/schema/` are the source of truth. When schema changes require SQL, keep both migration tracks current: `packages/database/migrations_fresh/` for the generated/fresh baseline and `packages/database/migrations/` for the Wrangler deployment track. Any migration after the reviewed checkpoint must be paired or explicitly marked in `packages/database/migration-dual-track.json`; verify with `pnpm run check:migration-dual-track`.
+Drizzle schema files in `packages/database/src/schema/` are the source of truth for tables and columns, but not for everything: 93 triggers, 15 partial indexes and a CHECK constraint live only in migration SQL. `packages/database/migrations_fresh/` is the only track wrangler applies (every `migrations_dir`, production included) and is squashed into `0000_baseline_strict.sql`; regenerate it with `node scripts/generate-strict-baseline.cjs`. `packages/database/migrations/` is referenced by no `wrangler.toml` and is applied by nothing. Any migration after the reviewed checkpoint must be paired or explicitly marked in `packages/database/migration-dual-track.json`; verify with `pnpm run check:migration-dual-track`.
 
 Use `INTEGER` Unix milliseconds with Drizzle `{ mode: "timestamp_ms" }` for new or migrated timestamp columns. Avoid new `TEXT` timestamp columns unless there is a documented interoperability reason.
 

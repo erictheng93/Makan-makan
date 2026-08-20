@@ -44,7 +44,14 @@ MakanMasak is a modern, serverless restaurant management system built on Cloudfl
 ### Schema & Migrations
 
 - **Source of Truth**: Drizzle schema files in `packages/database/src/schema/` (includes subdirectories)
-- **Migration Tracks**: `packages/database/migrations_fresh/` is the fresh baseline; `packages/database/migrations/` is the Wrangler deployment track.
+- **Migration Tracks**: `packages/database/migrations_fresh/` is the only track
+  wrangler applies — every `migrations_dir` in `apps/api`, `apps/management-api`
+  and `apps/realtime` points at it, production included. It was squashed into a
+  single `0000_baseline_strict.sql`, regenerable with
+  `node scripts/generate-strict-baseline.cjs`. `packages/database/migrations/` is
+  **not** referenced by any `wrangler.toml`; despite the "deployment track" name it
+  is applied by nothing, and replaying it from empty fails 107 statements. Do not
+  add migrations there expecting them to ship.
 - **Migration Guard**: changes after the reviewed checkpoint must be paired or documented in `packages/database/migration-dual-track.json`, then verified with `pnpm check:migration-dual-track`.
 - **ID Strategy**: mixed by design while legacy modules remain. New domain tables should prefer `TEXT` UUID v7 primary keys, but existing integer-autoincrement tables are still valid until a scoped migration retires them. Do not claim the whole database is UUID-only.
 - **Timestamp Strategy**: use `INTEGER` Unix milliseconds via Drizzle `{ mode: "timestamp_ms" }`. Avoid new `TEXT` timestamp columns.
@@ -56,7 +63,7 @@ MakanMasak is a modern, serverless restaurant management system built on Cloudfl
   in its recreate-table dance, which otherwise renames a non-STRICT table over a
   STRICT one and drops the constraint with no visible diff. Policy and checkpoints
   live in `packages/database/strict-table-policy.json`; `pnpm check:strict-tables`
-  enforces both rules.
+  enforces both rules. All 117 tables in the baseline are already STRICT.
 - **Secret Storage**: OAuth credentials, access/refresh tokens, client secrets, and webhook secrets must be stored only in encrypted payload fields. JSON config columns are for non-secret flags and preferences.
 
 ```bash

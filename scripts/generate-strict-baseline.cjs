@@ -75,6 +75,9 @@ function addStrict(sql) {
     throw new Error(`cannot locate column list in: ${sql.slice(0, 80)}`);
   }
   const existingOptions = sql.slice(close).replace(/;\s*$/, "").trim();
+  // Idempotent: regenerating from an already-STRICT baseline must not
+  // produce `) STRICT, STRICT`.
+  if (/\bSTRICT\b/i.test(existingOptions)) return sql.replace(/;\s*$/, "");
   // Table options are a comma-separated list, so `) WITHOUT ROWID` has to
   // become `) WITHOUT ROWID, STRICT` rather than `) STRICT WITHOUT ROWID`.
   return existingOptions

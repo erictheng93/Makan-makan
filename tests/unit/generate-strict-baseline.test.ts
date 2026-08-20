@@ -74,6 +74,14 @@ describe("addStrict", () => {
     ).toBe("CREATE TABLE `a` (`t` integer DEFAULT (unixepoch())) STRICT");
   });
 
+  it("is idempotent — regenerating a STRICT baseline is a no-op", () => {
+    const once = addStrict("CREATE TABLE `a` (`id` text)");
+    expect(addStrict(once)).toBe(once);
+    expect(
+      addStrict("CREATE TABLE `a` (`id` text) WITHOUT ROWID, STRICT"),
+    ).toBe("CREATE TABLE `a` (`id` text) WITHOUT ROWID, STRICT");
+  });
+
   it("comma-joins onto an existing table option", () => {
     // `) STRICT WITHOUT ROWID` is a syntax error — table options are a list.
     expect(addStrict("CREATE TABLE `a` (`id` text) WITHOUT ROWID")).toBe(

@@ -3,8 +3,8 @@
   "tracks": [
     {
       "dir": "packages/database/migrations_fresh",
-      "enforceFrom": 85,
-      "reason": "0000-0084 predate the policy. New fresh-baseline migrations start at 0085."
+      "enforceFrom": 0,
+      "reason": "Squashed into 0000_baseline_strict.sql — every table is STRICT, so the rule applies to the whole track."
     },
     {
       "dir": "packages/database/migrations",
