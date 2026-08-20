@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vue-tsc && vite build && node ../../scripts/check-csp-safe-bundle.cjs dist",
-    "build:analyze": "ANALYZE=true vue-tsc && vite build",
+    "build:analyze": "cross-env ANALYZE=true vue-tsc && vite build",
     "preview": "vite preview --host",
     "typecheck": "vue-tsc --noEmit",
     "lint": "eslint src --max-warnings 0",
@@ -54,6 +54,7 @@
     "@types/lodash-es": "^4.17.0",
     "@vitejs/plugin-vue": "^6.0.7",
     "@vue/test-utils": "^2.4.0",
+    "cross-env": "^10.1.0",
     "jsdom": "^23.0.0",
     "prettier": "^3.0.0",
     "rollup-plugin-visualizer": "^6.0.3",
