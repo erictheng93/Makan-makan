@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 
 const authState = vi.hoisted(() => ({
-  user: { id: 7, role: 1, restaurantId: "rest-1" } as {
-    id: number;
-    role: number;
-    restaurantId?: string | number;
-  },
+  user: {
+    id: "user-7",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-1",
+  } as AuthUser,
 }));
 
 vi.mock("../../../middleware/auth", () => ({
@@ -104,7 +106,12 @@ const callResult = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  authState.user = { id: 7, role: 1, restaurantId: "rest-1" };
+  authState.user = {
+    id: "user-7",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-1",
+  };
   serviceFns.joinQueue.mockResolvedValue({ success: true, data: joinResult });
   serviceFns.getQueueStatus.mockResolvedValue({
     success: true,
@@ -287,11 +294,16 @@ describe("queue routes", () => {
       undefined,
     );
 
-    authState.user = { id: 1, role: 0 };
+    authState.user = { id: "user-1", username: "admin", role: 0 };
     response = await request("/rest-2/current");
     expect(response.status).toBe(200);
 
-    authState.user = { id: 8, role: 1, restaurantId: "rest-1" };
+    authState.user = {
+      id: "user-8",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-1",
+    };
     response = await request("/rest-2/current");
     expect(response.status).toBe(403);
   });
@@ -327,7 +339,12 @@ describe("queue routes", () => {
     response = await request("/rest-1/call-next", "POST", {});
     expect(response.status).toBe(400);
 
-    authState.user = { id: 9, role: 1, restaurantId: "other" };
+    authState.user = {
+      id: "user-9",
+      username: "owner",
+      role: 1,
+      restaurantId: "other",
+    };
     response = await request("/rest-1/call-next", "POST", {});
     expect(response.status).toBe(403);
   });

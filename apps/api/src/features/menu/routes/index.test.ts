@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import type { ModuleKey } from "@makanmasak/database";
 
 const auth = vi.hoisted(() => ({
-  user: undefined as
-    | undefined
-    | { id: number; role: number; restaurantId?: string | number | null },
+  user: undefined as undefined | AuthUser,
 }));
 
 vi.mock("../../../shared/middleware", async (importOriginal) => {
@@ -18,7 +17,15 @@ vi.mock("../../../shared/middleware", async (importOriginal) => {
       await next();
     }),
     authMiddleware: vi.fn(async (c, next) => {
-      c.set("user", auth.user ?? { id: 7, role: 0, restaurantId: "rest-1" });
+      c.set(
+        "user",
+        auth.user ?? {
+          id: "user-7",
+          username: "admin",
+          role: 0,
+          restaurantId: "rest-1",
+        },
+      );
       await next();
     }),
     // The real role guard, not a stub: the role table on these routes is the
@@ -229,8 +236,14 @@ const ROLE = { ADMIN: 0, OWNER: 1, CHEF: 2 } as const;
 function buildUser(
   role: number,
   overrides: Record<string, unknown> = {},
-): { id: number; role: number; restaurantId?: string | number | null } {
-  return { id: 9, role, restaurantId: "rest-1", ...overrides };
+): AuthUser {
+  return {
+    id: "user-9",
+    username: "owner",
+    role,
+    restaurantId: "rest-1",
+    ...overrides,
+  };
 }
 
 function itemBody(overrides: Record<string, unknown> = {}) {
@@ -298,7 +311,7 @@ describe("menu routes", () => {
       includeUnavailable: false,
     });
 
-    auth.user = { id: 1, role: 0 };
+    auth.user = { id: "user-1", username: "admin", role: 0 };
     response = await request("/rest-1?includeAll=true");
 
     expect(response.status).toBe(200);
@@ -314,7 +327,12 @@ describe("menu routes", () => {
 
   it("scopes includeAll to the owner's own restaurant", async () => {
     // An owner of rest-2 must not see rest-1's unavailable items.
-    auth.user = { id: 2, role: 1, restaurantId: "rest-2" };
+    auth.user = {
+      id: "user-2",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-2",
+    };
     let response = await request("/rest-1?includeAll=true");
 
     expect(response.status).toBe(200);
@@ -323,7 +341,7 @@ describe("menu routes", () => {
     });
 
     // An owner with no restaurant on their token is not privileged anywhere.
-    auth.user = { id: 3, role: 1 };
+    auth.user = { id: "user-3", username: "owner", role: 1 };
     response = await request("/rest-1?includeAll=true");
 
     expect(response.status).toBe(200);
@@ -332,7 +350,12 @@ describe("menu routes", () => {
     });
 
     // Their own restaurant still works.
-    auth.user = { id: 2, role: 1, restaurantId: "rest-2" };
+    auth.user = {
+      id: "user-2",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-2",
+    };
     response = await request("/rest-2?includeAll=true");
 
     expect(response.status).toBe(200);
@@ -422,7 +445,12 @@ describe("menu routes", () => {
   });
 
   it("blocks menu item mutation when item access fails", async () => {
-    auth.user = { id: 8, role: 1, restaurantId: "other" };
+    auth.user = {
+      id: "user-8",
+      username: "owner",
+      role: 1,
+      restaurantId: "other",
+    };
 
     let response = await request("/items/11", "PUT", {
       name: "Updated",
@@ -433,7 +461,7 @@ describe("menu routes", () => {
     expect(serviceFns.updateMenuItem).not.toHaveBeenCalled();
 
     serviceFns.getMenuItem.mockResolvedValueOnce(null);
-    auth.user = { id: 1, role: 0 };
+    auth.user = { id: "user-1", username: "admin", role: 0 };
     response = await request("/items/11", "DELETE");
 
     expect(response.status).toBe(404);
@@ -777,7 +805,12 @@ describe("menu routes", () => {
   });
 
   it("blocks category mutations on missing or unauthorized categories", async () => {
-    auth.user = { id: 8, role: 1, restaurantId: "other" };
+    auth.user = {
+      id: "user-8",
+      username: "owner",
+      role: 1,
+      restaurantId: "other",
+    };
 
     let response = await request("/categories/3", "PUT", { name: "Updated" });
 
@@ -785,7 +818,7 @@ describe("menu routes", () => {
     expect(serviceFns.updateCategory).not.toHaveBeenCalled();
 
     serviceFns.getCategoryById.mockResolvedValueOnce(null);
-    auth.user = { id: 1, role: 0 };
+    auth.user = { id: "user-1", username: "admin", role: 0 };
     response = await request("/categories/3", "DELETE");
 
     expect(response.status).toBe(404);

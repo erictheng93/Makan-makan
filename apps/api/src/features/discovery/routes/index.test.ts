@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
 
 const auth = vi.hoisted(() => ({
-  user: { id: 1, role: 0 },
+  user: { id: "user-1", username: "admin", role: 0 } as AuthUser,
 }));
 
 const services = vi.hoisted(() => ({

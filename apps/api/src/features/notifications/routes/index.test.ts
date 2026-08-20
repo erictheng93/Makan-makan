@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
 
 const authState = vi.hoisted(() => ({
   user: {
-    id: 7,
+    id: "user-7",
     username: "owner",
     role: 1,
     restaurantId: "restaurant-1" as string | number | null,
-  },
+  } as AuthUser,
 }));
 
 const notificationFns = vi.hoisted(() => ({
@@ -120,7 +121,7 @@ describe("notification routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     authState.user = {
-      id: 7,
+      id: "user-7",
       username: "owner",
       role: 1,
       restaurantId: "restaurant-1",
@@ -238,10 +239,10 @@ describe("notification routes", () => {
 
   it("lets admins send manual notifications without recipient scope lookup", async () => {
     authState.user = {
-      id: 1,
+      id: "user-1",
       username: "admin",
       role: 0,
-      restaurantId: null,
+      restaurantId: undefined,
     };
     const env = createEnv();
     notificationFns.sendNotification.mockResolvedValue({ success: true });
@@ -327,7 +328,7 @@ describe("notification routes", () => {
 
   it("rejects owners without a restaurant even when the recipient has one", async () => {
     authState.user = {
-      id: 8,
+      id: "user-8",
       username: "unscoped-owner",
       role: 1,
       restaurantId: undefined as never,

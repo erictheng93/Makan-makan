@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c: any, next: any) => {
     c.set("user", {
-      id: 1,
+      id: "user-1",
       username: "admin",
       role: 0,
       restaurantId: "platform",
-    });
+    } satisfies AuthUser);
     await next();
   }),
   requireRole: vi.fn(

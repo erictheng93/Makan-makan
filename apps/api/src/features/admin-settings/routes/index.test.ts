@@ -1,16 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
 
 const mocks = vi.hoisted(() => {
   // Admins have no restaurant scope, so restaurantId is optional here just as
   // it is on the production AuthUser type.
-  const user: {
-    id: number;
-    username: string;
-    role: number;
-    restaurantId?: string;
-  } = {
-    id: 42,
+  const user: AuthUser = {
+    id: "user-42",
     username: "owner",
     role: 1,
     restaurantId: "restaurant-1",
@@ -114,7 +110,7 @@ describe("admin settings routes", () => {
     vi.clearAllMocks();
     vi.useRealTimers();
     mocks.user = {
-      id: 42,
+      id: "user-42",
       username: "owner",
       role: 1,
       restaurantId: "restaurant-1",
@@ -123,7 +119,7 @@ describe("admin settings routes", () => {
 
   it("returns stored notification settings for the authenticated user scope", async () => {
     const cacheKv = createCacheKv({
-      userId: 42,
+      userId: "user-42",
       restaurantId: "restaurant-1",
       settings: notificationSettings,
       updatedAt: "2026-06-01T00:00:00.000Z",
@@ -134,7 +130,7 @@ describe("admin settings routes", () => {
 
     expect(response.status).toBe(200);
     expect(cacheKv.get).toHaveBeenCalledWith(
-      "admin:notification-settings:restaurant-1:42",
+      "admin:notification-settings:restaurant-1:user-42",
       "json",
     );
     expect(body).toEqual({ success: true, data: notificationSettings });
@@ -179,9 +175,9 @@ describe("admin settings routes", () => {
 
     expect(response.status).toBe(200);
     expect(cacheKv.put).toHaveBeenCalledWith(
-      "admin:notification-settings:restaurant-1:42",
+      "admin:notification-settings:restaurant-1:user-42",
       JSON.stringify({
-        userId: 42,
+        userId: "user-42",
         restaurantId: "restaurant-1",
         settings: notificationSettings,
         updatedAt: "2026-06-07T12:34:56.000Z",
@@ -231,20 +227,20 @@ describe("admin settings routes", () => {
 
     expect(response.status).toBe(200);
     const record = JSON.stringify({
-      userId: 42,
+      userId: "user-42",
       restaurantId: "restaurant-1",
       settings: payload,
       syncedAt: "2026-06-07T13:00:00.000Z",
     });
     expect(cacheKv.put).toHaveBeenNthCalledWith(
       1,
-      "admin:settings-sync:restaurant-1:42:terminal%20%231",
+      "admin:settings-sync:restaurant-1:user-42:terminal%20%231",
       record,
       { expirationTtl: 60 * 60 * 24 * 30 },
     );
     expect(cacheKv.put).toHaveBeenNthCalledWith(
       2,
-      "admin:settings-sync:restaurant-1:42:latest",
+      "admin:settings-sync:restaurant-1:user-42:latest",
       record,
       { expirationTtl: 60 * 60 * 24 * 30 },
     );
@@ -262,7 +258,7 @@ describe("admin settings routes", () => {
   it("uses global scope for admins without a restaurant", async () => {
     vi.setSystemTime(new Date("2026-06-07T14:00:00.000Z"));
     mocks.user = {
-      id: 1,
+      id: "user-1",
       username: "admin",
       role: 0,
       restaurantId: undefined,
@@ -274,7 +270,7 @@ describe("admin settings routes", () => {
 
     expect(response.status).toBe(200);
     expect(cacheKv.put).toHaveBeenCalledWith(
-      "admin:settings-sync:global:1:1780840800000",
+      "admin:settings-sync:global:user-1:1780840800000",
       expect.any(String),
       { expirationTtl: 60 * 60 * 24 * 30 },
     );

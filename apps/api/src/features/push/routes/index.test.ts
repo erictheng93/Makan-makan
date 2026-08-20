@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
 
 const auth = vi.hoisted(() => ({
   user: {
-    id: 42,
+    id: "user-42",
     username: "owner",
     role: 1,
     restaurantId: "restaurant-1" as string | number | null | undefined,
-  },
+  } as AuthUser,
 }));
 
 vi.mock("../../../middleware/auth", () => ({
@@ -93,7 +94,7 @@ describe("push subscription routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     auth.user = {
-      id: 42,
+      id: "user-42",
       username: "owner",
       role: 1,
       restaurantId: "restaurant-1",
@@ -121,11 +122,11 @@ describe("push subscription routes", () => {
       },
     });
     expect(env.CACHE_KV.get).toHaveBeenCalledWith(
-      `push:subscription:restaurant-1:42:${expectedId}`,
+      `push:subscription:restaurant-1:user-42:${expectedId}`,
       "json",
     );
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
-      `push:subscription:restaurant-1:42:${expectedId}`,
+      `push:subscription:restaurant-1:user-42:${expectedId}`,
       expect.any(String),
       { expirationTtl: 31536000 },
     );
@@ -136,7 +137,7 @@ describe("push subscription routes", () => {
     >;
     expect(stored).toMatchObject({
       id: expectedId,
-      userId: 42,
+      userId: "user-42",
       username: "owner",
       userRole: 1,
       requestedRole: 2,
@@ -173,7 +174,7 @@ describe("push subscription routes", () => {
     const env = createEnv();
     env.CACHE_KV.get.mockResolvedValue(null);
     auth.user = {
-      id: 1,
+      id: "user-1",
       username: "admin",
       role: 0,
       restaurantId: undefined,
@@ -189,7 +190,7 @@ describe("push subscription routes", () => {
     expect(response.status).toBe(200);
     expect(body.data?.restaurantId).toBeNull();
     expect(env.CACHE_KV.put).toHaveBeenLastCalledWith(
-      `push:subscription:global:1:${expectedId}`,
+      `push:subscription:global:user-1:${expectedId}`,
       expect.any(String),
       expect.any(Object),
     );
@@ -205,7 +206,7 @@ describe("push subscription routes", () => {
     expect(response.status).toBe(200);
     expect(body.data?.restaurantId).toBe("night market/store 7");
     expect(env.CACHE_KV.put).toHaveBeenLastCalledWith(
-      `push:subscription:night%20market%2Fstore%207:1:${expectedId}`,
+      `push:subscription:night%20market%2Fstore%207:user-1:${expectedId}`,
       expect.any(String),
       expect.any(Object),
     );
@@ -263,7 +264,7 @@ describe("push subscription routes", () => {
       },
     });
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith(
-      `push:subscription:restaurant-1:42:${explicitId}`,
+      `push:subscription:restaurant-1:user-42:${explicitId}`,
     );
 
     response = await request("/unsubscribe", env, {
@@ -276,7 +277,7 @@ describe("push subscription routes", () => {
     expect(response.status).toBe(200);
     expect(body.data?.subscriptionId).toBe(expectedId);
     expect(env.CACHE_KV.delete).toHaveBeenLastCalledWith(
-      `push:subscription:restaurant-1:42:${expectedId}`,
+      `push:subscription:restaurant-1:user-42:${expectedId}`,
     );
   });
 

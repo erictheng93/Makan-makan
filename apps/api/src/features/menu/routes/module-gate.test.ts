@@ -14,14 +14,17 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 
-const currentUser = vi.hoisted(() => ({
-  value: { id: 1, role: 1, restaurantId: "rest-basic" } as {
-    id: number;
-    role: number;
-    restaurantId: string | number | undefined;
-  },
-}));
+const currentUser = vi.hoisted(() => {
+  const value: AuthUser = {
+    id: "user-1",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-basic",
+  };
+  return { value };
+});
 
 vi.mock("../../../shared/middleware", async (importOriginal) => {
   const actual =
@@ -95,7 +98,12 @@ function envWithSubscription(
 
 beforeEach(() => {
   vi.clearAllMocks();
-  currentUser.value = { id: 1, role: 1, restaurantId: "rest-basic" };
+  currentUser.value = {
+    id: "user-1",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-basic",
+  };
 });
 
 describe("menu GET /:restaurantId/popularity is gated on analytics", () => {

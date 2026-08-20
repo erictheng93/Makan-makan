@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import app from "./index";
@@ -6,10 +7,11 @@ import { ApiError, conflict } from "../../../shared/utils/api-error";
 
 const mocks = vi.hoisted(() => ({
   currentUser: {
-    id: 42,
+    id: "user-42",
+    username: "owner",
     role: 1,
     restaurantId: "restaurant-1",
-  },
+  } as AuthUser,
   validateCouponWithBusinessRules: vi.fn(),
   getAvailableCouponsForUser: vi.fn(),
   createCouponWithValidation: vi.fn(),
@@ -142,7 +144,7 @@ async function withSilencedRouteError<T>(
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.currentUser.id = 42;
+  mocks.currentUser.id = "user-42";
   mocks.currentUser.role = 1;
   mocks.currentUser.restaurantId = "restaurant-1";
   mocks.formatCouponMoneyFields.mockImplementation((value) => value);
@@ -162,7 +164,7 @@ describe("coupons routes", () => {
         code: "SAVE10",
         restaurantId: "restaurant-1",
         orderAmount: 300,
-        userId: "5",
+        userId: "user-5",
         menuItems: [{ menuItemId: 1, quantity: 2 }],
       }),
       env as never,
@@ -176,7 +178,7 @@ describe("coupons routes", () => {
       "SAVE10",
       "restaurant-1",
       300,
-      "5",
+      "user-5",
       [{ menuItemId: 1, quantity: 2 }],
     );
 
@@ -213,7 +215,7 @@ describe("coupons routes", () => {
     expect(mocks.createCouponWithValidation).toHaveBeenCalledWith(
       expect.objectContaining({
         restaurantId: "restaurant-1",
-        createdBy: 42,
+        createdBy: "user-42",
       }),
     );
 
@@ -377,7 +379,7 @@ describe("coupons routes", () => {
       jsonRequest("https://test/use", "POST", {
         couponId: 10,
         orderId: "99",
-        userId: "5",
+        userId: "user-5",
         discountAmount: 30,
         originalAmount: 300,
         finalAmount: 270,
@@ -388,7 +390,7 @@ describe("coupons routes", () => {
     expect(mocks.useCouponForOrder).toHaveBeenCalledWith({
       couponId: 10,
       orderId: "99",
-      userId: "5",
+      userId: "user-5",
       allowedRestaurantId: "restaurant-1",
     });
 

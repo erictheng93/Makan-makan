@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import type { ModuleKey } from "@makanmasak/database";
 
 const auth = vi.hoisted(() => ({
-  user: undefined as
-    | undefined
-    | { id: number; role: number; restaurantId?: string },
+  user: undefined as undefined | AuthUser,
 }));
 
 vi.mock("../../../middleware/auth", () => ({
@@ -13,7 +12,7 @@ vi.mock("../../../middleware/auth", () => ({
     await next();
   }),
   authMiddleware: vi.fn(async (c: any, next: any) => {
-    c.set("user", auth.user ?? { id: 7, role: 0 });
+    c.set("user", auth.user ?? { id: "user-7", username: "admin", role: 0 });
     await next();
   }),
   requireRole: vi.fn(
@@ -282,7 +281,7 @@ describe("restaurants routes", () => {
   });
 
   it("creates restaurants and returns detail not-found errors", async () => {
-    auth.user = { id: 7, role: 0 };
+    auth.user = { id: "user-7", username: "admin", role: 0 };
 
     let res = await request("/", "POST", createRestaurantBody);
     expect(res.status).toBe(201);
@@ -316,7 +315,12 @@ describe("restaurants routes", () => {
   });
 
   it("uses manage scope for contact profiles and blocks cross-restaurant owner updates", async () => {
-    auth.user = { id: 7, role: 1, restaurantId: "rest-1" };
+    auth.user = {
+      id: "user-7",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-1",
+    };
 
     let res = await request("/rest-1/contact-profile");
     expect(res.status).toBe(200);
@@ -324,7 +328,12 @@ describe("restaurants routes", () => {
       includeInactiveFaqs: true,
     });
 
-    auth.user = { id: 7, role: 1, restaurantId: "other" };
+    auth.user = {
+      id: "user-7",
+      username: "owner",
+      role: 1,
+      restaurantId: "other",
+    };
     res = await request("/rest-1/contact-profile", "PUT", {
       messagingChannels: { line: "https://line.me/R/ti/p/@makan" },
       faqs: [{ question: "Hi <b>?", answer: "Use &lt;LINE&gt;" }],
@@ -339,7 +348,12 @@ describe("restaurants routes", () => {
     expect(res.status).toBe(200);
     expect(restaurantFns.listPublicServiceItems).toHaveBeenCalledWith("rest-1");
 
-    auth.user = { id: 7, role: 1, restaurantId: "rest-1" };
+    auth.user = {
+      id: "user-7",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-1",
+    };
     res = await request("/rest-1/service-items");
     expect(res.status).toBe(200);
     expect(restaurantFns.listManageableServiceItems).toHaveBeenCalledWith(
@@ -378,7 +392,12 @@ describe("restaurants routes", () => {
   });
 
   it("blocks owner access to another restaurant for protected resources", async () => {
-    auth.user = { id: 7, role: 1, restaurantId: "other" };
+    auth.user = {
+      id: "user-7",
+      username: "owner",
+      role: 1,
+      restaurantId: "other",
+    };
 
     let res = await request("/rest-1/service-items", "POST", serviceItemBody);
     expect(res.status).toBe(403);
@@ -391,7 +410,7 @@ describe("restaurants routes", () => {
   });
 
   it("updates restaurants with previous district sync and deactivates restaurants", async () => {
-    auth.user = { id: 7, role: 0 };
+    auth.user = { id: "user-7", username: "admin", role: 0 };
 
     let res = await request("/rest-1", "PUT", {
       name: "Updated",
@@ -417,7 +436,12 @@ describe("restaurants routes", () => {
   });
 
   it("handles restaurant market memberships and join request states", async () => {
-    auth.user = { id: 7, role: 1, restaurantId: "rest-1" };
+    auth.user = {
+      id: "user-7",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-1",
+    };
 
     let res = await request("/rest-1/markets");
     expect(res.status).toBe(200);
@@ -447,7 +471,12 @@ describe("restaurants routes", () => {
   });
 
   it("runs shop QR and shop mode workflows for the owner restaurant", async () => {
-    auth.user = { id: 7, role: 1, restaurantId: "rest-1" };
+    auth.user = {
+      id: "user-7",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-1",
+    };
 
     let res = await request("/rest-1/qr/shop/generate", "POST");
     expect(res.status).toBe(201);

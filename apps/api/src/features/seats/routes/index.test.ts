@@ -1,9 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import routes from "./index";
 import { batchCreateSeatsSchema } from "../schemas/validation";
 
 const mocks = vi.hoisted(() => ({
-  currentUser: { id: 10, role: 1, restaurantId: "restaurant-1" },
+  currentUser: {
+    id: "user-10",
+    username: "owner",
+    role: 1,
+    restaurantId: "restaurant-1",
+  } as AuthUser,
   getSeatsByTableId: vi.fn(),
   getSeatStats: vi.fn(),
   getSeatByQRCode: vi.fn(),
@@ -118,7 +124,8 @@ describe("seats routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.currentUser = {
-      id: 10,
+      id: "user-10",
+      username: "owner",
       role: 1,
       restaurantId: "restaurant-1",
     };

@@ -13,14 +13,17 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 
-const currentUser = vi.hoisted(() => ({
-  value: { id: 22, role: 2, restaurantId: "rest-basic" } as {
-    id: number;
-    role: number;
-    restaurantId: string | number | undefined;
-  },
-}));
+const currentUser = vi.hoisted(() => {
+  const value: AuthUser = {
+    id: "user-22",
+    username: "chef",
+    role: 2,
+    restaurantId: "rest-basic",
+  };
+  return { value };
+});
 
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c: any, next: any) => {
@@ -92,7 +95,12 @@ function envWithSubscription(
 
 beforeEach(() => {
   vi.clearAllMocks();
-  currentUser.value = { id: 22, role: 2, restaurantId: "rest-basic" };
+  currentUser.value = {
+    id: "user-22",
+    username: "chef",
+    role: 2,
+    restaurantId: "rest-basic",
+  };
 });
 
 describe("kitchen notification-settings routes are gated on kitchen_display", () => {
@@ -132,7 +140,12 @@ describe("kitchen notification-settings routes are gated on kitchen_display", ()
   });
 
   it("allows a pro-tier chef through to GET and PUT", async () => {
-    currentUser.value = { id: 22, role: 2, restaurantId: "rest-pro" };
+    currentUser.value = {
+      id: "user-22",
+      username: "chef",
+      role: 2,
+      restaurantId: "rest-pro",
+    };
     let res = await routes.fetch(
       new Request("https://kitchen.test/notification-settings"),
       envWithSubscription("rest-pro", "pro") as never,

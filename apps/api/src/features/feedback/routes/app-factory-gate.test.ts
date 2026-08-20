@@ -14,11 +14,17 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import { Hono } from "hono";
 import { ApiError } from "../../../shared/utils/api-error";
 import { authMiddleware } from "../../../middleware/auth";
 
-const currentUser = { id: 10, role: 1, restaurantId: "rest-basic" };
+const currentUser: AuthUser = {
+  id: "user-10",
+  username: "owner",
+  role: 1,
+  restaurantId: "rest-basic",
+};
 
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c: any, next: any) => {

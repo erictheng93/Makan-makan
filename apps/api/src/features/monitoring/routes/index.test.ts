@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import routes from "./index";
 import { ApiError } from "../../../shared/utils/api-error";
 
@@ -16,7 +17,12 @@ routes.onError((err, c) => {
 import { authMiddleware } from "../../../middleware/auth";
 
 const mocks = vi.hoisted(() => ({
-  currentUser: { id: 1, role: 0, restaurantId: "restaurant-1" },
+  currentUser: {
+    id: "user-1",
+    username: "admin",
+    role: 0,
+    restaurantId: "restaurant-1",
+  } as AuthUser,
   getHealthStatus: vi.fn(),
   getMetrics: vi.fn(),
   resetMetrics: vi.fn(),

@@ -16,14 +16,17 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 
-const currentUser = vi.hoisted(() => ({
-  value: { id: 10, role: 4, restaurantId: "rest-pro" } as {
-    id: number;
-    role: number;
-    restaurantId: string | number | undefined;
-  },
-}));
+const currentUser = vi.hoisted(() => {
+  const value: AuthUser = {
+    id: "user-10",
+    username: "cashier",
+    role: 4,
+    restaurantId: "rest-pro",
+  };
+  return { value };
+});
 
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c: any, next: any) => {
@@ -119,7 +122,12 @@ function printPayload() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  currentUser.value = { id: 10, role: 4, restaurantId: "rest-pro" };
+  currentUser.value = {
+    id: "user-10",
+    username: "cashier",
+    role: 4,
+    restaurantId: "rest-pro",
+  };
   receiptServiceFns.printReceipt.mockResolvedValue({
     success: true,
     data: { id: "r1" },

@@ -1,9 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import routes from "./index";
 import { RealtimeEventType } from "@makanmasak/shared-types";
 
 const currentUser = vi.hoisted(() => ({
-  value: { id: 10, role: 1, restaurantId: "restaurant-1" },
+  value: {
+    id: "user-10",
+    username: "owner",
+    role: 1,
+    restaurantId: "restaurant-1",
+  } as AuthUser,
 }));
 const listGroupOrders = vi.hoisted(() => vi.fn());
 const createGroupOrder = vi.hoisted(() => vi.fn());
@@ -135,7 +141,12 @@ async function withSilencedRouteError<T>(
 
 describe("group orders routes", () => {
   beforeEach(() => {
-    currentUser.value = { id: 10, role: 1, restaurantId: "restaurant-1" };
+    currentUser.value = {
+      id: "user-10",
+      username: "owner",
+      role: 1,
+      restaurantId: "restaurant-1",
+    };
     listGroupOrders.mockReset();
     createGroupOrder.mockReset();
     joinGroup.mockReset();
@@ -281,7 +292,7 @@ describe("group orders routes", () => {
         tableId: 7,
         hostName: "Ada",
       }),
-      10,
+      "user-10",
     );
     expect(broadcastEvent).toHaveBeenCalledWith(
       "customer",
@@ -382,7 +393,12 @@ describe("group orders routes", () => {
   });
 
   it("returns statistics, details, activities, and cleanup responses", async () => {
-    currentUser.value = { id: 1, role: 0, restaurantId: "admin" };
+    currentUser.value = {
+      id: "user-1",
+      username: "admin",
+      role: 0,
+      restaurantId: "admin",
+    };
     getStatistics.mockResolvedValue({ totalGroups: 4, activeGroups: 2 });
     getGroupOrder.mockResolvedValue({
       groupOrderId,
@@ -693,7 +709,12 @@ describe("group orders routes", () => {
    */
   describe("GET /statistics tenant scoping", () => {
     it("scopes an owner to their own restaurant when the query omits one", async () => {
-      currentUser.value = { id: 10, role: 1, restaurantId: "restaurant-1" };
+      currentUser.value = {
+        id: "user-10",
+        username: "owner",
+        role: 1,
+        restaurantId: "restaurant-1",
+      };
       getStatistics.mockResolvedValue({ totalGroupOrders: 0 });
 
       const response = await routes.fetch(
@@ -706,7 +727,12 @@ describe("group orders routes", () => {
     });
 
     it("still refuses an owner who names someone else's restaurant", async () => {
-      currentUser.value = { id: 10, role: 1, restaurantId: "restaurant-1" };
+      currentUser.value = {
+        id: "user-10",
+        username: "owner",
+        role: 1,
+        restaurantId: "restaurant-1",
+      };
       getStatistics.mockResolvedValue({ totalGroupOrders: 0 });
 
       const response = await withSilencedRouteError(() =>
@@ -724,7 +750,12 @@ describe("group orders routes", () => {
     });
 
     it("scopes a platform admin to the restaurant they asked about", async () => {
-      currentUser.value = { id: 1, role: 0, restaurantId: "admin" };
+      currentUser.value = {
+        id: "user-1",
+        username: "admin",
+        role: 0,
+        restaurantId: "admin",
+      };
       getStatistics.mockResolvedValue({ totalGroupOrders: 12 });
 
       const response = await routes.fetch(
@@ -739,7 +770,12 @@ describe("group orders routes", () => {
     it("never asks the service for every restaurant at once", async () => {
       // Role 0 has no restaurant of its own to fall back to, so this is the
       // caller most likely to slip through as an unscoped query.
-      currentUser.value = { id: 1, role: 0, restaurantId: "admin" };
+      currentUser.value = {
+        id: "user-1",
+        username: "admin",
+        role: 0,
+        restaurantId: "admin",
+      };
       getStatistics.mockResolvedValue({ totalGroupOrders: 0 });
 
       await routes.fetch(

@@ -15,14 +15,17 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 
-const currentUser = vi.hoisted(() => ({
-  value: { id: 7, role: 1, restaurantId: "rest-basic" } as {
-    id: number;
-    role: number;
-    restaurantId: string | number | undefined;
-  },
-}));
+const currentUser = vi.hoisted(() => {
+  const value: AuthUser = {
+    id: "user-7",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-basic",
+  };
+  return { value };
+});
 
 vi.mock("../../../shared/middleware", async (importOriginal) => {
   const actual =
@@ -128,12 +131,22 @@ function bulkBody() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  currentUser.value = { id: 7, role: 1, restaurantId: "rest-basic" };
+  currentUser.value = {
+    id: "user-7",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-basic",
+  };
 });
 
 describe("qr-codes POST /bulk is gated on table_management", () => {
   it("denies a basic-tier owner with table_management explicitly disabled (403 MODULE_NOT_ENABLED)", async () => {
-    currentUser.value = { id: 7, role: 1, restaurantId: "rest-basic" };
+    currentUser.value = {
+      id: "user-7",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-basic",
+    };
 
     const res = await routes.request(
       "/bulk",
@@ -158,7 +171,12 @@ describe("qr-codes POST /bulk is gated on table_management", () => {
   });
 
   it("allows a default basic-tier owner through (table_management is on by default)", async () => {
-    currentUser.value = { id: 7, role: 1, restaurantId: "rest-basic" };
+    currentUser.value = {
+      id: "user-7",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-basic",
+    };
     qrServiceFns.generateBulkQR.mockResolvedValue({
       batchId: "batch-1",
       count: 1,
@@ -181,7 +199,12 @@ describe("qr-codes POST /bulk is gated on table_management", () => {
 
 describe("qr-codes POST /generate bypasses the table_management gate", () => {
   it("succeeds for a basic-tier owner with table_management explicitly disabled", async () => {
-    currentUser.value = { id: 7, role: 1, restaurantId: "rest-basic" };
+    currentUser.value = {
+      id: "user-7",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-basic",
+    };
     qrServiceFns.generateQR.mockResolvedValue({
       id: "qr-1",
       url: "https://cdn.example.test/qr-1.png",

@@ -1,9 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import routes from "./index";
 import { createFeedbackSchema } from "../schemas/validation";
 
 const mocks = vi.hoisted(() => ({
-  currentUser: { id: 10, role: 1, restaurantId: "restaurant-1" },
+  currentUser: {
+    id: "user-10",
+    username: "owner",
+    role: 1,
+    restaurantId: "restaurant-1",
+  } as AuthUser,
   kvPut: vi.fn(),
   createFeedback: vi.fn(),
   getFeedbackStats: vi.fn(),
@@ -87,7 +93,7 @@ function feedback(overrides: Record<string, unknown> = {}) {
   return {
     id: 5,
     restaurantId: "restaurant-1",
-    userId: 10,
+    userId: "user-10",
     category: "bug_report",
     priority: "high",
     status: "open",
@@ -139,7 +145,12 @@ describe("feedback routes", () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
-    mocks.currentUser = { id: 10, role: 1, restaurantId: "restaurant-1" };
+    mocks.currentUser = {
+      id: "user-10",
+      username: "owner",
+      role: 1,
+      restaurantId: "restaurant-1",
+    };
     mocks.kvPut.mockResolvedValue(undefined);
   });
 
@@ -186,7 +197,7 @@ describe("feedback routes", () => {
     });
     expect(mocks.createFeedback).toHaveBeenCalledWith({
       restaurantId: "restaurant-1",
-      userId: 10,
+      userId: "user-10",
       category: "bug_report",
       priority: "high",
       relatedModule: "orders",
@@ -251,19 +262,24 @@ describe("feedback routes", () => {
       },
     });
     expect(mocks.kvPut).toHaveBeenCalledWith(
-      "feedback:batch-sync:restaurant-1:10:sync%201",
-      expect.stringContaining('"userId":10'),
+      "feedback:batch-sync:restaurant-1:user-10:sync%201",
+      expect.stringContaining('"userId":"user-10"'),
       { expirationTtl: 60 * 60 * 24 * 30 },
     );
     expect(mocks.kvPut).toHaveBeenCalledWith(
-      "feedback:batch-sync:restaurant-1:10:latest",
+      "feedback:batch-sync:restaurant-1:user-10:latest",
       expect.stringContaining('"restaurantId":"restaurant-1"'),
       { expirationTtl: 60 * 60 * 24 * 30 },
     );
   });
 
   it("uses global batch sync scope and timestamp fallback when needed", async () => {
-    mocks.currentUser = { id: 10, role: 0, restaurantId: undefined as any };
+    mocks.currentUser = {
+      id: "user-10",
+      username: "admin",
+      role: 0,
+      restaurantId: undefined as any,
+    };
 
     const response = await routes.fetch(
       jsonRequest("https://test/batch-sync", "POST", { feedback: "not-list" }),
@@ -279,7 +295,7 @@ describe("feedback routes", () => {
       },
     });
     expect(mocks.kvPut).toHaveBeenCalledWith(
-      "feedback:batch-sync:global:10:1780790400000",
+      "feedback:batch-sync:global:user-10:1780790400000",
       expect.stringContaining('"restaurantId":null'),
       expect.anything(),
     );
@@ -332,7 +348,7 @@ describe("feedback routes", () => {
       expect.objectContaining({
         status: "open",
         search: "freeze",
-        userId: 10,
+        userId: "user-10",
       }),
       1,
       20,
@@ -373,7 +389,9 @@ describe("feedback routes", () => {
     );
     expect(missingResponse.status).toBe(500);
 
-    mocks.getFeedbackById.mockResolvedValueOnce(feedback({ userId: 99 }));
+    mocks.getFeedbackById.mockResolvedValueOnce(
+      feedback({ userId: "user-99" }),
+    );
     const forbiddenResponse = await withSilencedRouteError(() =>
       routes.fetch(new Request("https://test/5"), createEnv() as never),
     );
@@ -392,7 +410,11 @@ describe("feedback routes", () => {
       env as never,
     );
     expect(resolvedResponse.status).toBe(200);
-    expect(mocks.updateFeedbackStatus).toHaveBeenCalledWith(5, "resolved", 10);
+    expect(mocks.updateFeedbackStatus).toHaveBeenCalledWith(
+      5,
+      "resolved",
+      "user-10",
+    );
 
     const progressResponse = await routes.fetch(
       jsonRequest("https://test/5/status", "PUT", { status: "in_progress" }),
@@ -420,7 +442,7 @@ describe("feedback routes", () => {
     expect(mocks.updateFeedback).toHaveBeenCalledWith(
       5,
       { subject: "Updated" },
-      10,
+      "user-10",
       false,
     );
 
@@ -429,7 +451,7 @@ describe("feedback routes", () => {
       env as never,
     );
     expect(deleteResponse.status).toBe(200);
-    expect(mocks.deleteFeedback).toHaveBeenCalledWith(5, 10, false);
+    expect(mocks.deleteFeedback).toHaveBeenCalledWith(5, "user-10", false);
   });
 
   it("lets admins patch and delete without owner preloads", async () => {
@@ -447,7 +469,7 @@ describe("feedback routes", () => {
     expect(mocks.updateFeedback).toHaveBeenCalledWith(
       5,
       { subject: "Admin" },
-      10,
+      "user-10",
       true,
     );
 
@@ -456,7 +478,7 @@ describe("feedback routes", () => {
       env as never,
     );
     expect(deleteResponse.status).toBe(200);
-    expect(mocks.deleteFeedback).toHaveBeenCalledWith(5, 10, true);
+    expect(mocks.deleteFeedback).toHaveBeenCalledWith(5, "user-10", true);
   });
 
   it("returns route errors when patch or delete cannot modify feedback", async () => {
@@ -493,7 +515,12 @@ describe("feedback routes", () => {
       env as never,
     );
     expect(ownerResponse.status).toBe(201);
-    expect(mocks.addResponse).toHaveBeenCalledWith(5, 10, "Reply", false);
+    expect(mocks.addResponse).toHaveBeenCalledWith(
+      5,
+      "user-10",
+      "Reply",
+      false,
+    );
 
     mocks.currentUser.role = 0;
     mocks.getFeedbackById.mockResolvedValue(feedback());
@@ -505,7 +532,12 @@ describe("feedback routes", () => {
       env as never,
     );
     expect(adminResponse.status).toBe(201);
-    expect(mocks.addResponse).toHaveBeenLastCalledWith(5, 10, "Internal", true);
+    expect(mocks.addResponse).toHaveBeenLastCalledWith(
+      5,
+      "user-10",
+      "Internal",
+      true,
+    );
   });
 
   it("updates and deletes responses with access rules", async () => {
@@ -521,14 +553,19 @@ describe("feedback routes", () => {
       env as never,
     );
     expect(updateResponse.status).toBe(200);
-    expect(mocks.updateResponse).toHaveBeenCalledWith(11, 10, "Updated", false);
+    expect(mocks.updateResponse).toHaveBeenCalledWith(
+      11,
+      "user-10",
+      "Updated",
+      false,
+    );
 
     const deleteResponse = await routes.fetch(
       new Request("https://test/5/responses/11", { method: "DELETE" }),
       env as never,
     );
     expect(deleteResponse.status).toBe(200);
-    expect(mocks.deleteResponse).toHaveBeenCalledWith(11, 10, false);
+    expect(mocks.deleteResponse).toHaveBeenCalledWith(11, "user-10", false);
   });
 
   it("returns route errors when response mutations miss", async () => {

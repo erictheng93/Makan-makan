@@ -1,9 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import routes from "./index";
 import type { ModuleKey } from "@makanmasak/database";
 
 const currentUser = vi.hoisted(() => ({
-  value: { id: 10, role: 1, restaurantId: "restaurant-1" },
+  value: {
+    id: "user-10",
+    username: "owner",
+    role: 1,
+    restaurantId: "restaurant-1",
+  } as AuthUser,
 }));
 const createPartnership = vi.hoisted(() => vi.fn());
 const listPartnerships = vi.hoisted(() => vi.fn());
@@ -124,7 +130,12 @@ function planBody() {
 
 describe("partnership routes", () => {
   beforeEach(() => {
-    currentUser.value = { id: 10, role: 1, restaurantId: "restaurant-1" };
+    currentUser.value = {
+      id: "user-10",
+      username: "owner",
+      role: 1,
+      restaurantId: "restaurant-1",
+    };
     createPartnership.mockReset();
     listPartnerships.mockReset();
     getPartnership.mockReset();
@@ -185,7 +196,7 @@ describe("partnership routes", () => {
     expect(createPartnership).toHaveBeenCalledWith(
       expect.objectContaining({
         partnerCode: "UNI",
-        createdBy: 10,
+        createdBy: "user-10",
         contractStartDate: new Date(contractStart),
         contractEndDate: new Date(contractEnd),
       }),
@@ -270,7 +281,12 @@ describe("partnership routes", () => {
   });
 
   it("lets an admin list plans across restaurants or filter by an explicit restaurantId", async () => {
-    currentUser.value = { id: 1, role: 0, restaurantId: "restaurant-1" };
+    currentUser.value = {
+      id: "user-1",
+      username: "admin",
+      role: 0,
+      restaurantId: "restaurant-1",
+    };
     listPlans.mockResolvedValue({
       data: [],
       pagination: { page: 1, limit: 20, total: 0 },
@@ -312,7 +328,7 @@ describe("partnership routes", () => {
     });
     expect(createPlan).toHaveBeenCalledWith(
       expect.objectContaining({
-        createdBy: 10,
+        createdBy: "user-10",
         validFrom: new Date(contractStart),
         validTo: new Date(contractEnd),
       }),
@@ -433,7 +449,11 @@ describe("partnership routes", () => {
       env as never,
     );
     expect(approveResponse.status).toBe(200);
-    expect(approveMember).toHaveBeenCalledWith(memberId, 10, new Date(expiry));
+    expect(approveMember).toHaveBeenCalledWith(
+      memberId,
+      "user-10",
+      new Date(expiry),
+    );
 
     const rejectResponse = await routes.fetch(
       new Request(`https://test/members/${memberId}/reject`, {
@@ -489,7 +509,7 @@ describe("partnership routes", () => {
       message: "Usage logged successfully",
     });
     expect(logUsage).toHaveBeenCalledWith(
-      expect.objectContaining({ verifiedByUserId: 10 }),
+      expect.objectContaining({ verifiedByUserId: "user-10" }),
     );
 
     const cancelResponse = await routes.fetch(

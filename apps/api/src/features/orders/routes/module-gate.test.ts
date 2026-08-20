@@ -14,14 +14,17 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 
-const currentUser = vi.hoisted(() => ({
-  value: { id: 42, role: 1, restaurantId: "rest-basic" } as {
-    id: number;
-    role: number;
-    restaurantId: string | number | undefined;
-  },
-}));
+const currentUser = vi.hoisted(() => {
+  const value: AuthUser = {
+    id: "user-42",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-basic",
+  };
+  return { value };
+});
 
 vi.mock("../../../shared/middleware", async (importOriginal) => {
   const actual =
@@ -104,7 +107,12 @@ function batchSyncRequest() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  currentUser.value = { id: 42, role: 1, restaurantId: "rest-basic" };
+  currentUser.value = {
+    id: "user-42",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-basic",
+  };
 });
 
 describe("orders POST /batch-sync is gated on online_ordering", () => {

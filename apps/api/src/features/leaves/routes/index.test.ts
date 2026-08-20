@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import app from "./index";
 import { ApiError } from "../../../shared/utils/api-error";
 
@@ -7,10 +8,11 @@ const OTHER_RESTAURANT_ID = "01972f31-05a2-7b8c-a4f8-000000000002";
 
 const mocks = vi.hoisted(() => ({
   currentUser: {
-    id: 42,
+    id: "user-42",
+    username: "owner",
     role: 1,
     restaurantId: "01972f31-05a2-7b8c-a4f8-000000000001",
-  },
+  } as AuthUser,
   getLeaveTypes: vi.fn(),
   getLeaveType: vi.fn(),
   createLeaveType: vi.fn(),
@@ -121,7 +123,7 @@ function createLeaveTypeBody(overrides: Record<string, unknown> = {}) {
 
 function createLeaveRequestBody(overrides: Record<string, unknown> = {}) {
   return {
-    employeeId: "7",
+    employeeId: "user-7",
     leaveTypeId: 3,
     startDate: "2026-07-01",
     endDate: "2026-07-02",
@@ -145,7 +147,7 @@ async function withSilencedRouteError<T>(
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.currentUser.id = 42;
+  mocks.currentUser.id = "user-42";
   mocks.currentUser.role = 1;
   mocks.currentUser.restaurantId = RESTAURANT_ID;
 });
@@ -189,7 +191,7 @@ describe("leaves routes", () => {
     expect(mocks.createLeaveType).toHaveBeenCalledWith(
       expect.objectContaining({
         restaurantId: RESTAURANT_ID,
-        createdBy: 42,
+        createdBy: "user-42",
       }),
     );
 
@@ -202,7 +204,7 @@ describe("leaves routes", () => {
       3,
       {
         name: "Updated",
-        updatedBy: 42,
+        updatedBy: "user-42",
       },
       RESTAURANT_ID,
     );
@@ -298,7 +300,9 @@ describe("leaves routes", () => {
   it("reads and adjusts leave balances", async () => {
     mocks.getEmployeeLeaveBalances.mockResolvedValue([{ remainingDays: 8 }]);
     mocks.adjustLeaveBalance.mockResolvedValue({ remainingDays: 9 });
-    mocks.getRestaurantLeaveBalances.mockResolvedValue([{ employeeId: "7" }]);
+    mocks.getRestaurantLeaveBalances.mockResolvedValue([
+      { employeeId: "user-7" },
+    ]);
     mocks.accrueLeaveBalances.mockResolvedValue(3);
     const env = createEnv();
 
@@ -316,23 +320,23 @@ describe("leaves routes", () => {
     // A spoofed adjustedBy in the body must lose to the session identity.
     const adjustResponse = await app.fetch(
       jsonRequest("https://test/balances/adjust", "POST", {
-        employeeId: "7",
+        employeeId: "user-7",
         leaveTypeId: 3,
         year: 2026,
         adjustment: 1,
         reason: "Correction",
-        adjustedBy: "999",
+        adjustedBy: "user-999",
       }),
       env as never,
     );
     expect(adjustResponse.status).toBe(200);
     expect(mocks.adjustLeaveBalance).toHaveBeenCalledWith({
-      employeeId: "7",
+      employeeId: "user-7",
       leaveTypeId: 3,
       year: 2026,
       adjustment: 1,
       reason: "Correction",
-      adjustedBy: "42",
+      adjustedBy: "user-42",
       restaurantId: RESTAURANT_ID,
     });
 
@@ -358,7 +362,7 @@ describe("leaves routes", () => {
   });
 
   it("restricts employees to their own balances and requests", async () => {
-    mocks.currentUser.id = 7;
+    mocks.currentUser.id = "user-7";
     mocks.currentUser.role = 3;
     mocks.getLeaveRequests.mockResolvedValue({ items: [], total: 0 });
     mocks.getLeaveRequest.mockResolvedValue({ id: 9, employeeId: 8 });
@@ -380,7 +384,7 @@ describe("leaves routes", () => {
     expect(listResponse.status).toBe(200);
     expect(mocks.getLeaveRequests).toHaveBeenCalledWith(
       expect.objectContaining({
-        employeeId: "7",
+        employeeId: "user-7",
         restaurantId: RESTAURANT_ID,
         page: 2,
         limit: 5,
@@ -401,7 +405,7 @@ describe("leaves routes", () => {
     mocks.rejectLeaveRequest.mockResolvedValue({ id: 9, status: "rejected" });
     mocks.getLeaveRequest.mockResolvedValue({
       id: 9,
-      employeeId: "7",
+      employeeId: "user-7",
       restaurantId: RESTAURANT_ID,
     });
     mocks.cancelLeaveRequest.mockResolvedValue({ id: 9, status: "cancelled" });
@@ -418,7 +422,7 @@ describe("leaves routes", () => {
     );
     expect(createResponse.status).toBe(201);
     expect(mocks.getLeaveBalance).toHaveBeenCalledWith(
-      "7",
+      "user-7",
       3,
       expect.any(Number),
       RESTAURANT_ID,
@@ -426,7 +430,7 @@ describe("leaves routes", () => {
     expect(mocks.createLeaveRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         restaurantId: RESTAURANT_ID,
-        employeeId: "7",
+        employeeId: "user-7",
         totalDays: 1.5,
       }),
     );
@@ -442,7 +446,7 @@ describe("leaves routes", () => {
     expect(approveResponse.status).toBe(200);
     expect(mocks.approveLeaveRequest).toHaveBeenCalledWith(
       9,
-      "42",
+      "user-42",
       "Enjoy",
       RESTAURANT_ID,
     );
@@ -457,14 +461,14 @@ describe("leaves routes", () => {
     expect(rejectResponse.status).toBe(200);
     expect(mocks.rejectLeaveRequest).toHaveBeenCalledWith(
       9,
-      "42",
+      "user-42",
       "Coverage gap",
       RESTAURANT_ID,
     );
 
     const cancelResponse = await app.fetch(
       jsonRequest("https://test/requests/9/cancel", "POST", {
-        userId: "999",
+        userId: "user-999",
         reason: "Changed plans",
       }),
       env as never,
@@ -472,7 +476,7 @@ describe("leaves routes", () => {
     expect(cancelResponse.status).toBe(200);
     expect(mocks.cancelLeaveRequest).toHaveBeenCalledWith(
       9,
-      "42",
+      "user-42",
       "Changed plans",
       RESTAURANT_ID,
     );
@@ -480,7 +484,7 @@ describe("leaves routes", () => {
 
   it("forces self-service leave requests onto the session employee", async () => {
     // Non-manager (role 3) tries to file leave for someone else
-    mocks.currentUser.id = 7;
+    mocks.currentUser.id = "user-7";
     mocks.currentUser.role = 3;
     mocks.getLeaveBalance.mockResolvedValue({ remainingDays: 3 });
     mocks.createLeaveRequest.mockResolvedValue({ id: 9, totalDays: 1.5 });
@@ -497,7 +501,7 @@ describe("leaves routes", () => {
     expect(mocks.createLeaveRequest).toHaveBeenCalledOnce();
     expect(mocks.createLeaveRequest).toHaveBeenCalledWith(
       expect.objectContaining({
-        employeeId: "7",
+        employeeId: "user-7",
         restaurantId: RESTAURANT_ID,
       }),
     );
@@ -555,7 +559,7 @@ describe("leaves routes", () => {
     expect(selfApproveResponse.status).toBe(200);
     expect(mocks.approveLeaveRequest).toHaveBeenCalledWith(
       9,
-      "42",
+      "user-42",
       "Looks fine",
       RESTAURANT_ID,
     );
@@ -569,7 +573,7 @@ describe("leaves routes", () => {
     expect(selfRejectResponse.status).toBe(200);
     expect(mocks.rejectLeaveRequest).toHaveBeenCalledWith(
       9,
-      "42",
+      "user-42",
       "No",
       RESTAURANT_ID,
     );

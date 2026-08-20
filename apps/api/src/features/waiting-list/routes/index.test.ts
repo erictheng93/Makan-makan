@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 
 const auth = vi.hoisted(() => {
   // Admins (role 0) carry no restaurant scope, matching AuthUser.restaurantId
   // being optional in production.
-  const user: { id: number; role: number; restaurantId?: string } = {
-    id: 7,
+  const user: AuthUser = {
+    id: "user-7",
+    username: "owner",
     role: 1,
     restaurantId: "rest-1",
   };
@@ -113,7 +115,12 @@ const entry = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  auth.user = { id: 7, role: 1, restaurantId: "rest-1" };
+  auth.user = {
+    id: "user-7",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-1",
+  };
   auth.customer = undefined;
 
   serviceFns.joinWaitingList.mockResolvedValue(entry);
@@ -253,7 +260,7 @@ describe("waiting list routes", () => {
       limit: 10,
     });
 
-    auth.user = { id: 1, role: 0 };
+    auth.user = { id: "user-1", username: "admin", role: 0 };
     response = await request("/?restaurantId=rest-2");
 
     expect(response.status).toBe(200);
@@ -314,7 +321,7 @@ describe("waiting list routes", () => {
     expect(response.status).toBe(200);
     expect(serviceFns.batchCallNext).toHaveBeenCalledWith("rest-1", 2);
 
-    auth.user = { id: 1, role: 0 };
+    auth.user = { id: "user-1", username: "admin", role: 0 };
     response = await request("/batch-call", "POST", {
       restaurantId: "rest-2",
       count: 3,

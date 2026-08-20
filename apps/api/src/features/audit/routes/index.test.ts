@@ -1,16 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
 
 const mocks = vi.hoisted(() => {
   // Admins have no restaurant scope, so restaurantId is optional here just as
   // it is on the production AuthUser type.
-  const user: {
-    id: number;
-    username: string;
-    role: number;
-    restaurantId?: string;
-  } = {
-    id: 42,
+  const user: AuthUser = {
+    id: "user-42",
     username: "owner",
     role: 1,
     restaurantId: "restaurant-1",
@@ -90,7 +86,7 @@ describe("audit routes", () => {
     vi.clearAllMocks();
     vi.useRealTimers();
     mocks.user = {
-      id: 42,
+      id: "user-42",
       username: "owner",
       role: 1,
       restaurantId: "restaurant-1",
@@ -115,7 +111,7 @@ describe("audit routes", () => {
       expect.stringContaining("INSERT INTO audit_logs"),
     );
     expect(db.bind).toHaveBeenCalledWith(
-      42,
+      "user-42",
       "restaurant-1",
       "ORDER_STATUS_UPDATED",
       "orders",
@@ -171,7 +167,7 @@ describe("audit routes", () => {
 
     expect(response.status).toBe(201);
     expect(db.bind).toHaveBeenCalledWith(
-      42,
+      "user-42",
       "restaurant-1",
       "MENU_ITEM_CREATED",
       "menu_items",
@@ -203,7 +199,7 @@ describe("audit routes", () => {
   it("allows admins to sync global settings actions", async () => {
     vi.setSystemTime(new Date("2026-06-07T13:00:00.000Z"));
     mocks.user = {
-      id: 1,
+      id: "user-1",
       username: "admin",
       role: 0,
       restaurantId: undefined,
@@ -221,7 +217,7 @@ describe("audit routes", () => {
 
     expect(response.status).toBe(201);
     expect(db.bind).toHaveBeenCalledWith(
-      1,
+      "user-1",
       null,
       "SETTING_CHANGED",
       "settings",

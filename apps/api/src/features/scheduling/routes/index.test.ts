@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 
 const auth = vi.hoisted(() => ({
-  user: { id: 42, role: 1, restaurantId: "rest-1" } as {
-    id: number;
-    role: number;
-    restaurantId?: string;
-  },
+  user: {
+    id: "user-42",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-1",
+  } as AuthUser,
 }));
 
 vi.mock("../../../shared/middleware", async () => {
@@ -141,7 +143,12 @@ const scheduleBody = {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.useRealTimers();
-  auth.user = { id: 42, role: 1, restaurantId: "rest-1" };
+  auth.user = {
+    id: "user-42",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-1",
+  };
 
   serviceFns.getShiftTemplates.mockResolvedValue([{ id: 1, name: "Dinner" }]);
   serviceFns.getShiftTemplate.mockResolvedValue({ id: 1, name: "Dinner" });
@@ -179,11 +186,14 @@ beforeEach(() => {
   serviceFns.getEmployeeNames.mockResolvedValue(
     new Map<string | number, string>([[42, "Alice Server"]]),
   );
-  serviceFns.getScheduleById.mockResolvedValue({ id: 10, employeeId: 42 });
+  serviceFns.getScheduleById.mockResolvedValue({
+    id: 10,
+    employeeId: "user-42",
+  });
   serviceFns.createSwapRequest.mockResolvedValue({ id: 20 });
   serviceFns.getSwapRequest.mockResolvedValue({
     id: 20,
-    requesterEmployeeId: "42",
+    requesterEmployeeId: "user-42",
     status: "pending",
   });
   serviceFns.getSwapRequests.mockResolvedValue({
@@ -234,7 +244,7 @@ describe("scheduling routes", () => {
     expect(serviceFns.createShiftTemplate).toHaveBeenCalledWith(
       expect.objectContaining({
         restaurantId: "rest-1",
-        createdBy: "42",
+        createdBy: "user-42",
         name: "Dinner",
         shiftType: "regular",
       }),
@@ -254,7 +264,12 @@ describe("scheduling routes", () => {
   });
 
   it("filters non-manager schedule lists to the authenticated employee", async () => {
-    auth.user = { id: 42, role: 2, restaurantId: "rest-1" };
+    auth.user = {
+      id: "user-42",
+      username: "chef",
+      role: 2,
+      restaurantId: "rest-1",
+    };
 
     const res = await request(
       "/rest-1/schedules?employeeId=99&page=2&limit=10",
@@ -268,7 +283,7 @@ describe("scheduling routes", () => {
     expect(serviceFns.getSchedules).toHaveBeenCalledWith(
       expect.objectContaining({
         restaurantId: "rest-1",
-        employeeId: "42",
+        employeeId: "user-42",
         page: 2,
         limit: 10,
       }),
@@ -276,12 +291,17 @@ describe("scheduling routes", () => {
   });
 
   it("allows managers to create, bulk create, update, and cancel schedules", async () => {
-    auth.user = { id: 7, role: 1, restaurantId: "rest-1" };
+    auth.user = {
+      id: "user-7",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-1",
+    };
 
     let res = await request("/rest-1/schedules", "POST", scheduleBody);
     expect(res.status).toBe(201);
     expect(serviceFns.createSchedule).toHaveBeenCalledWith(
-      expect.objectContaining({ restaurantId: "rest-1", createdBy: "7" }),
+      expect.objectContaining({ restaurantId: "rest-1", createdBy: "user-7" }),
     );
 
     res = await request("/rest-1/schedules/bulk", "POST", {
@@ -292,7 +312,7 @@ describe("scheduling routes", () => {
     });
     expect(res.status).toBe(201);
     expect(serviceFns.bulkCreateSchedules).toHaveBeenCalledWith(
-      expect.objectContaining({ restaurantId: "rest-1", createdBy: "7" }),
+      expect.objectContaining({ restaurantId: "rest-1", createdBy: "user-7" }),
     );
 
     res = await request("/schedules/10", "PUT", {
@@ -305,7 +325,7 @@ describe("scheduling routes", () => {
       {
         status: "confirmed",
         notes: "ready",
-        updatedBy: "7",
+        updatedBy: "user-7",
       },
       "rest-1",
     );
@@ -316,7 +336,12 @@ describe("scheduling routes", () => {
   });
 
   it("prevents employees from reading or clocking another employee schedule", async () => {
-    auth.user = { id: 42, role: 2, restaurantId: "rest-1" };
+    auth.user = {
+      id: "user-42",
+      username: "chef",
+      role: 2,
+      restaurantId: "rest-1",
+    };
     serviceFns.getSchedule.mockResolvedValueOnce({ id: 10, employeeId: 99 });
 
     let res = await request("/schedules/10");
@@ -341,7 +366,12 @@ describe("scheduling routes", () => {
   it("clocks employees in and out with current timestamps", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-10T01:00:00.000Z"));
-    auth.user = { id: 42, role: 2, restaurantId: "rest-1" };
+    auth.user = {
+      id: "user-42",
+      username: "chef",
+      role: 2,
+      restaurantId: "rest-1",
+    };
 
     let res = await request("/schedules/10/clock-in", "POST", {
       scheduleId: 10,
@@ -352,7 +382,7 @@ describe("scheduling routes", () => {
     expect(serviceFns.getScheduleById).toHaveBeenCalledWith(10, "rest-1");
     expect(serviceFns.clockIn).toHaveBeenCalledWith({
       scheduleId: 10,
-      employeeId: "42",
+      employeeId: "user-42",
       clockInTime: new Date("2026-06-10T01:00:00.000Z"),
       notes: "arrived",
       restaurantId: "rest-1",
@@ -366,7 +396,7 @@ describe("scheduling routes", () => {
     expect(res.status).toBe(200);
     expect(serviceFns.clockOut).toHaveBeenCalledWith({
       scheduleId: 10,
-      employeeId: "42",
+      employeeId: "user-42",
       clockOutTime: new Date("2026-06-10T01:00:00.000Z"),
       notes: "done",
       restaurantId: "rest-1",
@@ -427,7 +457,12 @@ describe("scheduling routes", () => {
   });
 
   it("normalizes swap request dates and constrains employee swap list filters", async () => {
-    auth.user = { id: 42, role: 2, restaurantId: "rest-1" };
+    auth.user = {
+      id: "user-42",
+      username: "chef",
+      role: 2,
+      restaurantId: "rest-1",
+    };
 
     let res = await request("/rest-1/swap-requests", "POST", {
       requesterEmployeeId: 42,
@@ -440,7 +475,7 @@ describe("scheduling routes", () => {
     expect(serviceFns.createSwapRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         restaurantId: "rest-1",
-        requesterEmployeeId: "42",
+        requesterEmployeeId: "user-42",
         expiresAt: new Date(1_780_800_000_000),
       }),
     );
@@ -450,13 +485,18 @@ describe("scheduling routes", () => {
     expect(serviceFns.getSwapRequests).toHaveBeenCalledWith(
       expect.objectContaining({
         restaurantId: "rest-1",
-        requesterEmployeeId: "42",
+        requesterEmployeeId: "user-42",
       }),
     );
   });
 
   it("accepts and cancels swap requests as the session employee", async () => {
-    auth.user = { id: 42, role: 2, restaurantId: "rest-1" };
+    auth.user = {
+      id: "user-42",
+      username: "chef",
+      role: 2,
+      restaurantId: "rest-1",
+    };
 
     // Body employeeId is ignored — the session identity is what is recorded.
     let res = await request("/swap-requests/20/accept", "POST", {
@@ -466,7 +506,7 @@ describe("scheduling routes", () => {
     expect(serviceFns.getSwapRequest).toHaveBeenCalledWith(20, "rest-1");
     expect(serviceFns.acceptSwapRequest).toHaveBeenCalledWith(
       20,
-      "42",
+      "user-42",
       "rest-1",
     );
 
@@ -474,13 +514,18 @@ describe("scheduling routes", () => {
     expect(res.status).toBe(200);
     expect(serviceFns.cancelSwapRequest).toHaveBeenCalledWith(
       20,
-      "42",
+      "user-42",
       "rest-1",
     );
   });
 
   it("approves and rejects swap requests as the session manager, ignoring body managerId", async () => {
-    auth.user = { id: 7, role: 1, restaurantId: "rest-1" };
+    auth.user = {
+      id: "user-7",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-1",
+    };
 
     // A spoofed managerId in the body must never be recorded.
     let res = await request("/swap-requests/20/approve", "POST", {
@@ -490,7 +535,7 @@ describe("scheduling routes", () => {
     expect(serviceFns.getSwapRequest).toHaveBeenCalledWith(20, "rest-1");
     expect(serviceFns.approveSwapRequest).toHaveBeenCalledWith(
       20,
-      "7",
+      "user-7",
       "rest-1",
     );
 
@@ -501,14 +546,19 @@ describe("scheduling routes", () => {
     expect(res.status).toBe(200);
     expect(serviceFns.rejectSwapRequest).toHaveBeenCalledWith(
       20,
-      "7",
+      "user-7",
       "coverage unavailable",
       "rest-1",
     );
   });
 
   it("returns 404 for swap request actions outside the caller's restaurant", async () => {
-    auth.user = { id: 7, role: 1, restaurantId: "rest-1" };
+    auth.user = {
+      id: "user-7",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-1",
+    };
     serviceFns.getSwapRequest.mockResolvedValue(null);
 
     const res = await request("/swap-requests/20/approve", "POST", {});
@@ -543,7 +593,7 @@ describe("scheduling routes", () => {
     expect(serviceFns.getConflict).toHaveBeenCalledWith(30, "rest-1");
     expect(serviceFns.resolveConflict).toHaveBeenCalledWith(
       30,
-      "42",
+      "user-42",
       "Adjusted shift",
       "rest-1",
     );
@@ -564,7 +614,12 @@ describe("scheduling routes", () => {
   });
 
   it("binds staff swap request creation to the session employee, ignoring body requesterEmployeeId", async () => {
-    auth.user = { id: 42, role: 2, restaurantId: "rest-1" };
+    auth.user = {
+      id: "user-42",
+      username: "chef",
+      role: 2,
+      restaurantId: "rest-1",
+    };
 
     const res = await request("/rest-1/swap-requests", "POST", {
       requesterEmployeeId: 99,
@@ -578,13 +633,18 @@ describe("scheduling routes", () => {
     expect(serviceFns.createSwapRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         restaurantId: "rest-1",
-        requesterEmployeeId: "42",
+        requesterEmployeeId: "user-42",
       }),
     );
   });
 
   it("records the session employee as requester even when the body names another", async () => {
-    auth.user = { id: 7, role: 1, restaurantId: "rest-1" };
+    auth.user = {
+      id: "user-7",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-1",
+    };
 
     const res = await request("/rest-1/swap-requests", "POST", {
       requesterEmployeeId: 99,
@@ -599,7 +659,7 @@ describe("scheduling routes", () => {
     expect(serviceFns.createSwapRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         restaurantId: "rest-1",
-        requesterEmployeeId: "7",
+        requesterEmployeeId: "user-7",
       }),
     );
   });
@@ -629,7 +689,12 @@ describe("scheduling routes", () => {
   });
 
   it("leaves platform admins unscoped for ID-addressed reads", async () => {
-    auth.user = { id: 1, role: 0, restaurantId: undefined };
+    auth.user = {
+      id: "user-1",
+      username: "admin",
+      role: 0,
+      restaurantId: undefined,
+    };
 
     let res = await request("/templates/5");
     expect(res.status).toBe(200);
@@ -641,7 +706,12 @@ describe("scheduling routes", () => {
   });
 
   it("rejects non-admin users without a restaurant binding", async () => {
-    auth.user = { id: 42, role: 2, restaurantId: undefined };
+    auth.user = {
+      id: "user-42",
+      username: "chef",
+      role: 2,
+      restaurantId: undefined,
+    };
 
     const res = await request("/schedules/10");
     expect(res.status).toBe(403);

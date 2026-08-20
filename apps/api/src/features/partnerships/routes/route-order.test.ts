@@ -16,9 +16,15 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 
 const currentUser = vi.hoisted(() => ({
-  value: { id: 1, role: 0, restaurantId: undefined as string | undefined },
+  value: {
+    id: "user-1",
+    username: "admin",
+    role: 0,
+    restaurantId: undefined as string | undefined,
+  } as AuthUser,
 }));
 
 vi.mock("../../../middleware/auth", () => ({
@@ -70,7 +76,12 @@ const env = { DB: {}, CACHE_KV: {} } as never;
 
 beforeEach(() => {
   vi.clearAllMocks();
-  currentUser.value = { id: 1, role: 0, restaurantId: undefined };
+  currentUser.value = {
+    id: "user-1",
+    username: "admin",
+    role: 0,
+    restaurantId: undefined,
+  };
 });
 
 describe("single-segment literal GET routes are not shadowed by GET /:id", () => {

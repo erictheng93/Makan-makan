@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
 
 const mocks = vi.hoisted(() => ({
   user: {
-    id: 1,
+    id: "user-1",
     username: "admin",
     role: 0,
     restaurantId: undefined as string | undefined,
-  },
+  } as AuthUser,
   usageService: {
     getCurrentUsage: vi.fn(),
     listCycleUsage: vi.fn(),

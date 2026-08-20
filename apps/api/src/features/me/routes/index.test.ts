@@ -1,14 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 
 const authState = vi.hoisted(() => ({
-  user: undefined as
-    | {
-        id: number;
-        username: string;
-        role: number;
-        restaurantId: string | number | null;
-      }
-    | undefined,
+  user: undefined as AuthUser | undefined,
 }));
 
 const subscriptionMocks = vi.hoisted(() => ({
@@ -63,7 +57,7 @@ describe("me routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     authState.user = {
-      id: 42,
+      id: "user-42",
       username: "owner",
       role: 1,
       restaurantId: "restaurant-1",
@@ -86,7 +80,7 @@ describe("me routes", () => {
 
   it("returns empty module and usage access for customer accounts", async () => {
     authState.user = {
-      id: 99,
+      id: "user-99",
       username: "customer",
       role: 5,
       restaurantId: "restaurant-1",
@@ -121,10 +115,10 @@ describe("me routes", () => {
 
   it("returns empty module and usage access when staff has no restaurant", async () => {
     authState.user = {
-      id: 43,
+      id: "user-43",
       username: "floating-manager",
       role: 1,
-      restaurantId: null,
+      restaurantId: undefined,
     };
 
     const modulesResponse = await request("/modules");
@@ -154,10 +148,10 @@ describe("me routes", () => {
 
   it("lets platform admins request modules for a selected restaurant", async () => {
     authState.user = {
-      id: 44,
+      id: "user-44",
       username: "platform-admin",
       role: 0,
-      restaurantId: null,
+      restaurantId: undefined,
     };
     const subscription = {
       restaurantId: "restaurant-2",
@@ -187,10 +181,10 @@ describe("me routes", () => {
 
   it("returns empty module access for platform admins without a selected restaurant", async () => {
     authState.user = {
-      id: 45,
+      id: "user-45",
       username: "platform-admin",
       role: 0,
-      restaurantId: null,
+      restaurantId: undefined,
     };
 
     const response = await request("/modules");

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import {
   marketCheckoutChildOrders,
   marketCheckoutSessions,
@@ -151,12 +152,15 @@ const releaseVoucherReservation = vi.hoisted(() =>
 );
 const tokenCounter = vi.hoisted(() => ({ value: 0 }));
 const originalFetch = globalThis.fetch;
-const adminUser = vi.hoisted(() => ({
-  id: 1,
-  username: "admin",
-  role: 0,
-  restaurantId: "platform",
-}));
+const adminUser = vi.hoisted(
+  () =>
+    ({
+      id: "user-1",
+      username: "admin",
+      role: 0,
+      restaurantId: "platform",
+    }) as AuthUser,
+);
 
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c, next) => {

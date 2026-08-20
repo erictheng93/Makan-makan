@@ -15,14 +15,17 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 
-const currentUser = vi.hoisted(() => ({
-  value: { id: 1, role: 1, restaurantId: "rest-basic" } as {
-    id: number;
-    role: number;
-    restaurantId: string | number | undefined;
-  },
-}));
+const currentUser = vi.hoisted(() => {
+  const value: AuthUser = {
+    id: "user-1",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-basic",
+  };
+  return { value };
+});
 
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c: any, next: any) => {
@@ -108,7 +111,12 @@ const memberId = "33333333-3333-4333-8333-333333333333";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  currentUser.value = { id: 1, role: 1, restaurantId: "rest-basic" };
+  currentUser.value = {
+    id: "user-1",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-basic",
+  };
 });
 
 describe("partnerships plan-read/validate routes are gated on loyalty", () => {

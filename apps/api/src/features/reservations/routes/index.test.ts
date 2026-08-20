@@ -1,8 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import app from "./index";
 
 const currentUser = vi.hoisted(() => ({
-  value: { id: 10, role: 1, restaurantId: "restaurant-1" },
+  value: {
+    id: "user-10",
+    username: "owner",
+    role: 1,
+    restaurantId: "restaurant-1",
+  } as AuthUser,
 }));
 const createReservation = vi.hoisted(() => vi.fn());
 const getReservationByCode = vi.hoisted(() => vi.fn());
@@ -93,7 +99,12 @@ async function withSilencedRouteError<T>(
 
 describe("reservations routes", () => {
   beforeEach(() => {
-    currentUser.value = { id: 10, role: 1, restaurantId: "restaurant-1" };
+    currentUser.value = {
+      id: "user-10",
+      username: "owner",
+      role: 1,
+      restaurantId: "restaurant-1",
+    };
     createReservation.mockReset();
     getReservationByCode.mockReset();
     getAvailableSlots.mockReset();

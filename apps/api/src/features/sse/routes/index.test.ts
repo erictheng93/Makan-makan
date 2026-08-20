@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import { sign } from "hono/jwt";
 import { sign as signJsonWebToken } from "jsonwebtoken";
 import routes from "./index";
@@ -6,11 +7,11 @@ import routes from "./index";
 const authMiddleware = vi.hoisted(() =>
   vi.fn(async (c: { set: (key: string, value: unknown) => void }, next) => {
     c.set("user", {
-      id: 42,
+      id: "user-42",
       username: "owner",
       role: 1,
       restaurantId: "restaurant-1",
-    });
+    } satisfies AuthUser);
     await next();
   }),
 );
@@ -37,7 +38,7 @@ function createEnv(overrides: Record<string, unknown> = {}) {
 async function createToken() {
   return sign(
     {
-      id: 42,
+      id: "user-42",
       username: "owner",
       role: 1,
       restaurantId: "restaurant-1",
@@ -50,7 +51,7 @@ async function createToken() {
 function createJsonWebToken() {
   return signJsonWebToken(
     {
-      id: 42,
+      id: "user-42",
       username: "owner",
       role: 1,
       restaurantId: "restaurant-1",

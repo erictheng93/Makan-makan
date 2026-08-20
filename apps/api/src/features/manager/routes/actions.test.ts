@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 
 const auth = vi.hoisted(() => ({
-  user: { id: 7, username: "owner", role: 1, restaurantId: "rest-1" },
+  user: {
+    id: "user-7",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-1",
+  } as AuthUser,
 }));
 
 vi.mock("../../../middleware/auth", () => ({
@@ -53,7 +59,12 @@ function postAction(body: unknown) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  auth.user = { id: 7, username: "owner", role: 1, restaurantId: "rest-1" };
+  auth.user = {
+    id: "user-7",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-1",
+  };
   service.execute.mockResolvedValue({
     auditLogId: "audit-1",
     resourceId: "123",

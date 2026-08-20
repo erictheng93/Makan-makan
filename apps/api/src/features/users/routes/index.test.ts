@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import routes from "./index";
 
-const currentUser = { id: 7, role: 0, restaurantId: "restaurant-1" };
+const currentUser: AuthUser = {
+  id: "user-7",
+  username: "admin",
+  role: 0,
+  restaurantId: "restaurant-1",
+};
 const serviceMethods = vi.hoisted(() => ({
   getUsers: vi.fn(),
   getUserStats: vi.fn(),
@@ -125,7 +131,7 @@ describe("users routes", () => {
   it("reads and writes notification settings in KV", async () => {
     const env = createEnv();
     await env.CACHE_KV.put(
-      "customer:notification-settings:7",
+      "customer:notification-settings:user-7",
       JSON.stringify({ settings: { email: true } }),
     );
 
@@ -148,7 +154,7 @@ describe("users routes", () => {
     );
     expect(putResponse.status).toBe(200);
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
-      "customer:notification-settings:7",
+      "customer:notification-settings:user-7",
       expect.stringContaining('"sms":false'),
     );
   });
@@ -174,12 +180,12 @@ describe("users routes", () => {
       },
     });
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
-      "customer:favorites-sync:7:device%201",
+      "customer:favorites-sync:user-7:device%201",
       expect.stringContaining('"favorites":[1,2]'),
       { expirationTtl: 60 * 60 * 24 * 30 },
     );
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
-      "customer:favorites-sync:7:latest",
+      "customer:favorites-sync:user-7:latest",
       expect.any(String),
       { expirationTtl: 60 * 60 * 24 * 30 },
     );

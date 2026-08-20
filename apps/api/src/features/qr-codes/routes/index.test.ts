@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
 
 const auth = vi.hoisted(() => ({
-  user: { id: 7, role: 1, restaurantId: "42" } as {
-    id: number;
-    role: number;
-    restaurantId?: string | number | null;
-  },
+  user: {
+    id: "user-7",
+    username: "owner",
+    role: 1,
+    restaurantId: "42",
+  } as AuthUser,
 }));
 
 const qrServiceFns = vi.hoisted(() => ({
@@ -162,7 +164,12 @@ const qrStyle = {
 describe("QR code routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    auth.user = { id: 7, role: 1, restaurantId: "42" };
+    auth.user = {
+      id: "user-7",
+      username: "owner",
+      role: 1,
+      restaurantId: "42",
+    };
   });
 
   it("generates single and bulk QR codes with authenticated user context", async () => {
@@ -195,7 +202,7 @@ describe("QR code routes", () => {
     });
     expect(qrServiceFns.generateQR).toHaveBeenCalledWith(
       expect.objectContaining({ content: "https://makan.test/table/1" }),
-      7,
+      "user-7",
       "42",
     );
     expect(bulkResponse.status).toBe(201);
@@ -206,7 +213,7 @@ describe("QR code routes", () => {
     });
     expect(qrServiceFns.generateBulkQR).toHaveBeenCalledWith(
       expect.objectContaining({ format: "zip", includeMetadata: false }),
-      7,
+      "user-7",
       "42",
     );
     // /bulk is table-QR generation and must carry the same module gate as
@@ -286,7 +293,12 @@ describe("QR code routes", () => {
   });
 
   it("allows admins to request QR statistics for any restaurant or globally", async () => {
-    auth.user = { id: 1, role: 0, restaurantId: null };
+    auth.user = {
+      id: "user-1",
+      username: "admin",
+      role: 0,
+      restaurantId: undefined,
+    };
     qrServiceFns.getStatistics
       .mockResolvedValueOnce({ total: 9 })
       .mockResolvedValueOnce({ total: 20 });
@@ -335,7 +347,7 @@ describe("QR code routes", () => {
       message: "Template created successfully",
     });
     expect(qrServiceFns.createTemplate).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "Modern", createdBy: 7 }),
+      expect.objectContaining({ name: "Modern", createdBy: "user-7" }),
     );
     expect(getResponse.status).toBe(200);
     await expect(getResponse.json()).resolves.toMatchObject({

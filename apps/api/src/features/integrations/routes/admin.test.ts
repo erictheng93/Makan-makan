@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 
 const mocks = vi.hoisted(() => ({
   currentUser: {
     value: {
-      id: 42,
+      id: "user-42",
       username: "owner",
       role: 1,
       restaurantId: "restaurant-1",
-    },
+    } as AuthUser,
   },
   integrationService: {
     connect: vi.fn(),
@@ -138,7 +139,7 @@ describe("integrations admin routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.currentUser.value = {
-      id: 42,
+      id: "user-42",
       username: "owner",
       role: 1,
       restaurantId: "restaurant-1",
@@ -214,7 +215,7 @@ describe("integrations admin routes", () => {
 
   it("allows admins to access any restaurant's integrations", async () => {
     mocks.currentUser.value = {
-      id: 1,
+      id: "user-1",
       username: "admin",
       role: 0,
       restaurantId: "platform",

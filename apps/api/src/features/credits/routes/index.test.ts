@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
 
 const mocks = vi.hoisted(() => ({
@@ -21,11 +22,11 @@ const mocks = vi.hoisted(() => ({
   },
   webhookServiceCtor: vi.fn(),
   user: {
-    id: 1,
+    id: "user-1",
     username: "admin",
     role: 0,
     restaurantId: "restaurant-1",
-  },
+  } as AuthUser,
 }));
 
 vi.mock("../../../middleware/auth", () => ({
@@ -126,7 +127,7 @@ describe("credits routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.user = {
-      id: 1,
+      id: "user-1",
       username: "admin",
       role: 0,
       restaurantId: "restaurant-1",

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import { BackupController } from "./BackupController";
 
 const uuid = "550e8400-e29b-41d4-a716-446655440000";
@@ -8,9 +9,9 @@ function createContext(options: {
   body?: unknown;
   params?: Record<string, string>;
   query?: Record<string, string>;
-  user?: { id: number; role: number; restaurantId?: string };
+  user?: AuthUser;
 } = {}) {
-  const user = options.user ?? { id: 7, role: 1, restaurantId };
+  const user = options.user ?? { id: "user-7", username: "owner", role: 1, restaurantId };
   const req = {
     json: vi.fn(async () => options.body),
     param: vi.fn((key: string) => options.params?.[key]),
@@ -124,7 +125,7 @@ describe("BackupController", () => {
       expect.anything(),
       restaurantId,
     );
-    expect(backupService.createBackup).toHaveBeenCalledWith(body, "7");
+    expect(backupService.createBackup).toHaveBeenCalledWith(body, "user-7");
 
     validationService.validateCreateBackupRequest.mockRejectedValueOnce(
       new Error("invalid request"),
@@ -228,7 +229,7 @@ describe("BackupController", () => {
     });
     expect(backupService.restoreFromBackup).toHaveBeenCalledWith(
       { restaurant_id: restaurantId, backup_id: uuid },
-      "7",
+      "user-7",
     );
 
     backupService.restoreFromBackup.mockResolvedValueOnce({
@@ -262,7 +263,7 @@ describe("BackupController", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(backupService.deleteBackup).toHaveBeenCalledWith(uuid, "7");
+    expect(backupService.deleteBackup).toHaveBeenCalledWith(uuid, "user-7");
 
     backupService.getBackupById.mockResolvedValueOnce(null);
     response = await controller.deleteBackup(
@@ -295,7 +296,7 @@ describe("BackupController", () => {
     );
     expect(configService.createOrUpdateConfiguration).toHaveBeenCalledWith(
       config,
-      "7",
+      "user-7",
     );
 
     validationService.isValidUUID.mockReturnValueOnce(false);
@@ -307,19 +308,19 @@ describe("BackupController", () => {
 
   it("returns system health only for admins and maps service failures", async () => {
     let response = await controller.getSystemHealth(
-      createContext({ user: { id: 7, role: 1, restaurantId } }) as never,
+      createContext({ user: { id: "user-7", username: "owner", role: 1, restaurantId } }) as never,
     );
     expect(response.status).toBe(403);
 
     response = await controller.getSystemHealth(
-      createContext({ user: { id: 1, role: 0 } }) as never,
+      createContext({ user: { id: "user-1", username: "admin", role: 0 } }) as never,
     );
     expect(response.status).toBe(200);
     expect(backupService.getSystemHealth).toHaveBeenCalled();
 
     backupService.getSystemHealth.mockRejectedValueOnce(new Error("down"));
     response = await controller.getSystemHealth(
-      createContext({ user: { id: 1, role: 0 } }) as never,
+      createContext({ user: { id: "user-1", username: "admin", role: 0 } }) as never,
     );
     expect(response.status).toBe(500);
   });
@@ -365,13 +366,13 @@ describe("BackupController", () => {
 
     expect(response.status).toBe(200);
     expect(backupService.getAlertById).toHaveBeenCalledWith("alert-1");
-    expect(backupService.acknowledgeAlert).toHaveBeenCalledWith("alert-1", "7");
+    expect(backupService.acknowledgeAlert).toHaveBeenCalledWith("alert-1", "user-7");
 
     response = await controller.resolveAlert(
       createContext({ params: { id: "alert-1" } }) as never,
     );
     expect(response.status).toBe(200);
-    expect(backupService.resolveAlert).toHaveBeenCalledWith("alert-1", "7");
+    expect(backupService.resolveAlert).toHaveBeenCalledWith("alert-1", "user-7");
 
     backupService.getAlertById.mockResolvedValueOnce(null);
     response = await controller.acknowledgeAlert(

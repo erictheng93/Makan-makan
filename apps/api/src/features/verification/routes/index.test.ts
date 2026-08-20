@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import routes from "./index";
 import { ApiError } from "../../../shared/utils/api-error";
 
@@ -28,7 +29,12 @@ const verificationService = vi.hoisted(() =>
     return serviceMethods;
   }),
 );
-const testUser = { id: 42, email: "customer@example.test", role: 5 };
+const testUser: AuthUser = {
+  id: "user-42",
+  username: "customer",
+  email: "customer@example.test",
+  role: 5,
+};
 
 vi.mock("@makanmasak/database", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@makanmasak/database")>()),
@@ -198,7 +204,7 @@ describe("verification routes", () => {
 
     expect(response.status).toBe(200);
     expect(serviceMethods.sendEmailVerification).toHaveBeenCalledWith({
-      userId: 42,
+      userId: "user-42",
       email: "customer@example.test",
       ipAddress: "203.0.113.11",
     });
@@ -251,7 +257,7 @@ describe("verification routes", () => {
 
     expect(response.status).toBe(200);
     expect(serviceMethods.sendPhoneVerification).toHaveBeenCalledWith({
-      userId: 42,
+      userId: "user-42",
       phone: "+60123456789",
       ipAddress: "unknown",
     });
@@ -292,7 +298,7 @@ describe("verification routes", () => {
 
     expect(response.status).toBe(400);
     expect(serviceMethods.verifyPhone).toHaveBeenCalledWith({
-      userId: 42,
+      userId: "user-42",
       phone: "+60123456789",
       otpCode: "123456",
       ipAddress: "198.51.100.30",

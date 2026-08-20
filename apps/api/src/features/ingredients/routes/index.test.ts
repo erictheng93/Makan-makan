@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 
 const authState = vi.hoisted(() => ({
-  user: { id: 1, role: 1, restaurantId: "rest-1" } as {
-    id: number;
-    role: number;
-    restaurantId: string | null;
-  },
+  user: {
+    id: "user-1",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-1",
+  } as AuthUser,
 }));
 
 vi.mock("../../../middleware/auth", async () => {
@@ -139,7 +141,12 @@ function ingredientBody(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
 
-  authState.user = { id: 1, role: 1, restaurantId: "rest-1" };
+  authState.user = {
+    id: "user-1",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-1",
+  };
 
   ingredientFns.list.mockResolvedValue({
     items: [ingredient],
@@ -172,7 +179,12 @@ beforeEach(() => {
 
 describe("ingredients restaurant ownership (bug #7)", () => {
   it("blocks a role-1 owner from another restaurant's ingredients", async () => {
-    authState.user = { id: 2, role: 1, restaurantId: "rest-1" };
+    authState.user = {
+      id: "user-2",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-1",
+    };
 
     const readResponse = await request("/rest-2");
     expect(readResponse.status).toBe(403);
@@ -188,7 +200,12 @@ describe("ingredients restaurant ownership (bug #7)", () => {
   });
 
   it("allows a role-1 owner to access their own restaurant", async () => {
-    authState.user = { id: 2, role: 1, restaurantId: "rest-1" };
+    authState.user = {
+      id: "user-2",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-1",
+    };
 
     const response = await request("/rest-1");
     expect(response.status).toBe(200);
@@ -199,7 +216,12 @@ describe("ingredients restaurant ownership (bug #7)", () => {
   });
 
   it("lets an admin (role 0) access any restaurant", async () => {
-    authState.user = { id: 1, role: 0, restaurantId: null };
+    authState.user = {
+      id: "user-1",
+      username: "admin",
+      role: 0,
+      restaurantId: undefined,
+    };
 
     const response = await request("/rest-99");
     expect(response.status).toBe(200);

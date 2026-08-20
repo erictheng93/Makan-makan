@@ -1,20 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import {
   createSelectFixtureDb,
   type SelectFixtures,
 } from "@makanmasak/database/testing";
 
 const auth = vi.hoisted(() => ({
-  user: undefined as
-    | undefined
-    | { id: number; role: number; restaurantId?: string | number | null },
+  user: undefined as undefined | AuthUser,
 }));
 
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c: any, next: any) => {
     c.set(
       "user",
-      auth.user ?? { id: 7, role: 0, restaurantId: "S-20250124-001" },
+      auth.user ?? {
+        id: "user-7",
+        username: "admin",
+        role: 0,
+        restaurantId: "S-20250124-001",
+      },
     );
     await next();
   }),
@@ -228,7 +232,12 @@ beforeEach(() => {
 
 describe("system routes", () => {
   it("submits strict error reports with authenticated user context", async () => {
-    auth.user = { id: 42, role: 1, restaurantId: "S-20250124-001" };
+    auth.user = {
+      id: "user-42",
+      username: "owner",
+      role: 1,
+      restaurantId: "S-20250124-001",
+    };
 
     const { res } = request("/error-report", "POST", {
       errors: [
@@ -255,14 +264,19 @@ describe("system routes", () => {
           }),
         ],
       },
-      42,
+      "user-42",
       "S-20250124-001",
       "vitest",
     );
   });
 
   it("submits strict error reports without a restaurant scope", async () => {
-    auth.user = { id: 43, role: 0, restaurantId: null };
+    auth.user = {
+      id: "user-43",
+      username: "admin",
+      role: 0,
+      restaurantId: undefined,
+    };
 
     const { res } = request("/error-report", "POST", {
       errors: [
@@ -286,14 +300,19 @@ describe("system routes", () => {
           }),
         ],
       },
-      43,
+      "user-43",
       null,
       "vitest",
     );
   });
 
   it("normalizes loose browser error telemetry", async () => {
-    auth.user = { id: 9, role: 2, restaurantId: null };
+    auth.user = {
+      id: "user-9",
+      username: "chef",
+      role: 2,
+      restaurantId: undefined,
+    };
 
     const { res } = request("/errors", "POST", {
       category: "authentication",
@@ -322,14 +341,19 @@ describe("system routes", () => {
           }),
         ],
       },
-      9,
+      "user-9",
       null,
       "vitest",
     );
   });
 
   it("normalizes mixed loose browser error arrays", async () => {
-    auth.user = { id: 10, role: 5, restaurantId: 77 };
+    auth.user = {
+      id: "user-10",
+      username: "customer",
+      role: 5,
+      restaurantId: 77,
+    };
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-02-03T04:05:06.000Z"));
 
@@ -395,7 +419,7 @@ describe("system routes", () => {
           }),
         ],
       },
-      10,
+      "user-10",
       "77",
       "vitest",
     );
@@ -404,7 +428,12 @@ describe("system routes", () => {
   });
 
   it("stores performance telemetry in scoped KV records", async () => {
-    auth.user = { id: 5, role: 1, restaurantId: "S-20250124-002" };
+    auth.user = {
+      id: "user-5",
+      username: "owner",
+      role: 1,
+      restaurantId: "S-20250124-002",
+    };
 
     const { res, kv } = request("/performance", "POST", {
       reportId: "perf 1",
@@ -421,19 +450,24 @@ describe("system routes", () => {
       },
     });
     expect(kv.put).toHaveBeenCalledWith(
-      "system:performance:S-20250124-002:5:perf%201",
+      "system:performance:S-20250124-002:user-5:perf%201",
       expect.stringContaining('"lcp":123'),
       { expirationTtl: 60 * 60 * 24 * 30 },
     );
     expect(kv.put).toHaveBeenCalledWith(
-      "system:performance:S-20250124-002:5:latest",
+      "system:performance:S-20250124-002:user-5:latest",
       expect.any(String),
       { expirationTtl: 60 * 60 * 24 * 30 },
     );
   });
 
   it("stores global performance telemetry using alternate report ids", async () => {
-    auth.user = { id: 6, role: 0, restaurantId: null };
+    auth.user = {
+      id: "user-6",
+      username: "admin",
+      role: 0,
+      restaurantId: undefined,
+    };
 
     const { res, kv } = request("/performance", "POST", {
       sync_id: "sync/42",
@@ -450,12 +484,12 @@ describe("system routes", () => {
       },
     });
     expect(kv.put).toHaveBeenCalledWith(
-      "system:performance:global:6:sync%2F42",
+      "system:performance:global:user-6:sync%2F42",
       expect.stringContaining('"duration":42'),
       { expirationTtl: 60 * 60 * 24 * 30 },
     );
     expect(kv.put).toHaveBeenCalledWith(
-      "system:performance:global:6:latest",
+      "system:performance:global:user-6:latest",
       expect.any(String),
       { expirationTtl: 60 * 60 * 24 * 30 },
     );
@@ -698,7 +732,12 @@ describe("system routes", () => {
   });
 
   it("scopes error stats for owners and cleans reports for admins", async () => {
-    auth.user = { id: 7, role: 1, restaurantId: "S-20250124-003" };
+    auth.user = {
+      id: "user-7",
+      username: "owner",
+      role: 1,
+      restaurantId: "S-20250124-003",
+    };
 
     let response = await request(
       "/error-stats?restaurantId=S-20250124-004&days=14",
@@ -706,7 +745,7 @@ describe("system routes", () => {
     expect(response.status).toBe(200);
     expect(serviceFns.getErrorStats).toHaveBeenCalledWith("S-20250124-003");
 
-    auth.user = { id: 1, role: 0 };
+    auth.user = { id: "user-1", username: "admin", role: 0 };
     response = await request("/error-stats?restaurantId=S-20250124-004").res;
     expect(response.status).toBe(200);
     expect(serviceFns.getErrorStats).toHaveBeenCalledWith("S-20250124-004");
@@ -717,7 +756,12 @@ describe("system routes", () => {
   });
 
   it("passes undefined restaurant scope for owners without a restaurant", async () => {
-    auth.user = { id: 8, role: 1, restaurantId: null };
+    auth.user = {
+      id: "user-8",
+      username: "owner",
+      role: 1,
+      restaurantId: undefined,
+    };
 
     const response = await request("/error-stats").res;
 
@@ -726,7 +770,7 @@ describe("system routes", () => {
   });
 
   it("uses default cleanup age when query is omitted", async () => {
-    auth.user = { id: 1, role: 0 };
+    auth.user = { id: "user-1", username: "admin", role: 0 };
 
     const response = await request("/error-reports/cleanup", "DELETE").res;
 

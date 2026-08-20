@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import { createAuthRoutes } from "./index";
 import { ApiError } from "../../../shared/utils/api-error";
 
@@ -6,16 +7,10 @@ vi.mock("../../../middleware/guestAuth", () => ({
   generateGuestToken: vi.fn(() => "guest-token-1"),
 }));
 
-type TestUser = {
-  id: number;
-  username?: string;
-  role: number;
-  restaurantId?: string | number | null;
-};
-
-const currentUser: { value: TestUser } = {
+const currentUser: { value: AuthUser } = {
   value: {
-    id: 7,
+    id: "user-7",
+    username: "admin",
     role: 0,
     restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
   },
@@ -130,7 +125,7 @@ function request(
 }
 
 const user = {
-  id: 7,
+  id: "user-7",
   username: "owner",
   fullName: "Owner User",
   role: 1,
@@ -158,7 +153,8 @@ function staffBody(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   currentUser.value = {
-    id: 7,
+    id: "user-7",
+    username: "admin",
     role: 0,
     restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
   };
@@ -283,7 +279,7 @@ describe("authentication routes", () => {
     expect(response.status).toBe(201);
     expect(service.register).toHaveBeenCalledWith(
       expect.objectContaining({ username: "chef01", role: 2 }),
-      7,
+      "user-7",
     );
 
     service.register.mockResolvedValueOnce({
@@ -302,7 +298,8 @@ describe("authentication routes", () => {
 
   it("derives owner-created staff restaurant id from the owner token", async () => {
     currentUser.value = {
-      id: 9,
+      id: "user-9",
+      username: "owner",
       role: 1,
       restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
     };
@@ -321,13 +318,14 @@ describe("authentication routes", () => {
         role: 2,
         restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
       }),
-      9,
+      "user-9",
     );
   });
 
   it("creates owner staff in the owner restaurant when body omits restaurant id", async () => {
     currentUser.value = {
-      id: 9,
+      id: "user-9",
+      username: "owner",
       role: 1,
       restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
     };
@@ -343,12 +341,17 @@ describe("authentication routes", () => {
       expect.objectContaining({
         restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31a1",
       }),
-      9,
+      "user-9",
     );
   });
 
   it("does not create owner staff without an owner restaurant id", async () => {
-    currentUser.value = { id: 9, role: 1, restaurantId: null };
+    currentUser.value = {
+      id: "user-9",
+      username: "owner",
+      role: 1,
+      restaurantId: undefined,
+    };
 
     const response = await request(
       "/register-staff",
@@ -372,7 +375,12 @@ describe("authentication routes", () => {
   // administer an account that belongs to no restaurant (#67). The requirement
   // therefore follows the role being created, not the creator.
   it("does not let an admin create restaurant-scoped staff with no restaurant", async () => {
-    currentUser.value = { id: 7, role: 0, restaurantId: null };
+    currentUser.value = {
+      id: "user-7",
+      username: "admin",
+      role: 0,
+      restaurantId: undefined,
+    };
 
     const response = await request(
       "/register-staff",
@@ -392,7 +400,12 @@ describe("authentication routes", () => {
   });
 
   it("lets an admin create restaurant-scoped staff for a named restaurant", async () => {
-    currentUser.value = { id: 7, role: 0, restaurantId: null };
+    currentUser.value = {
+      id: "user-7",
+      username: "admin",
+      role: 0,
+      restaurantId: undefined,
+    };
 
     const response = await request(
       "/register-staff",
@@ -409,12 +422,17 @@ describe("authentication routes", () => {
         role: 4,
         restaurantId: "019fa136-cfe3-709f-a2ab-f8a3ebcd31ff",
       }),
-      7,
+      "user-7",
     );
   });
 
   it("keeps a platform admin unbound to any restaurant", async () => {
-    currentUser.value = { id: 7, role: 0, restaurantId: null };
+    currentUser.value = {
+      id: "user-7",
+      username: "admin",
+      role: 0,
+      restaurantId: undefined,
+    };
 
     const response = await request(
       "/register-staff",
@@ -428,18 +446,18 @@ describe("authentication routes", () => {
     expect(response.status).toBe(201);
     expect(service.register).toHaveBeenCalledWith(
       expect.objectContaining({ role: 0, restaurantId: undefined }),
-      7,
+      "user-7",
     );
   });
 
   it("enforces role constraints for staff registration", async () => {
-    currentUser.value = { id: 8, role: 2 };
+    currentUser.value = { id: "user-8", username: "chef", role: 2 };
 
     let response = await request("/register-staff", "POST", staffBody()).res;
 
     expect(response.status).toBe(403);
 
-    currentUser.value = { id: 9, role: 1 };
+    currentUser.value = { id: "user-9", username: "owner", role: 1 };
     response = await request("/register-staff", "POST", staffBody({ role: 1 }))
       .res;
 
@@ -479,7 +497,7 @@ describe("authentication routes", () => {
       expect.anything(),
       "access-token-1",
     );
-    expect(service.logout).toHaveBeenCalledWith(7, "access-token-1");
+    expect(service.logout).toHaveBeenCalledWith("user-7", "access-token-1");
 
     service.logout.mockResolvedValueOnce(false);
     response = await request("/logout", "POST").res;
@@ -489,13 +507,13 @@ describe("authentication routes", () => {
 
   it("returns the auth middleware user for the current user endpoint", async () => {
     currentUser.value = {
-      id: 7,
+      id: "user-7",
       username: "owner",
       role: 1,
       restaurantId: "S-20250124-001",
     };
     service.getUserProfile.mockResolvedValueOnce({
-      id: 7,
+      id: "user-7",
       username: "owner",
       fullName: "Owner User",
       email: "owner@example.test",
@@ -516,7 +534,7 @@ describe("authentication routes", () => {
     expect(body).toMatchObject({
       success: true,
       data: {
-        id: 7,
+        id: "user-7",
         username: "owner",
         fullName: "Owner User",
         email: "owner@example.test",
@@ -526,7 +544,7 @@ describe("authentication routes", () => {
     });
     expect(body.data).not.toHaveProperty("sessions");
     expect(service.validateToken).not.toHaveBeenCalled();
-    expect(service.getUserProfile).toHaveBeenCalledWith("7");
+    expect(service.getUserProfile).toHaveBeenCalledWith("user-7");
 
     response = await request("/me", "GET", undefined, {
       Authorization: "",
@@ -536,31 +554,31 @@ describe("authentication routes", () => {
   });
 
   it("gets and updates profiles only for self or admins", async () => {
-    currentUser.value = { id: 7, role: 1 };
+    currentUser.value = { id: "user-7", username: "owner", role: 1 };
 
-    let response = await request("/profile/7").res;
+    let response = await request("/profile/user-7").res;
 
     expect(response.status).toBe(200);
-    expect(service.getUserProfile).toHaveBeenCalledWith("7");
+    expect(service.getUserProfile).toHaveBeenCalledWith("user-7");
 
-    response = await request("/profile/8").res;
+    response = await request("/profile/user-8").res;
     expect(response.status).toBe(403);
 
     service.getUserProfile.mockResolvedValueOnce(null);
-    currentUser.value = { id: 1, role: 0 };
-    response = await request("/profile/8").res;
+    currentUser.value = { id: "user-1", username: "admin", role: 0 };
+    response = await request("/profile/user-8").res;
     expect(response.status).toBe(404);
 
-    response = await request("/profile/8", "PUT", {
+    response = await request("/profile/user-8", "PUT", {
       fullName: "Updated User",
     }).res;
     expect(response.status).toBe(200);
-    expect(service.updateUserProfile).toHaveBeenCalledWith("8", {
+    expect(service.updateUserProfile).toHaveBeenCalledWith("user-8", {
       fullName: "Updated User",
     });
 
     service.updateUserProfile.mockResolvedValueOnce(null);
-    response = await request("/profile/8", "PUT", {
+    response = await request("/profile/user-8", "PUT", {
       fullName: "Updated User",
     }).res;
     expect(response.status).toBe(400);
@@ -577,7 +595,7 @@ describe("authentication routes", () => {
 
     expect(response.status).toBe(200);
     expect(service.changePassword).toHaveBeenCalledWith(
-      7,
+      "user-7",
       "OldSecret123!",
       "NewSecret123!",
     );
@@ -602,7 +620,10 @@ describe("authentication routes", () => {
 
     response = await request("/sessions/session-1", "DELETE").res;
     expect(response.status).toBe(200);
-    expect(service.terminateSession).toHaveBeenCalledWith(7, "session-1");
+    expect(service.terminateSession).toHaveBeenCalledWith(
+      "user-7",
+      "session-1",
+    );
 
     service.terminateSession.mockResolvedValueOnce(false);
     response = await request("/sessions/session-1", "DELETE").res;

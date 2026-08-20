@@ -17,15 +17,18 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 
 // Mutable current user injected by the mocked auth middleware.
-const currentUser = vi.hoisted(() => ({
-  value: { id: 1, role: 1, restaurantId: "rest-basic" } as {
-    id: number;
-    role: number;
-    restaurantId: string | number | undefined;
-  },
-}));
+const currentUser = vi.hoisted(() => {
+  const value: AuthUser = {
+    id: "user-1",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-basic",
+  };
+  return { value };
+});
 
 // Spy so the public-route test can prove authMiddleware (and therefore the
 // moduleGate registered right after it) never ran.
@@ -156,12 +159,22 @@ function req(
 beforeEach(() => {
   vi.clearAllMocks();
   authMiddlewareCalls.count = 0;
-  currentUser.value = { id: 1, role: 1, restaurantId: "rest-basic" };
+  currentUser.value = {
+    id: "user-1",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-basic",
+  };
 });
 
 describe("service-bookings staff routes are gated on the reservations module", () => {
   it("denies a basic-tier owner with 403 MODULE_NOT_ENABLED", async () => {
-    currentUser.value = { id: 1, role: 1, restaurantId: "rest-basic" };
+    currentUser.value = {
+      id: "user-1",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-basic",
+    };
 
     const res = await req(
       "/",
@@ -182,7 +195,12 @@ describe("service-bookings staff routes are gated on the reservations module", (
   });
 
   it("allows a pro-tier owner through to the staff route", async () => {
-    currentUser.value = { id: 1, role: 1, restaurantId: "rest-pro" };
+    currentUser.value = {
+      id: "user-1",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-pro",
+    };
     listByRestaurant.mockResolvedValue([{ id: "bk-1" }]);
 
     const res = await req("/", "GET", envWithSubscription("rest-pro", "pro"));
@@ -195,7 +213,12 @@ describe("service-bookings staff routes are gated on the reservations module", (
   });
 
   it("allows an enterprise-tier owner through to the staff route", async () => {
-    currentUser.value = { id: 1, role: 1, restaurantId: "rest-ent" };
+    currentUser.value = {
+      id: "user-1",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-ent",
+    };
     listByRestaurant.mockResolvedValue([{ id: "bk-1" }]);
 
     const res = await req(

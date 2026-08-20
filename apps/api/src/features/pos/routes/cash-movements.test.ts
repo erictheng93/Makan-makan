@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
 
 const mocks = vi.hoisted(() => ({
   user: {
-    id: 10,
+    id: "user-10",
     username: "cashier",
     role: 4,
     restaurantId: "restaurant-1",
-  },
+  } as AuthUser,
   cashMovementService: {
     approveCashMovement: vi.fn(),
     getCashCount: vi.fn(),
@@ -94,7 +95,7 @@ describe("POS cash movement routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.user = {
-      id: 10,
+      id: "user-10",
       username: "cashier",
       role: 4,
       restaurantId: "restaurant-1",
@@ -137,7 +138,7 @@ describe("POS cash movement routes", () => {
     expect(mocks.cashMovementService.processCashMovement).toHaveBeenCalledWith(
       shiftId,
       payload,
-      10,
+      "user-10",
     );
     expect(body.success).toBe(true);
   });
@@ -253,7 +254,7 @@ describe("POS cash movement routes", () => {
     expect(response.status).toBe(200);
     expect(mocks.cashMovementService.approveCashMovement).toHaveBeenCalledWith(
       movementId,
-      10,
+      "user-10",
     );
     expect(body.success).toBe(true);
 
@@ -267,7 +268,7 @@ describe("POS cash movement routes", () => {
     expect(response.status).toBe(200);
     expect(mocks.cashMovementService.rejectCashMovement).toHaveBeenCalledWith(
       movementId,
-      10,
+      "user-10",
       "duplicate",
     );
     expect(body.success).toBe(true);

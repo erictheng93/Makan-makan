@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
 
 const mocks = vi.hoisted(() => ({
   user: {
-    id: 10,
+    id: "user-10",
     username: "owner",
     role: 1,
     restaurantId: "restaurant-1",
-  },
+  } as AuthUser,
   refundService: {
     approveRefund: vi.fn(),
     cancelRefund: vi.fn(),
@@ -108,7 +109,7 @@ describe("POS refund routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.user = {
-      id: 10,
+      id: "user-10",
       username: "owner",
       role: 1,
       restaurantId: "restaurant-1",
@@ -160,7 +161,7 @@ describe("POS refund routes", () => {
     expect(mocks.refundService.processRefund).toHaveBeenCalledWith(
       payload,
       registerId,
-      10,
+      "user-10",
       shiftId,
     );
     expect(mocks.resolveOrderIdentity).toHaveBeenCalledWith(
@@ -201,7 +202,7 @@ describe("POS refund routes", () => {
     expect(mocks.refundService.processRefund).toHaveBeenCalledWith(
       expect.objectContaining({ originalOrderId: 101 }),
       registerId,
-      10,
+      "user-10",
       undefined,
     );
   });
@@ -323,7 +324,7 @@ describe("POS refund routes", () => {
     expect(response.status).toBe(200);
     expect(mocks.refundService.approveRefund).toHaveBeenCalledWith(
       refundId,
-      10,
+      "user-10",
     );
     expect(body.success).toBe(true);
 
@@ -336,7 +337,7 @@ describe("POS refund routes", () => {
     expect(response.status).toBe(200);
     expect(mocks.refundService.rejectRefund).toHaveBeenCalledWith(
       refundId,
-      10,
+      "user-10",
       "not eligible",
     );
     expect(body.success).toBe(true);
@@ -350,7 +351,7 @@ describe("POS refund routes", () => {
     expect(response.status).toBe(200);
     expect(mocks.refundService.cancelRefund).toHaveBeenCalledWith(
       refundId,
-      10,
+      "user-10",
       "duplicate",
     );
     expect(body.success).toBe(true);

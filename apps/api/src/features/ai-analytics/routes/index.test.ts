@@ -1,8 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import routes from "./index";
 
 const currentUser = vi.hoisted(() => ({
-  value: { id: 42, username: "owner", role: 1, restaurantId: "restaurant-1" },
+  value: {
+    id: "user-42",
+    username: "owner",
+    role: 1,
+    restaurantId: "restaurant-1",
+  } as AuthUser,
 }));
 const serviceMethods = vi.hoisted(() => ({
   getConfig: vi.fn(),
@@ -73,7 +79,7 @@ async function withSilencedRouteError<T>(
 describe("ai analytics routes", () => {
   beforeEach(() => {
     currentUser.value = {
-      id: 42,
+      id: "user-42",
       username: "owner",
       role: 1,
       restaurantId: "restaurant-1",
@@ -139,7 +145,7 @@ describe("ai analytics routes", () => {
 
   it("allows admins to read AI configuration", async () => {
     currentUser.value = {
-      id: 1,
+      id: "user-1",
       username: "admin",
       role: 0,
       restaurantId: "platform",
@@ -183,7 +189,7 @@ describe("ai analytics routes", () => {
 
   it("rejects protected AI configuration access for non-owner roles", async () => {
     currentUser.value = {
-      id: 42,
+      id: "user-42",
       username: "chef",
       role: 2,
       restaurantId: "restaurant-1",
@@ -395,7 +401,7 @@ describe("ai analytics routes", () => {
 
   it("rejects AI report generation for non-owner roles", async () => {
     currentUser.value = {
-      id: 42,
+      id: "user-42",
       username: "chef",
       role: 2,
       restaurantId: "restaurant-1",

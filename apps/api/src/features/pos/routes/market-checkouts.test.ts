@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 
 const auth = vi.hoisted(() => ({
-  user: { id: 42, role: 4, restaurantId: "rest-1" },
+  user: {
+    id: "user-42",
+    username: "cashier",
+    role: 4,
+    restaurantId: "rest-1",
+  } as AuthUser,
 }));
 
 vi.mock("../../../middleware/auth", () => ({
@@ -60,7 +66,12 @@ function postPayment(
 
 beforeEach(() => {
   vi.clearAllMocks();
-  auth.user = { id: 42, role: 4, restaurantId: "rest-1" };
+  auth.user = {
+    id: "user-42",
+    username: "cashier",
+    role: 4,
+    restaurantId: "rest-1",
+  };
   service.process.mockResolvedValue({
     checkoutId: "checkout-1",
     status: "paid",
@@ -90,7 +101,7 @@ describe("POS market checkout routes", () => {
       paymentMethod: "card",
       country: "TW",
       currency: "TWD",
-      operatorId: 42,
+      operatorId: "user-42",
       operatorRole: 4,
       operatorRestaurantId: "rest-1",
       idempotencyKey: "pay-once",

@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 
 const auth = vi.hoisted(() => ({
-  user: { id: 7, role: 1, restaurantId: "rest-1" } as {
-    id: number;
-    role: number;
-    restaurantId?: string | number | null;
-  },
+  user: {
+    id: "user-7",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-1",
+  } as AuthUser,
 }));
 
 vi.mock("../../../middleware/auth", () => ({
@@ -132,7 +134,12 @@ function createBody(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  auth.user = { id: 7, role: 1, restaurantId: "rest-1" };
+  auth.user = {
+    id: "user-7",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-1",
+  };
 
   serviceFns.getRestaurantTables.mockResolvedValue({
     tables: [table],
@@ -173,7 +180,7 @@ beforeEach(() => {
 
 describe("tables routes", () => {
   it("lists tables with admin filters and owner restaurant scoping", async () => {
-    auth.user = { id: 1, role: 0 };
+    auth.user = { id: "user-1", username: "admin", role: 0 };
 
     let response = await request(
       "/?restaurantId=rest-2&floor=2&isOccupied=false&page=2&limit=5",
@@ -187,7 +194,12 @@ describe("tables routes", () => {
       limit: 5,
     });
 
-    auth.user = { id: 7, role: 1, restaurantId: "rest-1" };
+    auth.user = {
+      id: "user-7",
+      username: "owner",
+      role: 1,
+      restaurantId: "rest-1",
+    };
     response = await request("/?restaurantId=rest-2&section=A");
 
     expect(response.status).toBe(200);
@@ -197,7 +209,7 @@ describe("tables routes", () => {
       limit: 20,
     });
 
-    auth.user = { id: 8, role: 1 };
+    auth.user = { id: "user-8", username: "owner", role: 1 };
     response = await request("/");
     expect(response.status).toBe(400);
   });

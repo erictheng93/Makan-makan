@@ -15,16 +15,19 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthUser } from "../../../middleware/auth";
 import { Hono } from "hono";
 import type { Env } from "../../../types/env";
 
-const currentUser = vi.hoisted(() => ({
-  value: { id: 1, role: 1, restaurantId: "rest-basic" } as {
-    id: number;
-    role: number;
-    restaurantId: string | number | undefined;
-  },
-}));
+const currentUser = vi.hoisted(() => {
+  const value: AuthUser = {
+    id: "user-1",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-basic",
+  };
+  return { value };
+});
 
 vi.mock("../../../middleware/quotaGate", () => ({
   quotaGate: () => async (_c: unknown, next: () => Promise<void>) => next(),
@@ -88,7 +91,12 @@ function envWithSubscription(
 }
 
 beforeEach(() => {
-  currentUser.value = { id: 1, role: 1, restaurantId: "rest-basic" };
+  currentUser.value = {
+    id: "user-1",
+    username: "owner",
+    role: 1,
+    restaurantId: "rest-basic",
+  };
 });
 
 describe("ai-analytics GET /models/:provider is gated on ai_analytics", () => {
