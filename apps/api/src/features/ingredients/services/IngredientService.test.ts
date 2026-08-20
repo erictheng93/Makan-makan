@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ingredientDefinitions } from "@makanmasak/database";
 import {
+  createMutationFixtureDb,
   createSelectFixtureDb,
+  type MutationFixtures,
   type SelectFixtures,
 } from "@makanmasak/database/testing";
 import { IngredientService } from "./IngredientService";
@@ -20,57 +22,17 @@ vi.mock("drizzle-orm/d1", () => ({
 }));
 
 const fixtureTables = { ingredientDefinitions };
-type SelectFixtureName = keyof typeof fixtureTables;
+type FixtureName = keyof typeof fixtureTables;
 
-function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
+function mockSelectResults(fixtures: SelectFixtures<FixtureName>) {
   Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
 }
 
-function mockInsertions() {
-  const inserted: unknown[] = [];
-  const returningRows: unknown[] = [];
-
-  mocks.db.insert.mockImplementation(() => {
-    const builder = {
-      values: vi.fn((payload: unknown) => {
-        inserted.push(payload);
-        return builder;
-      }),
-      returning: vi.fn(async () => returningRows.shift() ?? []),
-      then: (
-        resolve: (value: unknown) => void,
-        reject?: (reason: unknown) => void,
-      ) => Promise.resolve(undefined).then(resolve, reject),
-    };
-    return builder;
-  });
-
-  return { inserted, returningRows };
-}
-
-function mockUpdates(results: Array<{ meta?: { changes?: number } }> = []) {
-  const updated: unknown[] = [];
-
-  mocks.db.update.mockImplementation(() => {
-    const builder = {
-      set: vi.fn((payload: unknown) => {
-        updated.push(payload);
-        return builder;
-      }),
-      where: vi.fn(() => builder),
-      then: (
-        resolve: (value: unknown) => void,
-        reject?: (reason: unknown) => void,
-      ) =>
-        Promise.resolve(results.shift() ?? { meta: { changes: 1 } }).then(
-          resolve,
-          reject,
-        ),
-    };
-    return builder;
-  });
-
-  return { updated };
+function mockMutationResults(fixtures: MutationFixtures<FixtureName> = {}) {
+  const fixtureDb = createMutationFixtureDb(fixtureTables, fixtures);
+  mocks.db.insert.mockImplementation(fixtureDb.insert);
+  mocks.db.update.mockImplementation(fixtureDb.update);
+  return fixtureDb;
 }
 
 function createService() {
@@ -186,8 +148,13 @@ describe("IngredientService", () => {
   it("creates and bulk imports ingredients with cent-normalized costs", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
-    const mutations = mockInsertions();
-    mutations.returningRows.push([ingredientRow({ id: 103, name: "Noodles" })]);
+    const mutations = mockMutationResults({
+      ingredientDefinitions: {
+        // create() reads its row back; bulkImport() only reports how many
+        // rows the one insert wrote.
+        insert: [[ingredientRow({ id: 103, name: "Noodles" })], { changes: 2 }],
+      },
+    });
 
     await expect(
       createService().create("restaurant-1", {
@@ -245,7 +212,11 @@ describe("IngredientService", () => {
   it("updates existing ingredients and skips empty update payloads", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
-    const mutations = mockUpdates();
+    const mutations = mockMutationResults({
+      // The empty-payload update returns before writing; only the second
+      // update reaches the database.
+      ingredientDefinitions: { update: [{ changes: 1 }] },
+    });
     mockSelectResults({
       ingredientDefinitions: [
         [ingredientRow()],
@@ -299,7 +270,7 @@ describe("IngredientService", () => {
   });
 
   it("returns null when updating missing ingredients", async () => {
-    const mutations = mockUpdates();
+    const mutations = mockMutationResults();
     mockSelectResults({ ingredientDefinitions: [[]] });
 
     await expect(
@@ -311,12 +282,16 @@ describe("IngredientService", () => {
   it("soft deletes ingredients, updates stock, and lists active categories", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
-    const mutations = mockUpdates([
-      { meta: { changes: 1 } },
-      { meta: { changes: 0 } },
-      { meta: { changes: 1 } },
-      { meta: { changes: 0 } },
-    ]);
+    const mutations = mockMutationResults({
+      ingredientDefinitions: {
+        update: [
+          { changes: 1 },
+          { changes: 0 },
+          { changes: 1 },
+          { changes: 0 },
+        ],
+      },
+    });
     // getCategories reads ingredientDefinitions through selectDistinct, which
     // draws from the same per-table queue as select.
     mockSelectResults({
