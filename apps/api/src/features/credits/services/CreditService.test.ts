@@ -19,7 +19,9 @@ import {
   creditTopupIntents,
 } from "@makanmasak/database";
 import {
+  createMutationFixtureDb,
   createSelectFixtureDb,
+  type MutationFixtures,
   type SelectFixtures,
 } from "@makanmasak/database/testing";
 
@@ -87,65 +89,53 @@ const card = {
  * only its per-account update/insert calls, after the select already ran.
  * A harness throw from a missing/exhausted select fixture therefore always
  * surfaces as a rejected promise here; no swallowing caveat applies.
+ *
+ * Write fixtures follow the same rules with one extra key — the operation —
+ * because an account is both inserted and updated and the two must not share
+ * a queue. The one caveat the reads do not have: `expireStaleAccounts`
+ * catches per-account write failures on purpose, so a missing write fixture
+ * inside that loop lands in `failures[]` rather than failing the test. Its
+ * assertion checks the error message for that reason.
  */
 const fixtureTables = {
   creditAccounts,
   creditCards,
   creditLedgerEntries,
 };
-type SelectFixtureName = keyof typeof fixtureTables;
-
-interface MutationQueueItem {
-  returning?: unknown[];
-}
+type FixtureName = keyof typeof fixtureTables;
 
 function createFakeDb() {
-  const queues = {
-    insert: [] as MutationQueueItem[],
-    update: [] as MutationQueueItem[],
-    insertValues: [] as unknown[],
-    updateValues: [] as unknown[],
-  };
-
   const selectFn = vi.fn();
+  const insertFn = vi.fn();
+  const updateFn = vi.fn();
 
-  function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName> = {}) {
+  function mockSelectResults(fixtures: SelectFixtures<FixtureName> = {}) {
     const fixtureDb = createSelectFixtureDb(fixtureTables, fixtures);
     selectFn.mockImplementation(fixtureDb.select);
   }
 
-  const createInsertChain = () => {
-    const chain = {
-      values: vi.fn((values: unknown) => {
-        queues.insertValues.push(values);
-        return chain;
-      }),
-      onConflictDoNothing: vi.fn(() => chain),
-      returning: vi.fn(async () => queues.insert.shift()?.returning ?? []),
-    };
-    return chain;
-  };
-
-  const createUpdateSetChain = () => {
-    const chain = {
-      where: vi.fn(() => chain),
-      returning: vi.fn(async () => queues.update.shift()?.returning ?? []),
-    };
-    return chain;
-  };
+  /**
+   * Writes are declared like reads, with one extra key: the operation. An
+   * account is both inserted and updated, and a single queue per table would
+   * let `insert(creditAccounts)` eat the fixture meant for
+   * `update(creditAccounts)`. Re-declaring replaces the queues and the payload
+   * log, so a test that declares once at the top reads as the full list of
+   * writes it expects.
+   */
+  function mockMutationResults(fixtures: MutationFixtures<FixtureName> = {}) {
+    const fixtureDb = createMutationFixtureDb(fixtureTables, fixtures);
+    insertFn.mockImplementation(fixtureDb.insert);
+    updateFn.mockImplementation(fixtureDb.update);
+    return fixtureDb;
+  }
 
   const db = {
     select: selectFn,
-    insert: vi.fn(() => createInsertChain()),
-    update: vi.fn(() => ({
-      set: vi.fn((values: unknown) => {
-        queues.updateValues.push(values);
-        return createUpdateSetChain();
-      }),
-    })),
+    insert: insertFn,
+    update: updateFn,
   };
 
-  return { db, queues, mockSelectResults };
+  return { db, mockSelectResults, mockMutationResults };
 }
 
 function createService(options: Partial<Env> = {}) {
@@ -199,11 +189,13 @@ describe("CreditService", () => {
   });
 
   it("issues cards, audits opening balances, and rejects negative balances", async () => {
-    const { service, queues } = createService();
-    queues.insert.push(
-      { returning: [{ ...account, balanceCents: 12000 }] },
-      { returning: [{ ...card, publicId: "card-public-id" }] },
-    );
+    const { service, mockMutationResults } = createService();
+    const mutations = mockMutationResults({
+      creditAccounts: { insert: [[{ ...account, balanceCents: 12000 }]] },
+      creditCards: { insert: [[{ ...card, publicId: "card-public-id" }]] },
+      // The opening-balance audit entry is written without being read back.
+      creditLedgerEntries: { insert: [{ changes: 1 }] },
+    });
 
     const result = await service.issueCard({
       currency: "TWD",
@@ -219,12 +211,12 @@ describe("CreditService", () => {
       currency: "TWD",
     });
     expect(bcryptHash).toHaveBeenCalledWith("1234", 10);
-    expect(queues.insertValues[0]).toMatchObject({
+    expect(mutations.inserted[0]).toMatchObject({
       ownerCustomerId: "customer-1",
       currency: "TWD",
       balanceCents: 12000,
     });
-    expect(queues.insertValues[2]).toMatchObject({
+    expect(mutations.inserted[2]).toMatchObject({
       accountId: "account-1",
       entryType: "adjust",
       amountCents: 12000,
@@ -262,9 +254,26 @@ describe("CreditService", () => {
   });
 
   it("spends with replay, guard, PIN, deduction, and ledger compensation branches", async () => {
-    const { service, queues, mockSelectResults } = createService({
+    const { service, mockSelectResults, mockMutationResults } = createService({
       CREDIT_PIN_THRESHOLD_CENTS: "1000",
     } as Partial<Env>);
+    const mutations = mockMutationResults({
+      creditCards: { update: [{ changes: 1 }] }, // failed PIN bumps the retry count
+      creditAccounts: {
+        update: [
+          [], // overspend: the balance guard matches no row
+          [{ balanceAfter: 48000 }], // spend-ok deduction
+          [{ balanceAfter: 47000 }], // race: this deduction lands
+          [{ balanceAfter: 50000 }], // race: and is compensated back
+        ],
+      },
+      creditLedgerEntries: {
+        insert: [
+          [{ id: "ledger-1" }],
+          [], // the idempotency twin conflicts, so nothing is returned
+        ],
+      },
+    });
     mockSelectResults({
       creditLedgerEntries: [
         [
@@ -361,14 +370,13 @@ describe("CreditService", () => {
         pin: "0000",
       }),
     ).rejects.toMatchObject({ code: "CREDIT_PIN_INVALID" });
-    expect(queues.updateValues.at(-1)).toMatchObject({ pinRetryCount: 1 });
+    expect(mutations.updated.at(-1)).toMatchObject({ pinRetryCount: 1 });
 
     mockSelectResults({
       creditLedgerEntries: [[]],
       creditCards: [[card]],
       creditAccounts: [[account]],
     });
-    queues.update.push({ returning: [] });
     await expect(
       service.spend({
         publicId: "public-1",
@@ -385,8 +393,6 @@ describe("CreditService", () => {
       creditCards: [[card]],
       creditAccounts: [[account]],
     });
-    queues.update.push({ returning: [{ balanceAfter: 48000 }] });
-    queues.insert.push({ returning: [{ id: "ledger-1" }] });
     await expect(
       service.spend({
         publicId: "public-1",
@@ -403,7 +409,7 @@ describe("CreditService", () => {
       accountId: "account-1",
       balanceAfterCents: 48000,
     });
-    expect(queues.insertValues.at(-1)).toMatchObject({
+    expect(mutations.inserted.at(-1)).toMatchObject({
       entryType: "spend",
       amountCents: -2000,
       balanceAfterCents: 48000,
@@ -425,11 +431,6 @@ describe("CreditService", () => {
       creditCards: [[card]],
       creditAccounts: [[account]],
     });
-    queues.update.push(
-      { returning: [{ balanceAfter: 47000 }] },
-      { returning: [{ balanceAfter: 50000 }] },
-    );
-    queues.insert.push({ returning: [] });
     await expect(
       service.spend({
         publicId: "public-1",
@@ -447,7 +448,23 @@ describe("CreditService", () => {
   });
 
   it("topups, refunds, and resolves refunds from original spend keys", async () => {
-    const { service, queues, mockSelectResults } = createService();
+    const { service, mockSelectResults, mockMutationResults } = createService();
+    mockMutationResults({
+      creditAccounts: {
+        update: [
+          [{ balanceAfter: 55000 }], // topup-ok
+          [{ balanceAfter: 51000 }], // refund-ok
+          [{ balanceAfter: 50000 }], // refund resolved from the original spend
+        ],
+      },
+      creditLedgerEntries: {
+        insert: [
+          [{ id: "topup-ledger" }],
+          [{ id: "refund-ledger" }],
+          [{ id: "refund-from-spend" }],
+        ],
+      },
+    });
 
     mockSelectResults({
       creditLedgerEntries: [
@@ -500,8 +517,6 @@ describe("CreditService", () => {
       creditCards: [[card]],
       creditAccounts: [[account]],
     });
-    queues.update.push({ returning: [{ balanceAfter: 55000 }] });
-    queues.insert.push({ returning: [{ id: "topup-ledger" }] });
     await expect(
       service.topup({
         publicId: "public-1",
@@ -549,8 +564,6 @@ describe("CreditService", () => {
       creditLedgerEntries: [[]],
       creditAccounts: [[account]],
     });
-    queues.update.push({ returning: [{ balanceAfter: 51000 }] });
-    queues.insert.push({ returning: [{ id: "refund-ledger" }] });
     await expect(
       service.refund({
         accountId: "account-1",
@@ -589,8 +602,6 @@ describe("CreditService", () => {
       ],
       creditAccounts: [[account]],
     });
-    queues.update.push({ returning: [{ balanceAfter: 50000 }] });
-    queues.insert.push({ returning: [{ id: "refund-from-spend" }] });
     await expect(
       service.refundByOriginalSpend({
         spendIdempotencyKey: "known-spend",
@@ -603,11 +614,15 @@ describe("CreditService", () => {
   });
 
   it("manages cards and reads ledger/export/drift reports", async () => {
-    const { service, queues, mockSelectResults } = createService();
+    const { service, mockSelectResults, mockMutationResults } = createService();
+    const mutations = mockMutationResults({
+      // setPin, then setCardStatus.
+      creditCards: { update: [{ changes: 1 }, { changes: 1 }] },
+    });
 
     mockSelectResults({ creditCards: [[card]], creditAccounts: [[account]] });
     await service.setPin("public-1", "4321");
-    expect(queues.updateValues.at(-1)).toMatchObject({
+    expect(mutations.updated.at(-1)).toMatchObject({
       secretHash: "hash:new-pin",
       pinRetryCount: 0,
       lockedUntilMs: null,
@@ -615,7 +630,7 @@ describe("CreditService", () => {
 
     mockSelectResults({ creditCards: [[card]], creditAccounts: [[account]] });
     await service.setCardStatus("public-1", "frozen");
-    expect(queues.updateValues.at(-1)).toMatchObject({ status: "frozen" });
+    expect(mutations.updated.at(-1)).toMatchObject({ status: "frozen" });
 
     mockSelectResults({
       creditCards: [[card]],
@@ -658,7 +673,17 @@ describe("CreditService", () => {
   });
 
   it("expires stale accounts with isolated failures and concurrent-update skips", async () => {
-    const { service, queues, mockSelectResults } = createService();
+    const { service, mockSelectResults, mockMutationResults } = createService();
+    const mutations = mockMutationResults({
+      creditAccounts: {
+        update: [
+          [], // account-skip: a concurrent write already moved the version on
+          [{ id: "account-expire" }],
+          new Error("write failed"), // account-fail: isolated, not fatal
+        ],
+      },
+      creditLedgerEntries: { insert: [{ changes: 1 }] },
+    });
     mockSelectResults({
       creditAccounts: [
         [
@@ -686,14 +711,6 @@ describe("CreditService", () => {
         ],
       ],
     });
-    queues.update.push(
-      { returning: [] },
-      { returning: [{ id: "account-expire" }] },
-    );
-    queues.update.push({
-      returning: Promise.reject(new Error("write failed")) as never,
-    });
-
     const result = await service.expireStaleAccounts({
       nowMs: Date.parse("2026-06-01T00:00:00.000Z"),
       limit: 5000,
@@ -705,7 +722,7 @@ describe("CreditService", () => {
       totalExpiredCents: 2000,
       failures: [{ accountId: "account-fail", error: "write failed" }],
     });
-    expect(queues.insertValues.at(-1)).toMatchObject({
+    expect(mutations.inserted.at(-1)).toMatchObject({
       accountId: "account-expire",
       entryType: "expire",
       amountCents: -2000,
