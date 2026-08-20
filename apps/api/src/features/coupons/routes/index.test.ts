@@ -129,7 +129,9 @@ function createAppWithErrorEnvelope() {
   return wrapper;
 }
 
-async function withSilencedRouteError<T>(callback: () => Promise<T>) {
+async function withSilencedRouteError<T>(
+  callback: () => T | Promise<T>,
+): Promise<Awaited<T>> {
   const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
   try {
     return await callback();

@@ -41,8 +41,8 @@ describe("AuditLogService", () => {
     const query = createSelectQuery([
       {
         id: "101",
-        userId: 7,
-        onBehalfOfUserId: 8,
+        userId: "user-7",
+        onBehalfOfUserId: "user-8",
         restaurantId: "restaurant-1",
         action: "update_menu_availability",
         resource: "menu_item",
@@ -71,10 +71,10 @@ describe("AuditLogService", () => {
     await expect(
       createService().list({
         action: "update_menu_availability",
-        actorId: 7,
+        actorId: "user-7",
         limit: 250,
         offset: 10,
-        onBehalfOfUserId: 8,
+        onBehalfOfUserId: "user-8",
         resource: "menu_item",
         resourceId: "55",
         restaurantId: "restaurant-1",
@@ -84,10 +84,10 @@ describe("AuditLogService", () => {
       logs: [
         {
           id: 101,
-          actorId: 7,
-          userId: 7,
-          onBehalfOfUserId: 8,
-          delegatedUserId: 8,
+          actorId: "user-7",
+          userId: "user-7",
+          onBehalfOfUserId: "user-8",
+          delegatedUserId: "user-8",
           restaurantId: "restaurant-1",
           action: "update_menu_availability",
           resource: "menu_item",
@@ -124,7 +124,7 @@ describe("AuditLogService", () => {
     const query = createSelectQuery([
       {
         id: 1,
-        userId: 1,
+        userId: "user-1",
         onBehalfOfUserId: undefined,
         restaurantId: "restaurant-1",
         action: "created",

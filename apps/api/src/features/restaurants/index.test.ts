@@ -38,9 +38,11 @@ describe("restaurants feature module", () => {
     await expect(module.routes.request("/probe")).resolves.toMatchObject({
       status: 200,
     });
-    await expect(
-      module.routes.request("/probe").then((res) => res.json()),
-    ).resolves.toEqual({ success: true, feature: "restaurants" });
+    const probeResponse = await module.routes.request("/probe");
+    await expect(probeResponse.json()).resolves.toEqual({
+      success: true,
+      feature: "restaurants",
+    });
     await expect(module.routes.request("/missing")).resolves.toMatchObject({
       status: 404,
     });

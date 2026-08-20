@@ -101,7 +101,9 @@ function seat(overrides: Record<string, unknown> = {}) {
   };
 }
 
-async function withSilencedRouteError<T>(action: () => Promise<T>): Promise<T> {
+async function withSilencedRouteError<T>(
+  action: () => T | Promise<T>,
+): Promise<Awaited<T>> {
   const consoleError = vi
     .spyOn(console, "error")
     .mockImplementation(() => undefined);
@@ -230,7 +232,13 @@ describe("seats routes", () => {
     );
 
     expect(response.status).toBe(200);
-    const body = await response.json();
+    // `Response.json()` resolves to `unknown`; the two `not.toHaveProperty`
+    // assertions below reach into `body.data`, so the envelope shape has to be
+    // stated here.
+    const body = (await response.json()) as {
+      success: boolean;
+      data: Record<string, unknown>;
+    };
     expect(body).toMatchObject({
       success: true,
       data: {

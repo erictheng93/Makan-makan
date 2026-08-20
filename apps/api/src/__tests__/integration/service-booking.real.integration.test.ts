@@ -124,7 +124,7 @@ async function seedPlatformCoupon(
 
 async function seedEmployee(
   overrides: Partial<typeof users.$inferInsert> = {},
-): Promise<number> {
+): Promise<string> {
   const [row] = await testDb.drizzle
     .insert(users)
     .values({
@@ -144,7 +144,7 @@ async function seedEmployee(
 
 async function seedEmployeeAvailability(
   input: Partial<typeof employeeAvailability.$inferInsert> & {
-    employeeId: number;
+    employeeId: string;
   },
 ): Promise<void> {
   await testDb.drizzle.insert(employeeAvailability).values({
@@ -185,7 +185,7 @@ async function bookingCount(): Promise<number> {
 
 async function insertAssignedServiceBooking(input: {
   serviceItemId: number;
-  employeeId: number;
+  employeeId: string;
   bookingDate: string;
   bookingTime: string;
   durationMinutes: number;

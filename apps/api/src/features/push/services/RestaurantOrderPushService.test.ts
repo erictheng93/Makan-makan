@@ -45,7 +45,7 @@ describe("RestaurantOrderPushService", () => {
 
     const result = await new RestaurantOrderPushService(env).notifyNewOrder({
       restaurantId: "restaurant-1",
-      orderId: 1001,
+      orderId: "order-1001",
       orderNumber: "A001",
       orderSource: "market_checkout",
       totalAmount: 120,
@@ -64,7 +64,7 @@ describe("RestaurantOrderPushService", () => {
       },
       payload: expect.objectContaining({
         type: "new_order",
-        orderId: 1001,
+        orderId: "order-1001",
         orderNumber: "A001",
         orderSource: "market_checkout",
         title: "市場結帳新訂單",
@@ -80,7 +80,7 @@ describe("RestaurantOrderPushService", () => {
 
     const result = await new RestaurantOrderPushService(env).notifyNewOrder({
       restaurantId: "restaurant-1",
-      orderId: 1002,
+      orderId: "order-1002",
       orderNumber: "A002",
       totalAmount: 80,
       itemCount: 1,
@@ -97,7 +97,7 @@ describe("RestaurantOrderPushService", () => {
 
     const result = await new RestaurantOrderPushService(env).notifyNewOrder({
       restaurantId: "restaurant-1",
-      orderId: 1003,
+      orderId: "order-1003",
       orderNumber: "A003",
       totalAmount: 60,
       itemCount: 1,

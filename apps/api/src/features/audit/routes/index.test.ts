@@ -1,14 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../shared/utils/api-error";
 
-const mocks = vi.hoisted(() => ({
-  user: {
+const mocks = vi.hoisted(() => {
+  // Admins have no restaurant scope, so restaurantId is optional here just as
+  // it is on the production AuthUser type.
+  const user: {
+    id: number;
+    username: string;
+    role: number;
+    restaurantId?: string;
+  } = {
     id: 42,
     username: "owner",
     role: 1,
     restaurantId: "restaurant-1",
-  },
-}));
+  };
+  return { user };
+});
 
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c, next) => {

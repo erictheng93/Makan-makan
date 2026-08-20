@@ -1,28 +1,38 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({
-  currentUser: { id: 10, role: 1, restaurantId: "restaurant-1" },
-  getAvailability: vi.fn(),
-  createBooking: vi.fn(),
-  createRecurringBookings: vi.fn(),
-  joinWaitlist: vi.fn(),
-  payWithCredits: vi.fn(),
-  generateCalendarInviteByConfirmationCode: vi.fn(),
-  getByConfirmationCode: vi.fn(),
-  cancelByConfirmationCode: vi.fn(),
-  listSlots: vi.fn(),
-  createSlot: vi.fn(),
-  batchCreateSlots: vi.fn(),
-  blockSlot: vi.fn(),
-  listDueReminders: vi.fn(),
-  getById: vi.fn(),
-  markReminderSent: vi.fn(),
-  generateCalendarInvite: vi.fn(),
-  listByRestaurant: vi.fn(),
-  cancelBooking: vi.fn(),
-  confirmCash: vi.fn(),
-  transition: vi.fn(),
-}));
+const mocks = vi.hoisted(() => {
+  // `restaurantId` is optional on the real principal — the admin-scope case
+  // below reassigns it to `undefined`, so the fixture is declared with that
+  // widened shape rather than being narrowed to `string` by inference.
+  const currentUser: {
+    id: string;
+    role: number;
+    restaurantId: string | undefined;
+  } = { id: "user-10", role: 1, restaurantId: "restaurant-1" };
+  return {
+    currentUser,
+    getAvailability: vi.fn(),
+    createBooking: vi.fn(),
+    createRecurringBookings: vi.fn(),
+    joinWaitlist: vi.fn(),
+    payWithCredits: vi.fn(),
+    generateCalendarInviteByConfirmationCode: vi.fn(),
+    getByConfirmationCode: vi.fn(),
+    cancelByConfirmationCode: vi.fn(),
+    listSlots: vi.fn(),
+    createSlot: vi.fn(),
+    batchCreateSlots: vi.fn(),
+    blockSlot: vi.fn(),
+    listDueReminders: vi.fn(),
+    getById: vi.fn(),
+    markReminderSent: vi.fn(),
+    generateCalendarInvite: vi.fn(),
+    listByRestaurant: vi.fn(),
+    cancelBooking: vi.fn(),
+    confirmCash: vi.fn(),
+    transition: vi.fn(),
+  };
+});
 
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c, next) => {
@@ -145,7 +155,11 @@ describe("service-bookings routes", () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
-    mocks.currentUser = { id: 10, role: 1, restaurantId: "restaurant-1" };
+    mocks.currentUser = {
+      id: "user-10",
+      role: 1,
+      restaurantId: "restaurant-1",
+    };
     mocks.getAvailability.mockResolvedValue([
       { date: "2026-06-10", timeSlot: "18:30", availableCapacity: 3 },
     ]);
@@ -385,7 +399,7 @@ describe("service-bookings routes", () => {
     const invalidSlot = await request("/slots?serviceItemId=bad");
     expect(invalidSlot.status).toBe(400);
 
-    mocks.currentUser = { id: 1, role: 0, restaurantId: undefined };
+    mocks.currentUser = { id: "user-1", role: 0, restaurantId: undefined };
     const missingRestaurant = await request("/slots");
     expect(missingRestaurant.status).toBe(400);
   });

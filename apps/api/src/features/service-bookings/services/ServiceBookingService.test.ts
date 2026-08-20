@@ -74,6 +74,34 @@ const fixtureTables = {
 };
 type SelectFixtureName = keyof typeof fixtureTables;
 
+/**
+ * The chainable query object `createSelectFixtureDb().select()` returns.
+ *
+ * `SelectFixtureDb` declares its two factories as `ReturnType<typeof vi.fn>`,
+ * which resolves to `Mock<Procedure | Constructable>`. That union's
+ * `Constructable` half carries only a construct signature, so TypeScript
+ * refuses to call the factory at all ("Did you mean to include 'new'?"). The
+ * harness only ever installs the plain query factory described here, so the
+ * shape is restated once at the seam below instead of at every call site.
+ */
+interface SelectFixtureQuery {
+  from: (table: unknown) => SelectFixtureQuery;
+  innerJoin: (...args: unknown[]) => SelectFixtureQuery;
+  leftJoin: (...args: unknown[]) => SelectFixtureQuery;
+  where: (...args: unknown[]) => SelectFixtureQuery;
+  orderBy: (...args: unknown[]) => SelectFixtureQuery;
+  groupBy: (...args: unknown[]) => SelectFixtureQuery;
+  having: (...args: unknown[]) => SelectFixtureQuery;
+  limit: (...args: unknown[]) => SelectFixtureQuery;
+  offset: (...args: unknown[]) => SelectFixtureQuery;
+  get: () => Promise<unknown>;
+  all: () => Promise<unknown[]>;
+  then: (
+    resolve: (value: unknown) => void,
+    reject?: (reason: unknown) => void,
+  ) => Promise<void>;
+}
+
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
@@ -181,9 +209,12 @@ describe("ServiceBookingService orchestration helpers", () => {
       fixtureTables,
       input.selectFixtures,
     );
+    // The harness types its factories as bare `Mock`, so the chain shape is
+    // restated here, once, to keep the call sites below typed.
+    const select: () => SelectFixtureQuery = fixtureDb.select;
 
     const db = {
-      select: fixtureDb.select,
+      select,
       insert: vi.fn(() => ({
         values: vi.fn((values: unknown) => {
           insertValues.push(values);
@@ -871,7 +902,16 @@ describe("ServiceBookingService orchestration helpers", () => {
             },
           ],
         ],
-        users: [[{ id: 7, restaurantId: "rest-1", isActive: true, role: 2 }]],
+        users: [
+          [
+            {
+              id: "employee-7",
+              restaurantId: "rest-1",
+              isActive: true,
+              role: 2,
+            },
+          ],
+        ],
         serviceBookingSlots: [[]],
         employeeAvailability: [
           [
@@ -898,10 +938,10 @@ describe("ServiceBookingService orchestration helpers", () => {
       customerPhone: "+886900000000",
       bookingDate: "2026-06-10",
       bookingTime: "10:00",
-      employeeId: 7,
+      employeeId: "employee-7",
     });
 
-    expect(insertValues[0]).toMatchObject({ employeeId: 7 });
+    expect(insertValues[0]).toMatchObject({ employeeId: "employee-7" });
   });
 
   it("rejects employee assignments without availability or with overlapping bookings", async () => {
@@ -923,7 +963,7 @@ describe("ServiceBookingService orchestration helpers", () => {
       customerPhone: "+886900000000",
       bookingDate: "2026-06-10",
       bookingTime: "10:00",
-      employeeId: 7,
+      employeeId: "employee-7",
     };
 
     await expect(
@@ -932,7 +972,14 @@ describe("ServiceBookingService orchestration helpers", () => {
           selectFixtures: {
             restaurantServiceItems: [[serviceRow]],
             users: [
-              [{ id: 7, restaurantId: "rest-1", isActive: false, role: 2 }],
+              [
+                {
+                  id: "employee-7",
+                  restaurantId: "rest-1",
+                  isActive: false,
+                  role: 2,
+                },
+              ],
             ],
           },
         }).db,
@@ -945,7 +992,14 @@ describe("ServiceBookingService orchestration helpers", () => {
           selectFixtures: {
             restaurantServiceItems: [[serviceRow]],
             users: [
-              [{ id: 7, restaurantId: "rest-1", isActive: true, role: 2 }],
+              [
+                {
+                  id: "employee-7",
+                  restaurantId: "rest-1",
+                  isActive: true,
+                  role: 2,
+                },
+              ],
             ],
             employeeAvailability: [[]],
           },
@@ -959,7 +1013,14 @@ describe("ServiceBookingService orchestration helpers", () => {
           selectFixtures: {
             restaurantServiceItems: [[serviceRow]],
             users: [
-              [{ id: 7, restaurantId: "rest-1", isActive: true, role: 2 }],
+              [
+                {
+                  id: "employee-7",
+                  restaurantId: "rest-1",
+                  isActive: true,
+                  role: 2,
+                },
+              ],
             ],
             employeeAvailability: [
               [
@@ -988,7 +1049,14 @@ describe("ServiceBookingService orchestration helpers", () => {
           selectFixtures: {
             restaurantServiceItems: [[serviceRow]],
             users: [
-              [{ id: 7, restaurantId: "rest-1", isActive: true, role: 2 }],
+              [
+                {
+                  id: "employee-7",
+                  restaurantId: "rest-1",
+                  isActive: true,
+                  role: 2,
+                },
+              ],
             ],
             employeeAvailability: [
               [
@@ -1122,7 +1190,16 @@ describe("ServiceBookingService orchestration helpers", () => {
             },
           ],
         ],
-        users: [[{ id: 7, restaurantId: "rest-1", isActive: true, role: 2 }]],
+        users: [
+          [
+            {
+              id: "employee-7",
+              restaurantId: "rest-1",
+              isActive: true,
+              role: 2,
+            },
+          ],
+        ],
         employeeAvailability: [
           [
             {
@@ -1153,7 +1230,7 @@ describe("ServiceBookingService orchestration helpers", () => {
         bookingDate: "2026-06-10",
         bookingTime: "10:00",
         partySize: 3,
-        employeeId: 7,
+        employeeId: "employee-7",
         specialRequests: "Quiet room",
       }),
     ).resolves.toBe(insertedRow);
@@ -1161,7 +1238,7 @@ describe("ServiceBookingService orchestration helpers", () => {
       customerId: "customer-1",
       customerEmail: "ada@example.test",
       partySize: 3,
-      employeeId: 7,
+      employeeId: "employee-7",
       specialRequests: "Quiet room",
       notes: null,
     });

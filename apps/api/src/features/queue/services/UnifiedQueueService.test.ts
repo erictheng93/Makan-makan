@@ -180,6 +180,7 @@ describe("UnifiedQueueService", () => {
       .mockResolvedValueOnce({ ...entry, tableId: 12 });
 
     let result = await createService().callNext("rest-1", {
+      restaurantId: "rest-1",
       specificQueueId: "queue-1",
       tableId: 9,
     });
@@ -202,6 +203,7 @@ describe("UnifiedQueueService", () => {
     });
 
     result = await createService().callNext("rest-1", {
+      restaurantId: "rest-1",
       specificQueueId: "queue-1",
     });
 
@@ -223,19 +225,28 @@ describe("UnifiedQueueService", () => {
     waitingServiceFns.findAvailableTable.mockResolvedValueOnce(null);
 
     await expect(
-      createService().callNext("rest-1", { specificQueueId: "missing" }),
+      createService().callNext("rest-1", {
+        restaurantId: "rest-1",
+        specificQueueId: "missing",
+      }),
     ).resolves.toEqual({
       success: false,
       error: "Queue entry not found",
     });
     await expect(
-      createService().callNext("rest-1", { specificQueueId: "queue-2" }),
+      createService().callNext("rest-1", {
+        restaurantId: "rest-1",
+        specificQueueId: "queue-2",
+      }),
     ).resolves.toEqual({
       success: false,
       error: "Queue entry does not belong to this restaurant",
     });
     await expect(
-      createService().callNext("rest-1", { specificQueueId: "queue-1" }),
+      createService().callNext("rest-1", {
+        restaurantId: "rest-1",
+        specificQueueId: "queue-1",
+      }),
     ).resolves.toEqual({
       success: false,
       error: "No available table for party size",
@@ -252,7 +263,9 @@ describe("UnifiedQueueService", () => {
       calledAt: undefined,
     });
 
-    const result = await createService().callNext("rest-1", {});
+    const result = await createService().callNext("rest-1", {
+      restaurantId: "rest-1",
+    });
 
     expect(waitingServiceFns.batchCallNext).toHaveBeenCalledWith("rest-1", 1);
     expect(waitingServiceFns.getWaitingListEntryById).toHaveBeenCalledWith(
@@ -279,15 +292,21 @@ describe("UnifiedQueueService", () => {
       ]);
     waitingServiceFns.getWaitingListEntryById.mockResolvedValueOnce(null);
 
-    await expect(createService().callNext("rest-1", {})).resolves.toEqual({
+    await expect(
+      createService().callNext("rest-1", { restaurantId: "rest-1" }),
+    ).resolves.toEqual({
       success: false,
       error: "No customers waiting in queue",
     });
-    await expect(createService().callNext("rest-1", {})).resolves.toEqual({
+    await expect(
+      createService().callNext("rest-1", { restaurantId: "rest-1" }),
+    ).resolves.toEqual({
       success: false,
       error: "No table available",
     });
-    await expect(createService().callNext("rest-1", {})).resolves.toEqual({
+    await expect(
+      createService().callNext("rest-1", { restaurantId: "rest-1" }),
+    ).resolves.toEqual({
       success: false,
       error: "Failed to load queue entry after calling",
     });
@@ -335,7 +354,9 @@ describe("UnifiedQueueService", () => {
       success: false,
       error: "bad entry",
     });
-    await expect(createService().callNext("rest-1", {})).resolves.toEqual({
+    await expect(
+      createService().callNext("rest-1", { restaurantId: "rest-1" }),
+    ).resolves.toEqual({
       success: false,
       error: "bad call",
     });

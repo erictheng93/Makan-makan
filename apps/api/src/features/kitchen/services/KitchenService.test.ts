@@ -46,7 +46,7 @@ function createService() {
 
 function scopedKitchenItem(overrides: Record<string, unknown> = {}) {
   return {
-    order_id: 101,
+    order_id: "order-101",
     order_number: "A001",
     order_created_at: "2026-06-07T11:40:00.000Z",
     table_id: 7,
@@ -164,7 +164,10 @@ describe("KitchenService", () => {
       averagePreparationTime: 14,
     });
 
-    const result = await createService().getKitchenOrders("restaurant-1", 22);
+    const result = await createService().getKitchenOrders(
+      "restaurant-1",
+      "user-22",
+    );
 
     expect(serviceMocks.ctor).toHaveBeenCalledWith({
       DB: {
@@ -259,10 +262,10 @@ describe("KitchenService", () => {
   it("updates item status and returns a timestamped response", async () => {
     const result = await createService().updateOrderItemStatus(
       "restaurant-1",
-      101,
+      "order-101",
       501,
       { status: "ready", notes: "plated" },
-      22,
+      "user-22",
     );
 
     expect(serviceMocks.updateItemStatus).toHaveBeenCalledWith(
@@ -273,7 +276,11 @@ describe("KitchenService", () => {
     expect(serviceMocks.prepare).toHaveBeenCalledWith(
       expect.stringContaining("JOIN orders o ON o.id = oi.order_id"),
     );
-    expect(serviceMocks.bind).toHaveBeenCalledWith(501, 101, "restaurant-1");
+    expect(serviceMocks.bind).toHaveBeenCalledWith(
+      501,
+      "order-101",
+      "restaurant-1",
+    );
     expect(serviceMocks.getOrders).not.toHaveBeenCalled();
     expect(serviceMocks.broadcastOrderItemStatusUpdate).toHaveBeenCalledWith({
       type: "order_item_status_update",
@@ -281,7 +288,7 @@ describe("KitchenService", () => {
       timestamp: new Date("2026-06-07T12:00:00.000Z").getTime(),
       restaurantId: "restaurant-1",
       data: {
-        orderId: 101,
+        orderId: "order-101",
         orderItemId: 501,
         menuItemId: 91,
         menuItemName: "Laksa",
@@ -296,7 +303,7 @@ describe("KitchenService", () => {
       timestamp: new Date("2026-06-07T12:00:00.000Z").getTime(),
       restaurantId: "restaurant-1",
       data: {
-        orderId: 101,
+        orderId: "order-101",
         orderItemId: 501,
         menuItemName: "Laksa",
         status: "ready",
@@ -306,7 +313,7 @@ describe("KitchenService", () => {
       },
     });
     expect(result).toEqual({
-      orderId: 101,
+      orderId: "order-101",
       itemId: 501,
       status: "ready",
       updatedAt: "2026-06-07T12:00:00.000Z",
@@ -319,10 +326,10 @@ describe("KitchenService", () => {
     await expect(
       createService().updateOrderItemStatus(
         "restaurant-1",
-        101,
+        "order-101",
         501,
         { status: "ready" },
-        22,
+        "user-22",
       ),
     ).rejects.toMatchObject({
       code: "KITCHEN_ITEM_SCOPE_DENIED",
@@ -335,12 +342,24 @@ describe("KitchenService", () => {
   it("validates kitchen role access", () => {
     const kitchenService = createService();
 
-    expect(kitchenService.validateChefAccess(1, 0, "restaurant-1")).toBe(true);
-    expect(kitchenService.validateChefAccess(2, 1, "restaurant-1")).toBe(true);
-    expect(kitchenService.validateChefAccess(3, 2, "restaurant-1")).toBe(true);
-    expect(kitchenService.validateChefAccess(4, 3, "restaurant-1")).toBe(true);
-    expect(kitchenService.validateChefAccess(5, 4, "restaurant-1")).toBe(false);
-    expect(kitchenService.validateChefAccess(6, 5, "restaurant-1")).toBe(false);
+    expect(kitchenService.validateChefAccess("user-1", 0, "restaurant-1")).toBe(
+      true,
+    );
+    expect(kitchenService.validateChefAccess("user-2", 1, "restaurant-1")).toBe(
+      true,
+    );
+    expect(kitchenService.validateChefAccess("user-3", 2, "restaurant-1")).toBe(
+      true,
+    );
+    expect(kitchenService.validateChefAccess("user-4", 3, "restaurant-1")).toBe(
+      true,
+    );
+    expect(kitchenService.validateChefAccess("user-5", 4, "restaurant-1")).toBe(
+      false,
+    );
+    expect(kitchenService.validateChefAccess("user-6", 5, "restaurant-1")).toBe(
+      false,
+    );
   });
 
   it("logs and rethrows order query and item update failures", async () => {
@@ -356,10 +375,10 @@ describe("KitchenService", () => {
     await expect(
       createService().updateOrderItemStatus(
         "restaurant-1",
-        101,
+        "order-101",
         501,
         { status: "completed" },
-        22,
+        "user-22",
       ),
     ).rejects.toThrow("item update down");
   });

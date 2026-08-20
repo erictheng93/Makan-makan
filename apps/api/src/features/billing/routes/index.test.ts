@@ -2,7 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../shared/utils/api-error";
 
 const serviceFns = vi.hoisted(() => ({
-  handle: vi.fn(async () => undefined as unknown),
+  handle: vi.fn(
+    async (
+      _provider: string,
+      _rawBody: string,
+      _headers: Headers,
+    ): Promise<unknown> => undefined,
+  ),
 }));
 
 vi.mock("../services/BillingWebhookService", () => ({
@@ -91,7 +97,7 @@ describe("billing webhook routes", () => {
         get: expect.any(Function),
       }),
     );
-    const headers = serviceFns.handle.mock.calls[0][2] as Headers;
+    const headers = serviceFns.handle.mock.calls[0][2];
     expect(headers.get("stripe-signature")).toBe("sig_123");
   });
 

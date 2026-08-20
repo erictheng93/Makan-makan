@@ -71,7 +71,9 @@ describe("queryApiRequestAggregate", () => {
   }
 
   it("posts raw SQL with a bearer token and maps the first row", async () => {
-    const fetchImpl = vi.fn(async () =>
+    // Typed as the real `fetch` so `mock.calls[0]` carries the argument tuple
+    // the service actually passes, instead of an empty one.
+    const fetchImpl = vi.fn<typeof fetch>(async () =>
       jsonResponse({
         data: [
           {
@@ -90,7 +92,7 @@ describe("queryApiRequestAggregate", () => {
     const result = await queryApiRequestAggregate({ ...config, fetchImpl });
 
     expect(fetchImpl).toHaveBeenCalledOnce();
-    const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
+    const [url, init = {}] = fetchImpl.mock.calls[0];
     expect(url).toBe(
       "https://api.cloudflare.com/client/v4/accounts/acct-1/analytics_engine/sql",
     );

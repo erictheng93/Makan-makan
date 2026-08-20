@@ -137,7 +137,7 @@ describe("QrCodesService", () => {
 
     const result = await createService().generateQR(
       { content: "table-1", format: "png" },
-      7,
+      "user-7",
       "restaurant-1",
     );
 
@@ -145,13 +145,13 @@ describe("QrCodesService", () => {
       content: "table-1",
       format: "png",
       style: undefined,
-      metadata: { createdBy: "7" },
+      metadata: { createdBy: "user-7" },
       restaurantId: "restaurant-1",
-      createdBy: 7,
+      createdBy: "user-7",
     });
     expect(mocks.qrService.createAuditLog).toHaveBeenCalledWith(
       expect.objectContaining({
-        userId: 7,
+        userId: "user-7",
         action: "QR_GENERATED",
       }),
     );
@@ -161,7 +161,7 @@ describe("QrCodesService", () => {
       format: "png",
       downloadUrl: `https://cdn.example.test/qr/${qrId}.png`,
       restaurantId: "restaurant-1",
-      userId: 7,
+      userId: "user-7",
     });
     expect(randomSpy).not.toHaveBeenCalled();
   });
@@ -178,7 +178,7 @@ describe("QrCodesService", () => {
     await expect(
       createService().generateQR(
         { content: "table-1", format: "png" },
-        7,
+        "user-7",
         "restaurant-1",
       ),
     ).rejects.toThrow("QR code generation did not return an ID");
@@ -201,7 +201,7 @@ describe("QrCodesService", () => {
           format: "zip",
           includeMetadata: true,
         },
-        7,
+        "user-7",
         "restaurant-1",
       ),
     ).resolves.toMatchObject({
@@ -215,7 +215,7 @@ describe("QrCodesService", () => {
     expect(mocks.qrService.generateBulkQRCodes).toHaveBeenCalledWith(
       "restaurant-1",
       [1],
-      7,
+      "user-7",
     );
 
     await expect(
@@ -414,7 +414,7 @@ describe("QrCodesService", () => {
         description: "Readable",
         category: "classic",
         style: { size: 300 },
-        createdBy: 7,
+        createdBy: "user-7",
       }),
     ).resolves.toMatchObject({
       id: 1,

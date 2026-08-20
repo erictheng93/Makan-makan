@@ -20,8 +20,11 @@ function createQuery(result: unknown[]) {
     from: vi.fn(() => builder),
     limit: vi.fn(() => builder),
     returning: vi.fn(() => builder),
-    set: vi.fn(() => builder),
-    values: vi.fn(() => builder),
+    // `set` and `values` receive the payload the service writes; the tests
+    // that capture mutations replace these implementations, so the parameter
+    // has to be part of the mock's signature.
+    set: vi.fn((_payload: unknown) => builder),
+    values: vi.fn((_payload: unknown) => builder),
     where: vi.fn(() => builder),
     then: (
       resolve: (value: unknown[]) => void,
@@ -69,7 +72,7 @@ function createService() {
 
 function actor(overrides: Partial<AuthUser> = {}): AuthUser {
   return {
-    id: 7,
+    id: "user-7",
     username: "owner",
     role: 1,
     restaurantId: "restaurant-1",
@@ -92,7 +95,7 @@ describe("ManagerActionsService", () => {
       createService().execute(
         {
           action: "update_menu_availability",
-          onBehalfOfUserId: 8,
+          onBehalfOfUserId: "user-8",
           payload: { isAvailable: false },
           reason: "Temporarily sold out",
           resource: "menu_item",
@@ -103,8 +106,8 @@ describe("ManagerActionsService", () => {
       ),
     ).resolves.toEqual({
       auditLogId: 777,
-      actorId: 7,
-      onBehalfOfUserId: 8,
+      actorId: "user-7",
+      onBehalfOfUserId: "user-8",
       action: "update_menu_availability",
       resource: "menu_item",
       resourceId: "55",
@@ -119,8 +122,8 @@ describe("ManagerActionsService", () => {
     ]);
     expect(mutations.inserted).toEqual([
       expect.objectContaining({
-        userId: 7,
-        onBehalfOfUserId: 8,
+        userId: "user-7",
+        onBehalfOfUserId: "user-8",
         restaurantId: "restaurant-1",
         action: "update_menu_availability",
         resource: "menu_item",
@@ -129,7 +132,7 @@ describe("ManagerActionsService", () => {
         success: true,
         changes: {
           metadata: {
-            onBehalfOfUserId: 8,
+            onBehalfOfUserId: "user-8",
             payload: { isAvailable: false },
             reason: "Temporarily sold out",
           },
@@ -147,7 +150,7 @@ describe("ManagerActionsService", () => {
         {
           action: "update_menu_availability",
           resource: "menu_item",
-          resourceId: 55,
+          resourceId: "55",
           restaurantId: "restaurant-1",
         },
         actor(),
@@ -155,7 +158,7 @@ describe("ManagerActionsService", () => {
     ).resolves.toMatchObject({
       auditLogId: 777,
       executed: true,
-      resourceId: 55,
+      resourceId: "55",
     });
 
     expect(mutations.updated[0]).toMatchObject({ isAvailable: true });

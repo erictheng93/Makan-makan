@@ -12,7 +12,7 @@ import { eq } from "drizzle-orm";
 type SeedRecord = Record<string, unknown>;
 
 export interface SeedHelpers {
-  restaurant(overrides?: SeedRecord): Promise<{ id: string | number }>;
+  restaurant(overrides?: SeedRecord): Promise<{ id: string }>;
   menuItem(
     restaurantId: string | number,
     overrides?: SeedRecord,
@@ -20,7 +20,7 @@ export interface SeedHelpers {
   order(
     restaurantId: string | number,
     overrides?: SeedRecord,
-  ): Promise<{ id: number }>;
+  ): Promise<{ id: string }>;
   user(overrides?: SeedRecord): Promise<{ id: string; username: string }>;
   coupon(
     restaurantId: string | number,
@@ -278,7 +278,7 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
           ...overrides,
         } as never)
         .returning();
-      return { id: row.id as number };
+      return { id: row.id };
     },
   };
 }

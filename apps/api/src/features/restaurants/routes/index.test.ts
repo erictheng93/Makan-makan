@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ModuleKey } from "@makanmasak/database";
 
 const auth = vi.hoisted(() => ({
   user: undefined as
@@ -102,7 +103,8 @@ vi.mock("../../discovery/services/SearchIndexSyncService", () => ({
 
 const gateMocks = vi.hoisted(() => ({
   moduleGate: vi.fn(
-    () => async (_c: unknown, next: () => Promise<void>) => next(),
+    (_module: ModuleKey) => async (_c: unknown, next: () => Promise<void>) =>
+      next(),
   ),
 }));
 
@@ -302,7 +304,7 @@ describe("restaurants routes", () => {
     });
 
     const res = await request("/rest-1");
-    const body = await res.json();
+    const body = await res.json<{ data: unknown }>();
 
     expect(res.status).toBe(200);
     expect(body.data).toMatchObject({

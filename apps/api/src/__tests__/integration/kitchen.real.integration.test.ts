@@ -132,7 +132,7 @@ describe("KitchenService real D1 integration", () => {
         order.id,
         orderItem.id,
         { status: "ready", notes: "plated" },
-        2,
+        "kitchen-real-chef",
       ),
     ).resolves.toMatchObject({
       orderId: order.id,

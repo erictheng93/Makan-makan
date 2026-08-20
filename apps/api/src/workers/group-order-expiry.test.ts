@@ -147,7 +147,10 @@ describe("sweepExpiringGroupOrders", () => {
       }
       return {
         success: true,
-        data: { masterOrderId: `order-${groupOrderId}`, status: "completed" },
+        data: {
+          masterOrderId: `order-${groupOrderId}`,
+          status: "completed" as const,
+        },
       };
     });
 
@@ -250,7 +253,7 @@ describe("sweepExpiringGroupOrders", () => {
 
       return {
         success: true,
-        data: { masterOrderId: "order-race-1", status: "completed" },
+        data: { masterOrderId: "order-race-1", status: "completed" as const },
       };
     });
 

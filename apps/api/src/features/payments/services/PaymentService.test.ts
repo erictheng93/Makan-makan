@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { orders } from "@makanmasak/database";
 import { createSelectFixtureDb } from "@makanmasak/database/testing";
+import type { KVNamespace } from "@cloudflare/workers-types";
 import type { Env } from "../../../types/env";
 import { ApiError } from "../../../shared/utils/api-error";
 import { PaymentService } from "./PaymentService";
@@ -171,12 +172,13 @@ function createD1WithBatchFailure(
 }
 
 function env(db: unknown) {
-  return {
-    DB: db,
-    CACHE_KV: {
-      delete: vi.fn(async () => undefined),
-    },
-  } as Env;
+  // Typed as the KVNamespace slice the service actually touches: an inline
+  // `vi.fn()` would make the literal a `Mock<...>` that `Env` cannot be
+  // compared against.
+  const cacheKV: Pick<KVNamespace, "delete"> = {
+    delete: vi.fn(async () => undefined),
+  };
+  return { DB: db, CACHE_KV: cacheKV } as Env;
 }
 
 function envWithRealtime(db: unknown) {
@@ -206,7 +208,7 @@ function envWithRealtime(db: unknown) {
 
 function order(overrides: Record<string, unknown> = {}) {
   return {
-    id: 101,
+    id: "order-101",
     restaurantId: "restaurant-1",
     status: "confirmed",
     paymentStatus: "pending",
@@ -235,7 +237,7 @@ describe("PaymentService", () => {
     await expect(
       new PaymentService(env(db)).processPayment(
         {
-          orderId: 101,
+          orderId: "order-101",
           paymentMode: "full",
           amount: 120,
           expectedTotal: 120,
@@ -252,8 +254,8 @@ describe("PaymentService", () => {
     ).resolves.toEqual({
       status: 200,
       data: {
-        paymentId: "pay_101_1780833600000",
-        orderId: 101,
+        paymentId: "pay_order-101_1780833600000",
+        orderId: "order-101",
         orderStatus: "paid",
         paymentStatus: "paid",
         authorizedTotal: 120,
@@ -264,8 +266,8 @@ describe("PaymentService", () => {
       statementContaining(statements, "INSERT INTO payment_transactions")
         ?.payload,
     ).toMatchObject({
-      transactionId: "pay_101_1780833600000",
-      orderId: 101,
+      transactionId: "pay_order-101_1780833600000",
+      orderId: "order-101",
       restaurantId: "restaurant-1",
       amountCents: 12000,
       currency: "TWD",
@@ -289,7 +291,7 @@ describe("PaymentService", () => {
       paidAt: new Date(1780833600000),
       paymentStatus: "paid",
       paymentMethod: "cash",
-      paymentTransactionId: "pay_101_1780833600000",
+      paymentTransactionId: "pay_order-101_1780833600000",
       updatedAt: new Date(1780833600000),
     });
     expect(
@@ -319,7 +321,7 @@ describe("PaymentService", () => {
 
     await expect(
       new PaymentService(env(db)).processPayment({
-        orderId: 101,
+        orderId: "order-101",
         paymentMode: "full",
         amount: 120,
         expectedTotal: 120,
@@ -340,7 +342,7 @@ describe("PaymentService", () => {
 
     await expect(
       new PaymentService(env(db)).processPayment({
-        orderId: 101,
+        orderId: "order-101",
         paymentMode: "full",
         amount: 120,
         expectedTotal: 120,
@@ -361,7 +363,7 @@ describe("PaymentService", () => {
 
     await expect(
       new PaymentService(env(db)).processPayment({
-        orderId: 101,
+        orderId: "order-101",
         paymentMode: "partial",
         expectedTotal: 120,
         payments: [
@@ -382,7 +384,7 @@ describe("PaymentService", () => {
     expect(statementContaining(statements, "UPDATE orders")?.payload).toEqual({
       paymentStatus: "paid",
       paymentMethod: "split",
-      paymentTransactionId: "pay_101_1780833600000",
+      paymentTransactionId: "pay_order-101_1780833600000",
       updatedAt: new Date(1780833600000),
     });
     expect(
@@ -405,7 +407,7 @@ describe("PaymentService", () => {
     mockOrderUpdate([{ status: "paid", paymentStatus: "paid" }]);
 
     await new PaymentService(env(db)).processPayment({
-      orderId: 101,
+      orderId: "order-101",
       paymentMode: "full",
       amount: 120,
       expectedTotal: 120,
@@ -436,7 +438,7 @@ describe("PaymentService", () => {
 
     await new PaymentService(setup.env).processPayment(
       {
-        orderId: 101,
+        orderId: "order-101",
         paymentMode: "full",
         amount: 120,
         expectedTotal: 120,
@@ -444,7 +446,7 @@ describe("PaymentService", () => {
       },
       {
         user: {
-          id: 4,
+          id: "user-4",
           role: 4,
           restaurantId: "restaurant-1",
           username: "cashier",
@@ -452,8 +454,8 @@ describe("PaymentService", () => {
       },
     );
 
-    expect(setup.cacheKV.delete).toHaveBeenCalledWith("order:101:full");
-    expect(setup.cacheKV.delete).toHaveBeenCalledWith("order:101:basic");
+    expect(setup.cacheKV.delete).toHaveBeenCalledWith("order:order-101:full");
+    expect(setup.cacheKV.delete).toHaveBeenCalledWith("order:order-101:basic");
     // restaurant + kitchen + admin rooms (admin added in bug-inventory fix #1),
     // plus the per-order customer room that 2b894649 added so the diner's order
     // tracking page updates on payment.
@@ -466,12 +468,12 @@ describe("PaymentService", () => {
       type: "order_status_update",
       restaurantId: "restaurant-1",
       data: {
-        orderId: 101,
+        orderId: "order-101",
         orderNumber: "A001",
         previousStatus: "served",
         status: "paid",
         updatedBy: {
-          userId: 4,
+          userId: "user-4",
           role: "cashier",
         },
       },
@@ -488,7 +490,7 @@ describe("PaymentService", () => {
 
     await expect(
       new PaymentService(setup.env).processPayment({
-        orderId: 101,
+        orderId: "order-101",
         paymentMode: "full",
         amount: 120,
         expectedTotal: 120,
@@ -497,14 +499,14 @@ describe("PaymentService", () => {
     ).resolves.toMatchObject({
       status: 200,
       data: {
-        paymentId: "pay_101_1780833600000",
+        paymentId: "pay_order-101_1780833600000",
         orderStatus: "paid",
       },
     });
 
     expect(errorSpy).toHaveBeenCalledWith(
       "Payment succeeded but order side effects failed",
-      expect.objectContaining({ orderId: 101 }),
+      expect.objectContaining({ orderId: "order-101" }),
     );
     errorSpy.mockRestore();
   });
@@ -521,7 +523,7 @@ describe("PaymentService", () => {
 
     await expect(
       service.processPayment({
-        orderId: 101,
+        orderId: "order-101",
         paymentMode: "full",
         amount: 120,
       }),
@@ -532,7 +534,7 @@ describe("PaymentService", () => {
 
     await expect(
       service.processPayment({
-        orderId: 101,
+        orderId: "order-101",
         paymentMode: "full",
         amount: 120,
       }),
@@ -544,16 +546,17 @@ describe("PaymentService", () => {
     await expect(
       service.processPayment(
         {
-          orderId: 101,
+          orderId: "order-101",
           paymentMode: "full",
           amount: 120,
         },
         {
           user: {
-            id: 2,
+            id: "user-2",
+            username: "chef",
             role: 2,
             restaurantId: "restaurant-1",
-          } as never,
+          },
         },
       ),
     ).rejects.toMatchObject({
@@ -576,7 +579,7 @@ describe("PaymentService", () => {
 
     await expect(
       service.processPayment({
-        orderId: 404,
+        orderId: "order-404",
         paymentMode: "full",
         amount: 120,
       }),
@@ -588,16 +591,17 @@ describe("PaymentService", () => {
     await expect(
       service.processPayment(
         {
-          orderId: 101,
+          orderId: "order-101",
           paymentMode: "full",
           amount: 120,
         },
         {
           user: {
-            id: 42,
+            id: "user-42",
+            username: "owner",
             role: 1,
             restaurantId: "restaurant-2",
-          } as never,
+          },
         },
       ),
     ).rejects.toMatchObject({
@@ -607,7 +611,7 @@ describe("PaymentService", () => {
 
     await expect(
       service.processPayment({
-        orderId: 101,
+        orderId: "order-101",
         paymentMode: "full",
         amount: 119,
       }),
@@ -618,7 +622,7 @@ describe("PaymentService", () => {
 
     await expect(
       service.processPayment({
-        orderId: 101,
+        orderId: "order-101",
         paymentMode: "partial",
         expectedTotal: 120,
         payments: [
@@ -640,7 +644,7 @@ describe("PaymentService", () => {
 
     await expect(
       new PaymentService(env(db)).processPayment({
-        orderId: 101,
+        orderId: "order-101",
         paymentMode: "full",
         amount: 120,
         expectedTotal: 121,

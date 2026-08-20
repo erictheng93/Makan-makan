@@ -141,7 +141,7 @@ describe("RegisterService", () => {
         peripherals: { drawer: true },
         settings: { receiptCopies: 2 },
       },
-      7,
+      "user-7",
     );
 
     expect(result).toMatchObject({
@@ -182,7 +182,7 @@ describe("RegisterService", () => {
 
     const result = await createService().createRegister(
       { name: "", restaurantId: "restaurant-1" },
-      7,
+      "user-7",
     );
 
     expect(result.success).toBe(false);

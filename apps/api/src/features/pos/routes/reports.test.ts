@@ -1,20 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../shared/utils/api-error";
+import type { AuthUser } from "../../../middleware/auth";
 
-const mocks = vi.hoisted(() => ({
-  user: {
-    id: 10,
+const mocks = vi.hoisted(() => {
+  const user: AuthUser = {
+    id: "user-10",
     username: "owner",
     role: 1,
     restaurantId: "restaurant-1",
-  },
-  reportService: {
-    generateShiftReport: vi.fn(),
-    getDailyReport: vi.fn(),
-    getRegisterUsageStats: vi.fn(),
-  },
-  reportServiceCtor: vi.fn(),
-}));
+  };
+  return {
+    user,
+    reportService: {
+      generateShiftReport: vi.fn(),
+      getDailyReport: vi.fn(),
+      getRegisterUsageStats: vi.fn(),
+    },
+    reportServiceCtor: vi.fn(),
+  };
+});
 
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c, next) => {
@@ -83,7 +87,7 @@ describe("POS report routes", () => {
     vi.clearAllMocks();
     vi.spyOn(Date, "now").mockReturnValue(1710000000000);
     mocks.user = {
-      id: 10,
+      id: "user-10",
       username: "owner",
       role: 1,
       restaurantId: "restaurant-1",
@@ -115,7 +119,7 @@ describe("POS report routes", () => {
     expect(body).toEqual({ success: true, data: dailyReport });
 
     mocks.user = {
-      id: 1,
+      id: "user-1",
       username: "admin",
       role: 0,
       restaurantId: undefined,
@@ -144,7 +148,7 @@ describe("POS report routes", () => {
     expect(mocks.reportService.getDailyReport).not.toHaveBeenCalled();
 
     mocks.user = {
-      id: 1,
+      id: "user-1",
       username: "admin",
       role: 0,
       restaurantId: undefined,

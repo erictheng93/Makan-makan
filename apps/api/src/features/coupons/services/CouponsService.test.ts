@@ -30,6 +30,49 @@ function buildOrder(overrides: Record<string, unknown> = {}) {
   };
 }
 
+/**
+ * What the inherited coupon methods actually resolve with: the full
+ * `coupons` row plus the three currency-unit fields `mapCouponMoneyFields`
+ * derives from the `_cents` / `_bps` columns. Spies on `createCoupon`,
+ * `updateCoupon`, `deactivateCoupon`, `getCoupons` and `getAvailableCoupons`
+ * all have to answer with this shape, not with a hand-picked `{ id }` stub.
+ */
+type StoredCoupon = Awaited<ReturnType<CouponsService["createCoupon"]>>;
+
+function buildStoredCoupon(
+  overrides: Partial<StoredCoupon> = {},
+): StoredCoupon {
+  return {
+    id: 10,
+    restaurantId: "restaurant-1",
+    code: "SAVE10",
+    name: "Save 10",
+    description: null,
+    discountType: "percentage",
+    discountPercentageBps: 1000,
+    discountValueCents: null,
+    maxDiscountAmountCents: null,
+    minOrderAmountCents: null,
+    applicableMenuItems: null,
+    applicableCategories: null,
+    usageLimit: null,
+    usageLimitPerUser: null,
+    usedCount: 0,
+    validFrom: "2026-06-01T00:00:00.000Z",
+    validTo: "2026-07-01T00:00:00.000Z",
+    isActive: true,
+    isVisible: true,
+    createdAt: new Date("2026-06-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-06-01T00:00:00.000Z"),
+    createdBy: null,
+    deletedAt: null,
+    discountValue: 10,
+    maxDiscountAmount: null,
+    minOrderAmount: null,
+    ...overrides,
+  };
+}
+
 function buildRedeemableCoupon(overrides: Record<string, unknown> = {}) {
   return {
     id: 10,
@@ -157,16 +200,22 @@ describe("CouponsService", () => {
     const validateCoupon = vi
       .spyOn(service, "validateCoupon")
       .mockResolvedValueOnce({ valid: true, discountAmount: 5 })
-      .mockResolvedValueOnce({ valid: false, reason: "expired" });
+      .mockResolvedValueOnce({ valid: false, error: "expired" });
     vi.spyOn(service, "getCoupons").mockResolvedValue({
+      // getCoupons joins the restaurant and creator relations onto each row.
       coupons: [
         {
-          id: 1,
-          discountType: "fixed_amount",
-          discountValue: 0,
-          discountValueCents: 1000,
-          maxDiscountAmount: null,
-          minOrderAmount: null,
+          ...buildStoredCoupon({
+            id: 1,
+            discountType: "fixed",
+            discountValue: 0,
+            discountPercentageBps: null,
+            discountValueCents: 1000,
+            maxDiscountAmount: null,
+            minOrderAmount: null,
+          }),
+          restaurant: { id: "restaurant-1", name: "Test Restaurant" },
+          creator: null,
         },
       ],
       total: 21,
@@ -179,7 +228,7 @@ describe("CouponsService", () => {
         "SAVE10",
         "restaurant-1",
         100,
-        42,
+        "user-42",
         [{ menuItemId: 1, quantity: 2 }],
       ),
     ).resolves.toEqual({ valid: true, discountAmount: 5 });
@@ -187,12 +236,12 @@ describe("CouponsService", () => {
       "SAVE10",
       "restaurant-1",
       100,
-      42,
+      "user-42",
       [{ menuItemId: 1, quantity: 2 }],
     );
     await expect(
       service.validateCouponWithBusinessRules("OLD", "restaurant-1", 100),
-    ).resolves.toEqual({ valid: false, reason: "expired" });
+    ).resolves.toEqual({ valid: false, error: "expired" });
 
     await expect(
       service.getCouponsWithEnhancedFilters(
@@ -211,9 +260,10 @@ describe("CouponsService", () => {
 
   it("validates coupon creation before delegating", async () => {
     const service = createService();
+    const storedCoupon = buildStoredCoupon({ id: 10 });
     const createCoupon = vi
       .spyOn(service, "createCoupon")
-      .mockResolvedValue({ id: 10 });
+      .mockResolvedValue(storedCoupon);
 
     await expect(
       service.createCouponWithValidation({
@@ -225,7 +275,7 @@ describe("CouponsService", () => {
         validFrom: "2026-06-01T00:00:00.000Z",
         validTo: "2026-07-01T00:00:00.000Z",
       }),
-    ).resolves.toEqual({ id: 10 });
+    ).resolves.toEqual(storedCoupon);
     expect(createCoupon).toHaveBeenCalledOnce();
 
     await expect(
@@ -285,13 +335,13 @@ describe("CouponsService", () => {
       lastUsed: "2026-06-07T00:00:00.000Z",
     });
     vi.spyOn(service, "updateCoupon")
-      .mockResolvedValueOnce({ id: 1 })
+      .mockResolvedValueOnce(buildStoredCoupon({ id: 1 }))
       .mockRejectedValueOnce(new Error("update failed"));
     vi.spyOn(service, "deactivateCoupon")
-      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(buildStoredCoupon({ id: 1, isActive: false }))
       .mockRejectedValueOnce(new Error("deactivate failed"));
     vi.spyOn(service, "deleteCoupon")
-      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(undefined)
       .mockRejectedValueOnce(new Error("delete failed"));
     const consoleError = vi
       .spyOn(console, "error")
@@ -326,31 +376,33 @@ describe("CouponsService", () => {
   it("filters available coupons by minimum order amount", async () => {
     const service = createService();
     vi.spyOn(service, "getAvailableCoupons").mockResolvedValue([
-      {
+      buildStoredCoupon({
         id: 1,
-        discountType: "fixed_amount",
+        discountType: "fixed",
         discountValue: 0,
+        discountPercentageBps: null,
         discountValueCents: 500,
         minOrderAmount: null,
         minOrderAmountCents: 2000,
-      },
-      {
+      }),
+      buildStoredCoupon({
         id: 2,
-        discountType: "fixed_amount",
+        discountType: "fixed",
         discountValue: 0,
+        discountPercentageBps: null,
         discountValueCents: 1000,
         minOrderAmount: null,
         minOrderAmountCents: 5000,
-      },
+      }),
     ]);
 
     await expect(
-      service.getAvailableCouponsForUser("restaurant-1", 42, 30),
+      service.getAvailableCouponsForUser("restaurant-1", "user-42", 30),
     ).resolves.toEqual([
       expect.objectContaining({ id: 1, discountValue: 5, minOrderAmount: 20 }),
     ]);
     await expect(
-      service.getAvailableCouponsForUser("restaurant-1", 42),
+      service.getAvailableCouponsForUser("restaurant-1", "user-42"),
     ).resolves.toHaveLength(2);
   });
 

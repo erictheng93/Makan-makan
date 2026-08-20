@@ -1009,8 +1009,8 @@ describe("Menu API — real integration", () => {
     );
 
     expect(updateRes.status).toBe(200);
-    expect((await updateRes.json()).data).toMatchObject({
-      nameEn: "Chicken Rice",
+    await expect(updateRes.json()).resolves.toMatchObject({
+      data: { nameEn: "Chicken Rice" },
     });
 
     const storedAfterUpdate = await testApp.testDb.drizzle
@@ -1324,7 +1324,9 @@ describe("Menu API — real integration", () => {
     ]);
 
     expect(analyticsRes.status).toBe(200);
-    expect((await analyticsRes.json()).data).toMatchObject({ totalItems: 1 });
+    await expect(analyticsRes.json()).resolves.toMatchObject({
+      data: { totalItems: 1 },
+    });
     expect(adminMenuRes.status).toBe(200);
     // The public path keeps its isActive gate — no data leak from relaxing the
     // admin path.

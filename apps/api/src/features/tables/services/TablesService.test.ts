@@ -143,13 +143,15 @@ describe("TablesService", () => {
       { ...table, name: "Updated" },
     );
     await expect(service.deleteTable(11)).resolves.toBe(true);
-    await expect(service.occupyTable(11, 42, "Amy", 45)).resolves.toBe(true);
+    await expect(service.occupyTable(11, "order-42", "Amy", 45)).resolves.toBe(
+      true,
+    );
     await expect(service.releaseTable(11)).resolves.toBe(true);
     await expect(service.markTableCleaned(11, "ready")).resolves.toBe(true);
 
     expect(tableServiceMethods.occupyTable).toHaveBeenCalledWith(
       11,
-      42,
+      "order-42",
       "Amy",
       45,
     );

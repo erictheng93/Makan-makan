@@ -58,7 +58,13 @@ describe("semantic discovery gate", () => {
   });
 
   it("wires the bindings through once switched on", async () => {
-    const env = buildEnv({ DISCOVERY_SEMANTIC_ENABLED: "true" });
+    // `buildEnv` erases CACHE_KV's type to satisfy the KVNamespace binding, so
+    // the spy has to be held here to stay assertable.
+    const cacheKv = { get: vi.fn(async () => null) };
+    const env = buildEnv({
+      DISCOVERY_SEMANTIC_ENABLED: "true",
+      CACHE_KV: cacheKv,
+    });
     const semantic = createSemanticDiscovery(env);
 
     const result = await semantic.searchDishIdsWithStatus("laksa", {
@@ -69,6 +75,6 @@ describe("semantic discovery gate", () => {
     // Vectorize. "cache-miss" rather than "disabled" is the whole point: the
     // service is live and simply had nothing cached.
     expect(result.embeddingStatus).toBe("cache-miss");
-    expect(env.CACHE_KV.get).toHaveBeenCalled();
+    expect(cacheKv.get).toHaveBeenCalled();
   });
 });

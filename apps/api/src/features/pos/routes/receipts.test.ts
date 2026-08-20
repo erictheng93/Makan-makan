@@ -1,23 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../shared/utils/api-error";
+import type { AuthUser } from "../../../middleware/auth";
 
-const mocks = vi.hoisted(() => ({
-  user: {
-    id: 10,
+const mocks = vi.hoisted(() => {
+  const user: AuthUser = {
+    id: "user-10",
     username: "cashier",
     role: 4,
     restaurantId: "restaurant-1",
-  },
-  receiptService: {
-    cancelPrint: vi.fn(),
-    getReceiptDetail: vi.fn(),
-    getReceipts: vi.fn(),
-    printReceipt: vi.fn(),
-    reprintReceipt: vi.fn(),
-  },
-  receiptServiceCtor: vi.fn(),
-  resolveOrderIdentity: vi.fn(),
-}));
+  };
+  return {
+    user,
+    receiptService: {
+      cancelPrint: vi.fn(),
+      getReceiptDetail: vi.fn(),
+      getReceipts: vi.fn(),
+      printReceipt: vi.fn(),
+      reprintReceipt: vi.fn(),
+    },
+    receiptServiceCtor: vi.fn(),
+    resolveOrderIdentity: vi.fn(),
+  };
+});
 
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c, next) => {
@@ -44,10 +48,12 @@ vi.mock("../../../shared/services/order-identity", () => ({
 
 const gateMocks = vi.hoisted(() => ({
   moduleGate: vi.fn(
-    () => async (_c: unknown, next: () => Promise<void>) => next(),
+    (_module: string) => async (_c: unknown, next: () => Promise<void>) =>
+      next(),
   ),
   quotaGate: vi.fn(
-    () => async (_c: unknown, next: () => Promise<void>) => next(),
+    (_meterKey: string) => async (_c: unknown, next: () => Promise<void>) =>
+      next(),
   ),
   meterEmit: vi.fn(),
 }));
@@ -131,7 +137,7 @@ describe("POS receipt routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.user = {
-      id: 10,
+      id: "user-10",
       username: "cashier",
       role: 4,
       restaurantId: "restaurant-1",

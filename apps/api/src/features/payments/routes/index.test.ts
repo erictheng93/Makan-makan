@@ -39,17 +39,23 @@ vi.mock("../../../middleware/auth", async () => {
   >("../../../shared/utils/api-error");
 
   return {
-    requireRole: vi.fn((allowedRoles: number[]) => async (c, next) => {
-      c.set("user", authState.user);
-      if (!allowedRoles.includes(authState.user.role)) {
-        throw new ApiError(
-          "INSUFFICIENT_ROLE",
-          "Insufficient permissions",
-          403,
-        );
-      }
-      await next();
-    }),
+    requireRole: vi.fn(
+      (allowedRoles: number[]) =>
+        async (
+          c: { set: (key: string, value: unknown) => void },
+          next: () => Promise<void>,
+        ) => {
+          c.set("user", authState.user);
+          if (!allowedRoles.includes(authState.user.role)) {
+            throw new ApiError(
+              "INSUFFICIENT_ROLE",
+              "Insufficient permissions",
+              403,
+            );
+          }
+          await next();
+        },
+    ),
   };
 });
 
@@ -534,7 +540,7 @@ describe("payments routes", () => {
 
   it("rejects refund requests from staff roles without refund authority", async () => {
     authState.user = {
-      id: 8,
+      id: "018f0000-0000-7000-8000-000000000008",
       username: "chef",
       role: 2,
       restaurantId: "restaurant-1",

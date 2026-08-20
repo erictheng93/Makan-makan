@@ -52,9 +52,13 @@ describe("leaves feature module", () => {
     await expect(module.routes.request("/probe")).resolves.toMatchObject({
       status: 200,
     });
-    await expect(
-      module.routes.request("/probe").then((res) => res.json()),
-    ).resolves.toEqual({ success: true, feature: "leaves" });
+    // Hono's `request` is declared as `Response | Promise<Response>`, so the
+    // response has to be awaited before it can be read as JSON.
+    const probeResponse = await module.routes.request("/probe");
+    await expect(probeResponse.json()).resolves.toEqual({
+      success: true,
+      feature: "leaves",
+    });
     const missingDateNow = vi.spyOn(Date, "now").mockReturnValue(0);
     const missingResponse = await module.routes.request("/missing");
     missingDateNow.mockRestore();

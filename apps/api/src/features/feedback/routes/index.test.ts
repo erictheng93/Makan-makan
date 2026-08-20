@@ -102,6 +102,13 @@ function feedback(overrides: Record<string, unknown> = {}) {
   };
 }
 
+type FeedbackDetailBody = {
+  success: boolean;
+  data: {
+    responses: Array<{ id: number; message: string; isInternal: boolean }>;
+  };
+};
+
 function createFeedbackBody(overrides: Record<string, unknown> = {}) {
   return {
     subject: "Order screen freezes",
@@ -114,7 +121,9 @@ function createFeedbackBody(overrides: Record<string, unknown> = {}) {
   };
 }
 
-async function withSilencedRouteError<T>(action: () => Promise<T>): Promise<T> {
+async function withSilencedRouteError<T>(
+  action: () => T | Promise<T>,
+): Promise<Awaited<T>> {
   const consoleError = vi
     .spyOn(console, "error")
     .mockImplementation(() => undefined);
@@ -340,7 +349,7 @@ describe("feedback routes", () => {
     );
 
     expect(ownerResponse.status).toBe(200);
-    const ownerBody = await ownerResponse.json();
+    const ownerBody = await ownerResponse.json<FeedbackDetailBody>();
     expect(ownerBody.data.responses).toEqual([
       { id: 1, message: "Public reply", isInternal: false },
     ]);
@@ -353,7 +362,7 @@ describe("feedback routes", () => {
     );
 
     expect(adminResponse.status).toBe(200);
-    const adminBody = await adminResponse.json();
+    const adminBody = await adminResponse.json<FeedbackDetailBody>();
     expect(adminBody.data.responses).toHaveLength(2);
   });
 

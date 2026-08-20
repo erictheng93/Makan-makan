@@ -228,7 +228,7 @@ describe("ShiftService", () => {
     const result = await createService().endShift(
       "shift-1",
       { actualAmount: 560, closingNotes: "balanced" },
-      8,
+      "user-8",
     );
 
     expect(result).toMatchObject({
@@ -264,7 +264,7 @@ describe("ShiftService", () => {
         type: "closing",
         amountCents: 56000,
         description: "結班現金 (差額: +10)",
-        recordedBy: 8,
+        recordedBy: "user-8",
       }),
     ]);
     vi.useRealTimers();
@@ -318,7 +318,7 @@ describe("ShiftService", () => {
     const mutations = mockMutations();
 
     let result = await withSuppressedConsoleError(() =>
-      createService().endShift("shift-1", { actualAmount: -1 }, 8),
+      createService().endShift("shift-1", { actualAmount: -1 }, "user-8"),
     );
 
     expect(result.success).toBe(false);
@@ -326,7 +326,7 @@ describe("ShiftService", () => {
     expect(mocks.db.select).not.toHaveBeenCalled();
 
     result = await withSuppressedConsoleError(() =>
-      createService().endShift("shift-1", { actualAmount: 19.995 }, 8),
+      createService().endShift("shift-1", { actualAmount: 19.995 }, "user-8"),
     );
 
     expect(result.success).toBe(false);
@@ -337,7 +337,7 @@ describe("ShiftService", () => {
     result = await createService().endShift(
       "shift-1",
       { actualAmount: 100 },
-      8,
+      "user-8",
     );
 
     expect(result.success).toBe(false);

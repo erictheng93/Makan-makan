@@ -423,8 +423,8 @@ describe("POS and customer role coverage", () => {
     usernamePrefix: string,
   ): Promise<{
     restaurantRegister: { id: string };
-    cashier: { id: number; username: string };
-    cashierId: number;
+    cashier: { id: string; username: string };
+    cashierId: string;
     cashierToken: string;
   }> {
     await insertActiveSubscription(String(restaurant.id));

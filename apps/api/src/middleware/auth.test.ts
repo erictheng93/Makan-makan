@@ -1,5 +1,7 @@
 import { Hono } from "hono";
+import type { ErrorHandler } from "hono";
 import { sign } from "hono/jwt";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { sign as signJsonWebToken } from "jsonwebtoken";
 import { describe, expect, it, vi } from "vitest";
 import { ApiError } from "../shared/utils/api-error";
@@ -16,15 +18,15 @@ import type { AuthUser } from "./auth";
 
 const JWT_SECRET = "test-jwt-secret-with-at-least-32-chars";
 
-function apiErrorHandler(error: Error, c: never) {
+const apiErrorHandler: ErrorHandler = (error, c) => {
   if (error instanceof ApiError) {
     return c.json(
       { success: false, error: { code: error.code, message: error.message } },
-      error.status as never,
+      error.status as ContentfulStatusCode,
     );
   }
   throw error;
-}
+};
 
 const staffUserId = "018f0000-0000-7000-8000-000000000777";
 
@@ -286,7 +288,7 @@ describe("authMiddleware", () => {
       } as never,
     );
 
-    const body = await response.json();
+    const body = await response.json<{ user: AuthUser | null }>();
 
     expect(body).toMatchObject({
       user: {
@@ -577,7 +579,10 @@ describe("optionalAuth", () => {
       }),
       { JWT_SECRET, DB: createStaffDb(row) } as never,
     );
-    return { response, body: await response.json() };
+    return {
+      response,
+      body: await response.json<{ user: AuthUser | null }>(),
+    };
   }
 
   it("attaches the user for a valid active staff token", async () => {

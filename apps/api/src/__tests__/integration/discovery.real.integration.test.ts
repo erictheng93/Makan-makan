@@ -38,7 +38,7 @@ function withCsrf(
 }
 
 function openAllWeek() {
-  const day = { open: "00:00", close: "23:59" };
+  const day = { open: "00:00", close: "23:59", isOpen: true };
   return {
     monday: day,
     tuesday: day,

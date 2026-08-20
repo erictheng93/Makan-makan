@@ -101,7 +101,10 @@ describe("guestTokenAuth", () => {
       } as never,
     );
 
-    const body = await response.json();
+    const body = await response.json<{
+      success: boolean;
+      error: { code?: string; message: string };
+    }>();
     expect(body).toMatchObject({
       success: false,
       error: { message: "Error: D1 exploded" },
@@ -185,7 +188,10 @@ describe("guestSessionAuth", () => {
       } as never,
     );
 
-    const body = await response.json();
+    const body = await response.json<{
+      success: boolean;
+      error: { code?: string; message: string };
+    }>();
     expect(body).toMatchObject({
       success: false,
       error: { message: "Error: D1 exploded" },

@@ -87,7 +87,7 @@ function createEnv(db = createDb()) {
     DB: db,
     BACKUP_STORAGE: {},
     BACKUP_KV: {
-      get: vi.fn(async () => null as string | null),
+      get: vi.fn(async (_key: string) => null as string | null),
       put: vi.fn(async () => undefined),
     },
     ANALYTICS: {

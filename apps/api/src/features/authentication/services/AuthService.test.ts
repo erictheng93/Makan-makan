@@ -141,7 +141,7 @@ describe("AuthService", () => {
     mocks.dbAuthService.login.mockResolvedValue({
       success: true,
       user: {
-        id: 7,
+        id: "user-7",
         username: "owner",
         fullName: "Shop Owner",
         role: 1,
@@ -186,8 +186,8 @@ describe("AuthService", () => {
     releaseCacheSet.forEach((release) => release());
     await Promise.all(deferred);
     expect(mocks.cache.set).toHaveBeenCalledWith(
-      "user-session:7:access-token",
-      expect.objectContaining({ userId: 7 }),
+      "user-session:user-7:access-token",
+      expect.objectContaining({ userId: "user-7" }),
       expect.any(Number),
     );
     expect(mocks.cache.delete).toHaveBeenCalledWith("failed-login:owner");
@@ -197,7 +197,7 @@ describe("AuthService", () => {
     mocks.dbAuthService.login.mockResolvedValue({
       success: true,
       user: {
-        id: 7,
+        id: "user-7",
         username: "owner",
         fullName: "Shop Owner",
         role: 1,
@@ -224,7 +224,7 @@ describe("AuthService", () => {
     expect(result).toMatchObject({
       success: true,
       user: {
-        id: 7,
+        id: "user-7",
         username: "owner",
         role: 1,
         restaurantId: undefined,
@@ -238,15 +238,15 @@ describe("AuthService", () => {
       },
     });
     expect(mocks.cache.set).toHaveBeenCalledWith(
-      "user-session:7:access-token",
-      { userId: 7, token: "access-token", cached: true },
+      "user-session:user-7:access-token",
+      { userId: "user-7", token: "access-token", cached: true },
       expect.any(Number),
     );
     expect(mocks.cache.set).toHaveBeenCalledWith(
       "security-event:1780790400000",
       expect.objectContaining({
         type: "LOGIN",
-        userId: 7,
+        userId: "user-7",
         username: "owner",
         ipAddress: "203.0.113.10",
         severity: "LOW",
@@ -404,7 +404,7 @@ describe("AuthService", () => {
     mocks.dbAuthService.register.mockResolvedValue({
       success: true,
       user: {
-        id: 8,
+        id: "user-8",
         username: "chef",
         fullName: "Chef",
         role: 2,
@@ -420,7 +420,7 @@ describe("AuthService", () => {
     mocks.dbAuthService.refreshToken.mockResolvedValue({
       success: true,
       user: {
-        id: 8,
+        id: "user-8",
         username: "chef",
         fullName: "Chef",
         role: 2,
@@ -445,14 +445,14 @@ describe("AuthService", () => {
           role: 2,
           email: "chef@example.test",
           phone: "+886900000000",
-          restaurantId: null,
+          restaurantId: "",
         },
-        1,
+        "user-1",
       ),
     ).resolves.toMatchObject({
       success: true,
       user: {
-        id: 8,
+        id: "user-8",
         role: 2,
         restaurantId: undefined,
         email: "chef@example.test",
@@ -467,12 +467,12 @@ describe("AuthService", () => {
 
     await expect(service.refreshToken("refresh")).resolves.toMatchObject({
       success: true,
-      user: { id: 8, restaurantId: "restaurant-1" },
+      user: { id: "user-8", restaurantId: "restaurant-1" },
       tokens: { accessToken: "refreshed-access", expiresIn: 3600 },
     });
     expect(mocks.cache.set).toHaveBeenCalledWith(
-      "user-session:8:refreshed-access",
-      { userId: 8, token: "refreshed-access", cached: true },
+      "user-session:user-8:refreshed-access",
+      { userId: "user-8", token: "refreshed-access", cached: true },
       expect.any(Number),
     );
   });
@@ -481,26 +481,26 @@ describe("AuthService", () => {
     mocks.dbAuthService.logout.mockResolvedValueOnce(true);
     const service = createService();
 
-    await expect(service.logout(7, "access-token")).resolves.toBe(true);
+    await expect(service.logout("user-7", "access-token")).resolves.toBe(true);
     expect(mocks.cache.delete).toHaveBeenCalledWith("token:access-token");
     expect(mocks.cache.set).toHaveBeenCalledWith(
       "security-event:1780790400000",
-      expect.objectContaining({ type: "LOGOUT", userId: 7 }),
+      expect.objectContaining({ type: "LOGOUT", userId: "user-7" }),
       expect.any(Number),
     );
 
     mocks.dbAuthService.logout.mockResolvedValueOnce(true);
-    await expect(service.logout(7, undefined, true)).resolves.toBe(true);
-    expect(mocks.cache.clear).toHaveBeenCalledWith("user-session:7");
+    await expect(service.logout("user-7", undefined, true)).resolves.toBe(true);
+    expect(mocks.cache.clear).toHaveBeenCalledWith("user-session:user-7");
 
     mocks.dbAuthService.logout.mockRejectedValueOnce(new Error("db down"));
-    await expect(service.logout(7, "access-token")).resolves.toBe(false);
+    await expect(service.logout("user-7", "access-token")).resolves.toBe(false);
   });
 
   it("returns cached token validation and avoids database validation", async () => {
     const cached = {
       valid: true,
-      user: { id: 7, username: "owner" },
+      user: { id: "user-7", username: "owner" },
     };
     mocks.cache.get.mockResolvedValueOnce(cached);
 
@@ -518,7 +518,7 @@ describe("AuthService", () => {
     mocks.dbAuthService.validateToken.mockResolvedValue({
       valid: true,
       user: {
-        id: 7,
+        id: "user-7",
         username: "owner",
         fullName: "Shop Owner",
         role: 1,
@@ -532,7 +532,7 @@ describe("AuthService", () => {
     ).resolves.toMatchObject({
       valid: true,
       user: {
-        id: 7,
+        id: "user-7",
         username: "owner",
         fullName: "Shop Owner",
         role: 1,
@@ -571,7 +571,7 @@ describe("AuthService", () => {
       },
     ]);
 
-    await expect(createService().getUserSessions(7)).resolves.toEqual([
+    await expect(createService().getUserSessions("user-7")).resolves.toEqual([
       {
         id: "1",
         deviceInfo: { platform: "desktop" },
@@ -595,7 +595,7 @@ describe("AuthService", () => {
 
   it("loads, caches, updates, and terminates user profile sessions", async () => {
     const user = {
-      id: 7,
+      id: "user-7",
       username: "owner",
       fullName: "Shop Owner",
       email: null,
@@ -615,8 +615,8 @@ describe("AuthService", () => {
     mocks.dbAuthService.getUserSessions.mockResolvedValue([]);
 
     const service = createService();
-    await expect(service.getUserProfile(7)).resolves.toMatchObject({
-      id: 7,
+    await expect(service.getUserProfile("user-7")).resolves.toMatchObject({
+      id: "user-7",
       email: undefined,
       phone: "+886900000000",
       restaurantId: undefined,
@@ -624,8 +624,8 @@ describe("AuthService", () => {
       sessions: [],
     });
     expect(mocks.cache.set).toHaveBeenCalledWith(
-      "user-profile:7",
-      expect.objectContaining({ id: 7 }),
+      "user-profile:user-7",
+      expect.objectContaining({ id: "user-7" }),
       expect.any(Number),
     );
 
@@ -638,24 +638,26 @@ describe("AuthService", () => {
       },
     ]);
     await expect(
-      service.updateUserProfile(7, {
+      service.updateUserProfile("user-7", {
         fullName: "Updated Owner",
         email: "owner@example.test",
       }),
     ).resolves.toMatchObject({
-      id: 7,
+      id: "user-7",
       fullName: "Updated Owner",
       email: "owner@example.test",
       restaurantId: "restaurant-1",
     });
-    expect(mocks.cache.delete).toHaveBeenCalledWith("user-profile:7");
-    expect(mocks.cache.delete).toHaveBeenCalledWith("user:7");
+    expect(mocks.cache.delete).toHaveBeenCalledWith("user-profile:user-7");
+    expect(mocks.cache.delete).toHaveBeenCalledWith("user:user-7");
 
     mockUpdateReturning([{ id: "session-1" }]);
-    await expect(service.terminateSession(7, "session-1")).resolves.toBe(true);
+    await expect(service.terminateSession("user-7", "session-1")).resolves.toBe(
+      true,
+    );
 
     mocks.dbAuthService.logout.mockResolvedValueOnce(true);
-    await expect(service.terminateAllSessions(7)).resolves.toBe(true);
+    await expect(service.terminateAllSessions("user-7")).resolves.toBe(true);
   });
 
   it("returns null or false for profile/update/session failures", async () => {
@@ -665,13 +667,15 @@ describe("AuthService", () => {
     });
     const service = createService();
 
-    await expect(service.getUserProfile(7)).resolves.toBeNull();
-    await expect(service.updateUserProfile(7, {})).resolves.toBeNull();
+    await expect(service.getUserProfile("user-7")).resolves.toBeNull();
+    await expect(service.updateUserProfile("user-7", {})).resolves.toBeNull();
 
     mocks.db.update.mockImplementationOnce(() => {
       throw new Error("update failed");
     });
-    await expect(service.terminateSession(7, "session-1")).resolves.toBe(false);
+    await expect(service.terminateSession("user-7", "session-1")).resolves.toBe(
+      false,
+    );
   });
 
   it("resolves password reset targets without exposing missing accounts", async () => {
@@ -712,7 +716,7 @@ describe("AuthService", () => {
     });
     mocks.verificationService.verifyEmail.mockResolvedValueOnce({
       success: true,
-      userId: 7,
+      userId: "user-7",
     });
     mocks.verificationService.sendEmailVerification.mockResolvedValueOnce({
       success: true,
@@ -722,10 +726,10 @@ describe("AuthService", () => {
     const service = createService();
 
     await expect(
-      service.changePassword(7, "old-password", "new-password"),
+      service.changePassword("user-7", "old-password", "new-password"),
     ).resolves.toEqual({ success: true });
-    expect(mocks.cache.delete).toHaveBeenCalledWith("user-profile:7");
-    expect(mocks.cache.clear).toHaveBeenCalledWith("user-session:7");
+    expect(mocks.cache.delete).toHaveBeenCalledWith("user-profile:user-7");
+    expect(mocks.cache.clear).toHaveBeenCalledWith("user-session:user-7");
 
     await expect(
       service.resetPassword("reset-token", "new-password"),
@@ -734,13 +738,13 @@ describe("AuthService", () => {
       success: true,
       error: undefined,
     });
-    await expect(service.requestEmailVerification(7)).resolves.toEqual({
+    await expect(service.requestEmailVerification("user-7")).resolves.toEqual({
       success: true,
       error: undefined,
     });
 
     mockSelectGet(null);
-    await expect(service.requestEmailVerification(8)).resolves.toEqual({
+    await expect(service.requestEmailVerification("user-8")).resolves.toEqual({
       success: false,
       error: "User email not found",
     });
@@ -750,12 +754,14 @@ describe("AuthService", () => {
     mockSelectGet({ passwordChangedAt: new Date("2026-01-01T00:00:00.000Z") });
     const service = createService();
 
-    await expect(service.checkAccountSecurity(7)).resolves.toMatchObject({
-      failedLoginAttempts: 0,
-      passwordStrength: "MEDIUM",
-      suspiciousActivity: false,
-      lastPasswordChangeAt: new Date("2026-01-01T00:00:00.000Z"),
-    });
+    await expect(service.checkAccountSecurity("user-7")).resolves.toMatchObject(
+      {
+        failedLoginAttempts: 0,
+        passwordStrength: "MEDIUM",
+        suspiciousActivity: false,
+        lastPasswordChangeAt: new Date("2026-01-01T00:00:00.000Z"),
+      },
+    );
 
     mockSelectRows([{ total: 20 }]);
     mockSelectRows([{ total: 15 }]);
@@ -782,18 +788,20 @@ describe("AuthService", () => {
   it("exposes placeholder two-factor behavior consistently", async () => {
     const service = createService();
 
-    await expect(service.setupTwoFactor(7, "secret")).rejects.toThrow(
+    await expect(service.setupTwoFactor("user-7", "secret")).rejects.toThrow(
       "Two-factor authentication not yet implemented",
     );
-    await expect(service.verifyTwoFactor(7, "123456")).resolves.toEqual({
+    await expect(service.verifyTwoFactor("user-7", "123456")).resolves.toEqual({
       success: false,
       error: "Two-factor authentication not yet implemented",
     });
-    await expect(service.disableTwoFactor(7, "secret")).resolves.toEqual({
-      success: false,
-      error: "Two-factor authentication not yet implemented",
-    });
-    await expect(service.generateBackupCodes(7)).rejects.toThrow(
+    await expect(service.disableTwoFactor("user-7", "secret")).resolves.toEqual(
+      {
+        success: false,
+        error: "Two-factor authentication not yet implemented",
+      },
+    );
+    await expect(service.generateBackupCodes("user-7")).rejects.toThrow(
       "Two-factor authentication not yet implemented",
     );
   });

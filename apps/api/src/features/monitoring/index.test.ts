@@ -33,12 +33,12 @@ describe("monitoring feature module", () => {
       { version: "1.0.0" },
     );
 
-    await expect(module.routes.request("/probe")).resolves.toMatchObject({
-      status: 200,
+    const probeResponse = await module.routes.request("/probe");
+    expect(probeResponse.status).toBe(200);
+    await expect(probeResponse.json()).resolves.toEqual({
+      success: true,
+      feature: "monitoring",
     });
-    await expect(
-      module.routes.request("/probe").then((res) => res.json()),
-    ).resolves.toEqual({ success: true, feature: "monitoring" });
     await expect(module.routes.request("/missing")).resolves.toMatchObject({
       status: 404,
     });

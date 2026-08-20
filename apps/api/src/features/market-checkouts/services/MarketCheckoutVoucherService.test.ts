@@ -200,12 +200,12 @@ describe("MarketCheckoutVoucherService.computeDiscountCents", () => {
 describe("MarketCheckoutVoucherService.splitDiscount", () => {
   it("splits proportionally by child amount", () => {
     const allocations = MarketCheckoutVoucherService.splitDiscount(2400, [
-      { orderId: 1, amountCents: 16000 },
-      { orderId: 2, amountCents: 8000 },
+      { orderId: "1", amountCents: 16000 },
+      { orderId: "2", amountCents: 8000 },
     ]);
     expect(allocations).toEqual([
-      { orderId: 1, amountCents: 16000, discountCents: 1600 },
-      { orderId: 2, amountCents: 8000, discountCents: 800 },
+      { orderId: "1", amountCents: 16000, discountCents: 1600 },
+      { orderId: "2", amountCents: 8000, discountCents: 800 },
     ]);
   });
 
@@ -213,22 +213,22 @@ describe("MarketCheckoutVoucherService.splitDiscount", () => {
     // 1000 split over 3/3/4 -> floor 300/300/400 = 1000 (exact); use amounts
     // that force a remainder: 100 over 333/333/334 of 1000.
     const allocations = MarketCheckoutVoucherService.splitDiscount(100, [
-      { orderId: 1, amountCents: 333 },
-      { orderId: 2, amountCents: 333 },
-      { orderId: 3, amountCents: 334 },
+      { orderId: "1", amountCents: 333 },
+      { orderId: "2", amountCents: 333 },
+      { orderId: "3", amountCents: 334 },
     ]);
     const total = allocations.reduce((sum, a) => sum + a.discountCents, 0);
     expect(total).toBe(100);
     // largest child (order 3) absorbs the remainder
-    const largest = allocations.find((a) => a.orderId === 3)!;
+    const largest = allocations.find((a) => a.orderId === "3")!;
     expect(largest.discountCents).toBeGreaterThanOrEqual(34);
   });
 
   it("always sums to the full discount", () => {
     const allocations = MarketCheckoutVoucherService.splitDiscount(777, [
-      { orderId: 1, amountCents: 1234 },
-      { orderId: 2, amountCents: 5678 },
-      { orderId: 3, amountCents: 9012 },
+      { orderId: "1", amountCents: 1234 },
+      { orderId: "2", amountCents: 5678 },
+      { orderId: "3", amountCents: 9012 },
     ]);
     const total = allocations.reduce((sum, a) => sum + a.discountCents, 0);
     expect(total).toBe(777);
@@ -236,8 +236,8 @@ describe("MarketCheckoutVoucherService.splitDiscount", () => {
 
   it("assigns no discount when the subtotal is zero", () => {
     const allocations = MarketCheckoutVoucherService.splitDiscount(500, [
-      { orderId: 1, amountCents: 0 },
-      { orderId: 2, amountCents: 0 },
+      { orderId: "1", amountCents: 0 },
+      { orderId: "2", amountCents: 0 },
     ]);
     expect(allocations.every((a) => a.discountCents === 0)).toBe(true);
   });
@@ -251,8 +251,8 @@ describe("market checkout stacked voucher helpers", () => {
     fundedBy: "platform" as const,
     discountCents: 1000,
     allocations: [
-      { orderId: 1, amountCents: 6000, discountCents: 600 },
-      { orderId: 2, amountCents: 4000, discountCents: 400 },
+      { orderId: "1", amountCents: 6000, discountCents: 600 },
+      { orderId: "2", amountCents: 4000, discountCents: 400 },
     ],
   };
   const vendorVoucher = {
@@ -261,7 +261,7 @@ describe("market checkout stacked voucher helpers", () => {
     name: "Shop 50",
     fundedBy: "vendor" as const,
     discountCents: 500,
-    allocations: [{ orderId: 2, amountCents: 3600, discountCents: 500 }],
+    allocations: [{ orderId: "2", amountCents: 3600, discountCents: 500 }],
   };
 
   it("combines multiple vouchers into aggregate allocations", () => {
@@ -274,8 +274,8 @@ describe("market checkout stacked voucher helpers", () => {
       discountCents: 1500,
       vouchers: [platformVoucher, vendorVoucher],
       allocations: [
-        { orderId: 1, amountCents: 6000, discountCents: 600 },
-        { orderId: 2, amountCents: 4000, discountCents: 900 },
+        { orderId: "1", amountCents: 6000, discountCents: 600 },
+        { orderId: "2", amountCents: 4000, discountCents: 900 },
       ],
     });
   });
@@ -378,7 +378,7 @@ describe("redeemCachedMarketCheckoutVoucher", () => {
         get: vi.fn(async () => null),
       },
       DB: {
-        prepare: vi.fn(() => ({
+        prepare: vi.fn((_sql: string) => ({
           bind: vi.fn(() => ({
             raw: vi.fn(async () => [[JSON.stringify(appliedVoucher)]]),
             first: vi.fn(async () => ({
@@ -496,7 +496,7 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
         code: "today",
         subtotalCents: 1000,
         childOrders: [
-          { orderId: 1, restaurantId: "rest-1", amountCents: 1000 },
+          { orderId: "1", restaurantId: "rest-1", amountCents: 1000 },
         ],
       }),
     ).resolves.toMatchObject({
@@ -530,8 +530,8 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
         code: " save10 ",
         subtotalCents: 5000,
         childOrders: [
-          { orderId: 1, restaurantId: "rest-1", amountCents: 3000 },
-          { orderId: 2, restaurantId: "rest-2", amountCents: 2000 },
+          { orderId: "1", restaurantId: "rest-1", amountCents: 3000 },
+          { orderId: "2", restaurantId: "rest-2", amountCents: 2000 },
         ],
       }),
     ).resolves.toEqual({
@@ -542,8 +542,8 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
       fundedBy: "platform",
       discountCents: 500,
       allocations: [
-        { orderId: 1, amountCents: 3000, discountCents: 300 },
-        { orderId: 2, amountCents: 2000, discountCents: 200 },
+        { orderId: "1", amountCents: 3000, discountCents: 300 },
+        { orderId: "2", amountCents: 2000, discountCents: 200 },
       ],
     });
   });
@@ -572,15 +572,15 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
         code: "shop50",
         subtotalCents: 7000,
         childOrders: [
-          { orderId: 1, restaurantId: "rest-1", amountCents: 3000 },
-          { orderId: 2, restaurantId: "rest-2", amountCents: 4000 },
+          { orderId: "1", restaurantId: "rest-1", amountCents: 3000 },
+          { orderId: "2", restaurantId: "rest-2", amountCents: 4000 },
         ],
       }),
     ).resolves.toMatchObject({
       couponId: 8,
       fundedBy: "vendor",
       discountCents: 500,
-      allocations: [{ orderId: 2, amountCents: 4000, discountCents: 500 }],
+      allocations: [{ orderId: "2", amountCents: 4000, discountCents: 500 }],
     });
   });
 
@@ -594,7 +594,7 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
       makeValidateUnitService(null, {}).validateAndPrice({
         code: "",
         subtotalCents: 1000,
-        childOrders: [{ orderId: 1, amountCents: 1000 }],
+        childOrders: [{ orderId: "1", amountCents: 1000 }],
       }),
     ).rejects.toMatchObject({ code: "VOUCHER_CODE_REQUIRED" });
 
@@ -602,7 +602,7 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
       makeValidateUnitService(null).validateAndPrice({
         code: "missing",
         subtotalCents: 1000,
-        childOrders: [{ orderId: 1, amountCents: 1000 }],
+        childOrders: [{ orderId: "1", amountCents: 1000 }],
       }),
     ).rejects.toMatchObject({ code: "VOUCHER_NOT_FOUND" });
 
@@ -626,7 +626,7 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
       }).validateAndPrice({
         code: "old",
         subtotalCents: 1000,
-        childOrders: [{ orderId: 1, amountCents: 1000 }],
+        childOrders: [{ orderId: "1", amountCents: 1000 }],
       }),
     ).rejects.toMatchObject({ code: "VOUCHER_EXPIRED" });
   });
@@ -663,8 +663,8 @@ describe("MarketCheckoutVoucherService.redeem", () => {
     const insertRun = vi.fn(async () => undefined);
     const couponUpdateRun = vi.fn(async () => ({ meta: { changes: 1 } }));
     const service = makeRedeemUnitService(insertRun, couponUpdateRun, [
-      { orderId: 1001 },
-      { orderId: 1002 },
+      { orderId: "1001" },
+      { orderId: "1002" },
     ]);
 
     await service.redeem(appliedVoucherForRedeemRace());
@@ -814,16 +814,16 @@ describe("MarketCheckoutVoucherService.markRefunded", () => {
         // once for checkoutRows, then again for childRows because
         // checkoutRows produced a checkoutId.
         marketCheckoutChildOrders: [
-          [{ checkoutId: "checkout-1", orderId: 1001 }],
+          [{ checkoutId: "checkout-1", orderId: "1001" }],
           [
-            { checkoutId: "checkout-1", orderId: 1001 },
-            { checkoutId: "checkout-1", orderId: 1002 },
+            { checkoutId: "checkout-1", orderId: "1001" },
+            { checkoutId: "checkout-1", orderId: "1002" },
           ],
         ],
         couponUsage: [
           [
-            { orderId: 1001, status: "refunded" },
-            { orderId: 1002, status: "refunded" },
+            { orderId: "1001", status: "refunded" },
+            { orderId: "1002", status: "refunded" },
           ],
         ],
       },
@@ -834,7 +834,7 @@ describe("MarketCheckoutVoucherService.markRefunded", () => {
 
     await service.markRefunded({
       couponId: 42,
-      orderIds: [1001, 1001],
+      orderIds: ["1001", "1001"],
     });
 
     expect(updateRun).toHaveBeenCalledTimes(1);
@@ -850,7 +850,7 @@ describe("MarketCheckoutVoucherService.markRefunded", () => {
         // issues the second (childRows) marketCheckoutChildOrders read —
         // only one fixture is queued for it.
         marketCheckoutChildOrders: [[]],
-        couponUsage: [[{ orderId: 1001, status: "active" }]],
+        couponUsage: [[{ orderId: "1001", status: "active" }]],
       },
       releaseRows: [],
       updateRun,
@@ -859,7 +859,7 @@ describe("MarketCheckoutVoucherService.markRefunded", () => {
 
     await service.markRefunded({
       couponId: 42,
-      orderIds: [1001],
+      orderIds: ["1001"],
     });
 
     expect(updateRun).toHaveBeenCalledTimes(1);
@@ -992,8 +992,8 @@ function appliedVoucherForRedeemRace() {
     fundedBy: "platform" as const,
     discountCents: 2400,
     allocations: [
-      { orderId: 1001, amountCents: 16000, discountCents: 1600 },
-      { orderId: 1002, amountCents: 8000, discountCents: 800 },
+      { orderId: "1001", amountCents: 16000, discountCents: 1600 },
+      { orderId: "1002", amountCents: 8000, discountCents: 800 },
     ],
   };
 }

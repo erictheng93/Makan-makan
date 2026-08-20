@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ModuleKey } from "@makanmasak/database";
 
 const auth = vi.hoisted(() => ({
   user: undefined as
@@ -29,7 +30,8 @@ vi.mock("../../../shared/middleware", async (importOriginal) => {
 
 const gateMocks = vi.hoisted(() => ({
   moduleGate: vi.fn(
-    () => async (_c: unknown, next: () => Promise<void>) => next(),
+    (_module: ModuleKey) => async (_c: unknown, next: () => Promise<void>) =>
+      next(),
   ),
 }));
 

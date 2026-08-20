@@ -72,7 +72,7 @@ function mockMutations() {
         return builder;
       }),
       returning: vi.fn((projection?: unknown) =>
-        createQuery(projection ? [{ id: 101 }] : []),
+        createQuery(projection ? [{ id: "order-101" }] : []),
       ),
       then: (
         resolve: (value: unknown) => void,
@@ -167,7 +167,7 @@ describe("PlatformOrderService", () => {
         { id: "uber-order-1" },
         "restaurant-1",
       ),
-    ).resolves.toBe(101);
+    ).resolves.toBe("order-101");
 
     expect(mocks.adapter.parseOrder).toHaveBeenCalledWith({
       id: "uber-order-1",
@@ -187,7 +187,7 @@ describe("PlatformOrderService", () => {
       discountAmountCents: 0,
     });
     expect(mutations.inserted[1]).toMatchObject({
-      orderId: 101,
+      orderId: "order-101",
       menuItemId: 501,
       quantity: 2,
       unitPriceCents: 550,
@@ -195,7 +195,7 @@ describe("PlatformOrderService", () => {
       itemSnapshot: { name: "Laksa" },
     });
     expect(mutations.inserted[2]).toMatchObject({
-      orderId: 101,
+      orderId: "order-101",
       restaurantId: "restaurant-1",
       platform: "uber_eats",
       platformOrderId: "uber-order-1",
@@ -253,7 +253,7 @@ describe("PlatformOrderService", () => {
         { id: "uber-order-1" },
         "restaurant-1",
       ),
-    ).resolves.toBe(101);
+    ).resolves.toBe("order-101");
 
     expect(mutations.updated).toHaveLength(0);
     expect(console.error).toHaveBeenCalledWith(
@@ -269,7 +269,7 @@ describe("PlatformOrderService", () => {
         [
           {
             id: "platform-row-1",
-            orderId: 101,
+            orderId: "order-101",
             restaurantId: "restaurant-1",
             platform: "uber_eats",
             platformOrderId: "uber-order-1",
@@ -279,7 +279,7 @@ describe("PlatformOrderService", () => {
         [
           {
             id: "platform-row-2",
-            orderId: 102,
+            orderId: "order-102",
             restaurantId: "restaurant-1",
             platform: "uber_eats",
             platformOrderId: "uber-order-2",
@@ -289,7 +289,7 @@ describe("PlatformOrderService", () => {
         [
           {
             id: "platform-row-3",
-            orderId: 103,
+            orderId: "order-103",
             restaurantId: "restaurant-1",
             platform: "uber_eats",
             platformOrderId: "uber-order-3",
@@ -299,7 +299,7 @@ describe("PlatformOrderService", () => {
         [
           {
             id: "platform-row-4",
-            orderId: 104,
+            orderId: "order-104",
             restaurantId: "restaurant-1",
             platform: "uber_eats",
             platformOrderId: "uber-order-4",
@@ -310,10 +310,10 @@ describe("PlatformOrderService", () => {
     });
     vi.spyOn(console, "log").mockImplementation(() => undefined);
 
-    await createService().syncStatusToPlatform(101, "confirmed");
-    await createService().syncStatusToPlatform(102, "cancelled");
-    await createService().syncStatusToPlatform(103, "cancelled");
-    await createService().syncStatusToPlatform(104, "ready");
+    await createService().syncStatusToPlatform("order-101", "confirmed");
+    await createService().syncStatusToPlatform("order-102", "cancelled");
+    await createService().syncStatusToPlatform("order-103", "cancelled");
+    await createService().syncStatusToPlatform("order-104", "ready");
 
     expect(mocks.adapter.acceptOrder).toHaveBeenCalledWith("uber-order-1", {
       accessToken: "token",
@@ -342,7 +342,7 @@ describe("PlatformOrderService", () => {
       platformOrders: [[], [{ id: "platform-row-1", platform: "uber_eats" }]],
     });
 
-    await createService().syncStatusToPlatform(404, "confirmed");
+    await createService().syncStatusToPlatform("order-404", "confirmed");
     const results = await createService().getPlatformOrders("restaurant-1", {
       platform: "uber_eats",
       platformStatus: "received",

@@ -9,6 +9,7 @@ import {
   restaurants,
 } from "@makanmasak/database";
 import routes from "./index";
+import type { AppliedMarketCheckoutVoucher } from "../services/MarketCheckoutVoucherService";
 import { ApiError } from "../../../shared/utils/api-error";
 import {
   mockMarketCheckoutProviderPaidWebhookPayload,
@@ -470,8 +471,22 @@ function unpaidCheckoutSessionFixture() {
   };
 }
 
+/**
+ * Either checkout fixture, persisted: the unpaid one carries the recovery
+ * digits and no payment, the provider-split one carries the payment and no
+ * digits, and a voucher may be stacked on top of either.
+ */
+type PersistableCheckoutSessionFixture = Omit<
+  ReturnType<typeof unpaidCheckoutSessionFixture>,
+  "phoneLastDigits"
+> & {
+  phoneLastDigits?: string;
+  payment?: ReturnType<typeof providerSplitPaidSessionFixture>["payment"];
+  appliedVoucher?: AppliedMarketCheckoutVoucher;
+};
+
 function persistedSessionFixtures(
-  session: ReturnType<typeof unpaidCheckoutSessionFixture>,
+  session: PersistableCheckoutSessionFixture,
 ): SelectFixtures {
   return {
     marketCheckoutSessions: [
@@ -508,7 +523,9 @@ function persistedSessionFixtures(
   };
 }
 
-async function withSilencedRouteError<T>(action: () => Promise<T>): Promise<T> {
+async function withSilencedRouteError<T>(
+  action: () => T | Promise<T>,
+): Promise<Awaited<T>> {
   const consoleError = vi
     .spyOn(console, "error")
     .mockImplementation(() => undefined);
@@ -1047,7 +1064,7 @@ describe("market checkout routes", () => {
         expectedStatus: 403,
         expectedCode: "FORBIDDEN",
       },
-    ];
+    ] as const;
 
     for (const scenario of scenarios) {
       databaseMocks.selectFixtures.clear();
@@ -2638,9 +2655,18 @@ describe("market checkout routes", () => {
 
   it("rejects provider split refunds without refundable provider state", async () => {
     const missingTransactionEnv = createEnv();
-    const missingTransactionSession = providerSplitPaidSessionFixture();
-    delete missingTransactionSession.payment.parentPayment
-      .providerTransactionId;
+    const paidSession = providerSplitPaidSessionFixture();
+    const {
+      providerTransactionId: _droppedProviderTransactionId,
+      ...parentPaymentWithoutTransaction
+    } = paidSession.payment.parentPayment;
+    const missingTransactionSession = {
+      ...paidSession,
+      payment: {
+        ...paidSession.payment,
+        parentPayment: parentPaymentWithoutTransaction,
+      },
+    };
     await missingTransactionEnv.CACHE_KV.put(
       "market_checkout:checkout-1",
       JSON.stringify(missingTransactionSession),

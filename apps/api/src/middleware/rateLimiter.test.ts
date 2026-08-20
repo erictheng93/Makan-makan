@@ -45,11 +45,21 @@ function createKv(options: { failPut?: boolean } = {}) {
   };
 }
 
+/**
+ * `rateLimitMiddleware` reads `c.get("tenant")`, which no middleware in this
+ * file's import graph declares on Hono's global `ContextVariableMap`. Declaring
+ * it on the test app's own `Variables` keeps `c.set("tenant", ...)` typed
+ * without reaching into production's context typings.
+ */
+type TestVariables = {
+  tenant: { mode: string; tenantId: string; enforceSingleTenant: boolean };
+};
+
 function createApp(
   kv: ReturnType<typeof createKv>,
   config: { windowMs?: number; maxRequests?: number } = {},
 ) {
-  const app = new Hono();
+  const app = new Hono<{ Variables: TestVariables }>();
   app.use("*", async (c, next) => {
     const tenantId = c.req.header("x-test-tenant");
     if (tenantId) {

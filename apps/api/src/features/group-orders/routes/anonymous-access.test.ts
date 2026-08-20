@@ -105,7 +105,9 @@ function buildApp() {
 
 const env = { DB: {}, CACHE_KV: {} } as never;
 
-async function withSilencedConsole<T>(action: () => Promise<T>): Promise<T> {
+async function withSilencedConsole<T>(
+  action: () => T | Promise<T>,
+): Promise<Awaited<T>> {
   const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
   try {
     return await action();

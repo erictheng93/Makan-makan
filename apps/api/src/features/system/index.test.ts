@@ -45,9 +45,11 @@ describe("system feature module", () => {
     await expect(module.routes.request("/probe")).resolves.toMatchObject({
       status: 200,
     });
-    await expect(
-      module.routes.request("/probe").then((res) => res.json()),
-    ).resolves.toEqual({ success: true, feature: "system" });
+    const probeResponse = await module.routes.request("/probe");
+    await expect(probeResponse.json()).resolves.toEqual({
+      success: true,
+      feature: "system",
+    });
     const dateNow = vi.spyOn(Date, "now").mockReturnValue(0);
     await expect(module.routes.request("/missing")).resolves.toMatchObject({
       status: 404,

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { NotificationPayload } from "@makanmasak/database";
 
 const auth = vi.hoisted(() => ({
   customer: {
@@ -86,7 +87,7 @@ vi.mock("@makanmasak/utils", () => ({
 // Only NotificationService is stubbed. createSmsProvider stays real so the OTP
 // tests keep exercising the actual vendor wire format through env.SMS_FETCH.
 const notificationMocks = vi.hoisted(() => ({
-  sendNotification: vi.fn(async () => ({
+  sendNotification: vi.fn(async (_payload: NotificationPayload) => ({
     success: true,
     errors: [] as string[],
   })),
@@ -255,6 +256,16 @@ function request(
   return { response, db, rateLimitKv, tokenKv };
 }
 
+type OtpRequestBody = {
+  success: boolean;
+  data: { phone: string; expiresInSeconds: number; devOtp?: string };
+};
+
+type VerifyOtpBody = {
+  success: boolean;
+  data: { accessToken: string; customer: { id: string } };
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   auth.customer = {
@@ -312,7 +323,7 @@ describe("customer identity routes", () => {
       },
       { DB: db, RATE_LIMIT_KV: rateLimitKv },
     );
-    const body = await (await response).json();
+    const body = await (await response).json<OtpRequestBody>();
 
     expect(body).toMatchObject({
       success: true,
@@ -342,7 +353,7 @@ describe("customer identity routes", () => {
       { phone: "+886912345678" },
       { SMS_FETCH: smsFetch },
     );
-    const body = await (await response).json();
+    const body = await (await response).json<OtpRequestBody>();
 
     expect(body.success).toBe(true);
     expect(body.data.devOtp).toMatch(/^\d{6}$/);
@@ -356,7 +367,7 @@ describe("customer identity routes", () => {
       { phone: "+886912345678" },
       { NODE_ENV: "staging" },
     );
-    const body = await (await response).json();
+    const body = await (await response).json<OtpRequestBody>();
 
     expect(body).toMatchObject({
       success: true,
@@ -387,7 +398,7 @@ describe("customer identity routes", () => {
         SMS_FETCH: smsFetch,
       },
     );
-    const body = await (await response).json();
+    const body = await (await response).json<OtpRequestBody>();
 
     expect(body.success).toBe(true);
     expect(smsFetch).toHaveBeenCalledOnce();
@@ -467,7 +478,7 @@ describe("customer identity routes", () => {
       { DB: db, TOKEN_BLACKLIST: tokenKv },
     );
     const rawResponse = await response;
-    const body = await rawResponse.json();
+    const body = await rawResponse.json<VerifyOtpBody>();
 
     expect(body).toMatchObject({
       success: true,
@@ -656,11 +667,10 @@ describe("customer identity routes", () => {
       { DB: db, CUSTOMER_APP_URL: "https://app.test" },
     ).response;
 
-    const sent = notificationMocks.sendNotification.mock.calls[0][0] as {
-      data: { verificationLink: string };
-    };
+    const sent = notificationMocks.sendNotification.mock.calls[0][0];
     const rawToken = decodeURIComponent(
-      new URL(sent.data.verificationLink).searchParams.get("token") ?? "",
+      new URL(String(sent.data.verificationLink)).searchParams.get("token") ??
+        "",
     );
     expect(rawToken.length).toBeGreaterThan(20);
 

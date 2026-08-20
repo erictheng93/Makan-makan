@@ -397,7 +397,9 @@ describe("integrations admin routes", () => {
   });
 });
 
-async function withSilencedRouteError<T>(action: () => Promise<T>): Promise<T> {
+async function withSilencedRouteError<T>(
+  action: () => T | Promise<T>,
+): Promise<Awaited<T>> {
   const consoleError = vi
     .spyOn(console, "error")
     .mockImplementation(() => undefined);

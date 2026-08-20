@@ -99,6 +99,31 @@ function createEnv() {
   };
 }
 
+// Only the fields the assertions reach into; `toMatchObject` still checks
+// the rest of the payload structurally.
+type OverviewBody = {
+  success: boolean;
+  data: {
+    keyMetrics: { cacheHitRate: string };
+    topErrors: Array<{ type: string; count: number }>;
+    metrics?: {
+      apiMetrics: { totalRequests: number };
+      databaseMetrics: { queryCount: number };
+      cacheMetrics: { hitRate: number };
+    };
+  };
+};
+
+type PerformanceReportBody = {
+  success: boolean;
+  data: {
+    errorAnalysis: {
+      errorsByType: Array<{ type: string; count: number; percentage: string }>;
+    };
+    recommendations: string[];
+  };
+};
+
 function jsonRequest(path: string, method: string, body: unknown) {
   return new Request(`https://monitoring.test${path}`, {
     method,
@@ -477,7 +502,7 @@ describe("monitoring routes", () => {
     );
 
     expect(response.status).toBe(200);
-    const body = await response.json();
+    const body = await response.json<OverviewBody>();
     expect(body).toMatchObject({
       success: true,
       data: {
@@ -520,7 +545,7 @@ describe("monitoring routes", () => {
     );
 
     expect(response.status).toBe(200);
-    const body = await response.json();
+    const body = await response.json<OverviewBody>();
     expect(body.data.metrics).toMatchObject({
       apiMetrics: { totalRequests: 120 },
       databaseMetrics: { queryCount: 80 },
@@ -537,7 +562,7 @@ describe("monitoring routes", () => {
     );
 
     expect(response.status).toBe(200);
-    const body = await response.json();
+    const body = await response.json<PerformanceReportBody>();
     expect(body).toMatchObject({
       success: true,
       data: {
@@ -683,7 +708,7 @@ describe("monitoring routes", () => {
       createEnv() as never,
     );
 
-    const body = await withMetrics.json();
+    const body = await withMetrics.json<OverviewBody>();
     expect(body.data.metrics).toBeDefined();
   });
 

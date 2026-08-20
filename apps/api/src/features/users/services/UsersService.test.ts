@@ -48,9 +48,9 @@ const env = {
   },
 } as unknown as Env;
 
-const admin = { id: 1, role: 0 };
-const owner = { id: 10, role: 1, restaurantId: "restaurant-1" };
-const cashier = { id: 42, role: 4, restaurantId: "restaurant-1" };
+const admin = { id: "user-1", role: 0 };
+const owner = { id: "user-10", role: 1, restaurantId: "restaurant-1" };
+const cashier = { id: "user-42", role: 4, restaurantId: "restaurant-1" };
 
 function createService() {
   return new UsersService(env);
@@ -58,7 +58,7 @@ function createService() {
 
 function user(overrides: Record<string, unknown> = {}) {
   return {
-    id: 42,
+    id: "user-42",
     username: "cashier",
     role: 4,
     restaurantId: "restaurant-1",
@@ -70,7 +70,7 @@ function user(overrides: Record<string, unknown> = {}) {
     profileImageUrl: "https://cdn.example.test/profile.jpg",
     isActive: true,
     isVerified: false,
-    preferences: { locale: "en-MY" },
+    preferences: { language: "en-MY" },
     totalOrders: 12,
     totalSpent: 3450,
     lastLoginAt: "2026-06-07T01:00:00.000Z",
@@ -119,24 +119,32 @@ describe("UsersService", () => {
     expect(service.canManageUser(cashier, 4, "restaurant-1")).toBe(false);
 
     expect(
-      service.canViewUser(owner, { id: 99, restaurantId: "restaurant-1" }),
+      service.canViewUser(owner, {
+        id: "user-99",
+        restaurantId: "restaurant-1",
+      }),
     ).toBe(true);
-    expect(service.canViewUser(cashier, { id: 42 })).toBe(true);
+    expect(service.canViewUser(cashier, { id: "user-42" })).toBe(true);
     expect(
-      service.canViewUser(cashier, { id: 99, restaurantId: "restaurant-1" }),
+      service.canViewUser(cashier, {
+        id: "user-99",
+        restaurantId: "restaurant-1",
+      }),
     ).toBe(false);
 
-    expect(service.canUpdateUser(cashier, { id: 42, role: 4 })).toBe(true);
+    expect(service.canUpdateUser(cashier, { id: "user-42", role: 4 })).toBe(
+      true,
+    );
     expect(
       service.canUpdateUser(owner, {
-        id: 43,
+        id: "user-43",
         role: 4,
         restaurantId: "restaurant-1",
       }),
     ).toBe(true);
     expect(
       service.canUpdateUser(owner, {
-        id: 44,
+        id: "user-44",
         role: 4,
         restaurantId: "restaurant-2",
       }),
@@ -145,7 +153,7 @@ describe("UsersService", () => {
 
   it("formats users with role names and preserves optional profile fields", () => {
     expect(createService().formatUser(user())).toEqual({
-      id: 42,
+      id: "user-42",
       username: "cashier",
       role: 4,
       role_name: "Cashier",
@@ -158,7 +166,7 @@ describe("UsersService", () => {
       profileImageUrl: "https://cdn.example.test/profile.jpg",
       isActive: true,
       isVerified: false,
-      preferences: { locale: "en-MY" },
+      preferences: { language: "en-MY" },
       totalOrders: 12,
       totalSpent: 3450,
       lastLoginAt: "2026-06-07T01:00:00.000Z",
@@ -172,7 +180,7 @@ describe("UsersService", () => {
 
   it("lists all users for admins and constrains owners to their restaurant", async () => {
     dbMocks.userServiceFns.getAllUsers.mockResolvedValueOnce({
-      users: [user({ id: 1, role: 1, username: "owner" })],
+      users: [user({ id: "user-1", role: 1, username: "owner" })],
       pagination: { page: 1, limit: 20, total: 1 },
     });
     dbMocks.userServiceFns.getRestaurantUsers.mockResolvedValueOnce({
@@ -189,7 +197,7 @@ describe("UsersService", () => {
         limit: 20,
       }),
     ).resolves.toMatchObject({
-      data: [{ id: 1, role_name: "Shop Owner" }],
+      data: [{ id: "user-1", role_name: "Shop Owner" }],
       pagination: { total: 1 },
     });
     expect(dbMocks.userServiceFns.getAllUsers).toHaveBeenCalledWith({
@@ -206,7 +214,7 @@ describe("UsersService", () => {
         limit: 5,
       }),
     ).resolves.toMatchObject({
-      data: [{ id: 42, role_name: "Cashier" }],
+      data: [{ id: "user-42", role_name: "Cashier" }],
     });
     expect(dbMocks.userServiceFns.getRestaurantUsers).toHaveBeenCalledWith(
       "restaurant-1",
@@ -221,15 +229,15 @@ describe("UsersService", () => {
       .mockResolvedValueOnce(null);
     const service = createService();
 
-    await expect(service.getUserById(owner, 42)).resolves.toMatchObject({
-      id: 42,
+    await expect(service.getUserById(owner, "user-42")).resolves.toMatchObject({
+      id: "user-42",
       role_name: "Cashier",
     });
-    await expect(service.getUserById(owner, 43)).rejects.toMatchObject({
+    await expect(service.getUserById(owner, "user-43")).rejects.toMatchObject({
       code: "FORBIDDEN",
       message: "Access denied",
     });
-    await expect(service.getUserById(admin, 404)).rejects.toMatchObject({
+    await expect(service.getUserById(admin, "user-404")).rejects.toMatchObject({
       code: "NOT_FOUND",
       message: "User not found",
     });
@@ -237,7 +245,7 @@ describe("UsersService", () => {
 
   it("creates users with effective restaurant scope and rejects forbidden roles", async () => {
     dbMocks.userServiceFns.createUser.mockResolvedValueOnce(
-      user({ id: 50, username: "chef", role: 2 }),
+      user({ id: "user-50", username: "chef", role: 2 }),
     );
     const service = createService();
 
@@ -249,7 +257,7 @@ describe("UsersService", () => {
         role: 2,
       }),
     ).resolves.toMatchObject({
-      id: 50,
+      id: "user-50",
       role_name: "Chef",
     });
     expect(dbMocks.userServiceFns.createUser).toHaveBeenCalledWith(
@@ -297,7 +305,7 @@ describe("UsersService", () => {
 
   it("keeps a platform admin unbound to any restaurant", async () => {
     dbMocks.userServiceFns.createUser.mockResolvedValueOnce(
-      user({ id: 51, username: "admin2", role: 0 }),
+      user({ id: "user-51", username: "admin2", role: 0 }),
     );
     const service = createService();
 
@@ -413,28 +421,28 @@ describe("UsersService", () => {
     const service = createService();
 
     await expect(
-      service.updateUser(owner, 42, { fullName: "Updated Cashier" }),
+      service.updateUser(owner, "user-42", { fullName: "Updated Cashier" }),
     ).resolves.toMatchObject({ fullName: "Updated Cashier" });
-    expect(dbMocks.userServiceFns.updateUser).toHaveBeenCalledWith(42, {
+    expect(dbMocks.userServiceFns.updateUser).toHaveBeenCalledWith("user-42", {
       fullName: "Updated Cashier",
     });
 
     await expect(
-      service.updateUser(owner, 43, { fullName: "Nope" }),
+      service.updateUser(owner, "user-43", { fullName: "Nope" }),
     ).rejects.toMatchObject({ code: "FORBIDDEN", message: "Access denied" });
     await expect(
-      service.changePassword(cashier, 42, "Oldpass1!", "Newpass1!"),
+      service.changePassword(cashier, "user-42", "Oldpass1!", "Newpass1!"),
     ).resolves.toBeUndefined();
     expect(dbMocks.authServiceFns.changePassword).toHaveBeenCalledWith(
-      42,
+      "user-42",
       "Oldpass1!",
       "Newpass1!",
     );
     await expect(
-      service.changePassword(cashier, 99, "Oldpass1!", "Newpass1!"),
+      service.changePassword(cashier, "user-99", "Oldpass1!", "Newpass1!"),
     ).rejects.toMatchObject({ code: "FORBIDDEN", message: "Access denied" });
     await expect(
-      service.changePassword(admin, 99, "wrong", "Newpass1!"),
+      service.changePassword(admin, "user-99", "wrong", "Newpass1!"),
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
       message: "Wrong password",
@@ -444,7 +452,7 @@ describe("UsersService", () => {
   it("updates status, verifies users, and resets passwords through managed-user checks", async () => {
     dbMocks.userServiceFns.getUserById
       .mockResolvedValueOnce(user())
-      .mockResolvedValueOnce(user({ id: 10, role: 1 }))
+      .mockResolvedValueOnce(user({ id: "user-10", role: 1 }))
       .mockResolvedValueOnce(user())
       .mockResolvedValueOnce(user())
       .mockResolvedValueOnce(user({ restaurantId: "restaurant-2" }));
@@ -455,25 +463,25 @@ describe("UsersService", () => {
     dbMocks.userServiceFns.resetPassword.mockResolvedValueOnce(true);
     const service = createService();
 
-    await expect(service.updateUserStatus(owner, 42, false)).resolves.toBe(
-      "User deactivated successfully",
-    );
-    expect(dbMocks.userServiceFns.updateUser).toHaveBeenCalledWith(42, {
+    await expect(
+      service.updateUserStatus(owner, "user-42", false),
+    ).resolves.toBe("User deactivated successfully");
+    expect(dbMocks.userServiceFns.updateUser).toHaveBeenCalledWith("user-42", {
       isActive: false,
     });
     await expect(
-      service.updateUserStatus({ id: 10, role: 0 }, 10, false),
+      service.updateUserStatus({ id: "user-10", role: 0 }, "user-10", false),
     ).rejects.toMatchObject({
       code: "BAD_REQUEST",
       message: "Cannot deactivate your own account",
     });
-    await expect(service.verifyUser(owner, 42)).resolves.toBeUndefined();
-    await expect(service.verifyUser(owner, 42)).rejects.toMatchObject({
+    await expect(service.verifyUser(owner, "user-42")).resolves.toBeUndefined();
+    await expect(service.verifyUser(owner, "user-42")).rejects.toMatchObject({
       code: "INTERNAL_ERROR",
       message: "Failed to verify user",
     });
     await expect(
-      service.resetPassword(owner, 42, "Newpass1!"),
+      service.resetPassword(owner, "user-42", "Newpass1!"),
     ).rejects.toMatchObject({
       code: "FORBIDDEN",
       message: "Insufficient permissions",
@@ -523,7 +531,7 @@ describe("UsersService", () => {
 
     await expect(
       service.searchUsers(admin, "cash", "restaurant-2", 3),
-    ).resolves.toMatchObject([{ id: 42, role_name: "Cashier" }]);
+    ).resolves.toMatchObject([{ id: "user-42", role_name: "Cashier" }]);
     expect(dbMocks.userServiceFns.searchUsers).toHaveBeenCalledWith(
       "cash",
       "restaurant-2",

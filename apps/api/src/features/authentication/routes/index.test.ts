@@ -190,7 +190,10 @@ describe("authentication routes", () => {
     }).res;
 
     expect(response.status).toBe(200);
-    const body = await response.json();
+    const body = await response.json<{
+      success: boolean;
+      data: Record<string, unknown>;
+    }>();
     expect(body).toMatchObject({
       success: true,
       data: { token: "access-token-2" },
@@ -506,7 +509,10 @@ describe("authentication routes", () => {
     let response = await request("/me").res;
 
     expect(response.status).toBe(200);
-    const body = await response.json();
+    const body = await response.json<{
+      success: boolean;
+      data: Record<string, unknown>;
+    }>();
     expect(body).toMatchObject({
       success: true,
       data: {

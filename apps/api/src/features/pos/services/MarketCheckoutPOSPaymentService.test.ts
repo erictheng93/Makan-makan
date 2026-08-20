@@ -115,7 +115,7 @@ describe("MarketCheckoutPOSPaymentService", () => {
       paymentMethod: "cash",
       country: "TW",
       currency: "TWD",
-      operatorId: 7,
+      operatorId: "user-7",
       operatorRole: 4,
       operatorRestaurantId: "restaurant-1",
       idempotencyKey: "pos-checkout-1",

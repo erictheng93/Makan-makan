@@ -90,8 +90,11 @@ vi.mock("../services/SignedQrVerificationService", () => ({
 }));
 
 const gateMocks = vi.hoisted(() => ({
+  // The ModuleKey argument has to be part of the mock's signature: the
+  // registration assertion below reads it back out of mock.calls.
   moduleGate: vi.fn(
-    () => async (_c: unknown, next: () => Promise<void>) => next(),
+    (_module: string) => async (_c: unknown, next: () => Promise<void>) =>
+      next(),
   ),
 }));
 

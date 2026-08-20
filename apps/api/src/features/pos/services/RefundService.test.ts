@@ -163,7 +163,7 @@ describe("RefundService", () => {
     const result = await createService().processRefund(
       refundRequest(),
       "register-1",
-      7,
+      "user-7",
       "shift-1",
     );
 
@@ -220,7 +220,7 @@ describe("RefundService", () => {
     const result = await createService().processRefund(
       refundRequest(),
       "register-1",
-      7,
+      "user-7",
       "shift-1",
     );
 
@@ -257,7 +257,7 @@ describe("RefundService", () => {
         createService().processRefund(
           refundRequest(),
           "register-1",
-          7,
+          "user-7",
           "shift-1",
         ),
       ).resolves.toMatchObject({
@@ -312,7 +312,7 @@ describe("RefundService", () => {
       const result = await createService({ alertSink }).processRefund(
         refundRequest({ refundMethod: "card" }),
         "register-1",
-        7,
+        "user-7",
       );
 
       expect(result).toMatchObject({
@@ -351,7 +351,7 @@ describe("RefundService", () => {
     const result = await createService().processRefund(
       refundRequest({ refundMethod: "card" }),
       "register-1",
-      7,
+      "user-7",
     );
 
     expect(result).toMatchObject({ success: true });
@@ -381,7 +381,7 @@ describe("RefundService", () => {
     const result = await createService().processRefund(
       refundRequest({ refundAmount: 0.01, refundMethod: "card" }),
       "register-1",
-      7,
+      "user-7",
     );
 
     expect(result).toMatchObject({
@@ -402,7 +402,7 @@ describe("RefundService", () => {
 
     mockSelectResults({ orders: [[]] });
     await expect(
-      createService().processRefund(refundRequest(), "register-1", 7),
+      createService().processRefund(refundRequest(), "register-1", "user-7"),
     ).resolves.toMatchObject({ success: false });
 
     mockSelectResults({ orders: [[{ id: 101, totalAmount: 100 }]] });
@@ -410,7 +410,7 @@ describe("RefundService", () => {
       createService().processRefund(
         refundRequest({ refundAmount: 125 }),
         "register-1",
-        7,
+        "user-7",
       ),
     ).resolves.toMatchObject({ success: false });
 
@@ -419,7 +419,7 @@ describe("RefundService", () => {
       refunds: [[{ totalRefunded: 90 }]],
     });
     await expect(
-      createService().processRefund(refundRequest(), "register-1", 7),
+      createService().processRefund(refundRequest(), "register-1", "user-7"),
     ).resolves.toMatchObject({ success: false });
 
     mockSelectResults({ orders: [[{ id: 101, totalAmount: 100 }]] });
@@ -427,7 +427,7 @@ describe("RefundService", () => {
       createService().processRefund(
         refundRequest({ refundAmount: 19.995 }),
         "register-1",
-        7,
+        "user-7",
       ),
     ).resolves.toMatchObject({ success: false });
 
@@ -494,31 +494,31 @@ describe("RefundService", () => {
     });
 
     await expect(
-      createService().cancelRefund("refund-1", 7, "duplicate"),
+      createService().cancelRefund("refund-1", "user-7", "duplicate"),
     ).resolves.toEqual({ success: true });
-    await expect(createService().approveRefund("refund-1", 8)).resolves.toEqual(
-      {
-        success: true,
-      },
-    );
     await expect(
-      createService().rejectRefund("refund-1", 9, "not eligible"),
+      createService().approveRefund("refund-1", "user-8"),
+    ).resolves.toEqual({
+      success: true,
+    });
+    await expect(
+      createService().rejectRefund("refund-1", "user-9", "not eligible"),
     ).resolves.toEqual({ success: true });
 
     expect(mutations.updated).toEqual([
       expect.objectContaining({
         status: "cancelled",
-        approvedBy: 7,
+        approvedBy: "user-7",
         metadata: JSON.stringify({ cancellation_reason: "duplicate" }),
       }),
       expect.objectContaining({
         status: "completed",
-        approvedBy: 8,
+        approvedBy: "user-8",
         completedAt: expect.any(Date),
       }),
       expect.objectContaining({
         status: "failed",
-        approvedBy: 9,
+        approvedBy: "user-9",
         metadata: JSON.stringify({ rejection_reason: "not eligible" }),
       }),
     ]);

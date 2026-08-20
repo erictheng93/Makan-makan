@@ -1,27 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../shared/utils/api-error";
+import type { AuthUser } from "../../../middleware/auth";
 
-const mocks = vi.hoisted(() => ({
-  user: {
-    id: 10,
+const mocks = vi.hoisted(() => {
+  const user: AuthUser = {
+    id: "user-10",
     username: "cashier",
     role: 4,
     restaurantId: "restaurant-1",
-  },
-  shiftService: {
-    endShift: vi.fn(),
-    getCurrentShift: vi.fn(),
-    resumeShift: vi.fn(),
-    startShift: vi.fn(),
-    suspendShift: vi.fn(),
-  },
-  shiftServiceCtor: vi.fn(),
-  reportService: {
-    generateShiftReport: vi.fn(),
-    getShiftStats: vi.fn(),
-  },
-  reportServiceCtor: vi.fn(),
-}));
+  };
+  return {
+    user,
+    shiftService: {
+      endShift: vi.fn(),
+      getCurrentShift: vi.fn(),
+      resumeShift: vi.fn(),
+      startShift: vi.fn(),
+      suspendShift: vi.fn(),
+    },
+    shiftServiceCtor: vi.fn(),
+    reportService: {
+      generateShiftReport: vi.fn(),
+      getShiftStats: vi.fn(),
+    },
+    reportServiceCtor: vi.fn(),
+  };
+});
 
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c, next) => {
@@ -87,14 +91,19 @@ describe("POS shift routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.user = {
-      id: 10,
+      id: "user-10",
       username: "cashier",
       role: 4,
       restaurantId: "restaurant-1",
     };
     mocks.shiftService.startShift.mockResolvedValue({
       success: true,
-      data: { id: shiftId, registerId, operatorId: "10", status: "active" },
+      data: {
+        id: shiftId,
+        registerId,
+        operatorId: "user-10",
+        status: "active",
+      },
     });
     mocks.shiftService.endShift.mockResolvedValue({
       success: true,
@@ -119,7 +128,7 @@ describe("POS shift routes", () => {
   it("starts a shift for the authenticated cashier", async () => {
     const payload = {
       registerId,
-      operatorId: "10",
+      operatorId: "user-10",
       startAmount: 500,
       notes: "morning shift",
     };
@@ -136,7 +145,12 @@ describe("POS shift routes", () => {
     expect(mocks.shiftService.startShift).toHaveBeenCalledWith(payload);
     expect(body).toEqual({
       success: true,
-      data: { id: shiftId, registerId, operatorId: "10", status: "active" },
+      data: {
+        id: shiftId,
+        registerId,
+        operatorId: "user-10",
+        status: "active",
+      },
     });
   });
 
@@ -191,7 +205,7 @@ describe("POS shift routes", () => {
     expect(mocks.shiftService.endShift).toHaveBeenCalledWith(
       shiftId,
       { actualAmount: 1200, closingNotes: "balanced" },
-      10,
+      "user-10",
     );
     expect(body.data).toEqual({ shift: { id: shiftId, status: "closed" } });
 
@@ -296,7 +310,7 @@ describe("POS shift routes", () => {
     expect(mocks.reportService.getShiftStats).not.toHaveBeenCalled();
 
     mocks.user = {
-      id: 1,
+      id: "user-1",
       username: "admin",
       role: 0,
       restaurantId: undefined,

@@ -49,6 +49,15 @@ function createKV() {
   };
 }
 
+/**
+ * The shape of `splitBill`'s payload that these tests read back. The service's
+ * own `SplitBillData` is module-private, and `createService()` returns `any`,
+ * so annotate the results at the call site rather than inferring `any`.
+ */
+type SplitBillBills = {
+  data: Array<{ memberId: string; totalAmount: number }>;
+};
+
 function createService() {
   const service = new GroupOrdersService({} as D1Database);
   return service as any;
@@ -1883,8 +1892,8 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
     expect(byItemDb.updates[1].payload).toMatchObject({
       splitType: "individual",
+      finalAmountCents: 1980,
     });
-    expect(byItemDb.updates[1].payload.finalAmountCents).toBe(1980);
 
     const customService = createService();
     const customDb = createDb({
@@ -2238,11 +2247,14 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     positiveService.db = createSplitDb({
       members: [hostMember, secondMember, thirdMember],
     });
-    const positive = await positiveService.splitBill("group-1", {
-      splitType: "equal",
-      sharedTaxCents: 10000,
-      orderTotalCents: 10000,
-    });
+    const positive: SplitBillBills = await positiveService.splitBill(
+      "group-1",
+      {
+        splitType: "equal",
+        sharedTaxCents: 10000,
+        orderTotalCents: 10000,
+      },
+    );
     expect(positive.data.find((bill) => bill.memberId === "member-1")).toEqual(
       expect.objectContaining({ totalAmount: 33.34 }),
     );
@@ -2251,11 +2263,14 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     negativeService.db = createSplitDb({
       members: [hostMember, secondMember],
     });
-    const negative = await negativeService.splitBill("group-1", {
-      splitType: "equal",
-      sharedTaxCents: 1,
-      orderTotalCents: 1,
-    });
+    const negative: SplitBillBills = await negativeService.splitBill(
+      "group-1",
+      {
+        splitType: "equal",
+        sharedTaxCents: 1,
+        orderTotalCents: 1,
+      },
+    );
     expect(negative.data.find((bill) => bill.memberId === "member-1")).toEqual(
       expect.objectContaining({ totalAmount: 0 }),
     );
@@ -2395,10 +2410,12 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       existingOrderRows?: unknown[];
     } = {}) {
       const service = createService();
-      const createOrder = vi.fn(async () => order);
+      const createOrder = vi.fn(
+        async (_data: { items: Array<Record<string, unknown>> }) => order,
+      );
       service.createOrderService = vi.fn(() => ({ createOrder }));
       service.splitBill = vi.fn(async () => ({ success: true, data: [] }));
-      service.db = createDb(
+      const db = createDb(
         {
           groupOrders: [[groupOrder]],
           groupCartItems: [cartItems],
@@ -2406,7 +2423,8 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         },
         [claimRows],
       );
-      return { service, createOrder, db: service.db };
+      service.db = db;
+      return { service, createOrder, db };
     }
 
     it("claims the finalizing mutex, creates a real order, records masterOrderId, and splits with real amounts", async () => {
@@ -2835,7 +2853,10 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       },
     });
     expect(db.updates).toHaveLength(1);
-    expect(JSON.parse(db.updates[0].payload.paymentReference)).toMatchObject({
+    const paymentPayload = db.updates[0].payload as {
+      paymentReference: string;
+    };
+    expect(JSON.parse(paymentPayload.paymentReference)).toMatchObject({
       transactionId: "TXN-1780790400000-uuid-1",
       method: "card",
       details: { terminalId: "pos-1" },

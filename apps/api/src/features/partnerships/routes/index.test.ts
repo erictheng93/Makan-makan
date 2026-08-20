@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import routes from "./index";
+import type { ModuleKey } from "@makanmasak/database";
 
 const currentUser = vi.hoisted(() => ({
   value: { id: 10, role: 1, restaurantId: "restaurant-1" },
@@ -36,9 +37,11 @@ vi.mock("../../../middleware/auth", () => ({
 }));
 
 const gateMocks = vi.hoisted(() => ({
-  moduleGate: vi.fn(() => async (_c: unknown, next: () => Promise<void>) => {
-    await next();
-  }),
+  moduleGate: vi.fn(
+    (_module: ModuleKey) => async (_c: unknown, next: () => Promise<void>) => {
+      await next();
+    },
+  ),
 }));
 
 vi.mock("../../../middleware/moduleGate", () => ({

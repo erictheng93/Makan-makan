@@ -53,14 +53,14 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         {
           restaurantId: "restaurant-1",
           restaurantName: "Noodle Stall",
-          orderId: 1001,
+          orderId: "1001",
           orderNumber: "A001",
           totalAmount: 120,
         },
         {
           restaurantId: "restaurant-2",
           restaurantName: "Dessert Stall",
-          orderId: 1002,
+          orderId: "1002",
           orderNumber: "A002",
           totalAmount: 80,
         },
@@ -75,7 +75,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
     expect(processPayment).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        orderId: 1001,
+        orderId: "1001",
         paymentMode: "full",
         amount: 120,
         expectedTotal: 120,
@@ -99,7 +99,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
     );
     expect(processPayment).toHaveBeenNthCalledWith(
       2,
-      expect.objectContaining({ orderId: 1002 }),
+      expect.objectContaining({ orderId: "1002" }),
       expect.objectContaining({
         idempotencyKey: "market-pay-1:1002",
         metadata: expect.objectContaining({
@@ -114,7 +114,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       childPayments: [
         expect.objectContaining({
           restaurantId: "restaurant-1",
-          orderId: 1001,
+          orderId: "1001",
           paymentId: "pay-1001",
           status: "paid",
           amount: 120,
@@ -122,7 +122,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         }),
         expect.objectContaining({
           restaurantId: "restaurant-2",
-          orderId: 1002,
+          orderId: "1002",
           paymentId: "pay-1002",
           status: "paid",
           amount: 80,
@@ -147,14 +147,14 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         {
           restaurantId: "restaurant-1",
           restaurantName: "Noodle Stall",
-          orderId: 1001,
+          orderId: "1001",
           orderNumber: "A001",
           totalAmount: 120,
         },
         {
           restaurantId: "restaurant-2",
           restaurantName: "Dessert Stall",
-          orderId: 1002,
+          orderId: "1002",
           orderNumber: "A002",
           totalAmount: 80,
         },
@@ -163,7 +163,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         {
           restaurantId: "restaurant-1",
           restaurantName: "Noodle Stall",
-          orderId: 1001,
+          orderId: "1001",
           orderNumber: "A001",
           paymentId: "pay-1001",
           status: "paid",
@@ -178,7 +178,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
 
     expect(processPayment).toHaveBeenCalledTimes(1);
     expect(processPayment).toHaveBeenCalledWith(
-      expect.objectContaining({ orderId: 1002 }),
+      expect.objectContaining({ orderId: "1002" }),
       expect.objectContaining({
         idempotencyKey: "market-checkout:checkout-1:1002",
       }),
@@ -186,12 +186,12 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
     expect(result.idempotencyKey).toBe("market-checkout:checkout-1");
     expect(result.childPayments).toEqual([
       expect.objectContaining({
-        orderId: 1001,
+        orderId: "1001",
         paymentId: "pay-1001",
         status: "paid",
       }),
       expect.objectContaining({
-        orderId: 1002,
+        orderId: "1002",
         paymentId: "pay-1002",
         status: "paid",
       }),
@@ -211,7 +211,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         {
           restaurantId: "restaurant-1",
           restaurantName: "Noodle Stall",
-          orderId: 1001,
+          orderId: "1001",
           orderNumber: "A001",
           totalAmount: 120,
         },
@@ -223,7 +223,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
 
     expect(result.childPayments).toEqual([
       expect.objectContaining({
-        orderId: 1001,
+        orderId: "1001",
         status: "failed",
         amount: 120,
         amountCents: 12000,
@@ -239,8 +239,8 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         providerTransactionId: "pi_market_1",
         authorizedAmountCents: 20000,
         allocations: [
-          { orderId: 1001, paymentId: "alloc-1001", amountCents: 12000 },
-          { orderId: 1002, paymentId: "alloc-1002", amountCents: 8000 },
+          { orderId: "1001", paymentId: "alloc-1001", amountCents: 12000 },
+          { orderId: "1002", paymentId: "alloc-1002", amountCents: 8000 },
         ],
       })),
     };
@@ -253,14 +253,14 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         {
           restaurantId: "restaurant-1",
           restaurantName: "Noodle Stall",
-          orderId: 1001,
+          orderId: "1001",
           orderNumber: "A001",
           totalAmount: 120,
         },
         {
           restaurantId: "restaurant-2",
           restaurantName: "Dessert Stall",
-          orderId: 1002,
+          orderId: "1002",
           orderNumber: "A002",
           totalAmount: 80,
         },
@@ -292,14 +292,14 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         {
           restaurantId: "restaurant-1",
           restaurantName: "Noodle Stall",
-          orderId: 1001,
+          orderId: "1001",
           orderNumber: "A001",
           amountCents: 12000,
         },
         {
           restaurantId: "restaurant-2",
           restaurantName: "Dessert Stall",
-          orderId: 1002,
+          orderId: "1002",
           orderNumber: "A002",
           amountCents: 8000,
         },
@@ -314,13 +314,13 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
       nextAction: undefined,
       childPayments: [
         expect.objectContaining({
-          orderId: 1001,
+          orderId: "1001",
           paymentId: "alloc-1001",
           status: "paid",
           amountCents: 12000,
         }),
         expect.objectContaining({
-          orderId: 1002,
+          orderId: "1002",
           paymentId: "alloc-1002",
           status: "paid",
           amountCents: 8000,
@@ -352,7 +352,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         {
           restaurantId: "restaurant-1",
           restaurantName: "Noodle Stall",
-          orderId: 1001,
+          orderId: "1001",
           orderNumber: "A001",
           totalAmount: 120,
         },
@@ -546,14 +546,14 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         {
           restaurantId: "restaurant-1",
           restaurantName: "Noodle Stall",
-          orderId: 1001,
+          orderId: "1001",
           orderNumber: "A001",
           amountCents: 12000,
         },
         {
           restaurantId: "restaurant-2",
           restaurantName: "Dessert Stall",
-          orderId: 1002,
+          orderId: "1002",
           orderNumber: "A002",
           amountCents: 8000,
         },
@@ -615,7 +615,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         {
           restaurantId: "restaurant-1",
           restaurantName: "Noodle Stall",
-          orderId: 1001,
+          orderId: "1001",
           orderNumber: "A001",
           amountCents: 12000,
         },
@@ -675,7 +675,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         provider: "stripe_connect",
         providerTransactionId: "pi_market_1",
         authorizedAmountCents: 19999,
-        allocations: [{ orderId: 1001, amountCents: 12000 }],
+        allocations: [{ orderId: "1001", amountCents: 12000 }],
       })),
     });
 
@@ -687,7 +687,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
           {
             restaurantId: "restaurant-1",
             restaurantName: "Noodle Stall",
-            orderId: 1001,
+            orderId: "1001",
             orderNumber: "A001",
             totalAmount: 120,
           },
@@ -707,7 +707,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         provider: "stripe_connect",
         providerTransactionId: "pi_market_1",
         authorizedAmountCents: 20000,
-        allocations: [{ orderId: 1001, amountCents: 12000 }],
+        allocations: [{ orderId: "1001", amountCents: 12000 }],
       })),
     });
 
@@ -719,14 +719,14 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
           {
             restaurantId: "restaurant-1",
             restaurantName: "Noodle Stall",
-            orderId: 1001,
+            orderId: "1001",
             orderNumber: "A001",
             totalAmount: 120,
           },
           {
             restaurantId: "restaurant-2",
             restaurantName: "Dessert Stall",
-            orderId: 1002,
+            orderId: "1002",
             orderNumber: "A002",
             totalAmount: 80,
           },
@@ -745,8 +745,8 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         providerTransactionId: "pi_market_1",
         authorizedAmountCents: 20000,
         allocations: [
-          { orderId: 1001, amountCents: 11900 },
-          { orderId: 1002, amountCents: 8100 },
+          { orderId: "1001", amountCents: 11900 },
+          { orderId: "1002", amountCents: 8100 },
         ],
       })),
     });
@@ -759,14 +759,14 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
           {
             restaurantId: "restaurant-1",
             restaurantName: "Noodle Stall",
-            orderId: 1001,
+            orderId: "1001",
             orderNumber: "A001",
             totalAmount: 120,
           },
           {
             restaurantId: "restaurant-2",
             restaurantName: "Dessert Stall",
-            orderId: 1002,
+            orderId: "1002",
             orderNumber: "A002",
             totalAmount: 80,
           },
@@ -785,8 +785,8 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
         providerTransactionId: "pi_market_1",
         authorizedAmountCents: 12000,
         allocations: [
-          { orderId: 1001, amountCents: 12000 },
-          { orderId: 1001, amountCents: 12000 },
+          { orderId: "1001", amountCents: 12000 },
+          { orderId: "1001", amountCents: 12000 },
         ],
       })),
     });
@@ -799,7 +799,7 @@ describe("ChildTransactionMarketCheckoutPaymentProvider", () => {
           {
             restaurantId: "restaurant-1",
             restaurantName: "Noodle Stall",
-            orderId: 1001,
+            orderId: "1001",
             orderNumber: "A001",
             totalAmount: 120,
           },

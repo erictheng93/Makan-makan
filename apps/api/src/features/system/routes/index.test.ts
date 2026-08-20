@@ -487,7 +487,7 @@ describe("system routes", () => {
 
     const { res, kv } = request("/health/uptime");
     const response = await res;
-    const body = await response.json();
+    const body = await response.json<{ targets: unknown[] }>();
 
     expect(response.status).toBe(200);
     expect(body).toMatchObject({
@@ -816,7 +816,10 @@ describe("system routes", () => {
     });
 
     const response = await request("/health/detailed").res;
-    const body = await response.json();
+    const body = await response.json<{
+      performance: { endpoint_health: unknown[] };
+      recommendations: unknown[];
+    }>();
 
     expect(response.status).toBe(200);
     expect(body).toMatchObject({

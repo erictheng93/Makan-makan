@@ -133,7 +133,7 @@ describe("CashMovementService", () => {
     const result = await createService().processCashMovement(
       "shift-1",
       movementRequest(),
-      7,
+      "user-7",
     );
 
     expect(result).toEqual({ success: true });
@@ -148,7 +148,7 @@ describe("CashMovementService", () => {
         referenceId: 101,
         referenceType: "manual",
         denominationBreakdown: JSON.stringify({ "100": 1, "20": 1, "1": 3 }),
-        recordedBy: 7,
+        recordedBy: "user-7",
         approvalStatus: "approved",
         metadata: "{}",
         createdAt: new Date("2026-06-07T00:00:00.000Z"),
@@ -165,7 +165,7 @@ describe("CashMovementService", () => {
       createService().processCashMovement(
         "shift-1",
         movementRequest({ type: "sale" }),
-        7,
+        "user-7",
       ),
     );
 
@@ -179,7 +179,7 @@ describe("CashMovementService", () => {
     result = await createService().processCashMovement(
       "shift-1",
       movementRequest(),
-      7,
+      "user-7",
     );
 
     expect(result.success).toBe(false);
@@ -188,7 +188,7 @@ describe("CashMovementService", () => {
     result = await createService().processCashMovement(
       "missing-shift",
       movementRequest(),
-      7,
+      "user-7",
     );
 
     expect(result.success).toBe(false);
@@ -273,28 +273,32 @@ describe("CashMovementService", () => {
     const mutations = mockMutations();
 
     await expect(
-      createService().approveCashMovement("movement-1", 8),
+      createService().approveCashMovement("movement-1", "user-8"),
     ).resolves.toEqual({ success: true });
     await expect(
-      createService().rejectCashMovement("movement-2", 9, "count mismatch"),
+      createService().rejectCashMovement(
+        "movement-2",
+        "user-9",
+        "count mismatch",
+      ),
     ).resolves.toEqual({ success: true });
     await expect(
-      createService().rejectCashMovement("movement-3", 10),
+      createService().rejectCashMovement("movement-3", "user-10"),
     ).resolves.toEqual({ success: true });
 
     expect(mutations.updated).toEqual([
       {
         approvalStatus: "approved",
-        approvedBy: 8,
+        approvedBy: "user-8",
       },
       {
         approvalStatus: "rejected",
-        approvedBy: 9,
+        approvedBy: "user-9",
         metadata: JSON.stringify({ rejection_reason: "count mismatch" }),
       },
       {
         approvalStatus: "rejected",
-        approvedBy: 10,
+        approvedBy: "user-10",
         metadata: "{}",
       },
     ]);
@@ -321,7 +325,7 @@ describe("CashMovementService", () => {
 
     await expect(
       withSuppressedConsoleError(() =>
-        createService().approveCashMovement("movement-1", 8),
+        createService().approveCashMovement("movement-1", "user-8"),
       ),
     ).resolves.toEqual({
       success: false,

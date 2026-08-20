@@ -9,18 +9,35 @@ import type { Env } from "../types/env";
 
 const JWT_SECRET = "test-secret-for-rate-limit-identity-32b";
 
-function createEnv(overrides: Partial<Env> = {}): Env {
-  const rateLimitKv = {
-    get: vi.fn(async () => null),
+/**
+ * `KVNamespace["get"]` is overloaded, and the bulk `string[]` overload is the
+ * last one — which is the only signature `vi.mocked()` can see through
+ * `env.RATE_LIMIT_KV.get`. Tests that inspect or drive the counter reads take
+ * the mock from here instead, where it still carries the single-key signature
+ * the rate limiter actually calls.
+ */
+type RateLimitKvGet = (
+  key: string,
+  options?: KVNamespaceGetOptions<undefined>,
+) => Promise<string | null>;
+
+function createRateLimitKv() {
+  const get = vi.fn<RateLimitKvGet>(async () => null);
+  const namespace = {
+    get,
     put: vi.fn(async () => undefined),
     delete: vi.fn(async () => undefined),
     list: vi.fn(async () => ({ keys: [], list_complete: true, cursor: "" })),
     getWithMetadata: vi.fn(async () => ({ value: null, metadata: null })),
   } as unknown as KVNamespace;
 
+  return { get, namespace };
+}
+
+function createEnv(overrides: Partial<Env> = {}): Env {
   return {
     NODE_ENV: "production",
-    RATE_LIMIT_KV: rateLimitKv,
+    RATE_LIMIT_KV: createRateLimitKv().namespace,
     ...overrides,
   } as Env;
 }
@@ -70,9 +87,11 @@ function fetchWithContext(
   path: string,
   init: RequestInit = {},
 ) {
-  return app.fetch(new Request(`https://api.test${path}`, init), env, {
-    executionCtx: createExecutionContext(),
-  });
+  return app.fetch(
+    new Request(`https://api.test${path}`, init),
+    env,
+    createExecutionContext(),
+  );
 }
 
 function createToken(sub: string, role = 0): string {
@@ -260,7 +279,8 @@ describe("geoIntelligentRateLimitMiddleware", () => {
   // KV reads per request. The window is now two fixed buckets, so the read count
   // must stay flat no matter how long the window is.
   it("reads a bounded number of counter keys regardless of window length", async () => {
-    const env = createEnv();
+    const rateLimitKv = createRateLimitKv();
+    const env = createEnv({ RATE_LIMIT_KV: rateLimitKv.namespace });
     const app = new Hono<{ Bindings: Env }>();
     app.use("*", geoIntelligentRateLimitMiddleware());
     app.post("/api/v1/auth/login", (c) => c.json({ ok: true }));
@@ -270,9 +290,8 @@ describe("geoIntelligentRateLimitMiddleware", () => {
       headers: { "CF-Connecting-IP": "203.0.113.10" },
     });
 
-    const counterReads = vi
-      .mocked(env.RATE_LIMIT_KV.get)
-      .mock.calls.map(([key]) => key as string)
+    const counterReads = rateLimitKv.get.mock.calls
+      .map(([key]) => key)
       .filter((key) => key.startsWith("rl:"));
 
     expect(counterReads).toHaveLength(2);
@@ -284,8 +303,9 @@ describe("geoIntelligentRateLimitMiddleware", () => {
     // login allows 100 requests with a 1.2 burst multiplier => burst limit 120.
     // Put 200 in the previous window and none in the current one. Even at the
     // very start of a window the interpolated total must exceed the limit.
-    const env = createEnv();
-    vi.mocked(env.RATE_LIMIT_KV.get).mockImplementation(async (key: string) => {
+    const rateLimitKv = createRateLimitKv();
+    const env = createEnv({ RATE_LIMIT_KV: rateLimitKv.namespace });
+    rateLimitKv.get.mockImplementation(async (key) => {
       if (!key.startsWith("rl:")) return null;
       const windowIndex = Number(key.split(":").pop());
       const currentIndex = Math.floor(Date.now() / 60_000);

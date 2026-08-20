@@ -1,17 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Hono } from "hono";
+import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
 
 const mocks = vi.hoisted(() => ({
   user: {
     id: "user-1",
+    username: "owner",
     role: 1,
     restaurantId: "550e8400-e29b-41d4-a716-446655440000",
-  } as {
-    id: string;
-    role: number;
-    restaurantId?: string | number | null;
-  },
+  } as AuthUser,
   controller: {
     createBackup: vi.fn(),
     listBackups: vi.fn(),
@@ -66,9 +64,7 @@ vi.mock("../services/BackupStorageService", () => ({
 }));
 
 vi.mock("../services/BackupConfigService", () => ({
-  BackupConfigService: vi.fn(function BackupConfigService(
-    ...args: unknown[]
-  ) {
+  BackupConfigService: vi.fn(function BackupConfigService(...args: unknown[]) {
     mocks.backupConfigServiceCtor(...args);
     return {};
   }),
@@ -151,7 +147,7 @@ describe("backup routes", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T04:05:06.000Z"));
     uuidMocks.generateUUID.mockReturnValue("upload-uuid");
-    mocks.user = { id: "user-1", role: 1, restaurantId };
+    mocks.user = { id: "user-1", username: "owner", role: 1, restaurantId };
 
     for (const [name, fn] of Object.entries(mocks.controller)) {
       fn.mockImplementation((c) =>
@@ -364,7 +360,7 @@ describe("backup routes", () => {
       { expirationTtl: 60 * 60 * 24 * 90 },
     );
 
-    mocks.user = { id: "user-2", role: 1 };
+    mocks.user = { id: "user-2", username: "other-owner", role: 1 };
     response = await request("/upload", {
       method: "POST",
       body: JSON.stringify({
@@ -379,7 +375,7 @@ describe("backup routes", () => {
       },
     });
 
-    mocks.user = { id: "user-1", role: 1, restaurantId };
+    mocks.user = { id: "user-1", username: "owner", role: 1, restaurantId };
     result = request("/upload", {
       method: "POST",
       body: JSON.stringify({
@@ -413,7 +409,7 @@ describe("backup routes", () => {
       error: { code: "BACKUP_UPLOAD_FORBIDDEN" },
     });
 
-    mocks.user = { id: "admin-1", role: 0 };
+    mocks.user = { id: "admin-1", username: "admin", role: 0 };
     response = await request("/upload", {
       method: "POST",
       body: JSON.stringify({

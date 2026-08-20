@@ -168,7 +168,7 @@ describe("SystemService", () => {
           }),
         ],
       },
-      42,
+      "user-42",
       "restaurant-1",
       "route-agent",
     );
@@ -184,7 +184,7 @@ describe("SystemService", () => {
     });
     expect(errorReportingFns.createBulkErrorReports).toHaveBeenCalledWith([
       expect.objectContaining({
-        userId: 42,
+        userId: "user-42",
         restaurantId: "restaurant-1",
         errorType: "api",
         severity: "low",
@@ -221,7 +221,7 @@ describe("SystemService", () => {
     await expect(
       service.createErrorReport(
         { errors: [createError({ severity: "critical" })] },
-        42,
+        "user-42",
         null,
       ),
     ).rejects.toThrow("Failed to submit error report");

@@ -22,18 +22,24 @@ const gateMocks = vi.hoisted(() => ({
   ),
   meterEmit: vi.fn(),
   moduleGate: vi.fn(
-    () => async (_c: unknown, next: () => Promise<void>) => next(),
+    (_module: string) => async (_c: unknown, next: () => Promise<void>) =>
+      next(),
   ),
   assertShopOrderingEnabled: vi.fn(),
 }));
-const authState = vi.hoisted(() => ({
-  user: {
-    id: 42,
-    role: 1,
-    restaurantId: "restaurant-1",
-  },
-  customer: { id: "customer-42" },
-}));
+const authState = vi.hoisted(
+  (): {
+    user: { id: string; role: number; restaurantId: string | null };
+    customer: { id: string };
+  } => ({
+    user: {
+      id: "user-42",
+      role: 1,
+      restaurantId: "restaurant-1",
+    },
+    customer: { id: "customer-42" },
+  }),
+);
 
 vi.mock("../../../shared/middleware", async (importOriginal) => {
   const actual =
@@ -104,7 +110,9 @@ function jsonRequest(path: string, body: unknown, method = "POST") {
   });
 }
 
-async function withSilencedRouteError<T>(action: () => Promise<T>): Promise<T> {
+async function withSilencedRouteError<T>(
+  action: () => T | Promise<T>,
+): Promise<Awaited<T>> {
   const consoleError = vi
     .spyOn(console, "error")
     .mockImplementation(() => undefined);
@@ -124,7 +132,7 @@ describe("orders routes", () => {
     gateMocks.meterEmit.mockReset();
     gateMocks.assertShopOrderingEnabled.mockReset();
     authState.user = {
-      id: 42,
+      id: "user-42",
       role: 1,
       restaurantId: "restaurant-1",
     };
@@ -155,7 +163,7 @@ describe("orders routes", () => {
       restaurantId: "restaurant-1",
       couponCode: "SAVE40",
       orderAmount: 200,
-      userId: 42,
+      userId: "user-42",
       menuItems: [{ menuItemId: 7, quantity: 1 }],
     });
   });
@@ -182,12 +190,12 @@ describe("orders routes", () => {
       },
     });
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
-      "orders:batch-sync:restaurant-1:42:local%20batch%2F1",
-      expect.stringContaining('"userId":42'),
+      "orders:batch-sync:restaurant-1:user-42:local%20batch%2F1",
+      expect.stringContaining('"userId":"user-42"'),
       { expirationTtl: 60 * 60 * 24 * 30 },
     );
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
-      "orders:batch-sync:restaurant-1:42:latest",
+      "orders:batch-sync:restaurant-1:user-42:latest",
       expect.stringContaining('"local batch/1"'),
       { expirationTtl: 60 * 60 * 24 * 30 },
     );
@@ -210,7 +218,7 @@ describe("orders routes", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     try {
-      authState.user = { id: 42, role: 0, restaurantId: null };
+      authState.user = { id: "user-42", role: 0, restaurantId: null };
       const env = createEnv();
 
       const response = await routes.fetch(
@@ -227,7 +235,7 @@ describe("orders routes", () => {
         },
       });
       expect(env.CACHE_KV.put).toHaveBeenCalledWith(
-        "orders:batch-sync:global:42:1780790400000",
+        "orders:batch-sync:global:user-42:1780790400000",
         expect.stringContaining('"restaurantId":null'),
         expect.anything(),
       );
@@ -286,7 +294,7 @@ describe("orders routes", () => {
           }),
         ],
       }),
-      42,
+      "user-42",
     );
     expect(gateMocks.meterEmit).toHaveBeenCalledWith(
       expect.anything(),
@@ -363,7 +371,7 @@ describe("orders routes", () => {
     expect(gateMocks.assertShopOrderingEnabled).not.toHaveBeenCalled();
     expect(serviceMocks.createOrder).toHaveBeenCalledWith(
       expect.objectContaining({ tableId: 3, orderType: "shop" }),
-      42,
+      "user-42",
     );
   });
 
@@ -421,10 +429,10 @@ describe("orders routes", () => {
         dateFrom: new Date("2026-06-01T00:00:00.000Z"),
         scheduledTimeFrom: new Date("2026-06-02T00:00:00.000Z"),
       }),
-      42,
+      "user-42",
       1,
       expect.objectContaining({
-        userId: 42,
+        userId: "user-42",
         userRestaurantId: "restaurant-1",
       }),
     );
@@ -437,20 +445,20 @@ describe("orders routes", () => {
     });
     const env = createEnv();
 
-    authState.user = { id: 42, role: 5, restaurantId: null };
+    authState.user = { id: "user-42", role: 5, restaurantId: null };
     const customerResponse = await routes.fetch(
       new Request("https://orders.test/"),
       env as never,
     );
     expect(customerResponse.status).toBe(200);
     expect(serviceMocks.getOrders).toHaveBeenCalledWith(
-      expect.objectContaining({ customerId: "42" }),
-      42,
+      expect.objectContaining({ customerId: "user-42" }),
+      "user-42",
       5,
       expect.any(Object),
     );
 
-    authState.user = { id: 1, role: 0, restaurantId: null };
+    authState.user = { id: "user-1", role: 0, restaurantId: null };
     const adminResponse = await routes.fetch(
       new Request("https://orders.test/?restaurantId=restaurant-2"),
       env as never,
@@ -458,7 +466,7 @@ describe("orders routes", () => {
     expect(adminResponse.status).toBe(200);
     expect(serviceMocks.getOrders).toHaveBeenLastCalledWith(
       expect.objectContaining({ restaurantId: "restaurant-2" }),
-      1,
+      "user-1",
       0,
       expect.any(Object),
     );
@@ -480,7 +488,7 @@ describe("orders routes", () => {
       "restaurant-1",
     );
 
-    authState.user = { id: 1, role: 0, restaurantId: null };
+    authState.user = { id: "user-1", role: 0, restaurantId: null };
     const adminResponse = await routes.fetch(
       new Request("https://orders.test/stats?restaurantId=restaurant-2"),
       env as never,
@@ -492,7 +500,7 @@ describe("orders routes", () => {
   });
 
   it("requires a restaurant scope for admin statistics and active orders", async () => {
-    authState.user = { id: 1, role: 0, restaurantId: null };
+    authState.user = { id: "user-1", role: 0, restaurantId: null };
 
     const statsResponse = await withSilencedRouteError(() =>
       routes.fetch(
@@ -530,7 +538,7 @@ describe("orders routes", () => {
         restaurantId: "restaurant-1",
         dateFrom: new Date("2026-06-01T00:00:00.000Z"),
       }),
-      42,
+      "user-42",
       expect.any(Object),
     );
 
@@ -549,7 +557,7 @@ describe("orders routes", () => {
     serviceMocks.getOrder
       .mockResolvedValueOnce({
         id: 55,
-        customerId: "42",
+        customerId: "user-42",
         restaurantId: "restaurant-1",
         createdAt: "not-a-date",
       })
@@ -560,7 +568,7 @@ describe("orders routes", () => {
         restaurantId: "restaurant-1",
       });
 
-    authState.user = { id: 42, role: 5, restaurantId: null };
+    authState.user = { id: "user-42", role: 5, restaurantId: null };
     const response = await routes.fetch(
       new Request("https://orders.test/55"),
       createEnv() as never,
@@ -584,7 +592,7 @@ describe("orders routes", () => {
   it("updates order status after permission checks", async () => {
     const env = createEnv();
     authState.user = {
-      id: 42,
+      id: "user-42",
       role: 0,
       restaurantId: null,
     };
@@ -626,10 +634,10 @@ describe("orders routes", () => {
       expect.objectContaining({
         status: "delivered",
         notes: "Ready",
-        updatedBy: 42,
+        updatedBy: "user-42",
         estimatedReadyTime: new Date("2026-06-07T00:10:00.000Z"),
       }),
-      42,
+      "user-42",
       0,
       expect.any(Object),
       expect.objectContaining({ id: 55 }),
@@ -689,7 +697,7 @@ describe("orders routes", () => {
     expect(serviceMocks.cancelOrder).toHaveBeenCalledWith(
       "55",
       "Cancelled by user",
-      42,
+      "user-42",
       expect.any(Object),
       expect.objectContaining({ id: 55 }),
     );
@@ -716,7 +724,7 @@ describe("orders routes", () => {
     expect(serviceMocks.cancelOrder).toHaveBeenCalledWith(
       "55",
       "Customer changed their mind",
-      42,
+      "user-42",
       expect.any(Object),
       expect.objectContaining({ id: 55 }),
     );
@@ -761,7 +769,7 @@ describe("orders routes", () => {
     expect(serviceMocks.cancelOrder).toHaveBeenCalledWith(
       "55",
       "Cancelled by user",
-      42,
+      "user-42",
       expect.any(Object),
       expect.objectContaining({ id: 55 }),
     );
@@ -823,7 +831,7 @@ describe("orders routes", () => {
         action: "update_status",
         orderIds: ["55", "56"],
       }),
-      42,
+      "user-42",
     );
   });
 
@@ -882,10 +890,10 @@ describe("orders routes", () => {
 
   it("generates receipts after customer ownership checks", async () => {
     const env = createEnv();
-    authState.user = { id: 42, role: 5, restaurantId: null };
+    authState.user = { id: "user-42", role: 5, restaurantId: null };
     serviceMocks.getOrder.mockResolvedValue({
       id: 55,
-      customerId: "42",
+      customerId: "user-42",
       restaurantId: "restaurant-1",
     });
     serviceMocks.generateReceipt.mockResolvedValue({ html: "<p>receipt</p>" });
@@ -916,12 +924,12 @@ describe("orders routes", () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
         id: 55,
-        customerId: "99",
+        customerId: "user-99",
         restaurantId: "restaurant-1",
       })
       .mockResolvedValueOnce({
         id: 55,
-        customerId: "42",
+        customerId: "user-42",
         restaurantId: "restaurant-2",
       });
 
@@ -933,7 +941,7 @@ describe("orders routes", () => {
     );
     expect(missingResponse.status).toBe(500);
 
-    authState.user = { id: 42, role: 5, restaurantId: null };
+    authState.user = { id: "user-42", role: 5, restaurantId: null };
     const customerForbiddenResponse = await withSilencedRouteError(() =>
       routes.fetch(
         new Request("https://orders.test/55/receipt"),
@@ -942,7 +950,7 @@ describe("orders routes", () => {
     );
     expect(customerForbiddenResponse.status).toBe(500);
 
-    authState.user = { id: 42, role: 1, restaurantId: "restaurant-1" };
+    authState.user = { id: "user-42", role: 1, restaurantId: "restaurant-1" };
     const staffForbiddenResponse = await withSilencedRouteError(() =>
       routes.fetch(
         new Request("https://orders.test/55/receipt"),

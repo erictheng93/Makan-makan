@@ -2,13 +2,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { verify } from "hono/jwt";
 import routes from "./index";
 
-const mocks = vi.hoisted(() => ({
-  currentUser: { id: 22, role: 2, restaurantId: "restaurant-1" },
-  validateChefAccess: vi.fn(),
-  getKitchenOrders: vi.fn(),
-  updateOrderItemStatus: vi.fn(),
-  resolveOrderIdentity: vi.fn(),
-}));
+const mocks = vi.hoisted(() => {
+  // `restaurantId` is optional on the real principal — several cases below
+  // reassign it to `undefined` to exercise the "no restaurant context" paths,
+  // so the fixture has to be declared with that widened shape up front.
+  const currentUser: {
+    id: string;
+    role: number;
+    restaurantId: string | undefined;
+  } = { id: "user-22", role: 2, restaurantId: "restaurant-1" };
+  return {
+    currentUser,
+    validateChefAccess: vi.fn(),
+    getKitchenOrders: vi.fn(),
+    updateOrderItemStatus: vi.fn(),
+    resolveOrderIdentity: vi.fn(),
+  };
+});
 
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c, next) => {
@@ -22,9 +32,16 @@ vi.mock("../../../middleware/auth", () => ({
 }));
 
 const gateMocks = vi.hoisted(() => ({
-  moduleGate: vi.fn(() => async (_c: unknown, next: () => Promise<void>) => {
-    await next();
-  }),
+  // The real `moduleGate(module, resolveGuestRestaurantId?)` takes the module
+  // key as its first argument; the mock has to declare it too, otherwise the
+  // recorded `mock.calls` entries are typed as empty tuples and
+  // `moduleGateRegistrationKeys` below cannot read index 0.
+  moduleGate: vi.fn(
+    (_module: string, _resolveGuestRestaurantId?: unknown) =>
+      async (_c: unknown, next: () => Promise<void>) => {
+        await next();
+      },
+  ),
 }));
 
 vi.mock("../../../middleware/moduleGate", () => ({
@@ -79,7 +96,9 @@ function jsonRequest(path: string, method: string, body: unknown) {
   });
 }
 
-async function expectIsolatedRouteError(action: () => Promise<Response>) {
+async function expectIsolatedRouteError(
+  action: () => Response | Promise<Response>,
+) {
   const response = await action();
   expect(response.status).toBe(500);
   await expect(response.text()).resolves.toBe("Internal Server Error");
@@ -91,7 +110,7 @@ describe("kitchen routes", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     mocks.currentUser = {
-      id: 22,
+      id: "user-22",
       role: 2,
       restaurantId: "restaurant-1",
     };
@@ -139,7 +158,7 @@ describe("kitchen routes", () => {
       data: {},
     });
     expect(env.CACHE_KV.get).toHaveBeenCalledWith(
-      "kitchen:notification-settings:restaurant-1:22",
+      "kitchen:notification-settings:restaurant-1:user-22",
       "json",
     );
 
@@ -160,9 +179,9 @@ describe("kitchen routes", () => {
       },
     });
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
-      "kitchen:notification-settings:restaurant-1:22",
+      "kitchen:notification-settings:restaurant-1:user-22",
       JSON.stringify({
-        userId: 22,
+        userId: "user-22",
         restaurantId: "restaurant-1",
         settings: { sound: true, volume: 80 },
         updatedAt: "2026-06-07T00:00:00.000Z",
@@ -192,7 +211,7 @@ describe("kitchen routes", () => {
   });
 
   it("uses a global notification settings key when the user has no restaurant", async () => {
-    mocks.currentUser = { id: 22, role: 0, restaurantId: undefined };
+    mocks.currentUser = { id: "user-22", role: 0, restaurantId: undefined };
     const env = createEnv();
 
     const response = await routes.fetch(
@@ -202,7 +221,7 @@ describe("kitchen routes", () => {
 
     expect(response.status).toBe(200);
     expect(env.CACHE_KV.put).toHaveBeenCalledWith(
-      "kitchen:notification-settings:global:22",
+      "kitchen:notification-settings:global:user-22",
       expect.stringContaining('"restaurantId":null'),
     );
   });
@@ -223,13 +242,13 @@ describe("kitchen routes", () => {
       message: "Kitchen orders retrieved successfully",
     });
     expect(mocks.validateChefAccess).toHaveBeenCalledWith(
-      22,
+      "user-22",
       2,
       "restaurant-1",
     );
     expect(mocks.getKitchenOrders).toHaveBeenCalledWith(
       "restaurant-1",
-      22,
+      "user-22",
       100,
     );
   });
@@ -243,7 +262,7 @@ describe("kitchen routes", () => {
     expect(response.status).toBe(200);
     expect(mocks.getKitchenOrders).toHaveBeenCalledWith(
       "restaurant-1",
-      22,
+      "user-22",
       250,
     );
   });
@@ -265,15 +284,17 @@ describe("kitchen routes", () => {
     expect(body.data.expiresIn).toBe(60);
     const payload = await verify(body.data.sseToken, env.JWT_SECRET, "HS256");
     expect(payload).toMatchObject({
-      id: 22,
+      id: "user-22",
       role: 2,
       restaurantId: "restaurant-1",
       purpose: "kitchen_sse",
       aud: "kitchen_sse",
     });
-    expect(payload.exp).toBe(payload.iat + 60);
+    const issuedAt = payload.iat;
+    expect(issuedAt).toEqual(expect.any(Number));
+    expect(payload.exp).toBe((issuedAt ?? 0) + 60);
     expect(mocks.validateChefAccess).toHaveBeenCalledWith(
-      22,
+      "user-22",
       2,
       "restaurant-1",
     );
@@ -304,7 +325,7 @@ describe("kitchen routes", () => {
       44,
       9,
       { status: "ready", notes: "plate now" },
-      22,
+      "user-22",
     );
     expect(mocks.resolveOrderIdentity).toHaveBeenCalledWith(
       { binding: "db" },
@@ -336,7 +357,7 @@ describe("kitchen routes", () => {
       44,
       9,
       { status: "ready", notes: "" },
-      22,
+      "user-22",
     );
   });
 
@@ -385,7 +406,7 @@ describe("kitchen routes", () => {
       44,
       9,
       { status: "preparing", notes: "fire" },
-      22,
+      "user-22",
     );
     expect(mocks.updateOrderItemStatus).toHaveBeenNthCalledWith(
       2,
@@ -393,7 +414,7 @@ describe("kitchen routes", () => {
       44,
       9,
       { status: "ready", notes: "window" },
-      22,
+      "user-22",
     );
     expect(console.warn).toHaveBeenCalledWith(
       "[deprecated-route] kitchen legacy item status hit",
@@ -424,7 +445,11 @@ describe("kitchen routes", () => {
       ),
     );
 
-    mocks.currentUser = { id: 22, role: 2, restaurantId: "restaurant-2" };
+    mocks.currentUser = {
+      id: "user-22",
+      role: 2,
+      restaurantId: "restaurant-2",
+    };
     mocks.validateChefAccess.mockReturnValueOnce(true);
     await expectIsolatedRouteError(() =>
       routes.fetch(
@@ -437,7 +462,7 @@ describe("kitchen routes", () => {
   });
 
   it("rejects legacy updates when restaurant context or chef access is missing", async () => {
-    mocks.currentUser = { id: 22, role: 2, restaurantId: undefined };
+    mocks.currentUser = { id: "user-22", role: 2, restaurantId: undefined };
     await expectIsolatedRouteError(() =>
       routes.fetch(
         jsonRequest("/44/items/9/start", "POST", {}),
@@ -445,7 +470,11 @@ describe("kitchen routes", () => {
       ),
     );
 
-    mocks.currentUser = { id: 22, role: 4, restaurantId: "restaurant-1" };
+    mocks.currentUser = {
+      id: "user-22",
+      role: 4,
+      restaurantId: "restaurant-1",
+    };
     mocks.validateChefAccess.mockReturnValueOnce(false);
     await expectIsolatedRouteError(() =>
       routes.fetch(
@@ -464,7 +493,11 @@ describe("kitchen routes", () => {
       ),
     );
 
-    mocks.currentUser = { id: 22, role: 2, restaurantId: "restaurant-2" };
+    mocks.currentUser = {
+      id: "user-22",
+      role: 2,
+      restaurantId: "restaurant-2",
+    };
     mocks.validateChefAccess.mockReturnValueOnce(true);
     await expectIsolatedRouteError(() =>
       routes.fetch(

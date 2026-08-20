@@ -1,9 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const auth = vi.hoisted(() => ({
-  user: { id: 7, role: 1, restaurantId: "rest-1" },
-  customer: undefined as undefined | { id: string },
-}));
+const auth = vi.hoisted(() => {
+  // Admins (role 0) carry no restaurant scope, matching AuthUser.restaurantId
+  // being optional in production.
+  const user: { id: number; role: number; restaurantId?: string } = {
+    id: 7,
+    role: 1,
+    restaurantId: "rest-1",
+  };
+  return {
+    user,
+    customer: undefined as undefined | { id: string },
+  };
+});
 
 vi.mock("../../../middleware/auth", () => ({
   optionalCanonicalCustomerAuthMiddleware: vi.fn(async (c, next) => {

@@ -21,7 +21,7 @@ interface PreparedStatement {
 }
 
 interface RefundOrderRow {
-  id: number;
+  id: string;
   restaurantId: string;
   totalAmountCents: number | null;
   refundAmountCents: number | null;
@@ -99,7 +99,7 @@ function env(db: unknown) {
 
 function paidOrder(overrides: Partial<RefundOrderRow> = {}): RefundOrderRow {
   return {
-    id: 42,
+    id: "order-42",
     restaurantId: "restaurant-1",
     totalAmountCents: 12000,
     refundAmountCents: null,
@@ -120,7 +120,7 @@ function statementContaining(statements: PreparedStatement[], text: string) {
 }
 
 const cashierUser = {
-  id: 4,
+  id: "user-4",
   username: "cashier",
   role: 4,
   restaurantId: "restaurant-1",
@@ -196,7 +196,7 @@ describe("refundPaymentTransaction", () => {
     ).resolves.toEqual({
       refundId: "ref_txn-1_1780833600000",
       transactionId: "txn-1",
-      orderId: 42,
+      orderId: "order-42",
       amount: 30,
       status: "completed",
       paymentStatus: "partial_refunded",
@@ -209,7 +209,7 @@ describe("refundPaymentTransaction", () => {
       )?.values,
     ).toEqual([
       "txn-1",
-      42,
+      "order-42",
       "restaurant-1",
       12000,
       "unknown",
@@ -224,7 +224,7 @@ describe("refundPaymentTransaction", () => {
         "partial_refunded",
         3000,
         1780833600000,
-        42,
+        "order-42",
         "txn-1",
       ]),
     );
@@ -237,7 +237,7 @@ describe("refundPaymentTransaction", () => {
     ).toEqual([
       "ref_txn-1_1780833600000",
       "txn-1",
-      42,
+      "order-42",
       "restaurant-1",
       3000,
       "customer changed mind",
@@ -262,7 +262,7 @@ describe("refundPaymentTransaction", () => {
       null,
       JSON.stringify({
         refundId: "ref_txn-1_1780833600000",
-        orderId: 42,
+        orderId: "order-42",
         reason: "customer changed mind",
         paymentStatus: "partial_refunded",
       }),
@@ -329,11 +329,17 @@ describe("refundPaymentTransaction", () => {
         fullRefund.statements,
         "INSERT OR IGNORE INTO payment_transactions",
       )?.values.slice(0, 6),
-    ).toEqual(["txn-2", 42, "restaurant-1", 4567, "card", "paid"]);
+    ).toEqual(["txn-2", "order-42", "restaurant-1", 4567, "card", "paid"]);
     expect(
       statementContaining(fullRefund.statements, "UPDATE orders")?.values,
     ).toEqual(
-      expect.arrayContaining(["refunded", 3000, 1780833600000, 42, "txn-2"]),
+      expect.arrayContaining([
+        "refunded",
+        3000,
+        1780833600000,
+        "order-42",
+        "txn-2",
+      ]),
     );
     expect(
       statementContaining(
@@ -384,7 +390,7 @@ describe("refundPaymentTransaction", () => {
         { transactionId: "txn-role", amount: 10 },
         {
           user: {
-            id: 1,
+            id: "user-1",
             username: "chef",
             role: 2,
             restaurantId: "restaurant-1",
@@ -402,7 +408,7 @@ describe("refundPaymentTransaction", () => {
         { transactionId: "txn-tenant", amount: 10 },
         {
           user: {
-            id: 2,
+            id: "user-2",
             username: "cashier",
             role: 4,
             restaurantId: "restaurant-2",

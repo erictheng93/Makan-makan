@@ -1,19 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AuthCustomer } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
 
-const mocks = vi.hoisted(() => ({
-  customer: {
+const mocks = vi.hoisted(() => {
+  const customer: AuthCustomer = {
     id: "customer-1",
     displayName: "Asha Tan",
     primaryPhone: "+886900000001",
     primaryEmail: "asha@example.test",
     status: "active",
-  },
-  ordersService: {
-    getOrders: vi.fn(),
-  },
-  ordersServiceCtor: vi.fn(),
-}));
+  };
+  return {
+    customer,
+    ordersService: {
+      getOrders: vi.fn(),
+    },
+    ordersServiceCtor: vi.fn(),
+  };
+});
 
 vi.mock("../../../middleware/auth", () => ({
   canonicalCustomerAuthMiddleware: vi.fn(async (c, next) => {

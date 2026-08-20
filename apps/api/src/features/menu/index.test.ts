@@ -53,9 +53,11 @@ describe("menu feature module", () => {
     await expect(module.routes.request("/probe")).resolves.toMatchObject({
       status: 200,
     });
-    await expect(
-      module.routes.request("/probe").then((res) => res.json()),
-    ).resolves.toEqual({ success: true, feature: "menu" });
+    const probeResponse = await module.routes.request("/probe");
+    await expect(probeResponse.json()).resolves.toEqual({
+      success: true,
+      feature: "menu",
+    });
     const missingResponse = await module.routes.request("/missing");
     expect(missingResponse.status).toBe(404);
     expect(loggerFns.debug).toHaveBeenCalledWith("GET /missing - starting");

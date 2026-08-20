@@ -1,23 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../../shared/utils/api-error";
+import type { AuthUser } from "../../../middleware/auth";
 
-const mocks = vi.hoisted(() => ({
-  user: {
-    id: 10,
+const mocks = vi.hoisted(() => {
+  const user: AuthUser = {
+    id: "user-10",
     username: "owner",
     role: 1,
     restaurantId: "restaurant-1",
-  },
-  registerService: {
-    createRegister: vi.fn(),
-    deleteRegister: vi.fn(),
-    getRegisters: vi.fn(),
-    getRegisterStatus: vi.fn(),
-    toggleRegisterStatus: vi.fn(),
-    updateRegister: vi.fn(),
-  },
-  registerServiceCtor: vi.fn(),
-}));
+  };
+  return {
+    user,
+    registerService: {
+      createRegister: vi.fn(),
+      deleteRegister: vi.fn(),
+      getRegisters: vi.fn(),
+      getRegisterStatus: vi.fn(),
+      toggleRegisterStatus: vi.fn(),
+      updateRegister: vi.fn(),
+    },
+    registerServiceCtor: vi.fn(),
+  };
+});
 
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c, next) => {
@@ -81,7 +85,7 @@ describe("POS register routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.user = {
-      id: 10,
+      id: "user-10",
       username: "owner",
       role: 1,
       restaurantId: "restaurant-1",
@@ -127,7 +131,7 @@ describe("POS register routes", () => {
     expect(mocks.registerServiceCtor).toHaveBeenCalledWith({ binding: "db" });
     expect(mocks.registerService.createRegister).toHaveBeenCalledWith(
       payload,
-      10,
+      "user-10",
     );
     expect(body).toEqual({ success: true, data: register });
   });
@@ -166,7 +170,7 @@ describe("POS register routes", () => {
     expect(body).toEqual({ success: true, data: [register] });
 
     mocks.user = {
-      id: 1,
+      id: "user-1",
       username: "admin",
       role: 0,
       restaurantId: undefined,
@@ -183,7 +187,7 @@ describe("POS register routes", () => {
 
   it("rejects admin list requests without a restaurant scope and service failures", async () => {
     mocks.user = {
-      id: 1,
+      id: "user-1",
       username: "admin",
       role: 0,
       restaurantId: undefined,

@@ -53,9 +53,11 @@ describe("scheduling feature module", () => {
     await expect(module.routes.request("/probe")).resolves.toMatchObject({
       status: 200,
     });
-    await expect(
-      module.routes.request("/probe").then((res) => res.json()),
-    ).resolves.toEqual({ success: true, feature: "scheduling" });
+    const probeResponse = await module.routes.request("/probe");
+    await expect(probeResponse.json()).resolves.toEqual({
+      success: true,
+      feature: "scheduling",
+    });
     const missingDateNow = vi.spyOn(Date, "now").mockReturnValue(0);
     const missingResponse = await module.routes.request("/missing");
     missingDateNow.mockRestore();

@@ -423,7 +423,11 @@ describe("MarketsService", () => {
       service as any,
       "catalogCoverageWithVendorBreakdown",
     ).mockResolvedValue({ searchableProductCount: 1, publicServiceCount: 2 });
-    vi.spyOn(service, "getMarketById").mockResolvedValue(null);
+    // `getMarketById` destructures its single-row select, so TypeScript infers
+    // a non-nullable return and a `mockResolvedValue(null)` spy will not type.
+    // Drive the missing-market branch through an empty fixture queue instead,
+    // which is what the real read does when the id matches nothing.
+    mockSelectResults({ markets: [[]] });
 
     await expect(service.listAdminReadiness({ city: "Taipei" })).resolves.toBe(
       marketResult,

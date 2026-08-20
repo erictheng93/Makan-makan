@@ -200,7 +200,7 @@ describe("isPublicApiCacheableRequest", () => {
       }),
     );
     app.put("/api/v1/restaurants/:id", (c) => {
-      c.set("user", { role: 0, restaurantId: null });
+      c.set("user", { id: "user-admin", username: "admin", role: 0 });
       currency = "TWD";
       return c.json({ success: true });
     });

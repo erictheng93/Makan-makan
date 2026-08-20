@@ -27,7 +27,6 @@ describe("SignedQrVerificationService", () => {
     const currentQr = await buildSignedQRUrl(
       "https://example.test",
       {
-        formatVersion: 2,
         type: "table",
         restaurantId: "restaurant-1",
         tableId: 10,
@@ -39,7 +38,6 @@ describe("SignedQrVerificationService", () => {
     const staleQr = await buildSignedQRUrl(
       "https://example.test",
       {
-        formatVersion: 2,
         type: "table",
         restaurantId: "restaurant-1",
         tableId: 10,
@@ -79,7 +77,6 @@ describe("SignedQrVerificationService", () => {
     const qrCode = await buildSignedQRUrl(
       "https://example.test",
       {
-        formatVersion: 2,
         type: "table",
         restaurantId: "restaurant-1",
         tableId: 10,
@@ -153,7 +150,6 @@ describe("SignedQrVerificationService", () => {
     const qrCode = await buildSignedQRUrl(
       "https://example.test",
       {
-        formatVersion: 2,
         type: "seat",
         restaurantId: "restaurant-1",
         tableId: 10,
@@ -190,7 +186,6 @@ describe("SignedQrVerificationService", () => {
     const qrCode = await buildSignedQRUrl(
       "https://example.test",
       {
-        formatVersion: 2,
         type: "seat",
         restaurantId: "restaurant-1",
         tableId: 10,

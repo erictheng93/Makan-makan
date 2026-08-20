@@ -223,7 +223,7 @@ describe("OrdersService realtime broadcasts", () => {
 
 function createOrder(overrides: Record<string, unknown> = {}) {
   return {
-    id: 42,
+    id: "42",
     restaurantId: "restaurant-1",
     tableId: 7,
     orderNumber: "ORD-42",
@@ -444,9 +444,9 @@ describe("OrdersService workflows", () => {
     const env = createEnv();
     getBaseOrders.mockResolvedValue({
       orders: [
-        createOrder({ id: 1, restaurantId: "restaurant-1" }),
-        createOrder({ id: 2, restaurantId: "restaurant-2" }),
-        createOrder({ id: 3, restaurantId: undefined }),
+        createOrder({ id: "1", restaurantId: "restaurant-1" }),
+        createOrder({ id: "2", restaurantId: "restaurant-2" }),
+        createOrder({ id: "3", restaurantId: undefined }),
       ],
       pagination: { page: 2, limit: 5, total: 3, totalPages: 1 },
     });
@@ -461,9 +461,9 @@ describe("OrdersService workflows", () => {
         sortBy: "createdAt",
         sortOrder: "desc",
       },
-      10,
+      "10",
       1,
-      { userId: 10, userRole: 1, userRestaurantId: "restaurant-1" },
+      { userId: "10", userRole: 1, userRestaurantId: "restaurant-1" },
     );
 
     expect(getBaseOrders).toHaveBeenCalledWith(
@@ -479,7 +479,7 @@ describe("OrdersService workflows", () => {
       2,
       5,
     );
-    expect(result.orders.map((order) => order.id)).toEqual([1, 3]);
+    expect(result.orders.map((order) => order.id)).toEqual(["1", "3"]);
     expect(result.total).toBe(3);
   });
 
@@ -488,7 +488,7 @@ describe("OrdersService workflows", () => {
     getBaseOrders.mockResolvedValue({
       orders: [
         createOrder({
-          id: 1,
+          id: "1",
           restaurantId: "restaurant-1",
           status: "pending",
           orderSource: "guest_qr",
@@ -513,17 +513,17 @@ describe("OrdersService workflows", () => {
   it("scopes customer order lists and converts complete date ranges", async () => {
     const service = new OrdersService(createEnv() as never);
     getBaseOrders.mockResolvedValue({
-      orders: [createOrder({ id: 5, restaurantId: "restaurant-1" })],
+      orders: [createOrder({ id: "5", restaurantId: "restaurant-1" })],
       pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
     });
 
     await expect(
       service.getOrders(
         {
-          dateFrom: "2026-06-01T00:00:00.000Z",
-          dateTo: "2026-06-02T00:00:00.000Z",
+          dateFrom: new Date("2026-06-01T00:00:00.000Z"),
+          dateTo: new Date("2026-06-02T00:00:00.000Z"),
         },
-        77,
+        "77",
         5,
       ),
     ).resolves.toMatchObject({ total: 1 });
@@ -557,8 +557,8 @@ describe("OrdersService workflows", () => {
     const service = new OrdersService(env as never);
 
     await expect(
-      service.getOrder(42, true, {
-        userId: 10,
+      service.getOrder("42", true, {
+        userId: "10",
         userRole: 2,
         userRestaurantId: "restaurant-1",
       }),
@@ -574,20 +574,20 @@ describe("OrdersService workflows", () => {
     const service = new OrdersService(env as never);
 
     const result = await service.updateOrderStatus(
-      42,
+      "42",
       {
         status: "preparing",
         notes: "started",
         estimatedReadyTime: new Date("2026-06-07T01:25:00.000Z"),
       },
-      20,
+      "20",
       2,
-      { userId: 20, userRole: 2, userRestaurantId: "restaurant-1" },
+      { userId: "20", userRole: 2, userRestaurantId: "restaurant-1" },
       previous as never,
     );
 
     expect(result).toBe(updated);
-    expect(updateBaseOrderStatus).toHaveBeenCalledWith(42, {
+    expect(updateBaseOrderStatus).toHaveBeenCalledWith("42", {
       status: "preparing",
       notes: "started",
       expectedVersion: 7,
@@ -599,11 +599,11 @@ describe("OrdersService workflows", () => {
         type: RealtimeEventType.ORDER_STATUS_UPDATE,
         restaurantId: "restaurant-1",
         data: expect.objectContaining({
-          orderId: 42,
+          orderId: "42",
           previousStatus: "confirmed",
           status: "preparing",
           message: "started",
-          updatedBy: { userId: 20, userName: "System", role: "admin" },
+          updatedBy: { userId: "20", userName: "System", role: "admin" },
         }),
       }),
     );
@@ -622,11 +622,11 @@ describe("OrdersService workflows", () => {
     const service = new OrdersService(env as never);
 
     await service.updateOrderStatus(
-      42,
+      "42",
       { status: "delivered" },
-      20,
+      "20",
       3,
-      { userId: 20, userRole: 3, userRestaurantId: "restaurant-1" },
+      { userId: "20", userRole: 3, userRestaurantId: "restaurant-1" },
       previous as never,
     );
 
@@ -647,10 +647,10 @@ describe("OrdersService workflows", () => {
     const service = new OrdersService(env as never);
     cancelBaseOrder.mockResolvedValue(createOrder({ status: "cancelled" }));
 
-    await service.cancelOrder(42, "Customer requested cancellation", 20);
+    await service.cancelOrder("42", "Customer requested cancellation", "20");
 
     expect(cancelBaseOrder).toHaveBeenCalledWith(
-      42,
+      "42",
       "Customer requested cancellation",
     );
     expect(env.CACHE_KV.get).toHaveBeenCalledWith("guest_active_lookup:42");
@@ -665,7 +665,7 @@ describe("OrdersService workflows", () => {
     cancelBaseOrder.mockRejectedValue(new Error("Order cannot be cancelled"));
 
     await expect(
-      service.cancelOrder(42, "Already cancelled", 20),
+      service.cancelOrder("42", "Already cancelled", "20"),
     ).rejects.toMatchObject({
       code: "ORDER_NOT_CANCELLABLE",
       status: 409,
@@ -677,9 +677,9 @@ describe("OrdersService workflows", () => {
 
     await expect(
       service.updateOrderStatus(
-        42,
+        "42",
         { status: "paid" },
-        20,
+        "20",
         4,
         undefined,
         createOrder({ status: "confirmed" }) as never,
@@ -688,9 +688,9 @@ describe("OrdersService workflows", () => {
 
     await expect(
       service.updateOrderStatus(
-        42,
+        "42",
         { status: "ready" },
-        30,
+        "30",
         1,
         undefined,
         createOrder({ status: "preparing" }) as never,
@@ -703,29 +703,29 @@ describe("OrdersService workflows", () => {
     const env = createEnv();
     const service = new OrdersService(env as never);
 
-    const cachedOrder = createOrder({ id: 42 });
+    const cachedOrder = createOrder({ id: "42" });
     const cachedEnv = createEnv({
       cacheGet: async (key) => (key === "order:42:basic" ? cachedOrder : null),
     });
     await expect(
-      new OrdersService(cachedEnv as never).getOrder(42, false, {
-        userId: 1,
+      new OrdersService(cachedEnv as never).getOrder("42", false, {
+        userId: "1",
         userRole: 0,
       }),
     ).resolves.toBe(cachedOrder);
 
     getBaseOrder.mockResolvedValueOnce(null);
-    await expect(service.deleteOrder(404, 10)).resolves.toBe(false);
+    await expect(service.deleteOrder("404", "10")).resolves.toBe(false);
 
     getBaseOrder.mockResolvedValueOnce(createOrder({ status: "confirmed" }));
-    await expectSilencedRejection(() => service.deleteOrder(42, 10), {
+    await expectSilencedRejection(() => service.deleteOrder("42", "10"), {
       code: "ORDER_NOT_DELETABLE",
     });
 
     getBaseOrder.mockResolvedValueOnce(createOrder({ status: "pending" }));
     cancelBaseOrder.mockResolvedValueOnce(createOrder({ status: "cancelled" }));
-    await expect(service.deleteOrder(42, 10)).resolves.toBe(true);
-    expect(cancelBaseOrder).toHaveBeenCalledWith(42, "Order deleted");
+    await expect(service.deleteOrder("42", "10")).resolves.toBe(true);
+    expect(cancelBaseOrder).toHaveBeenCalledWith("42", "Order deleted");
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith("order:42:full");
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith("order:42:basic");
 
@@ -748,7 +748,7 @@ describe("OrdersService workflows", () => {
         updatedAt: "2026-06-07T01:25:00.000Z",
       }),
     );
-    await expect(service.getOrderStatusHistory(42)).resolves.toEqual([
+    await expect(service.getOrderStatusHistory("42")).resolves.toEqual([
       {
         status: "ready",
         timestamp: new Date("2026-06-07T01:25:00.000Z"),
@@ -757,22 +757,22 @@ describe("OrdersService workflows", () => {
     ]);
 
     getBaseOrder.mockResolvedValueOnce(null);
-    await expect(service.getOrderStatusHistory(404)).resolves.toEqual([]);
+    await expect(service.getOrderStatusHistory("404")).resolves.toEqual([]);
 
     getBaseOrder.mockRejectedValueOnce(new Error("history backend down"));
     const consoleError = vi
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
     try {
-      await expect(service.getOrderStatusHistory(500)).resolves.toEqual([]);
+      await expect(service.getOrderStatusHistory("500")).resolves.toEqual([]);
     } finally {
       consoleError.mockRestore();
     }
 
     getBaseOrder.mockResolvedValueOnce(createOrder());
     await expect(
-      service.updatePaymentStatus(42, "paid" as never, "cash" as never),
-    ).resolves.toMatchObject({ id: 42 });
+      service.updatePaymentStatus("42", "paid" as never, "cash" as never),
+    ).resolves.toMatchObject({ id: "42" });
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith("order:42:full");
 
     getBaseOrders.mockRejectedValueOnce(new Error("search backend down"));
@@ -794,17 +794,17 @@ describe("OrdersService workflows", () => {
   it("summarizes bulk cancellations and unsupported bulk actions", async () => {
     const service = new OrdersService(createEnv() as never);
     cancelBaseOrder
-      .mockResolvedValueOnce(createOrder({ id: 10, status: "cancelled" }))
+      .mockResolvedValueOnce(createOrder({ id: "10", status: "cancelled" }))
       .mockResolvedValueOnce(null);
 
     const cancelResult = await service.bulkUpdateOrders(
       {
         batchId: "batch-cancel",
         action: "cancel",
-        orderIds: [10, 11],
+        orderIds: ["10", "11"],
         data: { reason: "closing early" },
       },
-      99,
+      "99",
     );
 
     expect(cancelResult).toMatchObject({
@@ -814,19 +814,19 @@ describe("OrdersService workflows", () => {
       failedCount: 0,
     });
     expect(cancelResult.results).toEqual([
-      { orderId: 10, success: true, data: expect.any(Object) },
-      { orderId: 11, success: false, data: null },
+      { orderId: "10", success: true, data: expect.any(Object) },
+      { orderId: "11", success: false, data: null },
     ]);
 
     const unsupported = await service.bulkUpdateOrders({
       batchId: "batch-export",
       action: "export",
-      orderIds: [12],
+      orderIds: ["12"],
     });
 
     expect(unsupported.failedCount).toBe(1);
     expect(unsupported.errors[0]).toMatchObject({
-      orderId: 12,
+      orderId: "12",
       error: "Unsupported bulk operation: export",
     });
   });
@@ -836,19 +836,19 @@ describe("OrdersService workflows", () => {
     vi.spyOn(Math, "random").mockReturnValue(0.123456789);
     const service = new OrdersService(createEnv() as never);
     getBaseOrder
-      .mockResolvedValueOnce(createOrder({ id: 20, status: "confirmed" }))
-      .mockResolvedValueOnce(createOrder({ id: 21, status: "confirmed" }));
+      .mockResolvedValueOnce(createOrder({ id: "20", status: "confirmed" }))
+      .mockResolvedValueOnce(createOrder({ id: "21", status: "confirmed" }));
     updateBaseOrderStatus
-      .mockResolvedValueOnce(createOrder({ id: 20, status: "preparing" }))
+      .mockResolvedValueOnce(createOrder({ id: "20", status: "preparing" }))
       .mockResolvedValueOnce(null);
 
     const result = await service.bulkUpdateOrders(
       {
         action: "update_status",
-        orderIds: [20, 21],
+        orderIds: ["20", "21"],
         data: { status: "preparing", notes: "bulk start" },
       },
-      99,
+      "99",
     );
 
     expect(result).toMatchObject({
@@ -858,14 +858,14 @@ describe("OrdersService workflows", () => {
       failedCount: 1,
     });
     expect(result.results).toEqual([
-      { orderId: 20, success: true, data: expect.any(Object) },
+      { orderId: "20", success: true, data: expect.any(Object) },
       {
-        orderId: 21,
+        orderId: "21",
         success: false,
         error: "Failed to update order status",
       },
     ]);
-    expect(updateBaseOrderStatus).toHaveBeenCalledWith(20, {
+    expect(updateBaseOrderStatus).toHaveBeenCalledWith("20", {
       status: "preparing",
       notes: "bulk start",
       expectedVersion: 3,
@@ -984,7 +984,7 @@ describe("OrdersService workflows", () => {
         restaurantId: "restaurant-1",
         couponCode: "SAVE20",
         orderAmount: 200,
-        userId: 5,
+        userId: "5",
         menuItems: [{ menuItemId: 101, quantity: 2 }],
       }),
     ).resolves.toEqual({
@@ -1030,7 +1030,7 @@ describe("OrdersService workflows", () => {
     );
     const service = new OrdersService(env as never);
 
-    const receipt = await service.generateReceipt(42);
+    const receipt = await service.generateReceipt("42");
 
     expect(receipt).toMatchObject({
       orderNumber: "ORD-42",
@@ -1110,7 +1110,7 @@ describe("OrdersService workflows", () => {
     );
     const service = new OrdersService(env as never);
 
-    const receipt = await service.generateReceipt(42);
+    const receipt = await service.generateReceipt("42");
 
     expect(receipt).toMatchObject({
       restaurantInfo: {
@@ -1153,14 +1153,14 @@ describe("OrdersService workflows", () => {
 
     getBaseOrder.mockResolvedValueOnce(null);
     await expect(
-      service.updatePaymentStatus(404, "paid" as never),
+      service.updatePaymentStatus("404", "paid" as never),
     ).resolves.toBeNull();
   });
 
   it("adds order items through the base service and invalidates caches", async () => {
     const env = createEnv();
     const updated = createOrder({
-      id: 42,
+      id: "42",
       status: "confirmed",
       items: [
         { id: 1, menuItemId: 100, quantity: 1 },
@@ -1171,14 +1171,14 @@ describe("OrdersService workflows", () => {
     const service = new OrdersService(env as never);
     const items = [{ menuItemId: 101, quantity: 2, notes: "extra" }];
 
-    const result = await service.addItemsToOrder(42, items as never);
+    const result = await service.addItemsToOrder("42", items as never);
 
     expect(result).toBe(updated);
-    expect(addBaseOrderItems).toHaveBeenCalledWith(42, items);
+    expect(addBaseOrderItems).toHaveBeenCalledWith("42", items);
     expect(broadcastNewOrder).toHaveBeenCalledWith(
       expect.objectContaining({
         type: RealtimeEventType.NEW_ORDER,
-        data: expect.objectContaining({ orderId: 42 }),
+        data: expect.objectContaining({ orderId: "42" }),
       }),
     );
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith("order:42:full");
@@ -1190,17 +1190,17 @@ describe("OrdersService workflows", () => {
 
     getBaseOrder.mockResolvedValueOnce(null);
     await expect(
-      service.updateOrderStatus(404, { status: "preparing" }, 20, 2),
+      service.updateOrderStatus("404", { status: "preparing" }, "20", 2),
     ).resolves.toBeNull();
 
     await expect(
       service.updateOrderStatus(
-        42,
+        "42",
         { status: "preparing" },
-        20,
+        "20",
         2,
         undefined,
-        createOrder({ id: 99, status: "confirmed" }) as never,
+        createOrder({ id: "99", status: "confirmed" }) as never,
       ),
     ).rejects.toMatchObject({ code: "ORDER_ID_MISMATCH" });
 
@@ -1209,9 +1209,9 @@ describe("OrdersService workflows", () => {
     );
     await expect(
       service.updateOrderStatus(
-        42,
+        "42",
         { status: "preparing" },
-        20,
+        "20",
         2,
         undefined,
         createOrder({ status: "confirmed", version: 7 }) as never,
@@ -1221,9 +1221,9 @@ describe("OrdersService workflows", () => {
     updateBaseOrderStatus.mockResolvedValueOnce(null);
     await expect(
       service.updateOrderStatus(
-        42,
+        "42",
         { status: "preparing" },
-        20,
+        "20",
         2,
         undefined,
         createOrder({ status: "confirmed", version: 7 }) as never,
@@ -1241,20 +1241,20 @@ describe("OrdersService workflows", () => {
 
     await expect(
       service.cancelOrder(
-        42,
+        "42",
         "guest changed mind",
-        20,
-        { userId: 20, userRole: 2, userRestaurantId: "restaurant-1" },
+        "20",
+        { userId: "20", userRole: 2, userRestaurantId: "restaurant-1" },
         order as never,
       ),
     ).resolves.toBeNull();
 
     await expect(
       service.cancelOrder(
-        42,
+        "42",
         "guest changed mind",
-        20,
-        { userId: 20, userRole: 2, userRestaurantId: "restaurant-1" },
+        "20",
+        { userId: "20", userRole: 2, userRestaurantId: "restaurant-1" },
         order as never,
       ),
     ).resolves.toMatchObject({ status: "cancelled" });
@@ -1263,19 +1263,19 @@ describe("OrdersService workflows", () => {
         type: RealtimeEventType.ORDER_CANCELLED,
         restaurantId: "restaurant-1",
         data: expect.objectContaining({
-          orderId: 42,
+          orderId: "42",
           reason: "guest changed mind",
-          cancelledBy: { userId: 20, userName: "System", role: "admin" },
+          cancelledBy: { userId: "20", userName: "System", role: "admin" },
         }),
       }),
     );
 
     await expect(
       service.cancelOrder(
-        42,
+        "42",
         "wrong shop",
-        20,
-        { userId: 20, userRole: 2, userRestaurantId: "restaurant-2" },
+        "20",
+        { userId: "20", userRole: 2, userRestaurantId: "restaurant-2" },
         order as never,
       ),
     ).rejects.toMatchObject({ code: "FORBIDDEN" });
@@ -1291,7 +1291,7 @@ describe("OrdersService workflows", () => {
     });
     const service = new OrdersService(env as never);
     getBaseOrders.mockResolvedValue({
-      orders: [createOrder({ id: 1 })],
+      orders: [createOrder({ id: "1" })],
       pagination: { page: 1, limit: 100, total: 1, totalPages: 1 },
     });
     getDailyOrderStats.mockResolvedValue({
@@ -1324,7 +1324,7 @@ describe("OrdersService workflows", () => {
       service.searchOrders({ query: "ORD" }, { restaurantId: "restaurant-1" }),
     ).resolves.toHaveLength(1);
     getBaseOrder.mockResolvedValueOnce(null);
-    await expect(service.generateReceipt(404)).rejects.toMatchObject({
+    await expect(service.generateReceipt("404")).rejects.toMatchObject({
       code: "ORDER_NOT_FOUND",
     });
     await expect(service.exportOrders({}, "csv")).resolves.toEqual(

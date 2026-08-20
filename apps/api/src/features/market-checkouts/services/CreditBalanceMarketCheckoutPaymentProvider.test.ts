@@ -23,14 +23,14 @@ const baseInput: MarketCheckoutPaymentProviderInput = {
     {
       restaurantId: "r1",
       restaurantName: "A",
-      orderId: 1,
+      orderId: "1",
       orderNumber: "A-1",
       totalAmount: 120,
     },
     {
       restaurantId: "r2",
       restaurantName: "B",
-      orderId: 2,
+      orderId: "2",
       orderNumber: "B-1",
       totalAmount: 80,
     },
@@ -82,7 +82,7 @@ describe("CreditBalanceMarketCheckoutPaymentProvider", () => {
     });
     expect(result.childPayments).toHaveLength(2);
     expect(result.childPayments[0]).toMatchObject({
-      orderId: 1,
+      orderId: "1",
       status: "paid",
       amountCents: 12000,
       paymentId: "ledger-1:1",

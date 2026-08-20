@@ -104,7 +104,20 @@ async function authHeaders(
   return { Authorization: `Bearer ${token}` };
 }
 
-async function withSilencedRouteError<T>(action: () => Promise<T>): Promise<T> {
+type StatsOverviewBody = {
+  success: boolean;
+  data: {
+    roomStats: Array<{
+      roomType: string;
+      connectionCount: number;
+      status: string;
+    }>;
+  };
+};
+
+async function withSilencedRouteError<T>(
+  action: () => T | Promise<T>,
+): Promise<Awaited<T>> {
   const consoleError = vi
     .spyOn(console, "error")
     .mockImplementation(() => undefined);
@@ -547,7 +560,7 @@ describe("realtime routes", () => {
     );
 
     expect(response.status).toBe(200);
-    const body = await response.json();
+    const body = await response.json<StatsOverviewBody>();
     expect(body).toMatchObject({
       success: true,
       data: {

@@ -15,6 +15,22 @@ import {
   createSelectFixtureDb,
   type SelectFixtures,
 } from "@makanmasak/database/testing";
+import type { ForecastMetadata } from "@makanmasak/shared-types";
+
+/**
+ * The service builds this metadata block for every forecast it generates
+ * (`ForecastService.generateForecast`). Mocked `ForecastResult`s have to carry
+ * the same complete shape, so fixtures share one builder and vary only
+ * `generatedAt`.
+ */
+function forecastMetadata(generatedAt: string): ForecastMetadata {
+  return {
+    dataSourceDays: 28,
+    model: "weighted_moving_average",
+    weights: { 1: 0.4, 2: 0.3, 3: 0.2, 4: 0.1 },
+    generatedAt,
+  };
+}
 
 function createKV(initial: Record<string, unknown> = {}) {
   const values = new Map<string, string>(
@@ -351,7 +367,7 @@ describe("ForecastService", () => {
           type: "item_level",
           items: [],
           generatedBy: "statistical",
-          metadata: { generatedAt: "fresh" },
+          metadata: forecastMetadata("fresh"),
         },
       ]);
 
@@ -360,7 +376,7 @@ describe("ForecastService", () => {
     ).resolves.toEqual([
       expect.objectContaining({
         date: "2026-06-08",
-        metadata: { generatedAt: "fresh" },
+        metadata: forecastMetadata("fresh"),
       }),
     ]);
     expect(generateSpy).toHaveBeenCalledWith("restaurant-1", {
@@ -444,7 +460,7 @@ describe("ForecastService", () => {
         date: "2026-06-08",
         type: "item_level",
         generatedBy: "statistical",
-        metadata: { generatedAt: "2026-06-07T00:00:00.000Z" },
+        metadata: forecastMetadata("2026-06-07T00:00:00.000Z"),
         items: [
           {
             menuItemId: 1,
@@ -518,7 +534,7 @@ describe("ForecastService", () => {
         date: "2026-06-08",
         type: "item_level",
         generatedBy: "statistical",
-        metadata: { generatedAt: "2026-06-07T00:00:00.000Z" },
+        metadata: forecastMetadata("2026-06-07T00:00:00.000Z"),
         items: [
           {
             menuItemId: 1,

@@ -174,6 +174,7 @@ describe("PlatformIntegrationService", () => {
       service.connect("restaurant-1", "uber_eats", {
         clientId: "client-id",
         clientSecret: "client-secret",
+        storeId: "store-1",
         autoAcceptOrders: true,
         menuSyncEnabled: true,
       }),
