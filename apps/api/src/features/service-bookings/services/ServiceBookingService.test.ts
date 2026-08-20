@@ -6,6 +6,7 @@ import {
   serviceBookings,
   serviceBookingSlots,
   serviceBookingWaitlist,
+  systemAlerts,
   SERVICE_BOOKING_PAYMENT_METHOD,
   SERVICE_BOOKING_PAYMENT_REQUIREMENT,
   SERVICE_BOOKING_PAYMENT_STATUS,
@@ -14,7 +15,9 @@ import {
   users,
 } from "@makanmasak/database";
 import {
+  createMutationFixtureDb,
   createSelectFixtureDb,
+  type MutationFixtures,
   type SelectFixtures,
 } from "@makanmasak/database/testing";
 import { CreditService } from "../../credits/services/CreditService";
@@ -54,9 +57,16 @@ import { ServiceBookingService } from "./ServiceBookingService";
  * `assertServiceBelongsToRestaurant` and `assertEmployeeAvailable` select a
  * narrowed column list rather than `select()`, but that does not change
  * routing — only the `from()` argument does. `serviceBookingWaitlist` is
- * only ever `insert`ed into by this service, never selected, so it stays
- * unregistered; it is imported only so the regression test below has a real,
- * unregistered table to demonstrate the "<unknown table>" case.
+ * registered too: this service only ever `insert`s into it, and write
+ * fixtures are declared against the same table registry. `systemAlerts`
+ * belongs to no part of this service and is imported only so the regression
+ * test below has a real, unregistered table to demonstrate the
+ * "<unknown table>" case.
+ *
+ * Writes follow the same rules with the operation added to the key, because
+ * `serviceBookings` is inserted, updated, and deleted here. Writes awaited
+ * without `.returning()` — the recurring-booking rollback's `delete` is one —
+ * consume a fixture just the same; declare those as `{ changes: n }`.
  *
  * `createBooking`'s slot-capacity reservation and insert run inside a
  * try/catch, but the catch only best-effort releases reserved capacity and
@@ -71,8 +81,9 @@ const fixtureTables = {
   employeeAvailability,
   serviceBookingSlots,
   serviceBookings,
+  serviceBookingWaitlist,
 };
-type SelectFixtureName = keyof typeof fixtureTables;
+type FixtureName = keyof typeof fixtureTables;
 
 /**
  * The chainable query object `createSelectFixtureDb().select()` returns.
@@ -195,19 +206,24 @@ describe("ServiceBookingService orchestration helpers", () => {
     return { d1, calls };
   }
 
+  /**
+   * Reads are keyed by table; writes by table *and* operation, because
+   * `serviceBookings` is inserted, updated, and deleted by this service and a
+   * single queue per table would let those three consume each other's
+   * fixtures. A write that is awaited without `.returning()` still takes a
+   * fixture — declare it as `{ changes: n }`.
+   */
   function createDbMock(input: {
-    selectFixtures?: SelectFixtures<SelectFixtureName>;
-    insertReturning?: unknown[];
-    updateReturning?: unknown[];
+    selectFixtures?: SelectFixtures<FixtureName>;
+    mutationFixtures?: MutationFixtures<FixtureName>;
   }) {
-    const insertReturning = [...(input.insertReturning ?? [])];
-    const updateReturning = [...(input.updateReturning ?? [])];
-    const insertValues: unknown[] = [];
-    const updateSets: unknown[] = [];
-
     const fixtureDb = createSelectFixtureDb(
       fixtureTables,
       input.selectFixtures,
+    );
+    const mutationDb = createMutationFixtureDb(
+      fixtureTables,
+      input.mutationFixtures,
     );
     // The harness types its factories as bare `Mock`, so the chain shape is
     // restated here, once, to keep the call sites below typed.
@@ -215,30 +231,16 @@ describe("ServiceBookingService orchestration helpers", () => {
 
     const db = {
       select,
-      insert: vi.fn(() => ({
-        values: vi.fn((values: unknown) => {
-          insertValues.push(values);
-          return {
-            returning: vi.fn(async () => [insertReturning.shift() ?? values]),
-          };
-        }),
-      })),
-      update: vi.fn(() => ({
-        set: vi.fn((patch: unknown) => {
-          updateSets.push(patch);
-          return {
-            where: vi.fn(() => ({
-              returning: vi.fn(async () => [updateReturning.shift() ?? patch]),
-            })),
-          };
-        }),
-      })),
-      delete: vi.fn(() => ({
-        where: vi.fn(async () => undefined),
-      })),
+      insert: mutationDb.insert,
+      update: mutationDb.update,
+      delete: mutationDb.delete,
     };
 
-    return { db, insertValues, updateSets };
+    return {
+      db,
+      insertValues: mutationDb.inserted,
+      updateSets: mutationDb.updated,
+    };
   }
 
   function createService(options?: { d1?: D1Database; db?: unknown }) {
@@ -278,12 +280,17 @@ describe("ServiceBookingService orchestration helpers", () => {
     await expect(db.select().from(serviceBookingSlots).all()).rejects.toThrow(
       "No select fixtures remaining for serviceBookingSlots",
     );
-    // serviceBookingWaitlist is only ever written to (never selected) in
-    // ServiceBookingService, so it stays out of fixtureTables and reports
-    // <unknown table>.
+    // serviceBookingWaitlist is registered because the service inserts into
+    // it, but it is never selected — a registered table with nothing declared
+    // for this call reports its own name.
     await expect(
       db.select().from(serviceBookingWaitlist).get(),
-    ).rejects.toThrow("Missing select fixture for <unknown table>");
+    ).rejects.toThrow("Missing select fixture for serviceBookingWaitlist");
+    // systemAlerts is unrelated to this service and is never registered, so it
+    // reports the generic name instead — distinct from the case above.
+    await expect(db.select().from(systemAlerts).get()).rejects.toThrow(
+      "Missing select fixture for <unknown table>",
+    );
   });
 
   it("creates recurring bookings with weekly dates and recurrence metadata", async () => {
@@ -478,7 +485,9 @@ describe("ServiceBookingService orchestration helpers", () => {
         ],
         serviceBookingSlots: [[]],
       },
-      insertReturning: [insertedRow],
+      mutationFixtures: {
+        serviceBookings: { insert: [[insertedRow]] },
+      },
     });
     const service = createService({ d1: d1 as never, db });
 
@@ -558,7 +567,9 @@ describe("ServiceBookingService orchestration helpers", () => {
         ],
         serviceBookingSlots: [[]],
       },
-      insertReturning: [{ id: "booking-1" }],
+      mutationFixtures: {
+        serviceBookings: { insert: [[{ id: "booking-1" }]] },
+      },
     });
     const service = createService({ d1: d1 as never, db });
 
@@ -822,7 +833,9 @@ describe("ServiceBookingService orchestration helpers", () => {
         ],
         serviceBookingSlots: [[]],
       },
-      insertReturning: [{ id: "booking-1" }],
+      mutationFixtures: {
+        serviceBookings: { insert: [[{ id: "booking-1" }]] },
+      },
     });
     const service = createService({ d1: d1 as never, db });
 
@@ -927,7 +940,9 @@ describe("ServiceBookingService orchestration helpers", () => {
         ],
         serviceBookings: [[]],
       },
-      insertReturning: [{ id: "booking-1" }],
+      mutationFixtures: {
+        serviceBookings: { insert: [[{ id: "booking-1" }]] },
+      },
     });
     const service = createService({ d1: d1 as never, db });
 
@@ -1147,7 +1162,9 @@ describe("ServiceBookingService orchestration helpers", () => {
           ],
         ],
       },
-      insertReturning: [insertedRow],
+      mutationFixtures: {
+        serviceBookingWaitlist: { insert: [[insertedRow]] },
+      },
     });
     const service = createService({ db });
 
@@ -1215,7 +1232,9 @@ describe("ServiceBookingService orchestration helpers", () => {
         ],
         serviceBookings: [[]],
       },
-      insertReturning: [insertedRow],
+      mutationFixtures: {
+        serviceBookingWaitlist: { insert: [[insertedRow]] },
+      },
     });
     const service = createService({ db });
 
@@ -1609,10 +1628,14 @@ describe("ServiceBookingService orchestration helpers", () => {
           [{ id: "booking-1", status: SERVICE_BOOKING_STATUS.CONFIRMED }],
         ],
       },
-      updateReturning: [
-        { id: "booking-1", reminderSentAt: new Date() },
-        { id: "booking-1", status: SERVICE_BOOKING_STATUS.COMPLETED },
-      ],
+      mutationFixtures: {
+        serviceBookings: {
+          update: [
+            [{ id: "booking-1", reminderSentAt: new Date() }],
+            [{ id: "booking-1", status: SERVICE_BOOKING_STATUS.COMPLETED }],
+          ],
+        },
+      },
     });
     const service = createService({ db });
 
@@ -1645,9 +1668,13 @@ describe("ServiceBookingService orchestration helpers", () => {
           [{ id: "booking-2", status: SERVICE_BOOKING_STATUS.PENDING }],
         ],
       },
-      updateReturning: [
-        { id: "booking-1", status: SERVICE_BOOKING_STATUS.NO_SHOW },
-      ],
+      mutationFixtures: {
+        serviceBookings: {
+          update: [
+            [{ id: "booking-1", status: SERVICE_BOOKING_STATUS.NO_SHOW }],
+          ],
+        },
+      },
     });
     const service = createService({ db });
 
@@ -1773,7 +1800,10 @@ describe("ServiceBookingService orchestration helpers", () => {
 
   it("rolls back earlier recurring bookings when a later booking fails", async () => {
     const { d1, calls } = createD1Mock([{ changes: 1 }]);
-    const { db } = createDbMock({});
+    const { db } = createDbMock({
+      // The rollback deletes the booking that already landed.
+      mutationFixtures: { serviceBookings: { delete: [{ changes: 1 }] } },
+    });
     const service = createService({ d1: d1 as never, db });
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     vi.spyOn(service, "createBooking")
