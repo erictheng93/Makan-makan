@@ -1,12 +1,33 @@
 # Money Cents Field Retirement Plan
 
-Last reviewed: 2026-07-05
+Last reviewed: 2026-08-21
 
 ## Current State
 
+**Update 2026-08-21 — the fresh track was squashed.** `migrations_fresh/` is now
+a single `0000_baseline_strict.sql`; every per-file migration this document
+names on that track was deleted. The squash landed in commit `6ac283b0`, whose
+subject reads `test(api): type the markets integration envelopes against the
+services` — it swept up a staged squash along with unrelated test work, so
+`git log -- packages/database/migrations_fresh` points at a title that does not
+mention it.
+
+Two consequences for everything below:
+
+- The baseline carries the **end state** those steps produced (no legacy `REAL`
+  money columns, `*_cents` and `*_bps` columns present) but not the steps
+  themselves. A guard that aborts a cutover cannot be reconstructed from it.
+- The executable per-step SQL survives only on the legacy track
+  (`packages/database/migrations/`), and **no `wrangler.toml` points at that
+  directory** (see CLAUDE.md). Anyone running the runbook below against a
+  pre-squash production database has to apply those files deliberately; they
+  are not picked up by `pnpm db:migrate:prod`. Whether that is the intended
+  end state is a decision for whoever performed the squash.
+
 **Update 2026-07-05:** The destructive cutover described below as future work has
 been written. `packages/database/migrations_fresh/0070_money_cents_cutover.sql`
-and `0071_market_checkout_child_order_cents_cutover.sql` (paired with the
+and `0071_market_checkout_child_order_cents_cutover.sql` (both since squashed
+away, see above; paired at the time with the
 legacy/Wrangler track's `0087`/`0088` in `migration-dual-track.json`) drop the
 legacy `REAL` money columns, each self-guarded by a `CHECK (violation_count = 0)`
 assertion table so the migration aborts if the rollout/audit preconditions
@@ -109,8 +130,8 @@ WHERE total_amount_cents IS NULL
 The first rollout artifact is deliberately separated from FK rebuilds,
 timestamp cleanup, product changes, and the eventual destructive table rebuild:
 
-- Fresh track:
-  `packages/database/migrations_fresh/0067_money_cents_retirement_rollout_guard.sql`
+- Fresh track: squashed into `0000_baseline_strict.sql` — the guard step no
+  longer exists there
 - Legacy track:
   `packages/database/migrations/0085_money_cents_retirement_rollout_guard.sql`
 
@@ -150,8 +171,8 @@ cutover migration is generated.
 
 The destructive cutover artifact is paired across both migration tracks:
 
-- Fresh track:
-  `packages/database/migrations_fresh/0070_money_cents_cutover.sql`
+- Fresh track: squashed into `0000_baseline_strict.sql` — the drop-column step
+  no longer exists there
 - Legacy track:
   `packages/database/migrations/0087_money_cents_cutover.sql`
 
@@ -238,9 +259,11 @@ cleanup, or product behavior changes.
 
 Do not apply the destructive drop-column migration until all of these are true:
 
-- `0067_money_cents_retirement_rollout_guard.sql` has passed in production.
-- `0069_discount_percentage_bps.sql` / `0086_discount_percentage_bps.sql` have
-  passed in production. These migrations preserve percentage
+- `0085_money_cents_retirement_rollout_guard.sql` has passed in production.
+  (Its fresh-track twin `0067_...` was squashed away; the legacy-track file is
+  the only executable copy left.)
+- `0086_discount_percentage_bps.sql` has
+  passed in production. This migration preserves percentage
   discount values in explicit basis-point columns before polymorphic
   `discount_value` columns are retired.
 - Production `money_cents_retirement_rollout` rows have `violation_count = 0`.
