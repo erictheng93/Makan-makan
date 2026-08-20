@@ -40,6 +40,7 @@ else
         tooling=true
         ;;
       scripts/classify-ci-changes.sh | \
+        scripts/check-package-test-scripts.cjs | \
         scripts/check-production-config.cjs | \
         scripts/check-migration-dual-track.cjs | \
         scripts/check-docs-drift.cjs)
