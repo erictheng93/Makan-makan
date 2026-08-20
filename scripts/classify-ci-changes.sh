@@ -41,6 +41,10 @@ else
         ;;
       scripts/classify-ci-changes.sh | \
         scripts/check-package-test-scripts.cjs | \
+        scripts/check-no-automated-destructive-wrangler.cjs | \
+        scripts/check-strict-tables.cjs | \
+        scripts/check-vitest-results.cjs | \
+        scripts/generate-strict-baseline.cjs | \
         scripts/check-production-config.cjs | \
         scripts/check-migration-dual-track.cjs | \
         scripts/check-docs-drift.cjs)
