@@ -4,6 +4,10 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
+import { readData, readEnvelope, type ServiceData } from "../helpers/read-json";
+import type { MenuService } from "../../features/menu/services/MenuService";
+
+type Menu = ServiceData<MenuService["getMenu"]>;
 
 /**
  * Cross-tenant isolation on the menu batch endpoints (#77).
@@ -134,7 +138,7 @@ describe("Menu batch endpoints — cross-tenant isolation", () => {
     });
 
     expect(res.status).toBe(403);
-    const body: any = await res.json();
+    const body = await readEnvelope(res);
     expect(body.error?.code).toBe("MENU_ITEM_RESTAURANT_MISMATCH");
 
     // The victim's 880 became 1 before this fix.
@@ -172,19 +176,19 @@ describe("Menu batch endpoints — cross-tenant isolation", () => {
 
     // The visible symptom: the victim's item appeared on the attacker's menu
     // and disappeared from the victim's own.
-    const attackerMenu: any = await (
+    const attackerMenu = await readData<Menu>(
       await testApp.app.fetch(
         new Request(`https://test/api/v1/menu/${attacker.id}`),
-      )
-    ).json();
-    const victimMenu: any = await (
+      ),
+    );
+    const victimMenu = await readData<Menu>(
       await testApp.app.fetch(
         new Request(`https://test/api/v1/menu/${victim.id}`),
-      )
-    ).json();
+      ),
+    );
 
-    const attackerIds = attackerMenu.data.menuItems.map((i: any) => i.id);
-    const victimIds = victimMenu.data.menuItems.map((i: any) => i.id);
+    const attackerIds = attackerMenu.menuItems.map((i) => i.id);
+    const victimIds = victimMenu.menuItems.map((i) => i.id);
 
     expect(attackerIds).not.toContain(victimItem.id);
     expect(victimIds).toContain(victimItem.id);

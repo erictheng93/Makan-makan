@@ -1,8 +1,67 @@
 import { describe, expect, it, vi } from "vitest";
 import { sign } from "jsonwebtoken";
 import { RealtimeEventType } from "@makanmasak/shared-types";
+import type { RealtimeAuthPayload } from "@makanmasak/shared-types";
 import { RealtimeSession } from "./RealtimeSession";
+import type { ConnectionInfo } from "./RealtimeSession";
 import type { Env } from "../types/env";
+
+/**
+ * What the routing helpers actually read off an event. The production
+ * signatures take the full `RealtimeEvent` union, but these tests pin `type` to
+ * one member at a time over an otherwise fixed payload, which the union cannot
+ * express as a single literal.
+ */
+interface RoutableEvent {
+  type: RealtimeEventType | string;
+  eventId: string;
+  timestamp: number;
+  restaurantId: string;
+  data: Record<string, unknown>;
+}
+
+/**
+ * This suite drives RealtimeSession's private surface directly. Naming that
+ * surface once keeps every call type-checked, instead of an `as any` per site.
+ * The two validators take a partial payload because that is what the tests
+ * supply — they only read the handful of fields listed at each call.
+ */
+interface RealtimeSessionInternals {
+  roomInfo: { type: string; id: string } | null;
+  eventHistory: RoutableEvent[] | null;
+  handleMessage(
+    socket: WebSocket,
+    data: string | ArrayBuffer,
+    connectionInfo: ConnectionInfo,
+  ): Promise<void>;
+  sendEvent(socket: WebSocket, event: RoutableEvent): void;
+  sendErrorEvent(
+    socket: WebSocket,
+    connectionInfo: ConnectionInfo,
+    code: string,
+    message: string,
+  ): void;
+  routeEvent(event: RoutableEvent): number;
+  shouldSendEventToConnection(
+    event: RoutableEvent,
+    connectionInfo: ConnectionInfo,
+  ): boolean;
+  addToEventHistory(event: RoutableEvent): Promise<void>;
+  validateRoleRoomAccess(
+    role: string,
+    roomType: string,
+  ): { valid: boolean; error?: string };
+  validateRestaurantAccess(
+    authPayload: Partial<RealtimeAuthPayload> & { userId?: string },
+  ): Promise<{ valid: boolean; error?: string }>;
+  validateTableAccess(
+    authPayload: Partial<RealtimeAuthPayload>,
+  ): Promise<{ valid: boolean; error?: string }>;
+}
+
+function internals(session: RealtimeSession): RealtimeSessionInternals {
+  return session as unknown as RealtimeSessionInternals;
+}
 
 const jwtSecret = "0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -117,25 +176,42 @@ function createSocket(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function connection(overrides: Record<string, unknown> = {}) {
+/**
+ * A decoded token minus the two claims jsonwebtoken stamps for us — the helper
+ * fills those in, so a fixture only has to state the domain half.
+ */
+type AuthClaims = Omit<RealtimeAuthPayload, "iat" | "exp">;
+
+function connection(
+  overrides: Partial<Omit<ConnectionInfo, "auth">> & {
+    auth?: AuthClaims;
+  } = {},
+): ConnectionInfo {
+  const { auth, ...rest } = overrides;
+  const claims: AuthClaims = auth ?? {
+    role: "customer",
+    roomType: "customer",
+    roomId: "table-1",
+    restaurantId: "restaurant-1",
+    // RealtimeAuthPayload declares tableId/seatId as strings — a JWT claim is
+    // JSON, and the token minter writes them as text.
+    tableId: "7",
+  };
   return {
     id: "conn-1",
     type: "customer",
     roomId: "table-1",
     connectedAt: Date.now(),
     lastActivity: Date.now(),
-    auth: {
-      role: "customer",
-      roomType: "customer",
-      roomId: "table-1",
-      restaurantId: "restaurant-1",
-      tableId: 7,
-    },
-    ...overrides,
+    ...rest,
+    auth:
+      "auth" in overrides && auth === undefined
+        ? undefined
+        : { ...claims, iat: 0, exp: 0 },
   };
 }
 
-function event(id: string, timestamp = Date.now()) {
+function event(id: string, timestamp = Date.now()): RoutableEvent {
   return {
     type: RealtimeEventType.NEW_ORDER,
     eventId: id,
@@ -277,23 +353,23 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     const socket = createSocket();
     const info = connection();
 
-    await (session as any).handleMessage(socket, "ping", info);
-    await (session as any).handleMessage(
+    await internals(session).handleMessage(socket, "ping", info);
+    await internals(session).handleMessage(
       socket,
       JSON.stringify({ type: "subscribe", channel: "orders" }),
       info,
     );
-    await (session as any).handleMessage(
+    await internals(session).handleMessage(
       socket,
       JSON.stringify({ type: "unsubscribe", channel: "orders" }),
       info,
     );
-    await (session as any).handleMessage(
+    await internals(session).handleMessage(
       socket,
       JSON.stringify({ type: "subscribe", channel: "" }),
       info,
     );
-    await (session as any).handleMessage(socket, "not-json", info);
+    await internals(session).handleMessage(socket, "not-json", info);
 
     const sent = socket.send.mock.calls.map(([payload]) => JSON.parse(payload));
     expect(sent[0]).toMatchObject({
@@ -459,7 +535,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
             roomId: "customer:7",
             role: "customer",
             guestFlag: true,
-            tableId: 7,
+            tableId: "7",
           })}`,
           { headers: { Upgrade: "websocket" } },
         ),
@@ -509,7 +585,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
             roomType: "customer",
             roomId: "group-order-42",
             role: "customer",
-            tableId: 7,
+            tableId: "7",
           })}`,
           { headers: { Upgrade: "websocket" } },
         ),
@@ -561,7 +637,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
           }),
         }),
       );
-      expect((session as any).roomInfo).toEqual({
+      expect(internals(session).roomInfo).toEqual({
         type: "admin",
         id: "restaurant-1",
       });
@@ -612,7 +688,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
         roomId: "customer:7",
         role: "customer",
         guestFlag: true,
-        tableId: 7,
+        tableId: "7",
       });
 
       await expect(
@@ -630,7 +706,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
         ),
       ).rejects.toThrow('init["status"] must be in the range');
 
-      expect((session as any).roomInfo).toEqual({
+      expect(internals(session).roomInfo).toEqual({
         type: "customer",
         id: "7",
       });
@@ -681,7 +757,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
         ),
       ).rejects.toThrow('init["status"] must be in the range');
 
-      expect((session as any).roomInfo).toEqual({
+      expect(internals(session).roomInfo).toEqual({
         type: "customer",
         id: `order:${publicId}`,
       });
@@ -735,7 +811,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
 
       // Room is the bare group order id — the same one RealtimeBroadcastService
       // fans group events out to via `customer:{groupOrderId}`.
-      expect((session as any).roomInfo).toEqual({
+      expect(internals(session).roomInfo).toEqual({
         type: "customer",
         id: groupOrderId,
       });
@@ -801,38 +877,41 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       },
     });
     const unauthenticated = connection({ auth: undefined });
-    const statusEvent = event("status") as any;
+    const statusEvent = event("status");
     statusEvent.type = RealtimeEventType.ORDER_STATUS_UPDATE;
-    const itemStatusEvent = event("item-status") as any;
+    const itemStatusEvent = event("item-status");
     itemStatusEvent.type = RealtimeEventType.ORDER_ITEM_STATUS_UPDATE;
-    const kitchenItemEvent = event("kitchen-item") as any;
+    const kitchenItemEvent = event("kitchen-item");
     kitchenItemEvent.type = RealtimeEventType.KITCHEN_ITEM_STATUS;
-    const tableStatusEvent = event("table-status") as any;
+    const tableStatusEvent = event("table-status");
     tableStatusEvent.type = RealtimeEventType.TABLE_STATUS_UPDATE;
-    const tableServiceEvent = event("table-service") as any;
+    const tableServiceEvent = event("table-service");
     tableServiceEvent.type = RealtimeEventType.TABLE_CALL_SERVICE;
-    const menuEvent = event("menu") as any;
+    const menuEvent = event("menu");
     menuEvent.type = RealtimeEventType.MENU_ITEM_UPDATE;
-    const menuAvailabilityEvent = event("menu-availability") as any;
+    const menuAvailabilityEvent = event("menu-availability");
     menuAvailabilityEvent.type = RealtimeEventType.MENU_AVAILABILITY_UPDATE;
-    const systemEvent = event("system") as any;
+    const systemEvent = event("system");
     systemEvent.type = RealtimeEventType.SYSTEM_NOTIFICATION;
-    const restaurantEvent = event("restaurant") as any;
+    const restaurantEvent = event("restaurant");
     restaurantEvent.type = RealtimeEventType.RESTAURANT_STATUS_UPDATE;
-    const unknownEvent = event("unknown") as any;
+    const unknownEvent = event("unknown");
     unknownEvent.type = "unknown-event";
 
     expect(
-      (session as any).shouldSendEventToConnection(statusEvent, customer),
+      internals(session).shouldSendEventToConnection(statusEvent, customer),
     ).toBe(true);
     expect(
-      (session as any).shouldSendEventToConnection(itemStatusEvent, staff),
+      internals(session).shouldSendEventToConnection(itemStatusEvent, staff),
     ).toBe(true);
     expect(
-      (session as any).shouldSendEventToConnection(itemStatusEvent, admin),
+      internals(session).shouldSendEventToConnection(itemStatusEvent, admin),
     ).toBe(true);
     expect(
-      (session as any).shouldSendEventToConnection(kitchenItemEvent, customer),
+      internals(session).shouldSendEventToConnection(
+        kitchenItemEvent,
+        customer,
+      ),
     ).toBe(false);
     for (const candidate of [
       tableStatusEvent,
@@ -843,17 +922,17 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       restaurantEvent,
     ]) {
       expect(
-        (session as any).shouldSendEventToConnection(candidate, customer),
+        internals(session).shouldSendEventToConnection(candidate, customer),
       ).toBe(true);
     }
     expect(
-      (session as any).shouldSendEventToConnection(unknownEvent, admin),
+      internals(session).shouldSendEventToConnection(unknownEvent, admin),
     ).toBe(true);
     expect(
-      (session as any).shouldSendEventToConnection(unknownEvent, customer),
+      internals(session).shouldSendEventToConnection(unknownEvent, customer),
     ).toBe(false);
     expect(
-      (session as any).shouldSendEventToConnection(
+      internals(session).shouldSendEventToConnection(
         statusEvent,
         unauthenticated,
       ),
@@ -872,14 +951,14 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
         }),
       });
 
-      (session as any).sendEvent(failingSocket, event("send-failed"));
+      internals(session).sendEvent(failingSocket, event("send-failed"));
       expect(console.error).toHaveBeenCalledWith(
         "Failed to send event:",
         expect.any(Error),
       );
 
       const socket = createSocket();
-      (session as any).sendErrorEvent(
+      internals(session).sendErrorEvent(
         socket,
         connection({ auth: undefined }),
         "NO_AUTH",
@@ -932,14 +1011,19 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     otherRestaurant.serializeAttachment(
       connection({
         id: "other-1",
-        auth: { role: "admin", restaurantId: "restaurant-2" },
+        auth: {
+          role: "admin",
+          restaurantId: "restaurant-2",
+          roomType: "admin",
+          roomId: "restaurant-2",
+        },
       }),
     );
     sockets.push(customer, staff, admin, closed, otherRestaurant);
 
-    const kitchenEvent = event("kitchen-1") as any;
+    const kitchenEvent = event("kitchen-1");
     kitchenEvent.type = RealtimeEventType.KITCHEN_QUEUE_UPDATE;
-    const kitchenCount = (session as any).routeEvent(kitchenEvent);
+    const kitchenCount = internals(session).routeEvent(kitchenEvent);
 
     expect(kitchenCount).toBe(2);
     expect(customer.send).not.toHaveBeenCalled();
@@ -949,9 +1033,9 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     expect(otherRestaurant.send).not.toHaveBeenCalled();
     expect(staff.deserializeAttachment().lastEventId).toBe("kitchen-1");
 
-    const heartbeat = event("heartbeat-1") as any;
+    const heartbeat = event("heartbeat-1");
     heartbeat.type = RealtimeEventType.HEARTBEAT;
-    expect((session as any).routeEvent(heartbeat)).toBe(0);
+    expect(internals(session).routeEvent(heartbeat)).toBe(0);
   });
 
   it("keeps event history bounded and returns all events when a cursor is unknown", async () => {
@@ -959,19 +1043,16 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     const now = Date.now();
 
     for (let index = 0; index < 105; index++) {
-      await (session as any).addToEventHistory(event(`evt-${index}`, now));
+      await internals(session).addToEventHistory(event(`evt-${index}`, now));
     }
-    await (session as any).addToEventHistory(
+    await internals(session).addToEventHistory(
       event("too-old", now - 90_000_000),
     );
 
-    expect((session as any).eventHistory).toHaveLength(99);
-    expect((session as any).eventHistory[0].eventId).toBe("evt-6");
-    expect(
-      (session as any).eventHistory.some(
-        (item: { eventId: string }) => item.eventId === "too-old",
-      ),
-    ).toBe(false);
+    const history = internals(session).eventHistory ?? [];
+    expect(history).toHaveLength(99);
+    expect(history[0].eventId).toBe("evt-6");
+    expect(history.some((item) => item.eventId === "too-old")).toBe(false);
 
     const response = await session.fetch(
       new Request("https://do.test/history?since=missing"),
@@ -1004,7 +1085,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     const sockets: WebSocket[] = [];
     const session = createSession(createEnv(), createState({ sockets }));
     const socket = createSocket();
-    (session as any).roomInfo = { type: "kitchen", id: "restaurant-1" };
+    internals(session).roomInfo = { type: "kitchen", id: "restaurant-1" };
     socket.serializeAttachment(
       connection({
         id: "staff-1",
@@ -1055,17 +1136,19 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     const session = createSession(createEnv());
 
     expect(
-      (session as any).validateRoleRoomAccess("customer", "customer"),
+      internals(session).validateRoleRoomAccess("customer", "customer"),
     ).toEqual({ valid: true });
-    expect((session as any).validateRoleRoomAccess("staff", "admin")).toEqual({
-      valid: false,
-      error: 'Role "staff" is not authorized to access "admin" rooms',
-    });
+    expect(internals(session).validateRoleRoomAccess("staff", "admin")).toEqual(
+      {
+        valid: false,
+        error: 'Role "staff" is not authorized to access "admin" rooms',
+      },
+    );
     expect(
-      (session as any).validateRoleRoomAccess("admin", "restaurant"),
+      internals(session).validateRoleRoomAccess("admin", "restaurant"),
     ).toEqual({ valid: true });
     expect(
-      (session as any).validateRoleRoomAccess("manager", "customer"),
+      internals(session).validateRoleRoomAccess("manager", "customer"),
     ).toEqual({
       valid: false,
       error: 'Role "manager" is not authorized to access "customer" rooms',
@@ -1079,7 +1162,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       DB: regularDb.DB,
     });
     await expect(
-      (regularSession as any).validateRestaurantAccess({
+      internals(regularSession).validateRestaurantAccess({
         userId: "10",
         restaurantId: "restaurant-1",
         role: "staff",
@@ -1092,7 +1175,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       DB: mismatchDb.DB,
     });
     await expect(
-      (mismatchSession as any).validateRestaurantAccess({
+      internals(mismatchSession).validateRestaurantAccess({
         userId: "10",
         restaurantId: "restaurant-1",
         role: "staff",
@@ -1108,7 +1191,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       DB: adminDb.DB,
     });
     await expect(
-      (adminSession as any).validateRestaurantAccess({
+      internals(adminSession).validateRestaurantAccess({
         userId: "1",
         restaurantId: "restaurant-any",
         role: "admin",
@@ -1117,7 +1200,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
 
     const missingSession = createSession(createEnv());
     await expect(
-      (missingSession as any).validateRestaurantAccess({
+      internals(missingSession).validateRestaurantAccess({
         restaurantId: "restaurant-1",
         role: "staff",
       }),
@@ -1132,7 +1215,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       DB: inactiveDb.DB,
     });
     await expect(
-      (inactiveSession as any).validateRestaurantAccess({
+      internals(inactiveSession).validateRestaurantAccess({
         userId: "11",
         restaurantId: "restaurant-1",
         role: "staff",
@@ -1153,13 +1236,13 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     };
     const noTableSession = createSession(createEnv());
     await expect(
-      (noTableSession as any).validateTableAccess({
+      internals(noTableSession).validateTableAccess({
         restaurantId: "restaurant-1",
       }),
     ).resolves.toEqual(denied);
 
     await expect(
-      (noTableSession as any).validateTableAccess({
+      internals(noTableSession).validateTableAccess({
         restaurantId: "restaurant-1",
         scope: "guest-realtime",
         orderId: "018f0000-0000-7000-8000-000000000042",
@@ -1168,7 +1251,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
 
     // A scope without an orderId is not a binding.
     await expect(
-      (noTableSession as any).validateTableAccess({
+      internals(noTableSession).validateTableAccess({
         restaurantId: "restaurant-1",
         scope: "guest-realtime",
       }),
@@ -1176,7 +1259,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
 
     // Group order members carry no tableId; their binding is groupOrderId.
     await expect(
-      (noTableSession as any).validateTableAccess({
+      internals(noTableSession).validateTableAccess({
         restaurantId: "restaurant-1",
         scope: "group-order-realtime",
         groupOrderId: "018f0000-0000-7000-8000-000000000099",
@@ -1185,7 +1268,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
 
     // ...and the scope alone is not a binding either.
     await expect(
-      (noTableSession as any).validateTableAccess({
+      internals(noTableSession).validateTableAccess({
         restaurantId: "restaurant-1",
         scope: "group-order-realtime",
       }),
@@ -1197,9 +1280,9 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       DB: tableMissingDb.DB,
     });
     await expect(
-      (tableMissingSession as any).validateTableAccess({
+      internals(tableMissingSession).validateTableAccess({
         restaurantId: "restaurant-1",
-        tableId: 7,
+        tableId: "7",
       }),
     ).resolves.toEqual({
       valid: false,
@@ -1214,9 +1297,9 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       DB: validTableOnlyDb.DB,
     });
     await expect(
-      (validTableOnlySession as any).validateTableAccess({
+      internals(validTableOnlySession).validateTableAccess({
         restaurantId: "restaurant-1",
-        tableId: 7,
+        tableId: "7",
       }),
     ).resolves.toEqual({ valid: true });
 
@@ -1226,10 +1309,10 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       DB: seatMissingDb.DB,
     });
     await expect(
-      (seatMissingSession as any).validateTableAccess({
+      internals(seatMissingSession).validateTableAccess({
         restaurantId: "restaurant-1",
-        tableId: 7,
-        seatId: 3,
+        tableId: "7",
+        seatId: "3",
       }),
     ).resolves.toEqual({
       valid: false,
@@ -1242,10 +1325,10 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     ]);
     const okSession = createSession({ ...createEnv(), DB: okDb.DB });
     await expect(
-      (okSession as any).validateTableAccess({
+      internals(okSession).validateTableAccess({
         restaurantId: "restaurant-1",
-        tableId: 7,
-        seatId: 3,
+        tableId: "7",
+        seatId: "3",
       }),
     ).resolves.toEqual({ valid: true });
 
@@ -1255,9 +1338,9 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       DB: mismatchDb.DB,
     });
     await expect(
-      (mismatchSession as any).validateTableAccess({
+      internals(mismatchSession).validateTableAccess({
         restaurantId: "restaurant-1",
-        tableId: 7,
+        tableId: "7",
       }),
     ).resolves.toEqual({
       valid: false,
@@ -1273,10 +1356,10 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       DB: seatMismatchDb.DB,
     });
     await expect(
-      (seatMismatchSession as any).validateTableAccess({
+      internals(seatMismatchSession).validateTableAccess({
         restaurantId: "restaurant-1",
-        tableId: 7,
-        seatId: 3,
+        tableId: "7",
+        seatId: "3",
       }),
     ).resolves.toEqual({
       valid: false,
@@ -1293,9 +1376,9 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       DB: errorDb as unknown as D1Database,
     });
     await expect(
-      (errorSession as any).validateTableAccess({
+      internals(errorSession).validateTableAccess({
         restaurantId: "restaurant-1",
-        tableId: 7,
+        tableId: "7",
       }),
     ).resolves.toEqual({
       valid: false,

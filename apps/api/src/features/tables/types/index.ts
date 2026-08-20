@@ -50,6 +50,8 @@ export interface Table {
   pendingQrCodeVersion?: number | null;
   pendingQrPreparedAt?: Date | null;
   qrMode?: "table" | "seat" | null;
+  /** `tables.total_usage`; returned by every read path but previously unlisted. */
+  totalUsage?: number;
   seatCount?: number | null;
   seatNumberingStyle?: "numeric" | "alphabetic" | "custom" | null;
   createdAt: Date;

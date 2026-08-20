@@ -304,8 +304,16 @@ export interface TenantHealthSummary {
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
-  error?: string;
-  code?: string;
+  /**
+   * Matches what `app.onError` actually emits (see src/index.ts): an object,
+   * not a bare string. The previous `error?: string; code?: string` pair never
+   * described a response this service sends.
+   */
+  error?: {
+    code: string;
+    message: string;
+    details?: unknown;
+  };
 }
 
 /**

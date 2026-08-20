@@ -4,6 +4,13 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
+import { readData, readEnvelope } from "../helpers/read-json";
+
+interface CreatedTable {
+  id: number;
+}
+
+type SeatList = Array<{ id: number }>;
 
 function csrfHeaders(token: string) {
   const csrfToken = "c".repeat(64);
@@ -74,9 +81,8 @@ describe("Role gap coverage: tables and seats owner boundaries", () => {
     );
 
     expect(createRes.status).toBe(201);
-    const createJson: any = await createRes.json();
-    expect(createJson.success).toBe(true);
-    return { id: createJson.data.id };
+    const created = await readData<CreatedTable>(createRes);
+    return { id: created.id };
   }
 
   async function createSeats(
@@ -101,11 +107,10 @@ describe("Role gap coverage: tables and seats owner boundaries", () => {
     );
 
     expect(seatRes.status).toBe(201);
-    const seatJson: any = await seatRes.json();
-    expect(seatJson.success).toBe(true);
-    expect(seatJson.data).toHaveLength(seatCount);
+    const seats = await readData<SeatList>(seatRes);
+    expect(seats).toHaveLength(seatCount);
 
-    return { id: seatJson.data[0].id };
+    return { id: seats[0].id };
   }
 
   it("covers table boundary for own vs cross-restaurant operations", async () => {
@@ -143,7 +148,7 @@ describe("Role gap coverage: tables and seats owner boundaries", () => {
       }),
     );
     expect(tableListRes.status).toBe(200);
-    const tableList: any = await tableListRes.json();
+    const tableList = await readEnvelope(tableListRes);
     expect(tableList.success).toBe(true);
 
     const tableCrossRes = await testApp.app.fetch(
@@ -236,7 +241,7 @@ describe("Role gap coverage: tables and seats owner boundaries", () => {
       ),
     );
     expect(seatListRes.status).toBe(200);
-    const seatList: any = await seatListRes.json();
+    const seatList = await readEnvelope<SeatList>(seatListRes);
     expect(seatList.success).toBe(true);
     expect(Array.isArray(seatList.data)).toBe(true);
 

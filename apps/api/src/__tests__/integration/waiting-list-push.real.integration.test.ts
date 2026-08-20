@@ -4,6 +4,21 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers, type SeedHelpers } from "./helpers/seed-helper";
+import { readData } from "../helpers/read-json";
+
+interface WaitingListEntry {
+  id: number;
+  customerId: string | null;
+}
+
+interface OtpChallenge {
+  devOtp?: string;
+}
+
+interface CustomerSession {
+  accessToken: string;
+  customer: { id: string };
+}
 
 const CUSTOMER_BASE = "https://test/api/v1/customer";
 const WAITING_BASE = "https://test/api/v1/waiting-list";
@@ -27,7 +42,10 @@ describe("Waiting-list push notifications - real integration", () => {
   });
 
   it("links canonical customer tickets and sends waiting_called push on call", async () => {
-    const deliveries: Array<{ endpoint: string; payload: any }> = [];
+    const deliveries: Array<{
+      endpoint: string;
+      payload: Record<string, unknown>;
+    }> = [];
     testApp.env.WEB_PUSH_DELIVERER = async (delivery) => {
       deliveries.push({
         endpoint: delivery.subscription.endpoint,
@@ -74,11 +92,11 @@ describe("Waiting-list push notifications - real integration", () => {
     );
 
     expect(joinRes.status).toBe(201);
-    const joinJson: any = await joinRes.json();
-    expect(joinJson.data.customerId).toBe(customerSession.customerId);
+    const joinJson = await readData<WaitingListEntry>(joinRes);
+    expect(joinJson.customerId).toBe(customerSession.customerId);
 
     const callRes = await testApp.app.fetch(
-      new Request(`${WAITING_BASE}/${joinJson.data.id}/call`, {
+      new Request(`${WAITING_BASE}/${joinJson.id}/call`, {
         method: "POST",
         headers: {
           authorization: `Bearer ${staffToken}`,
@@ -98,9 +116,9 @@ describe("Waiting-list push notifications - real integration", () => {
       endpoint: "https://push.example.test/waiting-called",
       payload: {
         type: "waiting_called",
-        ticketId: joinJson.data.id,
+        ticketId: joinJson.id,
         restaurantId: String(restaurant.id),
-        url: `/r/${restaurant.id}/wait-list/${joinJson.data.id}`,
+        url: `/r/${restaurant.id}/wait-list/${joinJson.id}`,
       },
     });
 
@@ -109,7 +127,7 @@ describe("Waiting-list push notifications - real integration", () => {
          FROM waiting_list
         WHERE id = ?`,
     )
-      .bind(joinJson.data.id)
+      .bind(joinJson.id)
       .first<{ notified_at: number | null; status: string }>();
     expect(row?.status).toBe("called");
     expect(row?.notified_at).toBeTypeOf("number");
@@ -125,19 +143,19 @@ describe("Waiting-list push notifications - real integration", () => {
         body: JSON.stringify({ phone }),
       }),
     );
-    const otpJson: any = await otpRes.json();
+    const otpJson = await readData<OtpChallenge>(otpRes);
 
     const verifyRes = await testApp.app.fetch(
       new Request(`${CUSTOMER_BASE}/auth/verify-otp`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ phone, otp: otpJson.data.devOtp }),
+        body: JSON.stringify({ phone, otp: otpJson.devOtp }),
       }),
     );
-    const verifyJson: any = await verifyRes.json();
+    const verifyJson = await readData<CustomerSession>(verifyRes);
     return {
-      accessToken: verifyJson.data.accessToken,
-      customerId: verifyJson.data.customer.id,
+      accessToken: verifyJson.accessToken,
+      customerId: verifyJson.customer.id,
     };
   }
 

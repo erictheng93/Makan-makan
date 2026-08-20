@@ -4,6 +4,18 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
+import { readData, readEnvelope, readJson } from "../helpers/read-json";
+
+interface ErrorStats {
+  summary: { total_errors_24h: number };
+}
+
+// GET /feedback answers `{ success, ...listResult }` rather than the usual
+// envelope, so its body is read whole.
+interface FeedbackListBody {
+  success: boolean;
+  feedback: Array<{ user: { id: string } }>;
+}
 
 describe("Role gap coverage: admin-only modules boundary", () => {
   let testApp: RealIntegrationTestApp;
@@ -79,7 +91,7 @@ describe("Role gap coverage: admin-only modules boundary", () => {
       }),
     );
     expect(adminRes.status).toBe(200);
-    const adminJson: any = await adminRes.json();
+    const adminJson = await readEnvelope(adminRes);
     expect(adminJson.success).toBe(true);
 
     const ownerRes = await testApp.app.fetch(
@@ -262,9 +274,8 @@ describe("Role gap coverage: admin-only modules boundary", () => {
       }),
     );
     expect(ownerAStatsRes.status).toBe(200);
-    const ownerAStats: any = await ownerAStatsRes.json();
-    expect(ownerAStats.success).toBe(true);
-    expect(ownerAStats.data.summary.total_errors_24h).toBe(1);
+    const ownerAStats = await readData<ErrorStats>(ownerAStatsRes);
+    expect(ownerAStats.summary.total_errors_24h).toBe(1);
 
     const ownerBStatsRes = await testApp.app.fetch(
       new Request("https://test/api/v1/system/error-stats", {
@@ -272,9 +283,8 @@ describe("Role gap coverage: admin-only modules boundary", () => {
       }),
     );
     expect(ownerBStatsRes.status).toBe(200);
-    const ownerBStats: any = await ownerBStatsRes.json();
-    expect(ownerBStats.success).toBe(true);
-    expect(ownerBStats.data.summary.total_errors_24h).toBe(1);
+    const ownerBStats = await readData<ErrorStats>(ownerBStatsRes);
+    expect(ownerBStats.summary.total_errors_24h).toBe(1);
 
     const adminStatsRes = await testApp.app.fetch(
       new Request("https://test/api/v1/system/error-stats", {
@@ -282,9 +292,8 @@ describe("Role gap coverage: admin-only modules boundary", () => {
       }),
     );
     expect(adminStatsRes.status).toBe(200);
-    const adminStats: any = await adminStatsRes.json();
-    expect(adminStats.success).toBe(true);
-    expect(adminStats.data.summary.total_errors_24h).toBe(2);
+    const adminStats = await readData<ErrorStats>(adminStatsRes);
+    expect(adminStats.summary.total_errors_24h).toBe(2);
   });
 
   it("allows owners to read own feedback and blocks owner on feedback stats", async () => {
@@ -367,7 +376,7 @@ describe("Role gap coverage: admin-only modules boundary", () => {
       }),
     );
     expect(ownerAList.status).toBe(200);
-    const ownerAJson: any = await ownerAList.json();
+    const ownerAJson = await readJson<FeedbackListBody>(ownerAList);
     expect(Array.isArray(ownerAJson.feedback)).toBe(true);
     expect(ownerAJson.feedback).toHaveLength(1);
     expect(ownerAJson.feedback[0].user.id).toBe(ownerA.id);
@@ -385,7 +394,7 @@ describe("Role gap coverage: admin-only modules boundary", () => {
       }),
     );
     expect(adminStats.status).toBe(200);
-    const adminStatsJson: any = await adminStats.json();
+    const adminStatsJson = await readEnvelope(adminStats);
     expect(adminStatsJson.success).toBe(true);
   });
 });

@@ -18,6 +18,18 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
+import { readData, readEnvelope } from "../helpers/read-json";
+
+interface OtpChallenge {
+  devOtp?: string;
+}
+
+interface CustomerSession {
+  accessToken: string;
+  customer: { id: string };
+}
+
+type CustomerOrderList = Array<{ id: string; customerId: string }>;
 const ENDPOINT = "https://test/api/v1/customers/me/orders";
 
 describe("Customer Orders API - real integration", () => {
@@ -41,7 +53,7 @@ describe("Customer Orders API - real integration", () => {
     const res = await testApp.app.fetch(new Request(ENDPOINT));
 
     expect(res.status).toBe(401);
-    const json: any = await res.json();
+    const json = await readEnvelope<CustomerOrderList>(res);
     expect(json.success).toBe(false);
     expect(json.error?.code).toBeDefined();
   });
@@ -61,11 +73,10 @@ describe("Customer Orders API - real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    expect(json.success).toBe(true);
-    expect(Array.isArray(json.data)).toBe(true);
-    expect(json.data).toHaveLength(1);
-    expect(json.data[0].customerId).toBe(customer100.customer.id);
+    const orders = await readData<CustomerOrderList>(res);
+    expect(Array.isArray(orders)).toBe(true);
+    expect(orders).toHaveLength(1);
+    expect(orders[0].customerId).toBe(customer100.customer.id);
   });
 
   it("returns 401 for a staff/owner token because customers routes require canonical customer auth", async () => {
@@ -89,7 +100,7 @@ describe("Customer Orders API - real integration", () => {
     );
 
     expect(res.status).toBe(401);
-    const json: any = await res.json();
+    const json = await readEnvelope(res);
     expect(json.success).toBe(false);
     expect(json.error?.code).toBeDefined();
   });
@@ -105,20 +116,20 @@ describe("Customer Orders API - real integration", () => {
         body: JSON.stringify({ phone }),
       }),
     );
-    const otpJson: any = await otpRes.json();
+    const otpJson = await readData<OtpChallenge>(otpRes);
 
     const verifyRes = await testApp.app.fetch(
       new Request("https://test/api/v1/customer/auth/verify-otp", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ phone, otp: otpJson.data.devOtp }),
+        body: JSON.stringify({ phone, otp: otpJson.devOtp }),
       }),
     );
-    const verifyJson: any = await verifyRes.json();
+    const verifyJson = await readData<CustomerSession>(verifyRes);
 
     return {
-      accessToken: verifyJson.data.accessToken,
-      customer: { id: verifyJson.data.customer.id },
+      accessToken: verifyJson.accessToken,
+      customer: { id: verifyJson.customer.id },
     };
   }
 });

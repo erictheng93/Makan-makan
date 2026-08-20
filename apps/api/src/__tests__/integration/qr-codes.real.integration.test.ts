@@ -4,6 +4,15 @@ import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
+import { readData, readError } from "../helpers/read-json";
+
+interface MarketQrVerification {
+  valid: boolean;
+  marketId: string;
+  marketSlug: string;
+  marketName: string;
+  marketUrl: string;
+}
 
 async function seedMarket(
   testApp: RealIntegrationTestApp,
@@ -61,9 +70,8 @@ describe("QR codes API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    expect(json.success).toBe(true);
-    expect(json.data).toMatchObject({
+    const json = await readData<MarketQrVerification>(res);
+    expect(json).toMatchObject({
       valid: true,
       marketId: market.id,
       marketSlug: "fengjia-night-market",
@@ -83,8 +91,7 @@ describe("QR codes API — real integration", () => {
     );
 
     expect(res.status).toBe(404);
-    const json: any = await res.json();
-    expect(json.success).toBe(false);
-    expect(json.error.code).toBe("MARKET_QR_INVALID");
+    const error = await readError(res);
+    expect(error.code).toBe("MARKET_QR_INVALID");
   });
 });

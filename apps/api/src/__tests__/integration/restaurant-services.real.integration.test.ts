@@ -9,6 +9,15 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
+import { readData, type ServiceData } from "../helpers/read-json";
+import type { RestaurantsService } from "../../features/restaurants/services/RestaurantsService";
+import type { DiscoveryService } from "../../features/discovery/services/DiscoveryService";
+
+type ServiceItemList = ServiceData<
+  RestaurantsService["listPublicServiceItems"]
+>;
+type ServiceItem = ServiceData<RestaurantsService["createServiceItem"]>;
+type ServiceSearch = ServiceData<DiscoveryService["searchServices"]>;
 
 function withCsrf(
   headers: Record<string, string> = {},
@@ -159,13 +168,9 @@ describe("Restaurant service items API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    expect(json.success).toBe(true);
-    expect(json.data.map((item: any) => item.name)).toEqual([
-      "預約外送",
-      "代客切水果",
-    ]);
-    expect(json.data[0]).toMatchObject({
+    const json = await readData<ServiceItemList>(res);
+    expect(json.map((item) => item.name)).toEqual(["預約外送", "代客切水果"]);
+    expect(json[0]).toMatchObject({
       restaurantId: restaurant.id,
       serviceType: "delivery",
       priceLabel: "依距離報價",
@@ -173,7 +178,7 @@ describe("Restaurant service items API — real integration", () => {
       isPublic: true,
       isActive: true,
     });
-    expect(json.data[1]).toMatchObject({
+    expect(json[1]).toMatchObject({
       priceCents: 3000,
       tags: ["水果", "分裝"],
     });
@@ -225,8 +230,8 @@ describe("Restaurant service items API — real integration", () => {
     );
 
     expect(createRes.status).toBe(201);
-    const createdJson: any = await createRes.json();
-    expect(createdJson.data).toMatchObject({
+    const createdJson = await readData<ServiceItem>(createRes);
+    expect(createdJson).toMatchObject({
       restaurantId: restaurant.id,
       name: "代客切水果",
       serviceType: "general",
@@ -241,7 +246,7 @@ describe("Restaurant service items API — real integration", () => {
 
     const updateRes = await testApp.app.fetch(
       new Request(
-        `https://test/api/v1/restaurants/${restaurant.id}/service-items/${createdJson.data.id}`,
+        `https://test/api/v1/restaurants/${restaurant.id}/service-items/${createdJson.id}`,
         {
           method: "PUT",
           headers: withCsrf({
@@ -259,9 +264,9 @@ describe("Restaurant service items API — real integration", () => {
     );
 
     expect(updateRes.status).toBe(200);
-    const updatedJson: any = await updateRes.json();
-    expect(updatedJson.data).toMatchObject({
-      id: createdJson.data.id,
+    const updatedJson = await readData<ServiceItem>(updateRes);
+    expect(updatedJson).toMatchObject({
+      id: createdJson.id,
       name: "預約切水果",
       priceLabel: "依份量報價",
       requiresBooking: true,
@@ -276,12 +281,12 @@ describe("Restaurant service items API — real integration", () => {
         `https://test/api/v1/restaurants/${restaurant.id}/service-items`,
       ),
     );
-    const publicJson: any = await publicRes.json();
-    expect(publicJson.data).toEqual([]);
+    const publicJson = await readData<ServiceItemList>(publicRes);
+    expect(publicJson).toEqual([]);
 
     const deleteRes = await testApp.app.fetch(
       new Request(
-        `https://test/api/v1/restaurants/${restaurant.id}/service-items/${createdJson.data.id}`,
+        `https://test/api/v1/restaurants/${restaurant.id}/service-items/${createdJson.id}`,
         {
           method: "DELETE",
           headers: withCsrf({
@@ -349,7 +354,7 @@ describe("Restaurant service items API — real integration", () => {
     );
 
     expect(createRes.status).toBe(201);
-    const createJson: any = await createRes.json();
+    const createJson = await readData<ServiceItem>(createRes);
 
     const searchRes = await testApp.app.fetch(
       new Request(
@@ -360,11 +365,11 @@ describe("Restaurant service items API — real integration", () => {
     );
 
     expect(searchRes.status).toBe(200);
-    const searchJson: any = await searchRes.json();
-    expect(searchJson.data.total).toBe(1);
-    expect(searchJson.data.results).toHaveLength(1);
-    expect(searchJson.data.results[0]).toMatchObject({
-      serviceItemId: createJson.data.id,
+    const searchJson = await readData<ServiceSearch>(searchRes);
+    expect(searchJson.total).toBe(1);
+    expect(searchJson.results).toHaveLength(1);
+    expect(searchJson.results[0]).toMatchObject({
+      serviceItemId: createJson.id,
       restaurantId: restaurant.id,
       restaurantName: "Owner Service Search Vendor",
       name: "市場 API 代客切水果",

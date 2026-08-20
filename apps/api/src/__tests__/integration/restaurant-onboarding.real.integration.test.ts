@@ -11,6 +11,10 @@ import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
+import { readData, type ServiceData } from "../helpers/read-json";
+import type { RestaurantsService } from "../../features/restaurants/services/RestaurantsService";
+
+type Restaurant = ServiceData<RestaurantsService["createRestaurant"]>;
 
 const CSRF_TOKEN = "c".repeat(64);
 const CSRF_HEADERS = {
@@ -109,8 +113,8 @@ describe("Restaurant onboarding — real integration", () => {
     );
 
     expect(createRes.status).toBe(201);
-    const createJson: any = await createRes.json();
-    const restaurantId = String(createJson.data.id);
+    const createJson = await readData<Restaurant>(createRes);
+    const restaurantId = String(createJson.id);
     const memberships = await testApp.testDb.drizzle
       .select()
       .from(restaurantMarketMemberships)
@@ -171,8 +175,8 @@ describe("Restaurant onboarding — real integration", () => {
     );
 
     expect(createRes.status).toBe(201);
-    const createJson: any = await createRes.json();
-    const restaurantId = String(createJson.data.id);
+    const createJson = await readData<Restaurant>(createRes);
+    const restaurantId = String(createJson.id);
 
     const memberships = await testApp.testDb.drizzle
       .select()
@@ -230,8 +234,8 @@ describe("Restaurant onboarding — real integration", () => {
       );
 
       expect(createRes.status).toBe(201);
-      const createJson: any = await createRes.json();
-      expect(String(createJson.data.id)).toBeTruthy();
+      const createJson = await readData<Restaurant>(createRes);
+      expect(String(createJson.id)).toBeTruthy();
 
       const memberships = await testApp.testDb.drizzle
         .select()

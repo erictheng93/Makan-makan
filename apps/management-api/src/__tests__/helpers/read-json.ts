@@ -1,6 +1,6 @@
-import type { ApiResponse } from "../../shared/types";
+import type { ApiResponse } from "../../types";
 
-/** Reads an API response using the application's standard envelope shape. */
+/** Reads an API response using the management API's standard envelope shape. */
 export async function readEnvelope<T>(
   response: Response,
 ): Promise<ApiResponse<T>> {
@@ -22,16 +22,6 @@ export async function readData<T>(response: Response): Promise<T> {
 }
 
 /**
- * The envelope `data` produced by a route that returns a service call
- * straight through. Deriving the shape from the service keeps the test tied to
- * production types, so a reshaped service breaks compilation instead of
- * silently changing what the assertions read.
- */
-export type ServiceData<T> = T extends (...args: never[]) => Promise<infer R>
-  ? NonNullable<R>
-  : never;
-
-/**
  * Returns the error half of the envelope, and turns "the server actually
  * succeeded" into a readable failure instead of a read through undefined.
  */
@@ -43,12 +33,4 @@ export async function readError(
     throw new Error(`expected error envelope, got ${JSON.stringify(envelope)}`);
   }
   return envelope.error;
-}
-
-/**
- * For the few routes that answer outside the `{ success, data }` envelope —
- * `GET /feedback` spreads its list result at the top level, for instance.
- */
-export async function readJson<T>(response: Response): Promise<T> {
-  return (await response.json()) as T;
 }

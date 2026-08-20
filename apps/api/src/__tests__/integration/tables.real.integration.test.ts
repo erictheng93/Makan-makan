@@ -4,6 +4,12 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
+import { readData, readEnvelope, type ServiceData } from "../helpers/read-json";
+import type { TablesService } from "../../features/tables/services/TablesService";
+
+type Table = ServiceData<TablesService["getTableById"]>;
+type TableList = ServiceData<TablesService["getRestaurantTables"]>["tables"];
+type PublicTableInfo = ReturnType<TablesService["getPublicTableInfo"]>;
 function withCsrf(
   headers: Record<string, string> = {},
 ): Record<string, string> {
@@ -65,14 +71,17 @@ describe("Tables API - real integration", () => {
     );
 
     expect(createRes.status).toBe(201);
-    const createJson: any = await createRes.json();
-    expect(createJson.success).toBe(true);
-    const createdTable = createJson.data;
+    const createJson = await readData<Table>(createRes);
+    const createdTable = createJson;
     expect(createdTable.id).toBeTruthy();
     expect(createdTable.restaurantId).toBe(String(restaurant.id));
     expect(createdTable.isOccupied).toBe(false);
-    expect(createdTable.qrCode).toContain("t=table");
-    expect(createdTable.qrCode).toContain(`r=${restaurant.id}`);
+    const createdQrCode = createdTable.qrCode;
+    if (!createdQrCode) {
+      throw new Error("created table came back without a qrCode");
+    }
+    expect(createdQrCode).toContain("t=table");
+    expect(createdQrCode).toContain(`r=${restaurant.id}`);
 
     const occupyRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/tables/${createdTable.id}/occupy`, {
@@ -90,7 +99,7 @@ describe("Tables API - real integration", () => {
     );
 
     expect(occupyRes.status).toBe(200);
-    const occupyJson: any = await occupyRes.json();
+    const occupyJson = await readEnvelope(occupyRes);
     expect(occupyJson.success).toBe(true);
 
     const getOccupiedRes = await testApp.app.fetch(
@@ -100,27 +109,25 @@ describe("Tables API - real integration", () => {
     );
 
     expect(getOccupiedRes.status).toBe(200);
-    const getOccupiedJson: any = await getOccupiedRes.json();
-    expect(getOccupiedJson.success).toBe(true);
-    expect(getOccupiedJson.data.id).toBe(createdTable.id);
-    expect(getOccupiedJson.data.isOccupied).toBe(true);
-    expect(getOccupiedJson.data.currentOrderId).toBe(order.id);
-    expect(getOccupiedJson.data.occupiedBy).toBe("Walk-in guest");
+    const getOccupiedJson = await readData<Table>(getOccupiedRes);
+    expect(getOccupiedJson.id).toBe(createdTable.id);
+    expect(getOccupiedJson.isOccupied).toBe(true);
+    expect(getOccupiedJson.currentOrderId).toBe(order.id);
+    expect(getOccupiedJson.occupiedBy).toBe("Walk-in guest");
 
     const publicLookupRes = await testApp.app.fetch(
       new Request(
-        `https://test/api/v1/tables/qr/${encodeURIComponent(createdTable.qrCode)}`,
+        `https://test/api/v1/tables/qr/${encodeURIComponent(createdQrCode)}`,
       ),
     );
 
     expect(publicLookupRes.status).toBe(200);
-    const publicLookupJson: any = await publicLookupRes.json();
-    expect(publicLookupJson.success).toBe(true);
-    expect(publicLookupJson.data.id).toBe(createdTable.id);
-    expect(publicLookupJson.data.number).toBe("T-07");
-    expect(publicLookupJson.data.isOccupied).toBe(true);
-    expect(publicLookupJson.data).not.toHaveProperty("currentOrderId");
-    expect(publicLookupJson.data).not.toHaveProperty("occupiedBy");
+    const publicLookupJson = await readData<PublicTableInfo>(publicLookupRes);
+    expect(publicLookupJson.id).toBe(createdTable.id);
+    expect(publicLookupJson.number).toBe("T-07");
+    expect(publicLookupJson.isOccupied).toBe(true);
+    expect(publicLookupJson).not.toHaveProperty("currentOrderId");
+    expect(publicLookupJson).not.toHaveProperty("occupiedBy");
 
     const releaseRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/tables/${createdTable.id}/release`, {
@@ -132,7 +139,7 @@ describe("Tables API - real integration", () => {
     );
 
     expect(releaseRes.status).toBe(200);
-    const releaseJson: any = await releaseRes.json();
+    const releaseJson = await readEnvelope(releaseRes);
     expect(releaseJson.success).toBe(true);
 
     const getReleasedRes = await testApp.app.fetch(
@@ -142,12 +149,11 @@ describe("Tables API - real integration", () => {
     );
 
     expect(getReleasedRes.status).toBe(200);
-    const getReleasedJson: any = await getReleasedRes.json();
-    expect(getReleasedJson.success).toBe(true);
-    expect(getReleasedJson.data.isOccupied).toBe(false);
-    expect(getReleasedJson.data.currentOrderId).toBeNull();
-    expect(getReleasedJson.data.occupiedBy).toBeNull();
-    expect(getReleasedJson.data.totalUsage).toBeGreaterThanOrEqual(1);
+    const getReleasedJson = await readData<Table>(getReleasedRes);
+    expect(getReleasedJson.isOccupied).toBe(false);
+    expect(getReleasedJson.currentOrderId).toBeNull();
+    expect(getReleasedJson.occupiedBy).toBeNull();
+    expect(getReleasedJson.totalUsage).toBeGreaterThanOrEqual(1);
 
     // The list projection must carry qrCode: the admin table-setup grid renders
     // the QR straight from this payload, and without it every card, the preview
@@ -160,10 +166,11 @@ describe("Tables API - real integration", () => {
     );
 
     expect(listRes.status).toBe(200);
-    const listJson: any = await listRes.json();
-    expect(listJson.success).toBe(true);
-    const listed = listJson.data.find((t: any) => t.id === createdTable.id);
-    expect(listed).toBeTruthy();
+    const listJson = await readData<TableList>(listRes);
+    const listed = listJson.find((t) => t.id === createdTable.id);
+    if (!listed) {
+      throw new Error(`table ${createdTable.id} missing from the list`);
+    }
     expect(listed.qrCode).toBe(createdTable.qrCode);
 
     expect(admin.id).toBe("01900000-0000-7000-8000-000000000001");

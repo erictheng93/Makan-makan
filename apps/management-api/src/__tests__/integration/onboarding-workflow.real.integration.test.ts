@@ -8,6 +8,39 @@ import bcrypt from "bcryptjs";
 import { D1DatabaseAdapter } from "../../../../../tests/helpers/d1-adapter";
 import app from "../../index";
 import type { ManagementEnv } from "../../types";
+import { readData, readEnvelope, readError } from "../helpers/read-json";
+import type { OnboardingService } from "../../services/OnboardingService";
+import type { TenantService } from "../../services/TenantService";
+
+type ServiceData<T> = T extends (...args: never[]) => Promise<infer R>
+  ? NonNullable<R>
+  : never;
+
+// POST /onboarding/applications and GET /applications/:id both project a
+// subset of the stored application, so those two shapes are stated here.
+interface CreatedApplication {
+  applicationId: string;
+  applicationSecret: string;
+  assignedSubdomain?: string;
+  status: string;
+}
+
+type PublicApplication = ServiceData<OnboardingService["getApplication"]> & {
+  cfApiTokenEnc?: never;
+};
+
+type ApplicationList = {
+  applications: PublicApplication[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+type ApproveResult = ServiceData<OnboardingService["approveApplication"]>;
+
+type ProvisionedTenant = {
+  tenant: ServiceData<TenantService["provisionPlatformRestaurantTenant"]>;
+};
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -234,21 +267,20 @@ describe("Onboarding public API workflow — real integration", () => {
     );
 
     expect(createResponse.status).toBe(201);
-    const createJson: any = await createResponse.json();
-    expect(createJson.success).toBe(true);
-    expect(createJson.data).toMatchObject({
+    const createJson = await readData<CreatedApplication>(createResponse);
+    expect(createJson).toMatchObject({
       status: "submitted",
     });
-    expect(createJson.data.assignedSubdomain).toMatch(/^workflow-laksa-/);
-    expect(typeof createJson.data.applicationId).toBe("string");
-    expect(typeof createJson.data.applicationSecret).toBe("string");
+    expect(createJson.assignedSubdomain).toMatch(/^workflow-laksa-/);
+    expect(typeof createJson.applicationId).toBe("string");
+    expect(typeof createJson.applicationSecret).toBe("string");
 
     const getResponse = await app.fetch(
       new Request(
-        `https://management.test/api/v1/onboarding/applications/${createJson.data.applicationId}`,
+        `https://management.test/api/v1/onboarding/applications/${createJson.applicationId}`,
         {
           headers: {
-            "X-Onboarding-Secret": createJson.data.applicationSecret,
+            "X-Onboarding-Secret": createJson.applicationSecret,
           },
         },
       ),
@@ -256,20 +288,19 @@ describe("Onboarding public API workflow — real integration", () => {
     );
 
     expect(getResponse.status).toBe(200);
-    const getJson: any = await getResponse.json();
-    expect(getJson.success).toBe(true);
-    expect(getJson.data).toMatchObject({
-      id: createJson.data.applicationId,
+    const getJson = await readData<PublicApplication>(getResponse);
+    expect(getJson).toMatchObject({
+      id: createJson.applicationId,
       businessName: "Workflow Laksa",
       contactName: "Tan Mei",
       contactEmail: "tan.mei@example.com",
       latitude: 24.147736,
       longitude: 120.673648,
       planId: "standard",
-      assignedSubdomain: createJson.data.assignedSubdomain,
+      assignedSubdomain: createJson.assignedSubdomain,
       status: "submitted",
     });
-    expect(getJson.data.cfApiTokenEnc).toBeUndefined();
+    expect(getJson.cfApiTokenEnc).toBeUndefined();
   });
 
   it("rejects invalid application payloads with onboarding-app compatible errors", async () => {
@@ -290,12 +321,11 @@ describe("Onboarding public API workflow — real integration", () => {
     );
 
     expect(response.status).toBe(400);
-    const json: any = await response.json();
-    expect(json.success).toBe(false);
-    expect(json.error.code).toBe("VALIDATION_ERROR");
-    expect(typeof json.error.message).toBe("string");
-    expect(Array.isArray(json.error.details)).toBe(true);
-    expect(json.error.details.length).toBeGreaterThan(0);
+    const error = await readError(response);
+    expect(error.code).toBe("VALIDATION_ERROR");
+    expect(typeof error.message).toBe("string");
+    expect(Array.isArray(error.details)).toBe(true);
+    expect(error.details as unknown[]).not.toHaveLength(0);
   });
 
   it("lets platform admins list, approve, and reject onboarding applications", async () => {
@@ -312,9 +342,11 @@ describe("Onboarding public API workflow — real integration", () => {
       }),
       env,
     );
-    const approvedCandidateJson: any = await createApprovedCandidate.json();
-    const approvedCandidateId = approvedCandidateJson.data.applicationId;
-    const approvedSubdomain = approvedCandidateJson.data.assignedSubdomain;
+    const approvedCandidateJson = await readData<CreatedApplication>(
+      createApprovedCandidate,
+    );
+    const approvedCandidateId = approvedCandidateJson.applicationId;
+    const approvedSubdomain = approvedCandidateJson.assignedSubdomain;
 
     const createRejectedCandidate = await app.fetch(
       new Request("https://management.test/api/v1/onboarding/applications", {
@@ -324,9 +356,11 @@ describe("Onboarding public API workflow — real integration", () => {
       }),
       env,
     );
-    const rejectedCandidateJson: any = await createRejectedCandidate.json();
-    const rejectedCandidateId = rejectedCandidateJson.data.applicationId;
-    const rejectedSubdomain = rejectedCandidateJson.data.assignedSubdomain;
+    const rejectedCandidateJson = await readData<CreatedApplication>(
+      createRejectedCandidate,
+    );
+    const rejectedCandidateId = rejectedCandidateJson.applicationId;
+    const rejectedSubdomain = rejectedCandidateJson.assignedSubdomain;
 
     const listResponse = await app.fetch(
       new Request(
@@ -339,9 +373,9 @@ describe("Onboarding public API workflow — real integration", () => {
     );
 
     expect(listResponse.status).toBe(200);
-    const listJson: any = await listResponse.json();
-    expect(listJson.data.total).toBe(2);
-    expect(listJson.data.applications).toEqual(
+    const listJson = await readData<ApplicationList>(listResponse);
+    expect(listJson.total).toBe(2);
+    expect(listJson.applications).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: approvedCandidateId,
@@ -355,7 +389,7 @@ describe("Onboarding public API workflow — real integration", () => {
         }),
       ]),
     );
-    expect(listJson.data.applications[0].cfApiTokenEnc).toBeUndefined();
+    expect(listJson.applications[0].cfApiTokenEnc).toBeUndefined();
 
     const approveResponse = await app.fetch(
       new Request(
@@ -369,32 +403,36 @@ describe("Onboarding public API workflow — real integration", () => {
     );
 
     expect(approveResponse.status).toBe(200);
-    const approveJson: any = await approveResponse.json();
-    expect(approveJson.data).toMatchObject({
+    const approveJson = await readData<ApproveResult>(approveResponse);
+    const { ownerAccount, credentialDelivery } = approveJson;
+    if (!ownerAccount || !credentialDelivery) {
+      throw new Error(
+        `approve returned no owner account: ${JSON.stringify(approveJson)}`,
+      );
+    }
+    expect(approveJson).toMatchObject({
       status: "completed",
       subdomain: approvedSubdomain,
       ownerAccount: {
         username: "tan.mei",
       },
     });
-    expect(typeof approveJson.data.tenantId).toBe("string");
-    expect(typeof approveJson.data.ownerAccount.restaurantId).toBe("string");
-    expect(typeof approveJson.data.ownerAccount.userId).toBe("string");
-    expect(typeof approveJson.data.ownerAccount.setupPasswordToken).toBe(
-      "string",
+    expect(typeof approveJson.tenantId).toBe("string");
+    expect(typeof ownerAccount.restaurantId).toBe("string");
+    expect(typeof ownerAccount.userId).toBe("string");
+    expect(typeof ownerAccount.setupPasswordToken).toBe("string");
+    expect(ownerAccount.setupPasswordLink).toBe(
+      `http://localhost:3004/reset-password?token=${ownerAccount.setupPasswordToken}`,
     );
-    expect(approveJson.data.ownerAccount.setupPasswordLink).toBe(
-      `http://localhost:3004/reset-password?token=${approveJson.data.ownerAccount.setupPasswordToken}`,
-    );
-    expect("initialPassword" in approveJson.data.ownerAccount).toBe(false);
-    expect(approveJson.data.credentialDelivery).toMatchObject({
+    expect("initialPassword" in ownerAccount).toBe(false);
+    expect(credentialDelivery).toMatchObject({
       channel: "manual",
       status: "pending",
       recipientEmail: "tan.mei@example.com",
       recipientName: "Tan Mei",
     });
-    expect(approveJson.data.credentialDelivery.setupPasswordLink).toBe(
-      approveJson.data.ownerAccount.setupPasswordLink,
+    expect(credentialDelivery.setupPasswordLink).toBe(
+      ownerAccount.setupPasswordLink,
     );
 
     const tenantRow = db
@@ -403,11 +441,11 @@ describe("Onboarding public API workflow — real integration", () => {
         `SELECT status, platform_restaurant_id, owner_user_id, owner_username
          FROM tenants WHERE id = ?`,
       )
-      .get(approveJson.data.tenantId);
+      .get(approveJson.tenantId);
     expect(tenantRow).toMatchObject({
       status: "active",
-      platform_restaurant_id: approveJson.data.ownerAccount.restaurantId,
-      owner_user_id: approveJson.data.ownerAccount.userId,
+      platform_restaurant_id: ownerAccount.restaurantId,
+      owner_user_id: ownerAccount.userId,
       owner_username: "tan.mei",
     });
 
@@ -416,9 +454,9 @@ describe("Onboarding public API workflow — real integration", () => {
       .prepare(
         "SELECT id, name, email, is_available, is_active FROM restaurants WHERE id = ?",
       )
-      .get(approveJson.data.ownerAccount.restaurantId);
+      .get(ownerAccount.restaurantId);
     expect(restaurantRow).toMatchObject({
-      id: approveJson.data.ownerAccount.restaurantId,
+      id: ownerAccount.restaurantId,
       name: "Workflow Laksa",
       email: "tan.mei@example.com",
       is_available: 0,
@@ -432,16 +470,16 @@ describe("Onboarding public API workflow — real integration", () => {
                 restaurant_id, is_active
          FROM users WHERE id = ?`,
       )
-      .get(approveJson.data.ownerAccount.userId) as {
+      .get(ownerAccount.userId) as {
       password_hash: string;
     } & Record<string, unknown>;
     expect(userRow).toMatchObject({
-      id: approveJson.data.ownerAccount.userId,
+      id: ownerAccount.userId,
       username: "tan.mei",
       email: "tan.mei@example.com",
       full_name: "Tan Mei",
       role: 1,
-      restaurant_id: approveJson.data.ownerAccount.restaurantId,
+      restaurant_id: ownerAccount.restaurantId,
       is_active: 1,
     });
     await expect(
@@ -454,10 +492,10 @@ describe("Onboarding public API workflow — real integration", () => {
         `SELECT user_id, token, token_type, expires_at_ms, used_at_ms
          FROM password_reset_tokens WHERE user_id = ?`,
       )
-      .get(approveJson.data.ownerAccount.userId);
+      .get(ownerAccount.userId);
     expect(resetTokenRow).toMatchObject({
-      user_id: approveJson.data.ownerAccount.userId,
-      token: approveJson.data.ownerAccount.setupPasswordToken,
+      user_id: ownerAccount.userId,
+      token: ownerAccount.setupPasswordToken,
       token_type: "email",
       used_at_ms: null,
     });
@@ -473,9 +511,9 @@ describe("Onboarding public API workflow — real integration", () => {
                 trial_ends_at_ms, billing_cycle_start_at_ms
          FROM shop_subscriptions WHERE restaurant_id = ?`,
       )
-      .get(approveJson.data.ownerAccount.restaurantId);
+      .get(ownerAccount.restaurantId);
     expect(platformSubscriptionRow).toMatchObject({
-      restaurant_id: approveJson.data.ownerAccount.restaurantId,
+      restaurant_id: ownerAccount.restaurantId,
       plan_tier: "basic",
       module_overrides: "{}",
       is_active: 1,
@@ -498,13 +536,13 @@ describe("Onboarding public API workflow — real integration", () => {
       .get(approvedCandidateId);
     expect(deliveryRow).toMatchObject({
       application_id: approvedCandidateId,
-      tenant_id: approveJson.data.tenantId,
-      restaurant_id: approveJson.data.ownerAccount.restaurantId,
-      user_id: approveJson.data.ownerAccount.userId,
+      tenant_id: approveJson.tenantId,
+      restaurant_id: ownerAccount.restaurantId,
+      user_id: ownerAccount.userId,
       recipient_email: "tan.mei@example.com",
       recipient_name: "Tan Mei",
       username: "tan.mei",
-      setup_password_link: approveJson.data.ownerAccount.setupPasswordLink,
+      setup_password_link: ownerAccount.setupPasswordLink,
       delivery_channel: "manual",
       status: "pending",
     });
@@ -573,9 +611,8 @@ describe("Onboarding public API workflow — real integration", () => {
     );
 
     expect(provisionResponse.status).toBe(201);
-    const provisionJson: any = await provisionResponse.json();
-    expect(provisionJson.success).toBe(true);
-    expect(provisionJson.data.tenant).toMatchObject({
+    const provisionJson = await readData<ProvisionedTenant>(provisionResponse);
+    expect(provisionJson.tenant).toMatchObject({
       businessName: "日式料理",
       contactEmail: "owner@example.test",
       status: "active",
@@ -590,7 +627,7 @@ describe("Onboarding public API workflow — real integration", () => {
       )
       .get("restaurant-jp-1");
     expect(tenantRow).toMatchObject({
-      id: provisionJson.data.tenant.id,
+      id: provisionJson.tenant.id,
       status: "active",
       platform_restaurant_id: "restaurant-jp-1",
       owner_user_id: null,
@@ -604,9 +641,9 @@ describe("Onboarding public API workflow — real integration", () => {
           `SELECT restaurant_id, plan_tier, is_active
            FROM shop_subscriptions WHERE restaurant_id = ?`,
         )
-        .get(provisionJson.data.tenant.id),
+        .get(provisionJson.tenant.id),
     ).toMatchObject({
-      restaurant_id: provisionJson.data.tenant.id,
+      restaurant_id: provisionJson.tenant.id,
       plan_tier: "trial",
       is_active: 1,
     });
@@ -630,9 +667,9 @@ describe("Onboarding public API workflow — real integration", () => {
       ),
       env,
     );
-    const retryJson: any = await retryResponse.json();
+    const retryJson = await readData<ProvisionedTenant>(retryResponse);
     expect(retryResponse.status).toBe(201);
-    expect(retryJson.data.tenant.id).toBe(provisionJson.data.tenant.id);
+    expect(retryJson.tenant.id).toBe(provisionJson.tenant.id);
     expect(
       db.raw().prepare("SELECT COUNT(*) AS count FROM tenants").get(),
     ).toMatchObject({ count: 1 });
@@ -666,7 +703,7 @@ describe("Onboarding public API workflow — real integration", () => {
       success: true,
       data: {
         tenant: {
-          id: provisionJson.data.tenant.id,
+          id: provisionJson.tenant.id,
           ownerUserId: "owner-jp-1",
           ownerUsername: "sushi-owner",
         },
@@ -700,8 +737,8 @@ describe("Onboarding public API workflow — real integration", () => {
       }),
       env,
     );
-    const createJson: any = await createResponse.json();
-    const approveUrl = `https://management.test/api/v1/admin/onboarding/applications/${createJson.data.applicationId}/approve`;
+    const createJson = await readData<CreatedApplication>(createResponse);
+    const approveUrl = `https://management.test/api/v1/admin/onboarding/applications/${createJson.applicationId}/approve`;
 
     const firstApprove = await app.fetch(
       new Request(approveUrl, {
@@ -710,7 +747,13 @@ describe("Onboarding public API workflow — real integration", () => {
       }),
       env,
     );
-    const firstJson: any = await firstApprove.json();
+    const firstJson = await readData<ApproveResult>(firstApprove);
+    const firstOwnerAccount = firstJson.ownerAccount;
+    if (!firstOwnerAccount) {
+      throw new Error(
+        `approve returned no owner account: ${JSON.stringify(firstJson)}`,
+      );
+    }
 
     const secondApprove = await app.fetch(
       new Request(approveUrl, {
@@ -719,17 +762,17 @@ describe("Onboarding public API workflow — real integration", () => {
       }),
       env,
     );
-    const secondJson: any = await secondApprove.json();
+    const secondJson = await readEnvelope<ApproveResult>(secondApprove);
 
     expect(secondApprove.status).toBe(200);
     expect(secondJson.data).toMatchObject({
       status: "completed",
-      tenantId: firstJson.data.tenantId,
+      tenantId: firstJson.tenantId,
       ownerAccount: {
-        userId: firstJson.data.ownerAccount.userId,
-        restaurantId: firstJson.data.ownerAccount.restaurantId,
-        username: firstJson.data.ownerAccount.username,
-        setupPasswordToken: firstJson.data.ownerAccount.setupPasswordToken,
+        userId: firstOwnerAccount.userId,
+        restaurantId: firstOwnerAccount.restaurantId,
+        username: firstOwnerAccount.username,
+        setupPasswordToken: firstOwnerAccount.setupPasswordToken,
       },
       credentialDelivery: {
         status: "pending",
@@ -773,11 +816,11 @@ describe("Onboarding public API workflow — real integration", () => {
       }),
       env,
     );
-    const createJson: any = await createResponse.json();
+    const createJson = await readData<CreatedApplication>(createResponse);
 
     const approveResponse = await app.fetch(
       new Request(
-        `https://management.test/api/v1/admin/onboarding/applications/${createJson.data.applicationId}/approve`,
+        `https://management.test/api/v1/admin/onboarding/applications/${createJson.applicationId}/approve`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
@@ -822,14 +865,14 @@ describe("Onboarding public API workflow — real integration", () => {
       }),
       env,
     );
-    const createJson: any = await createResponse.json();
+    const createJson = await readData<CreatedApplication>(createResponse);
 
     const completeResponse = await app.fetch(
       new Request(
-        `https://management.test/api/v1/onboarding/applications/${createJson.data.applicationId}/complete`,
+        `https://management.test/api/v1/onboarding/applications/${createJson.applicationId}/complete`,
         {
           method: "POST",
-          headers: { "X-Onboarding-Secret": createJson.data.applicationSecret },
+          headers: { "X-Onboarding-Secret": createJson.applicationSecret },
         },
       ),
       env,
@@ -858,11 +901,11 @@ describe("Onboarding public API workflow — real integration", () => {
       }),
       env,
     );
-    const createJson: any = await createResponse.json();
+    const createJson = await readData<CreatedApplication>(createResponse);
 
     await app.fetch(
       new Request(
-        `https://management.test/api/v1/admin/onboarding/applications/${createJson.data.applicationId}/approve`,
+        `https://management.test/api/v1/admin/onboarding/applications/${createJson.applicationId}/approve`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
@@ -873,7 +916,7 @@ describe("Onboarding public API workflow — real integration", () => {
 
     const response = await app.fetch(
       new Request(
-        `https://management.test/api/v1/admin/onboarding/applications/${createJson.data.applicationId}/reject`,
+        `https://management.test/api/v1/admin/onboarding/applications/${createJson.applicationId}/reject`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },

@@ -4,6 +4,22 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
+import { readData, readEnvelope } from "../helpers/read-json";
+
+interface OtpChallenge {
+  devOtp?: string;
+}
+
+interface CustomerSession {
+  accessToken: string;
+  customer: { id: string };
+}
+
+interface CustomerOrder {
+  id: string;
+  orderNumber: string;
+  customerId?: string;
+}
 
 const ORDERS_ENDPOINT = "https://test/api/v1/orders";
 const CUSTOMER_ORDERS_ENDPOINT = "https://test/api/v1/customers/me/orders";
@@ -75,7 +91,7 @@ describe("Role gap coverage: customer order flow with CSRF and idempotency", () 
         body: JSON.stringify({ phone }),
       }),
     );
-    const requestOtpJson: any = await requestOtpRes.json();
+    const requestOtpJson = await readData<OtpChallenge>(requestOtpRes);
 
     const verifyRes = await testApp.app.fetch(
       new Request(`${CUSTOMER_AUTH_BASE}/verify-otp`, {
@@ -85,15 +101,15 @@ describe("Role gap coverage: customer order flow with CSRF and idempotency", () 
         },
         body: JSON.stringify({
           phone,
-          otp: requestOtpJson.data.devOtp,
+          otp: requestOtpJson.devOtp,
         }),
       }),
     );
-    const verifyJson: any = await verifyRes.json();
+    const verifyJson = await readData<CustomerSession>(verifyRes);
 
     return {
-      accessToken: verifyJson.data.accessToken,
-      customer: { id: verifyJson.data.customer.id },
+      accessToken: verifyJson.accessToken,
+      customer: { id: verifyJson.customer.id },
     };
   }
 
@@ -133,7 +149,7 @@ describe("Role gap coverage: customer order flow with CSRF and idempotency", () 
     );
 
     expect(res.status).toBe(403);
-    const json: any = await res.json();
+    const json = await readEnvelope(res);
     expect(json.success).toBe(false);
   });
 
@@ -172,9 +188,8 @@ describe("Role gap coverage: customer order flow with CSRF and idempotency", () 
     );
 
     expect(createRes.status).toBe(201);
-    const createJson: any = await createRes.json();
-    expect(createJson.success).toBe(true);
-    expect(String(createJson.data.id)).toBeTruthy();
+    const created = await readData<CustomerOrder>(createRes);
+    expect(String(created.id)).toBeTruthy();
   });
 
   it("does not dedupe repeated POST for identical payload + token when no idempotency key binding exists", async () => {
@@ -212,7 +227,7 @@ describe("Role gap coverage: customer order flow with CSRF and idempotency", () 
       }),
     );
     expect(firstRes.status).toBe(201);
-    const firstJson: any = await firstRes.json();
+    const firstJson = await readData<CustomerOrder>(firstRes);
 
     const secondRes = await testApp.app.fetch(
       new Request(ORDERS_ENDPOINT, {
@@ -222,11 +237,10 @@ describe("Role gap coverage: customer order flow with CSRF and idempotency", () 
       }),
     );
     expect(secondRes.status).toBe(201);
-    const secondJson: any = await secondRes.json();
+    const second = await readData<CustomerOrder>(secondRes);
 
-    expect(secondJson.success).toBe(true);
-    expect(secondJson.data.id).not.toBe(firstJson.data.id);
-    expect(secondJson.data.orderNumber).not.toBe(firstJson.data.orderNumber);
+    expect(second.id).not.toBe(firstJson.id);
+    expect(second.orderNumber).not.toBe(firstJson.orderNumber);
   });
 
   it("returns 401 for /customers/me/orders with non-canonical staff role token", async () => {
@@ -250,7 +264,7 @@ describe("Role gap coverage: customer order flow with CSRF and idempotency", () 
     );
 
     expect(listRes.status).toBe(401);
-    const listJson: any = await listRes.json();
+    const listJson = await readEnvelope(listRes);
     expect(listJson.success).toBe(false);
   });
 
@@ -270,11 +284,10 @@ describe("Role gap coverage: customer order flow with CSRF and idempotency", () 
       }),
     );
     expect(listARes.status).toBe(200);
-    const listAJson: any = await listARes.json();
-    expect(listAJson.success).toBe(true);
-    expect(Array.isArray(listAJson.data)).toBe(true);
-    expect(listAJson.data).toHaveLength(1);
-    expect(listAJson.data[0].customerId).toBe(customerA.id);
-    expect(listAJson.data[0].customerId).not.toBe(customerB.id);
+    const listA = await readData<CustomerOrder[]>(listARes);
+    expect(Array.isArray(listA)).toBe(true);
+    expect(listA).toHaveLength(1);
+    expect(listA[0].customerId).toBe(customerA.id);
+    expect(listA[0].customerId).not.toBe(customerB.id);
   });
 });

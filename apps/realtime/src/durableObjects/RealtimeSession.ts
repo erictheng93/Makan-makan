@@ -20,7 +20,7 @@ import {
   validateBasicClientMessage,
 } from "../utils/messageValidation";
 
-interface ConnectionInfo {
+export interface ConnectionInfo {
   id: string;
   type: "customer" | "admin" | "kitchen";
   roomId: string;

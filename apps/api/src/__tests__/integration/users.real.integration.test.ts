@@ -4,6 +4,7 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
+import { readEnvelope } from "../helpers/read-json";
 
 const USERS_ENDPOINT = "https://test/api/v1/users";
 const CSRF_TOKEN = "a".repeat(64);
@@ -67,7 +68,7 @@ describe("Users API — real integration", () => {
     );
 
     expect(response.status).toBe(403);
-    const body: any = await response.json();
+    const body = await readEnvelope(response);
     expect(body.success).toBe(false);
     expect(body.error?.code).toBe("FORBIDDEN");
 

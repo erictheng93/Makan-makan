@@ -4,6 +4,10 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
+import { readData, type ServiceData } from "../helpers/read-json";
+import type { OrdersService } from "../../features/orders/services/OrdersService";
+
+type Order = NonNullable<ServiceData<OrdersService["getOrder"]>>;
 describe("Orders API — real integration", () => {
   let testApp: RealIntegrationTestApp;
   let seed: ReturnType<typeof buildSeedHelpers>;
@@ -81,9 +85,8 @@ describe("Orders API — real integration", () => {
       }),
     );
     expect(postRes.status).toBe(201);
-    const postJson: any = await postRes.json();
-    expect(postJson.success).toBe(true);
-    const created = postJson.data;
+    const postJson = await readData<Order>(postRes);
+    const created = postJson;
     expect(created.id).toBeTruthy();
 
     const getRes = await testApp.app.fetch(
@@ -92,8 +95,8 @@ describe("Orders API — real integration", () => {
       }),
     );
     expect(getRes.status).toBe(200);
-    const getJson: any = await getRes.json();
-    const fetched = getJson.data;
+    const getJson = await readData<Order>(getRes);
+    const fetched = getJson;
 
     expect(fetched.id).toBe(created.id);
     // Stable across write and read — same wire value on both hops.

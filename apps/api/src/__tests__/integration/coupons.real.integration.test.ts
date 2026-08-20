@@ -32,6 +32,28 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
+import { readData, readEnvelope, type ServiceData } from "../helpers/read-json";
+import type { CouponsService } from "../../features/coupons/services/CouponsService";
+
+/**
+ * CouponsService.createCouponWithValidation is declared `Promise<unknown>` and
+ * PaginatedCouponsResponse.coupons inherits that, so the coupon shape has to be
+ * stated here rather than derived. Narrowing those two signatures is filed in
+ * TODOS.md.
+ */
+interface CouponResponse {
+  id: string;
+  code: string;
+  name: string;
+  discountType: string;
+  discountValue: number;
+  isActive?: boolean | number;
+}
+
+type CouponValidation = ServiceData<
+  CouponsService["validateCouponWithBusinessRules"]
+>;
+type CouponTrends = ServiceData<CouponsService["getCouponUsageTrends"]>;
 /**
  * Build the header + cookie pair the CSRF middleware expects for a
  * mutating request. 64-hex matches the length check in
@@ -132,7 +154,7 @@ describe("Coupons API — real integration", () => {
     );
 
     expect(res.status).toBe(201);
-    const body: any = await res.json();
+    const body = await readEnvelope<CouponResponse>(res);
     expect(body.success).toBe(true);
     expect(body.data?.code).toBe("WELCOME15");
     expect(body.data?.discountType).toBe("percentage");
@@ -158,7 +180,7 @@ describe("Coupons API — real integration", () => {
     );
 
     expect(res.status).toBe(201);
-    const body: any = await res.json();
+    const body = await readEnvelope<CouponResponse>(res);
     expect(body.success).toBe(true);
     expect(body.data?.code).toBe("FLAT50");
     expect(body.data?.discountType).toBe("fixed");
@@ -181,16 +203,13 @@ describe("Coupons API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const body: any = await res.json();
+    const body = await readEnvelope<CouponResponse[]>(res);
     expect(body.success).toBe(true);
-    // The coupons list endpoint may return either an array directly
-    // or a paginated shape { items, pagination }. Accept both.
-    const items = Array.isArray(body.data)
-      ? body.data
-      : (body.data?.items ?? body.data?.coupons ?? []);
-    expect(Array.isArray(items)).toBe(true);
+    // GET /coupons puts `result.coupons` straight in `data`; the pagination
+    // block is a sibling of it, not a wrapper around it.
+    const items = body.data ?? [];
     expect(items.length).toBeGreaterThanOrEqual(3);
-    const codes = items.map((c: any) => c.code);
+    const codes = items.map((c) => c.code);
     expect(codes).toEqual(expect.arrayContaining(["LIST1", "LIST2", "LIST3"]));
   });
 
@@ -214,7 +233,7 @@ describe("Coupons API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const body: any = await res.json();
+    const body = await readEnvelope<CouponValidation>(res);
     expect(body.success).toBe(true);
     expect(body.data?.valid).toBe(true);
     // 10% of 500 = 50. The service may or may not surface
@@ -245,7 +264,7 @@ describe("Coupons API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const body: any = await res.json();
+    const body = await readEnvelope<CouponValidation>(res);
     expect(body.success).toBe(true);
     // Validation returns valid:false for expired coupons (does NOT throw).
     expect(body.data?.valid).toBe(false);
@@ -265,11 +284,9 @@ describe("Coupons API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const body: any = await res.json();
+    const body = await readEnvelope<CouponResponse>(res);
     expect(body.success).toBe(true);
-    // The wire shape may return camelCase or snake_case depending on
-    // the transform — accept both so a wire refactor doesn't flake.
-    const isActive = body.data?.isActive ?? body.data?.is_active;
+    const isActive = body.data?.isActive;
     expect(isActive === false || isActive === 0).toBe(true);
   });
 
@@ -281,7 +298,7 @@ describe("Coupons API — real integration", () => {
     );
 
     expect(res.status).toBe(401);
-    const body: any = await res.json();
+    const body = await readEnvelope(res);
     expect(body.success).toBe(false);
     expect(body.error).toBeDefined();
   });
@@ -328,15 +345,14 @@ describe("Coupons API — real integration", () => {
     );
 
     expect(trendsRes.status).toBe(200);
-    const body: any = await trendsRes.json();
-    expect(body.success).toBe(true);
-    expect(body.data).toMatchObject({
+    const trends = await readData<CouponTrends>(trendsRes);
+    expect(trends).toMatchObject({
       totalCoupons: 1,
       activeCoupons: 1,
       totalUsage: 1,
       totalSavings: 25,
     });
-    expect(body.data.usageByPeriod).toEqual([
+    expect(trends.usageByPeriod).toEqual([
       expect.objectContaining({
         totalUsage: 1,
         totalSavings: 25,
@@ -380,7 +396,7 @@ describe("Coupons API — real integration", () => {
     );
 
     expect(res.status).toBe(401);
-    const body: any = await res.json();
+    const body = await readEnvelope(res);
     expect(body.success).toBe(false);
     expect(body.error?.code).toBe("TOKEN_INVALID");
   });
@@ -477,10 +493,9 @@ describe("Coupons API — real integration", () => {
       ),
     );
     expect(trendsOwnRes.status).toBe(200);
-    const trendsOwn: any = await trendsOwnRes.json();
-    expect(trendsOwn.success).toBe(true);
-    expect(trendsOwn.data.totalCoupons).toBe(1);
-    expect(trendsOwn.data.totalUsage).toBe(1);
+    const trendsOwn = await readData<CouponTrends>(trendsOwnRes);
+    expect(trendsOwn.totalCoupons).toBe(1);
+    expect(trendsOwn.totalUsage).toBe(1);
 
     const trendsCrossRes = await testApp.app.fetch(
       new Request(
@@ -501,10 +516,9 @@ describe("Coupons API — real integration", () => {
       ),
     );
     expect(trendsOwnerBRes.status).toBe(200);
-    const trendsOwnerB: any = await trendsOwnerBRes.json();
-    expect(trendsOwnerB.success).toBe(true);
-    expect(trendsOwnerB.data.totalCoupons).toBe(1);
-    expect(trendsOwnerB.data.totalUsage).toBe(1);
+    const trendsOwnerB = await readData<CouponTrends>(trendsOwnerBRes);
+    expect(trendsOwnerB.totalCoupons).toBe(1);
+    expect(trendsOwnerB.totalUsage).toBe(1);
   });
 
   it("enforces owner/cross-restaurant permission for coupon deactivation and admin full access", async () => {
