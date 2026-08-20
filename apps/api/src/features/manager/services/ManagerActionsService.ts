@@ -4,7 +4,7 @@ import { auditLogs, menuItems } from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
-import type { ManagerActionInput } from "../schemas/validation";
+import type { ManagerActionCommand } from "../schemas/validation";
 
 export interface ManagerActionResult {
   auditLogId: number;
@@ -24,7 +24,7 @@ export class ManagerActionsService {
   }
 
   async execute(
-    input: ManagerActionInput,
+    input: ManagerActionCommand,
     actor: AuthUser,
   ): Promise<ManagerActionResult> {
     this.assertActionResourcePair(input.action, input.resource);
@@ -82,7 +82,7 @@ export class ManagerActionsService {
   }
 
   private async updateMenuAvailability(
-    input: ManagerActionInput,
+    input: ManagerActionCommand,
   ): Promise<boolean> {
     const menuItemId = Number(input.resourceId);
     if (!Number.isFinite(menuItemId) || menuItemId <= 0) {

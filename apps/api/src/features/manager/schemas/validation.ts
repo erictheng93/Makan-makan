@@ -33,4 +33,20 @@ export const auditLogQuerySchema = z.object({
 });
 
 export type ManagerActionInput = z.infer<typeof managerActionSchema>;
+
+/**
+ * What `ManagerActionsService.execute` accepts. `action`/`resource` widen back
+ * to `string` because the service re-checks the pair itself
+ * (`assertActionResourcePair`) rather than trusting that validation ran — with
+ * the zod-narrowed literals the mismatch branch would be unreachable, and the
+ * guard is what stops a new entry in `supportedActions` from silently pairing
+ * with the wrong resource. Routes pass `ManagerActionInput`, which is assignable.
+ */
+export type ManagerActionCommand = Omit<
+  ManagerActionInput,
+  "action" | "resource"
+> & {
+  action: string;
+  resource: string;
+};
 export type AuditLogQuery = z.infer<typeof auditLogQuerySchema>;
