@@ -25,6 +25,9 @@ import {
   type SelectFixtures,
 } from "@makanmasak/database/testing";
 import { createDiscoveryRead, DiscoveryService } from "./DiscoveryService";
+import type { SemanticDiscoveryService } from "./SemanticDiscoveryService";
+import type { Env } from "../../../types/env";
+import { sql } from "drizzle-orm";
 
 function createKV(initial: Record<string, unknown> = {}) {
   const values = new Map<string, string>(
@@ -47,7 +50,7 @@ function createKV(initial: Record<string, unknown> = {}) {
           values.set(key, value);
         },
       ),
-    } as any,
+    } as unknown as KVNamespace,
   };
 }
 
@@ -57,7 +60,7 @@ function createService(initialKV: Record<string, unknown> = {}) {
     searchDishIdsWithStatus: vi.fn(),
     warmQueryEmbedding: vi.fn(),
     upsertDishes: vi.fn(),
-  } as any);
+  } as unknown as SemanticDiscoveryService);
 
   return { service, kv, values };
 }
@@ -124,7 +127,12 @@ function createD1() {
     batch: vi.fn(async () => []),
     withSession: vi.fn(() => d1),
   };
-  return d1 as any;
+  return d1 as unknown as D1Database & { boundStatements: BoundStatement[] };
+}
+
+interface BoundStatement {
+  sql: string;
+  args: unknown[];
 }
 
 function openAllWeek() {
@@ -157,6 +165,38 @@ function closedAllWeek() {
  */
 function useSemanticSearch(service: DiscoveryService, stub: unknown): void {
   (service as unknown as { semanticSearch: unknown }).semanticSearch = stub;
+}
+
+/**
+ * The pure helpers this suite exercises are private; an indexed-access type
+ * names each one with its real signature instead of erasing them to `any`.
+ */
+type DiscoveryServiceHelpers = {
+  buildCacheKey: DiscoveryService["buildCacheKey"];
+  ftsMatchCondition: DiscoveryService["ftsMatchCondition"];
+  getCatalogQueryAliases: DiscoveryService["getCatalogQueryAliases"];
+  getDishSearchOrderBy: DiscoveryService["getDishSearchOrderBy"];
+  getGeoFilter: DiscoveryService["getGeoFilter"];
+  getServiceIntent: DiscoveryService["getServiceIntent"];
+  getServiceQueryAliases: DiscoveryService["getServiceQueryAliases"];
+  getServiceSearchOrderBy: DiscoveryService["getServiceSearchOrderBy"];
+  getServiceTypeIntent: DiscoveryService["getServiceTypeIntent"];
+  marketDetailUrl: DiscoveryService["marketDetailUrl"];
+  marketVendorContext: DiscoveryService["marketVendorContext"];
+  menuItemUrl: DiscoveryService["menuItemUrl"];
+  normalizeQuery: DiscoveryService["normalizeQuery"];
+  restaurantDetailUrl: DiscoveryService["restaurantDetailUrl"];
+  restaurantMenuUrl: DiscoveryService["restaurantMenuUrl"];
+  restaurantServiceItemsUrl: DiscoveryService["restaurantServiceItemsUrl"];
+  resultDistanceKm: DiscoveryService["resultDistanceKm"];
+  semanticDishText: DiscoveryService["semanticDishText"];
+  sortDistanceResultsFirst: DiscoveryService["sortDistanceResultsFirst"];
+  sortOpenResultsFirst: DiscoveryService["sortOpenResultsFirst"];
+  restaurantBrowseMarketVendors: DiscoveryService["restaurantBrowseMarketVendors"];
+};
+
+function helpersOf(service: DiscoveryService): DiscoveryServiceHelpers {
+  return service as unknown as DiscoveryServiceHelpers;
 }
 
 describe("DiscoveryService", () => {
@@ -348,7 +388,10 @@ describe("DiscoveryService", () => {
 
   it("builds stable helper values for URLs, cache keys, geo, and sorting", () => {
     const { service } = createService();
-    const helpers = service as any;
+    const helpers = helpersOf(service);
+    // The ordering helpers only wrap the effective-price expression, so any
+    // real SQL<number> exercises them.
+    const effectivePrice = sql<number>`coalesce(price_cents, 0)`;
 
     expect(helpers.normalizeQuery(" Nasi   Lemak ")).toBe("nasilemak");
     expect(helpers.restaurantDetailUrl("restaurant-1")).toBe(
@@ -414,18 +457,29 @@ describe("DiscoveryService", () => {
     expect(helpers.ftsMatchCondition("ab")).toBeUndefined();
     expect(helpers.ftsMatchCondition('hot "pot"')).toBeTruthy();
     expect(
-      helpers.getDishSearchOrderBy({ sortBy: "popular" }, {}, null),
+      helpers.getDishSearchOrderBy({ sortBy: "popular" }, effectivePrice, null),
     ).toHaveLength(2);
     expect(
-      helpers.getDishSearchOrderBy({ sortBy: "price_desc" }, {}, null),
+      helpers.getDishSearchOrderBy(
+        { sortBy: "price_desc" },
+        effectivePrice,
+        null,
+      ),
     ).toHaveLength(1);
     expect(
-      helpers.getDishSearchOrderBy({ q: "Laksa" }, {}, "laksa", [1]),
+      helpers.getDishSearchOrderBy(
+        { q: "Laksa" },
+        effectivePrice,
+        "laksa",
+        [1],
+      ),
     ).toHaveLength(2);
     expect(
-      helpers.getDishSearchOrderBy({ q: "Laksa" }, {}, "laksa"),
+      helpers.getDishSearchOrderBy({ q: "Laksa" }, effectivePrice, "laksa"),
     ).toHaveLength(2);
-    expect(helpers.getDishSearchOrderBy({}, {}, "laksa")).toHaveLength(2);
+    expect(
+      helpers.getDishSearchOrderBy({}, effectivePrice, "laksa"),
+    ).toHaveLength(2);
     expect(
       helpers.getServiceSearchOrderBy({ sortBy: "price_desc" }),
     ).toHaveLength(4);
@@ -438,6 +492,9 @@ describe("DiscoveryService", () => {
     expect(helpers.getServiceSearchOrderBy({ q: "撖" })).toHaveLength(3);
 
     const geo = helpers.getGeoFilter({ lat: 25, lng: 121, radiusKm: 50 });
+    if (!geo) {
+      throw new Error("a complete lat/lng/radius filter should not be null");
+    }
     expect(geo).toMatchObject({ lat: 25, lng: 121, radiusKm: 10 });
     expect(
       helpers.resultDistanceKm(geo, { latitude: 25, longitude: 121 }),
@@ -473,7 +530,7 @@ describe("DiscoveryService", () => {
 
   it("formats market vendor context and semantic dish text", () => {
     const { service } = createService();
-    const helpers = service as any;
+    const helpers = helpersOf(service);
 
     expect(
       helpers.marketVendorContext({
@@ -542,7 +599,9 @@ describe("DiscoveryService", () => {
       DISCOVERY_EMBEDDING_MODEL: "model",
     };
 
-    expect(createDiscoveryRead(env as any)).toBeInstanceOf(DiscoveryService);
+    expect(createDiscoveryRead(env as unknown as Env)).toBeInstanceOf(
+      DiscoveryService,
+    );
     expect(env.DB.withSession).toHaveBeenCalledWith("first-unconstrained");
   });
 
@@ -565,7 +624,7 @@ describe("DiscoveryService", () => {
       {} as D1Database,
       kv,
       undefined,
-      semanticSearch as any,
+      semanticSearch as unknown as SemanticDiscoveryService,
     );
     const prefixRow = {
       menuItemId: 1,
@@ -639,7 +698,7 @@ describe("DiscoveryService", () => {
       {} as D1Database,
       kv,
       undefined,
-      semanticSearch as any,
+      semanticSearch as unknown as SemanticDiscoveryService,
     );
     mockSelectResults({
       dishSearchIndex: [
@@ -1391,7 +1450,7 @@ describe("DiscoveryService", () => {
       d1,
       kv,
       undefined,
-      semanticSearch as any,
+      semanticSearch as unknown as SemanticDiscoveryService,
     );
     mockSelectResults({
       menuItems: [
@@ -1497,10 +1556,7 @@ describe("DiscoveryService", () => {
         }),
       ]),
     );
-    const [firstInsert] = d1.boundStatements as Array<{
-      sql: string;
-      args: unknown[];
-    }>;
+    const [firstInsert] = d1.boundStatements;
     expect(firstInsert.sql).not.toContain("category_name, price, price_cents");
     expect(firstInsert.args.slice(0, 7)).toEqual([
       1,

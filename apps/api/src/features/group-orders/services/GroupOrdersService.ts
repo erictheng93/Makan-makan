@@ -178,6 +178,19 @@ interface GroupOrderListItem {
   expiresAt: string | null;
 }
 
+/**
+ * The formatters below all defend against a timestamp arriving as epoch
+ * seconds rather than as the `Date` Drizzle's `timestamp_ms` mode produces.
+ * Stating that tolerance in the signature keeps the branch reachable on paper
+ * instead of leaving it as code the types say can never run.
+ */
+type WithLegacyTimestamps<TRow, TKeys extends keyof TRow> = Omit<
+  TRow,
+  TKeys
+> & {
+  [K in TKeys]: null extends TRow[K] ? Date | number | null : Date | number;
+};
+
 export class GroupOrdersService implements IGroupOrderService {
   private db;
   private rawDb: D1Database;
@@ -2915,7 +2928,12 @@ export class GroupOrdersService implements IGroupOrderService {
     return "active";
   }
 
-  private formatGroupOrder(data: typeof groupOrders.$inferSelect): GroupOrder {
+  private formatGroupOrder(
+    data: WithLegacyTimestamps<
+      typeof groupOrders.$inferSelect,
+      "expiresAt" | "lockedAt" | "completedAt" | "createdAt" | "updatedAt"
+    >,
+  ): GroupOrder {
     // Drizzle returns camelCase properties and handles JSON/timestamp_ms automatically
     const settings = (data.settings || {}) as GroupOrderSettings;
     // expiresAt is a Date object from Drizzle timestamp_ms mode
@@ -2977,7 +2995,10 @@ export class GroupOrdersService implements IGroupOrderService {
   }
 
   private formatMember(
-    data: typeof groupMembers.$inferSelect,
+    data: WithLegacyTimestamps<
+      typeof groupMembers.$inferSelect,
+      "joinedAt" | "lastActiveAt" | "leftAt"
+    >,
   ): GroupOrderMember {
     const joinedAt =
       data.joinedAt instanceof Date
@@ -3013,7 +3034,10 @@ export class GroupOrdersService implements IGroupOrderService {
   }
 
   private formatCartItem(
-    data: typeof groupCartItems.$inferSelect,
+    data: WithLegacyTimestamps<
+      typeof groupCartItems.$inferSelect,
+      "addedAt" | "updatedAt"
+    >,
   ): GroupOrderCartItem {
     // Drizzle handles JSON columns automatically (no JSON.parse needed)
     const customizations = data.customizations || {};
@@ -3063,7 +3087,10 @@ export class GroupOrdersService implements IGroupOrderService {
   }
 
   private formatActivity(
-    data: typeof groupActivityLogs.$inferSelect,
+    data: WithLegacyTimestamps<
+      typeof groupActivityLogs.$inferSelect,
+      "createdAt"
+    >,
   ): GroupOrderActivity {
     // Drizzle handles JSON columns automatically (no JSON.parse needed)
     const metadata = data.metadata || {};
