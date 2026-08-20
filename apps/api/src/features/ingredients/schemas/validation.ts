@@ -31,14 +31,16 @@ export const createIngredientSchema = z.object({
   currentStock: z.number().min(0).optional(),
 });
 
+// The nullable optionals are the "clear this field" half of the update
+// contract: omitted leaves the column untouched, explicit null writes NULL.
 export const updateIngredientSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   unit: z.string().min(1).max(50).optional(),
-  category: z.string().max(100).optional(),
-  costPerUnit: z.number().min(0).optional(),
-  supplier: z.string().max(200).optional(),
-  minStockLevel: z.number().min(0).optional(),
-  currentStock: z.number().min(0).optional(),
+  category: z.string().max(100).nullable().optional(),
+  costPerUnit: z.number().min(0).nullable().optional(),
+  supplier: z.string().max(200).nullable().optional(),
+  minStockLevel: z.number().min(0).nullable().optional(),
+  currentStock: z.number().min(0).nullable().optional(),
 });
 
 export const bulkImportSchema = z.object({

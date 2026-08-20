@@ -24,7 +24,21 @@ export interface CreateIngredientRequest {
   currentStock?: number;
 }
 
-export type UpdateIngredientRequest = Partial<CreateIngredientRequest>;
+/**
+ * `null` clears an optional field; omitting it leaves the stored value alone.
+ * `IngredientService.update` distinguishes the two via `!== undefined` before
+ * falling back to `?? null`, and `ingredient_definitions` stores these columns
+ * nullable, so the request type has to admit null for clearing to be reachable.
+ */
+export type UpdateIngredientRequest = {
+  name?: string;
+  unit?: string;
+  category?: string | null;
+  costPerUnit?: number | null;
+  supplier?: string | null;
+  minStockLevel?: number | null;
+  currentStock?: number | null;
+};
 
 export interface BulkImportRequest {
   ingredients: CreateIngredientRequest[];
