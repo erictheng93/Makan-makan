@@ -248,6 +248,18 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 - Vendor membership approval queue (vendor requests → operator approves/rejects)
 - Per-market analytics dashboard in management-portal
 
+## testing / fixture harnesses
+
+### Unify GroupOrdersService's file-local select harness with `createSelectFixtureDb`
+
+**Priority:** P4 **Status:** Open (identified 2026-08-20, deferred from #213) **Files:** `apps/api/src/features/group-orders/services/GroupOrdersService.test.ts`, `packages/database/src/testing/select-fixtures.ts`
+
+**Context:** #213 moved this file's write fixtures onto the shared `createMutationFixtureDb`. Its reads still use a file-local harness that already routes by table and throws on missing/exhausted fixtures — the same rules the shared one enforces — so this is de-duplication, not a bug.
+
+**Why deferred:** The local harness has a `rawSqlSubquery` catch-all bucket for `.from()` arguments that are raw SQL subqueries rather than registered tables. `createSelectFixtureDb` has no catch-all: an unregistered `from()` argument throws there. Migrating means adding a routing escape hatch to a module 24 other test files depend on, for one caller.
+
+**Scope:** Either give `createSelectFixtureDb` a declared fallback bucket, or rework the two subquery-backed reads in `GroupOrdersService` so every `from()` target is a real table.
+
 ## Completed
 
 _None yet._
