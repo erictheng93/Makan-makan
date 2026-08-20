@@ -100,9 +100,14 @@ const vitestConfigFiles = (dir) =>
     .map((f) => path.join(dir, f));
 
 // The ceiling only bites if the config both imports vitest.shared and actually
-// spreads it into `test`. Importing without spreading is a no-op.
+// spreads it into `test`. Importing without spreading is a no-op, and so is a
+// commented-out spread -- vitest is back to unbounded workers either way, so
+// the tokens only count outside comments.
+const stripComments = (src) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+
 const spreadsSharedCeiling = (file) => {
-  const src = fs.readFileSync(file, "utf8");
+  const src = stripComments(fs.readFileSync(file, "utf8"));
   return src.includes("vitest.shared") && src.includes("...sharedTestConfig");
 };
 
