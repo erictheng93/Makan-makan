@@ -23,6 +23,19 @@ import {
 } from "@makanmasak/database";
 import { eq } from "drizzle-orm";
 import { SearchIndexSyncService } from "../../features/discovery/services/SearchIndexSyncService";
+import { readData, readEnvelope, type ServiceData } from "../helpers/read-json";
+import type { DiscoveryService } from "../../features/discovery/services/DiscoveryService";
+import type { MenuService } from "../../features/menu/services/MenuService";
+
+// The discovery routes hand a service result straight to the envelope, so the
+// response shapes are derived from the services rather than restated here.
+type DishSearch = ServiceData<DiscoveryService["searchDishes"]>;
+type DishCategories = ServiceData<DiscoveryService["listDishCategories"]>;
+type ServiceSearch = ServiceData<DiscoveryService["searchServices"]>;
+type IndexStatus = ServiceData<DiscoveryService["getIndexStatus"]>;
+type ReindexResult = ServiceData<DiscoveryService["reindex"]>;
+type CategoryRow = ServiceData<MenuService["createCategory"]>;
+type MenuItemRow = ServiceData<MenuService["createMenuItem"]>;
 
 function withCsrf(
   headers: Record<string, string> = {},
@@ -380,10 +393,9 @@ describe("Discovery API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    expect(json.success).toBe(true);
+    const json = await readData<DishSearch>(res);
 
-    const data = json.data;
+    const data = json;
     expect(Array.isArray(data.results)).toBe(true);
     expect(data.page).toBe(1);
     expect(data.limit).toBe(10);
@@ -459,10 +471,10 @@ describe("Discovery API — real integration", () => {
       );
 
       expect(firstRes.status).toBe(200);
-      const firstJson: any = await firstRes.json();
-      expect(
-        firstJson.data.results.map((item: any) => item.menuItemId),
-      ).not.toContain(menuItem.id);
+      const firstJson = await readData<DishSearch>(firstRes);
+      expect(firstJson.results.map((item) => item.menuItemId)).not.toContain(
+        menuItem.id,
+      );
       expect(vectorize.query).not.toHaveBeenCalled();
       expect(waitUntilPromises).toHaveLength(1);
 
@@ -475,10 +487,10 @@ describe("Discovery API — real integration", () => {
         executionCtx,
       );
       expect(secondRes.status).toBe(200);
-      const secondJson: any = await secondRes.json();
-      expect(
-        secondJson.data.results.map((item: any) => item.menuItemId),
-      ).toContain(menuItem.id);
+      const secondJson = await readData<DishSearch>(secondRes);
+      expect(secondJson.results.map((item) => item.menuItemId)).toContain(
+        menuItem.id,
+      );
       expect(vectorize.query).toHaveBeenCalledWith([0.2, 0.4, 0.6], {
         topK: 50,
         namespace: "dishes",
@@ -532,8 +544,8 @@ describe("Discovery API — real integration", () => {
 
     expect(dishRes.status).toBe(200);
     expect(serviceRes.status).toBe(200);
-    const dishData = ((await dishRes.json()) as any).data;
-    const serviceData = ((await serviceRes.json()) as any).data;
+    const dishData = await readData<DishSearch>(dishRes);
+    const serviceData = await readData<ServiceSearch>(serviceRes);
 
     expect(dishData.results[0]).toMatchObject({
       resultType: "menu_item",
@@ -607,8 +619,8 @@ describe("Discovery API — real integration", () => {
 
     expect(dishRes.status).toBe(200);
     expect(serviceRes.status).toBe(200);
-    const dishData = ((await dishRes.json()) as any).data;
-    const serviceData = ((await serviceRes.json()) as any).data;
+    const dishData = await readData<DishSearch>(dishRes);
+    const serviceData = await readData<ServiceSearch>(serviceRes);
     const expectedMarketContext = {
       marketId: market.id,
       marketSlug: "global-context-market",
@@ -660,24 +672,23 @@ describe("Discovery API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    expect(json.success).toBe(true);
+    const json = await readData<DishSearch>(res);
 
-    const data = json.data;
+    const data = json;
     expect(data.page).toBe(2);
     expect(data.limit).toBe(10);
     expect(data.total).toBe(12);
 
     // With 12 items and limit=10, page 2 should yield exactly 2 results
     expect(data.results.length).toBe(2);
-    expect(data.results.map((r: any) => r.dishName)).toEqual([
+    expect(data.results.map((r) => r.dishName)).toEqual([
       "Nasi Lemak 10",
       "Nasi Lemak 11",
     ]);
 
     // Results on page 2 should not overlap with page 1 (ordered by price asc —
     // the two cheapest pages should be distinct sets)
-    const prices: number[] = data.results.map((r: any) => r.price);
+    const prices: number[] = data.results.map((r) => r.price);
     expect(Math.min(...prices)).toBeGreaterThan(100 + 9 * 10 - 1); // all > page-1 items
   });
 
@@ -734,7 +745,7 @@ describe("Discovery API — real integration", () => {
     expect(page1.results).toHaveLength(10);
     expect(page2.results).toHaveLength(10);
     expect(page3.results).toHaveLength(5);
-    expect(page3.results.map((r: any) => r.dishName)).toEqual([
+    expect(page3.results.map((r) => r.dishName)).toEqual([
       "Curry Puff 20",
       "Curry Puff 21",
       "Curry Puff 22",
@@ -763,11 +774,10 @@ describe("Discovery API — real integration", () => {
     const durationMs = performance.now() - startedAt;
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    expect(json.success).toBe(true);
-    expect(json.data.total).toBe(fixture.expectedChickenItems);
-    expect(json.data.results).toHaveLength(20);
-    expect(json.data.results[0].marketVendor).toMatchObject({
+    const json = await readData<DishSearch>(res);
+    expect(json.total).toBe(fixture.expectedChickenItems);
+    expect(json.results).toHaveLength(20);
+    expect(json.results[0].marketVendor).toMatchObject({
       marketId: market.id,
     });
     expect(fixture.totalItems).toBe(288);
@@ -835,10 +845,7 @@ describe("Discovery API — real integration", () => {
     expect(data.limit).toBe(2);
     expect(data.results).toHaveLength(2);
     expect(data.total).toBe(4);
-    expect(data.results.map((r: any) => r.dishName)).toEqual([
-      "Mee 0",
-      "Mee 1",
-    ]);
+    expect(data.results.map((r) => r.dishName)).toEqual(["Mee 0", "Mee 1"]);
   });
 
   it("treats takeaway service keywords as takeaway-capable dish searches", async () => {
@@ -879,9 +886,7 @@ describe("Discovery API — real integration", () => {
     expect(res.status).toBe(200);
     const data = ((await res.json()) as ApiTestResponse).data;
 
-    expect(data.results.map((r: any) => r.menuItemId)).toEqual([
-      takeawayItem.id,
-    ]);
+    expect(data.results.map((r) => r.menuItemId)).toEqual([takeawayItem.id]);
     expect(data.total).toBe(1);
   });
 
@@ -923,9 +928,7 @@ describe("Discovery API — real integration", () => {
     expect(res.status).toBe(200);
     const data = ((await res.json()) as ApiTestResponse).data;
 
-    expect(data.results.map((r: any) => r.menuItemId)).toEqual([
-      deliveryItem.id,
-    ]);
+    expect(data.results.map((r) => r.menuItemId)).toEqual([deliveryItem.id]);
     expect(data.total).toBe(1);
   });
 
@@ -1348,13 +1351,13 @@ describe("Discovery API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const data = ((await res.json()) as ApiTestResponse).data;
-    expect(data.results.map((result: any) => result.dishName)).toEqual([
+    const data = await readData<DishSearch>(res);
+    expect(data.results.map((result) => result.dishName)).toEqual([
       "滷肉飯",
       "滷肉飯便當",
       "招牌套餐",
     ]);
-    const marketVendor = data.results[0].marketVendor as any;
+    const marketVendor = data.results[0].marketVendor;
     expect(marketVendor?.marketId).toBe(market.id);
     expect(marketVendor?.stallNumber).toBe("A-12");
     expect(marketVendor?.isPrimary).toBe(true);
@@ -1414,13 +1417,13 @@ describe("Discovery API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const data = ((await res.json()) as ApiTestResponse).data;
-    expect(data.results.map((result: any) => result.name)).toEqual([
+    const data = await readData<ServiceSearch>(res);
+    expect(data.results.map((result) => result.name)).toEqual([
       "切水果",
       "切水果外送",
       "攤位代辦",
     ]);
-    const marketVendor = data.results[0].marketVendor as any;
+    const marketVendor = data.results[0].marketVendor;
     expect(marketVendor?.marketId).toBe(market.id);
     expect(marketVendor?.stallNumber).toBe("S-08");
     expect(marketVendor?.isPrimary).toBe(false);
@@ -1468,9 +1471,7 @@ describe("Discovery API — real integration", () => {
     expect(res.status).toBe(200);
     const data = ((await res.json()) as ApiTestResponse).data;
     expect(data.total).toBe(1);
-    expect(data.results.map((result: any) => result.name)).toEqual([
-      "市場外送",
-    ]);
+    expect(data.results.map((result) => result.name)).toEqual(["市場外送"]);
   });
 
   it("filters public service items by fulfillment support within a market", async () => {
@@ -1556,14 +1557,14 @@ describe("Discovery API — real integration", () => {
     expect(takeawayRes.status).toBe(200);
     const takeawayData = ((await takeawayRes.json()) as ApiTestResponse).data;
     expect(takeawayData.total).toBe(1);
-    expect(takeawayData.results.map((result: any) => result.name)).toEqual([
+    expect(takeawayData.results.map((result) => result.name)).toEqual([
       "可外帶代切",
     ]);
 
     expect(deliveryRes.status).toBe(200);
     const deliveryData = ((await deliveryRes.json()) as ApiTestResponse).data;
     expect(deliveryData.total).toBe(1);
-    expect(deliveryData.results.map((result: any) => result.name)).toEqual([
+    expect(deliveryData.results.map((result) => result.name)).toEqual([
       "可外送代切",
     ]);
   });
@@ -1675,14 +1676,11 @@ describe("Discovery API — real integration", () => {
     expect(res.status).toBe(200);
     const data = ((await res.json()) as ApiTestResponse).data;
     expect(data.total).toBe(2);
-    expect(data.results.map((result: any) => result.name)).toEqual([
+    expect(data.results.map((result) => result.name)).toEqual([
       "Open Sort Fresh Service",
       "Open Sort Closed Service",
     ]);
-    expect(data.results.map((result: any) => result.isOpen)).toEqual([
-      true,
-      false,
-    ]);
+    expect(data.results.map((result) => result.isOpen)).toEqual([true, false]);
   });
 
   it("sorts market service results by distance and returns distance metadata", async () => {
@@ -1745,7 +1743,7 @@ describe("Discovery API — real integration", () => {
     expect(res.status).toBe(200);
     const data = ((await res.json()) as ApiTestResponse).data;
     expect(data.total).toBe(2);
-    expect(data.results.map((result: any) => result.name)).toEqual([
+    expect(data.results.map((result) => result.name)).toEqual([
       "Distance Service Near Pickup",
       "Distance Service Far Pickup",
     ]);
@@ -1793,9 +1791,7 @@ describe("Discovery API — real integration", () => {
     expect(res.status).toBe(200);
     const data = ((await res.json()) as ApiTestResponse).data;
     expect(data.total).toBe(1);
-    expect(data.results.map((result: any) => result.name)).toEqual([
-      "全站外送",
-    ]);
+    expect(data.results.map((result) => result.name)).toEqual(["全站外送"]);
   });
 
   it("lists service type facets for public service items within a market", async () => {
@@ -2209,7 +2205,7 @@ describe("Discovery API — real integration", () => {
       (await res.json()) as ApiTestResponse<{ services: ApiTestEntity[] }>
     ).data;
     expect(data.services).toHaveLength(2);
-    expect(data.services.map((service: any) => service.name)).toEqual([
+    expect(data.services.map((service) => service.name)).toEqual([
       "公開外送協助",
       "公開預約導覽",
     ]);
@@ -2284,9 +2280,7 @@ describe("Discovery API — real integration", () => {
     const inactiveData = ((await inactiveRes.json()) as ApiTestResponse).data;
     const deletedData = ((await deletedRes.json()) as ApiTestResponse).data;
 
-    expect(activeData.items.map((item: any) => item.name)).toEqual([
-      "公開菜單雞排",
-    ]);
+    expect(activeData.items.map((item) => item.name)).toEqual(["公開菜單雞排"]);
     expect(inactiveData.items).toEqual([]);
     expect(deletedData.items).toEqual([]);
   });
@@ -2373,7 +2367,7 @@ describe("Discovery API — real integration", () => {
 
     expect(res.status).toBe(200);
     const data = ((await res.json()) as ApiTestResponse).data;
-    expect(data.items.map((item: any) => item.name)).toEqual(["公開分類雞排"]);
+    expect(data.items.map((item) => item.name)).toEqual(["公開分類雞排"]);
     expect(data.items[0]).toMatchObject({
       category_name: "公開分類",
     });
@@ -2405,7 +2399,7 @@ describe("Discovery API — real integration", () => {
     expect(res.status).toBe(200);
     const data = ((await res.json()) as ApiTestResponse).data;
     expect(
-      data.items.map((item: any) => ({
+      data.items.map((item) => ({
         name: item.name,
         catalogType: item.catalogType,
       })),
@@ -2465,7 +2459,7 @@ describe("Discovery API — real integration", () => {
     const data = ((await res.json()) as ApiTestResponse).data;
 
     expect(data.total).toBe(1);
-    expect(data.results.map((r: any) => r.restaurantName)).toEqual([
+    expect(data.results.map((r) => r.restaurantName)).toEqual([
       "Taipei Zhongshan Vendor",
     ]);
   });
@@ -2534,13 +2528,13 @@ describe("Discovery API — real integration", () => {
     expect(searchRes.status).toBe(200);
     const searchData = ((await searchRes.json()) as ApiTestResponse).data;
     expect(searchData.total).toBe(1);
-    expect(searchData.results.map((r: any) => r.dishName)).toEqual([
+    expect(searchData.results.map((r) => r.dishName)).toEqual([
       "Category Scope Bao",
     ]);
 
     expect(categoriesRes.status).toBe(200);
-    const categoriesJson: any = await categoriesRes.json();
-    expect(categoriesJson.data.categories).toEqual(["小吃", "飲品"]);
+    const categoriesJson = await readData<DishCategories>(categoriesRes);
+    expect(categoriesJson.categories).toEqual(["小吃", "飲品"]);
   });
 
   it("matches zh-TW catalog aliases in market dish search", async () => {
@@ -2730,7 +2724,7 @@ describe("Discovery API — real integration", () => {
 
     expect(res.status).toBe(200);
     const data = ((await res.json()) as ApiTestResponse).data;
-    expect(data.results.map((r: any) => r.dishName)).toEqual([
+    expect(data.results.map((r) => r.dishName)).toEqual([
       "Popular Scope Noodles",
       "Popular Scope Rice",
     ]);
@@ -2798,7 +2792,7 @@ describe("Discovery API — real integration", () => {
     const data = (
       (await res.json()) as ApiTestResponse<{ dishes: ApiTestEntity[] }>
     ).data;
-    expect(data.dishes.map((dish: any) => dish.dishName)).toEqual([
+    expect(data.dishes.map((dish) => dish.dishName)).toEqual([
       "Visible Popular Bao",
     ]);
   });
@@ -2863,7 +2857,7 @@ describe("Discovery API — real integration", () => {
     expect(res.status).toBe(200);
     const data = ((await res.json()) as ApiTestResponse).data;
     expect(data.total).toBe(1);
-    expect(data.results.map((result: any) => result.dishName)).toEqual([
+    expect(data.results.map((result) => result.dishName)).toEqual([
       "Public Gate Bao",
     ]);
   });
@@ -2995,7 +2989,7 @@ describe("Discovery API — real integration", () => {
     expect(res.status).toBe(200);
     const data = ((await res.json()) as ApiTestResponse).data;
     expect(data.total).toBe(2);
-    expect(data.results.map((result: any) => result.dishName)).toEqual([
+    expect(data.results.map((result) => result.dishName)).toEqual([
       "Distance Sort Near Bao",
       "Distance Sort Far Bao",
     ]);
@@ -3078,7 +3072,7 @@ describe("Discovery API — real integration", () => {
     expect(res.status).toBe(200);
     const data = ((await res.json()) as ApiTestResponse).data;
     expect(data.total).toBe(2);
-    expect(data.results.map((result: any) => result.name)).toEqual([
+    expect(data.results.map((result) => result.name)).toEqual([
       "Restaurant Distance Near Vendor",
       "Restaurant Distance Far Vendor",
     ]);
@@ -3238,9 +3232,10 @@ describe("Discovery API — real integration", () => {
     );
     expect(districtRes.status).toBe(200);
     const districtData = ((await districtRes.json()) as ApiTestResponse).data;
-    expect(
-      districtData.results.map((result: any) => result.restaurantId),
-    ).toEqual([String(marketRestaurant.id), String(outsideRestaurant.id)]);
+    expect(districtData.results.map((result) => result.restaurantId)).toEqual([
+      String(marketRestaurant.id),
+      String(outsideRestaurant.id),
+    ]);
 
     const marketRes = await testApp.app.fetch(
       new Request(
@@ -3251,9 +3246,9 @@ describe("Discovery API — real integration", () => {
     expect(marketRes.status).toBe(200);
     const marketData = ((await marketRes.json()) as ApiTestResponse).data;
     expect(marketData.total).toBe(1);
-    expect(
-      marketData.results.map((result: any) => result.restaurantId),
-    ).toEqual([String(marketRestaurant.id)]);
+    expect(marketData.results.map((result) => result.restaurantId)).toEqual([
+      String(marketRestaurant.id),
+    ]);
     expect(marketData.results[0]).toMatchObject({
       restaurantId: String(marketRestaurant.id),
       name: "Restaurant Cache Scope Market Vendor",
@@ -3295,7 +3290,7 @@ describe("Discovery API — real integration", () => {
       (await cachedOldDistrictRes.json()) as ApiTestResponse
     ).data;
     expect(
-      cachedOldDistrictData.results.map((result: any) => result.restaurantId),
+      cachedOldDistrictData.results.map((result) => result.restaurantId),
     ).toEqual([String(restaurant.id)]);
 
     const updateRes = await testApp.app.fetch(
@@ -3394,9 +3389,7 @@ describe("Discovery API — real integration", () => {
     expect(res.status).toBe(200);
     const data = ((await res.json()) as ApiTestResponse).data;
     expect(data.total).toBe(1);
-    expect(data.results.map((r: any) => r.dishName)).toEqual([
-      "Browse Scope Bao",
-    ]);
+    expect(data.results.map((r) => r.dishName)).toEqual(["Browse Scope Bao"]);
   });
 
   // -------------------------------------------------------------------------
@@ -3422,10 +3415,9 @@ describe("Discovery API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    expect(json.success).toBe(true);
-    expect(json.data.results).toEqual([]);
-    expect(json.data.total).toBe(0);
+    const json = await readData<DishSearch>(res);
+    expect(json.results).toEqual([]);
+    expect(json.total).toBe(0);
   });
 
   it("returns market catalog scope metadata for empty scoped searches", async () => {
@@ -3539,10 +3531,9 @@ describe("Discovery API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    expect(json.success).toBe(true);
+    const json = await readData<DishSearch>(res);
 
-    const results: any[] = json.data.results;
+    const results = json.results;
 
     // Only the available item should appear
     const foundAvailable = results.find((r) => r.menuItemId === available.id);
@@ -3615,7 +3606,7 @@ describe("Discovery API — real integration", () => {
     expect(res.status).toBe(200);
     const data = ((await res.json()) as ApiTestResponse).data;
 
-    expect(data.results.map((r: any) => r.menuItemId)).toEqual([marketItem.id]);
+    expect(data.results.map((r) => r.menuItemId)).toEqual([marketItem.id]);
     expect(data.total).toBe(1);
   });
 
@@ -3642,7 +3633,7 @@ describe("Discovery API — real integration", () => {
     );
     expect(firstRes.status).toBe(200);
     const firstData = ((await firstRes.json()) as ApiTestResponse).data;
-    expect(firstData.results.map((r: any) => r.menuItemId)).toEqual([item.id]);
+    expect(firstData.results.map((r) => r.menuItemId)).toEqual([item.id]);
 
     await testApp.testDb.drizzle
       .update(menuItems)
@@ -3835,7 +3826,7 @@ describe("Discovery API — real integration", () => {
     );
     expect(firstRes.status).toBe(200);
     const firstData = ((await firstRes.json()) as ApiTestResponse).data;
-    expect(firstData.results.map((r: any) => r.menuItemId)).toEqual([item.id]);
+    expect(firstData.results.map((r) => r.menuItemId)).toEqual([item.id]);
 
     const updateRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/menu/items/${item.id}`, {
@@ -3890,7 +3881,7 @@ describe("Discovery API — real integration", () => {
       }),
     );
     expect(categoryRes.status).toBe(201);
-    const categoryJson: any = await categoryRes.json();
+    const categoryJson = await readData<CategoryRow>(categoryRes);
 
     const createRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/menu/${restaurant.id}/items`, {
@@ -3900,7 +3891,7 @@ describe("Discovery API — real integration", () => {
           "content-type": "application/json",
         }),
         body: JSON.stringify({
-          categoryId: categoryJson.data.id,
+          categoryId: categoryJson.id,
           name: "API 建立市場雞排",
           description: "剛建立後就應該可被市場搜尋",
           price: 88,
@@ -3910,7 +3901,7 @@ describe("Discovery API — real integration", () => {
       }),
     );
     expect(createRes.status).toBe(201);
-    const createJson: any = await createRes.json();
+    const createJson = await readData<MenuItemRow>(createRes);
 
     const searchRes = await testApp.app.fetch(
       new Request(
@@ -3922,9 +3913,7 @@ describe("Discovery API — real integration", () => {
 
     expect(searchRes.status).toBe(200);
     const data = ((await searchRes.json()) as ApiTestResponse).data;
-    expect(data.results.map((r: any) => r.menuItemId)).toEqual([
-      createJson.data.id,
-    ]);
+    expect(data.results.map((r) => r.menuItemId)).toEqual([createJson.id]);
     expect(data.results[0]).toMatchObject({
       restaurantId: restaurant.id,
       restaurantName: "Menu Create Sync Vendor",
@@ -3963,7 +3952,7 @@ describe("Discovery API — real integration", () => {
       }),
     );
     expect(categoryRes.status).toBe(201);
-    const categoryJson: any = await categoryRes.json();
+    const categoryJson = await readData<CategoryRow>(categoryRes);
 
     const createRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/menu/${restaurant.id}/items`, {
@@ -3973,7 +3962,7 @@ describe("Discovery API — real integration", () => {
           "content-type": "application/json",
         }),
         body: JSON.stringify({
-          categoryId: categoryJson.data.id,
+          categoryId: categoryJson.id,
           name: "API 建立市場伴手禮",
           description: "商品建立後應該進入商品搜尋索引",
           price: 180,
@@ -3984,12 +3973,12 @@ describe("Discovery API — real integration", () => {
       }),
     );
     expect(createRes.status).toBe(201);
-    const createJson: any = await createRes.json();
+    const createJson = await readData<MenuItemRow>(createRes);
 
     const [indexedProduct] = await testApp.testDb.drizzle
       .select({ catalogType: dishSearchIndex.catalogType })
       .from(dishSearchIndex)
-      .where(eq(dishSearchIndex.menuItemId, createJson.data.id))
+      .where(eq(dishSearchIndex.menuItemId, createJson.id))
       .limit(1);
     expect(indexedProduct).toEqual({ catalogType: "product" });
 
@@ -4003,8 +3992,8 @@ describe("Discovery API — real integration", () => {
     expect(productSearchRes.status).toBe(200);
     const productData = ((await productSearchRes.json()) as ApiTestResponse)
       .data;
-    expect(productData.results.map((r: any) => r.menuItemId)).toEqual([
-      createJson.data.id,
+    expect(productData.results.map((r) => r.menuItemId)).toEqual([
+      createJson.id,
     ]);
     expect(productData.results[0]).toMatchObject({
       resultType: "product",
@@ -4054,7 +4043,7 @@ describe("Discovery API — real integration", () => {
       }),
     );
     expect(categoryRes.status).toBe(201);
-    const categoryJson: any = await categoryRes.json();
+    const categoryJson = await readData<CategoryRow>(categoryRes);
 
     const createRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/menu/${restaurant.id}/items`, {
@@ -4064,7 +4053,7 @@ describe("Discovery API — real integration", () => {
           "content-type": "application/json",
         }),
         body: JSON.stringify({
-          categoryId: categoryJson.data.id,
+          categoryId: categoryJson.id,
           name: "分類同步雞排",
           description: "分類隱藏後應該立即從搜尋移除",
           price: 88,
@@ -4074,7 +4063,7 @@ describe("Discovery API — real integration", () => {
       }),
     );
     expect(createRes.status).toBe(201);
-    const createJson: any = await createRes.json();
+    const createJson = await readData<MenuItemRow>(createRes);
 
     const beforeRes = await testApp.app.fetch(
       new Request(
@@ -4085,24 +4074,21 @@ describe("Discovery API — real integration", () => {
     );
     expect(beforeRes.status).toBe(200);
     const beforeData = ((await beforeRes.json()) as ApiTestResponse).data;
-    expect(beforeData.results.map((r: any) => r.menuItemId)).toEqual([
-      createJson.data.id,
+    expect(beforeData.results.map((r) => r.menuItemId)).toEqual([
+      createJson.id,
     ]);
 
     const updateCategoryRes = await testApp.app.fetch(
-      new Request(
-        `https://test/api/v1/menu/categories/${categoryJson.data.id}`,
-        {
-          method: "PUT",
-          headers: withCsrf({
-            authorization: `Bearer ${adminToken}`,
-            "content-type": "application/json",
-          }),
-          body: JSON.stringify({
-            isVisible: false,
-          }),
-        },
-      ),
+      new Request(`https://test/api/v1/menu/categories/${categoryJson.id}`, {
+        method: "PUT",
+        headers: withCsrf({
+          authorization: `Bearer ${adminToken}`,
+          "content-type": "application/json",
+        }),
+        body: JSON.stringify({
+          isVisible: false,
+        }),
+      }),
     );
     expect(updateCategoryRes.status).toBe(200);
 
@@ -4236,9 +4222,8 @@ describe("Discovery API — real integration", () => {
     );
 
     expect(statusRes.status).toBe(200);
-    const json: any = await statusRes.json();
-    expect(json.success).toBe(true);
-    expect(json.data).toMatchObject({
+    const json = await readData<IndexStatus>(statusRes);
+    expect(json).toMatchObject({
       indexedDishCount: 2,
       availableDishCount: 1,
       indexedRestaurantCount: 1,
@@ -4246,8 +4231,9 @@ describe("Discovery API — real integration", () => {
       unindexedAvailableDishCount: 0,
       restaurantsWithUnindexedAvailableDishes: 0,
     });
-    expect(Number(json.data.version)).toBeGreaterThan(0);
-    expect(Date.parse(json.data.lastReindexedAt)).not.toBeNaN();
+    expect(Number(json.version)).toBeGreaterThan(0);
+    expect(json.lastReindexedAt).not.toBeNull();
+    expect(Date.parse(String(json.lastReindexedAt))).not.toBeNaN();
   });
 
   it("upserts semantic dish vectors during admin reindex when bindings are configured", async () => {
@@ -4268,7 +4254,7 @@ describe("Discovery API — real integration", () => {
     const originalVectorize = testApp.env.DISCOVERY_VECTORIZE;
     const originalSemanticFlag = testApp.env.DISCOVERY_SEMANTIC_ENABLED;
     const ai = {
-      run: vi.fn(async (_model: string, input: any) => {
+      run: vi.fn(async (_model: string, input: { text: string | string[] }) => {
         const texts = Array.isArray(input.text) ? input.text : [input.text];
         return {
           data: texts.map(() => [0.3, 0.2, 0.1]),
@@ -4296,8 +4282,8 @@ describe("Discovery API — real integration", () => {
       );
 
       expect(res.status).toBe(200);
-      const json: any = await res.json();
-      expect(json.data.semanticDishes).toBe(1);
+      const json = await readData<ReindexResult>(res);
+      expect(json.semanticDishes).toBe(1);
       expect(vectorize.upsert).toHaveBeenCalledWith([
         expect.objectContaining({
           id: `dish:${menuItem.id}`,
@@ -4352,8 +4338,8 @@ describe("Discovery API — real integration", () => {
     );
 
     expect(statusRes.status).toBe(200);
-    const json: any = await statusRes.json();
-    expect(json.data).toMatchObject({
+    const json = await readData<IndexStatus>(statusRes);
+    expect(json).toMatchObject({
       indexedDishCount: 1,
       availableDishCount: 1,
       indexedRestaurantCount: 1,
@@ -4515,7 +4501,7 @@ describe("Discovery API — real integration", () => {
 
     // dishSearchQuerySchema requires q — should fail validation cleanly
     expect(res.status).toBe(400);
-    const json: any = await res.json();
+    const json = await readEnvelope<DishSearch>(res);
     expect(json.success).toBe(false);
   });
 });
