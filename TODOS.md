@@ -260,6 +260,16 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 **Scope:** Either give `createSelectFixtureDb` a declared fallback bucket, or rework the two subquery-backed reads in `GroupOrdersService` so every `from()` target is a real table.
 
+### Narrow `CouponsService.createCouponWithValidation`'s return type
+
+**Priority:** P4 **Status:** Open (identified 2026-08-20, deferred from #207) **Files:** `apps/api/src/features/coupons/services/CouponsService.ts`, `apps/api/src/__tests__/integration/coupons.real.integration.test.ts`
+
+**Context:** `createCouponWithValidation` is declared `Promise<unknown>`, and `PaginatedCouponsResponse.coupons` inherits that looseness. Because of it the coupons integration suite has to state the coupon shape locally (`CouponResponse`) rather than derive it from the service the way the other suites do.
+
+**Why deferred:** #207's scope was `no-explicit-any` in test code. Narrowing the return type is a production-signature change with its own callers to check, and the issue explicitly says such findings should be filed rather than forced through a cast in the test.
+
+**Scope:** Give the method a concrete return type (the formatted coupon row), let `PaginatedCouponsResponse` follow, then replace the test's local `CouponResponse` with `ServiceData<CouponsService["createCouponWithValidation"]>`.
+
 ## Completed
 
 _None yet._
