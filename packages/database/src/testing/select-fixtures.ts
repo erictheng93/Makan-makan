@@ -1,4 +1,4 @@
-import { vi } from "vitest";
+import { vi, type Mock } from "vitest";
 
 /**
  * A queue entry is the rows one read resolves with, or an `Error` to make that
@@ -9,8 +9,8 @@ export type SelectFixtures<Name extends string> = Partial<
 >;
 
 export interface SelectFixtureDb<Name extends string> {
-  select: ReturnType<typeof vi.fn>;
-  selectDistinct: ReturnType<typeof vi.fn>;
+  select: Mock;
+  selectDistinct: Mock;
 }
 
 /**
