@@ -29,12 +29,14 @@ function columnSqlType(table: Table, columnName: string): string | undefined {
     ?.getSQLType();
 }
 
-function migration(name: string): string {
-  return readFileSync(
-    resolve(REPO_ROOT, "packages/database/migrations_fresh", name),
-    "utf8",
-  );
-}
+// The fresh track was squashed into a single baseline, so hardening that used
+// to arrive as a migration step now ships as part of the schema itself. The
+// deployment track still carries the executable step, which is the only place
+// a legacy-value conversion can be asserted.
+const FRESH_BASELINE =
+  "packages/database/migrations_fresh/0000_baseline_strict.sql";
+const LEGACY_HARDENING =
+  "packages/database/migrations/0089_schema_hardening_payment_idempotency_backup_timestamps.sql";
 
 function migrationPath(path: string): string {
   return readFileSync(resolve(REPO_ROOT, path), "utf8");
@@ -59,18 +61,18 @@ describe("schema hardening", () => {
       ),
     ).toBe(true);
 
-    expect(
-      migration(
-        "0072_schema_hardening_payment_idempotency_backup_timestamps.sql",
-      ),
-    ).toContain(
-      "CREATE UNIQUE INDEX IF NOT EXISTS payment_transactions_idempotency_unique_idx",
+    // `IF NOT EXISTS` belonged to the migration step; the baseline creates the
+    // index outright. The partial predicate is the part that matters -- without
+    // it the unique index would reject every second NULL idempotency key.
+    const baseline = migrationPath(FRESH_BASELINE);
+
+    expect(baseline).toContain(
+      "CREATE UNIQUE INDEX payment_transactions_idempotency_unique_idx",
     );
-    expect(
-      migration(
-        "0072_schema_hardening_payment_idempotency_backup_timestamps.sql",
-      ),
-    ).toContain("WHERE idempotency_key IS NOT NULL");
+    expect(baseline).toContain(
+      "CREATE UNIQUE INDEX market_checkout_payments_idempotency_unique_idx",
+    );
+    expect(baseline).toContain("WHERE idempotency_key IS NOT NULL");
   });
 
   it("stores backup timestamps as integer millisecond timestamps", () => {
@@ -94,24 +96,29 @@ describe("schema hardening", () => {
     for (const [table, column] of integerTimestampColumns) {
       expect(columnSqlType(table, column)).toBe("integer");
     }
+
+    // The Drizzle schema saying `integer` only matters if the SQL that actually
+    // ships agrees. Post-squash that SQL is the baseline, not a migration step.
+    const baseline = migrationPath(FRESH_BASELINE);
+
+    for (const [, column] of integerTimestampColumns) {
+      // Quoting is not stable across the baseline -- SQLite rewrites a table's
+      // stored DDL when ALTER TABLE touches it -- so allow the optional quote.
+      expect(baseline).toMatch(
+        new RegExp(String.raw`\b${column}\b["\`]?\s+integer`, "i"),
+      );
+    }
   });
 
   it("converts ISO backup timestamps through the datetime branch", () => {
-    const migrationSql = [
-      migrationPath(
-        "packages/database/migrations_fresh/0072_schema_hardening_payment_idempotency_backup_timestamps.sql",
-      ),
-      migrationPath(
-        "packages/database/migrations/0089_schema_hardening_payment_idempotency_backup_timestamps.sql",
-      ),
-    ];
+    // Only the deployment track converts: the squashed baseline creates these
+    // columns as INTEGER, so it has no legacy TEXT value to reinterpret.
+    const sql = migrationPath(LEGACY_HARDENING);
     const db = new Database(":memory:");
     const timestamp = "2026-06-07T03:04:05.000Z";
 
-    for (const sql of migrationSql) {
-      expect(sql).toContain("NOT GLOB '*[^0-9]*' THEN CAST");
-      expect(sql).not.toContain("GLOB '[0-9]*' THEN CAST");
-    }
+    expect(sql).toContain("NOT GLOB '*[^0-9]*' THEN CAST");
+    expect(sql).not.toContain("GLOB '[0-9]*' THEN CAST");
 
     const converted = db
       .prepare(
@@ -130,19 +137,10 @@ describe("schema hardening", () => {
   });
 
   it("converts empty legacy backup timestamp strings to null", () => {
-    const migrationSql = [
-      migrationPath(
-        "packages/database/migrations_fresh/0072_schema_hardening_payment_idempotency_backup_timestamps.sql",
-      ),
-      migrationPath(
-        "packages/database/migrations/0089_schema_hardening_payment_idempotency_backup_timestamps.sql",
-      ),
-    ];
+    const sql = migrationPath(LEGACY_HARDENING);
     const db = new Database(":memory:");
 
-    for (const sql of migrationSql) {
-      expect(sql).toContain("= '' THEN NULL");
-    }
+    expect(sql).toContain("= '' THEN NULL");
 
     const converted = db
       .prepare(

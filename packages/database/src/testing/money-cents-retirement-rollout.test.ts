@@ -108,7 +108,16 @@ const expectedAuditSurfaces: ExpectedAuditSurface[] = [
 ];
 
 const packageRoot = path.resolve(__dirname, "../..");
-const freshMigrationsDir = path.join(packageRoot, "migrations_fresh");
+// The fresh track was squashed into a single baseline, so it can no longer
+// express a guard that runs before a cutover -- it only carries the shape those
+// steps produced. The executable rollout therefore lives on the deployment
+// track alone, and every "does the guard block a bad state" assertion below
+// reads from there; the baseline is checked for the end state instead.
+const freshBaselinePath = path.join(
+  packageRoot,
+  "migrations_fresh",
+  "0000_baseline_strict.sql",
+);
 const legacyMigrationsDir = path.join(packageRoot, "migrations");
 const dualTrackPath = path.join(packageRoot, "migration-dual-track.json");
 const retirementDocPath = path.resolve(
@@ -206,61 +215,36 @@ function createAuditDb(options?: {
 }
 
 describe("money cents retirement rollout migration", () => {
-  it("pairs rollout, percentage, and cutover migrations across tracks", () => {
-    const rolloutFresh = path.basename(
-      findRolloutMigration(freshMigrationsDir),
-    );
-    const rolloutLegacy = path.basename(
-      findRolloutMigration(legacyMigrationsDir),
-    );
-    const percentageFresh = path.basename(
-      findPercentageMigration(freshMigrationsDir),
-    );
-    const percentageLegacy = path.basename(
-      findPercentageMigration(legacyMigrationsDir),
-    );
-    const cutoverFresh = path.basename(
-      findCutoverMigration(freshMigrationsDir),
-    );
-    const cutoverLegacy = path.basename(
-      findCutoverMigration(legacyMigrationsDir),
-    );
+  it("keeps the executable rollout on the deployment track after the squash", () => {
+    // Each step still has to exist as its own file: the guard only means
+    // anything if it can run before the cutover it gates.
+    expect(findRolloutMigration(legacyMigrationsDir)).toBeTruthy();
+    expect(findPercentageMigration(legacyMigrationsDir)).toBeTruthy();
+    expect(findCutoverMigration(legacyMigrationsDir)).toBeTruthy();
+
     const dualTrack = JSON.parse(fs.readFileSync(dualTrackPath, "utf8")) as {
       pairs?: Array<{ fresh: string; legacy: string; reason: string }>;
       reviewedThrough?: { fresh: string; legacy: string };
     };
-    const latestPair = dualTrack.pairs?.at(-1);
 
-    expect(latestPair).toBeDefined();
-    expect(dualTrack.reviewedThrough).toEqual({
-      fresh: latestPair?.fresh,
-      legacy: latestPair?.legacy,
-    });
-    expect(dualTrack.pairs).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          fresh: rolloutFresh,
-          legacy: rolloutLegacy,
-          reason: expect.stringContaining("Money cents retirement"),
-        }),
-        expect.objectContaining({
-          fresh: percentageFresh,
-          legacy: percentageLegacy,
-          reason: expect.stringContaining("Percentage discount"),
-        }),
-        expect.objectContaining({
-          fresh: cutoverFresh,
-          legacy: cutoverLegacy,
-          reason: expect.stringContaining("Money cents cutover"),
-        }),
-      ]),
-    );
+    // Pairing these three against a fresh-track file is what stopped being
+    // possible; the manifest has to say so rather than silently list nothing.
+    expect(dualTrack.reviewedThrough?.fresh).toBe("0000_baseline_strict.sql");
+    expect(dualTrack.pairs).toEqual([]);
   });
 
-  it.each([
-    ["fresh", () => findRolloutMigration(freshMigrationsDir)],
-    ["legacy", () => findRolloutMigration(legacyMigrationsDir)],
-  ])(
+  it("carries the post-retirement money shape in the fresh baseline", () => {
+    const baseline = readSql(freshBaselinePath);
+
+    expect(baseline).toMatch(/discount_percentage_bps/);
+    expect(baseline).toMatch(/default_discount_percentage_bps/);
+    expect(baseline).toMatch(/discount_value_cents/);
+    // `[^_]` keeps `discount_value_cents` from satisfying a check meant for the
+    // retired REAL column.
+    expect(baseline).not.toMatch(/`discount_value`[^_]/);
+  });
+
+  it.each([["legacy", () => findRolloutMigration(legacyMigrationsDir)]])(
     "%s guard fails when an audited money surface is missing",
     (_label, pathFor) => {
       const db = createAuditDb({ omit: "verified_members" });
@@ -272,24 +256,21 @@ describe("money cents retirement rollout migration", () => {
     },
   );
 
-  it.each([
-    ["fresh", () => findRolloutMigration(freshMigrationsDir)],
-    ["legacy", () => findRolloutMigration(legacyMigrationsDir)],
-  ])("%s guard fails when a money audit has violations", (_label, pathFor) => {
-    const db = createAuditDb({
-      violation: { tableName: "orders", count: 1 },
-    });
-    const sql = readSql(pathFor());
+  it.each([["legacy", () => findRolloutMigration(legacyMigrationsDir)]])(
+    "%s guard fails when a money audit has violations",
+    (_label, pathFor) => {
+      const db = createAuditDb({
+        violation: { tableName: "orders", count: 1 },
+      });
+      const sql = readSql(pathFor());
 
-    expect(() => applySqlMigration(db, sql)).toThrow(
-      /CHECK constraint failed/i,
-    );
-  });
+      expect(() => applySqlMigration(db, sql)).toThrow(
+        /CHECK constraint failed/i,
+      );
+    },
+  );
 
-  it.each([
-    ["fresh", () => findRolloutMigration(freshMigrationsDir)],
-    ["legacy", () => findRolloutMigration(legacyMigrationsDir)],
-  ])(
+  it.each([["legacy", () => findRolloutMigration(legacyMigrationsDir)]])(
     "%s guard records rollout readiness only after clean audit coverage",
     (_label, pathFor) => {
       const db = createAuditDb();
@@ -326,10 +307,7 @@ describe("money cents retirement rollout migration", () => {
   );
 
   it("keeps the rollout dedicated to money audit gating", () => {
-    const sql = [
-      readSql(findRolloutMigration(freshMigrationsDir)),
-      readSql(findRolloutMigration(legacyMigrationsDir)),
-    ].join("\n");
+    const sql = readSql(findRolloutMigration(legacyMigrationsDir));
 
     expect(sql).toContain("money_cents_retirement_rollout");
     expect(sql).toContain("_migration_assert_money_cents_retirement_rollout");
@@ -339,23 +317,17 @@ describe("money cents retirement rollout migration", () => {
   });
 
   it("documents the executable D1 rollout phases", () => {
-    const rolloutFresh = path.basename(
-      findRolloutMigration(freshMigrationsDir),
-    );
+    // Only the deployment track's filenames are executable now, so those are
+    // the ones the runbook has to name.
     const rolloutLegacy = path.basename(
       findRolloutMigration(legacyMigrationsDir),
-    );
-    const cutoverFresh = path.basename(
-      findCutoverMigration(freshMigrationsDir),
     );
     const cutoverLegacy = path.basename(
       findCutoverMigration(legacyMigrationsDir),
     );
     const doc = fs.readFileSync(retirementDocPath, "utf8");
 
-    expect(doc).toContain(rolloutFresh);
     expect(doc).toContain(rolloutLegacy);
-    expect(doc).toContain(cutoverFresh);
     expect(doc).toContain(cutoverLegacy);
     expect(doc).toContain("pnpm db:migrate:prod");
     expect(doc).toContain("PRAGMA defer_foreign_keys = ON");
@@ -363,25 +335,26 @@ describe("money cents retirement rollout migration", () => {
   });
 
   it("requires percentage basis-point columns before discount value cutover", () => {
-    const fresh = readSql(findPercentageMigration(freshMigrationsDir));
     const legacy = readSql(findPercentageMigration(legacyMigrationsDir));
     const doc = fs.readFileSync(retirementDocPath, "utf8");
 
-    for (const sql of [fresh, legacy]) {
-      expect(sql).toContain("discount_percentage_bps");
-      expect(sql).toContain("default_discount_percentage_bps");
-      expect(sql).toContain("percentage_bps_missing_or_mismatch");
-      expect(sql).toContain("discount_type` = 'percentage'");
-    }
+    expect(legacy).toContain("discount_percentage_bps");
+    expect(legacy).toContain("default_discount_percentage_bps");
+    expect(legacy).toContain("percentage_bps_missing_or_mismatch");
+    expect(legacy).toContain("discount_type` = 'percentage'");
+
+    // The fresh track backfills nothing -- the baseline creates the bps columns
+    // directly, which is the state the backfill was there to reach.
+    const baseline = readSql(freshBaselinePath);
+
+    expect(baseline).toContain("discount_percentage_bps");
+    expect(baseline).toContain("default_discount_percentage_bps");
     expect(doc).toContain("discount_percentage_bps");
     expect(doc).toContain("default_discount_percentage_bps");
     expect(doc).toContain("percentage_bps_missing_or_mismatch");
   });
 
-  it.each([
-    ["fresh", () => findCutoverMigration(freshMigrationsDir)],
-    ["legacy", () => findCutoverMigration(legacyMigrationsDir)],
-  ])(
+  it.each([["legacy", () => findCutoverMigration(legacyMigrationsDir)]])(
     "%s cutover drops only after guards and removes legacy sync surfaces",
     (_label, pathFor) => {
       const sql = readSql(pathFor());

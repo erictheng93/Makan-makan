@@ -281,6 +281,39 @@ function columnNames(table: Table): string[] {
   return getTableConfig(table).columns.map((column) => column.name);
 }
 
+// The fresh track was squashed into a single baseline, so there is no cutover
+// migration left to read there: the baseline simply never creates the legacy
+// columns. That is the stronger target -- a migration only shows the shape at
+// the point it was written, the baseline is the shape that ships.
+const FRESH_BASELINE =
+  "packages/database/migrations_fresh/0000_baseline_strict.sql";
+
+// Quoting and case are not stable across the baseline: SQLite rewrites a
+// table's stored DDL when ALTER TABLE touches it, so `orders` becomes
+// "orders". Match the structure, not the punctuation.
+function baselineTableBlock(sql: string, tableName: string): string {
+  const opening = new RegExp(
+    String.raw`CREATE TABLE ["\`]?${tableName}["\`]?\s*\(`,
+    "i",
+  ).exec(sql);
+
+  expect(opening, `${tableName} is created in the baseline`).not.toBeNull();
+
+  const end = sql.indexOf(") STRICT;", opening!.index);
+  expect(end, `${tableName} is a STRICT table`).toBeGreaterThan(-1);
+
+  return sql.slice(opening!.index, end);
+}
+
+// `subtotal` must not match `subtotal_cents`, so anchor on the declaration:
+// the column name, an optional closing quote, then its storage class.
+function declaresColumn(block: string, column: string): boolean {
+  return new RegExp(
+    String.raw`["\`]?\b${column}\b["\`]?\s+(text|integer|real|blob|numeric)`,
+    "i",
+  ).test(block);
+}
+
 describe("money cents cutover schema", () => {
   it.each(cutoverSurfaces)(
     "omits legacy money columns from $tableName while retaining cents/bps columns",
@@ -294,30 +327,50 @@ describe("money cents cutover schema", () => {
     },
   );
 
-  it.each([
-    "packages/database/migrations_fresh/0070_money_cents_cutover.sql",
-    "packages/database/migrations/0087_money_cents_cutover.sql",
-  ])("covers every schema cutover surface in %s", (migrationPath) => {
-    const sql = readFileSync(resolve(REPO_ROOT, migrationPath), "utf8");
-
-    for (const surface of mainMoneyCutoverSurfaces) {
-      expect(sql).toContain(
-        `('${surface.tableName}', (SELECT count(*) FROM \`${surface.tableName}\`))`,
-      );
-      expect(sql).toContain(
-        `WHEN '${surface.tableName}' THEN (SELECT count(*) FROM \`${surface.tableName}\`)`,
+  it.each(cutoverSurfaces)(
+    "ships $tableName in the fresh baseline with cents columns and no legacy money columns",
+    ({ tableName, legacyColumns, retainedColumns }) => {
+      const block = baselineTableBlock(
+        readFileSync(resolve(REPO_ROOT, FRESH_BASELINE), "utf8"),
+        tableName,
       );
 
-      for (const legacyColumn of surface.legacyColumns) {
-        expect(sql).toContain(
-          `ALTER TABLE \`${surface.tableName}\` DROP COLUMN \`${legacyColumn}\`;`,
+      for (const retained of retainedColumns) {
+        expect(declaresColumn(block, retained), `${retained} is kept`).toBe(
+          true,
         );
       }
-    }
-  });
+      for (const legacy of legacyColumns) {
+        expect(declaresColumn(block, legacy), `${legacy} is dropped`).toBe(
+          false,
+        );
+      }
+    },
+  );
+
+  it.each(["packages/database/migrations/0087_money_cents_cutover.sql"])(
+    "covers every schema cutover surface in %s",
+    (migrationPath) => {
+      const sql = readFileSync(resolve(REPO_ROOT, migrationPath), "utf8");
+
+      for (const surface of mainMoneyCutoverSurfaces) {
+        expect(sql).toContain(
+          `('${surface.tableName}', (SELECT count(*) FROM \`${surface.tableName}\`))`,
+        );
+        expect(sql).toContain(
+          `WHEN '${surface.tableName}' THEN (SELECT count(*) FROM \`${surface.tableName}\`)`,
+        );
+
+        for (const legacyColumn of surface.legacyColumns) {
+          expect(sql).toContain(
+            `ALTER TABLE \`${surface.tableName}\` DROP COLUMN \`${legacyColumn}\`;`,
+          );
+        }
+      }
+    },
+  );
 
   it.each([
-    "packages/database/migrations_fresh/0071_market_checkout_child_order_cents_cutover.sql",
     "packages/database/migrations/0088_market_checkout_child_order_cents_cutover.sql",
   ])("covers market checkout child order cutover in %s", (migrationPath) => {
     const sql = readFileSync(resolve(REPO_ROOT, migrationPath), "utf8");
