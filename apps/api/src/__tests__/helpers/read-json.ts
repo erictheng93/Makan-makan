@@ -30,3 +30,17 @@ export async function readData<T>(response: Response): Promise<T> {
 export type ServiceData<T> = T extends (...args: never[]) => Promise<infer R>
   ? NonNullable<R>
   : never;
+
+/**
+ * Returns the error half of the envelope, and turns "the server actually
+ * succeeded" into a readable failure instead of a read through undefined.
+ */
+export async function readError(
+  response: Response,
+): Promise<NonNullable<ApiResponse["error"]>> {
+  const envelope = await readEnvelope(response);
+  if (envelope.success || !envelope.error) {
+    throw new Error(`expected error envelope, got ${JSON.stringify(envelope)}`);
+  }
+  return envelope.error;
+}

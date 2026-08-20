@@ -14,6 +14,10 @@ export interface ApiResponse<T = unknown> {
   error?: {
     message: string;
     code: string;
+    /** Set by the global handler; see app-factory.ts `app.onError`. */
+    requestId?: string;
+    /** Field-level validation detail, when the thrown ApiError carried it. */
+    details?: unknown;
   };
 }
 

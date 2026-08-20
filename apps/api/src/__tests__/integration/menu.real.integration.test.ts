@@ -11,6 +11,34 @@ import {
   optionGroups,
 } from "@makanmasak/database";
 import { eq } from "drizzle-orm";
+import {
+  readData,
+  readEnvelope,
+  readError,
+  type ServiceData,
+} from "../helpers/read-json";
+import type { MenuService } from "../../features/menu/services/MenuService";
+
+// The menu routes wrap a service result in the standard envelope, so the
+// response shapes are derived from MenuService rather than restated here.
+type Menu = ServiceData<MenuService["getMenu"]>;
+type MenuItemRow = ServiceData<MenuService["getMenuItem"]>;
+type OptionGroupList = ServiceData<MenuService["listOptionGroups"]>;
+type OptionGroup = ServiceData<MenuService["createOptionGroup"]>;
+type OptionChoice = ServiceData<MenuService["createOptionChoice"]>;
+type MenuItemOptionGroups = ServiceData<
+  MenuService["listMenuItemOptionGroups"]
+>;
+type MenuSearchItems = ServiceData<MenuService["searchMenuItems"]>["items"];
+type FeaturedItems = ServiceData<MenuService["getFeaturedItems"]>;
+type PopularItems = ServiceData<MenuService["getPopularItems"]>;
+type MenuAnalytics = ServiceData<MenuService["getMenuAnalytics"]>;
+type PopularityMetrics = ServiceData<MenuService["getPopularityMetrics"]>;
+type CategoryRow = ServiceData<MenuService["createCategory"]>;
+type BulkCreatedItems = {
+  created: number;
+  items: ServiceData<MenuService["bulkCreateMenuItems"]>;
+};
 
 /**
  * Matches the double-submit contract in apps/api/src/middleware/csrf.ts:
@@ -92,10 +120,9 @@ describe("Menu API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    expect(json.success).toBe(true);
+    const json = await readData<Menu>(res);
 
-    const data = json.data;
+    const data = json;
 
     // Response shape: { categories: [...], menuItems: [...] }
     // No `restaurant` wrapper — transformMenuStructure only returns these two arrays.
@@ -106,8 +133,10 @@ describe("Menu API — real integration", () => {
     expect(data.menuItems.length).toBeGreaterThanOrEqual(1);
 
     // The seeded item should appear in the flat menuItems list.
-    const found = data.menuItems.find((i: any) => i.id === item.id);
-    expect(found).toBeTruthy();
+    const found = data.menuItems.find((i) => i.id === item.id);
+    if (!found) {
+      throw new Error(`seeded item ${item.id} missing from the menu`);
+    }
     expect(found.name).toBe("Nasi Lemak");
     expect(found.price).toBe(150);
   });
@@ -123,10 +152,9 @@ describe("Menu API — real integration", () => {
     // restaurant), so either 200+empty or 404 are valid here.
     // We assert on the actual behavior rather than an assumption.
     if (res.status === 200) {
-      const json: any = await res.json();
-      expect(json.success).toBe(true);
-      expect(Array.isArray(json.data.categories)).toBe(true);
-      expect(Array.isArray(json.data.menuItems)).toBe(true);
+      const json = await readData<Menu>(res);
+      expect(Array.isArray(json.categories)).toBe(true);
+      expect(Array.isArray(json.menuItems)).toBe(true);
     } else {
       expect(res.status).toBe(404);
     }
@@ -149,12 +177,11 @@ describe("Menu API — real integration", () => {
       new Request(`https://test/api/v1/menu/${restaurant.id}`),
     );
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    expect(json.success).toBe(true);
+    const json = await readData<Menu>(res);
 
-    const items: any[] = json.data.menuItems ?? [];
-    const availableFound = items.find((i: any) => i.id === available.id);
-    const unavailableFound = items.find((i: any) => i.id === unavailable.id);
+    const items = json.menuItems ?? [];
+    const availableFound = items.find((i) => i.id === available.id);
+    const unavailableFound = items.find((i) => i.id === unavailable.id);
 
     // Available item must be visible to public callers.
     expect(availableFound).toBeTruthy();
@@ -189,13 +216,12 @@ describe("Menu API — real integration", () => {
 
     expect([defaultRes.status, unavailableQueryRes.status]).toEqual([200, 200]);
     const responses = await Promise.all([
-      defaultRes.json() as Promise<any>,
-      unavailableQueryRes.json() as Promise<any>,
+      readData<MenuSearchItems>(defaultRes),
+      readData<MenuSearchItems>(unavailableQueryRes),
     ]);
 
     for (const json of responses) {
-      expect(json.success).toBe(true);
-      expect(json.data.map((item: any) => item.name)).toEqual([
+      expect(json.map((item) => item.name)).toEqual([
         "Searchable Available Item",
       ]);
     }
@@ -228,11 +254,11 @@ describe("Menu API — real integration", () => {
       }),
     );
     expect(groupRes.status).toBe(201);
-    const groupJson: any = await groupRes.json();
+    const groupJson = await readData<OptionGroup>(groupRes);
 
     const choiceRes = await testApp.app.fetch(
       new Request(
-        `https://test/api/v1/menu/option-groups/${groupJson.data.id}/choices`,
+        `https://test/api/v1/menu/option-groups/${groupJson.id}/choices`,
         {
           method: "POST",
           headers: csrfHeaders(ownerToken),
@@ -247,36 +273,30 @@ describe("Menu API — real integration", () => {
       ),
     );
     expect(choiceRes.status).toBe(201);
-    const choiceJson: any = await choiceRes.json();
-    expect(choiceJson.data.priceAdjustment).toBe(1.5);
+    const choiceJson = await readData<OptionChoice>(choiceRes);
+    expect(choiceJson.priceAdjustment).toBe(1.5);
 
     const storedChoice = await testApp.testDb.drizzle
       .select({ priceAdjustmentCents: optionChoices.priceAdjustmentCents })
       .from(optionChoices)
-      .where(eq(optionChoices.id, choiceJson.data.id));
+      .where(eq(optionChoices.id, choiceJson.id));
     expect(storedChoice).toEqual([{ priceAdjustmentCents: 150 }]);
 
     const clearGroupLimitRes = await testApp.app.fetch(
-      new Request(
-        `https://test/api/v1/menu/option-groups/${groupJson.data.id}`,
-        {
-          method: "PUT",
-          headers: csrfHeaders(ownerToken),
-          body: JSON.stringify({ type: "single", maxSelections: null }),
-        },
-      ),
+      new Request(`https://test/api/v1/menu/option-groups/${groupJson.id}`, {
+        method: "PUT",
+        headers: csrfHeaders(ownerToken),
+        body: JSON.stringify({ type: "single", maxSelections: null }),
+      }),
     );
     expect(clearGroupLimitRes.status).toBe(200);
 
     const clearChoiceLimitRes = await testApp.app.fetch(
-      new Request(
-        `https://test/api/v1/menu/option-choices/${choiceJson.data.id}`,
-        {
-          method: "PATCH",
-          headers: csrfHeaders(ownerToken),
-          body: JSON.stringify({ maxQuantity: null }),
-        },
-      ),
+      new Request(`https://test/api/v1/menu/option-choices/${choiceJson.id}`, {
+        method: "PATCH",
+        headers: csrfHeaders(ownerToken),
+        body: JSON.stringify({ maxQuantity: null }),
+      }),
     );
     expect(clearChoiceLimitRes.status).toBe(200);
 
@@ -285,21 +305,18 @@ describe("Menu API — real integration", () => {
         method: "PUT",
         headers: csrfHeaders(ownerToken),
         body: JSON.stringify({
-          groups: [{ groupId: groupJson.data.id }],
+          groups: [{ groupId: groupJson.id }],
         }),
       }),
     );
     expect(linkRes.status).toBe(200);
 
     const patchRes = await testApp.app.fetch(
-      new Request(
-        `https://test/api/v1/menu/option-choices/${choiceJson.data.id}`,
-        {
-          method: "PATCH",
-          headers: csrfHeaders(ownerToken),
-          body: JSON.stringify({ isAvailable: false }),
-        },
-      ),
+      new Request(`https://test/api/v1/menu/option-choices/${choiceJson.id}`, {
+        method: "PATCH",
+        headers: csrfHeaders(ownerToken),
+        body: JSON.stringify({ isAvailable: false }),
+      }),
     );
     expect(patchRes.status).toBe(200);
 
@@ -309,13 +326,13 @@ describe("Menu API — real integration", () => {
       }),
     );
     expect(listRes.status).toBe(200);
-    const listJson: any = await listRes.json();
-    expect(listJson.data[0]).toMatchObject({
+    const listJson = await readData<OptionGroupList>(listRes);
+    expect(listJson[0]).toMatchObject({
       type: "single",
       maxSelections: null,
       usageCount: 1,
     });
-    expect(listJson.data[0].choices[0]).toMatchObject({
+    expect(listJson[0].choices[0]).toMatchObject({
       priceAdjustment: 1.5,
       maxQuantity: null,
       isAvailable: false,
@@ -325,10 +342,13 @@ describe("Menu API — real integration", () => {
       new Request(`https://test/api/v1/menu/${restaurant.id}`),
     );
     expect(menuRes.status).toBe(200);
-    const menuJson: any = await menuRes.json();
-    const assembledItem = menuJson.data.menuItems.find(
-      (menuItem: any) => menuItem.id === item.id,
+    const menuJson = await readData<Menu>(menuRes);
+    const assembledItem = menuJson.menuItems.find(
+      (menuItem) => menuItem.id === item.id,
     );
+    if (!assembledItem?.options) {
+      throw new Error(`item ${item.id} came back without assembled options`);
+    }
     expect(assembledItem.options.customizations).toEqual([
       {
         id: "spice",
@@ -375,11 +395,11 @@ describe("Menu API — real integration", () => {
         }),
       );
       expect(groupRes.status).toBe(201);
-      const groupJson: any = await groupRes.json();
+      const groupJson = await readData<OptionGroup>(groupRes);
 
       const choiceRes = await testApp.app.fetch(
         new Request(
-          `https://test/api/v1/menu/option-groups/${groupJson.data.id}/choices`,
+          `https://test/api/v1/menu/option-groups/${groupJson.id}/choices`,
           {
             method: "POST",
             headers: csrfHeaders(ownerToken),
@@ -392,8 +412,8 @@ describe("Menu API — real integration", () => {
         ),
       );
       expect(choiceRes.status).toBe(201);
-      const choiceJson: any = await choiceRes.json();
-      return { group: groupJson.data, choice: choiceJson.data };
+      const choiceJson = await readData<OptionChoice>(choiceRes);
+      return { group: groupJson, choice: choiceJson };
     }
 
     const oldOption = await createGroup("old_spice", "Old Spice");
@@ -438,8 +458,8 @@ describe("Menu API — real integration", () => {
       }),
     );
     expect(itemGroupsRes.status).toBe(200);
-    const itemGroupsJson: any = await itemGroupsRes.json();
-    expect(itemGroupsJson.data).toEqual({
+    const itemGroupsJson = await readData<MenuItemOptionGroups>(itemGroupsRes);
+    expect(itemGroupsJson).toEqual({
       groups: [
         {
           groupId: newOption.group.id,
@@ -463,9 +483,9 @@ describe("Menu API — real integration", () => {
       }),
     );
     expect(groupListRes.status).toBe(200);
-    const groupListJson: any = await groupListRes.json();
+    const groupListJson = await readData<OptionGroupList>(groupListRes);
     const usageByGroupId = new Map(
-      groupListJson.data.map((group: any) => [group.id, group.usageCount]),
+      groupListJson.map((group) => [group.id, group.usageCount]),
     );
     expect(usageByGroupId.get(oldOption.group.id)).toBe(0);
     expect(usageByGroupId.get(newOption.group.id)).toBe(1);
@@ -474,10 +494,13 @@ describe("Menu API — real integration", () => {
       new Request(`https://test/api/v1/menu/${restaurant.id}`),
     );
     expect(menuRes.status).toBe(200);
-    const menuJson: any = await menuRes.json();
-    const assembledItem = menuJson.data.menuItems.find(
-      (menuItem: any) => menuItem.id === item.id,
+    const menuJson = await readData<Menu>(menuRes);
+    const assembledItem = menuJson.menuItems.find(
+      (menuItem) => menuItem.id === item.id,
     );
+    if (!assembledItem?.options) {
+      throw new Error(`item ${item.id} came back without assembled options`);
+    }
     expect(assembledItem.options.customizations).toEqual([
       {
         id: "new_spice",
@@ -627,21 +650,21 @@ describe("Menu API — real integration", () => {
       searchRes.status,
     ]).toEqual([200, 200, 200, 200]);
 
-    const menuJson: any = await menuRes.json();
-    const featuredJson: any = await featuredRes.json();
-    const popularJson: any = await popularRes.json();
-    const searchJson: any = await searchRes.json();
+    const menuJson = await readData<Menu>(menuRes);
+    const featuredJson = await readData<FeaturedItems>(featuredRes);
+    const popularJson = await readData<PopularItems>(popularRes);
+    const searchJson = await readData<MenuSearchItems>(searchRes);
 
-    expect(menuJson.data.menuItems.map((item: any) => item.name)).toEqual([
+    expect(menuJson.menuItems.map((item) => item.name)).toEqual([
       "Public Category Item",
     ]);
-    expect(featuredJson.data.map((item: any) => item.name)).toEqual([
+    expect(featuredJson.map((item) => item.name)).toEqual([
       "Public Category Item",
     ]);
-    expect(popularJson.data.map((item: any) => item.name)).toEqual([
+    expect(popularJson.map((item) => item.name)).toEqual([
       "Public Category Item",
     ]);
-    expect(searchJson.data.map((item: any) => item.name)).toEqual([
+    expect(searchJson.map((item) => item.name)).toEqual([
       "Public Category Item",
     ]);
   });
@@ -778,9 +801,8 @@ describe("Menu API — real integration", () => {
     );
 
     expect(createRes.status).toBe(201);
-    const created: any = await createRes.json();
-    expect(created.success).toBe(true);
-    expect(created.data).toMatchObject({
+    const created = await readData<MenuItemRow>(createRes);
+    expect(created).toMatchObject({
       isFeatured: true,
       isAvailable: false,
       isPopular: true,
@@ -797,8 +819,8 @@ describe("Menu API — real integration", () => {
       }),
     );
     expect(getRes.status).toBe(200);
-    const menu: any = await getRes.json();
-    const item = menu.data.menuItems.find((i: any) => i.id === created.data.id);
+    const menu = await readData<Menu>(getRes);
+    const item = menu.menuItems.find((i) => i.id === created.id);
     expect(item).toMatchObject({
       isFeatured: true,
       isAvailable: false,
@@ -857,10 +879,10 @@ describe("Menu API — real integration", () => {
     );
 
     expect(res.status).toBe(201);
-    const json: any = await res.json();
+    const json = await readData<MenuItemRow>(res);
 
     // The response must not claim defaults the caller did not ask for.
-    expect(json.data).toMatchObject({
+    expect(json).toMatchObject({
       isAvailable: false,
       isFeatured: true,
       sortOrder: 7,
@@ -870,7 +892,7 @@ describe("Menu API — real integration", () => {
     const stored = await testApp.testDb.drizzle
       .select()
       .from(menuItems)
-      .where(eq(menuItems.id, json.data.id));
+      .where(eq(menuItems.id, json.id));
 
     expect(stored).toHaveLength(1);
     expect(stored[0]).toMatchObject({
@@ -914,11 +936,11 @@ describe("Menu API — real integration", () => {
     );
 
     expect(res.status).toBe(201);
-    const json: any = await res.json();
+    const json = await readData<MenuItemRow>(res);
 
     // Adding the fields to the schema must not move the defaults out of the DB
     // layer: an omitted field still lands on available / not featured / 0.
-    expect(json.data).toMatchObject({
+    expect(json).toMatchObject({
       isAvailable: true,
       isFeatured: false,
       sortOrder: 0,
@@ -971,13 +993,13 @@ describe("Menu API — real integration", () => {
     );
 
     expect(createRes.status).toBe(201);
-    const created: any = await createRes.json();
-    expect(created.data).toMatchObject({ nameEn: "Hainanese Chicken Rice" });
+    const created = await readData<MenuItemRow>(createRes);
+    expect(created).toMatchObject({ nameEn: "Hainanese Chicken Rice" });
 
     const storedAfterCreate = await testApp.testDb.drizzle
       .select({ nameEn: menuItems.nameEn })
       .from(menuItems)
-      .where(eq(menuItems.id, created.data.id));
+      .where(eq(menuItems.id, created.id));
     expect(storedAfterCreate).toEqual([{ nameEn: "Hainanese Chicken Rice" }]);
 
     // The admin GET path builds its items through mapToMenuItem, which had to
@@ -989,21 +1011,21 @@ describe("Menu API — real integration", () => {
       }),
     );
     expect(getRes.status).toBe(200);
-    const menu: any = await getRes.json();
-    expect(
-      menu.data.menuItems.find((i: any) => i.id === created.data.id),
-    ).toMatchObject({ nameEn: "Hainanese Chicken Rice" });
+    const menu = await readData<Menu>(getRes);
+    expect(menu.menuItems.find((i) => i.id === created.id)).toMatchObject({
+      nameEn: "Hainanese Chicken Rice",
+    });
 
     // updatedAt rides along because renaming is a form save, and those now
     // carry the optimistic-lock precondition (#85). It comes straight from the
     // create response, which is exactly what the dashboard has in hand.
     const updateRes = await testApp.app.fetch(
-      new Request(`https://test/api/v1/menu/items/${created.data.id}`, {
+      new Request(`https://test/api/v1/menu/items/${created.id}`, {
         method: "PUT",
         headers: csrfHeaders(ownerToken),
         body: JSON.stringify({
           nameEn: "Chicken Rice",
-          updatedAt: created.data.updatedAt,
+          updatedAt: created.updatedAt,
         }),
       }),
     );
@@ -1016,7 +1038,7 @@ describe("Menu API — real integration", () => {
     const storedAfterUpdate = await testApp.testDb.drizzle
       .select({ nameEn: menuItems.nameEn })
       .from(menuItems)
-      .where(eq(menuItems.id, created.data.id));
+      .where(eq(menuItems.id, created.id));
     expect(storedAfterUpdate).toEqual([{ nameEn: "Chicken Rice" }]);
   });
 
@@ -1037,14 +1059,14 @@ describe("Menu API — real integration", () => {
     );
 
     expect(createRes.status).toBe(201);
-    const created: any = await createRes.json();
-    expect(created.data).toMatchObject({ nameEn: "Main Dishes" });
+    const created = await readData<CategoryRow>(createRes);
+    expect(created).toMatchObject({ nameEn: "Main Dishes" });
 
     // updateCategory's signature accepted nameEn while the column did not
     // exist, so this request used to reach Drizzle's update builder with a key
     // it could not resolve.
     const updateRes = await testApp.app.fetch(
-      new Request(`https://test/api/v1/menu/categories/${created.data.id}`, {
+      new Request(`https://test/api/v1/menu/categories/${created.id}`, {
         method: "PUT",
         headers: csrfHeaders(ownerToken),
         body: JSON.stringify({ nameEn: "Mains" }),
@@ -1056,7 +1078,7 @@ describe("Menu API — real integration", () => {
     const stored = await testApp.testDb.drizzle
       .select({ nameEn: categories.nameEn })
       .from(categories)
-      .where(eq(categories.id, created.data.id));
+      .where(eq(categories.id, created.id));
     expect(stored).toEqual([{ nameEn: "Mains" }]);
 
     // The menu read path projects category fields explicitly, so a missing
@@ -1067,10 +1089,10 @@ describe("Menu API — real integration", () => {
       }),
     );
     expect(getRes.status).toBe(200);
-    const menu: any = await getRes.json();
-    expect(
-      menu.data.categories.find((c: any) => c.id === created.data.id),
-    ).toMatchObject({ nameEn: "Mains" });
+    const menu = await readData<Menu>(getRes);
+    expect(menu.categories.find((c) => c.id === created.id)).toMatchObject({
+      nameEn: "Mains",
+    });
   });
 
   /**
@@ -1184,42 +1206,34 @@ describe("Menu API — real integration", () => {
       }),
     );
     expect(adminRes.status).toBe(200);
-    const adminMenu: any = await adminRes.json();
+    const adminMenu = await readData<Menu>(adminRes);
 
     // Hidden and inactive categories are present; only the soft-deleted one is
     // withheld, because "deleted" is not a state the editor resurrects.
+    expect(adminMenu.categories.map((cat) => cat.name).sort()).toEqual(
+      ["季節限定", "已停用分類", "常駐分類"].sort(),
+    );
     expect(
-      adminMenu.data.categories.map((cat: any) => cat.name).sort(),
-    ).toEqual(["季節限定", "已停用分類", "常駐分類"].sort());
-    expect(
-      adminMenu.data.categories.find(
-        (cat: any) => cat.id === hiddenCategory.id,
-      ),
+      adminMenu.categories.find((cat) => cat.id === hiddenCategory.id),
     ).toMatchObject({ isVisible: false, isActive: true, itemCount: 1 });
     expect(
-      adminMenu.data.categories.find(
-        (cat: any) => cat.id === inactiveCategory.id,
-      ),
+      adminMenu.categories.find((cat) => cat.id === inactiveCategory.id),
     ).toMatchObject({ isActive: false });
 
     // The items inside the hidden category came back too — they used to vanish
     // with their category.
-    expect(
-      adminMenu.data.menuItems.map((item: any) => item.name).sort(),
-    ).toEqual(["停用分類品項", "常駐品項", "隱藏分類品項"].sort());
+    expect(adminMenu.menuItems.map((item) => item.name).sort()).toEqual(
+      ["停用分類品項", "常駐品項", "隱藏分類品項"].sort(),
+    );
 
     const publicRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/menu/${restaurant.id}`),
     );
     expect(publicRes.status).toBe(200);
-    const publicMenu: any = await publicRes.json();
+    const publicMenu = await readData<Menu>(publicRes);
 
-    expect(publicMenu.data.categories.map((cat: any) => cat.name)).toEqual([
-      "常駐分類",
-    ]);
-    expect(publicMenu.data.menuItems.map((item: any) => item.name)).toEqual([
-      "常駐品項",
-    ]);
+    expect(publicMenu.categories.map((cat) => cat.name)).toEqual(["常駐分類"]);
+    expect(publicMenu.menuItems.map((item) => item.name)).toEqual(["常駐品項"]);
   });
 
   /**
@@ -1271,13 +1285,13 @@ describe("Menu API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    expect(json.data).toMatchObject({
+    const json = await readData<MenuAnalytics>(res);
+    expect(json).toMatchObject({
       totalItems: 2,
       availableItems: 1,
       priceRange: { min: 100, max: 500 },
     });
-    expect(json.data.categoryDistribution).toEqual([
+    expect(json.categoryDistribution).toEqual([
       expect.objectContaining({ categoryId: category.id, itemCount: 2 }),
     ]);
   });
@@ -1362,7 +1376,7 @@ describe("Menu API — real integration", () => {
     );
 
     expect(res.status).toBe(404);
-    expect((await res.json()) as any).toMatchObject({
+    expect(await readEnvelope(res)).toMatchObject({
       success: false,
       error: { code: "MENU_NOT_FOUND" },
     });
@@ -1397,20 +1411,21 @@ describe("Menu API — real integration", () => {
       new Request(`https://test/api/v1/menu/items/${viewed.id}`),
     );
     expect(detailRes.status).toBe(200);
-    const detail: any = await detailRes.json();
+    const detail = await readData<MenuItemRow>(detailRes);
     // The response is built before the waitUntil increment, so it carries the
     // stored value — which used to be reported as 0 regardless.
-    expect(detail.data).toMatchObject({ viewCount: 37, reviewCount: 4 });
+    expect(detail).toMatchObject({ viewCount: 37, reviewCount: 4 });
 
     // And the values arrive through the whole-menu read too, which uses a
     // different query and mapper.
     const menuRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/menu/${restaurant.id}`),
     );
-    const menu: any = await menuRes.json();
-    expect(
-      menu.data.menuItems.find((i: any) => i.id === untouched.id),
-    ).toMatchObject({ viewCount: 21, reviewCount: 3 });
+    const menu = await readData<Menu>(menuRes);
+    expect(menu.menuItems.find((i) => i.id === untouched.id)).toMatchObject({
+      viewCount: 21,
+      reviewCount: 3,
+    });
   });
 
   /**
@@ -1466,22 +1481,22 @@ describe("Menu API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
+    const json = await readData<PopularityMetrics>(res);
 
     // Globally correct top 10 by view count: 11 down to 2.
-    expect(json.data.mostViewed.map((item: any) => item.viewCount)).toEqual([
+    expect(json.mostViewed.map((item) => item.viewCount)).toEqual([
       11, 10, 9, 8, 7, 6, 5, 4, 3, 2,
     ]);
 
     // rating > 0 is filtered in SQL, so the list is a full 10 rows rather than
     // being trimmed after the slice. Item 00 (rating 0) is the only exclusion.
-    expect(json.data.highestRated).toHaveLength(10);
-    expect(json.data.highestRated[0].rating).toBe(5.5);
-    expect(json.data.highestRated.every((item: any) => item.rating > 0)).toBe(
+    expect(json.highestRated).toHaveLength(10);
+    expect(json.highestRated[0].rating).toBe(5.5);
+    expect(json.highestRated.every((item) => (item.rating ?? 0) > 0)).toBe(
       true,
     );
 
-    expect(json.data.recentlyAdded).toHaveLength(10);
+    expect(json.recentlyAdded).toHaveLength(10);
   });
 
   /**
@@ -1544,9 +1559,9 @@ describe("Menu API — real integration", () => {
         ),
       );
       expect(res.status).toBe(200);
-      const json: any = await res.json();
+      const json = await readData<Menu>(res);
       return Object.fromEntries(
-        json.data.categories.map((cat: any) => [cat.id, cat.itemCount]),
+        json.categories.map((cat) => [cat.id, cat.itemCount]),
       ) as Record<number, number>;
     };
 
@@ -1653,9 +1668,9 @@ describe("Menu API — real integration", () => {
       );
 
       expect(res.status).toBe(201);
-      const json: any = await res.json();
-      expect(json.data.created).toBe(5);
-      expect(json.data.items).toHaveLength(5);
+      const json = await readData<BulkCreatedItems>(res);
+      expect(json.created).toBe(5);
+      expect(json.items).toHaveLength(5);
       expect(await countItems(String(restaurant.id))).toBe(5);
     });
 
@@ -1673,10 +1688,10 @@ describe("Menu API — real integration", () => {
       );
 
       expect(res.status).toBe(400);
-      const json: any = await res.json();
-      expect(json.error.code).toBe("VALIDATION_ERROR");
+      const json = await readError(res);
+      expect(json.code).toBe("VALIDATION_ERROR");
       // The client has to be able to point at the row that stopped the import.
-      expect(json.error.details).toEqual(
+      expect(json.details).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ field: "items.6.price" }),
         ]),
@@ -1709,9 +1724,9 @@ describe("Menu API — real integration", () => {
       );
 
       expect(res.status).toBe(403);
-      const json: any = await res.json();
-      expect(json.error.code).toBe("CATEGORY_RESTAURANT_MISMATCH");
-      expect(json.error.details).toEqual([
+      const json = await readError(res);
+      expect(json.code).toBe("CATEGORY_RESTAURANT_MISMATCH");
+      expect(json.details).toEqual([
         expect.objectContaining({ index: 1, field: "categoryId" }),
       ]);
       // All-or-nothing: the legitimate first row must not have landed either.
@@ -1797,8 +1812,8 @@ describe("Menu API — real integration", () => {
         }),
       );
       expect(createRes.status).toBe(201);
-      const created: any = await createRes.json();
-      return { restaurant, category, ownerToken, item: created.data };
+      const created = await readData<MenuItemRow>(createRes);
+      return { restaurant, category, ownerToken, item: created };
     }
 
     function putItem(id: number, token: string, body: unknown) {
@@ -1830,10 +1845,10 @@ describe("Menu API — real integration", () => {
         }),
       );
       expect(firstRes.status).toBe(200);
-      const updated: any = await firstRes.json();
-      expect(updated.data.price).toBe(200);
+      const updated = await readData<MenuItemRow>(firstRes);
+      expect(updated.price).toBe(200);
       // The write moved the version on, which is what makes the next attempt stale.
-      expect(updated.data.updatedAt).not.toBe(item.updatedAt);
+      expect(updated.updatedAt).not.toBe(item.updatedAt);
 
       const staleRes = await testApp.app.fetch(
         putItem(item.id, ownerToken, {
@@ -1844,8 +1859,8 @@ describe("Menu API — real integration", () => {
       );
 
       expect(staleRes.status).toBe(409);
-      const conflictJson: any = await staleRes.json();
-      expect(conflictJson.error.code).toBe("MENU_ITEM_MODIFIED");
+      const conflictJson = await readError(staleRes);
+      expect(conflictJson.code).toBe("MENU_ITEM_MODIFIED");
       // Refused, not partially applied.
       expect((await readItem(item.id)).priceCents).toBe(20000);
     });
@@ -1892,8 +1907,8 @@ describe("Menu API — real integration", () => {
       );
 
       expect(res.status).toBe(400);
-      const json: any = await res.json();
-      expect(json.error.code).toBe("VALIDATION_ERROR");
+      const json = await readError(res);
+      expect(json.code).toBe("VALIDATION_ERROR");
       expect((await readItem(item.id)).priceCents).toBe(18000);
     });
 
@@ -1956,7 +1971,7 @@ describe("Menu API — real integration", () => {
           }),
         );
         expect(res.status).toBe(201);
-        itemIds.push(((await res.json()) as any).data.id);
+        itemIds.push((await readData<MenuItemRow>(res)).id);
       }
       return { restaurant, category, ownerToken, itemIds };
     }
@@ -2001,14 +2016,14 @@ describe("Menu API — real integration", () => {
         ),
       );
       expect(adminRes.status).toBe(200);
-      const adminMenu: any = await adminRes.json();
-      const adminCategory = adminMenu.data.categories.find(
-        (c: any) => c.id === category.id,
+      const adminMenu = await readData<Menu>(adminRes);
+      const adminCategory = adminMenu.categories.find(
+        (c) => c.id === category.id,
       );
       expect(adminCategory).toMatchObject({ itemCount: 0 });
-      expect(
-        adminMenu.data.menuItems.filter((i: any) => itemIds.includes(i.id)),
-      ).toEqual([]);
+      expect(adminMenu.menuItems.filter((i) => itemIds.includes(i.id))).toEqual(
+        [],
+      );
 
       // The headline: the emptied category can now actually be deleted.
       const deleteCategoryRes = await testApp.app.fetch(
@@ -2030,8 +2045,8 @@ describe("Menu API — real integration", () => {
         deleteRequest(`categories/${category.id}`, ownerToken),
       );
       expect(deleteCategoryRes.status).toBe(409);
-      const json: any = await deleteCategoryRes.json();
-      expect(json.error.code).toBe("CATEGORY_HAS_MENU_ITEMS");
+      const json = await readError(deleteCategoryRes);
+      expect(json.code).toBe("CATEGORY_HAS_MENU_ITEMS");
     });
 
     it("keeps a deleted item out of updates and repeated deletes", async () => {
@@ -2119,8 +2134,8 @@ describe("Menu API — real integration", () => {
         ),
       );
       expect(res.status).toBe(200);
-      const body: any = await res.json();
-      return body.data.categories as Array<{ id: number; name: string }>;
+      const body = await readData<Menu>(res);
+      return body.categories as Array<{ id: number; name: string }>;
     }
 
     it("removes a deleted category from the owner's own dashboard", async () => {
@@ -2209,9 +2224,7 @@ describe("Menu API — real integration", () => {
         deleteCategoryRequest(category.id, ownerToken),
       );
       expect(res.status).toBe(409);
-      expect(((await res.json()) as any).error.code).toBe(
-        "CATEGORY_HAS_MENU_ITEMS",
-      );
+      expect((await readError(res)).code).toBe("CATEGORY_HAS_MENU_ITEMS");
     });
 
     it("blocks the delete for a paused item too, not just an on-sale one", async () => {
