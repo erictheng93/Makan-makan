@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cashShifts, orders, refunds } from "@makanmasak/database";
 import {
+  createMutationFixtureDb,
   createSelectFixtureDb,
+  type MutationFixtures,
   type SelectFixtures,
 } from "@makanmasak/database/testing";
 import { RefundService } from "./RefundService";
@@ -27,16 +29,28 @@ vi.mock("drizzle-orm/d1", () => ({
 }));
 
 const fixtureTables = { cashShifts, orders, refunds };
-type SelectFixtureName = keyof typeof fixtureTables;
+type FixtureName = keyof typeof fixtureTables;
 
-function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
+function mockSelectResults(fixtures: SelectFixtures<FixtureName>) {
   Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
 }
 
-function mockMutations(options: { failSecondInsert?: boolean } = {}) {
+/**
+ * Inserts here are not a fixture queue: `processRefund` builds statements and
+ * hands them to `db.batch()`, so a row counts as written only once the batch
+ * runs. That recorder stays local. Updates are the positional part — every one
+ * of them targets `refunds` — so they are declared per table and operation,
+ * and an Error in the queue makes that write reject.
+ */
+function mockMutations(
+  options: {
+    failSecondInsert?: boolean;
+    fixtures?: MutationFixtures<FixtureName>;
+  } = {},
+) {
   const inserted: unknown[] = [];
-  const updated: unknown[] = [];
   const insertStatements: Array<{ payload: unknown }> = [];
+  const mutationDb = createMutationFixtureDb(fixtureTables, options.fixtures);
 
   mocks.db.insert.mockImplementation(() => {
     const builder = {
@@ -62,20 +76,7 @@ function mockMutations(options: { failSecondInsert?: boolean } = {}) {
     };
     return builder;
   });
-  mocks.db.update.mockImplementation(() => {
-    const builder = {
-      set: vi.fn((payload: unknown) => {
-        updated.push(payload);
-        return builder;
-      }),
-      where: vi.fn(() => builder),
-      then: (
-        resolve: (value: unknown) => void,
-        reject?: (reason: unknown) => void,
-      ) => Promise.resolve(undefined).then(resolve, reject),
-    };
-    return builder;
-  });
+  mocks.db.update.mockImplementation(mutationDb.update);
 
   mocks.db.batch = vi.fn(async (statements: Array<{ payload: unknown }>) => {
     if (options.failSecondInsert && statements.length > 1) {
@@ -86,7 +87,7 @@ function mockMutations(options: { failSecondInsert?: boolean } = {}) {
     return statements.map(() => undefined);
   });
 
-  return { inserted, updated };
+  return { inserted, updated: mutationDb.updated };
 }
 
 function createService(
@@ -153,7 +154,10 @@ describe("RefundService", () => {
     const randomSpy = vi.spyOn(Math, "random").mockImplementation(() => {
       throw new Error("Math.random should not be used for refund numbers");
     });
-    const mutations = mockMutations();
+    const mutations = mockMutations({
+      // completeRefund settles the terminal state before processRefund returns.
+      fixtures: { refunds: { update: [{ changes: 1 }] } },
+    });
     mockSelectResults({
       orders: [[{ id: 101, totalAmount: 100, totalAmountCents: 10000 }]],
       refunds: [[{ totalRefunded: 10 }], [refundRow()]],
@@ -203,7 +207,10 @@ describe("RefundService", () => {
 
   it("records post-close refunds without mutating the live cash ledger", async () => {
     vi.useFakeTimers();
-    const mutations = mockMutations();
+    const mutations = mockMutations({
+      // completeRefund settles the terminal state before processRefund returns.
+      fixtures: { refunds: { update: [{ changes: 1 }] } },
+    });
     mockSelectResults({
       orders: [[{ id: 101, totalAmount: 100, totalAmountCents: 10000 }]],
       refunds: [
@@ -274,28 +281,16 @@ describe("RefundService", () => {
 
   it("alerts when synchronous refund completion cannot mark the refund failed", async () => {
     const alertSink = vi.fn();
-    const mutations = mockMutations();
-    const completionError = new Error("completion write failed");
-    const markFailedError = new Error("failed-state write failed");
-    const updateErrors = [completionError, markFailedError];
-
-    mocks.db.update.mockImplementation(() => {
-      const builder = {
-        set: vi.fn((payload: unknown) => {
-          mutations.updated.push(payload);
-          return builder;
-        }),
-        where: vi.fn(() => builder),
-        then: (
-          resolve: (value: unknown) => void,
-          reject?: (reason: unknown) => void,
-        ) =>
-          Promise.reject(updateErrors.shift() ?? completionError).then(
-            resolve,
-            reject,
-          ),
-      };
-      return builder;
+    const mutations = mockMutations({
+      // Both the completion write and the fallback "mark failed" write fail.
+      fixtures: {
+        refunds: {
+          update: [
+            new Error("completion write failed"),
+            new Error("failed-state write failed"),
+          ],
+        },
+      },
     });
     mockSelectResults({
       orders: [[{ id: 101, totalAmount: 100, totalAmountCents: 10000 }]],
@@ -342,7 +337,10 @@ describe("RefundService", () => {
   });
 
   it("marks the refund completed synchronously before returning", async () => {
-    const mutations = mockMutations();
+    const mutations = mockMutations({
+      // completeRefund settles the terminal state before processRefund returns.
+      fixtures: { refunds: { update: [{ changes: 1 }] } },
+    });
     mockSelectResults({
       orders: [[{ id: 101, totalAmount: 100, totalAmountCents: 10000 }]],
       refunds: [[{ totalRefunded: 0 }], [refundRow()]],
@@ -363,7 +361,10 @@ describe("RefundService", () => {
   });
 
   it("allows cent-exact cumulative refunds that reach the order total", async () => {
-    const mutations = mockMutations();
+    const mutations = mockMutations({
+      // completeRefund settles the terminal state before processRefund returns.
+      fixtures: { refunds: { update: [{ changes: 1 }] } },
+    });
     mockSelectResults({
       orders: [[{ id: 101, totalAmount: 19.99, totalAmountCents: 1999 }]],
       refunds: [
@@ -478,7 +479,12 @@ describe("RefundService", () => {
   });
 
   it("returns refund details, missing refunds, and status transition updates", async () => {
-    const mutations = mockMutations();
+    const mutations = mockMutations({
+      // cancelRefund, approveRefund, rejectRefund.
+      fixtures: {
+        refunds: { update: [{ changes: 1 }, { changes: 1 }, { changes: 1 }] },
+      },
+    });
     mockSelectResults({ refunds: [[refundRow()], []] });
 
     await expect(
