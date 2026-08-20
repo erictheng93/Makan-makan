@@ -19,6 +19,32 @@ import {
 } from "./helpers/real-test-app";
 import { buildSeedHelpers, type SeedHelpers } from "./helpers/seed-helper";
 import { CreditService } from "../../features/credits/services/CreditService";
+import { readData } from "../helpers/read-json";
+import type {
+  MarketCheckoutSummaryItem,
+  PublicMarketCheckoutSession,
+} from "../../features/market-checkouts/routes";
+
+type CheckoutEnvelope = { checkout: PublicMarketCheckoutSession };
+type CreatedCheckout = CheckoutEnvelope & {
+  childOrders: Array<{ orderId: string; restaurantId: string }>;
+};
+type PaidCheckout = CheckoutEnvelope & {
+  payment: PublicMarketCheckoutSession["payment"];
+  refunds?: Array<{ orderId: string }>;
+};
+type AppliedVoucher = CheckoutEnvelope & {
+  vouchers: Array<{ code: string; discountCents: number }>;
+  subtotalCents: number;
+  discountCents: number;
+  payableCents: number;
+};
+type AdminCheckoutList = {
+  checkouts: MarketCheckoutSummaryItem[];
+  total: number;
+  page: number;
+  limit: number;
+};
 
 const CSRF_HEADERS = {
   host: "test",
@@ -131,7 +157,10 @@ describe("Market checkouts API - real integration", () => {
   });
 
   it("persists checkout sessions, survives KV expiry, and updates payment status", async () => {
-    const pushDeliveries: Array<{ endpoint: string; payload: any }> = [];
+    const pushDeliveries: Array<{
+      endpoint: string;
+      payload: Record<string, unknown>;
+    }> = [];
     testApp.env.WEB_PUSH_DELIVERER = async (delivery) => {
       pushDeliveries.push({
         endpoint: delivery.subscription.endpoint,
@@ -199,10 +228,10 @@ describe("Market checkouts API - real integration", () => {
     );
 
     expect(createRes.status).toBe(201);
-    const createJson: any = await createRes.json();
-    const checkoutId = createJson.data.checkout.id as string;
-    expect(createJson.data.checkout.childOrders).toHaveLength(2);
-    expect(createJson.data.checkout.market.platformFeeRateBps).toBe(350);
+    const createJson = await readData<CreatedCheckout>(createRes);
+    const checkoutId = createJson.checkout.id as string;
+    expect(createJson.checkout.childOrders).toHaveLength(2);
+    expect(createJson.checkout.market.platformFeeRateBps).toBe(350);
     expect(pushDeliveries).toHaveLength(2);
     expect(pushDeliveries).toEqual(
       expect.arrayContaining([
@@ -272,13 +301,13 @@ describe("Market checkouts API - real integration", () => {
       new Request(`https://test/api/v1/market-checkouts/${checkoutId}`),
     );
     expect(publicRes.status).toBe(200);
-    const publicJson: any = await publicRes.json();
-    expect(publicJson.data.checkout).toMatchObject({
+    const publicJson = await readData<CheckoutEnvelope>(publicRes);
+    expect(publicJson.checkout).toMatchObject({
       id: checkoutId,
       market: { slug: market.slug, platformFeeRateBps: 350 },
       subtotal: 20000,
     });
-    expect(publicJson.data.checkout.childOrders).toHaveLength(2);
+    expect(publicJson.checkout.childOrders).toHaveLength(2);
 
     const payRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/market-checkouts/${checkoutId}/pay`, {
@@ -359,8 +388,8 @@ describe("Market checkouts API - real integration", () => {
       ),
     );
     expect(adminRes.status).toBe(200);
-    const adminJson: any = await adminRes.json();
-    expect(adminJson.data.checkouts).toEqual(
+    const adminJson = await readData<AdminCheckoutList>(adminRes);
+    expect(adminJson.checkouts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: checkoutId,
@@ -405,8 +434,8 @@ describe("Market checkouts API - real integration", () => {
       }),
     );
     expect(adminDetailRes.status).toBe(200);
-    const adminDetailJson: any = await adminDetailRes.json();
-    expect(adminDetailJson.data.checkout.payment).toMatchObject({
+    const adminDetailJson = await readData<CheckoutEnvelope>(adminDetailRes);
+    expect(adminDetailJson.checkout.payment).toMatchObject({
       status: "refunded",
       refundedAmountCents: 20000,
       parentPayment: {
@@ -472,8 +501,8 @@ describe("Market checkouts API - real integration", () => {
       }),
     );
     expect(createRes.status).toBe(201);
-    const createJson: any = await createRes.json();
-    const checkoutId = createJson.data.checkout.id as string;
+    const createJson = await readData<CreatedCheckout>(createRes);
+    const checkoutId = createJson.checkout.id as string;
 
     const applyVoucherRes = await testApp.app.fetch(
       new Request(
@@ -592,8 +621,8 @@ describe("Market checkouts API - real integration", () => {
       }),
     );
     expect(createRes.status).toBe(201);
-    const createJson: any = await createRes.json();
-    const checkoutId = createJson.data.checkout.id as string;
+    const createJson = await readData<CreatedCheckout>(createRes);
+    const checkoutId = createJson.checkout.id as string;
 
     const applyVoucherRes = await testApp.app.fetch(
       new Request(
@@ -606,8 +635,8 @@ describe("Market checkouts API - real integration", () => {
       ),
     );
     expect(applyVoucherRes.status).toBe(200);
-    const applyVoucherJson: any = await applyVoucherRes.json();
-    expect(applyVoucherJson.data.payableCents).toBe(18000);
+    const applyVoucherJson = await readData<AppliedVoucher>(applyVoucherRes);
+    expect(applyVoucherJson.payableCents).toBe(18000);
 
     await testApp.env.CACHE_KV.delete(`market_checkout:${checkoutId}`);
 
@@ -615,8 +644,8 @@ describe("Market checkouts API - real integration", () => {
       new Request(`https://test/api/v1/market-checkouts/${checkoutId}`),
     );
     expect(publicRes.status).toBe(200);
-    const publicJson: any = await publicRes.json();
-    expect(publicJson.data.checkout.appliedVoucher).toMatchObject({
+    const publicJson = await readData<CheckoutEnvelope>(publicRes);
+    expect(publicJson.checkout.appliedVoucher).toMatchObject({
       couponId,
       code: "PERSIST10",
       discountCents: 2000,
@@ -637,8 +666,8 @@ describe("Market checkouts API - real integration", () => {
       }),
     );
     expect(payRes.status).toBe(200);
-    const payJson: any = await payRes.json();
-    expect(payJson.data.payment).toMatchObject({
+    const payJson = await readData<PaidCheckout>(payRes);
+    expect(payJson.payment).toMatchObject({
       status: "paid",
       totalAmountCents: 18000,
       paidAmountCents: 18000,
@@ -715,8 +744,8 @@ describe("Market checkouts API - real integration", () => {
       }),
     );
     expect(createRes.status).toBe(201);
-    const createJson: any = await createRes.json();
-    const checkoutId = createJson.data.checkout.id as string;
+    const createJson = await readData<CreatedCheckout>(createRes);
+    const checkoutId = createJson.checkout.id as string;
 
     const platformApplyRes = await testApp.app.fetch(
       new Request(
@@ -729,8 +758,8 @@ describe("Market checkouts API - real integration", () => {
       ),
     );
     expect(platformApplyRes.status).toBe(200);
-    const platformApplyJson: any = await platformApplyRes.json();
-    expect(platformApplyJson.data.payableCents).toBe(18000);
+    const platformApplyJson = await readData<AppliedVoucher>(platformApplyRes);
+    expect(platformApplyJson.payableCents).toBe(18000);
 
     const vendorApplyRes = await testApp.app.fetch(
       new Request(
@@ -743,13 +772,13 @@ describe("Market checkouts API - real integration", () => {
       ),
     );
     expect(vendorApplyRes.status).toBe(200);
-    const vendorApplyJson: any = await vendorApplyRes.json();
-    expect(vendorApplyJson.data).toMatchObject({
+    const vendorApplyJson = await readData<AppliedVoucher>(vendorApplyRes);
+    expect(vendorApplyJson).toMatchObject({
       discountCents: 2500,
       payableCents: 17500,
     });
-    expect(vendorApplyJson.data.vouchers).toHaveLength(2);
-    expect(vendorApplyJson.data.checkout.appliedVoucher).toMatchObject({
+    expect(vendorApplyJson.vouchers).toHaveLength(2);
+    expect(vendorApplyJson.checkout.appliedVoucher).toMatchObject({
       discountCents: 2500,
       vouchers: [
         { couponId: platformCouponId, code: "STACK10" },
@@ -772,8 +801,8 @@ describe("Market checkouts API - real integration", () => {
       }),
     );
     expect(payRes.status).toBe(200);
-    const payJson: any = await payRes.json();
-    expect(payJson.data.payment).toMatchObject({
+    const payJson = await readData<PaidCheckout>(payRes);
+    expect(payJson.payment).toMatchObject({
       status: "paid",
       totalAmountCents: 17500,
       paidAmountCents: 17500,
@@ -912,8 +941,8 @@ describe("Market checkouts API - real integration", () => {
       }),
     );
     expect(registerRes.status).toBe(200);
-    const registerJson: any = await registerRes.json();
-    const registerId = registerJson.data.id as string;
+    const registerJson = await readData<{ id: string }>(registerRes);
+    const registerId = registerJson.id as string;
 
     const shiftRes = await testApp.app.fetch(
       new Request(`${POS_BASE}/shifts/start`, {
@@ -931,8 +960,8 @@ describe("Market checkouts API - real integration", () => {
       }),
     );
     expect(shiftRes.status).toBe(200);
-    const shiftJson: any = await shiftRes.json();
-    const shiftId = shiftJson.data.id as string;
+    const shiftJson = await readData<{ id: string }>(shiftRes);
+    const shiftId = shiftJson.id as string;
 
     const createRes = await testApp.app.fetch(
       new Request("https://test/api/v1/market-checkouts", {
@@ -956,8 +985,8 @@ describe("Market checkouts API - real integration", () => {
       }),
     );
     expect(createRes.status).toBe(201);
-    const createJson: any = await createRes.json();
-    const checkoutId = createJson.data.checkout.id as string;
+    const createJson = await readData<CreatedCheckout>(createRes);
+    const checkoutId = createJson.checkout.id as string;
 
     const posPayRes = await testApp.app.fetch(
       new Request(`${POS_BASE}/market-checkouts/${checkoutId}/pay`, {
@@ -977,8 +1006,8 @@ describe("Market checkouts API - real integration", () => {
     );
 
     expect(posPayRes.status).toBe(200);
-    const posPayJson: any = await posPayRes.json();
-    expect(posPayJson.data.payment).toMatchObject({
+    const posPayJson = await readData<PaidCheckout>(posPayRes);
+    expect(posPayJson.payment).toMatchObject({
       status: "paid",
       method: "pos_cash",
       totalAmountCents: 20000,

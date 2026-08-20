@@ -8,6 +8,42 @@ import {
   type RealIntegrationTestApp,
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
+import { readData, readEnvelope, type ServiceData } from "../helpers/read-json";
+import type { RegisterService } from "../../features/pos/services/RegisterService";
+import type { ShiftService } from "../../features/pos/services/ShiftService";
+import type { CashMovementService } from "../../features/pos/services/CashMovementService";
+import type { RefundService } from "../../features/pos/services/RefundService";
+import type { ReceiptService } from "../../features/pos/services/ReceiptService";
+
+/**
+ * The POS services answer with a `{ success, data, error }` result and the
+ * routes forward only its `data` half, so the envelope payload is that inner
+ * type.
+ */
+type PosData<T> =
+  ServiceData<T> extends { data?: infer D } ? NonNullable<D> : never;
+
+type RegisterStatus = PosData<RegisterService["getRegisterStatus"]>;
+type CurrentShift = PosData<ShiftService["getCurrentShift"]>;
+type StartedShift = PosData<ShiftService["startShift"]>;
+type EndedShift = PosData<ShiftService["endShift"]>;
+type CashMovements = PosData<CashMovementService["getCashMovements"]>;
+type Refunds = PosData<RefundService["getRefunds"]>;
+type Receipts = PosData<ReceiptService["getReceipts"]>;
+
+// GET /customers/me/orders answers with a bare array of the caller's orders.
+type CustomerOrderList = Array<{ customerId: string }>;
+
+interface OtpChallenge {
+  devOtp?: string;
+}
+
+interface CustomerSession {
+  accessToken: string;
+  customer: { id: string };
+}
+
+type CreatedRegister = PosData<RegisterService["createRegister"]>;
 
 const POS_BASE = "https://test/api/v1/pos";
 const CUSTOMER_ORDERS_ENDPOINT = "https://test/api/v1/customers/me/orders";
@@ -69,7 +105,7 @@ describe("POS and customer role coverage", () => {
     );
 
     expect(statusRes.status).toBe(200);
-    const statusJson: any = await statusRes.json();
+    const statusJson = await readEnvelope<RegisterStatus>(statusRes);
     expect(statusJson.success).toBe(true);
     expect(statusJson.data?.id).toBe(restaurantRegister.id);
     expect(statusJson.data?.isShiftActive).toBe(false);
@@ -89,7 +125,7 @@ describe("POS and customer role coverage", () => {
     );
 
     expect(currentShiftRes.status).toBe(200);
-    const currentShiftJson: any = await currentShiftRes.json();
+    const currentShiftJson = await readEnvelope<CurrentShift>(currentShiftRes);
     expect(currentShiftJson.success).toBe(true);
     expect(currentShiftJson.data).toBeNull();
   });
@@ -115,7 +151,7 @@ describe("POS and customer role coverage", () => {
       }),
     );
     expect(startShiftRes.status).toBe(200);
-    const startShiftJson: any = await startShiftRes.json();
+    const startShiftJson = await readEnvelope<StartedShift>(startShiftRes);
     expect(startShiftJson.success).toBe(true);
     const shiftId = startShiftJson.data?.id as string;
     expect(shiftId).toBeTypeOf("string");
@@ -134,7 +170,7 @@ describe("POS and customer role coverage", () => {
       }),
     );
     expect(endShiftRes.status).toBe(200);
-    const endShiftJson: any = await endShiftRes.json();
+    const endShiftJson = await readEnvelope<EndedShift>(endShiftRes);
     expect(endShiftJson.success).toBe(true);
     expect(endShiftJson.data?.shift?.id).toBe(shiftId);
   });
@@ -160,7 +196,7 @@ describe("POS and customer role coverage", () => {
       }),
     );
     expect(startShiftRes.status).toBe(200);
-    const startShiftJson: any = await startShiftRes.json();
+    const startShiftJson = await readEnvelope<StartedShift>(startShiftRes);
     const shiftId = startShiftJson.data?.id as string;
 
     const movementsRes = await testApp.app.fetch(
@@ -170,7 +206,7 @@ describe("POS and customer role coverage", () => {
     );
 
     expect(movementsRes.status).toBe(200);
-    const movementsJson: any = await movementsRes.json();
+    const movementsJson = await readEnvelope<CashMovements>(movementsRes);
     expect(movementsJson.success).toBe(true);
     expect(Array.isArray(movementsJson.data?.movements)).toBe(true);
   });
@@ -189,7 +225,7 @@ describe("POS and customer role coverage", () => {
       ),
     );
     expect(refundsRes.status).toBe(200);
-    const refundsJson: any = await refundsRes.json();
+    const refundsJson = await readEnvelope<Refunds>(refundsRes);
     expect(refundsJson.success).toBe(true);
     expect(Array.isArray(refundsJson.data?.refunds)).toBe(true);
 
@@ -200,7 +236,7 @@ describe("POS and customer role coverage", () => {
       ),
     );
     expect(receiptsRes.status).toBe(200);
-    const receiptsJson: any = await receiptsRes.json();
+    const receiptsJson = await readEnvelope<Receipts>(receiptsRes);
     expect(receiptsJson.success).toBe(true);
     expect(Array.isArray(receiptsJson.data?.receipts)).toBe(true);
   });
@@ -235,7 +271,7 @@ describe("POS and customer role coverage", () => {
     );
 
     expect(res.status).toBe(403);
-    const json: any = await res.json();
+    const json = await readEnvelope(res);
     expect(json.success).toBe(false);
     expect(json.error?.code).toBe("INSUFFICIENT_ROLE");
   });
@@ -261,7 +297,7 @@ describe("POS and customer role coverage", () => {
       }),
     );
     expect(updateRes.status).toBe(403);
-    const updateJson: any = await updateRes.json();
+    const updateJson = await readEnvelope(updateRes);
     expect(updateJson.success).toBe(false);
     expect(updateJson.error?.code).toBe("INSUFFICIENT_ROLE");
 
@@ -275,7 +311,7 @@ describe("POS and customer role coverage", () => {
       }),
     );
     expect(activateRes.status).toBe(403);
-    const activateJson: any = await activateRes.json();
+    const activateJson = await readEnvelope(activateRes);
     expect(activateJson.success).toBe(false);
     expect(activateJson.error?.code).toBe("INSUFFICIENT_ROLE");
 
@@ -289,7 +325,7 @@ describe("POS and customer role coverage", () => {
       }),
     );
     expect(deleteRes.status).toBe(403);
-    const deleteJson: any = await deleteRes.json();
+    const deleteJson = await readEnvelope(deleteRes);
     expect(deleteJson.success).toBe(false);
     expect(deleteJson.error?.code).toBe("INSUFFICIENT_ROLE");
   });
@@ -343,7 +379,7 @@ describe("POS and customer role coverage", () => {
       );
 
       expect(denyRes.status).toBe(403);
-      const denyJson: any = await denyRes.json();
+      const denyJson = await readEnvelope(denyRes);
       expect(denyJson.success).toBe(false);
       expect(denyJson.error?.code).toBe("INSUFFICIENT_ROLE");
     }
@@ -364,11 +400,10 @@ describe("POS and customer role coverage", () => {
     );
 
     expect(res.status).toBe(200);
-    const json: any = await res.json();
-    expect(json.success).toBe(true);
-    expect(Array.isArray(json.data)).toBe(true);
-    expect(json.data).toHaveLength(1);
-    expect(json.data[0].customerId).toBe(customer100.customer.id);
+    const orders = await readData<CustomerOrderList>(res);
+    expect(Array.isArray(orders)).toBe(true);
+    expect(orders).toHaveLength(1);
+    expect(orders[0].customerId).toBe(customer100.customer.id);
   });
 
   it("rejects role 5 (customer) from cashier APIs", async () => {
@@ -382,7 +417,7 @@ describe("POS and customer role coverage", () => {
     );
 
     expect(res.status).toBe(401);
-    const json: any = await res.json();
+    const json = await readEnvelope(res);
     expect(json.success).toBe(false);
     expect(json.error?.code).toBeDefined();
   });
@@ -398,7 +433,7 @@ describe("POS and customer role coverage", () => {
         body: JSON.stringify({ phone }),
       }),
     );
-    const requestOtpJson: any = await requestOtpRes.json();
+    const requestOtp = await readData<OtpChallenge>(requestOtpRes);
 
     const verifyRes = await testApp.app.fetch(
       new Request(`${CUSTOMER_AUTH_BASE}/verify-otp`, {
@@ -406,15 +441,15 @@ describe("POS and customer role coverage", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           phone,
-          otp: requestOtpJson.data.devOtp,
+          otp: requestOtp.devOtp,
         }),
       }),
     );
-    const verifyJson: any = await verifyRes.json();
+    const session = await readData<CustomerSession>(verifyRes);
 
     return {
-      accessToken: verifyJson.data.accessToken,
-      customer: { id: verifyJson.data.customer.id },
+      accessToken: session.accessToken,
+      customer: { id: session.customer.id },
     };
   }
 
@@ -453,9 +488,8 @@ describe("POS and customer role coverage", () => {
         }),
       }),
     );
-    const registerJson: any = await registerRes.json();
     expect(registerRes.status).toBe(200);
-    expect(registerJson.success).toBe(true);
+    const register = await readData<CreatedRegister>(registerRes);
 
     const cashier = await seed.user({
       username: `${usernamePrefix}-cashier`,
@@ -469,7 +503,7 @@ describe("POS and customer role coverage", () => {
     );
 
     return {
-      restaurantRegister: { id: registerJson.data.id as string },
+      restaurantRegister: { id: register.id },
       cashier: {
         id: cashier.id,
         username: cashier.username,

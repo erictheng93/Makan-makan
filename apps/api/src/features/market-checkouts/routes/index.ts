@@ -173,7 +173,7 @@ interface MarketCheckoutSession {
  * `MarketCheckoutSession` later has to be named here before it reaches a
  * client, so the next secret stored on a session does not ship by default.
  */
-type PublicMarketCheckoutSession = Omit<
+export type PublicMarketCheckoutSession = Omit<
   MarketCheckoutSession,
   "phoneLastDigits"
 >;
@@ -217,7 +217,7 @@ interface MarketCheckoutOperationAlert {
   severity: "warning" | "critical";
 }
 
-interface MarketCheckoutSummaryItem extends MarketCheckoutIndexItem {
+export interface MarketCheckoutSummaryItem extends MarketCheckoutIndexItem {
   payment?: MarketCheckoutPaymentSummary;
 }
 
