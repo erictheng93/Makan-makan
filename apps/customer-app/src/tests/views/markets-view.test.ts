@@ -1,9 +1,10 @@
 import { ref } from "vue";
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import MarketsView from "@/views/MarketsView.vue";
 import { customerIdentityApi } from "@/services/customerIdentityApi";
 import { marketsApi } from "@/services/marketsApi";
+import { orderApi } from "@/services/orderApi";
 import { useMarketsStore } from "@/stores/markets";
 import {
   clearCustomerAccessToken,
@@ -48,6 +49,15 @@ vi.mock("@/services/customerIdentityApi", () => ({
   customerIdentityApi: {
     listFavorites: vi.fn(),
     listRecentMarkets: vi.fn(),
+  },
+}));
+
+// Mocked, not merely unused: importing the real module boots the API client,
+// which throws on a missing VITE_API_BASE_URL and fails the whole file before a
+// single test runs.
+vi.mock("@/services/orderApi", () => ({
+  orderApi: {
+    listMyMarketCheckouts: vi.fn(),
   },
 }));
 
@@ -104,6 +114,8 @@ describe("MarketsView", () => {
     vi.mocked(customerIdentityApi.listFavorites).mockResolvedValue([]);
     vi.mocked(customerIdentityApi.listRecentMarkets).mockReset();
     vi.mocked(customerIdentityApi.listRecentMarkets).mockResolvedValue([]);
+    vi.mocked(orderApi.listMyMarketCheckouts).mockReset();
+    vi.mocked(orderApi.listMyMarketCheckouts).mockResolvedValue([]);
     vi.mocked(useMarketsStore).mockReturnValue(marketsStore() as never);
   });
 
@@ -519,5 +531,107 @@ describe("MarketsView", () => {
       district: undefined,
     });
     expect(routerReplace).toHaveBeenLastCalledWith({ query: {} });
+  });
+  it("lists market checkouts from the account when signed in", async () => {
+    // The device list expires after four hours and does not survive a new
+    // phone; the account list is the one that actually answers "where is my
+    // order from last night".
+    setCustomerAccessToken("customer-token");
+    localStorage.setItem(
+      "makanmakan_recent_market_checkouts",
+      JSON.stringify([
+        {
+          id: "device-checkout",
+          marketSlug: "device",
+          marketName: "\u88dd\u7f6e\u5feb\u53d6",
+          childOrderCount: 1,
+          totalAmount: 100,
+          paymentStatus: "pending",
+          createdAt: "2026-06-01T10:00:00.000Z",
+          updatedAt: Date.now(),
+        },
+      ]),
+    );
+    vi.mocked(orderApi.listMyMarketCheckouts).mockResolvedValueOnce([
+      {
+        id: "account-checkout",
+        market: { slug: "fengjia", name: "\u9022\u7532\u591c\u5e02" },
+        paymentStatus: "paid",
+        childOrderCount: 2,
+        subtotal: 24000,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      },
+    ]);
+    vi.mocked(useMarketsStore).mockReturnValue(marketsStore() as never);
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    expect(orderApi.listMyMarketCheckouts).toHaveBeenCalledOnce();
+    const rows = wrapper.findAll('[data-testid="recent-market-checkout"]');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.text()).toContain("\u9022\u7532\u591c\u5e02");
+  });
+
+  it("keeps the device list for shoppers with no account", async () => {
+    localStorage.setItem(
+      "makanmakan_recent_market_checkouts",
+      JSON.stringify([
+        {
+          id: "device-checkout",
+          marketSlug: "device",
+          marketName: "\u88dd\u7f6e\u5feb\u53d6",
+          childOrderCount: 1,
+          totalAmount: 100,
+          paymentStatus: "pending",
+          createdAt: "2026-06-01T10:00:00.000Z",
+          updatedAt: Date.now(),
+        },
+      ]),
+    );
+    vi.mocked(useMarketsStore).mockReturnValue(marketsStore() as never);
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    expect(orderApi.listMyMarketCheckouts).not.toHaveBeenCalled();
+    expect(
+      wrapper.get('[data-testid="recent-market-checkout"]').text(),
+    ).toContain("\u88dd\u7f6e\u5feb\u53d6");
+  });
+
+  it("falls back to the device list when the account list cannot load", async () => {
+    setCustomerAccessToken("customer-token");
+    localStorage.setItem(
+      "makanmakan_recent_market_checkouts",
+      JSON.stringify([
+        {
+          id: "device-checkout",
+          marketSlug: "device",
+          marketName: "\u88dd\u7f6e\u5feb\u53d6",
+          childOrderCount: 1,
+          totalAmount: 100,
+          paymentStatus: "pending",
+          createdAt: "2026-06-01T10:00:00.000Z",
+          updatedAt: Date.now(),
+        },
+      ]),
+    );
+    vi.mocked(orderApi.listMyMarketCheckouts).mockRejectedValueOnce(
+      new Error("network down"),
+    );
+    vi.mocked(useMarketsStore).mockReturnValue(marketsStore() as never);
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    const wrapper = mountView();
+    await flushPromises();
+
+    expect(
+      wrapper.get('[data-testid="recent-market-checkout"]').text(),
+    ).toContain("\u88dd\u7f6e\u5feb\u53d6");
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 });

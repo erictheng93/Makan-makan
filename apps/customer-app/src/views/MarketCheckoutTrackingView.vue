@@ -397,6 +397,7 @@ import {
   getRecentMarketCheckoutPhoneLastDigits,
   recordRecentMarketCheckout,
 } from "@/utils/marketCheckouts";
+import { hasCustomerAccessToken } from "@/services/customerAccessToken";
 import { safeExternalHref } from "@/utils/safeExternalHref";
 
 const props = defineProps<{
@@ -612,24 +613,42 @@ async function openChildOrder(
 ) {
   orderAccessError.value = null;
   if (!activateMarketCheckoutGuestToken(props.checkoutId, order.orderId)) {
+    // Two ways to prove this checkout is yours, tried in that order. A signed-in
+    // shopper who placed it needs no phone digits — the server matches the
+    // account against the checkout — which is what makes a new device work at
+    // all. The digits remain the only route for anonymous shoppers, and for an
+    // account opening a checkout it does not own (placed while signed out, or
+    // predating checkout ownership).
     const phoneLastDigits = getRecentMarketCheckoutPhoneLastDigits(
       props.checkoutId,
     );
-    if (!phoneLastDigits) {
+    const attempts: Array<{ phoneLastDigits?: string }> = [];
+    if (hasCustomerAccessToken()) attempts.push({});
+    if (phoneLastDigits) attempts.push({ phoneLastDigits });
+
+    if (attempts.length === 0) {
       orderAccessError.value = t("markets.checkout.childOrderAccessFailed");
       return;
     }
 
-    try {
-      await orderApi.recoverMarketCheckoutGuestToken(props.checkoutId, {
-        orderId: order.orderId,
-        phoneLastDigits,
-      });
-    } catch (recoverError) {
-      console.error(
-        "Failed to recover market checkout guest token:",
-        recoverError,
-      );
+    let recovered = false;
+    for (const attempt of attempts) {
+      try {
+        await orderApi.recoverMarketCheckoutGuestToken(props.checkoutId, {
+          orderId: order.orderId,
+          ...attempt,
+        });
+        recovered = true;
+        break;
+      } catch (recoverError) {
+        console.error(
+          "Failed to recover market checkout guest token:",
+          recoverError,
+        );
+      }
+    }
+
+    if (!recovered) {
       orderAccessError.value = t("markets.checkout.childOrderAccessFailed");
       return;
     }

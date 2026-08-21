@@ -1,4 +1,5 @@
 import { apiClient } from "./api";
+import type { StoredMarketCheckout } from "@/utils/marketCheckouts";
 import {
   getMarketCheckoutGuestToken,
   recordMarketCheckoutGuestTokens,
@@ -302,7 +303,6 @@ export const orderApi = {
     }
     return response;
   },
-
   async createMarketCheckout(
     checkoutData: CreateMarketCheckoutRequest,
   ): Promise<MarketCheckoutResponse> {
@@ -333,7 +333,7 @@ export const orderApi = {
     checkoutId: string,
     payload: {
       orderId: number;
-      phoneLastDigits: string;
+      phoneLastDigits?: string;
     },
   ): Promise<RecoverMarketCheckoutGuestTokenEnvelope> {
     const response =
@@ -349,6 +349,22 @@ export const orderApi = {
       tokenExpiresAt: response.tokenExpiresAt,
     });
     return response;
+  },
+
+  // apiClient already unwraps `{ success, data }`, so the type parameter is the
+  // payload itself — typing it as `{ data: … }` would compile and then hand back
+  // undefined at runtime.
+  listMyMarketCheckouts() {
+    return apiClient.get<
+      Array<{
+        id: string;
+        market: { slug: string; name: string };
+        paymentStatus: StoredMarketCheckout["paymentStatus"];
+        childOrderCount: number;
+        subtotal: number;
+        createdAt: string;
+      }>
+    >("/customers/me/market-checkouts");
   },
 
   async payMarketCheckout(
