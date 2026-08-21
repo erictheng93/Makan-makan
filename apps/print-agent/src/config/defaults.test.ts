@@ -10,8 +10,6 @@ afterEach(() => {
 describe("createDefaultConfig", () => {
   it("builds defaults from environment variables", () => {
     process.env.RESTAURANT_ID = "restaurant-42";
-    process.env.PRINT_AGENT_REGISTER_ID =
-      "550e8400-e29b-41d4-a716-446655440001";
     process.env.PRINT_AGENT_PORT = "4100";
     process.env.PRINT_AGENT_WS_PORT = "4101";
     process.env.ALLOWED_ORIGINS = "https://owner.example, https://pos.example";
@@ -32,7 +30,7 @@ describe("createDefaultConfig", () => {
       cloudEndpoint: "https://api.example/v1",
       serviceName: "Print Agent - Restaurant restaurant-42",
       restaurantId: "restaurant-42",
-      registerId: "550e8400-e29b-41d4-a716-446655440001",
+      cloudKey: undefined,
       autoDiscovery: false,
       discoveryInterval: 45000,
       heartbeatInterval: 90000,

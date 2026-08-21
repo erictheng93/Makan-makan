@@ -94,6 +94,15 @@ export const registerParamsSchema = z.object({
   registerId: z.uuid(),
 });
 
+export const printAgentParamsSchema = z.object({
+  registerId: z.uuid(),
+  agentId: z.uuid(),
+});
+
+export const issuePrintAgentSchema = z.object({
+  label: z.string().trim().min(1).max(100),
+});
+
 export const shiftParamsSchema = z.object({
   shiftId: z.uuid(),
 });

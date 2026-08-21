@@ -9,7 +9,6 @@ export function createDefaultConfig(): LocalPrintServiceConfig {
   const port = parseInt(process.env.PRINT_AGENT_PORT || "3003");
   const wsPort = parseInt(process.env.PRINT_AGENT_WS_PORT || "3004");
   const apiKey = readRequiredEnv("PRINT_AGENT_API_KEY");
-  const registerId = readRequiredEnv("PRINT_AGENT_REGISTER_ID");
 
   return {
     // Network settings
@@ -21,13 +20,13 @@ export function createDefaultConfig(): LocalPrintServiceConfig {
 
     // Authentication settings
     apiKey,
+    cloudKey: process.env.PRINT_AGENT_CLOUD_KEY,
     cloudEndpoint:
       process.env.CLOUD_API_ENDPOINT || "http://localhost:8787/api/v1",
 
     // Service settings
     serviceName: `Print Agent - Restaurant ${restaurantId}`,
     restaurantId,
-    registerId,
 
     // Printer settings
     autoDiscovery: process.env.AUTO_DISCOVERY !== "false",

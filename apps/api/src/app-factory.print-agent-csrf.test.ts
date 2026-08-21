@@ -18,8 +18,9 @@ import { createApp } from "./app-factory";
  * the outcome — every receipt stays claimed forever with no reclaim path, and
  * the cloud never learns whether paper came out.
  *
- * The agent authenticates by possession of PRINT_AGENT_API_KEY, checked in the
- * route itself, which is the same shape as the webhook exclusions above it.
+ * The agent authenticates by possession of a per-register credential, checked
+ * in the route itself, which is the same shape as the webhook exclusions above
+ * it.
  */
 
 function buildApp() {

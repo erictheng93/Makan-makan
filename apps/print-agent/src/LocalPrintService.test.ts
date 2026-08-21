@@ -8,7 +8,7 @@ import type { LocalPrintServiceConfig } from "./LocalPrintService";
 
 const API_KEY = "test-print-agent-api-key";
 const CLOUD_ENDPOINT = "https://api.example/v1";
-const REGISTER_ID = "550e8400-e29b-41d4-a716-446655440001";
+const CLOUD_KEY = "mmpa_test_cloud_key";
 
 const createConfig = (
   overrides: Partial<LocalPrintServiceConfig> = {},
@@ -20,7 +20,7 @@ const createConfig = (
   cloudEndpoint: CLOUD_ENDPOINT,
   serviceName: "Print Agent",
   restaurantId: "restaurant-42",
-  registerId: REGISTER_ID,
+  cloudKey: CLOUD_KEY,
   autoDiscovery: false,
   discoveryInterval: 30000,
   heartbeatInterval: 60000,
@@ -406,12 +406,11 @@ describe("LocalPrintService cloud job dispatch", () => {
 
     await pollCloudJobs(service);
 
-    expect(cloudCalls[0]?.url).toBe(
-      `${CLOUD_ENDPOINT}/print/jobs?registerId=${REGISTER_ID}`,
-    );
-    expect(cloudCalls[0]?.init?.headers).toMatchObject({
-      "X-Print-Agent-Key": API_KEY,
-      "X-Restaurant-Id": "restaurant-42",
+    expect(cloudCalls[0]?.url).toBe(`${CLOUD_ENDPOINT}/print/jobs`);
+    // No register and no restaurant on the wire: the cloud derives both from
+    // the credential, so this agent cannot ask for another shop's receipts.
+    expect(cloudCalls[0]?.init?.headers).toEqual({
+      "X-Print-Agent-Key": CLOUD_KEY,
     });
     expect(createPrintJob).toHaveBeenCalledOnce();
     // The ESC/POS formatter calls Date methods on this field, but JSON only
@@ -473,6 +472,20 @@ describe("LocalPrintService cloud job dispatch", () => {
       printerName: "USB-1",
       response: "Paper out",
     });
+  });
+
+  it("stays a local-only print server when no cloud credential is configured", async () => {
+    // A shop can run the agent purely for the POS on the same LAN. Without a
+    // credential there is no tenant to poll for, so it must not call out at
+    // all rather than poll and be rejected every minute.
+    service = new LocalPrintService(createConfig({ cloudKey: undefined }));
+    const agent = service.getPrintAgentService();
+    const createPrintJob = vi.spyOn(agent, "createPrintJob");
+
+    await pollCloudJobs(service);
+
+    expect(cloudCalls).toHaveLength(0);
+    expect(createPrintJob).not.toHaveBeenCalled();
   });
 
   it("prints nothing and acknowledges nothing when the queue is empty", async () => {

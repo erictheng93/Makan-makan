@@ -6,7 +6,12 @@
     "legacy": "0096_qr_two_phase_rotation.sql"
   },
   "pairs": [],
-  "freshOnly": [],
+  "freshOnly": [
+    {
+      "fresh": "0001_print_agents.sql",
+      "reason": "Print-agent credentials and the receipts claim timestamp belong to the platform API only; the management-api database has no receipts or cash_registers to pair against."
+    }
+  ],
   "legacyOnly": [
     {
       "legacy": "20251001_performance_indexes.sql",

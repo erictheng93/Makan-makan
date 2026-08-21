@@ -151,6 +151,11 @@ export class ReceiptService {
           reprintedCount: sql`${receipts.reprintedCount} + 1`,
           lastReprintAt: reprintTime,
           printStatus: "pending",
+          // A reprint is a fresh delivery, so it starts the attempt budget
+          // over. Carrying the old count forward would let a receipt that
+          // already exhausted it be abandoned on its first stall.
+          printAttempts: 0,
+          claimedAt: null,
         })
         .where(eq(receipts.id, receiptId));
 

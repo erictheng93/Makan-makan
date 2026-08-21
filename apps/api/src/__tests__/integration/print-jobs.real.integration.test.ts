@@ -1,0 +1,322 @@
+/**
+ * Real-D1 coverage for the cloud print dispatch path.
+ *
+ * Two things here are only meaningful against a real database. The tenant
+ * boundary is a join from the presented credential to cash_registers, so a
+ * mocked D1 would assert the shape of a query rather than the isolation it is
+ * supposed to produce. And the reclaim of abandoned jobs lives entirely in the
+ * claim statement's WHERE clause — whether a dead agent's receipt comes back
+ * is a question about SQL semantics, not about application branching.
+ */
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  createTestDatabase,
+  type TestDatabase,
+} from "@makanmasak/database/testing";
+import { eq } from "drizzle-orm";
+import {
+  cashRegisters,
+  orders,
+  printAgents,
+  receipts,
+  restaurants,
+} from "@makanmasak/database";
+import routes from "../../features/print/routes";
+import { hashPrintAgentKey } from "../../shared/utils/print-agent-key";
+
+const SHOP_A = "print-shop-a";
+const SHOP_B = "print-shop-b";
+const REGISTER_A = "11111111-1111-7111-8111-111111111111";
+const REGISTER_B = "22222222-2222-7222-8222-222222222222";
+const KEY_A = "mmpa_key_for_shop_a";
+const KEY_B = "mmpa_key_for_shop_b";
+const ORDER_A = "order-shop-a";
+const ORDER_B = "order-shop-b";
+
+const CLAIM_TIMEOUT_MS = 5 * 60 * 1000;
+const RECEIPT_CREATED_AT = new Date("2025-08-12T12:00:00.000Z");
+
+let testDb: TestDatabase;
+
+beforeAll(async () => {
+  testDb = await createTestDatabase();
+});
+
+afterAll(async () => {
+  await testDb?.dispose();
+});
+
+async function seedShop(
+  restaurantId: string,
+  registerId: string,
+  orderId: string,
+  key: string,
+  options: { revoked?: boolean } = {},
+): Promise<void> {
+  const now = new Date();
+  await testDb.drizzle.insert(restaurants).values({
+    id: restaurantId,
+    name: `Shop ${restaurantId}`,
+    type: "street_food",
+    category: "snack",
+    address: "1 Test Rd",
+    district: "West",
+    phone: "0900000000",
+  });
+  await testDb.drizzle.insert(cashRegisters).values({
+    id: registerId,
+    name: "Front POS",
+    restaurantId,
+    hardwareConfig: "{}",
+    peripherals: "{}",
+    settings: "{}",
+    createdAt: now,
+    updatedAt: now,
+  });
+  await testDb.drizzle.insert(orders).values({
+    id: orderId,
+    restaurantId,
+    orderNumber: `ORDER-${orderId}`,
+    subtotalCents: 1200,
+    totalAmountCents: 1200,
+    status: "pending",
+  });
+  await testDb.drizzle.insert(printAgents).values({
+    id: `agent-${restaurantId}`,
+    registerId,
+    label: "Counter printer",
+    keyHash: await hashPrintAgentKey(key),
+    revokedAt: options.revoked ? now : null,
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
+async function seedReceipt(
+  id: string,
+  registerId: string,
+  orderId: string,
+  overrides: Partial<typeof receipts.$inferInsert> = {},
+): Promise<void> {
+  await testDb.drizzle.insert(receipts).values({
+    id,
+    orderId,
+    registerId,
+    receiptNumber: `RCPT-${id}`,
+    receiptType: "customer",
+    content: JSON.stringify({
+      items: [{ name: "Nasi Lemak", quantity: 2, price: 6 }],
+      subtotal: 12,
+      taxAmount: 0,
+      totalAmount: 12,
+      paymentMethod: "cash",
+      customerName: "Ada",
+    }),
+    printStatus: "pending",
+    createdAt: RECEIPT_CREATED_AT,
+    ...overrides,
+  });
+}
+
+function poll(key: string) {
+  return routes.request(
+    "/jobs",
+    { headers: { "X-Print-Agent-Key": key } },
+    testDb.bindings as never,
+  );
+}
+
+function ack(
+  key: string,
+  receiptId: string,
+  body: Record<string, unknown> = { status: "printed", printerName: "USB-1" },
+) {
+  return routes.request(
+    `/jobs/${receiptId}/ack`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Print-Agent-Key": key,
+      },
+      body: JSON.stringify(body),
+    },
+    testDb.bindings as never,
+  );
+}
+
+async function receiptRow(id: string) {
+  const [row] = await testDb.drizzle
+    .select()
+    .from(receipts)
+    .where(eq(receipts.id, id));
+  return row;
+}
+
+async function claimedJob(response: Response) {
+  return (await response.json()) as {
+    success: boolean;
+    data: { receiptId: string; request: Record<string, unknown> } | null;
+  };
+}
+
+describe("cloud print dispatch — real D1", () => {
+  beforeEach(async () => {
+    await testDb.truncateAll();
+    await seedShop(SHOP_A, REGISTER_A, ORDER_A, KEY_A);
+    await seedShop(SHOP_B, REGISTER_B, ORDER_B, KEY_B);
+  });
+
+  it("hands a pending receipt to the agent holding that register's credential", async () => {
+    await seedReceipt("receipt-a", REGISTER_A, ORDER_A);
+
+    const body = await claimedJob(await poll(KEY_A));
+
+    expect(body.data?.receiptId).toBe("receipt-a");
+    expect(body.data?.request).toMatchObject({
+      restaurantId: SHOP_A,
+      type: "receipt",
+      data: {
+        order: {
+          id: ORDER_A,
+          total: 12,
+          createdAt: RECEIPT_CREATED_AT.toISOString(),
+        },
+        customer: { name: "Ada" },
+      },
+    });
+
+    const row = await receiptRow("receipt-a");
+    expect(row?.printStatus).toBe("printing");
+    expect(row?.printAttempts).toBe(1);
+    expect(row?.claimedAt).toBeInstanceOf(Date);
+  });
+
+  it("never hands one shop's receipt to another shop's agent", async () => {
+    await seedReceipt("receipt-a", REGISTER_A, ORDER_A);
+
+    // Shop B holds a perfectly valid credential. It simply is not this
+    // receipt's credential, and there is no header it can send to change that.
+    const body = await claimedJob(await poll(KEY_B));
+
+    expect(body.data).toBeNull();
+    expect((await receiptRow("receipt-a"))?.printStatus).toBe("pending");
+  });
+
+  it.each([
+    ["an unknown key", "mmpa_not_a_real_key"],
+    ["an empty key", ""],
+  ])("refuses %s", async (_label, key) => {
+    await seedReceipt("receipt-a", REGISTER_A, ORDER_A);
+
+    expect((await poll(key)).status).toBe(401);
+    expect((await receiptRow("receipt-a"))?.printStatus).toBe("pending");
+  });
+
+  it("refuses a revoked credential", async () => {
+    await testDb.drizzle
+      .update(printAgents)
+      .set({ revokedAt: new Date() })
+      .where(eq(printAgents.registerId, REGISTER_A));
+    await seedReceipt("receipt-a", REGISTER_A, ORDER_A);
+
+    expect((await poll(KEY_A)).status).toBe(401);
+  });
+
+  it("records when the agent was last seen", async () => {
+    await poll(KEY_A);
+
+    const [agent] = await testDb.drizzle
+      .select()
+      .from(printAgents)
+      .where(eq(printAgents.registerId, REGISTER_A));
+    expect(agent?.lastSeenAt).toBeInstanceOf(Date);
+  });
+
+  it("re-queues a claim whose agent died before acknowledging", async () => {
+    await seedReceipt("receipt-a", REGISTER_A, ORDER_A, {
+      printStatus: "printing",
+      printAttempts: 1,
+      claimedAt: new Date(Date.now() - CLAIM_TIMEOUT_MS - 1000),
+    });
+
+    const body = await claimedJob(await poll(KEY_A));
+
+    expect(body.data?.receiptId).toBe("receipt-a");
+    expect((await receiptRow("receipt-a"))?.printAttempts).toBe(2);
+  });
+
+  it("leaves a claim that is still within the timeout alone", async () => {
+    await seedReceipt("receipt-a", REGISTER_A, ORDER_A, {
+      printStatus: "printing",
+      printAttempts: 1,
+      claimedAt: new Date(),
+    });
+
+    expect((await claimedJob(await poll(KEY_A))).data).toBeNull();
+    expect((await receiptRow("receipt-a"))?.printAttempts).toBe(1);
+  });
+
+  it("gives up on a receipt that has exhausted its delivery attempts", async () => {
+    await seedReceipt("receipt-a", REGISTER_A, ORDER_A, {
+      printStatus: "printing",
+      printAttempts: 5,
+      claimedAt: new Date(Date.now() - CLAIM_TIMEOUT_MS - 1000),
+    });
+
+    expect((await claimedJob(await poll(KEY_A))).data).toBeNull();
+
+    const row = await receiptRow("receipt-a");
+    expect(row?.printStatus).toBe("failed");
+    expect(row?.printerResponse).toContain("Abandoned");
+  });
+
+  it("settles a claimed job on acknowledgement", async () => {
+    await seedReceipt("receipt-a", REGISTER_A, ORDER_A);
+    await poll(KEY_A);
+
+    expect((await ack(KEY_A, "receipt-a")).status).toBe(200);
+
+    const row = await receiptRow("receipt-a");
+    expect(row?.printStatus).toBe("printed");
+    expect(row?.printerName).toBe("USB-1");
+    expect(row?.printedAt).toBeInstanceOf(Date);
+    // Cleared so the reclaim sweep has nothing left to consider.
+    expect(row?.claimedAt).toBeNull();
+  });
+
+  it("refuses an acknowledgement from an agent on another register", async () => {
+    await seedReceipt("receipt-a", REGISTER_A, ORDER_A);
+    await poll(KEY_A);
+
+    expect((await ack(KEY_B, "receipt-a")).status).toBe(404);
+    expect((await receiptRow("receipt-a"))?.printStatus).toBe("printing");
+  });
+
+  it("records a failed print without stamping a printed time", async () => {
+    await seedReceipt("receipt-a", REGISTER_A, ORDER_A);
+    await poll(KEY_A);
+
+    await ack(KEY_A, "receipt-a", {
+      status: "failed",
+      printerName: "USB-1",
+      response: "Paper out",
+    });
+
+    const row = await receiptRow("receipt-a");
+    expect(row?.printStatus).toBe("failed");
+    expect(row?.printedAt).toBeNull();
+    expect(row?.printerResponse).toBe("Paper out");
+  });
+
+  it("hands a receipt to only one of two concurrent polls", async () => {
+    await seedReceipt("receipt-a", REGISTER_A, ORDER_A);
+
+    const claims = await Promise.all([poll(KEY_A), poll(KEY_A)]);
+    const bodies = await Promise.all(claims.map(claimedJob));
+
+    expect(bodies.filter((body) => body.data !== null)).toHaveLength(1);
+    expect((await receiptRow("receipt-a"))?.printAttempts).toBe(1);
+  });
+});

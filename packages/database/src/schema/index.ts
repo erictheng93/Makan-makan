@@ -97,6 +97,7 @@ export {
   cashShiftsRelations,
   cashMovementsRelations,
   receiptsRelations,
+  printAgentsRelations,
   refundsRelations,
   shiftReportsRelations,
 } from "./pos";

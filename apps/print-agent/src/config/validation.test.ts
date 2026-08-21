@@ -12,7 +12,6 @@ const validConfig = (): LocalPrintServiceConfig => ({
   cloudEndpoint: "https://api.example/v1",
   serviceName: "Print Agent",
   restaurantId: "restaurant-42",
-  registerId: "550e8400-e29b-41d4-a716-446655440001",
   autoDiscovery: true,
   discoveryInterval: 30000,
   heartbeatInterval: 60000,
@@ -77,20 +76,15 @@ describe("validateConfig", () => {
 });
 
 describe("validateEnvironment", () => {
-  it("requires restaurant and register identity plus valid optional ports", () => {
+  it("requires restaurant identity and valid optional ports", () => {
     delete process.env.RESTAURANT_ID;
-    delete process.env.PRINT_AGENT_REGISTER_ID;
     process.env.PRINT_AGENT_PORT = "70000";
     process.env.PRINT_AGENT_WS_PORT = "not-a-port";
 
-    // The register id is required for the same reason the restaurant id is:
-    // the cloud only hands an agent the jobs claimed for its own register, so
-    // an agent that cannot name one has nothing to poll for.
     expect(validateEnvironment()).toEqual({
       success: false,
       errors: [
         "Missing required environment variable: RESTAURANT_ID",
-        "Missing required environment variable: PRINT_AGENT_REGISTER_ID",
         "PRINT_AGENT_PORT must be a valid port number (1-65535)",
         "PRINT_AGENT_WS_PORT must be a valid port number (1-65535)",
       ],
@@ -99,8 +93,6 @@ describe("validateEnvironment", () => {
 
   it("rejects identical HTTP and WebSocket ports from environment", () => {
     process.env.RESTAURANT_ID = "restaurant-42";
-    process.env.PRINT_AGENT_REGISTER_ID =
-      "550e8400-e29b-41d4-a716-446655440001";
     process.env.PRINT_AGENT_PORT = "3003";
     process.env.PRINT_AGENT_WS_PORT = "3003";
 

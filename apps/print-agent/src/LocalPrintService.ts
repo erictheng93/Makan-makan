@@ -46,13 +46,13 @@ export interface LocalPrintServiceConfig {
   allowedOrigins: string[];
 
   // 認證設定
-  apiKey: string;
+  apiKey: string; // 本機 HTTP/WS：POS 前端 -> 代理
+  cloudKey?: string; // 雲端派工：代理 -> 雲端，由後台核發並綁定收銀機
   cloudEndpoint: string;
 
   // 服務設定
   serviceName: string;
   restaurantId: string;
-  registerId: string;
 
   // 打印機設定
   autoDiscovery: boolean;
@@ -862,17 +862,19 @@ export class LocalPrintService {
   }
 
   private async pollCloudJobs(): Promise<void> {
+    // 沒有雲端憑證就只當本機列印伺服器 —— 這是合法的設定，不是錯誤。
+    const cloudKey = this.config.cloudKey;
+    if (!cloudKey) return;
     if (this.cloudPollInFlight) return;
     this.cloudPollInFlight = true;
     try {
-      const url = new URL("print/jobs", `${this.config.cloudEndpoint}/`);
-      url.searchParams.set("registerId", this.config.registerId);
-      const response = await fetch(url, {
-        headers: {
-          "X-Print-Agent-Key": this.config.apiKey,
-          "X-Restaurant-Id": this.config.restaurantId,
-        },
-      });
+      // Neither the register nor the restaurant is sent: the cloud derives
+      // both from the credential. An agent that could name its own tenant
+      // could claim another shop's receipts.
+      const response = await fetch(
+        new URL("print/jobs", `${this.config.cloudEndpoint}/`),
+        { headers: { "X-Print-Agent-Key": cloudKey } },
+      );
       if (!response.ok)
         throw new Error(`Cloud job poll failed (${response.status})`);
       const payload = (await response.json()) as {
@@ -887,7 +889,11 @@ export class LocalPrintService {
         result.success && result.jobId
           ? await this.waitForPrintCompletion(result.jobId)
           : { status: "failed" as const, response: result.error?.message };
-      await this.acknowledgeCloudJob(payload.data.receiptId, acknowledgement);
+      await this.acknowledgeCloudJob(
+        cloudKey,
+        payload.data.receiptId,
+        acknowledgement,
+      );
     } finally {
       this.cloudPollInFlight = false;
     }
@@ -920,6 +926,7 @@ export class LocalPrintService {
   }
 
   private async acknowledgeCloudJob(
+    cloudKey: string,
     receiptId: string,
     acknowledgement: {
       status: "printed" | "failed";
@@ -936,8 +943,7 @@ export class LocalPrintService {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Print-Agent-Key": this.config.apiKey,
-          "X-Restaurant-Id": this.config.restaurantId,
+          "X-Print-Agent-Key": cloudKey,
         },
         body: JSON.stringify(acknowledgement),
       },

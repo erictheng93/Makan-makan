@@ -197,6 +197,11 @@ export const receipts = sqliteTable(
     reprintedCount: integer("reprinted_count").notNull().default(0),
     lastReprintAt: integer("last_reprint_at_ms", { mode: "timestamp_ms" }),
 
+    // 打印代理認領這筆工作的時間。用來回收沒有回報結果的認領：代理在送出
+    // ack 之前掛掉，這一列就會永遠停在 "printing"，沒有這個欄位就沒辦法分辨
+    // 「正在印」與「認領後死掉」。
+    claimedAt: integer("claimed_at_ms", { mode: "timestamp_ms" }),
+
     // 時間戳
     createdAt: integer("created_at_ms", { mode: "timestamp_ms" }).notNull(),
   },
@@ -205,6 +210,39 @@ export const receipts = sqliteTable(
     registerIdx: index("idx_receipts_register").on(table.registerId),
     shiftIdx: index("idx_receipts_shift").on(table.shiftId),
     printStatusIdx: index("idx_receipts_print_status").on(table.printStatus),
+  }),
+);
+
+// ==========================================
+// 列印代理憑證 (Print Agents)
+// ==========================================
+
+/**
+ * 一台店內列印代理的憑證。租戶範圍是從 `register_id` join 出來的，不是由代理
+ * 自己宣告的 header —— 代理只出示金鑰，餐廳與收銀機都由伺服器端推導，這樣
+ * 一家店的代理就無法讀取另一家店的收據。
+ *
+ * 只存 SHA-256 摘要，明文金鑰在核發當下回傳一次就不再留存。
+ */
+export const printAgents = sqliteTable(
+  "print_agents",
+  {
+    id: text("id").primaryKey(), // UUID v7
+    registerId: text("register_id")
+      .notNull()
+      .references(() => cashRegisters.id),
+
+    label: text("label").notNull(), // 人看的名稱，例如「櫃檯出單機」
+    keyHash: text("key_hash").notNull().unique(), // SHA-256 hex
+
+    lastSeenAt: integer("last_seen_at_ms", { mode: "timestamp_ms" }),
+    revokedAt: integer("revoked_at_ms", { mode: "timestamp_ms" }),
+
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => ({
+    registerIdx: index("idx_print_agents_register").on(table.registerId),
   }),
 );
 
@@ -366,6 +404,13 @@ export const receiptsRelations = relations(receipts, ({ one }) => ({
   shift: one(cashShifts, {
     fields: [receipts.shiftId],
     references: [cashShifts.id],
+  }),
+}));
+
+export const printAgentsRelations = relations(printAgents, ({ one }) => ({
+  register: one(cashRegisters, {
+    fields: [printAgents.registerId],
+    references: [cashRegisters.id],
   }),
 }));
 
