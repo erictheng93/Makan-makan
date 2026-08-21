@@ -99,6 +99,14 @@ function cartItemTotalAmount(item: {
   return moneyAmount(item.totalPriceCents);
 }
 
+function groupOrderIsActive(groupOrderId: string) {
+  return sql`(
+    SELECT ${groupOrders.status}
+    FROM ${groupOrders}
+    WHERE ${groupOrders.id} = ${groupOrderId}
+  ) = 'active'`;
+}
+
 import type {
   IGroupOrderService,
   GroupOrder,
@@ -1040,15 +1048,21 @@ export class GroupOrdersService implements IGroupOrderService {
         updateObj.specialInstructions = updateData.specialInstructions;
       }
 
-      await this.db
+      const updatedRows = await this.db
         .update(groupCartItems)
         .set(updateObj)
         .where(
           and(
             eq(groupCartItems.id, itemId),
             eq(groupCartItems.groupOrderId, groupOrderId),
+            groupOrderIsActive(groupOrderId),
           ),
-        );
+        )
+        .returning({ id: groupCartItems.id });
+
+      if (updatedRows.length === 0) {
+        return { success: false, error: "Group order is no longer active" };
+      }
 
       // Update totals
       await this.updateMemberTotal(groupOrderId, existingItem.memberId);
@@ -1142,8 +1156,23 @@ export class GroupOrdersService implements IGroupOrderService {
 
       const ownerId = cartItem.memberId;
 
-      // Delete the item
-      await this.db.delete(groupCartItems).where(eq(groupCartItems.id, itemId));
+      // Delete only while the group is still accepting cart changes. The
+      // status predicate is part of the write so a finalizer claim cannot be
+      // raced between a read and this mutation.
+      const deletedRows = await this.db
+        .delete(groupCartItems)
+        .where(
+          and(
+            eq(groupCartItems.id, itemId),
+            eq(groupCartItems.groupOrderId, groupOrderId),
+            groupOrderIsActive(groupOrderId),
+          ),
+        )
+        .returning({ id: groupCartItems.id });
+
+      if (deletedRows.length === 0) {
+        return { success: false, error: "Group order is no longer active" };
+      }
 
       // Update totals
       await this.updateMemberTotal(groupOrderId, ownerId);
@@ -1251,23 +1280,6 @@ export class GroupOrdersService implements IGroupOrderService {
         };
       }
 
-      const cartItems = await this.db
-        .select()
-        .from(groupCartItems)
-        .where(
-          and(
-            eq(groupCartItems.groupOrderId, groupOrderId),
-            eq(groupCartItems.status, "active"),
-          ),
-        );
-
-      if (cartItems.length === 0) {
-        return {
-          success: false,
-          error: EMPTY_GROUP_ORDER_ERROR,
-        };
-      }
-
       const now = new Date();
       const claimedRows = await this.db
         .update(groupOrders)
@@ -1318,6 +1330,34 @@ export class GroupOrdersService implements IGroupOrderService {
         };
       }
       claimed = true;
+
+      // Claim before taking the cart snapshot. Cart writes include the group
+      // status in their SQL predicate, so every item used for the canonical
+      // order and split bills now comes from one immutable view.
+      const cartItems = await this.db
+        .select()
+        .from(groupCartItems)
+        .where(
+          and(
+            eq(groupCartItems.groupOrderId, groupOrderId),
+            eq(groupCartItems.status, "active"),
+          ),
+        );
+
+      if (cartItems.length === 0) {
+        await this.db
+          .update(groupOrders)
+          .set({ status: "active", updatedAt: new Date() })
+          .where(
+            and(
+              eq(groupOrders.id, groupOrderId),
+              eq(groupOrders.status, "finalizing"),
+              isNull(groupOrders.masterOrderId),
+            ),
+          );
+        claimed = false;
+        return { success: false, error: EMPTY_GROUP_ORDER_ERROR };
+      }
 
       const settings = (groupOrder.settings || {}) as GroupOrderSettings;
       const fulfillmentType = settings.fulfillmentType || "dine_in";
@@ -1437,12 +1477,16 @@ export class GroupOrdersService implements IGroupOrderService {
         })
         .where(eq(groupOrders.id, groupOrderId));
 
-      const splitResult = await this.splitBill(groupOrderId, {
-        splitType: this.splitTypeFromStoredValue(groupOrder.splitType),
-        sharedServiceChargeCents: serviceChargeCents,
-        sharedTaxCents: taxAmountCents,
-        orderTotalCents,
-      });
+      const splitResult = await this.splitBill(
+        groupOrderId,
+        {
+          splitType: this.splitTypeFromStoredValue(groupOrder.splitType),
+          sharedServiceChargeCents: serviceChargeCents,
+          sharedTaxCents: taxAmountCents,
+          orderTotalCents,
+        },
+        cartItems,
+      );
 
       if (!splitResult.success) {
         const failure: GroupOrderFinalizeFailure = {
@@ -1535,6 +1579,7 @@ export class GroupOrdersService implements IGroupOrderService {
   async splitBill(
     groupOrderId: string,
     splitData: SplitBillRequest,
+    cartSnapshot?: Array<typeof groupCartItems.$inferSelect>,
   ): Promise<SplitBillResult> {
     const timer = this.performance.startTimer("splitBill");
 
@@ -1577,15 +1622,17 @@ export class GroupOrdersService implements IGroupOrderService {
       }
 
       // Get all active cart items
-      const cartItems = await this.db
-        .select()
-        .from(groupCartItems)
-        .where(
-          and(
-            eq(groupCartItems.groupOrderId, groupOrderId),
-            eq(groupCartItems.status, "active"),
-          ),
-        );
+      const cartItems =
+        cartSnapshot ??
+        (await this.db
+          .select()
+          .from(groupCartItems)
+          .where(
+            and(
+              eq(groupCartItems.groupOrderId, groupOrderId),
+              eq(groupCartItems.status, "active"),
+            ),
+          ));
 
       const totalCartAmount = cartItems.reduce(
         (sum, item) => sum + cartItemTotalAmount(item),
