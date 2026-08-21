@@ -41,6 +41,18 @@ export const usageEvents = sqliteTable(
     pendingAggregationIdx: index("usage_events_pending_idx")
       .on(table.aggregatedAt)
       .where(sql`${table.aggregatedAt} IS NULL`),
+    // The daily TTL sweep (workers/usage-events-ttl.ts) deletes on
+    // `occurred_at_ms < ? AND aggregated_at_ms IS NOT NULL`, and neither index
+    // above can serve it: `pendingAggregationIdx` is partial on IS NULL — the
+    // exact complement of what the sweep asks for — and
+    // `restaurantMeterTimeIdx` leads with `restaurant_id`, so a bare time range
+    // cannot seek into it. The sweep was therefore full-scanning the table
+    // every night. At 90-day retention of one row per API request that is tens
+    // of millions of rows read per run, billed at D1's rows-read rate for a
+    // query that deletes a thin tail.
+    ttlSweepIdx: index("usage_events_ttl_idx")
+      .on(table.occurredAt)
+      .where(sql`${table.aggregatedAt} IS NOT NULL`),
   }),
 );
 

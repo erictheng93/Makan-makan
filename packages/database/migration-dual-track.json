@@ -10,6 +10,10 @@
     {
       "fresh": "0001_print_agents.sql",
       "reason": "Print-agent credentials and the receipts claim timestamp belong to the platform API only; the management-api database has no receipts or cash_registers to pair against."
+    },
+    {
+      "fresh": "0002_usage_events_ttl_index.sql",
+      "reason": "Indexes the platform-only usage_events table so its nightly TTL sweep stops full-scanning; the management-api database has no usage_events to pair against."
     }
   ],
   "legacyOnly": [
