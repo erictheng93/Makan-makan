@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MakanMasak System Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+
+<style>
+/* ── tokens：與 master-user-flow.html 同一套 ───────────────────────── */
+:root{
+  --ground:#F2F2F7; --surface:#FFFFFF; --surface-2:#F8F8FB;
+  --ink:#1C1C1E; --ink-2:#55555C; --ink-3:#8A8A92;
+  --hair:rgba(28,28,30,.10); --hair-2:rgba(28,28,30,.06);
+  --shadow:0 1px 1.5px rgba(24,24,45,.05), 0 5px 16px rgba(24,24,45,.05);
+  --shadow-sm:0 1px 1px rgba(24,24,45,.05), 0 3px 10px rgba(24,24,45,.05);
+
+  --front:#007AFF;  --front-ink:#0A5FC2;
+  --edge:#5E5CE6;   --edge-ink:#4340C6;
+  --data:#30B0C7;   --data-ink:#0D7C8F;
+  --pkg:#34C759;    --pkg-ink:#17803D;
+  --ext:#A2845E;    --ext-ink:#7A5F3F;
+  --local:#AF52DE;  --local-ink:#7B2FB5;
+  --warn:#FF9500;   --warn-ink:#A85F04;
+
+  --ac:var(--ink-3); --ac-ink:var(--ink-2);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0F0F13; --surface:#1B1B21; --surface-2:#212128;
+    --ink:#F0F0F4; --ink-2:#B4B4BE; --ink-3:#7E7E8A;
+    --hair:rgba(255,255,255,.14); --hair-2:rgba(255,255,255,.07);
+    --shadow:0 1px 1.5px rgba(0,0,0,.4), 0 5px 16px rgba(0,0,0,.35);
+    --shadow-sm:0 1px 1px rgba(0,0,0,.35), 0 3px 10px rgba(0,0,0,.3);
+    --front:#3B9BFF; --front-ink:#7CBEFF;
+    --edge:#8785FF;  --edge-ink:#A9A8FF;
+    --data:#4ECBE0;  --data-ink:#8CE0EE;
+    --pkg:#4CD97A;   --pkg-ink:#84E5A3;
+    --ext:#C4A67C;   --ext-ink:#D9C3A3;
+    --local:#C77BEB; --local-ink:#DBA9F4;
+    --warn:#FFB03D;  --warn-ink:#FFC978;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0F0F13; --surface:#1B1B21; --surface-2:#212128;
+  --ink:#F0F0F4; --ink-2:#B4B4BE; --ink-3:#7E7E8A;
+  --hair:rgba(255,255,255,.14); --hair-2:rgba(255,255,255,.07);
+  --shadow:0 1px 1.5px rgba(0,0,0,.4), 0 5px 16px rgba(0,0,0,.35);
+  --shadow-sm:0 1px 1px rgba(0,0,0,.35), 0 3px 10px rgba(0,0,0,.3);
+  --front:#3B9BFF; --front-ink:#7CBEFF;
+  --edge:#8785FF;  --edge-ink:#A9A8FF;
+  --data:#4ECBE0;  --data-ink:#8CE0EE;
+  --pkg:#4CD97A;   --pkg-ink:#84E5A3;
+  --ext:#C4A67C;   --ext-ink:#D9C3A3;
+  --local:#C77BEB; --local-ink:#DBA9F4;
+  --warn:#FFB03D;  --warn-ink:#FFC978;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"IBM Plex Sans","Noto Sans TC",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:14px; line-height:1.55; -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+code{
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11px; background:var(--surface-2); border-radius:5px; padding:1px 5px;
+  overflow-wrap:anywhere;
+}
+.wrap{max-width:1400px; margin:0 auto; padding:26px 22px 64px}
+
+/* ── masthead ───────────────────────────────────────────────────── */
+.mast{display:flex; align-items:flex-start; gap:24px; flex-wrap:wrap; margin-bottom:20px}
+.mast h1{margin:0; font-size:32px; font-weight:900; letter-spacing:-.025em; line-height:1.12; text-wrap:balance}
+.mast p{margin:7px 0 0; font-size:13.5px; color:var(--ink-2); max-width:64ch}
+.stamp{
+  margin-left:auto; background:var(--surface); border-radius:16px; padding:11px 16px;
+  box-shadow:var(--shadow); font-size:11.5px; line-height:1.9; color:var(--ink-2);
+}
+.stamp b{color:var(--ink); font-weight:600}
+.stamp a{color:var(--front-ink); text-decoration:none; font-weight:600}
+.stamp a:hover{text-decoration:underline}
+
+/* ── lanes ──────────────────────────────────────────────────────── */
+.lane{
+  --ac:var(--ink-3); --ac-ink:var(--ink-2);
+  display:flex; align-items:stretch;
+  border-radius:20px;
+  background:color-mix(in srgb, var(--ac) 5%, var(--surface));
+  box-shadow:var(--shadow); overflow:hidden; margin-bottom:12px;
+}
+.rail{
+  flex:none; width:46px; display:flex; align-items:center; justify-content:center;
+  background:color-mix(in srgb, var(--ac) 15%, var(--surface));
+  color:var(--ac-ink); font-size:12px; font-weight:700; letter-spacing:.16em;
+  writing-mode:vertical-rl; text-orientation:upright;
+}
+.lane-body{flex:1; min-width:0; padding:15px 17px}
+.lane-h{
+  display:flex; align-items:baseline; gap:10px; margin:0 0 11px;
+  font-size:12px; font-weight:700; letter-spacing:.14em; color:var(--ac-ink); text-transform:uppercase;
+}
+.lane-h span{font-size:11.5px; font-weight:400; letter-spacing:0; color:var(--ink-3); text-transform:none}
+
+/* ── cards ──────────────────────────────────────────────────────── */
+.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:11px}
+.card{
+  background:var(--surface); border-radius:14px; box-shadow:var(--shadow-sm);
+  padding:11px 13px 12px; min-width:0;
+}
+.card h3{margin:0 0 2px; font-size:13px; font-weight:700; letter-spacing:-.005em}
+.card .sub{font-size:10.5px; color:var(--ink-3); font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+.card p{margin:6px 0 0; font-size:11.5px; color:var(--ink-2)}
+.tags{display:flex; flex-wrap:wrap; gap:4px; margin-top:8px}
+.tag{
+  font-size:10px; padding:2px 7px; border-radius:999px;
+  background:color-mix(in srgb, var(--ac) 13%, var(--surface)); color:var(--ac-ink);
+  font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace; overflow-wrap:anywhere;
+}
+.tag.n{background:var(--surface-2); color:var(--ink-3); font-family:inherit}
+.tag.w{background:color-mix(in srgb, var(--warn) 16%, var(--surface)); color:var(--warn-ink); font-family:inherit}
+
+/* ── flow between lanes ─────────────────────────────────────────── */
+.seam{
+  display:flex; align-items:center; justify-content:center; gap:9px;
+  margin:-4px 0 8px; font-size:11px; color:var(--ink-3);
+}
+.seam svg{flex:none; color:var(--ink-3); opacity:.8}
+
+/* ── matrix ─────────────────────────────────────────────────────── */
+.tablewrap{overflow-x:auto}
+table{width:100%; border-collapse:collapse; font-size:11.5px; min-width:840px}
+th{
+  text-align:left; font-size:10px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--ink-3); font-weight:700; padding:0 10px 8px 0; white-space:nowrap;
+}
+td{padding:8px 10px 8px 0; border-top:1px solid var(--hair-2); color:var(--ink-2); vertical-align:top}
+td:first-child{color:var(--ink); font-weight:600; white-space:nowrap}
+td.y{color:var(--data-ink); font-weight:600}
+td.n{color:var(--ink-3)}
+
+/* ── notes ──────────────────────────────────────────────────────── */
+.notes{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:12px; margin-top:4px}
+.ncard{background:var(--surface); border-radius:16px; box-shadow:var(--shadow-sm); padding:14px 16px}
+.ncard h3{margin:0 0 8px; font-size:12.5px; font-weight:700}
+.ncard ul{margin:0; padding-left:17px; font-size:12px; color:var(--ink-2)}
+.ncard li+li{margin-top:7px}
+.ncard b{color:var(--ink)}
+.foot{margin-top:20px; font-size:11.5px; color:var(--ink-3)}
+
+@media (max-width:720px){
+  .rail{writing-mode:horizontal-tb; width:auto; padding:6px 0; letter-spacing:.1em}
+  .lane{flex-direction:column}
+  .stamp{margin-left:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <h1>系統架構</h1>
+      <p>11 個應用、5 個 Worker、9 個共用套件，以及它們實際綁定的 Cloudflare 資源。
+         內容取自各 app 的 <code>wrangler.toml</code> 與 <code>package.json</code>，不是示意圖。</p>
+    </div>
+    <div class="stamp">
+      使用者流程：<a href="./master-user-flow.html">master user flow</a><br>
+      逐步流程與 edge cases：<a href="../flows/boards/customer-ordering.html">docs/flows/</a><br>
+      對照原始碼：<b class="mono">2026-08-21</b>
+    </div>
+  </header>
+
+  <!-- ── 前端 ─────────────────────────────────────────────────── -->
+  <section class="lane" style="--ac:var(--front); --ac-ink:var(--front-ink)">
+    <div class="rail">前端</div>
+    <div class="lane-body">
+      <h2 class="lane-h">Cloudflare Pages <span>5 個 Vue 3 + TypeScript SPA，各自獨立部署</span></h2>
+      <div class="grid">
+        <div class="card">
+          <h3>顧客端</h3>
+          <div class="sub">customer-app · :3000</div>
+          <p>點餐、追蹤、候位、預約、市集。訪客可用。</p>
+          <div class="tags"><span class="tag">makanmasak.com</span><span class="tag n">PWA</span></div>
+        </div>
+        <div class="card">
+          <h3>店家後台</h3>
+          <div class="sub">admin-dashboard · :3001</div>
+          <p>店務、菜單、人事、分析、POS 收銀、送菜。</p>
+          <div class="tags"><span class="tag">admin.makanmasak.com</span></div>
+        </div>
+        <div class="card">
+          <h3>廚房顯示</h3>
+          <div class="sub">kitchen-display · :3002</div>
+          <p>工作佇列、逐項出餐，含離線佇列與重放。</p>
+          <div class="tags"><span class="tag">kitchen.makanmasak.com</span></div>
+        </div>
+        <div class="card">
+          <h3>管理總控台</h3>
+          <div class="sub">management-portal · :3010</div>
+          <p>租戶、授權、部署、平台監控。</p>
+          <div class="tags"><span class="tag">management.makanmasak.com</span></div>
+        </div>
+        <div class="card">
+          <h3>入駐申請</h3>
+          <div class="sub">onboarding-app · :3011</div>
+          <p>公開申請表單，無需帳號。</p>
+          <div class="tags"><span class="tag">onboarding.makanmasak.com</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="seam">
+    <svg width="14" height="20" viewBox="0 0 14 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M7 1v14"/><path d="m3.5 12 3.5 3.5 3.5-3.5"/></svg>
+    HTTPS ／ WebSocket
+  </div>
+
+  <!-- ── 邊緣 ─────────────────────────────────────────────────── -->
+  <section class="lane" style="--ac:var(--edge); --ac-ink:var(--edge-ink)">
+    <div class="rail">邊緣</div>
+    <div class="lane-body">
+      <h2 class="lane-h">Cloudflare Workers <span>5 個獨立部署的 Worker</span></h2>
+      <div class="grid">
+        <div class="card">
+          <h3>主 API</h3>
+          <div class="sub">apps/api · :8787</div>
+          <p>公開與後台 REST（Hono），596 個端點、48 個 feature 模組。</p>
+          <div class="tags"><span class="tag">api.makanmasak.com</span><span class="tag n">smart placement</span><span class="tag w">8 條 cron</span></div>
+        </div>
+        <div class="card">
+          <h3>管理 API</h3>
+          <div class="sub">management-api · :8789</div>
+          <p>控制平面：租戶、授權、部署、入駐。自成一套權杖體系。</p>
+          <div class="tags"><span class="tag">manage-api.makanmasak.com</span><span class="tag n">綁兩個 D1</span></div>
+        </div>
+        <div class="card">
+          <h3>即時服務</h3>
+          <div class="sub">realtime · :8788</div>
+          <p>Durable Object <code>RealtimeSession</code>，房間鍵 <code>{roomType}:{roomId}</code>。</p>
+          <div class="tags"><span class="tag">realtime.makanmasak.com</span><span class="tag n">WebSocket 休眠</span></div>
+        </div>
+        <div class="card">
+          <h3>影像處理</h3>
+          <div class="sub">image-processor · :8790</div>
+          <p>菜單圖片上傳與轉檔。<b>不經主 API</b>，後台直接打這裡。</p>
+          <div class="tags"><span class="tag">images.makanmasak.com</span><span class="tag w">cron 0 1 * * *</span></div>
+        </div>
+        <div class="card">
+          <h3>備份排程</h3>
+          <div class="sub">backup-scheduler</div>
+          <p>與主 API 共用原始碼（<code>apps/api/src/workers/backup-scheduler.ts</code>）。</p>
+          <div class="tags"><span class="tag n">無對外路由</span><span class="tag w">crons 目前為空</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── binding 矩陣 ─────────────────────────────────────────── -->
+  <section class="lane" style="--ac:var(--data); --ac-ink:var(--data-ink)">
+    <div class="rail">綁定</div>
+    <div class="lane-body">
+      <h2 class="lane-h">Binding 矩陣 <span>production 環境；哪個 Worker 拿得到哪個資源</span></h2>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Worker</th><th>D1</th><th>KV</th><th>R2</th><th>Durable Object</th>
+              <th>Queue</th><th>其他</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>api</td>
+              <td class="y">DB</td>
+              <td class="y">CACHE_KV · RATE_LIMIT_KV · BACKUP_KV · TOKEN_BLACKLIST</td>
+              <td class="y">BACKUP_STORAGE</td>
+              <td class="y">REALTIME_SESSION<br><span class="mono" style="font-size:10px">（跨 script → realtime）</span></td>
+              <td class="y">SEARCH_SYNC_QUEUE<br><span class="mono" style="font-size:10px">producer ＋ consumer</span></td>
+              <td class="y">AI · DISCOVERY_VECTORIZE · ANALYTICS · GLOBAL_RATE_LIMITER · MANAGEMENT_API（service）</td>
+            </tr>
+            <tr>
+              <td>management-api</td>
+              <td class="y">MANAGEMENT_DB<br>PLATFORM_DB</td>
+              <td class="y">CACHE_KV · DEPLOYMENT_STATUS_KV</td>
+              <td class="y">BUNDLE_STORAGE</td>
+              <td class="n">—</td><td class="n">—</td><td class="n">—</td>
+            </tr>
+            <tr>
+              <td>realtime</td>
+              <td class="y">DB</td>
+              <td class="y">CACHE_KV · TOKEN_BLACKLIST · RATE_LIMIT_KV</td>
+              <td class="n">—</td>
+              <td class="y">REALTIME_SESSION<br><span class="mono" style="font-size:10px">（本體，class 定義在此）</span></td>
+              <td class="n">—</td><td class="n">—</td>
+            </tr>
+            <tr>
+              <td>image-processor</td>
+              <td class="y">DB</td>
+              <td class="y">IMAGE_CACHE · TOKEN_BLACKLIST</td>
+              <td class="y">IMAGES_BUCKET</td>
+              <td class="n">—</td><td class="n">—</td><td class="n">—</td>
+            </tr>
+            <tr>
+              <td>backup-scheduler</td>
+              <td class="y">DB</td>
+              <td class="y">BACKUP_KV</td>
+              <td class="y">BACKUP_STORAGE</td>
+              <td class="n">—</td><td class="n">—</td>
+              <td class="y">ANALYTICS</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 資料層 ───────────────────────────────────────────────── -->
+  <section class="lane" style="--ac:var(--data); --ac-ink:var(--data-ink)">
+    <div class="rail">資料</div>
+    <div class="lane-body">
+      <h2 class="lane-h">資料與狀態層</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Cloudflare D1</h3>
+          <div class="sub">makanmasak-prod</div>
+          <p>主資料庫（SQLite 相容）。另有 <code>makanmakan-management</code> 供控制平面使用。探索查詢用 <code>withSession("first-unconstrained")</code> 分流到讀取副本，其餘查詢走主庫。</p>
+          <div class="tags"><span class="tag n">migrations_fresh</span><span class="tag n">探索查詢走讀取副本</span></div>
+        </div>
+        <div class="card">
+          <h3>Cloudflare KV</h3>
+          <div class="sub">6 個命名空間</div>
+          <p>查詢快取、速率限制、Token 黑名單、備份中繼、部署狀態、影像快取。</p>
+        </div>
+        <div class="card">
+          <h3>Cloudflare R2</h3>
+          <div class="sub">3 個 bucket</div>
+          <p>菜單圖片、資料庫備份、管理端部署包。</p>
+        </div>
+        <div class="card">
+          <h3>Durable Objects</h3>
+          <div class="sub">RealtimeSession</div>
+          <p>每個房間一個實例，WebSocket 休眠省費。</p>
+        </div>
+        <div class="card">
+          <h3>Cloudflare Queues</h3>
+          <div class="sub">search-sync ＋ DLQ</div>
+          <p>菜單異動 fan-out 重建索引。批次 25、逾時 10 秒、重試 3 次。</p>
+        </div>
+        <div class="card">
+          <h3>Workers AI · Vectorize</h3>
+          <div class="sub">@cf/baai/bge-m3</div>
+          <p>探索頁語意檢索與商品洞察。</p>
+        </div>
+        <div class="card">
+          <h3>Analytics Engine</h3>
+          <div class="sub">makanmasak-metrics</div>
+          <p>API 延遲與錯誤率，供健康端點與監控儀表板使用。</p>
+        </div>
+        <div class="card">
+          <h3>Rate Limiting binding</h3>
+          <div class="sub">GLOBAL_RATE_LIMITER</div>
+          <p>每 60 秒 100 次的全域 per-IP 限流，其他限流疊在它之上。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 套件 ─────────────────────────────────────────────────── -->
+  <section class="lane" style="--ac:var(--pkg); --ac-ink:var(--pkg-ink)">
+    <div class="rail">套件</div>
+    <div class="lane-body">
+      <h2 class="lane-h">共用套件 <span>packages/ · Turborepo workspace</span></h2>
+      <div class="grid">
+        <div class="card">
+          <h3>shared-types</h3>
+          <div class="sub">無相依</div>
+          <p>訂單狀態、付款方式、角色等所有跨層型別的單一真相。被最多人引用。</p>
+        </div>
+        <div class="card">
+          <h3>utils</h3>
+          <div class="sub">無相依</div>
+          <p>ApiError、金額換算、token 解析等純函式。</p>
+        </div>
+        <div class="card">
+          <h3>database</h3>
+          <div class="sub">→ utils</div>
+          <p>Drizzle schema 與服務層：訂單、菜單、候位、訂位、廣播。</p>
+        </div>
+        <div class="card">
+          <h3>shared · auth-client</h3>
+          <div class="sub">前端共用</div>
+          <p>UI 元件與前端認證用戶端。</p>
+        </div>
+        <div class="card">
+          <h3>i18n</h3>
+          <div class="sub">packages/shared/src/i18n</div>
+          <p>6 個語系：zh-TW · zh-CN · en-US · ms-MY · vi-VN · id-ID。它是獨立的 workspace 套件，只是實體位置巢狀在 <code>shared</code> 底下。</p>
+        </div>
+        <div class="card">
+          <h3>ai-analytics</h3>
+          <div class="sub">→ database, shared-types</div>
+          <p>商品分析與洞察產生。</p>
+        </div>
+        <div class="card">
+          <h3>queue-core · queue-service</h3>
+          <div class="sub">→ shared-types</div>
+          <p>ESC/POS 驅動、列印工作佇列、印表機健康監控。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 店內 ─────────────────────────────────────────────────── -->
+  <section class="lane" style="--ac:var(--local); --ac-ink:var(--local-ink)">
+    <div class="rail">店內</div>
+    <div class="lane-body">
+      <h2 class="lane-h">本地常駐服務 <span>唯一不在 Cloudflare 上跑的東西</span></h2>
+      <div class="grid">
+        <div class="card">
+          <h3>列印代理</h3>
+          <div class="sub">print-agent · :3003 HTTP ／ :3004 WS</div>
+          <p>Node + Express，USB 與網路印表機、ESC/POS。<b>它是伺服器，等別人連進來</b>——雲端目前不會主動找它。</p>
+          <div class="tags"><span class="tag w">與雲端尚未接通</span><span class="tag n">issue #226</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 外部 ─────────────────────────────────────────────────── -->
+  <section class="lane" style="--ac:var(--ext); --ac-ink:var(--ext-ink)">
+    <div class="rail">外部</div>
+    <div class="lane-body">
+      <h2 class="lane-h">第三方系統</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>金流</h3>
+          <p>綠界 ECPay · 藍新 NewebPay · LINE Pay · FPX · Touch'n Go · GrabPay · MoMo · ZaloPay · VietQR · VNPay</p>
+          <div class="tags"><span class="tag n">webhook 驗簽後才認列</span></div>
+        </div>
+        <div class="card">
+          <h3>外送平台</h3>
+          <p>Uber Eats · foodpanda（HMAC webhook）· GrabFood</p>
+        </div>
+        <div class="card">
+          <h3>簡訊供應商</h3>
+          <p>三竹 mitake · every8d · Twilio。未設定時 production 的 OTP 直接 503，不假裝送出。</p>
+        </div>
+        <div class="card">
+          <h3>Slack</h3>
+          <p>錯誤追蹤與營運告警。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── notes ────────────────────────────────────────────────── -->
+  <section class="lane" style="--ac:var(--ink-3); --ac-ink:var(--ink-2)">
+    <div class="rail">備註</div>
+    <div class="lane-body">
+      <h2 class="lane-h">六個容易誤解的地方</h2>
+      <div class="notes">
+        <div class="ncard">
+          <h3>控制平面是分開的</h3>
+          <ul>
+            <li>租戶、授權、部署、入駐走 <b>management-api</b>，與各店營運的主 API 分開部署、分開網域。</li>
+            <li>management-api 同時綁 <code>MANAGEMENT_DB</code> 與 <code>PLATFORM_DB</code>——核准入駐時一次寫兩個資料庫，靠補償而非交易維持一致。</li>
+            <li>主 API 反向透過 <b>service binding</b> <code>MANAGEMENT_API</code> 呼叫它，不走公開網路。</li>
+            <li>兩邊的權杖<b>不通用</b>：staff JWT 打不進管理 API。</li>
+          </ul>
+        </div>
+        <div class="ncard">
+          <h3>Durable Object 的本體在 realtime</h3>
+          <ul>
+            <li><code>RealtimeSession</code> 的 class 定義與 migration 都在 <b>realtime</b> Worker。</li>
+            <li>主 API 是<b>跨 script 綁定</b>（<code>script_name = "makanmasak-realtime-prod"</code>），所以兩者的部署有順序關係——realtime 先上。</li>
+            <li><code>REALTIME_SESSION</code> 沒綁定時廣播會靜默跳過並回報成功，訂單狀態照樣寫入 DB。</li>
+          </ul>
+        </div>
+        <div class="ncard">
+          <h3>菜單圖片不經主 API</h3>
+          <ul>
+            <li>後台直接打 <b>image-processor</b>（<code>VITE_IMAGE_API_URL</code>），由它寫進 R2 <code>IMAGES_BUCKET</code>。</li>
+            <li>主 API 的 <code>Env</code> 型別雖然宣告了 <code>IMAGES_BUCKET</code>，它的 <code>wrangler.toml</code> <b>沒有這個 binding</b>——那是殘留宣告，不要照著用。</li>
+            <li>主 API 的 R2 只有 <code>BACKUP_STORAGE</code>。</li>
+          </ul>
+        </div>
+        <div class="ncard">
+          <h3>排程幾乎都在主 API</h3>
+          <ul>
+            <li>主 API 掛 <b>8 條 cron</b>：token 清理、用量彙總、市集對帳、揪團過期、帳務週期、試用回收、代幣到期等。</li>
+            <li>image-processor 有 1 條（每日 01:00）。</li>
+            <li><b>backup-scheduler 的 crons 是刻意留空的。</b>災難復原靠的是 <code>makanmasak-prod</code> 上的 <b>D1 Time Travel</b>，與那個 Worker 無關。空陣列才會在部署時清掉既有排程，刪掉整個區塊反而會讓舊排程繼續跑。</li>
+          </ul>
+        </div>
+        <div class="ncard">
+          <h3>限流是分層的，不要合併</h3>
+          <ul>
+            <li>最底層是 <code>GLOBAL_RATE_LIMITER</code>（每 IP 每 60 秒 100 次）。</li>
+            <li>訪客下單另外疊一層<b>每（餐廳, IP）</b>的節流。</li>
+            <li>把全域限流器改成以餐廳為 key，會讓攻擊者的額度乘上餐廳數量——反而更便宜。</li>
+          </ul>
+        </div>
+        <div class="ncard">
+          <h3>wrangler 設定的兩個地雷</h3>
+          <ul>
+            <li><b>不要重新加回 <code>inspector_port</code>。</b>4 個 Worker 的 <code>wrangler.toml</code> 都刻意註解掉——任何值都會讓 Windows 上的 <code>pnpm dev</code> 直接 <code>std::terminate</code>。需要固定 DevTools 埠請用 CLI 旗標。</li>
+            <li>新資料表一律建成 <code>STRICT</code>，否則 SQLite 會靜默把 TEXT 塞進 <code>INTEGER NOT NULL</code> 欄位；drizzle-kit 不會產生這個關鍵字，要手動補。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">內容取自各 app 的 <span class="mono">wrangler.toml</span>、<span class="mono">package.json</span> 與原始碼。改動綁定或新增 Worker 時請同步更新本圖。</p>
+</div>
+</body>
+</html>

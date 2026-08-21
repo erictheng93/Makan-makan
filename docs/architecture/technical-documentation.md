@@ -26,7 +26,15 @@
 
 ## 🏗️ 系統架構設計
 
-### 總體架構圖
+> **⚠️ 下面這張 ASCII 圖已過時，僅保留作為歷史紀錄。**
+> 現行的架構圖是 **[system-architecture.html](./system-architecture.html)**（取自各 app 的 `wrangler.toml`）。
+> 舊圖與現況的差異：畫著一個獨立的「QR Code Generator」Worker（不存在），
+> 缺少 `management-api`、`realtime`、`image-processor`、`backup-scheduler` 四個實際部署的 Worker，
+> 也缺少 Queues、Vectorize、Workers AI、service binding 與 Durable Object 的跨 script 關係。
+> 本節後面的資料表 SQL 同樣是早期草稿（`users` 用 INTEGER PK ＋ email 登入），
+> 與現行 schema 不符——schema 的真相在 `packages/database/src/schema/`。
+
+### 總體架構圖（已過時，見上方說明）
 
 ```
                         ┌─────────────────────┐

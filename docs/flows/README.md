@@ -17,6 +17,7 @@
 
 | 層級 | 位置 | 回答什麼 | 與實作的關係 |
 | --- | --- | --- | --- |
+| 系統組成 | [architecture/system-architecture.html](../architecture/system-architecture.html) | 系統由哪些東西組成、誰綁了什麼資源 | 對齊現況 |
 | L0 全景 | [architecture/master-user-flow.html](../architecture/master-user-flow.html) | 有誰、有哪些流程、怎麼串 | 對齊現況 |
 | **L1 流程** | **本目錄** | **逐步怎麼跑、分支在哪、會怎麼壞** | **對齊現況，含已知缺口** |
 | L2 規格 | [specs/](../specs/)、[superpowers/specs/](../superpowers/specs/) | 某次改動的決策、資料模型、驗收條件 | 寫作當下的快照 |

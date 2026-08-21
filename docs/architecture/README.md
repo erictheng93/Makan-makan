@@ -134,30 +134,33 @@
 
 ## 📊 架構圖示
 
-### 系統架構層次
+**權威來源：[system-architecture.html](./system-architecture.html)** — 11 個應用、5 個 Worker、9 個共用套件，
+以及每個 Worker 實際綁定的 D1 / KV / R2 / Durable Object / Queue / Vectorize / AI 資源。內容取自各 app 的
+`wrangler.toml` 與 `package.json`。
+
+搭配閱讀：
+
+| 圖 | 回答什麼 |
+| --- | --- |
+| [system-architecture.html](./system-architecture.html) | 系統由哪些東西組成、誰綁了什麼資源 |
+| [master-user-flow.html](./master-user-flow.html) | 誰在用、有哪些流程、怎麼串 |
+| [../flows/](../flows/) | 每一條流程逐步怎麼跑、會怎麼壞 |
+
+### 系統架構層次（簡化版）
 
 ```
-┌─────────────────────────────────────────────┐
-│ Frontend Layer (Vue.js 3 + TypeScript)      │
-│ - Customer App (PWA)                        │
-│ - Admin Dashboard                           │
-│ - Kitchen Display                           │
-└─────────────────────────────────────────────┘
-                    ↓
-┌─────────────────────────────────────────────┐
-│ Edge Layer (Cloudflare Workers)             │
-│ - API Endpoints                             │
-│ - Realtime Services (Durable Objects)       │
-│ - Authentication & Authorization            │
-└─────────────────────────────────────────────┘
-                    ↓
-┌─────────────────────────────────────────────┐
-│ Data Layer                                   │
-│ - D1 Database (SQLite)                      │
-│ - KV Store (Cache)                          │
-│ - R2 Storage (Images)                       │
-└─────────────────────────────────────────────┘
+Cloudflare Pages   customer-app · admin-dashboard · kitchen-display
+                   management-portal · onboarding-app
+                            ↓  HTTPS / WebSocket
+Cloudflare Workers api · management-api · realtime · image-processor
+                   backup-scheduler
+                            ↓  bindings
+Data & State       D1（主庫＋管理庫）· KV ×6 · R2 ×3 · Durable Objects
+                   Queues ＋ DLQ · Vectorize · Workers AI · Analytics Engine
 ```
+
+> 店內另有一個不在 Cloudflare 上跑的 `print-agent`（本機 Node 常駐服務），
+> 目前與雲端尚未接通，見 [flows/12-floor-printing.md](../flows/12-floor-printing.md)。
 
 ### 核心技術棧
 

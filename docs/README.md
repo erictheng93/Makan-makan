@@ -18,6 +18,7 @@
 
 | Directory / Document                                                 | Contents                                                          |
 | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| [architecture/system-architecture.html](./architecture/system-architecture.html) | **系統架構圖** — 11 個應用、5 個 Worker、9 個共用套件與每個 Worker 的 binding 矩陣（取自 `wrangler.toml`） |
 | [architecture/](./architecture/)                                     | System architecture, technical specs                              |
 | [architecture/database/](./architecture/database/)                   | D1 database design and optimization, incl. the users/orders UUID v7 primary-key migration phases (`GREENFIELD_UUID_PK_RESET_PLAN.md`, `USERS_UUID_PK_PHASE_E_DEPENDENCY_MAP.md`, `ORDERS_UUID_PK_PHASE_C_DEPENDENCY_MAP.md`, `USERS_UUID_AUTH_PHASE_D_PLAN.md`, `UUID_V7_PK_MIGRATION_DRILL.md`) |
 | [architecture/system-design/](./architecture/system-design/)         | Modular architecture, notification system, queue design           |
@@ -32,6 +33,7 @@
 | Document | Contents |
 | --- | --- |
 | [flows/README.md](./flows/README.md) | 索引、模板、與其他文件層的分工 |
+| [architecture/system-architecture.html](./architecture/system-architecture.html) | 系統由哪些東西組成、誰綁了什麼資源 |
 | [architecture/master-user-flow.html](./architecture/master-user-flow.html) | L0 全景板：有誰、有哪些流程、怎麼串 |
 | [flows/00–04](./flows/) | 訪客與認證、顧客點餐、訂單狀態鏈、座位與預約、揪團與市集 |
 | [flows/05–08](./flows/) | 店務、營運管理、人事、分析與訂閱 |
