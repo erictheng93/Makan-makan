@@ -99,8 +99,13 @@ describe("Role gap coverage: reservations & order status transitions", () => {
       String(restaurant.id),
     );
 
+    // Seeded confirmed, not pending: seating is what this case checks the
+    // service role is allowed to do, and RESERVATION_TRANSITIONS only permits
+    // it from confirmed or arrived. Left pending, the seat below would 409 on
+    // the state machine and stop exercising the role boundary at all.
     const reservationA = await insertReservationForRestaurant(
       String(restaurant.id),
+      "confirmed",
     );
     const reservationB = await insertReservationForRestaurant(
       String(crossRestaurant.id),

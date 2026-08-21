@@ -1,4 +1,5 @@
 import type { D1Database } from "@cloudflare/workers-types";
+import { ReservationStatus } from "@makanmasak/shared-types";
 import type {
   AvailabilityRequest,
   AvailabilityResponse,
@@ -10,7 +11,6 @@ import type {
   ReservationResponse,
   ReservationSlot,
   ReservationStats,
-  ReservationStatus,
   TableAssignmentRequest,
   TableAssignmentResult,
   TimeSlotAvailability,
@@ -28,6 +28,7 @@ import {
   type ReservationNotifier,
 } from "./ReservationNotificationService";
 import { DEFAULT_TABLE_OCCUPANCY_MS } from "./table-state";
+import { assertReservationTransition } from "./ticket-primitives/reservation-state-machine";
 
 interface ReservationDbRow {
   id: string;
@@ -478,15 +479,24 @@ export class ReservationService extends BaseService {
   ): Promise<ReservationResponse> {
     try {
       const now = Date.now();
-      await this.requireReservation(id, restaurantId);
+      const reservation = await this.requireReservation(id, restaurantId);
+      assertReservationTransition(
+        reservation.status,
+        ReservationStatus.CONFIRMED,
+      );
 
-      await this.db.run(sql`
+      const transition = await this.db.run(sql`
         UPDATE reservations
         SET status = 'confirmed',
             confirmed_at = ${now},
             updated_at = ${now}
         WHERE id = ${id}${this.tenantScope(restaurantId)}
+          AND status = ${reservation.status}
       `);
+
+      if (getMutationChanges(transition) !== 1) {
+        return (await this.getReservationById(id)) as ReservationResponse;
+      }
 
       const updated = await this.getReservationById(id);
       if (updated) {
@@ -509,15 +519,24 @@ export class ReservationService extends BaseService {
   ): Promise<ReservationResponse> {
     try {
       const now = Date.now();
-      await this.requireReservation(id, restaurantId);
+      const reservation = await this.requireReservation(id, restaurantId);
+      assertReservationTransition(
+        reservation.status,
+        ReservationStatus.ARRIVED,
+      );
 
-      await this.db.run(sql`
+      const transition = await this.db.run(sql`
         UPDATE reservations
         SET status = 'arrived',
             arrived_at = ${now},
             updated_at = ${now}
         WHERE id = ${id}${this.tenantScope(restaurantId)}
+          AND status = ${reservation.status}
       `);
+
+      if (getMutationChanges(transition) !== 1) {
+        return (await this.getReservationById(id)) as ReservationResponse;
+      }
 
       return this.getReservationById(id) as Promise<ReservationResponse>;
     } catch (error) {
@@ -536,14 +555,20 @@ export class ReservationService extends BaseService {
     try {
       const now = Date.now();
       const reservation = await this.requireReservation(id, restaurantId);
+      assertReservationTransition(reservation.status, ReservationStatus.SEATED);
 
-      await this.db.run(sql`
+      const transition = await this.db.run(sql`
         UPDATE reservations
         SET status = 'seated',
             seated_at = ${now},
             updated_at = ${now}
         WHERE id = ${id}${this.tenantScope(restaurantId)}
+          AND status = ${reservation.status}
       `);
+
+      if (getMutationChanges(transition) !== 1) {
+        return (await this.getReservationById(id)) as ReservationResponse;
+      }
 
       // 更新桌位狀態為 occupied
       if (reservation.tableId) {
@@ -569,14 +594,23 @@ export class ReservationService extends BaseService {
     try {
       const now = Date.now();
       const reservation = await this.requireReservation(id, restaurantId);
+      assertReservationTransition(
+        reservation.status,
+        ReservationStatus.COMPLETED,
+      );
 
-      await this.db.run(sql`
+      const transition = await this.db.run(sql`
         UPDATE reservations
         SET status = 'completed',
             completed_at = ${now},
             updated_at = ${now}
         WHERE id = ${id}${this.tenantScope(restaurantId)}
+          AND status = ${reservation.status}
       `);
+
+      if (getMutationChanges(transition) !== 1) {
+        return (await this.getReservationById(id)) as ReservationResponse;
+      }
 
       // 釋放桌位
       if (reservation.tableId) {

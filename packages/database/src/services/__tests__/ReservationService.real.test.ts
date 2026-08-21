@@ -424,6 +424,90 @@ describe("ReservationService status notifications — real D1", () => {
   });
 });
 
+describe("ReservationService forward status transitions — real D1", () => {
+  const forwardTransitions: Array<[string, (id: string) => Promise<unknown>]> =
+    [
+      ["confirm", (id) => service.confirmReservation(id)],
+      ["arrive", (id) => service.markArrived(id)],
+      ["seat", (id) => service.markSeated(id)],
+      ["complete", (id) => service.completeReservation(id)],
+    ];
+
+  for (const terminalStatus of ["completed", "cancelled", "no_show"]) {
+    for (const [action, run] of forwardTransitions) {
+      it(`rejects ${action} from the ${terminalStatus} terminal state`, async () => {
+        const consoleError = vi
+          .spyOn(console, "error")
+          .mockImplementation(() => undefined);
+        const id = `rsv-${terminalStatus}-${action}`;
+        await seedReservation(testDb, id, { status: terminalStatus });
+
+        await expect(run(id)).rejects.toMatchObject({
+          code: "INVALID_STATUS_TRANSITION",
+          status: 409,
+        });
+        expect(await statusOf(testDb, id)).toBe(terminalStatus);
+        consoleError.mockRestore();
+      });
+    }
+  }
+
+  it("rejects a replayed arrival without overwriting arrived_at", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    await seedReservation(testDb, "rsv-arrive-replay");
+
+    await service.markArrived("rsv-arrive-replay");
+    const firstArrival = await testDb.db
+      .prepare(`SELECT arrived_at FROM reservations WHERE id = ?`)
+      .bind("rsv-arrive-replay")
+      .first<{ arrived_at: number }>();
+
+    await expect(
+      service.markArrived("rsv-arrive-replay"),
+    ).rejects.toMatchObject({
+      code: "INVALID_STATUS_TRANSITION",
+      status: 409,
+    });
+    const replayedArrival = await testDb.db
+      .prepare(`SELECT arrived_at FROM reservations WHERE id = ?`)
+      .bind("rsv-arrive-replay")
+      .first<{ arrived_at: number }>();
+
+    expect(replayedArrival?.arrived_at).toBe(firstArrival?.arrived_at);
+    consoleError.mockRestore();
+  });
+
+  it("seats a concurrent reservation once and marks its table occupied once", async () => {
+    await seedTable(testDb, 60);
+    await seedReservation(testDb, "rsv-seat-race", { status: "confirmed" });
+    await testDb.db
+      .prepare(`UPDATE reservations SET table_id = ? WHERE id = ?`)
+      .bind(60, "rsv-seat-race")
+      .run();
+    const updateTableStatus = vi.spyOn(
+      service as unknown as {
+        updateTableStatus: (
+          tableId: number,
+          status: string,
+          reservationId?: string,
+        ) => Promise<void>;
+      },
+      "updateTableStatus",
+    );
+
+    const results = await Promise.allSettled([
+      service.markSeated("rsv-seat-race"),
+      service.markSeated("rsv-seat-race"),
+    ]);
+
+    expect(results.some((result) => result.status === "fulfilled")).toBe(true);
+    expect(updateTableStatus).toHaveBeenCalledTimes(1);
+    expect(await statusOf(testDb, "rsv-seat-race")).toBe("seated");
+  });
+});
+
 describe("ReservationService.listReservations — real D1", () => {
   it("filters by restaurantId and returns matching rows + total", async () => {
     await seedRestaurant(testDb, OTHER_RESTAURANT_ID);
@@ -983,7 +1067,10 @@ describe("ReservationService status transitions are tenant-scoped — real D1", 
         ) => Promise<unknown>;
       },
       "requireReservation",
-    ).mockResolvedValue({ restaurantId: OTHER_RESTAURANT_ID });
+    ).mockResolvedValue({
+      restaurantId: OTHER_RESTAURANT_ID,
+      status: ReservationStatus.PENDING,
+    });
 
     await service.confirmReservation("rsv-tenant-a", OTHER_RESTAURANT_ID);
 
