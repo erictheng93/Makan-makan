@@ -46,6 +46,23 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 - Delete `safeTransaction` from `BaseService` (`packages/database/src/services/base.ts`) so interactive transaction usage cannot be reintroduced — nothing calls it anymore, this is now dead code, not a migration
 - Remove/update `base.test.ts`'s coverage of `safeTransaction` accordingly
 
+## billing / metering cost
+
+### Stop writing one D1 row per API request for the `api.requests` meter
+
+**Priority:** P2 **Status:** Open (identified 2026-08-21) **Files:** `apps/api/src/middleware/usageTracker.ts`, `apps/api/src/shared/utils/meter.ts`, `apps/api/src/workers/usage-aggregator.ts`
+
+**Context:** `usageTracker` is mounted on `apiV1.use("*")` and emits `api.requests` through `meterEmit`, which does one `INSERT INTO usage_events` per request. `usage_events` carries two indexes that a fresh insert touches (`usage_events_restaurant_meter_time_idx`, and `usage_events_pending_idx`, which is partial on `aggregated_at_ms IS NULL` — exactly the state a new row is in), so each request costs roughly 3 D1 rows written, and the hourly aggregator's `UPDATE` of `aggregated_at_ms` adds more. D1 bills rows written at $1.00/M over 50M/month included. At the `pro` tier's own hard cap of 1,000,000 `api.requests` per cycle, 50 pro tenants is ~150M rows written/month.
+
+**Do not move this meter to Analytics Engine.** It is not telemetry: `plan-quotas.ts` gives it soft/hard limits per plan tier, and `BillingCycleService.ts:66-75` computes billable overage as `total_quantity - hardLimit`. Analytics Engine samples at volume, so it cannot be the store of record for an invoiced quantity. (This corrects the first-pass recommendation from the 2026-08-21 cost review.)
+
+**Scope — pick one, both are real design changes:**
+
+- **In-isolate coalescing.** Buffer counts per `(restaurantId, meterKey)` in module scope and flush an aggregated row via `waitUntil` on a size or age threshold. Cuts rows written by roughly the batch factor. Cost: an isolate evicted with a non-empty buffer loses those counts. Undercounting only ever bills the customer less, which is the safe direction for an overage charge, but it makes the number non-reproducible — decide whether that is acceptable before building it.
+- **Per-restaurant counter Durable Object.** Exact, because the object is a single serialization point: increment in memory for free, persist on an alarm (~1/min). Turns 1M writes into ~1,440. Cost: one DO request per API request ($0.15/M over 1M/month free) plus DO compute, and a second DO class to declare — which must use `new_sqlite_classes` (see `apps/realtime/wrangler.toml` for why).
+
+**Also worth deciding separately:** `USAGE_EVENTS_TTL_DAYS` is 90. Rows are aggregated into `usage_meters` within the hour and then exist only as dispute evidence. Dropping to ~35 days (one cycle plus a buffer) cuts the table's D1 storage by roughly 60% and is a business call, not a technical one.
+
 ## payments / provider integrations
 
 ### Defer real payment acquirer integration
