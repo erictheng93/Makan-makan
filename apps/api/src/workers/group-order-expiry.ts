@@ -15,7 +15,10 @@ import { drizzle } from "drizzle-orm/d1";
 import { and, eq, gt, isNotNull, isNull, lt, lte } from "drizzle-orm";
 import { groupActivityLogs, groupOrders } from "@makanmasak/database";
 import type { GroupOrderSettings } from "@makanmasak/shared-types";
-import { GroupOrdersService } from "../features/group-orders/services/GroupOrdersService";
+import {
+  EMPTY_GROUP_ORDER_ERROR,
+  GroupOrdersService,
+} from "../features/group-orders/services/GroupOrdersService";
 import type { GroupOrderStatus } from "../features/group-orders/types";
 import type { Env } from "../types/env";
 
@@ -184,6 +187,23 @@ export async function sweepExpiringGroupOrders(
       const finalizeResult = await serviceFactory(env).finalizeGroupOrder(
         groupOrder.id,
       );
+
+      // An expired group with nothing in it was abandoned, not broken.
+      // Finalization refuses it without touching its status, so left as an
+      // error it stays `active` past its expiry and is re-selected by every
+      // subsequent sweep — the same failure logged forever, and 500 rows of
+      // sweep budget slowly filling with groups that can never succeed.
+      if (
+        !finalizeResult.success &&
+        finalizeResult.error === EMPTY_GROUP_ORDER_ERROR
+      ) {
+        if (await cancelExpiredGroupOrder(db, groupOrder, now)) {
+          await invalidateGroupOrderCache(env, groupOrder);
+          result.cancelled++;
+        }
+        continue;
+      }
+
       if (!finalizeResult.success) {
         result.errors.push(
           `${groupOrder.id}: ${

@@ -125,6 +125,13 @@ import type {
 import { parseGroupOrderStatus } from "../types";
 
 /**
+ * Returned when finalization is asked to build an order out of nothing. The
+ * expiry sweep matches on it to tell an abandoned group apart from a genuine
+ * finalization failure, so it is a shared constant rather than a literal.
+ */
+export const EMPTY_GROUP_ORDER_ERROR = "Cannot finalize an empty group order";
+
+/**
  * Default member permissions applied to a new group order and used as the
  * baseline when formatting a stored group order whose settings only carry a
  * partial permissions object.
@@ -1194,7 +1201,13 @@ export class GroupOrdersService implements IGroupOrderService {
         return { success: false, error: "Group order not found" };
       }
 
-      if (groupOrder.masterOrderId) {
+      // `masterOrderId` alone does not mean the group finalized. It is written
+      // three times: on claim (`finalizing`), on split-bill failure
+      // (`finalizing_failed`, with a real order already created), and on
+      // success (`completed`). Only the last is idempotently repeatable —
+      // reporting the other two as completed would hide a split that never
+      // happened behind a success the caller has no reason to re-check.
+      if (groupOrder.masterOrderId && groupOrder.status === "completed") {
         return {
           success: true,
           data: {
@@ -1251,7 +1264,7 @@ export class GroupOrdersService implements IGroupOrderService {
       if (cartItems.length === 0) {
         return {
           success: false,
-          error: "Cannot finalize an empty group order",
+          error: EMPTY_GROUP_ORDER_ERROR,
         };
       }
 
@@ -1275,7 +1288,9 @@ export class GroupOrdersService implements IGroupOrderService {
           .where(eq(groupOrders.id, groupOrderId));
         const current = currentRows[0];
 
-        if (current?.masterOrderId) {
+        // Same rule as the pre-claim check above: the racing finalizer may
+        // have recorded a master order and then failed its split.
+        if (current?.masterOrderId && current.status === "completed") {
           return {
             success: true,
             data: {

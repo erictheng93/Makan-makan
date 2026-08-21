@@ -4,6 +4,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { and, eq } from "drizzle-orm";
 import { groupActivityLogs, groupOrders } from "@makanmasak/database";
 import type { GroupOrderSettings } from "@makanmasak/shared-types";
+import { EMPTY_GROUP_ORDER_ERROR } from "../features/group-orders/services/GroupOrdersService";
 import {
   GROUP_ORDER_EXPIRY_WARNING_MS,
   GROUP_ORDER_FINALIZING_STALE_MS,
@@ -180,6 +181,42 @@ describe("sweepExpiringGroupOrders", () => {
       "group_order_summary:cancel-1",
       "share_code:CANCEL-1",
     ]);
+  });
+
+  it("cancels an expired group whose cart is empty rather than failing it every sweep", async () => {
+    const db = createDb();
+    const env = createEnv();
+    await seed(db, [
+      {
+        id: "empty-1",
+        status: "active",
+        expiresAt: new Date(now.getTime() - 1),
+        settings: { autoSubmitOnExpiry: true },
+      },
+    ]);
+
+    const finalizeGroupOrder = vi.fn(async () => ({
+      success: false,
+      error: EMPTY_GROUP_ORDER_ERROR,
+    }));
+
+    await expect(
+      sweepExpiringGroupOrders(env, {
+        now,
+        db,
+        serviceFactory: () => ({ finalizeGroupOrder }),
+      }),
+    ).resolves.toEqual({
+      finalized: 0,
+      cancelled: 1,
+      warned: 0,
+      errors: [],
+    });
+
+    // Cancelled, so the next sweep's `status = 'active'` filter no longer
+    // selects it — that is what stops the every-five-minutes error loop.
+    expect((await readRow(db, "empty-1"))?.status).toBe("cancelled");
+    expect(finalizeGroupOrder).toHaveBeenCalledOnce();
   });
 
   it("marks five-minute expiry warnings once in settings", async () => {

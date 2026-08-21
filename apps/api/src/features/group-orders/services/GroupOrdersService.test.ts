@@ -2851,6 +2851,38 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         ]),
       );
     });
+
+    it("refuses to retry a group whose split failed, rather than reporting its recorded master order as completed", async () => {
+      const { service, createOrder } = createFinalizeService({
+        groupOrder: {
+          ...baseGroupOrder,
+          status: "finalizing_failed",
+          masterOrderId: "order-1",
+        },
+      });
+
+      await expect(service.finalizeGroupOrder("group-1")).resolves.toEqual({
+        success: false,
+        error: "Group order finalization previously failed",
+      });
+      expect(createOrder).not.toHaveBeenCalled();
+    });
+
+    it("refuses to retry while a master order exists but the claim is still in flight", async () => {
+      const { service, createOrder } = createFinalizeService({
+        groupOrder: {
+          ...baseGroupOrder,
+          status: "finalizing",
+          masterOrderId: "order-1",
+        },
+      });
+
+      await expect(service.finalizeGroupOrder("group-1")).resolves.toEqual({
+        success: false,
+        error: "Group order is already being finalized",
+      });
+      expect(createOrder).not.toHaveBeenCalled();
+    });
   });
 
   describe("processPayment — Plan A manual settlement", () => {
