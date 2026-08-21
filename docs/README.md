@@ -25,6 +25,20 @@
 | [night-market-vision-roadmap.md](./night-market-vision-roadmap.md)   | Night-market/商圈 platform vision, gap analysis, and roadmap (source of truth for how far the marketplace layer is from vision) |
 | [night-market-scaling-execution.md](./night-market-scaling-execution.md) | Night-market discovery scaling execution record (D1 read replicas, queue fan-out, FTS5 trigram search) |
 
+### Flows (逐步流程與 edge cases)
+
+以流程為單位、對照實際端點與狀態的文件層：全景板看形狀，這裡看步驟、分支與失敗模式，spec 看某次改動的決策。
+
+| Document | Contents |
+| --- | --- |
+| [flows/README.md](./flows/README.md) | 索引、模板、與其他文件層的分工 |
+| [architecture/master-user-flow.html](./architecture/master-user-flow.html) | L0 全景板：有誰、有哪些流程、怎麼串 |
+| [flows/00–04](./flows/) | 訪客與認證、顧客點餐、訂單狀態鏈、座位與預約、揪團與市集 |
+| [flows/05–08](./flows/) | 店務、營運管理、人事、分析與訂閱 |
+| [flows/09–12](./flows/) | 廚房、送菜、收銀、出單與列印 |
+| [flows/13–16](./flows/) | 入駐、租戶與授權、平台營運、監控與稽核 |
+| [flows/boards/](./flows/boards/) | 四張關鍵流程的細節圖（點餐、訂單狀態鏈、收款退款、市集結帳） |
+
 ### Specifications
 
 Authoritative product/system specs for shipped or in-flight features. These are the source of truth for feature behavior — separate from the dated design drafts in [superpowers/specs/](./superpowers/specs/).
@@ -150,6 +164,7 @@ Role-based guides in 6 languages (zh-TW, en-US, ja-JP, vi-VN, id-ID, fil-PH):
 **I want to...**
 
 - **Start developing** → Read [CLAUDE.md](../CLAUDE.md)
+- **Understand how a flow actually runs (and where it breaks)** → See [flows/](./flows/)
 - **Understand the API** → See [api/](./api/)
 - **Write tests** → See [testing/guides/TESTING_GUIDE.md](./testing/guides/TESTING_GUIDE.md)
 - **Deploy** → See [deployment/DEPLOYMENT_GUIDE.md](./deployment/DEPLOYMENT_GUIDE.md)
@@ -158,4 +173,4 @@ Role-based guides in 6 languages (zh-TW, en-US, ja-JP, vi-VN, id-ID, fil-PH):
 
 ---
 
-**Last Updated**: 2026-07-05
+**Last Updated**: 2026-08-21

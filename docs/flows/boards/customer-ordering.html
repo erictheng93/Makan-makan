@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>顧客點餐主流程 — 細節圖</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="./board.css">
+<style>:root{--ac:var(--cust); --ac-ink:var(--cust-ink)}</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <h1>顧客點餐主流程</h1>
+      <p>從掃碼到訂單成立。順序本身就是設計：最便宜的檢查排在最前面，讓洪水攻擊者付不起後面的成本。</p>
+    </div>
+    <div class="crumbs">
+      全景板：<a href="../../architecture/master-user-flow.html">master user flow</a><br>
+      流程文件：<a href="../01-customer-ordering.md">01-customer-ordering.md</a><br>
+      對照原始碼：<span class="mono">2026-08-21</span>
+    </div>
+  </header>
+
+  <section class="sec">
+    <h2>前端</h2>
+    <p class="lede">購物車只存在瀏覽器裡，不落資料庫；關掉分頁就沒了。</p>
+    <div class="ladder">
+
+      <div class="step">
+        <div class="n">1</div>
+        <div class="body">
+          <h3>掃描 QR</h3>
+          <p>桌位／座位 QR 帶 HMAC 簽章，走專屬限流的驗證端點；店家 QR 是公開識別碼。</p>
+        </div>
+        <div class="side">
+          <span class="chip ep">GET /api/v1/qr/verify/table?qrCode=</span>
+          <span class="chip ep">GET /api/v1/qr/verify/shop/:qrCode</span>
+          <span class="chip fail">TABLE_QR_STALE · SIGNATURE_INVALID</span>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="n">2</div>
+        <div class="body">
+          <h3>選取餐方式與瀏覽菜單</h3>
+          <p>內用／外帶／外送。分類、品項、選項群組一次載入。</p>
+        </div>
+        <div class="side">
+          <span class="chip ep">GET /api/v1/menu/:restaurantId</span>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="n">3</div>
+        <div class="body">
+          <h3>加入購物車</h3>
+          <p>數量、備註、客製選項、優惠券碼——全部是前端狀態。</p>
+        </div>
+        <div class="side">
+          <span class="chip">stores/cart.ts · stores/shopCart.ts</span>
+          <span class="chip guard">不落 DB，跨裝置不同步</span>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="n">4</div>
+        <div class="body">
+          <h3>送出訂單</h3>
+          <p>訪客走 guest-orders，登入身分走 orders。兩者最後都進同一個 <code>createOrder</code>。</p>
+        </div>
+        <div class="side">
+          <span class="chip ep">POST /api/v1/guest-orders</span>
+          <span class="chip ep">POST /api/v1/orders</span>
+          <span class="chip">X-Guest-Device-Id</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>後端 · 十七道關卡</h2>
+    <p class="lede">任何一關失敗都不會留下半筆訂單：庫存與優惠券名額都有補償路徑，最後的寫入是單一 <code>db.batch</code>。</p>
+    <div class="ladder">
+
+      <div class="step">
+        <div class="n">1</div>
+        <div class="body"><h3>配額</h3><p>方案用量上限。<code>QUOTA_ENFORCEMENT_MODE</code> 預設 <code>disabled</code>，關閉時只記錄不阻擋。</p></div>
+        <div class="side"><span class="chip guard">enforceQuota("orders.created")</span><span class="chip fail">429 QUOTA_EXCEEDED</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">2</div>
+        <div class="body"><h3>每（餐廳, IP）節流</h3><p>60 秒內 30 筆。疊在全域 per-IP 限流之下，不可改成以餐廳為 key 的全域限流。</p></div>
+        <div class="side"><span class="chip guard">enforceGuestOrderThrottle</span><span class="chip fail">429 GUEST_ORDER_RATE_LIMITED</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">3</div>
+        <div class="body"><h3>餐廳可用性</h3><p><code>isActive</code> 與 <code>isAvailable</code>。</p></div>
+        <div class="side"><span class="chip fail">404 · 400</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">4</div>
+        <div class="body"><h3>allowGuestOrders</h3><p>店家沒開放訪客點餐就到此為止。</p></div>
+        <div class="side"><span class="chip fail">403</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">5</div>
+        <div class="body"><h3>店家模式與 QR 版本</h3><p>只在 <code>orderType: "shop"</code> 時檢查。沒送 <code>shopQrCode</code> 就只驗開關——舊版前端與候位連結才不會被誤殺。</p></div>
+        <div class="side"><span class="chip guard">assertShopModeEnabled · assertShopQrCurrent</span><span class="chip fail">403 SHOP_MODE_DISABLED · SHOP_QR_REVOKED</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">6</div>
+        <div class="body"><h3>本裝置活躍訂單鎖</h3><p>綁在 device id 或既有 guest token 上——刻意不綁 IP，否則店內共用 WiFi 會一次擋掉所有人。</p></div>
+        <div class="side"><span class="chip guard">CACHE_KV guest_active:*</span><span class="chip fail">429 ACTIVE_GUEST_ORDER_EXISTS</span><span class="chip fail">409 CLIENT_MUTATION_DUPLICATE</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">7</div>
+        <div class="body"><h3>桌位／座位歸屬</h3><p>桌位要屬於這家店，座位要屬於這張桌。</p></div>
+        <div class="side"><span class="chip fail">400</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">8</div>
+        <div class="body"><h3>品項可售與庫存預檢</h3><p>這一關只是為了好看的錯誤訊息，<b>不是</b>防超賣的那道門。</p></div>
+        <div class="side"><span class="chip fail">409 MENU_ITEM_UNAVAILABLE</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">9</div>
+        <div class="body"><h3>以 DB 價格重算</h3><p>client 傳來的 <code>price</code> 全程不參與計算；單價＝菜單價＋選項加價。同時寫下品項快照。</p></div>
+        <div class="side"><span class="chip state">subtotalCents</span><span class="chip fail">400 INVALID_CUSTOMIZATION</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">10</div>
+        <div class="body"><h3>優惠券驗證</h3><p>失敗直接讓整筆下單失敗，不會靜默忽略券碼。</p></div>
+        <div class="side"><span class="chip fail">400 優惠券驗證失敗</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">11</div>
+        <div class="body"><h3>最低消費</h3><p>折扣之後、稅金之前比較，錯誤訊息含差額。</p></div>
+        <div class="side"><span class="chip fail">400</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">12</div>
+        <div class="body"><h3>稅與服務費</h3><p>取自餐廳 <code>settings</code>：<code>taxRate</code>、<code>serviceChargeRate</code>。</p></div>
+        <div class="side"><span class="chip state">totalAmountCents</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">13</div>
+        <div class="body"><h3>佔用優惠券名額</h3><p>條件式 UPDATE，內含上限檢查。失敗會在後面歸還。</p></div>
+        <div class="side"><span class="chip guard">claimUsageSlot</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">14</div>
+        <div class="body"><h3>條件式扣庫存</h3><p><code>WHERE inventoryCount IS NULL OR &gt;= qty</code>。<b>這一關才是防超賣的門。</b></p></div>
+        <div class="side"><span class="chip guard">UPDATE ... RETURNING</span><span class="chip fail">Insufficient inventory</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">15</div>
+        <div class="body"><h3>原子批次寫入</h3><p>D1 沒有互動式交易，<code>db.batch</code> 是唯一的原子提交原語。訂單、明細、券使用、計數同批。</p></div>
+        <div class="side"><span class="chip state">orders + order_items</span><span class="chip guard">失敗 → 歸還庫存與券位</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">16</div>
+        <div class="body"><h3>發 guest token 與活躍鎖</h3><p>token 4 小時、活躍鎖 2 小時，另寫一組反查鍵讓任何取消路徑都找得到鎖。</p></div>
+        <div class="side"><span class="chip state">guest_token:* · guest_active_lookup:*</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">17</div>
+        <div class="body"><h3>廣播與推播</h3><p>送進 <code>restaurant:</code>／<code>kitchen:</code>／<code>admin:</code> 三個房間。<b>失敗不影響訂單成立，也沒有補償。</b></p></div>
+        <div class="side"><span class="chip guard">候位預點餐不廣播，等入座才轉正</span></div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>三個容易誤判的地方</h2>
+    <div class="notes">
+      <div class="ncard">
+        <h3>店家 QR 不是憑證</h3>
+        <ul>
+          <li><code>GET /restaurants/:id</code> 與探索頁的外帶資格端點都會回傳它，<b>任何人都拿得到</b>。</li>
+          <li>它只用來辨識「哪一家店」與「貼紙是不是現行版本」，不能當作到場證明。</li>
+          <li>桌位／座位 QR 完全不同——那些帶 HMAC 簽章，別把這條結論套過去。</li>
+        </ul>
+      </div>
+      <div class="ncard">
+        <h3>兩層庫存檢查缺一不可</h3>
+        <ul>
+          <li>第 8 步是<b>讀取</b>預檢，給得出「哪一道賣完了」。</li>
+          <li>第 14 步是<b>條件式寫入</b>，才是真正擋住兩人搶最後一份的那道門。</li>
+          <li>刪掉前者訊息變難看，刪掉後者直接超賣。</li>
+        </ul>
+      </div>
+      <div class="ncard">
+        <h3>活躍鎖對全新裝置形同不存在</h3>
+        <ul>
+          <li>沒有 device id 也沒有 token 的裝置，第 6 步<b>不檢查</b>，鎖改綁在這次新發的 token 上。</li>
+          <li>這是為了避開共用 WiFi／CGNAT 造成的全店阻斷而刻意放寬的取捨。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">內容取自原始碼，不是示意圖。端點與錯誤碼若與程式不符，以程式為準並回頭修正本圖與 <span class="mono">docs/flows/01-customer-ordering.md</span>。</p>
+</div>
+</body>
+</html>

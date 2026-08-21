@@ -290,6 +290,8 @@ body{
 }
 .ncard li code{overflow-wrap:anywhere}
 .ncard li b{color:var(--ink); font-weight:600}
+.ncard li a{color:var(--cust-ink); font-weight:600; text-decoration:none}
+.ncard li a:hover{text-decoration:underline}
 .ncard li code{
   font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px;
   background:var(--surface-2); padding:1px 5px; border-radius:5px; color:var(--ink);
@@ -858,6 +860,7 @@ body{
         <li>訂單事件經 Durable Object 廣播，同時到達廚房顯示、送菜清單、收銀台與顧客追蹤頁，四端看到的是同一份狀態。</li>
         <li>金流結果由金流商 webhook 回寫；夜市跨攤結帳另走 market-checkouts，付款一次、分帳逐攤。</li>
         <li>租戶／授權／部署屬控制平面，由獨立的 Management API 承接，與各店營運 API 分開部署。</li>
+        <li>每一條流程的<b>逐步細節與 edge cases</b> 寫在 <code>docs/flows/</code>；四張細節圖：<a href="../flows/boards/customer-ordering.html">點餐</a>、<a href="../flows/boards/order-status-chain.html">訂單狀態鏈</a>、<a href="../flows/boards/payment-and-refund.html">收款與退款</a>、<a href="../flows/boards/market-checkout.html">市集跨攤結帳</a>。</li>
       </ul>
     </div>
 

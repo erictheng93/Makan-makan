@@ -1,0 +1,407 @@
+/* Flow detail board — shared styling.
+   Tokens mirror docs/architecture/master-user-flow.html so the two layers read
+   as one system. Unlike the master board this one is fluid: a single flow fits
+   a normal window, so there is no fixed-width canvas and no zoom control. */
+
+:root {
+  --ground: #f2f2f7;
+  --surface: #ffffff;
+  --surface-2: #f8f8fb;
+  --ink: #1c1c1e;
+  --ink-2: #55555c;
+  --ink-3: #8a8a92;
+  --hair: rgba(28, 28, 30, 0.1);
+  --hair-2: rgba(28, 28, 30, 0.06);
+  --shadow: 0 1px 1.5px rgba(24, 24, 45, 0.05), 0 5px 16px rgba(24, 24, 45, 0.05);
+  --shadow-sm: 0 1px 1px rgba(24, 24, 45, 0.05), 0 3px 10px rgba(24, 24, 45, 0.05);
+
+  --cust: #007aff;
+  --cust-ink: #0a5fc2;
+  --shop: #34c759;
+  --shop-ink: #17803d;
+  --floor: #af52de;
+  --floor-ink: #7b2fb5;
+  --plat: #ff9500;
+  --plat-ink: #a85f04;
+  --shared: #30b0c7;
+  --shared-ink: #0d7c8f;
+
+  --ok: #34c759;
+  --ok-ink: #17803d;
+  --warn: #ff9500;
+  --warn-ink: #a85f04;
+  --err: #ff3b30;
+  --err-ink: #c62a21;
+
+  --ac: var(--cust);
+  --ac-ink: var(--cust-ink);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0f0f13;
+    --surface: #1b1b21;
+    --surface-2: #212128;
+    --ink: #f0f0f4;
+    --ink-2: #b4b4be;
+    --ink-3: #7e7e8a;
+    --hair: rgba(255, 255, 255, 0.14);
+    --hair-2: rgba(255, 255, 255, 0.07);
+    --shadow: 0 1px 1.5px rgba(0, 0, 0, 0.4), 0 5px 16px rgba(0, 0, 0, 0.35);
+    --shadow-sm: 0 1px 1px rgba(0, 0, 0, 0.35), 0 3px 10px rgba(0, 0, 0, 0.3);
+
+    --cust: #3b9bff;
+    --cust-ink: #7cbeff;
+    --shop: #4cd97a;
+    --shop-ink: #84e5a3;
+    --floor: #c77beb;
+    --floor-ink: #dba9f4;
+    --plat: #ffb03d;
+    --plat-ink: #ffc978;
+    --shared: #4ecbe0;
+    --shared-ink: #8ce0ee;
+
+    --ok: #4cd97a;
+    --ok-ink: #84e5a3;
+    --warn: #ffb03d;
+    --warn-ink: #ffc978;
+    --err: #ff6b61;
+    --err-ink: #ff9c94;
+  }
+}
+
+:root[data-theme="dark"] {
+  --ground: #0f0f13;
+  --surface: #1b1b21;
+  --surface-2: #212128;
+  --ink: #f0f0f4;
+  --ink-2: #b4b4be;
+  --ink-3: #7e7e8a;
+  --hair: rgba(255, 255, 255, 0.14);
+  --hair-2: rgba(255, 255, 255, 0.07);
+  --shadow: 0 1px 1.5px rgba(0, 0, 0, 0.4), 0 5px 16px rgba(0, 0, 0, 0.35);
+  --shadow-sm: 0 1px 1px rgba(0, 0, 0, 0.35), 0 3px 10px rgba(0, 0, 0, 0.3);
+
+  --cust: #3b9bff;
+  --cust-ink: #7cbeff;
+  --shop: #4cd97a;
+  --shop-ink: #84e5a3;
+  --floor: #c77beb;
+  --floor-ink: #dba9f4;
+  --plat: #ffb03d;
+  --plat-ink: #ffc978;
+  --shared: #4ecbe0;
+  --shared-ink: #8ce0ee;
+
+  --ok: #4cd97a;
+  --ok-ink: #84e5a3;
+  --warn: #ffb03d;
+  --warn-ink: #ffc978;
+  --err: #ff6b61;
+  --err-ink: #ff9c94;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", "Noto Sans TC", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 26px 22px 64px;
+}
+
+/* ── masthead ─────────────────────────────────────────────── */
+.mast {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.mast h1 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+.mast p {
+  margin: 7px 0 0;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  max-width: 62ch;
+}
+.crumbs {
+  margin-left: auto;
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 11px 16px;
+  box-shadow: var(--shadow);
+  font-size: 11.5px;
+  line-height: 1.9;
+  color: var(--ink-2);
+}
+.crumbs a {
+  color: var(--ac-ink);
+  text-decoration: none;
+  font-weight: 600;
+}
+.crumbs a:hover {
+  text-decoration: underline;
+}
+
+/* ── section ──────────────────────────────────────────────── */
+.sec {
+  background: color-mix(in srgb, var(--ac) 5%, var(--surface));
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 18px 20px 20px;
+  margin-bottom: 16px;
+}
+.sec > h2 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--ac-ink);
+  text-transform: uppercase;
+}
+.sec > .lede {
+  margin: 0 0 16px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  max-width: 78ch;
+}
+
+/* ── step ladder ──────────────────────────────────────────── */
+.ladder {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.step {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 14px;
+  align-items: start;
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  padding: 12px 15px;
+}
+.step .n {
+  grid-row: span 1;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ac) 16%, var(--surface));
+  color: var(--ac-ink);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.step .body h3 {
+  margin: 0 0 3px;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+}
+.step .body p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.step .side {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* ── chips ────────────────────────────────────────────────── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.chip.ep {
+  background: color-mix(in srgb, var(--ac) 12%, var(--surface));
+  color: var(--ac-ink);
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.chip.state {
+  background: color-mix(in srgb, var(--ok) 16%, var(--surface));
+  color: var(--ok-ink);
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.chip.guard {
+  background: color-mix(in srgb, var(--warn) 16%, var(--surface));
+  color: var(--warn-ink);
+}
+.chip.fail {
+  background: color-mix(in srgb, var(--err) 14%, var(--surface));
+  color: var(--err-ink);
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ── state machine ────────────────────────────────────────── */
+.states {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  row-gap: 10px;
+}
+.st {
+  background: var(--surface);
+  border-radius: 13px;
+  box-shadow: var(--shadow-sm);
+  padding: 8px 13px;
+  text-align: center;
+  flex: none;
+}
+.st b {
+  display: block;
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ac-ink);
+}
+.st span {
+  display: block;
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+.st.term {
+  background: color-mix(in srgb, var(--ink-3) 12%, var(--surface));
+}
+.st.bad b {
+  color: var(--err-ink);
+}
+.ar {
+  flex: none;
+  width: 24px;
+  height: 10px;
+  margin: 0 5px;
+  color: var(--ink-3);
+}
+
+/* ── table ────────────────────────────────────────────────── */
+.tablewrap {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 520px;
+}
+th {
+  text-align: left;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 700;
+  padding: 0 12px 8px 0;
+}
+td {
+  padding: 9px 12px 9px 0;
+  border-top: 1px solid var(--hair-2);
+  color: var(--ink-2);
+  vertical-align: top;
+}
+td:first-child {
+  color: var(--ink);
+  font-weight: 500;
+}
+td code,
+p code,
+li code {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  background: var(--surface-2);
+  border-radius: 5px;
+  padding: 1px 5px;
+  /* A long SQL predicate in a step body would otherwise push the page wider
+     than the viewport on a phone — the one thing that must never happen. */
+  overflow-wrap: anywhere;
+}
+
+/* ── notes ────────────────────────────────────────────────── */
+.notes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+.ncard {
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  padding: 14px 16px;
+}
+.ncard h3 {
+  margin: 0 0 7px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.ncard ul {
+  margin: 0;
+  padding-left: 17px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.ncard li + li {
+  margin-top: 6px;
+}
+.ncard b {
+  color: var(--ink);
+}
+
+.foot {
+  margin-top: 22px;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+@media (max-width: 760px) {
+  .step {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+  .step .side {
+    grid-column: 2;
+  }
+  .crumbs {
+    margin-left: 0;
+  }
+}

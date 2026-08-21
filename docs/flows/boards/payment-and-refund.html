@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>收款、退款與班次 — 細節圖</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="./board.css">
+<style>:root{--ac:var(--shop); --ac-ink:var(--shop-ink)}</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <h1>收款、退款與班次</h1>
+      <p>碰錢的每一個寫入路徑，至少有冪等鍵、金額上限、狀態守衛其中一項。這張圖把它們攤開。</p>
+    </div>
+    <div class="crumbs">
+      全景板：<a href="../../architecture/master-user-flow.html">master user flow</a><br>
+      流程文件：<a href="../11-floor-cashier.md">11-floor-cashier.md</a><br>
+      對照原始碼：<span class="mono">2026-08-21</span>
+    </div>
+  </header>
+
+  <section class="sec">
+    <h2>開班 → 收款 → 結班</h2>
+    <div class="ladder">
+
+      <div class="step">
+        <div class="n">1</div>
+        <div class="body"><h3>啟用收銀機、開班</h3><p>一台收銀機同時只能有一個 <code>active</code> 班次。開班現金會寫成一筆 <code>opening</code> 現金流動。</p></div>
+        <div class="side"><span class="chip ep">POST /pos/registers/:id/activate</span><span class="chip ep">POST /pos/shifts/start</span><span class="chip fail">此收銀機已有活躍班次</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">2</div>
+        <div class="body"><h3>帶出訂單</h3><p>UUID、<code>order_number</code>、<code>client_mutation_id</code> 三種識別碼都收，由 <code>resolveOrderIdentity</code> 收斂。</p></div>
+        <div class="side"><span class="chip ep">GET /api/v1/orders/:id</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">3</div>
+        <div class="body"><h3>送出收款</h3><p><b>強制</b>要求 <code>Idempotency-Key</code>：重送同一把鍵會回傳第一次的結果，不會重複扣款。</p></div>
+        <div class="side"><span class="chip ep">POST /api/v1/payments</span><span class="chip guard">idempotencyMiddleware requireKey</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">4</div>
+        <div class="body"><h3>可付款狀態檢查</h3><p><code>isAlreadyFinalized</code> 同時看 <code>status</code> 與 <code>payment_status</code>。</p></div>
+        <div class="side"><span class="chip fail">409 ORDER_NOT_PAYABLE</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">5</div>
+        <div class="body"><h3>金額核對</h3><p>以 <code>orders.total_amount_cents</code> 為準。全額、部分付款總和、<code>expectedTotal</code> 三者各有錯誤碼。金額不得超過兩位小數。</p></div>
+        <div class="side"><span class="chip fail">PAYMENT_TOTAL_MISMATCH</span><span class="chip fail">PAYMENT_AMOUNT_MISMATCH</span><span class="chip fail">PARTIAL_PAYMENT_TOTAL_MISMATCH</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">6</div>
+        <div class="body"><h3>結清訂單</h3><p>條件式 UPDATE：<code>payment_status NOT IN ('paid','completed','refunded','partial_refunded')</code>，所以兩台收銀台同時結清只有一台生效。</p></div>
+        <div class="side"><span class="chip state">payment_status = paid</span><span class="chip state">orders.status → paid</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">7</div>
+        <div class="body"><h3>寫交易與稽核</h3><p><code>payment_transactions</code> 與 payment audit 於同一批次寫入。</p></div>
+        <div class="side"><span class="chip state">PAYMENT_AUDIT ATTEMPT</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">8</div>
+        <div class="body"><h3>結班</h3><p>預期＝開班現金＋期間銷售−期間退款；差額＝實際清點−預期。差額<b>不會擋住結班</b>，只被記錄。</p></div>
+        <div class="side"><span class="chip ep">POST /pos/shifts/:id/end</span><span class="chip state">difference_amount_cents</span><span class="chip guard">寫入 closing 現金流動、清空 currentShiftId</span></div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>退款的三條路</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>路徑</th><th>端點</th><th>角色</th><th>關鍵守衛</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>POS 退款</td>
+            <td class="mono">POST /pos/refunds/create</td>
+            <td>0 / 1 / 4</td>
+            <td>已 <code>completed</code> ＋ <code>processing</code> 的退款都算進已退金額，超過訂單金額即拒絕</td>
+          </tr>
+          <tr>
+            <td>金流交易退款</td>
+            <td class="mono">POST /payments/refund</td>
+            <td>0 / 1 / 4</td>
+            <td>累計退款不得超過原交易金額；全額退則 <code>refunded</code>，否則 <code>partial_refunded</code></td>
+          </tr>
+          <tr>
+            <td>市集整筆退款</td>
+            <td class="mono">POST /market-checkouts/:id/refund</td>
+            <td><b>僅 0</b></td>
+            <td>須有付款紀錄；provider split 另需 <code>providerTransactionId</code>，且狀態須為 paid／partial_paid</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="notes" style="margin-top:16px">
+      <div class="ncard">
+        <h3>結班後的退款走另一條路</h3>
+        <ul>
+          <li>退款若指向<b>已結班</b>的班次，仍可建立，但<b>不寫現金流動</b>——已結的帳不能再被動。</li>
+          <li>改在退款列的 <code>metadata</code> 標記 <code>postCloseAdjustment: true</code>，退款列本身就是調整紀錄。</li>
+          <li>只有明確 <code>closed</code> 的班次觸發這條路；active／suspended／查不到都走正常流程。</li>
+        </ul>
+      </div>
+      <div class="ncard">
+        <h3>退款完成必須是同步的</h3>
+        <ul>
+          <li>舊版用 <code>setTimeout</code> 模擬 PSP 回調，但 Workers <b>不保證</b>回應送出後的計時器會執行。</li>
+          <li>結果是退款永遠卡在 <code>processing</code>。</li>
+          <li>現在在回傳前就把終態寫完。不要改回非同步。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">內容取自原始碼，不是示意圖。若與程式不符，以程式為準並回頭修正本圖與 <span class="mono">docs/flows/11-floor-cashier.md</span>。</p>
+</div>
+</body>
+</html>

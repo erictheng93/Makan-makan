@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>訂單狀態鏈與四端同源 — 細節圖</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="./board.css">
+<style>:root{--ac:var(--floor); --ac-ink:var(--floor-ink)}</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <h1>訂單狀態鏈與四端同源</h1>
+      <p>八個狀態、五種角色權限、兩條互不連動的階梯，以及一則事件如何同時到達廚房、送菜、收銀與顧客。</p>
+    </div>
+    <div class="crumbs">
+      全景板：<a href="../../architecture/master-user-flow.html">master user flow</a><br>
+      流程文件：<a href="../02-customer-order-tracking.md">02-customer-order-tracking.md</a><br>
+      對照原始碼：<span class="mono">2026-08-21</span>
+    </div>
+  </header>
+
+  <section class="sec">
+    <h2>訂單狀態機</h2>
+    <p class="lede">合法轉移由 <code>ORDER_STATUS_TRANSITIONS</code> 定義（<code>apps/api/src/features/orders/types/index.ts</code>）。跳步一律 409。</p>
+    <div class="states">
+      <div class="st"><b>pending</b><span>待確認</span></div>
+      <svg class="ar" viewBox="0 0 24 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 5h18"/><path d="m16 2 3 3-3 3"/></svg>
+      <div class="st"><b>confirmed</b><span>已確認</span></div>
+      <svg class="ar" viewBox="0 0 24 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 5h18"/><path d="m16 2 3 3-3 3"/></svg>
+      <div class="st"><b>preparing</b><span>製作中</span></div>
+      <svg class="ar" viewBox="0 0 24 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 5h18"/><path d="m16 2 3 3-3 3"/></svg>
+      <div class="st"><b>ready</b><span>可取餐</span></div>
+      <svg class="ar" viewBox="0 0 24 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 5h18"/><path d="m16 2 3 3-3 3"/></svg>
+      <div class="st"><b>delivered</b><span>已送達</span></div>
+      <svg class="ar" viewBox="0 0 24 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 5h18"/><path d="m16 2 3 3-3 3"/></svg>
+      <div class="st term"><b>paid</b><span>終點</span></div>
+      <span style="width:18px"></span>
+      <div class="st term bad"><b>cancelled</b><span>pending～ready 皆可</span></div>
+      <span style="width:10px"></span>
+      <div class="st term bad"><b>refunded</b><span>僅由 delivered 進入</span></div>
+    </div>
+    <div class="notes" style="margin-top:16px">
+      <div class="ncard">
+        <h3>三個常被忽略的規則</h3>
+        <ul>
+          <li><b><code>delivered</code> 不能取消</b>，只能往 <code>paid</code> 或 <code>refunded</code>。</li>
+          <li><code>paid</code>／<code>cancelled</code>／<code>refunded</code> 沒有出邊，任何再推都是 409。</li>
+          <li>同狀態再推一次也是 409——轉移表裡沒有自環，這順便當了防重。</li>
+        </ul>
+      </div>
+      <div class="ncard">
+        <h3>兩條階梯不會自動連動</h3>
+        <ul>
+          <li><code>orders.status</code> 由 <code>PUT /orders/:id/status</code> 推。</li>
+          <li><code>order_items.status</code> 由廚房端點推。</li>
+          <li>把最後一個品項標成 <code>ready</code> <b>不會</b>讓訂單變 <code>ready</code>。這是「單子卡住」最常見的原因。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>誰能推到哪一個狀態</h2>
+    <p class="lede">同一份 <code>ROLE_STATUS_PERMISSIONS</code> 在路由層與服務層各檢查一次——服務層被其他路徑呼叫時仍受同樣約束。</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Role</th><th>可設定的狀態</th><th>備註</th></tr></thead>
+        <tbody>
+          <tr><td>0 管理者</td><td class="mono">pending · confirmed · preparing · ready · delivered · paid · cancelled</td><td>唯一能跨店操作的角色</td></tr>
+          <tr><td>1 店主</td><td class="mono">confirmed · cancelled</td><td>不能自行標記付訖</td></tr>
+          <tr><td>2 廚師</td><td class="mono">preparing · ready</td><td>另可改品項狀態與售罄</td></tr>
+          <tr><td>3 送菜</td><td class="mono">delivered</td><td>只有這一個</td></tr>
+          <tr><td>4 收銀</td><td class="mono">confirmed · paid</td><td>櫃檯接單與結清</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>一次狀態推進實際發生什麼</h2>
+    <div class="ladder">
+      <div class="step">
+        <div class="n">1</div>
+        <div class="body"><h3>取現況、確認餐廳歸屬</h3><p>role 0 以外必須與訂單同店。</p></div>
+        <div class="side"><span class="chip fail">403</span></div>
+      </div>
+      <div class="step">
+        <div class="n">2</div>
+        <div class="body"><h3>轉移合法性 + 角色權限</h3><p>路由層一次、服務層一次。</p></div>
+        <div class="side"><span class="chip fail">409 INVALID_STATUS_TRANSITION</span><span class="chip fail">403 FORBIDDEN</span></div>
+      </div>
+      <div class="step">
+        <div class="n">3</div>
+        <div class="body"><h3>樂觀鎖更新</h3><p>帶 <code>expectedVersion</code>；<code>orders.version</code> 每次 +1。</p></div>
+        <div class="side"><span class="chip fail">409 ORDER_VERSION_CONFLICT</span></div>
+      </div>
+      <div class="step">
+        <div class="n">4</div>
+        <div class="body"><h3>寫入該狀態的時間戳</h3><p><code>confirmedAt</code>／<code>preparingAt</code>／<code>readyAt</code>…</p></div>
+        <div class="side"><span class="chip state">orders.{status}At</span></div>
+      </div>
+      <div class="step">
+        <div class="n">5</div>
+        <div class="body"><h3>釋放桌位</h3><p>只在 <code>paid</code> 或 <code>delivered</code> 且訂單有桌號時。</p></div>
+        <div class="side"><span class="chip state">tables.isOccupied = false</span></div>
+      </div>
+      <div class="step">
+        <div class="n">6</div>
+        <div class="body"><h3>清快取、廣播、解鎖</h3><p>終態（delivered／paid／cancelled／refunded）會解除訪客活躍鎖。</p></div>
+        <div class="side"><span class="chip guard">finalizeOrderStatusSideEffects</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>四端同源</h2>
+    <p class="lede">一則事件經 <code>REALTIME_SESSION.idFromName("{roomType}:{roomId}")</code> 同時送進多個 Durable Object 房間。</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>事件</th><th>送達房間</th></tr></thead>
+        <tbody>
+          <tr><td>新訂單</td><td class="mono">restaurant:{id} · kitchen:{id} · admin:{id}</td></tr>
+          <tr><td>訂單狀態變更</td><td class="mono">restaurant · kitchen · admin ＋ customer:order:{orderId}</td></tr>
+          <tr><td>品項狀態變更</td><td class="mono">restaurant · kitchen · admin</td></tr>
+          <tr><td>訂單取消</td><td class="mono">restaurant · kitchen · admin</td></tr>
+          <tr><td>菜單上下架</td><td class="mono">restaurant · admin</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="notes" style="margin-top:16px">
+      <div class="ncard">
+        <h3>顧客端怎麼收</h3>
+        <ul>
+          <li>訪客先用 <code>POST /realtime/auth/guest-token</code> 換連線 token，前端快取在 localStorage，過期自動清。</li>
+          <li>收到 <code>ORDER_STATUS_UPDATE</code> 直接改寫查詢快取，不重打 API。</li>
+        </ul>
+      </div>
+      <div class="ncard">
+        <h3>廣播是盡力而為</h3>
+        <ul>
+          <li><code>REALTIME_SESSION</code> 沒綁定時直接跳過並<b>回報成功</b>——狀態仍已寫入 DB。</li>
+          <li>廣播失敗只記 log，不 rollback、不重送、沒有告警。</li>
+          <li>四端收到的先後沒有保證，UI 要以事件內的 <code>status</code> 為準。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">內容取自原始碼，不是示意圖。若與程式不符，以程式為準並回頭修正本圖與 <span class="mono">docs/flows/02-customer-order-tracking.md</span>。</p>
+</div>
+</body>
+</html>

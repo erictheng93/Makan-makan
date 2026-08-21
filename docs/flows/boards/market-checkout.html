@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>市集跨攤結帳 — 細節圖</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="./board.css">
+<style>:root{--ac:var(--plat); --ac-ink:var(--plat-ink)}</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast">
+    <div>
+      <h1>市集跨攤結帳</h1>
+      <p>一次付款、每攤各自成單。沒有跨攤交易可用，所以靠的是<b>補償</b>而不是回滾。</p>
+    </div>
+    <div class="crumbs">
+      全景板：<a href="../../architecture/master-user-flow.html">master user flow</a><br>
+      流程文件：<a href="../04-customer-group-and-market.md">04-customer-group-and-market.md</a><br>
+      對照原始碼：<span class="mono">2026-08-21</span>
+    </div>
+  </header>
+
+  <section class="sec">
+    <h2>建立 → 套卷 → 付款 → 回調</h2>
+    <div class="ladder">
+
+      <div class="step">
+        <div class="n">1</div>
+        <div class="body"><h3>送出跨攤購物車</h3><p>同一攤不能在購物車出現兩次。逐攤檢查：市集啟用、攤位是會員、攤位允許訪客單。</p></div>
+        <div class="side"><span class="chip ep">POST /api/v1/market-checkouts</span><span class="chip fail">400 vendor 重複</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">2</div>
+        <div class="body"><h3>逐攤建立 child order</h3><p>每一攤都是一筆獨立的訪客訂單，各自發一把 guest token（4h）與活躍鎖（2h）。</p></div>
+        <div class="side"><span class="chip state">market_checkout_child_orders</span><span class="chip guard">一個裝置身分覆蓋整筆結帳</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">3</div>
+        <div class="body"><h3>中途失敗 → 補償</h3><p>第 3 攤失敗時，回滾前兩攤已建立的訂單並清鎖，再把失敗記錄下來。重試安全：每次都是新的 <code>checkoutId</code>。</p></div>
+        <div class="side"><span class="chip guard">compensateFailedMarketCheckout</span><span class="chip fail">補償失敗 → 人工處理佇列</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">4</div>
+        <div class="body"><h3>寫入 session</h3><p>KV（4 小時）＋ D1 各一份。KV 那份是顧客端追蹤用，D1 那份是後台查詢與對帳用。</p></div>
+        <div class="side"><span class="chip state">status = submitted</span><span class="chip state">payment_status = pending</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">5</div>
+        <div class="body"><h3>套用卷（可選）</h3><p>只吃平台級券（<code>coupons.restaurant_id IS NULL</code>）。折扣<b>按攤位金額等比分攤</b>，讓各攤送給金流商的金額加總仍等於總收費。</p></div>
+        <div class="side"><span class="chip ep">POST /market-checkouts/:id/voucher</span><span class="chip fail">MARKET_CHECKOUT_ALREADY_PAID</span><span class="chip fail">VOUCHER_ALREADY_APPLIED · VOUCHER_EXPIRED</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">6</div>
+        <div class="body"><h3>付款</h3><p>已付款則直接回傳既有結果，不再送金流。付款前先 <code>reserveUsage</code> 保留卷額度，失敗即 <code>releaseReservation</code>。</p></div>
+        <div class="side"><span class="chip ep">POST /market-checkouts/:id/pay</span><span class="chip guard">Idempotency-Key → 供應商</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">7</div>
+        <div class="body"><h3>供應商回調</h3><p>先驗簽再認列。卷的 <code>coupon_usage</code> 是在<b>驗證過的付款成功</b>之後才寫，且每個 checkout 只加一次 <code>used_count</code>。</p></div>
+        <div class="side"><span class="chip ep">POST /market-checkouts/payment-webhooks/:provider</span><span class="chip fail">MARKET_CHECKOUT_WEBHOOK_SIGNATURE_INVALID</span></div>
+      </div>
+
+      <div class="step">
+        <div class="n">8</div>
+        <div class="body"><h3>顧客追蹤</h3><p>逐攤狀態。弄丟 guest token 可用手機末幾碼換回。</p></div>
+        <div class="side"><span class="chip ep">GET /market-checkouts/:id</span><span class="chip ep">POST /market-checkouts/:id/guest-token</span></div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>兩種分帳模式</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>splitMode</th><th>怎麼切</th><th>什麼時候用</th><th>能不能對帳</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="mono">child_transactions</td>
+            <td>平台逐攤各開一筆交易</td>
+            <td>預設</td>
+            <td><b>不能</b>——provider 對帳端點只支援下一列</td>
+          </tr>
+          <tr>
+            <td class="mono">provider_split</td>
+            <td>交給金流商做分潤</td>
+            <td>環境變數指定，或<b>用代幣付款時強制</b></td>
+            <td>可以：<code>POST /market-checkouts/admin/:id/reconcile</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>三個結構性取捨</h2>
+    <div class="notes">
+      <div class="ncard">
+        <h3>沒有跨攤交易，只有補償</h3>
+        <ul>
+          <li>每攤是獨立訂單，而 D1 也沒有互動式交易。</li>
+          <li>所以建立階段失敗時是「把已建立的回滾掉」，不是「整批不提交」。</li>
+          <li>補償本身失敗會被記錄成待人工處理的失敗 session。</li>
+        </ul>
+      </div>
+      <div class="ncard">
+        <h3>真相分散在 KV 與 D1</h3>
+        <ul>
+          <li>付款與退款都是<b>先讀 KV、讀不到再讀 D1</b>。</li>
+          <li>KV 的 4 小時 TTL 過了之後，顧客端追蹤頁會退化。</li>
+        </ul>
+      </div>
+      <div class="ncard">
+        <h3>卷的核銷點在最後</h3>
+        <ul>
+          <li>套用時只是記在 session 上，不佔額度。</li>
+          <li>付款時 <code>reserveUsage</code> 保留，失敗歸還。</li>
+          <li><code>coupon_usage</code> 只在驗證過的付款成功後才寫，重放不會重複核銷。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">內容取自原始碼，不是示意圖。若與程式不符，以程式為準並回頭修正本圖與 <span class="mono">docs/flows/04-customer-group-and-market.md</span>。</p>
+</div>
+</body>
+</html>
