@@ -700,6 +700,68 @@ let timeInterval: NodeJS.Timeout | null = null;
 // 訂單數據 - fetched from API
 const orders = ref<ServiceOrder[]>([]);
 
+// 「配送中」是這台裝置上的本地標記,不是訂單狀態——伺服器只認 ORDER_STATUSES 的
+// 八個值。存進 sessionStorage,讓重新整理清單或重載頁面都不會把送菜員手上的單洗掉。
+const DELIVERY_PHASE_STORAGE_KEY = "service-view:delivery-phase";
+
+interface LocalDeliveryPhase {
+  deliveryStartTime: string;
+  assignedTo: string;
+}
+
+function readStoredDeliveryPhases(): Record<string, LocalDeliveryPhase> {
+  try {
+    const raw = sessionStorage.getItem(DELIVERY_PHASE_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    const restored: Record<string, LocalDeliveryPhase> = {};
+    for (const [id, value] of Object.entries(
+      parsed as Record<string, unknown>,
+    )) {
+      const phase = value as Partial<LocalDeliveryPhase> | null;
+      if (typeof phase?.deliveryStartTime !== "string") continue;
+      restored[id] = {
+        deliveryStartTime: phase.deliveryStartTime,
+        assignedTo:
+          typeof phase.assignedTo === "string" ? phase.assignedTo : "",
+      };
+    }
+    return restored;
+  } catch {
+    // Private-mode browsers throw on access; a lost phase is recoverable.
+    return {};
+  }
+}
+
+const localDeliveryPhases = ref<Record<string, LocalDeliveryPhase>>(
+  readStoredDeliveryPhases(),
+);
+
+function persistDeliveryPhases() {
+  try {
+    sessionStorage.setItem(
+      DELIVERY_PHASE_STORAGE_KEY,
+      JSON.stringify(localDeliveryPhases.value),
+    );
+  } catch {
+    // Keeping the in-memory phase is still better than dropping it.
+  }
+}
+
+// 伺服器不再列為 ready 的單(已送達或已取消)留著只會讓 key 無限累積。
+function pruneDeliveryPhases(readyOrderIds: string[]) {
+  const stillReady = new Set(readyOrderIds);
+  let changed = false;
+  for (const id of Object.keys(localDeliveryPhases.value)) {
+    if (!stillReady.has(id)) {
+      delete localDeliveryPhases.value[id];
+      changed = true;
+    }
+  }
+  if (changed) persistDeliveryPhases();
+}
+
 // 今日配送記錄 - populated from delivered orders
 const todayDeliveryRecords = ref<
   Array<{
@@ -777,25 +839,34 @@ const refreshOrders = async () => {
     });
     const data = unwrapApiData<ApiOrder[]>(response);
     if (Array.isArray(data)) {
-      orders.value = data.map((order) => ({
-        id: order.id,
-        orderNumber: order.orderNumber,
-        tableNumber: order.table?.number ?? "",
-        orderType: order.orderType ?? "table",
-        status: order.status,
-        priority: "normal",
-        readyAt: order.readyAt ?? order.updatedAt,
-        customerInfo: {
-          name: order.customerInfo?.name ?? order.customer?.fullName ?? "",
-          phone: order.customerInfo?.phone ?? order.customer?.phone ?? "",
-        },
-        deliveryNotes: order.notes ?? "",
-        items: (order.items ?? []).map((item) => ({
-          ...item,
-          menuItemName: item.itemSnapshot?.name ?? item.menuItem?.name ?? "",
-          specialInstructions: item.customizations?.specialInstructions,
-        })),
-      }));
+      pruneDeliveryPhases(data.map((order) => String(order.id)));
+      orders.value = data.map((order) => {
+        // The rebuilt row would otherwise drop the phase this device is
+        // holding, sending an in-progress delivery back to「開始配送」.
+        const phase = localDeliveryPhases.value[String(order.id)];
+        return {
+          id: order.id,
+          orderNumber: order.orderNumber,
+          tableNumber: order.table?.number ?? "",
+          orderType: order.orderType ?? "table",
+          status: order.status,
+          localPhase: phase ? ("delivering" as const) : undefined,
+          deliveryStartTime: phase?.deliveryStartTime,
+          assignedTo: phase?.assignedTo,
+          priority: "normal",
+          readyAt: order.readyAt ?? order.updatedAt,
+          customerInfo: {
+            name: order.customerInfo?.name ?? order.customer?.fullName ?? "",
+            phone: order.customerInfo?.phone ?? order.customer?.phone ?? "",
+          },
+          deliveryNotes: order.notes ?? "",
+          items: (order.items ?? []).map((item) => ({
+            ...item,
+            menuItemName: item.itemSnapshot?.name ?? item.menuItem?.name ?? "",
+            specialInstructions: item.customizations?.specialInstructions,
+          })),
+        };
+      });
     }
 
     // Also fetch today's delivered orders for the timeline
@@ -859,13 +930,20 @@ const refreshOrders = async () => {
 };
 
 const startDelivery = (order: ServiceOrder) => {
+  const deliveryStartTime = new Date().toISOString();
+  const assignedTo = String(authStore.user?.id || "current_user");
+
+  localDeliveryPhases.value[String(order.id)] = {
+    deliveryStartTime,
+    assignedTo,
+  };
+  persistDeliveryPhases();
+
   const index = orders.value.findIndex((o) => o.id === order.id);
   if (index > -1) {
     orders.value[index].localPhase = "delivering";
-    orders.value[index].deliveryStartTime = new Date().toISOString();
-    orders.value[index].assignedTo = String(
-      authStore.user?.id || "current_user",
-    );
+    orders.value[index].deliveryStartTime = deliveryStartTime;
+    orders.value[index].assignedTo = assignedTo;
   }
 };
 
@@ -875,6 +953,10 @@ const completeDelivery = async (order: ServiceOrder) => {
       status: "delivered",
       notes: `Delivered by service crew`,
     });
+
+    // The server now carries this order's truth, so drop the local phase.
+    delete localDeliveryPhases.value[String(order.id)];
+    persistDeliveryPhases();
 
     // Update local state optimistically
     const index = orders.value.findIndex((o) => o.id === order.id);
