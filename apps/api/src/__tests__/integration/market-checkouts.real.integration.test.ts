@@ -27,7 +27,11 @@ import type {
 
 type CheckoutEnvelope = { checkout: PublicMarketCheckoutSession };
 type CreatedCheckout = CheckoutEnvelope & {
-  childOrders: Array<{ orderId: string; restaurantId: string }>;
+  childOrders: Array<{
+    orderId: string;
+    restaurantId: string;
+    guestToken: string;
+  }>;
 };
 type PaidCheckout = CheckoutEnvelope & {
   payment: PublicMarketCheckoutSession["payment"];
@@ -45,6 +49,18 @@ type AdminCheckoutList = {
   page: number;
   limit: number;
 };
+
+/**
+ * What a shopper's browser carries into the mutating checkout endpoints.
+ *
+ * Those routes require proof the caller holds the checkout, and a guest order
+ * token minted at creation is that proof for a shopper with no account. It goes
+ * in its own header because the client's Authorization slot holds either the
+ * customer JWT or the guest token, never both.
+ */
+function holderHeaders(created: CreatedCheckout) {
+  return { "x-guest-token": created.childOrders[0]!.guestToken };
+}
 
 const CSRF_HEADERS = {
   host: "test",
@@ -313,6 +329,7 @@ describe("Market checkouts API - real integration", () => {
       new Request(`https://test/api/v1/market-checkouts/${checkoutId}/pay`, {
         method: "POST",
         headers: {
+          ...holderHeaders(createJson),
           ...CSRF_HEADERS,
           "content-type": "application/json",
           "idempotency-key": `market-pay-${checkoutId}`,
@@ -509,7 +526,11 @@ describe("Market checkouts API - real integration", () => {
         `https://test/api/v1/market-checkouts/${checkoutId}/voucher`,
         {
           method: "POST",
-          headers: { ...CSRF_HEADERS, "content-type": "application/json" },
+          headers: {
+            ...holderHeaders(createJson),
+            ...CSRF_HEADERS,
+            "content-type": "application/json",
+          },
           body: JSON.stringify({ code: "REFUND10" }),
         },
       ),
@@ -520,6 +541,7 @@ describe("Market checkouts API - real integration", () => {
       new Request(`https://test/api/v1/market-checkouts/${checkoutId}/pay`, {
         method: "POST",
         headers: {
+          ...holderHeaders(createJson),
           ...CSRF_HEADERS,
           "content-type": "application/json",
           "idempotency-key": `market-voucher-pay-${checkoutId}`,
@@ -629,7 +651,11 @@ describe("Market checkouts API - real integration", () => {
         `https://test/api/v1/market-checkouts/${checkoutId}/voucher`,
         {
           method: "POST",
-          headers: { ...CSRF_HEADERS, "content-type": "application/json" },
+          headers: {
+            ...holderHeaders(createJson),
+            ...CSRF_HEADERS,
+            "content-type": "application/json",
+          },
           body: JSON.stringify({ code: "PERSIST10" }),
         },
       ),
@@ -640,8 +666,13 @@ describe("Market checkouts API - real integration", () => {
 
     await testApp.env.CACHE_KV.delete(`market_checkout:${checkoutId}`);
 
+    // Read as the holder: the applied voucher is part of what the redacted
+    // view withholds, and what this asserts is that it survived KV expiry into
+    // D1 — an owner-facing claim.
     const publicRes = await testApp.app.fetch(
-      new Request(`https://test/api/v1/market-checkouts/${checkoutId}`),
+      new Request(`https://test/api/v1/market-checkouts/${checkoutId}`, {
+        headers: holderHeaders(createJson),
+      }),
     );
     expect(publicRes.status).toBe(200);
     const publicJson = await readData<CheckoutEnvelope>(publicRes);
@@ -655,6 +686,7 @@ describe("Market checkouts API - real integration", () => {
       new Request(`https://test/api/v1/market-checkouts/${checkoutId}/pay`, {
         method: "POST",
         headers: {
+          ...holderHeaders(createJson),
           ...CSRF_HEADERS,
           "content-type": "application/json",
           "idempotency-key": `market-voucher-persist-pay-${checkoutId}`,
@@ -752,7 +784,11 @@ describe("Market checkouts API - real integration", () => {
         `https://test/api/v1/market-checkouts/${checkoutId}/voucher`,
         {
           method: "POST",
-          headers: { ...CSRF_HEADERS, "content-type": "application/json" },
+          headers: {
+            ...holderHeaders(createJson),
+            ...CSRF_HEADERS,
+            "content-type": "application/json",
+          },
           body: JSON.stringify({ code: "STACK10" }),
         },
       ),
@@ -766,7 +802,11 @@ describe("Market checkouts API - real integration", () => {
         `https://test/api/v1/market-checkouts/${checkoutId}/voucher`,
         {
           method: "POST",
-          headers: { ...CSRF_HEADERS, "content-type": "application/json" },
+          headers: {
+            ...holderHeaders(createJson),
+            ...CSRF_HEADERS,
+            "content-type": "application/json",
+          },
           body: JSON.stringify({ code: "SHOP500" }),
         },
       ),
@@ -790,6 +830,7 @@ describe("Market checkouts API - real integration", () => {
       new Request(`https://test/api/v1/market-checkouts/${checkoutId}/pay`, {
         method: "POST",
         headers: {
+          ...holderHeaders(createJson),
           ...CSRF_HEADERS,
           "content-type": "application/json",
           "idempotency-key": `market-voucher-stack-pay-${checkoutId}`,
