@@ -1098,6 +1098,9 @@ describe("market checkout routes", () => {
     for (const call of createOrder.mock.calls) {
       expect(call[0]).toMatchObject({ customerId: "customer-9" });
     }
+    expect(databaseMocks.insertValues).toContainEqual(
+      expect.objectContaining({ customerId: "customer-9" }),
+    );
   });
 
   it("leaves an anonymous shopper's child orders unlinked", async () => {
@@ -1127,6 +1130,9 @@ describe("market checkout routes", () => {
     for (const call of createOrder.mock.calls) {
       expect(call[0].customerId).toBeUndefined();
     }
+    expect(databaseMocks.insertValues).toContainEqual(
+      expect.objectContaining({ customerId: null }),
+    );
   });
 
   it("keys every vendor's lock on the shopper's device id", async () => {
