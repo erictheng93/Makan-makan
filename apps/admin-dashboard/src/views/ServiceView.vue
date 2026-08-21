@@ -155,11 +155,13 @@
                   <div class="flex items-center mb-3">
                     <div class="flex items-center">
                       <div
-                        :class="getStatusIconClass(order.status)"
+                        :class="
+                          getStatusIconClass(order.localPhase ?? order.status)
+                        "
                         class="p-2 rounded-full mr-3"
                       >
                         <component
-                          :is="getStatusIcon(order.status)"
+                          :is="getStatusIcon(order.localPhase ?? order.status)"
                           class="h-5 w-5"
                         />
                       </div>
@@ -272,14 +274,14 @@
                 <!-- 操作按鈕 -->
                 <div class="ml-6 flex flex-col space-y-2">
                   <button
-                    v-if="order.status === 'ready'"
+                    v-if="order.status === 'ready' && !order.localPhase"
                     class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm whitespace-nowrap"
                     @click="startDelivery(order)"
                   >
                     {{ t("serviceView.startDelivery") }}
                   </button>
                   <button
-                    v-else-if="order.status === 'delivering'"
+                    v-else-if="order.localPhase === 'delivering'"
                     class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm whitespace-nowrap"
                     @click="completeDelivery(order)"
                   >
@@ -657,7 +659,8 @@ interface ServiceOrder {
   orderNumber: string;
   tableNumber: string;
   orderType: NonNullable<ApiOrder["orderType"]>;
-  status: ApiOrder["status"] | "delivering";
+  status: ApiOrder["status"];
+  localPhase?: "delivering";
   priority: string;
   readyAt: number;
   deliveryStartTime?: string | number | null;
@@ -709,8 +712,10 @@ const todayDeliveryRecords = ref<
 
 // 計算屬性
 const orderStats = computed(() => ({
-  readyForDelivery: orders.value.filter((o) => o.status === "ready").length,
-  delivering: orders.value.filter((o) => o.status === "delivering").length,
+  readyForDelivery: orders.value.filter(
+    (o) => o.status === "ready" && !o.localPhase,
+  ).length,
+  delivering: orders.value.filter((o) => o.localPhase === "delivering").length,
   delivered: orders.value.filter((o) => o.status === "delivered").length,
 }));
 
@@ -722,8 +727,8 @@ const availableTables = computed(() => {
 });
 
 const filteredOrders = computed(() => {
-  let filtered = orders.value.filter((o) =>
-    ["ready", "delivering"].includes(o.status),
+  let filtered = orders.value.filter(
+    (o) => o.status === "ready" || o.localPhase === "delivering",
   );
 
   if (selectedTable.value) {
@@ -747,7 +752,7 @@ const filteredOrders = computed(() => {
 const myActiveDeliveries = computed(() => {
   const userId = String(authStore.user?.id || "current_user");
   return orders.value.filter(
-    (o) => o.status === "delivering" && o.assignedTo === userId,
+    (o) => o.localPhase === "delivering" && o.assignedTo === userId,
   );
 });
 
@@ -765,9 +770,9 @@ const updateCurrentTime = () => {
 
 const refreshOrders = async () => {
   try {
-    // Fetch ready and delivering orders
+    // Delivery in progress is local to this device, so only fetch server-ready orders.
     const response = await api.get("/orders", {
-      status: "ready,delivering",
+      status: "ready",
       restaurantId: authStore.restaurantId,
     });
     const data = unwrapApiData<ApiOrder[]>(response);
@@ -853,26 +858,14 @@ const refreshOrders = async () => {
   }
 };
 
-const startDelivery = async (order: ServiceOrder) => {
-  try {
-    await api.put(`/orders/${order.id}/status`, {
-      status: "delivering",
-      notes: `Delivery started by service crew`,
-    });
-
-    // Update local state optimistically
-    const index = orders.value.findIndex((o) => o.id === order.id);
-    if (index > -1) {
-      orders.value[index].status = "delivering";
-      orders.value[index].deliveryStartTime = new Date().toISOString();
-      orders.value[index].assignedTo = String(
-        authStore.user?.id || "current_user",
-      );
-    }
-  } catch (err) {
-    console.error("Start delivery error:", err);
-    // Refresh from server on error
-    await refreshOrders();
+const startDelivery = (order: ServiceOrder) => {
+  const index = orders.value.findIndex((o) => o.id === order.id);
+  if (index > -1) {
+    orders.value[index].localPhase = "delivering";
+    orders.value[index].deliveryStartTime = new Date().toISOString();
+    orders.value[index].assignedTo = String(
+      authStore.user?.id || "current_user",
+    );
   }
 };
 
@@ -887,6 +880,7 @@ const completeDelivery = async (order: ServiceOrder) => {
     const index = orders.value.findIndex((o) => o.id === order.id);
     if (index > -1) {
       orders.value[index].status = "delivered";
+      orders.value[index].localPhase = undefined;
       orders.value[index].deliveredAt = new Date().toISOString();
 
       // Update statistics
