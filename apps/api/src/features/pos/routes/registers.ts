@@ -16,12 +16,9 @@ import {
 import { RegisterService } from "../services/RegisterService";
 import {
   createRegisterSchema,
-  issuePrintAgentSchema,
-  printAgentParamsSchema,
   registerParamsSchema,
   registerQuerySchema,
 } from "../schemas";
-import { PrintAgentCredentialService } from "../services/PrintAgentCredentialService";
 import type { Env } from "../../../types/env";
 import {
   forbidden,
@@ -279,82 +276,6 @@ app.delete(
     return c.json({
       success: true,
       message: "收銀機已刪除",
-    });
-  },
-);
-
-/**
- * 列出收銀機的列印代理
- * GET /registers/:registerId/print-agents
- */
-app.get(
-  "/:registerId/print-agents",
-  authMiddleware,
-  requireRole([0, 1]), // Admin or Owner
-  validateParams(registerParamsSchema),
-  async (c) => {
-    const { registerId } = c.get("validatedParams");
-    await requireRegisterOwnership(c, registerId);
-    const service = new PrintAgentCredentialService(c.env.DB);
-
-    return c.json({
-      success: true,
-      data: await service.listAgents(registerId),
-    });
-  },
-);
-
-/**
- * 核發列印代理憑證
- * POST /registers/:registerId/print-agents
- */
-app.post(
-  "/:registerId/print-agents",
-  authMiddleware,
-  requireRole([0, 1]), // Admin or Owner
-  validateParams(registerParamsSchema),
-  validateBody(issuePrintAgentSchema),
-  async (c) => {
-    const { registerId } = c.get("validatedParams");
-    const { label } = c.get("validatedBody");
-    await requireRegisterOwnership(c, registerId);
-    const service = new PrintAgentCredentialService(c.env.DB);
-
-    const { agent, key } = await service.issueAgent(registerId, label);
-
-    return c.json({
-      success: true,
-      data: {
-        ...agent,
-        // 只有這一次看得到。伺服器只留摘要，弄丟就撤銷重發。
-        key,
-      },
-      message: "請立即保存金鑰，離開此畫面後無法再取得",
-    });
-  },
-);
-
-/**
- * 撤銷列印代理憑證
- * DELETE /registers/:registerId/print-agents/:agentId
- */
-app.delete(
-  "/:registerId/print-agents/:agentId",
-  authMiddleware,
-  requireRole([0, 1]), // Admin or Owner
-  validateParams(printAgentParamsSchema),
-  async (c) => {
-    const { registerId, agentId } = c.get("validatedParams");
-    await requireRegisterOwnership(c, registerId);
-    const service = new PrintAgentCredentialService(c.env.DB);
-
-    if (!(await service.revokeAgent(registerId, agentId))) {
-      throw notFound("列印代理不存在", "PRINT_AGENT_NOT_FOUND");
-    }
-
-    return c.json({
-      success: true,
-      message: "列印代理憑證已撤銷",
     });
   },
 );

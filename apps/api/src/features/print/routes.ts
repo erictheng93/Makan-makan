@@ -12,7 +12,7 @@ import {
   or,
   sql,
 } from "drizzle-orm";
-import { cashRegisters, printAgents, receipts } from "@makanmasak/database";
+import { orders, printAgents, receipts } from "@makanmasak/database";
 import { z } from "zod";
 import type { Env } from "../../types/env";
 import { hashPrintAgentKey } from "../../shared/utils/print-agent-key";
@@ -35,6 +35,15 @@ const CLAIM_TIMEOUT_MS = 5 * 60 * 1000;
  */
 const MAX_DELIVERY_ATTEMPTS = 5;
 
+/** 代理回報的印表機台數。壞掉或缺席的值一律忽略，不要覆蓋既有讀數。 */
+function optionalCount(raw: string | undefined): number | undefined {
+  if (raw === undefined) return undefined;
+  const value = Number(raw);
+  return Number.isInteger(value) && value >= 0 && value <= 1000
+    ? value
+    : undefined;
+}
+
 const acknowledgementSchema = z.object({
   status: z.enum(["printed", "failed"]),
   printerName: z.string().trim().max(200).optional(),
@@ -43,15 +52,16 @@ const acknowledgementSchema = z.object({
 
 interface AgentIdentity {
   agentId: string;
-  registerId: string;
+  /** null = 服務整間店而不是某一台收銀機，例如廚房出單機。 */
+  registerId: string | null;
   restaurantId: string;
 }
 
 /**
- * Resolve the caller from its key alone. The register — and through it the
- * restaurant — is derived from the credential, never read from a header: an
- * agent that could name its own tenant could claim and read another shop's
- * receipts, which carry customer names, line items and payment methods.
+ * Resolve the caller from its key alone. The restaurant is carried by the
+ * credential itself and never read from a header: an agent that could name its
+ * own tenant could claim and read another shop's receipts, which carry customer
+ * names, line items and payment methods.
  */
 async function authenticateAgent(
   c: Context<{ Bindings: Env }>,
@@ -63,10 +73,9 @@ async function authenticateAgent(
     .select({
       agentId: printAgents.id,
       registerId: printAgents.registerId,
-      restaurantId: cashRegisters.restaurantId,
+      restaurantId: printAgents.restaurantId,
     })
     .from(printAgents)
-    .innerJoin(cashRegisters, eq(cashRegisters.id, printAgents.registerId))
     .where(
       and(
         eq(printAgents.keyHash, await hashPrintAgentKey(presented)),
@@ -152,6 +161,23 @@ app.get("/jobs", async (c) => {
   const now = new Date();
   const staleBefore = new Date(now.getTime() - CLAIM_TIMEOUT_MS);
 
+  // A till agent takes that till's receipts; a shop agent (register_id NULL)
+  // takes the register-less ones, which is what an order-triggered kitchen
+  // ticket is. `IS` rather than `=` so NULL matches NULL — `= NULL` is NULL,
+  // which would silently match nothing and leave kitchen tickets unprinted.
+  const servesThisAgent = sql`${receipts.registerId} IS ${agent.registerId}`;
+
+  // Receipts carry no restaurant of their own; it comes from the order. This
+  // is the tenant boundary, so it is applied to every statement below rather
+  // than assumed from the register.
+  const inThisRestaurant = inArray(
+    receipts.orderId,
+    db
+      .select({ id: orders.id })
+      .from(orders)
+      .where(eq(orders.restaurantId, agent.restaurantId)),
+  );
+
   // A claim older than the timeout is abandoned. So is one with no timestamp
   // at all: "printing" with nothing tracking the claim is precisely the state
   // this reclaim exists to resolve.
@@ -169,7 +195,8 @@ app.get("/jobs", async (c) => {
     })
     .where(
       and(
-        eq(receipts.registerId, agent.registerId),
+        inThisRestaurant,
+        servesThisAgent,
         abandoned,
         gte(receipts.printAttempts, MAX_DELIVERY_ATTEMPTS),
       ),
@@ -183,7 +210,7 @@ app.get("/jobs", async (c) => {
   const nextJob = db
     .select({ id: receipts.id })
     .from(receipts)
-    .where(and(eq(receipts.registerId, agent.registerId), claimable))
+    .where(and(inThisRestaurant, servesThisAgent, claimable))
     .orderBy(asc(receipts.createdAt))
     .limit(1);
 
@@ -198,9 +225,10 @@ app.get("/jobs", async (c) => {
     })
     .where(
       and(
-        // The register predicate is repeated outside the subquery so the
-        // tenant scope of the write is visible without tracing into it.
-        eq(receipts.registerId, agent.registerId),
+        // Repeated outside the subquery so the tenant scope of the write is
+        // visible without tracing into it.
+        inThisRestaurant,
+        servesThisAgent,
         inArray(receipts.id, nextJob),
         claimable,
       ),
@@ -212,9 +240,20 @@ app.get("/jobs", async (c) => {
       createdAt: receipts.createdAt,
     });
 
+  // Reported on the poll rather than through a second endpoint: the agent
+  // already calls this every heartbeat, and a separate health beat would be
+  // one more thing that can silently stop while printing still works.
+  const printersTotal = optionalCount(c.req.query("printersTotal"));
+  const printersOnline = optionalCount(c.req.query("printersOnline"));
+
   await db
     .update(printAgents)
-    .set({ lastSeenAt: now, updatedAt: now })
+    .set({
+      lastSeenAt: now,
+      updatedAt: now,
+      ...(printersTotal === undefined ? {} : { printersTotal }),
+      ...(printersOnline === undefined ? {} : { printersOnline }),
+    })
     .where(eq(printAgents.id, agent.agentId));
 
   if (!claimed) return c.json({ success: true, data: null });
@@ -243,7 +282,8 @@ app.post("/jobs/:receiptId/ack", async (c) => {
       400,
     );
 
-  const settled = await drizzle(c.env.DB)
+  const db = drizzle(c.env.DB);
+  const settled = await db
     .update(receipts)
     .set({
       printStatus: parsed.data.status,
@@ -256,9 +296,16 @@ app.post("/jobs/:receiptId/ack", async (c) => {
       and(
         eq(receipts.id, c.req.param("receiptId")),
         eq(receipts.printStatus, "printing"),
-        // Scoped to the acknowledging agent's own register, so a credential
-        // can never settle a job it was not handed.
-        eq(receipts.registerId, agent.registerId),
+        // Scoped exactly like the claim, so a credential can never settle a
+        // job it was not handed — neither another shop's nor another till's.
+        inArray(
+          receipts.orderId,
+          db
+            .select({ id: orders.id })
+            .from(orders)
+            .where(eq(orders.restaurantId, agent.restaurantId)),
+        ),
+        sql`${receipts.registerId} IS ${agent.registerId}`,
       ),
     )
     .returning({ id: receipts.id });

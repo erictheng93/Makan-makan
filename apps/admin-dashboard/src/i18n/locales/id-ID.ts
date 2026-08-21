@@ -46,6 +46,52 @@ const idID: Messages = {
     retry: "Coba lagi",
     processing: "Pengolahan",
   },
+  printAgents: {
+    title: "Agen cetak",
+    description:
+      "Satu kredensial untuk setiap printer di toko. Agen yang terikat pada kasir mencetak struk kasir tersebut; yang tidak terikat mencetak tiket dapur yang dibuat saat pesanan dikonfirmasi.",
+    issue: "Terbitkan kredensial",
+    revoke: "Cabut",
+    revokeConfirm:
+      'Cabut "{label}"? Printer itu langsung berhenti mengambil pekerjaan.',
+    revokeFailed: "Gagal mencabut kredensial",
+    issueFailed: "Gagal menerbitkan kredensial",
+    loadFailed: "Gagal memuat agen cetak",
+    lastSeen: "Terakhir melapor {time}",
+    scope: {
+      shop: "Seluruh toko",
+      register: "Kasir {name}",
+    },
+    status: {
+      online: "Normal",
+      no_printer: "Tidak ada printer daring",
+      offline: "Luring",
+      never_seen: "Belum pernah terhubung",
+    },
+    printers: {
+      count: "{online}/{total} printer daring",
+      unknown: "Status printer tidak diketahui",
+    },
+    empty: {
+      title: "Belum ada agen cetak",
+      hint: "Terbitkan kredensial dan isikan ke PRINT_AGENT_CLOUD_KEY pada agen cetak toko untuk mulai mengambil pekerjaan.",
+    },
+    form: {
+      label: "Nama",
+      labelPlaceholder: "mis. Printer konter",
+      register: "Ikat ke kasir",
+      registerNone: "Tanpa ikatan (seluruh toko, termasuk tiket dapur)",
+      registerHint:
+        "Agen tanpa ikatan menerima tiket dapur yang dibuat saat pesanan dikonfirmasi.",
+      submit: "Terbitkan",
+    },
+    issued: {
+      title: "Kredensial diterbitkan",
+      warning:
+        "Kunci hanya ditampilkan sekali. Setelah ditutup tidak bisa diambil lagi.",
+      done: "Sudah disimpan",
+    },
+  },
   optionGroups: {
     usedByItems: "dipakai {count} menu",
     deleteAffects: "Menghapus memengaruhi {count} menu",
@@ -1733,6 +1779,7 @@ const idID: Messages = {
     waitingManagement: "Manajemen Menunggu",
   },
   pages: {
+    printAgents: "Agen cetak",
     optionGroups: "Grup Opsi Bersama",
     login: "Masuk",
     forgotPassword: "Lupa Kata Sandi",

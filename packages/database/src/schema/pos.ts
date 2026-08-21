@@ -172,9 +172,9 @@ export const receipts = sqliteTable(
     orderId: text("order_id")
       .notNull()
       .references(() => orders.id),
-    registerId: text("register_id")
-      .notNull()
-      .references(() => cashRegisters.id),
+    // 可空：訂單確認時自動產生的廚房票沒有收銀機。派工時 NULL 只配對到同樣
+    // 沒有綁收銀機的代理（全店代理，例如廚房出單機）。
+    registerId: text("register_id").references(() => cashRegisters.id),
     shiftId: text("shift_id").references(() => cashShifts.id),
 
     // 收據資訊
@@ -228,12 +228,21 @@ export const printAgents = sqliteTable(
   "print_agents",
   {
     id: text("id").primaryKey(), // UUID v7
-    registerId: text("register_id")
+    restaurantId: text("restaurant_id")
       .notNull()
-      .references(() => cashRegisters.id),
+      .references(() => restaurants.id),
+
+    // 可空。綁定收銀機 = 櫃檯出單機，只拿該台的收據；不綁 = 全店代理，拿沒有
+    // 收銀機的收據（廚房票）。配對規則是 null-safe 相等，見 features/print。
+    registerId: text("register_id").references(() => cashRegisters.id),
 
     label: text("label").notNull(), // 人看的名稱，例如「櫃檯出單機」
     keyHash: text("key_hash").notNull().unique(), // SHA-256 hex
+
+    // 代理每次輪詢時回報。少了這兩個欄位，後台分不出「代理整個掛了」與「代理
+    // 活著但印表機被拔掉」—— last_seen_at_ms 只看得出前者。
+    printersTotal: integer("printers_total"),
+    printersOnline: integer("printers_online"),
 
     lastSeenAt: integer("last_seen_at_ms", { mode: "timestamp_ms" }),
     revokedAt: integer("revoked_at_ms", { mode: "timestamp_ms" }),
@@ -242,6 +251,7 @@ export const printAgents = sqliteTable(
     updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => ({
+    restaurantIdx: index("idx_print_agents_restaurant").on(table.restaurantId),
     registerIdx: index("idx_print_agents_register").on(table.registerId),
   }),
 );
@@ -408,6 +418,10 @@ export const receiptsRelations = relations(receipts, ({ one }) => ({
 }));
 
 export const printAgentsRelations = relations(printAgents, ({ one }) => ({
+  restaurant: one(restaurants, {
+    fields: [printAgents.restaurantId],
+    references: [restaurants.id],
+  }),
   register: one(cashRegisters, {
     fields: [printAgents.registerId],
     references: [cashRegisters.id],

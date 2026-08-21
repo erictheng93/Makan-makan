@@ -3,7 +3,7 @@
  */
 
 import { drizzle } from "drizzle-orm/d1";
-import { eq, and, desc, sql, type SQL } from "drizzle-orm";
+import { eq, and, desc, ne, sql, type SQL } from "drizzle-orm";
 import {
   amountFromCents,
   businessNumber,
@@ -118,6 +118,82 @@ export class ReceiptService {
       return {
         success: false,
         error: error instanceof Error ? error.message : "打印收據失敗",
+      };
+    }
+  }
+
+  /**
+   * 訂單確認時自動產生廚房出單票。
+   *
+   * `registerId` 是 null：這張票不屬於任何收銀機，因此只會被沒有綁收銀機的
+   * 全店代理（廚房出單機）認領。顧客端送出的訂單本來就沒有收銀台可掛。
+   *
+   * 冪等：同一張訂單已經有一張未取消的廚房票就不再開。狀態機雖然擋掉了
+   * confirmed → confirmed，但外送平台那條路徑是直接寫狀態的，重放不該變成
+   * 兩張出單票。
+   */
+  async createKitchenTicket(
+    orderId: string,
+  ): Promise<{ success: boolean; data?: Receipt; error?: string }> {
+    try {
+      const [existing] = await this.db
+        .select({ id: receipts.id })
+        .from(receipts)
+        .where(
+          and(
+            eq(receipts.orderId, orderId),
+            eq(receipts.receiptType, "kitchen"),
+            ne(receipts.printStatus, "cancelled"),
+          ),
+        )
+        .limit(1);
+
+      if (existing) {
+        return { success: true };
+      }
+
+      const [order] = await this.db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, orderId))
+        .limit(1);
+
+      if (!order) {
+        return { success: false, error: "訂單不存在" };
+      }
+
+      const receiptId = generateUUID();
+      const now = new Date();
+
+      await this.db.insert(receipts).values({
+        id: receiptId,
+        orderId,
+        registerId: null,
+        shiftId: null,
+        receiptNumber: businessNumber("K"),
+        receiptType: "kitchen",
+        templateName: "kitchen",
+        content: JSON.stringify(
+          await this.generateReceiptContent(order, "kitchen"),
+        ),
+        printStatus: "pending",
+        printAttempts: 0,
+        reprintedCount: 0,
+        createdAt: now,
+      });
+
+      const [receipt] = await this.db
+        .select()
+        .from(receipts)
+        .where(eq(receipts.id, receiptId))
+        .limit(1);
+
+      return { success: true, data: this.mapReceipt(receipt) };
+    } catch (error) {
+      console.error("產生廚房出單票失敗:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "產生廚房出單票失敗",
       };
     }
   }

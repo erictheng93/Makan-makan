@@ -46,6 +46,51 @@ const jaJP: Messages = {
     retry: "再試行",
     processing: "処理",
   },
+  printAgents: {
+    title: "プリントエージェント",
+    description:
+      "店内のプリンター 1 台につき 1 つの資格情報です。レジに紐づけた場合はそのレジのレシートを、紐づけない場合は注文確定時に発行されるキッチン伝票を印刷します。",
+    issue: "資格情報を発行",
+    revoke: "失効",
+    revokeConfirm:
+      "「{label}」を失効しますか？そのプリンターは直ちにジョブの取得を停止します。",
+    revokeFailed: "失効できませんでした",
+    issueFailed: "発行できませんでした",
+    loadFailed: "プリントエージェントを読み込めませんでした",
+    lastSeen: "最終報告 {time}",
+    scope: {
+      shop: "店舗全体",
+      register: "レジ {name}",
+    },
+    status: {
+      online: "正常",
+      no_printer: "オンラインのプリンターなし",
+      offline: "オフライン",
+      never_seen: "未接続",
+    },
+    printers: {
+      count: "プリンター {online}/{total} 台オンライン",
+      unknown: "プリンターの状態は不明です",
+    },
+    empty: {
+      title: "プリントエージェントはまだありません",
+      hint: "資格情報を発行し、店舗のプリントエージェントの PRINT_AGENT_CLOUD_KEY に設定するとジョブの取得が始まります。",
+    },
+    form: {
+      label: "名称",
+      labelPlaceholder: "例：カウンタープリンター",
+      register: "レジに紐づける",
+      registerNone: "紐づけない（店舗全体、キッチン伝票を含む）",
+      registerHint:
+        "紐づけないエージェントは、注文確定時に発行されるキッチン伝票を受け取ります。",
+      submit: "発行",
+    },
+    issued: {
+      title: "資格情報を発行しました",
+      warning: "キーは一度だけ表示されます。閉じると再取得できません。",
+      done: "保存しました",
+    },
+  },
   optionGroups: {
     usedByItems: "{count} 件の商品で使用中",
     deleteAffects: "削除すると {count} 件の商品に影響します",
@@ -1622,6 +1667,7 @@ const jaJP: Messages = {
     waitingManagement: "待機管理",
   },
   pages: {
+    printAgents: "プリントエージェント",
     optionGroups: "共有オプショングループ",
     login: "ログイン",
     forgotPassword: "パスワード忘れ",

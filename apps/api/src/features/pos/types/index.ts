@@ -71,7 +71,8 @@ export interface CashMovement {
 export interface Receipt {
   id: string;
   orderId: string;
-  registerId: string;
+  /** null = 訂單確認時自動產生的廚房票，不屬於任何收銀機。 */
+  registerId: string | null;
   shiftId?: string;
   receiptNumber: string;
   receiptType: "customer" | "kitchen" | "merchant" | "duplicate";

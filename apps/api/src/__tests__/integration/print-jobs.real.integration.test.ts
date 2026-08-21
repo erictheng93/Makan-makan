@@ -31,6 +31,7 @@ const REGISTER_A = "11111111-1111-7111-8111-111111111111";
 const REGISTER_B = "22222222-2222-7222-8222-222222222222";
 const KEY_A = "mmpa_key_for_shop_a";
 const KEY_B = "mmpa_key_for_shop_b";
+const KITCHEN_KEY_A = "mmpa_kitchen_key_for_shop_a";
 const ORDER_A = "order-shop-a";
 const ORDER_B = "order-shop-b";
 
@@ -84,6 +85,7 @@ async function seedShop(
   });
   await testDb.drizzle.insert(printAgents).values({
     id: `agent-${restaurantId}`,
+    restaurantId,
     registerId,
     label: "Counter printer",
     keyHash: await hashPrintAgentKey(key),
@@ -93,9 +95,23 @@ async function seedShop(
   });
 }
 
+/** 全店代理：不綁收銀機，因此只拿沒有收銀機的收據（廚房票）。 */
+async function seedShopAgent(restaurantId: string, key: string): Promise<void> {
+  const now = new Date();
+  await testDb.drizzle.insert(printAgents).values({
+    id: `shop-agent-${restaurantId}`,
+    restaurantId,
+    registerId: null,
+    label: "Kitchen printer",
+    keyHash: await hashPrintAgentKey(key),
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
 async function seedReceipt(
   id: string,
-  registerId: string,
+  registerId: string | null,
   orderId: string,
   overrides: Partial<typeof receipts.$inferInsert> = {},
 ): Promise<void> {
@@ -119,9 +135,9 @@ async function seedReceipt(
   });
 }
 
-function poll(key: string) {
+function poll(key: string, query = "") {
   return routes.request(
-    "/jobs",
+    `/jobs${query}`,
     { headers: { "X-Print-Agent-Key": key } },
     testDb.bindings as never,
   );
@@ -308,6 +324,67 @@ describe("cloud print dispatch — real D1", () => {
     expect(row?.printStatus).toBe("failed");
     expect(row?.printedAt).toBeNull();
     expect(row?.printerResponse).toBe("Paper out");
+  });
+
+  it("keeps a till agent away from register-less kitchen tickets", async () => {
+    // The till agent is bound to REGISTER_A; the ticket belongs to no till.
+    // `IS` rather than `=` is what makes NULL match NULL — with `=` this
+    // ticket would match nothing at all and never print.
+    await seedReceipt("kitchen-1", null, ORDER_A, { receiptType: "kitchen" });
+
+    expect((await claimedJob(await poll(KEY_A))).data).toBeNull();
+    expect((await receiptRow("kitchen-1"))?.printStatus).toBe("pending");
+  });
+
+  it("hands a kitchen ticket to the shop agent", async () => {
+    await seedShopAgent(SHOP_A, KITCHEN_KEY_A);
+    await seedReceipt("kitchen-1", null, ORDER_A, { receiptType: "kitchen" });
+
+    const body = await claimedJob(await poll(KITCHEN_KEY_A));
+
+    expect(body.data?.receiptId).toBe("kitchen-1");
+    expect((await receiptRow("kitchen-1"))?.printStatus).toBe("printing");
+  });
+
+  it("keeps a shop agent away from a till's receipts", async () => {
+    await seedShopAgent(SHOP_A, KITCHEN_KEY_A);
+    await seedReceipt("receipt-a", REGISTER_A, ORDER_A);
+
+    expect((await claimedJob(await poll(KITCHEN_KEY_A))).data).toBeNull();
+    expect((await receiptRow("receipt-a"))?.printStatus).toBe("pending");
+  });
+
+  it("never hands another shop's kitchen ticket to this shop's agent", async () => {
+    await seedShopAgent(SHOP_A, KITCHEN_KEY_A);
+    await seedReceipt("kitchen-b", null, ORDER_B, { receiptType: "kitchen" });
+
+    // Both agents are register-less, so the register predicate matches. Only
+    // the restaurant check keeps them apart.
+    expect((await claimedJob(await poll(KITCHEN_KEY_A))).data).toBeNull();
+    expect((await receiptRow("kitchen-b"))?.printStatus).toBe("pending");
+  });
+
+  it("records the printer counts the agent reports", async () => {
+    await poll(KEY_A, "?printersTotal=2&printersOnline=1");
+
+    const [agent] = await testDb.drizzle
+      .select()
+      .from(printAgents)
+      .where(eq(printAgents.registerId, REGISTER_A));
+    expect(agent).toMatchObject({ printersTotal: 2, printersOnline: 1 });
+  });
+
+  it("keeps the last printer counts when the agent reports none", async () => {
+    await poll(KEY_A, "?printersTotal=2&printersOnline=2");
+    // A probe failure sends no counts at all. Treating that as "zero online"
+    // would raise a false alarm about a printer that is very likely fine.
+    await poll(KEY_A);
+
+    const [agent] = await testDb.drizzle
+      .select()
+      .from(printAgents)
+      .where(eq(printAgents.registerId, REGISTER_A));
+    expect(agent).toMatchObject({ printersTotal: 2, printersOnline: 2 });
   });
 
   it("hands a receipt to only one of two concurrent polls", async () => {

@@ -400,3 +400,53 @@ describe("ReceiptService", () => {
     });
   });
 });
+
+describe("ReceiptService.createKitchenTicket", () => {
+  it("queues a register-less kitchen ticket for the order", async () => {
+    uuidMocks.generateUUID.mockReturnValue("kitchen-1");
+    const mutations = mockMutations();
+    mockSelectResults({
+      // 存在性檢查（無）、訂單、品項、回讀新收據
+      receipts: [[], [receiptRow({ id: "kitchen-1" })]],
+      orders: [[orderRow()]],
+      orderItems: [[itemRow()]],
+    });
+
+    await expect(
+      createService().createKitchenTicket("101"),
+    ).resolves.toMatchObject({ success: true });
+
+    // registerId 必須是 null，否則只有櫃檯代理拿得到，廚房永遠印不到。
+    expect(mutations.inserted).toEqual([
+      expect.objectContaining({
+        id: "kitchen-1",
+        orderId: "101",
+        registerId: null,
+        receiptType: "kitchen",
+        printStatus: "pending",
+      }),
+    ]);
+  });
+
+  it("does not open a second ticket for an order that already has one", async () => {
+    const mutations = mockMutations();
+    mockSelectResults({ receipts: [[receiptRow({ receiptType: "kitchen" })]] });
+
+    await expect(
+      createService().createKitchenTicket("101"),
+    ).resolves.toMatchObject({ success: true });
+
+    expect(mutations.inserted).toEqual([]);
+  });
+
+  it("reports a missing order instead of writing a dangling ticket", async () => {
+    const mutations = mockMutations();
+    mockSelectResults({ receipts: [[]], orders: [[]] });
+
+    await expect(createService().createKitchenTicket("nope")).resolves.toEqual({
+      success: false,
+      error: "訂單不存在",
+    });
+    expect(mutations.inserted).toEqual([]);
+  });
+});

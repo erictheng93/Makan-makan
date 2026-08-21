@@ -1,6 +1,27 @@
 import { apiClient, unwrapApiData } from "./api";
 
 // 型別定義
+/** 伺服器端判定的代理狀態，UI 不重算 —— 定義只留一份。 */
+export type PrintAgentStatus =
+  | "online"
+  | "no_printer"
+  | "offline"
+  | "never_seen";
+
+export interface PrintAgent {
+  id: string;
+  restaurantId: string;
+  /** null = 全店代理（廚房出單機），不綁單一收銀機。 */
+  registerId: string | null;
+  registerName: string | null;
+  label: string;
+  status: PrintAgentStatus;
+  printersTotal: number | null;
+  printersOnline: number | null;
+  lastSeenAt?: string;
+  createdAt: string;
+}
+
 export interface CashRegister {
   id: string;
   name: string;
@@ -160,6 +181,24 @@ export const posService = {
       { params },
     );
     return unwrapApiData<CashMovement[]>(response);
+  },
+
+  // 列印代理
+  async getPrintAgents(): Promise<PrintAgent[]> {
+    const response = await apiClient.get("/pos/print-agents");
+    return unwrapApiData<PrintAgent[]>(response);
+  },
+
+  async issuePrintAgent(data: {
+    label: string;
+    registerId?: string;
+  }): Promise<PrintAgent & { key: string }> {
+    const response = await apiClient.post("/pos/print-agents", data);
+    return unwrapApiData<PrintAgent & { key: string }>(response);
+  },
+
+  async revokePrintAgent(agentId: string): Promise<void> {
+    await apiClient.delete(`/pos/print-agents/${agentId}`);
   },
 
   // 收據管理

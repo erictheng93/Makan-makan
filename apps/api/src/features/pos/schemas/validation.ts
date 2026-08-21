@@ -95,12 +95,13 @@ export const registerParamsSchema = z.object({
 });
 
 export const printAgentParamsSchema = z.object({
-  registerId: z.uuid(),
   agentId: z.uuid(),
 });
 
 export const issuePrintAgentSchema = z.object({
   label: z.string().trim().min(1).max(100),
+  // 省略 = 全店代理（廚房出單機之類），只拿沒有收銀機的收據。
+  registerId: z.uuid().optional(),
 });
 
 export const shiftParamsSchema = z.object({

@@ -14,6 +14,10 @@
     {
       "fresh": "0002_usage_events_ttl_index.sql",
       "reason": "Indexes the platform-only usage_events table so its nightly TTL sweep stops full-scanning; the management-api database has no usage_events to pair against."
+    },
+    {
+      "fresh": "0003_restaurant_scoped_print_dispatch.sql",
+      "reason": "Restaurant-scoped print dispatch and agent device health; the management-api database has no receipts, cash_registers or print_agents to pair against."
     }
   ],
   "legacyOnly": [
