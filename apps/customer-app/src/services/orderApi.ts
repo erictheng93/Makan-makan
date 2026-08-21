@@ -1,5 +1,6 @@
 import { apiClient } from "./api";
 import {
+  getMarketCheckoutGuestToken,
   recordMarketCheckoutGuestTokens,
   recordRecentMarketCheckout,
   recordRecoveredMarketCheckoutGuestToken,
@@ -267,6 +268,15 @@ export interface GuestRealtimeTokenRequest {
   qrCode: string;
 }
 
+// The mutating market checkout endpoints require proof the caller holds the
+// checkout. `Authorization` is already spoken for by whichever of the customer
+// JWT / guest token the interceptor picked, so the guest token rides along in
+// its own header when one is stored for this checkout.
+function marketCheckoutHolderConfig(checkoutId: string) {
+  const guestToken = getMarketCheckoutGuestToken(checkoutId);
+  return guestToken ? { headers: { "X-Guest-Token": guestToken } } : undefined;
+}
+
 export const orderApi = {
   /**
    * 創建新訂單（需要登入）
@@ -358,6 +368,7 @@ export const orderApi = {
     return apiClient.post<MarketCheckoutPaymentEnvelope>(
       `/market-checkouts/${checkoutId}/pay`,
       paymentData,
+      marketCheckoutHolderConfig(checkoutId),
     );
   },
 
@@ -368,6 +379,7 @@ export const orderApi = {
     return apiClient.post<MarketCheckoutVoucherEnvelope>(
       `/market-checkouts/${checkoutId}/voucher`,
       { code },
+      marketCheckoutHolderConfig(checkoutId),
     );
   },
 
@@ -376,6 +388,8 @@ export const orderApi = {
   ): Promise<MarketCheckoutVoucherEnvelope> {
     return apiClient.delete<MarketCheckoutVoucherEnvelope>(
       `/market-checkouts/${checkoutId}/voucher`,
+      undefined,
+      marketCheckoutHolderConfig(checkoutId),
     );
   },
 

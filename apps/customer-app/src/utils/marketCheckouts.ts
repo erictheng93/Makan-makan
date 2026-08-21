@@ -90,6 +90,27 @@ export function activateMarketCheckoutGuestToken(
   return true;
 }
 
+/**
+ * Any live guest token stored for this checkout.
+ *
+ * The API client puts one credential in `Authorization` — the customer JWT when
+ * signed in, the guest token otherwise — so a signed-in shopper opening a
+ * checkout they placed while signed out has no way to prove they hold it. The
+ * market checkout endpoints accept this token in `X-Guest-Token` instead, which
+ * does not collide with the JWT.
+ */
+export function getMarketCheckoutGuestToken(
+  checkoutId: string,
+): string | undefined {
+  const tokenRecords = readGuestTokenRecords()[checkoutId];
+  if (!tokenRecords) return undefined;
+
+  const now = Date.now();
+  return Object.values(tokenRecords).find(
+    (record) => Date.parse(record.tokenExpiresAt) > now,
+  )?.guestToken;
+}
+
 export function getRecentMarketCheckoutPhoneLastDigits(checkoutId: string) {
   return listRecentMarketCheckouts().find(
     (checkout) => checkout.id === checkoutId,
