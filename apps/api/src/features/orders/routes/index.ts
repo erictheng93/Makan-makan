@@ -733,7 +733,11 @@ app.post(
       orderCount: data.orderIds.length,
     });
 
-    const result = await ordersService.bulkUpdateOrders(data, user.id);
+    const result = await ordersService.bulkUpdateOrders(
+      data,
+      user.id,
+      user.role as UserRole,
+    );
 
     return c.json({
       success: true,

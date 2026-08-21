@@ -822,6 +822,7 @@ export class OrdersService implements IOrdersService {
   async bulkUpdateOrders(
     operation: BulkOrderOperation,
     userId?: string,
+    userRole?: UserRole,
   ): Promise<BulkOrderResult> {
     try {
       const batchId =
@@ -852,6 +853,7 @@ export class OrdersService implements IOrdersService {
                     notes: operation.data.notes,
                   },
                   userId,
+                  userRole,
                 );
                 success = !!updated;
                 data = updated;

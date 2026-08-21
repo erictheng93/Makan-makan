@@ -882,6 +882,7 @@ describe("OrdersService workflows", () => {
         data: { status: "preparing", notes: "bulk start" },
       },
       "99",
+      2,
     );
 
     expect(result).toMatchObject({
@@ -903,6 +904,43 @@ describe("OrdersService workflows", () => {
       notes: "bulk start",
       expectedVersion: 3,
     });
+  });
+
+  it("rejects bulk paid status updates requested by a shop owner", async () => {
+    const service = new OrdersService(createEnv() as never);
+    getBaseOrder.mockResolvedValue(
+      createOrder({ id: "20", status: "delivered" }),
+    );
+
+    const result = await service.bulkUpdateOrders(
+      {
+        batchId: "batch-owner-paid",
+        action: "update_status",
+        orderIds: ["20"],
+        data: { status: "paid" },
+      },
+      "99",
+      1,
+    );
+
+    expect(result).toMatchObject({
+      successCount: 0,
+      failedCount: 1,
+      errors: [
+        {
+          orderId: "20",
+          error: "Insufficient permissions for status transition to paid",
+        },
+      ],
+      results: [
+        {
+          orderId: "20",
+          success: false,
+          error: "Insufficient permissions for status transition to paid",
+        },
+      ],
+    });
+    expect(updateBaseOrderStatus).not.toHaveBeenCalled();
   });
 
   it("builds analytics and popular item cache entries from base stats", async () => {
