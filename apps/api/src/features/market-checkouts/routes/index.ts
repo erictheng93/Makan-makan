@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import {
   createDatabase,
@@ -198,6 +198,63 @@ function toPublicMarketCheckout(
     payment: session.payment,
     subtotal: session.subtotal,
     appliedVoucher: session.appliedVoucher,
+    createdAt: session.createdAt,
+  };
+}
+
+/**
+ * What someone holding the tracking link — but not the checkout — may see.
+ *
+ * The checkout id travels in a shareable URL, so "knows the id" is a wider
+ * population than "placed this order": people eating together off one payment
+ * legitimately open the same link, and checkouts predating `customer_id` have
+ * no owner to match at all. Both need the progress view to keep working, so
+ * this stays a 200 with the same shape rather than a 403 — a status split would
+ * also turn the endpoint into an oracle for whether a checkout is owned.
+ *
+ * Same type as the owner payload, deliberately: a second shape would leave the
+ * customer app's `MarketCheckoutSummary` type lying about half its responses.
+ * What is withheld is the payment plumbing (provider payment/refund ids, raw
+ * failure text) and the applied voucher, none of which a bystander needs to
+ * read progress.
+ */
+function toRedactedMarketCheckout(
+  session: MarketCheckoutSession,
+): PublicMarketCheckoutSession {
+  return {
+    id: session.id,
+    market: session.market,
+    status: session.status,
+    childOrders: session.childOrders,
+    payment: session.payment && {
+      status: session.payment.status,
+      method: session.payment.method,
+      currency: session.payment.currency,
+      country: session.payment.country,
+      totalAmount: session.payment.totalAmount,
+      totalAmountCents: session.payment.totalAmountCents,
+      paidAmount: session.payment.paidAmount,
+      paidAmountCents: session.payment.paidAmountCents,
+      refundedAmount: session.payment.refundedAmount,
+      refundedAmountCents: session.payment.refundedAmountCents,
+      paidAt: session.payment.paidAt,
+      failedAt: session.payment.failedAt,
+      refundedAt: session.payment.refundedAt,
+      childPayments: session.payment.childPayments.map((child) => ({
+        restaurantId: child.restaurantId,
+        restaurantName: child.restaurantName,
+        orderId: child.orderId,
+        orderNumber: child.orderNumber,
+        status: child.status,
+        amount: child.amount,
+        amountCents: child.amountCents,
+      })),
+      // parentPayment and settlement stay out: provider transaction ids,
+      // idempotency keys and per-vendor fee splits are operator data. Written
+      // as an allowlist rather than a spread-minus-keys so the next field added
+      // to the payment summary has to be named here before a bystander sees it.
+    },
+    subtotal: session.subtotal,
     createdAt: session.createdAt,
   };
 }
@@ -673,8 +730,8 @@ const applyVoucherSchema = z.object({
 
 // Apply a 卷 (voucher) code to an unpaid market checkout. Supports platform
 // vouchers, vendor-scoped vouchers, and stacked voucher bundles.
-app.post("/:id/voucher", async (c) => {
-  const checkoutId = c.req.param("id");
+app.post("/:id/voucher", optionalCanonicalCustomerAuthMiddleware, async (c) => {
+  const checkoutId = c.req.param("id") ?? "";
   const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
   const session = stored
     ? (JSON.parse(stored) as MarketCheckoutSession)
@@ -682,6 +739,12 @@ app.post("/:id/voucher", async (c) => {
 
   if (!session) {
     throw notFound("Market checkout not found");
+  }
+  if (!(await isMarketCheckoutOwner(c, session))) {
+    throw forbidden(
+      "You do not hold this market checkout",
+      "MARKET_CHECKOUT_ACCESS_DENIED",
+    );
   }
   if (session.payment?.status === "paid") {
     throw badRequest(
@@ -784,48 +847,58 @@ app.post("/:id/voucher", async (c) => {
 });
 
 // Remove an applied voucher from an unpaid market checkout.
-app.delete("/:id/voucher", async (c) => {
-  const checkoutId = c.req.param("id");
-  const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
-  const session = stored
-    ? (JSON.parse(stored) as MarketCheckoutSession)
-    : await readPersistedMarketCheckoutSession(c.env, checkoutId);
+app.delete(
+  "/:id/voucher",
+  optionalCanonicalCustomerAuthMiddleware,
+  async (c) => {
+    const checkoutId = c.req.param("id") ?? "";
+    const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
+    const session = stored
+      ? (JSON.parse(stored) as MarketCheckoutSession)
+      : await readPersistedMarketCheckoutSession(c.env, checkoutId);
 
-  if (!session) {
-    throw notFound("Market checkout not found");
-  }
-  if (session.payment?.status === "paid") {
-    throw badRequest(
-      "This checkout is already paid",
-      "MARKET_CHECKOUT_ALREADY_PAID",
+    if (!session) {
+      throw notFound("Market checkout not found");
+    }
+    if (!(await isMarketCheckoutOwner(c, session))) {
+      throw forbidden(
+        "You do not hold this market checkout",
+        "MARKET_CHECKOUT_ACCESS_DENIED",
+      );
+    }
+    if (session.payment?.status === "paid") {
+      throw badRequest(
+        "This checkout is already paid",
+        "MARKET_CHECKOUT_ALREADY_PAID",
+      );
+    }
+
+    const voucherService = new MarketCheckoutVoucherService(c.env);
+    const appliedVouchers = listAppliedMarketCheckoutVouchers(
+      session.appliedVoucher,
     );
-  }
+    for (const voucher of appliedVouchers) {
+      await voucherService.releaseReservation(voucher);
+    }
 
-  const voucherService = new MarketCheckoutVoucherService(c.env);
-  const appliedVouchers = listAppliedMarketCheckoutVouchers(
-    session.appliedVoucher,
-  );
-  for (const voucher of appliedVouchers) {
-    await voucherService.releaseReservation(voucher);
-  }
+    const { appliedVoucher: _removed, ...rest } = session;
+    const updatedSession = rest as MarketCheckoutSession;
+    await c.env.CACHE_KV.put(
+      `market_checkout:${checkoutId}`,
+      JSON.stringify(updatedSession),
+      { expirationTtl: 4 * 60 * 60 },
+    );
+    await updatePersistedMarketCheckoutVoucher(c.env, updatedSession);
 
-  const { appliedVoucher: _removed, ...rest } = session;
-  const updatedSession = rest as MarketCheckoutSession;
-  await c.env.CACHE_KV.put(
-    `market_checkout:${checkoutId}`,
-    JSON.stringify(updatedSession),
-    { expirationTtl: 4 * 60 * 60 },
-  );
-  await updatePersistedMarketCheckoutVoucher(c.env, updatedSession);
+    return c.json({
+      success: true,
+      data: { checkout: toPublicMarketCheckout(updatedSession) },
+    });
+  },
+);
 
-  return c.json({
-    success: true,
-    data: { checkout: toPublicMarketCheckout(updatedSession) },
-  });
-});
-
-app.post("/:id/pay", async (c) => {
-  const checkoutId = c.req.param("id");
+app.post("/:id/pay", optionalCanonicalCustomerAuthMiddleware, async (c) => {
+  const checkoutId = c.req.param("id") ?? "";
   const stored = await c.env.CACHE_KV.get(`market_checkout:${checkoutId}`);
   const session = stored
     ? (JSON.parse(stored) as MarketCheckoutSession)
@@ -833,6 +906,19 @@ app.post("/:id/pay", async (c) => {
 
   if (!session) {
     throw notFound("Market checkout not found");
+  }
+  // Ahead of the holder gate on purpose: with no child orders there is nothing
+  // to charge and no guest token that could ever match, so the gate would turn
+  // a data anomaly into a 403 nobody can clear.
+  if (session.childOrders.length === 0) {
+    throw badRequest("Market checkout has no child orders to pay");
+  }
+
+  if (!(await isMarketCheckoutOwner(c, session))) {
+    throw forbidden(
+      "You do not hold this market checkout",
+      "MARKET_CHECKOUT_ACCESS_DENIED",
+    );
   }
 
   const body = await c.req.json();
@@ -859,10 +945,6 @@ app.post("/:id/pay", async (c) => {
         payment: session.payment,
       },
     });
-  }
-
-  if (session.childOrders.length === 0) {
-    throw badRequest("Market checkout has no child orders to pay");
   }
 
   const requestIdempotencyKey = c.req.header("Idempotency-Key");
@@ -1844,13 +1926,14 @@ app.get("/admin/:id", authMiddleware, requireRole([0]), async (c) => {
   });
 });
 
-app.get("/:id", async (c) => {
+app.get("/:id", optionalCanonicalCustomerAuthMiddleware, async (c) => {
   const checkoutId = c.req.param("id") ?? "";
   const persisted = await readPersistedMarketCheckoutSession(c.env, checkoutId);
   if (persisted) {
-    const checkout = toPublicMarketCheckout(
-      await hydrateMarketCheckoutSession(persisted, c.env),
-    );
+    const hydrated = await hydrateMarketCheckoutSession(persisted, c.env);
+    const checkout = (await isMarketCheckoutOwner(c, hydrated))
+      ? toPublicMarketCheckout(hydrated)
+      : toRedactedMarketCheckout(hydrated);
 
     return c.json({
       success: true,
@@ -1866,9 +1949,10 @@ app.get("/:id", async (c) => {
   }
 
   const session = JSON.parse(stored) as MarketCheckoutSession;
-  const checkout = toPublicMarketCheckout(
-    await hydrateMarketCheckoutSession(session, c.env),
-  );
+  const hydrated = await hydrateMarketCheckoutSession(session, c.env);
+  const checkout = (await isMarketCheckoutOwner(c, hydrated))
+    ? toPublicMarketCheckout(hydrated)
+    : toRedactedMarketCheckout(hydrated);
 
   return c.json({
     success: true,
@@ -1879,6 +1963,55 @@ app.get("/:id", async (c) => {
 });
 
 export default app;
+
+async function isMarketCheckoutOwner(
+  c: Context<{ Bindings: Env }>,
+  session: MarketCheckoutSession,
+): Promise<boolean> {
+  // See the note in POST /:id/guest-token: an absent customer must never match
+  // an unowned session.
+  const signedInCustomerId = c.get("customer")?.id;
+  if (
+    signedInCustomerId !== undefined &&
+    signedInCustomerId === session.customerId
+  ) {
+    return true;
+  }
+
+  // Two places to look, because `Authorization` holds one credential at a time.
+  // An anonymous shopper's browser puts the guest token there; a signed-in
+  // shopper's puts the customer JWT there, which would leave them unable to
+  // prove they hold a checkout placed before they signed in (or before
+  // customer_id existed). The dedicated header carries the guest token in that
+  // case without displacing the JWT.
+  const authorization = c.req.header("Authorization");
+  const candidates = [
+    c.req.header("X-Guest-Token"),
+    authorization?.startsWith("Bearer ")
+      ? authorization.slice("Bearer ".length)
+      : undefined,
+  ].filter((token): token is string => Boolean(token));
+
+  for (const token of candidates) {
+    const rawGuestOrder = await c.env.CACHE_KV.get(`guest_token:${token}`);
+    if (!rawGuestOrder) continue;
+
+    try {
+      const guestOrder = JSON.parse(rawGuestOrder) as GuestTokenData;
+      if (
+        session.childOrders.some(
+          (child) => String(child.orderId) === guestOrder.orderId,
+        )
+      ) {
+        return true;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return false;
+}
 
 async function hydrateMarketCheckoutSession(
   session: MarketCheckoutSession,

@@ -288,8 +288,41 @@ function createMockDb() {
   };
 }
 
+const MARKET_HOLDER_TOKEN = "gt_market-holder";
+const MARKET_HOLDER_HEADERS = {
+  Authorization: `Bearer ${MARKET_HOLDER_TOKEN}`,
+};
+// providerSplitPaidSessionFixture numbers its child orders 101/102, so it needs
+// its own holder token — a guest token is scoped to one order.
+const MARKET_PAID_HOLDER_TOKEN = "gt_market-holder-paid";
+const MARKET_PAID_HOLDER_HEADERS = {
+  Authorization: `Bearer ${MARKET_PAID_HOLDER_TOKEN}`,
+};
+
 function createEnv(dbFirstRows: unknown[] = []) {
   const kv = new Map<string, string>();
+  // A real shopper reaches the mutating endpoints holding the guest token
+  // minted when the checkout was created; the gate on those routes resolves it
+  // out of KV. Seeded through the backing map rather than the `put` mock so it
+  // does not show up in tests that assert on KV writes.
+  kv.set(
+    `guest_token:${MARKET_HOLDER_TOKEN}`,
+    JSON.stringify({
+      orderId: "1001",
+      restaurantId: "restaurant-1",
+      guestName: "Guest",
+      createdAt: 0,
+    }),
+  );
+  kv.set(
+    `guest_token:${MARKET_PAID_HOLDER_TOKEN}`,
+    JSON.stringify({
+      orderId: "101",
+      restaurantId: "restaurant-1",
+      guestName: "Guest",
+      createdAt: 0,
+    }),
+  );
   return {
     DB: {
       prepare: vi.fn((sql: string) => {
@@ -1656,78 +1689,6 @@ describe("market checkout routes", () => {
     expect(response.status).toBe(200);
   });
 
-  it("still demands phone digits when nobody owns the checkout", async () => {
-    // Regression guard for the `undefined === undefined` shape of an ownership
-    // check: an anonymous caller and an unowned checkout must not compare equal
-    // and skip the phone credential. Every checkout created before customer_id
-    // existed, and every checkout placed while signed out, lands here.
-    setNoPersistedCheckoutFixtures();
-    const env = createEnv();
-    await env.CACHE_KV.put(
-      "market_checkout:checkout-1",
-      JSON.stringify(unpaidCheckoutSessionFixture()),
-    );
-
-    const response = await routes.fetch(
-      new Request("https://test/checkout-1/guest-token", {
-        method: "POST",
-        body: JSON.stringify({ orderId: "1001" }),
-      }),
-      env as never,
-    );
-
-    await expectApiError(response, 403, "PHONE_VERIFICATION_FAILED");
-    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
-      "market_checkout_recover_attempts:checkout-1",
-      "1",
-      expect.objectContaining({ expirationTtl: 3600 }),
-    );
-  });
-
-  it("does not treat a different signed-in customer as the owner", async () => {
-    signedInCustomer.value = { id: "customer-outsider" };
-    setSelectFixtures(
-      persistedSessionFixtures({
-        ...unpaidCheckoutSessionFixture(),
-        customerId: "customer-9",
-      }),
-    );
-
-    const response = await routes.fetch(
-      new Request("https://test/checkout-1/guest-token", {
-        method: "POST",
-        body: JSON.stringify({ orderId: "1001" }),
-      }),
-      createEnv() as never,
-    );
-
-    await expectApiError(response, 403, "PHONE_VERIFICATION_FAILED");
-  });
-
-  it("keeps the owner's recovery open while the phone lockout is in force", async () => {
-    // The lockout guards a three-digit credential. An attacker who burns it
-    // must not be able to shut the account holder out of their own checkout.
-    signedInCustomer.value = { id: "customer-9" };
-    setSelectFixtures(
-      persistedSessionFixtures({
-        ...unpaidCheckoutSessionFixture(),
-        customerId: "customer-9",
-      }),
-    );
-    const env = createEnv();
-    await env.CACHE_KV.put("market_checkout_recover_attempts:checkout-1", "5");
-
-    const response = await routes.fetch(
-      new Request("https://test/checkout-1/guest-token", {
-        method: "POST",
-        body: JSON.stringify({ orderId: "1001" }),
-      }),
-      env as never,
-    );
-
-    expect(response.status).toBe(200);
-  });
-
   it("rejects guest token recovery when phone digits do not match", async () => {
     setSelectFixtures({
       marketCheckoutSessions: [
@@ -2094,6 +2055,269 @@ describe("market checkout routes", () => {
     expect(json.data.checkout.phoneLastDigits).toBeUndefined();
   });
 
+  it("still demands phone digits when nobody owns the checkout", async () => {
+    // Regression guard for the `undefined === undefined` shape of an ownership
+    // check: an anonymous caller and an unowned checkout must not compare equal
+    // and skip the phone credential. Every checkout created before customer_id
+    // existed, and every checkout placed while signed out, lands here.
+    setNoPersistedCheckoutFixtures();
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify(unpaidCheckoutSessionFixture()),
+    );
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/guest-token", {
+        method: "POST",
+        body: JSON.stringify({ orderId: "1001" }),
+      }),
+      env as never,
+    );
+
+    await expectApiError(response, 403, "PHONE_VERIFICATION_FAILED");
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "market_checkout_recover_attempts:checkout-1",
+      "1",
+      expect.objectContaining({ expirationTtl: 3600 }),
+    );
+  });
+
+  it("does not treat a different signed-in customer as the owner", async () => {
+    signedInCustomer.value = { id: "customer-outsider" };
+    setSelectFixtures(
+      persistedSessionFixtures({
+        ...unpaidCheckoutSessionFixture(),
+        customerId: "customer-9",
+      }),
+    );
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/guest-token", {
+        method: "POST",
+        body: JSON.stringify({ orderId: "1001" }),
+      }),
+      createEnv() as never,
+    );
+
+    await expectApiError(response, 403, "PHONE_VERIFICATION_FAILED");
+  });
+
+  it("keeps the owner's recovery open while the phone lockout is in force", async () => {
+    // The lockout guards a three-digit credential. An attacker who burns it
+    // must not be able to shut the account holder out of their own checkout.
+    signedInCustomer.value = { id: "customer-9" };
+    setSelectFixtures(
+      persistedSessionFixtures({
+        ...unpaidCheckoutSessionFixture(),
+        customerId: "customer-9",
+      }),
+    );
+    const env = createEnv();
+    await env.CACHE_KV.put("market_checkout_recover_attempts:checkout-1", "5");
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/guest-token", {
+        method: "POST",
+        body: JSON.stringify({ orderId: "1001" }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it("hydrates checkout ownership from D1 when the KV session has expired", async () => {
+    // KV sessions live four hours; "open my checkout again tomorrow" is the
+    // whole point of the owner column, and that path reads from D1 only.
+    signedInCustomer.value = { id: "customer-9" };
+    setSelectFixtures(
+      persistedSessionFixtures({
+        ...providerSplitPaidSessionFixture(),
+        customerId: "customer-9",
+      }),
+    );
+    getOrder.mockResolvedValue(null);
+    const env = createEnv();
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1"),
+      env as never,
+    );
+
+    expect(env.CACHE_KV.get).not.toHaveBeenCalledWith(
+      "market_checkout:checkout-1",
+    );
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as {
+      data: {
+        checkout: {
+          payment?: { childPayments: Array<{ paymentId?: string }> };
+        };
+      };
+    };
+    expect(json.data.checkout.payment?.childPayments[0]?.paymentId).toBe(
+      "mock-pay-101",
+    );
+  });
+
+  it("redacts payment plumbing for a caller who only knows the checkout id", async () => {
+    setNoPersistedCheckoutFixtures();
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify(providerSplitPaidSessionFixture()),
+    );
+    getOrder.mockResolvedValue(null);
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1"),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as {
+      data: {
+        checkout: {
+          id: string;
+          childOrders: Array<{ restaurantName: string }>;
+          payment?: {
+            status: string;
+            childPayments: Array<{
+              paymentId?: string;
+              refundId?: string;
+              errorMessage?: string;
+            }>;
+            parentPayment?: unknown;
+            settlement?: unknown;
+          };
+        };
+      };
+    };
+    // Progress stays readable — people eating off one payment share this link.
+    expect(json.data.checkout.id).toBe("checkout-1");
+    expect(json.data.checkout.childOrders[0]?.restaurantName).toBe("雞排攤");
+    expect(json.data.checkout.payment?.status).toBe("paid");
+    // The plumbing does not.
+    expect(
+      json.data.checkout.payment?.childPayments[0]?.paymentId,
+    ).toBeUndefined();
+    expect(json.data.checkout.payment?.parentPayment).toBeUndefined();
+    expect(json.data.checkout.payment?.settlement).toBeUndefined();
+  });
+
+  it("gives the guest-token holder the unredacted checkout", async () => {
+    setNoPersistedCheckoutFixtures();
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify(providerSplitPaidSessionFixture()),
+    );
+    getOrder.mockResolvedValue(null);
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1", {
+        headers: MARKET_PAID_HOLDER_HEADERS,
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+    const json = (await response.json()) as {
+      data: {
+        checkout: {
+          payment?: {
+            childPayments: Array<{ paymentId?: string }>;
+            parentPayment?: { paymentId: string };
+          };
+        };
+      };
+    };
+    expect(json.data.checkout.payment?.childPayments[0]?.paymentId).toBe(
+      "mock-pay-101",
+    );
+    expect(json.data.checkout.payment?.parentPayment?.paymentId).toBe(
+      "market_pay_checkout-1",
+    );
+  });
+
+  it("rejects checkout mutations from a caller who only knows the checkout id", async () => {
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify({
+        ...unpaidCheckoutSessionFixture(),
+        appliedVoucher: {
+          couponId: 42,
+          code: "MARKET10",
+          name: "Market 10",
+          fundedBy: "platform",
+          discountCents: 2000,
+          allocations: [
+            { orderId: 1001, amountCents: 12000, discountCents: 1200 },
+          ],
+          reservationStatus: "reserved",
+        },
+      }),
+    );
+
+    const removal = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/checkout-1/voucher", { method: "DELETE" }),
+        env as never,
+      ),
+    );
+    await expectApiError(removal, 403, "MARKET_CHECKOUT_ACCESS_DENIED");
+    // Stripping someone else's voucher is the cheapest way to make them pay
+    // full price, so the reservation must survive the rejected call.
+    expect(releaseVoucherReservation).not.toHaveBeenCalled();
+
+    const payment = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/checkout-1/pay", {
+          method: "POST",
+          body: JSON.stringify({ method: "line_pay" }),
+        }),
+        env as never,
+      ),
+    );
+    await expectApiError(payment, 403, "MARKET_CHECKOUT_ACCESS_DENIED");
+    expect(processPayment).not.toHaveBeenCalled();
+  });
+
+  it("rejects checkout mutations carrying another checkout's guest token", async () => {
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify(unpaidCheckoutSessionFixture()),
+    );
+    // A shopper who ordered elsewhere in between carries a valid guest token
+    // for an order that is not part of this checkout.
+    await env.CACHE_KV.put(
+      "guest_token:gt_other-checkout",
+      JSON.stringify({
+        orderId: "9999",
+        restaurantId: "restaurant-7",
+        guestName: "Guest",
+        createdAt: 0,
+      }),
+    );
+
+    const response = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/checkout-1/voucher", {
+          method: "POST",
+          headers: { Authorization: "Bearer gt_other-checkout" },
+          body: JSON.stringify({ code: "MARKET10" }),
+        }),
+        env as never,
+      ),
+    );
+
+    await expectApiError(response, 403, "MARKET_CHECKOUT_ACCESS_DENIED");
+    expect(validateVoucherAndPrice).not.toHaveBeenCalled();
+  });
+
   it("applies a voucher to an unpaid market checkout", async () => {
     const env = createEnv();
     await env.CACHE_KV.put(
@@ -2115,6 +2339,7 @@ describe("market checkout routes", () => {
     const response = await routes.fetch(
       new Request("https://test/checkout-1/voucher", {
         method: "POST",
+        headers: MARKET_HOLDER_HEADERS,
         body: JSON.stringify({ code: " market10 " }),
       }),
       env as never,
@@ -2180,6 +2405,7 @@ describe("market checkout routes", () => {
       routes.fetch(
         new Request("https://test/checkout-1/voucher", {
           method: "POST",
+          headers: MARKET_HOLDER_HEADERS,
           body: JSON.stringify({ code: "market10" }),
         }),
         env as never,
@@ -2233,6 +2459,7 @@ describe("market checkout routes", () => {
     const response = await routes.fetch(
       new Request("https://test/checkout-1/voucher", {
         method: "POST",
+        headers: MARKET_HOLDER_HEADERS,
         body: JSON.stringify({ code: "second5" }),
       }),
       env as never,
@@ -2283,6 +2510,7 @@ describe("market checkout routes", () => {
     const applyResponse = await routes.fetch(
       new Request("https://test/checkout-1/voucher", {
         method: "POST",
+        headers: MARKET_HOLDER_HEADERS,
         body: JSON.stringify({ code: "market10" }),
       }),
       env as never,
@@ -2303,7 +2531,10 @@ describe("market checkout routes", () => {
     // KV, so removal reads it from there and never touches the sessions table.
 
     const removeResponse = await routes.fetch(
-      new Request("https://test/checkout-1/voucher", { method: "DELETE" }),
+      new Request("https://test/checkout-1/voucher", {
+        method: "DELETE",
+        headers: MARKET_HOLDER_HEADERS,
+      }),
       env as never,
     );
 
@@ -2344,6 +2575,7 @@ describe("market checkout routes", () => {
       routes.fetch(
         new Request("https://test/checkout-1/voucher", {
           method: "POST",
+          headers: MARKET_HOLDER_HEADERS,
           body: JSON.stringify({ code: "market10" }),
         }),
         env as never,
@@ -2364,6 +2596,7 @@ describe("market checkout routes", () => {
     const response = await routes.fetch(
       new Request("https://test/checkout-1/voucher", {
         method: "POST",
+        headers: MARKET_HOLDER_HEADERS,
         body: JSON.stringify({ code: "" }),
       }),
       env as never,
@@ -2400,6 +2633,7 @@ describe("market checkout routes", () => {
       routes.fetch(
         new Request("https://test/checkout-1/voucher", {
           method: "POST",
+          headers: MARKET_PAID_HOLDER_HEADERS,
           body: JSON.stringify({ code: "MARKET10" }),
         }),
         paidEnv as never,
@@ -2433,6 +2667,7 @@ describe("market checkout routes", () => {
     const response = await routes.fetch(
       new Request("https://test/checkout-1/voucher", {
         method: "DELETE",
+        headers: MARKET_HOLDER_HEADERS,
       }),
       env as never,
     );
@@ -2471,6 +2706,7 @@ describe("market checkout routes", () => {
       routes.fetch(
         new Request("https://test/checkout-1/voucher", {
           method: "DELETE",
+          headers: MARKET_PAID_HOLDER_HEADERS,
         }),
         paidEnv as never,
       ),
@@ -2503,6 +2739,7 @@ describe("market checkout routes", () => {
     const invalidResponse = await routes.fetch(
       new Request("https://test/checkout-1/pay", {
         method: "POST",
+        headers: MARKET_HOLDER_HEADERS,
         body: JSON.stringify({ method: "" }),
       }),
       invalidEnv as never,
@@ -2596,6 +2833,7 @@ describe("market checkout routes", () => {
       new Request("https://test/checkout-1/pay", {
         method: "POST",
         headers: {
+          ...MARKET_HOLDER_HEADERS,
           "Idempotency-Key": "market-pay-1",
         },
         body: JSON.stringify({
@@ -2782,6 +3020,7 @@ describe("market checkout routes", () => {
       const response = await routes.fetch(
         new Request("https://test/checkout-1/pay", {
           method: "POST",
+          headers: MARKET_HOLDER_HEADERS,
           body: JSON.stringify({
             method: "line_pay",
             country: "TW",
@@ -2870,7 +3109,19 @@ describe("market checkout routes", () => {
           platformFeeRateBps: 350,
         },
         status: "submitted",
-        childOrders: [],
+        // A paid checkout always has the children it paid for; the replay path
+        // is what is under test here, not an empty-checkout anomaly.
+        childOrders: [
+          {
+            restaurantId: "restaurant-1",
+            restaurantName: "Vendor 1",
+            orderId: 101,
+            orderNumber: "A001",
+            totalAmount: 200,
+            totalAmountCents: 20000,
+            tokenExpiresAt: "2026-06-01T12:00:00.000Z",
+          },
+        ],
         payment: {
           status: "paid",
           method: "line_pay",
@@ -2891,6 +3142,7 @@ describe("market checkout routes", () => {
     const response = await routes.fetch(
       new Request("https://test/checkout-1/pay", {
         method: "POST",
+        headers: MARKET_PAID_HOLDER_HEADERS,
         body: JSON.stringify({ method: "line_pay" }),
       }),
       env as never,
@@ -2916,6 +3168,7 @@ describe("market checkout routes", () => {
     const response = await routes.fetch(
       new Request("https://test/checkout-1/pay", {
         method: "POST",
+        headers: MARKET_PAID_HOLDER_HEADERS,
         body: JSON.stringify({ method: "market_online" }),
       }),
       env as never,
@@ -3583,6 +3836,7 @@ describe("market checkout routes", () => {
     const response = await routes.fetch(
       new Request("https://test/checkout-1/pay", {
         method: "POST",
+        headers: MARKET_HOLDER_HEADERS,
         body: JSON.stringify({ method: "line_pay" }),
       }),
       env as never,
@@ -3629,6 +3883,7 @@ describe("market checkout routes", () => {
     const retryResponse = await routes.fetch(
       new Request("https://test/checkout-1/pay", {
         method: "POST",
+        headers: MARKET_HOLDER_HEADERS,
         body: JSON.stringify({ method: "line_pay" }),
       }),
       env as never,
@@ -3696,6 +3951,7 @@ describe("market checkout routes", () => {
     const response = await routes.fetch(
       new Request("https://test/checkout-1/pay", {
         method: "POST",
+        headers: MARKET_HOLDER_HEADERS,
         body: JSON.stringify({ method: "stripe_connect" }),
       }),
       env as never,
@@ -3831,6 +4087,7 @@ describe("market checkout routes", () => {
     const response = await routes.fetch(
       new Request("https://test/checkout-1/pay", {
         method: "POST",
+        headers: MARKET_HOLDER_HEADERS,
         body: JSON.stringify({ method: "future_provider" }),
       }),
       env as never,
@@ -3937,6 +4194,7 @@ describe("market checkout routes", () => {
     const payResponse = await routes.fetch(
       new Request("https://test/checkout-1/pay", {
         method: "POST",
+        headers: MARKET_PAID_HOLDER_HEADERS,
         body: JSON.stringify({ method: "market_online" }),
       }),
       env as never,
