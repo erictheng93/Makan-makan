@@ -22,6 +22,7 @@ export default defineConfig({
     },
     testTimeout: 10000,
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    exclude: ["src/**/*.real.integration.test.ts"],
   },
   resolve: {
     alias: [

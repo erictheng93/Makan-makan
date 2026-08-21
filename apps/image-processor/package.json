@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "vitest run",
+    "test:real-integration": "vitest run --config vitest.real-integration.config.ts",
     "test:coverage": "vitest run --coverage"
   },
   "keywords": [

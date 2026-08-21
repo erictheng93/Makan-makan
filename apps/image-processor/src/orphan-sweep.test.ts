@@ -1,10 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { eq } from "drizzle-orm";
-import { images, restaurants } from "@makanmasak/database";
-import {
-  createTestDatabase,
-  type TestDatabase,
-} from "@makanmasak/database/testing";
 import { sweepOrphanedImages } from "./index";
 import type { Env } from "./types/env";
 
@@ -100,59 +94,6 @@ describe("sweepOrphanedImages", () => {
     expect(deleteMetadata).toHaveBeenCalledOnce();
     expect(deleteMetadata).toHaveBeenCalledWith(["cf-orphan-1"]);
   });
-
-  it("marks new-pipeline metadata inactive when R2 id is stored as images.id", async () => {
-    const testDb = await createTestDatabase();
-    try {
-      await testDb.truncateAll();
-      await seedRestaurant(testDb);
-      await testDb.drizzle.insert(images).values({
-        id: "r2-orphan-id",
-        restaurantId: "sweep-restaurant",
-        filename: "orphan.jpg",
-        originalFilename: "orphan.jpg",
-        mimeType: "image/jpeg",
-        size: 1024,
-        category: "menu",
-        isActive: true,
-        uploadedAt: new Date("2026-06-07T03:00:00.000Z"),
-        updatedAt: new Date("2026-06-07T03:00:00.000Z"),
-      } as never);
-
-      const listStoredImages = vi.fn().mockResolvedValue({
-        success: true,
-        result: {
-          images: [
-            {
-              id: "r2-orphan-id",
-              key: "r2-orphan-id/original",
-              variant: "original",
-              uploaded: isoAgo(72 * HOUR),
-            },
-          ],
-        },
-      });
-      const deleteImageVariants = vi.fn().mockResolvedValue({ success: true });
-
-      await sweepOrphanedImages({ DB: testDb.bindings.DB } as Env, {
-        imageStorage: { listStoredImages, deleteImageVariants },
-        resolveReferenced: async () => new Set<string>(),
-      });
-
-      const [image] = await testDb.drizzle
-        .select()
-        .from(images)
-        .where(eq(images.id, "r2-orphan-id"));
-
-      expect(image?.isActive).toBe(false);
-    } finally {
-      await testDb.dispose();
-    }
-    // The only test here that stands up a real D1 database. It runs in ~2.5s
-    // on an idle machine but has been measured at 12.3s when the whole
-    // monorepo's test tasks compete for cores, which blows the 10s package
-    // default. The work is unchanged — only the budget for it.
-  }, 30000);
 
   it("does not mark metadata inactive when R2 deletion fails", async () => {
     const listStoredImages = vi.fn().mockResolvedValue({
@@ -316,21 +257,3 @@ describe("sweepOrphanedImages", () => {
     ).toBe(true);
   });
 });
-
-async function seedRestaurant(testDb: TestDatabase) {
-  await testDb.drizzle.insert(restaurants).values({
-    id: "sweep-restaurant",
-    name: "Sweep Restaurant",
-    type: "restaurant",
-    category: "casual",
-    address: "1 Sweep St",
-    district: "Central",
-    city: "Taipei",
-    phone: "0200000000",
-    settings: {},
-    isAvailable: true,
-    isActive: true,
-    createdAt: new Date("2026-06-07T03:00:00.000Z"),
-    updatedAt: new Date("2026-06-07T03:00:00.000Z"),
-  } as never);
-}
