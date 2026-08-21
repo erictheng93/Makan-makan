@@ -1640,6 +1640,28 @@ export class GroupOrdersService implements IGroupOrderService {
       };
     }
 
+    // Claim recovery before splitBill performs its read-then-write bill
+    // upserts. Without this conditional transition, concurrent admin retries
+    // can both observe no existing bill and insert duplicates for a member.
+    const claimedRows = await this.db
+      .update(groupOrders)
+      .set({ status: "finalizing", updatedAt: new Date() })
+      .where(
+        and(
+          eq(groupOrders.id, groupOrderId),
+          eq(groupOrders.status, "finalizing_failed"),
+          eq(groupOrders.masterOrderId, groupOrder.masterOrderId),
+        ),
+      )
+      .returning({ id: groupOrders.id });
+
+    if (claimedRows.length === 0) {
+      return {
+        success: false,
+        error: "Group order finalization recovery is already in progress",
+      };
+    }
+
     const splitResult = await this.splitBill(groupOrderId, {
       splitType: this.splitTypeFromStoredValue(groupOrder.splitType),
       sharedServiceChargeCents: failure.serviceChargeCents,
@@ -1670,7 +1692,13 @@ export class GroupOrdersService implements IGroupOrderService {
           },
           updatedAt: new Date(),
         })
-        .where(eq(groupOrders.id, groupOrderId));
+        .where(
+          and(
+            eq(groupOrders.id, groupOrderId),
+            eq(groupOrders.status, "finalizing"),
+            eq(groupOrders.masterOrderId, groupOrder.masterOrderId),
+          ),
+        );
 
       return {
         success: false,
@@ -1689,7 +1717,13 @@ export class GroupOrdersService implements IGroupOrderService {
         lockedAt: now,
         updatedAt: now,
       })
-      .where(eq(groupOrders.id, groupOrderId));
+      .where(
+        and(
+          eq(groupOrders.id, groupOrderId),
+          eq(groupOrders.status, "finalizing"),
+          eq(groupOrders.masterOrderId, groupOrder.masterOrderId),
+        ),
+      );
 
     await this.logActivity(
       groupOrderId,

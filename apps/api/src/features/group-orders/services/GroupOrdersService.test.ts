@@ -3015,19 +3015,22 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     it("retries a failed finalization with its stored totals and enters checkout", async () => {
       const service = createService();
       service.splitBill = vi.fn(async () => ({ success: true, data: [] }));
-      const db = createDb({
-        groupOrders: [
-          [
-            {
-              ...baseGroupOrder,
-              status: "finalizing_failed",
-              masterOrderId: "order-1",
-              splitType: "individual",
-              settings: { finalizeFailure: failure },
-            },
+      const db = createDb(
+        {
+          groupOrders: [
+            [
+              {
+                ...baseGroupOrder,
+                status: "finalizing_failed",
+                masterOrderId: "order-1",
+                splitType: "individual",
+                settings: { finalizeFailure: failure },
+              },
+            ],
           ],
-        ],
-      });
+        },
+        { groupOrders: { update: [[{ id: "group-1" }]] } },
+      );
       useDb(service, db);
 
       await expect(service.recoverFinalization("group-1")).resolves.toEqual({
@@ -3057,18 +3060,21 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         error: "No active members found",
         errorDetails: { code: "NO_ACTIVE_MEMBERS" },
       }));
-      const db = createDb({
-        groupOrders: [
-          [
-            {
-              ...baseGroupOrder,
-              status: "finalizing_failed",
-              masterOrderId: "order-1",
-              settings: { finalizeFailure: failure },
-            },
+      const db = createDb(
+        {
+          groupOrders: [
+            [
+              {
+                ...baseGroupOrder,
+                status: "finalizing_failed",
+                masterOrderId: "order-1",
+                settings: { finalizeFailure: failure },
+              },
+            ],
           ],
-        ],
-      });
+        },
+        { groupOrders: { update: [[{ id: "group-1" }]] } },
+      );
       useDb(service, db);
 
       await expect(service.recoverFinalization("group-1")).resolves.toEqual({
@@ -3094,6 +3100,33 @@ describe("GroupOrdersService formatting and cache behavior", () => {
           }),
         ]),
       );
+    });
+
+    it("allows only one recovery attempt to claim a failed finalization", async () => {
+      const service = createService();
+      service.splitBill = vi.fn(async () => ({ success: true, data: [] }));
+      const db = createDb(
+        {
+          groupOrders: [
+            [
+              {
+                ...baseGroupOrder,
+                status: "finalizing_failed",
+                masterOrderId: "order-1",
+                settings: { finalizeFailure: failure },
+              },
+            ],
+          ],
+        },
+        { groupOrders: { update: [[]] } },
+      );
+      useDb(service, db);
+
+      await expect(service.recoverFinalization("group-1")).resolves.toEqual({
+        success: false,
+        error: "Group order finalization recovery is already in progress",
+      });
+      expect(service.splitBill).not.toHaveBeenCalled();
     });
   });
 

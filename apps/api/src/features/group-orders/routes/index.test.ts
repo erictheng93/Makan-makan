@@ -34,6 +34,11 @@ const meterEmit = vi.hoisted(() => vi.fn());
 const broadcastEvent = vi.hoisted(() => vi.fn());
 const generateEventId = vi.hoisted(() => vi.fn());
 
+interface MockAuthContext {
+  get(key: "user"): AuthUser;
+  json(body: { success: false }, status: 403): Response;
+}
+
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c, next) => {
     c.set("user", currentUser.value);
@@ -43,12 +48,15 @@ vi.mock("../../../middleware/auth", () => ({
     c.set("user", currentUser.value);
     await next();
   }),
-  requireRole: vi.fn((allowedRoles: number[]) => async (c, next) => {
-    if (!allowedRoles.includes(c.get("user").role)) {
-      return c.json({ success: false }, 403);
-    }
-    await next();
-  }),
+  requireRole: vi.fn(
+    (allowedRoles: number[]) =>
+      async (c: MockAuthContext, next: () => Promise<void>) => {
+        if (!allowedRoles.includes(c.get("user").role)) {
+          return c.json({ success: false }, 403);
+        }
+        await next();
+      },
+  ),
 }));
 
 vi.mock("../../../middleware/moduleGate", () => ({
@@ -493,7 +501,7 @@ describe("group orders routes", () => {
     expect(finalizeGroupOrder).toHaveBeenCalledTimes(1);
   });
 
-  it("lets an admin recover a failed finalization but blocks an unauthorized role", async () => {
+  it("lets admins and the owning restaurant recover but blocks other roles and restaurants", async () => {
     getGroupOrder.mockResolvedValue({
       groupOrder: { id: groupOrderId, restaurantId: "restaurant-1" },
     });
@@ -514,6 +522,37 @@ describe("group orders routes", () => {
     expect(recoveredResponse.status).toBe(200);
     expect(recoverFinalization).toHaveBeenCalledWith(groupOrderId);
 
+    currentUser.value = { ...currentUser.value, role: 1 };
+    const ownerResponse = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/finalize/recover`, {
+        method: "POST",
+      }),
+      env as never,
+    );
+
+    expect(ownerResponse.status).toBe(200);
+    expect(recoverFinalization).toHaveBeenCalledTimes(2);
+
+    currentUser.value = {
+      ...currentUser.value,
+      role: 1,
+      restaurantId: "restaurant-2",
+    };
+    const otherRestaurantResponse = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request(`https://test/${groupOrderId}/finalize/recover`, {
+          method: "POST",
+        }),
+        env as never,
+      ),
+    );
+
+    // This isolated router has no application-level ApiError handler, so its
+    // thrown forbidden error becomes 500 here. The important route contract
+    // is that recovery is never invoked for another restaurant.
+    expect(otherRestaurantResponse.status).toBe(500);
+    expect(recoverFinalization).toHaveBeenCalledTimes(2);
+
     currentUser.value = { ...currentUser.value, role: 2 };
     const forbiddenResponse = await routes.fetch(
       new Request(`https://test/${groupOrderId}/finalize/recover`, {
@@ -523,7 +562,7 @@ describe("group orders routes", () => {
     );
 
     expect(forbiddenResponse.status).toBe(403);
-    expect(recoverFinalization).toHaveBeenCalledTimes(1);
+    expect(recoverFinalization).toHaveBeenCalledTimes(2);
   });
 
   it("runs cart, split, payment, and leave workflows", async () => {
