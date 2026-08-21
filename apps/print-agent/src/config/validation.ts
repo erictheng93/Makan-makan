@@ -18,6 +18,7 @@ const configSchema = z.object({
   // Service settings
   serviceName: z.string().min(1),
   restaurantId: z.string().min(1),
+  registerId: z.string().uuid(),
 
   // Printer settings
   autoDiscovery: z.boolean(),
@@ -101,7 +102,7 @@ export function validateEnvironment(): { success: boolean; errors: string[] } {
   const errors: string[] = [];
 
   // Required environment variables
-  const required = ["RESTAURANT_ID"];
+  const required = ["RESTAURANT_ID", "PRINT_AGENT_REGISTER_ID"];
 
   for (const envVar of required) {
     if (!process.env[envVar]) {

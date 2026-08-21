@@ -112,6 +112,8 @@ export interface Env {
   // Optional variables
   API_BASE_URL?: string;
   INTERNAL_API_TOKEN?: string;
+  /** Shared secret used only by outbound local print agents. */
+  PRINT_AGENT_API_KEY?: string;
   SLACK_WEBHOOK_URL?: string;
   REALTIME_SERVICE_URL?: string; // URL for realtime WebSocket service (HTTP)
   REALTIME_WS_URL?: string; // WebSocket URL returned to clients (ws:// or wss://)

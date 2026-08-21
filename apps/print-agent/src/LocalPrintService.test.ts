@@ -1,11 +1,14 @@
 import { createServer } from "node:net";
 import type { AddressInfo, Server as NetServer } from "node:net";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WebSocket } from "ws";
+import type { PrintJob } from "@makanmasak/shared-types";
 import { LocalPrintService } from "./LocalPrintService";
 import type { LocalPrintServiceConfig } from "./LocalPrintService";
 
 const API_KEY = "test-print-agent-api-key";
+const CLOUD_ENDPOINT = "https://api.example/v1";
+const REGISTER_ID = "550e8400-e29b-41d4-a716-446655440001";
 
 const createConfig = (
   overrides: Partial<LocalPrintServiceConfig> = {},
@@ -14,9 +17,10 @@ const createConfig = (
   wsPort: 31004,
   allowedOrigins: ["http://localhost:5173"],
   apiKey: API_KEY,
-  cloudEndpoint: "https://api.example/v1",
+  cloudEndpoint: CLOUD_ENDPOINT,
   serviceName: "Print Agent",
   restaurantId: "restaurant-42",
+  registerId: REGISTER_ID,
   autoDiscovery: false,
   discoveryInterval: 30000,
   heartbeatInterval: 60000,
@@ -121,6 +125,34 @@ const apiFetch = (
       ...(init.headers ?? {}),
     },
   });
+
+/**
+ * Cloud calls are stubbed for every test in this file. Without this the agent
+ * would resolve api.example over real DNS on each start(), which is both slow
+ * and a hidden dependency on the poll being non-fatal.
+ */
+let cloudCalls: Array<{ url: string; init?: RequestInit }> = [];
+let cloudHandler: (url: string) => Response = () =>
+  Response.json({ success: true, data: null });
+
+beforeEach(() => {
+  const realFetch = globalThis.fetch;
+  cloudCalls = [];
+  cloudHandler = () => Response.json({ success: true, data: null });
+
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+    const url = input instanceof Request ? input.url : String(input);
+    if (!url.startsWith(CLOUD_ENDPOINT)) {
+      return realFetch(input, init);
+    }
+    cloudCalls.push({ url, init });
+    return cloudHandler(url);
+  });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 const connectWebSocket = (
   port: number,
@@ -308,5 +340,166 @@ describe("LocalPrintService HTTP API contract", () => {
         error: expect.objectContaining({ code: "UNAUTHORIZED" }),
       }),
     );
+  });
+});
+
+describe("LocalPrintService cloud job dispatch", () => {
+  let service: LocalPrintService | undefined;
+
+  afterEach(async () => {
+    if (service?.isServiceRunning()) {
+      await service.stop();
+    }
+    service = undefined;
+  });
+
+  const pollCloudJobs = (target: LocalPrintService): Promise<void> =>
+    (target as unknown as { pollCloudJobs(): Promise<void> }).pollCloudJobs();
+
+  const pendingJob = () => ({
+    success: true,
+    data: {
+      receiptId: "receipt-1",
+      request: {
+        country: "TW",
+        type: "receipt",
+        restaurantId: "restaurant-42",
+        data: {
+          order: {
+            id: "order-1",
+            items: [{ name: "Nasi Lemak", quantity: 1, price: 12 }],
+            subtotal: 12,
+            tax: 0,
+            total: 12,
+            createdAt: "2025-08-12T12:00:00.000Z",
+          },
+        },
+      },
+    },
+  });
+
+  const serveOneJob = () => {
+    cloudHandler = (url) =>
+      url.includes("/ack")
+        ? Response.json({ success: true })
+        : Response.json(pendingJob());
+  };
+
+  const acknowledgement = () =>
+    JSON.parse(String(cloudCalls.at(-1)?.init?.body)) as Record<
+      string,
+      unknown
+    >;
+
+  it("claims a job for its own register and acknowledges a completed print", async () => {
+    service = new LocalPrintService(createConfig());
+    const agent = service.getPrintAgentService();
+    const createPrintJob = vi
+      .spyOn(agent, "createPrintJob")
+      .mockResolvedValue({ success: true, jobId: "job-1" });
+    vi.spyOn(agent, "getJobStatus").mockResolvedValue({
+      id: "job-1",
+      status: "completed",
+      deviceId: "USB-1",
+    } as unknown as PrintJob);
+    serveOneJob();
+
+    await pollCloudJobs(service);
+
+    expect(cloudCalls[0]?.url).toBe(
+      `${CLOUD_ENDPOINT}/print/jobs?registerId=${REGISTER_ID}`,
+    );
+    expect(cloudCalls[0]?.init?.headers).toMatchObject({
+      "X-Print-Agent-Key": API_KEY,
+      "X-Restaurant-Id": "restaurant-42",
+    });
+    expect(createPrintJob).toHaveBeenCalledOnce();
+    // The ESC/POS formatter calls Date methods on this field, but JSON only
+    // ever carries a string.
+    expect(
+      createPrintJob.mock.calls[0]?.[0].data.order.createdAt,
+    ).toBeInstanceOf(Date);
+
+    expect(cloudCalls[1]?.url).toBe(
+      `${CLOUD_ENDPOINT}/print/jobs/receipt-1/ack`,
+    );
+    expect(cloudCalls[1]?.init?.method).toBe("POST");
+    expect(acknowledgement()).toEqual({
+      status: "printed",
+      printerName: "USB-1",
+    });
+  });
+
+  it("acknowledges failure when the local queue refuses the job", async () => {
+    service = new LocalPrintService(createConfig());
+    const agent = service.getPrintAgentService();
+    vi.spyOn(agent, "createPrintJob").mockResolvedValue({
+      success: false,
+      error: { code: "NO_PRINTER_AVAILABLE", message: "No printer available" },
+    });
+    const getJobStatus = vi.spyOn(agent, "getJobStatus");
+    serveOneJob();
+
+    await pollCloudJobs(service);
+
+    // A claimed receipt that is never acknowledged stays "printing" forever —
+    // there is no reclaim path on the cloud side.
+    expect(getJobStatus).not.toHaveBeenCalled();
+    expect(acknowledgement()).toEqual({
+      status: "failed",
+      response: "No printer available",
+    });
+  });
+
+  it("acknowledges failure when the printer reports a failed job", async () => {
+    service = new LocalPrintService(createConfig());
+    const agent = service.getPrintAgentService();
+    vi.spyOn(agent, "createPrintJob").mockResolvedValue({
+      success: true,
+      jobId: "job-1",
+    });
+    vi.spyOn(agent, "getJobStatus").mockResolvedValue({
+      id: "job-1",
+      status: "failed",
+      deviceId: "USB-1",
+      error: { code: "PAPER_OUT", message: "Paper out" },
+    } as unknown as PrintJob);
+    serveOneJob();
+
+    await pollCloudJobs(service);
+
+    expect(acknowledgement()).toEqual({
+      status: "failed",
+      printerName: "USB-1",
+      response: "Paper out",
+    });
+  });
+
+  it("prints nothing and acknowledges nothing when the queue is empty", async () => {
+    service = new LocalPrintService(createConfig());
+    const agent = service.getPrintAgentService();
+    const createPrintJob = vi.spyOn(agent, "createPrintJob");
+
+    await pollCloudJobs(service);
+
+    expect(createPrintJob).not.toHaveBeenCalled();
+    expect(cloudCalls).toHaveLength(1);
+  });
+
+  it("keeps serving local print jobs when the startup cloud poll fails", async () => {
+    // index.ts turns a rejected start() into process.exit(1). Coupling the
+    // daemon's startup to cloud reachability means an offline uplink takes out
+    // the shop's local printing too, which used to work on its own.
+    cloudHandler = () => {
+      throw new Error("getaddrinfo ENOTFOUND api.example");
+    };
+    const [port, wsPort] = await reservePorts(2);
+    service = new LocalPrintService(createConfig({ port, wsPort }));
+
+    await expect(service.start()).resolves.toBeUndefined();
+
+    expect(service.isServiceRunning()).toBe(true);
+    const response = await apiFetch(port, "/health");
+    expect(response.status).toBe(200);
   });
 });

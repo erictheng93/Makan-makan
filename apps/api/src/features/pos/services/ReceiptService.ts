@@ -103,9 +103,6 @@ export class ReceiptService {
         createdAt: now,
       });
 
-      // Settle the print status before returning (see markPrinted).
-      await this.markPrinted(receiptId);
-
       const [receipt] = await this.db
         .select()
         .from(receipts)
@@ -156,9 +153,6 @@ export class ReceiptService {
           printStatus: "pending",
         })
         .where(eq(receipts.id, receiptId));
-
-      // Settle the print status before returning (see markPrinted).
-      await this.markPrinted(receiptId);
 
       return {
         success: true,
@@ -335,34 +329,6 @@ export class ReceiptService {
    * settle the terminal state before returning. A write failure is handled
    * here (best-effort "failed") so it never rejects the caller.
    */
-  private async markPrinted(receiptId: string): Promise<void> {
-    try {
-      const printedTime = new Date();
-      await this.db
-        .update(receipts)
-        .set({
-          printStatus: "printed",
-          printedAt: printedTime,
-          printAttempts: sql`${receipts.printAttempts} + 1`,
-        })
-        .where(eq(receipts.id, receiptId));
-    } catch (error) {
-      console.error("更新打印狀態失敗:", error);
-      // 標記為打印失敗
-      try {
-        await this.db
-          .update(receipts)
-          .set({
-            printStatus: "failed",
-            printAttempts: sql`${receipts.printAttempts} + 1`,
-          })
-          .where(eq(receipts.id, receiptId));
-      } catch (updateError) {
-        console.error("更新失敗狀態失敗:", updateError);
-      }
-    }
-  }
-
   /**
    * 取消收據打印
    */

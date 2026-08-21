@@ -52,6 +52,7 @@ export interface LocalPrintServiceConfig {
   // 服務設定
   serviceName: string;
   restaurantId: string;
+  registerId: string;
 
   // 打印機設定
   autoDiscovery: boolean;
@@ -75,6 +76,7 @@ export class LocalPrintService {
   private isRunning = false;
   private discoveryTimer?: NodeJS.Timeout;
   private heartbeatTimer?: NodeJS.Timeout;
+  private cloudPollInFlight = false;
 
   constructor(config: LocalPrintServiceConfig) {
     this.config = config;
@@ -132,13 +134,20 @@ export class LocalPrintService {
       // 啟動心跳
       this.startHeartbeat();
 
-      // 註冊到雲端
-      await this.registerWithCloud();
-
       this.isRunning = true;
       console.log(`✅ Local Print Service started successfully`);
       console.log(`📡 HTTP API: http://localhost:${this.config.port}`);
       console.log(`🔗 WebSocket: ws://localhost:${this.config.wsPort}`);
+
+      // 先拉一次雲端待印工作，不必等第一次心跳。失敗刻意不往外丟：index.ts
+      // 對 start() 失敗的處理是 process.exit(1)，而店內的本機列印（HTTP/WS）
+      // 不該因為對外連線斷掉、金鑰沒設或雲端回非 2xx 就整個停擺。
+      await this.registerWithCloud().catch((error) => {
+        console.error(
+          "⚠️  Initial cloud job poll failed; continuing with local printing:",
+          error,
+        );
+      });
     } catch (error) {
       await this.stopNetworkServers();
       console.error("❌ Failed to start Local Print Service:", error);
@@ -845,14 +854,96 @@ export class LocalPrintService {
   }
 
   private async sendHeartbeat(): Promise<void> {
-    // TODO: 實作雲端心跳 — 調用 cloudEndpoint 的心跳 API
-    console.debug("Cloud heartbeat not implemented, skipping");
+    await this.pollCloudJobs();
   }
 
   private async registerWithCloud(): Promise<void> {
-    // TODO: 實作雲端註冊 — 調用 cloudEndpoint 註冊本地服務
-    // （serviceId、restaurantId、HTTP/WS endpoint、devices、capabilities、version）
-    console.debug("Cloud registration not implemented, skipping");
+    await this.pollCloudJobs();
+  }
+
+  private async pollCloudJobs(): Promise<void> {
+    if (this.cloudPollInFlight) return;
+    this.cloudPollInFlight = true;
+    try {
+      const url = new URL("print/jobs", `${this.config.cloudEndpoint}/`);
+      url.searchParams.set("registerId", this.config.registerId);
+      const response = await fetch(url, {
+        headers: {
+          "X-Print-Agent-Key": this.config.apiKey,
+          "X-Restaurant-Id": this.config.restaurantId,
+        },
+      });
+      if (!response.ok)
+        throw new Error(`Cloud job poll failed (${response.status})`);
+      const payload = (await response.json()) as {
+        data: { receiptId: string; request: PrintRequest } | null;
+      };
+      if (!payload.data) return;
+
+      const request = payload.data.request;
+      request.data.order.createdAt = new Date(request.data.order.createdAt);
+      const result = await this.printAgentService.createPrintJob(request);
+      const acknowledgement =
+        result.success && result.jobId
+          ? await this.waitForPrintCompletion(result.jobId)
+          : { status: "failed" as const, response: result.error?.message };
+      await this.acknowledgeCloudJob(payload.data.receiptId, acknowledgement);
+    } finally {
+      this.cloudPollInFlight = false;
+    }
+  }
+
+  private async waitForPrintCompletion(jobId: string): Promise<{
+    status: "printed" | "failed";
+    printerName?: string;
+    response?: string;
+  }> {
+    const deadline = Date.now() + 30_000;
+    while (Date.now() < deadline) {
+      const job = await this.printAgentService.getJobStatus(jobId);
+      if (job?.status === "completed") {
+        return { status: "printed", printerName: job.deviceId };
+      }
+      if (job?.status === "failed" || job?.status === "cancelled") {
+        return {
+          status: "failed",
+          printerName: job.deviceId,
+          response: job.error?.message,
+        };
+      }
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    return {
+      status: "failed",
+      response: "Timed out waiting for physical printer completion",
+    };
+  }
+
+  private async acknowledgeCloudJob(
+    receiptId: string,
+    acknowledgement: {
+      status: "printed" | "failed";
+      printerName?: string;
+      response?: string;
+    },
+  ): Promise<void> {
+    const response = await fetch(
+      new URL(
+        `print/jobs/${encodeURIComponent(receiptId)}/ack`,
+        `${this.config.cloudEndpoint}/`,
+      ),
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Print-Agent-Key": this.config.apiKey,
+          "X-Restaurant-Id": this.config.restaurantId,
+        },
+        body: JSON.stringify(acknowledgement),
+      },
+    );
+    if (!response.ok)
+      throw new Error(`Cloud acknowledgement failed (${response.status})`);
   }
 
   private authenticateRequest(

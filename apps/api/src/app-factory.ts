@@ -45,6 +45,7 @@ import ordersFeature from "./features/orders"; // New modular architecture
 import groupOrdersFeature from "./features/group-orders";
 // import posRouter from './routes/pos' // Replaced with modular POS feature
 import posFeature from "./features/pos";
+import printRoutes from "./features/print/routes";
 // import queueRouter from './routes/queue' // Replaced with unified Queue feature
 // import queueModularRouter from './routes/queue-modular' // Replaced with unified Queue feature
 import queueFeature from "./features/queue";
@@ -621,6 +622,16 @@ export function createApp(
         "/api/v1/orders/group/*/split",
         "/api/v1/orders/group/*/payment/*",
         "/api/v1/orders/group/*/leave/*",
+        // Local print agents are Node daemons, not browsers: they send no
+        // cookie, no Origin and no Referer, so both CSRF layers reject them
+        // outright and every acknowledgement 403s — leaving claimed receipts
+        // stuck in "printing" forever. They authenticate by possession of the
+        // print-agent key, same as the webhook entries below.
+        //
+        // Scoped to /jobs rather than the whole feature: anything added under
+        // /print later that a browser drives does use a session, and a bare
+        // "/api/v1/print" would exempt it silently.
+        "/api/v1/print/jobs",
         "/api/v1/realtime/auth", // Public WebSocket token exchange; uses scoped tokens instead of session cookies
         "/api/v1/integrations/webhooks", // Platform webhooks (HMAC verified, no session)
         "/api/v1/billing/webhooks", // Billing provider webhooks (HMAC/idempotency verified)
@@ -747,7 +758,7 @@ export function createApp(
   // path for audit rows produced by that action.
   apiV1.route("/manager", managerFeature.actionsRoutes);
   apiV1.route("/audit-logs", managerFeature.auditLogsRoutes);
-  // apiV1.route('/print', printApp) // Disabled - incomplete feature
+  apiV1.route("/print", printRoutes);
   apiV1.route("/tables", tablesFeature.routes);
   apiV1.route("/seats", seatsFeature.routes);
   apiV1.route("/users", usersFeature.routes);

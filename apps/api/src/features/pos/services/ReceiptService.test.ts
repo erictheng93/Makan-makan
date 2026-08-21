@@ -317,22 +317,18 @@ describe("ReceiptService", () => {
       success: true,
     });
 
-    // reprint resets to "pending" then synchronously settles "printed"; the
-    // final cancelPrint marks "cancelled".
+    // Reprint requeues the receipt. Only the print agent can settle it after
+    // the physical printer reports completion.
     expect(mutations.updated).toEqual([
       expect.objectContaining({
         printStatus: "pending",
         lastReprintAt: expect.any(Date),
       }),
-      expect.objectContaining({
-        printStatus: "printed",
-        printedAt: expect.any(Date),
-      }),
       { printStatus: "cancelled" },
     ]);
   });
 
-  it("marks the receipt printed synchronously before returning", async () => {
+  it("leaves a new receipt pending until an agent acknowledges physical printing", async () => {
     uuidMocks.generateUUID.mockReturnValue("receipt-async");
     const mutations = mockMutations();
     mockSelectResults({
@@ -341,61 +337,11 @@ describe("ReceiptService", () => {
       receipts: [[receiptRow({ id: "receipt-async" })]],
     });
 
-    // Print completion is now awaited (no timer): by the time printReceipt
-    // resolves, the "printed" write has already run — the row never lingers in
-    // "pending".
     await expect(
       createService().printReceipt({ orderId: "101", copies: 2 }, "register-1"),
     ).resolves.toMatchObject({ success: true });
 
-    expect(mutations.updated).toEqual([
-      expect.objectContaining({
-        printStatus: "printed",
-        printedAt: expect.any(Date),
-      }),
-    ]);
-  });
-
-  it("marks print attempts failed when the printed-status write fails", async () => {
-    mockSelectResults({ receipts: [[receiptRow()]] });
-    const updated: unknown[] = [];
-    let updateAttempt = 0;
-    mocks.db.update.mockImplementation(() => {
-      updateAttempt++;
-      const builder = {
-        set: vi.fn((payload: unknown) => {
-          updated.push(payload);
-          return builder;
-        }),
-        where: vi.fn(() => builder),
-        then: (
-          resolve: (value: unknown) => void,
-          reject?: (reason: unknown) => void,
-        ) =>
-          (updateAttempt === 2
-            ? Promise.reject(new Error("printer status write failed"))
-            : Promise.resolve(undefined)
-          ).then(resolve, reject),
-      };
-      return builder;
-    });
-    vi.spyOn(console, "error").mockImplementation(() => undefined);
-
-    // reprint runs: reset-to-pending (1), printed write fails (2), failed
-    // write (3) — all synchronously before reprintReceipt resolves.
-    await expect(createService().reprintReceipt("receipt-1")).resolves.toEqual({
-      success: true,
-    });
-
-    expect(updated).toEqual([
-      expect.objectContaining({ printStatus: "pending" }),
-      expect.objectContaining({ printStatus: "printed" }),
-      expect.objectContaining({ printStatus: "failed" }),
-    ]);
-    expect(console.error).toHaveBeenCalledWith(
-      "更新打印狀態失敗:",
-      expect.any(Error),
-    );
+    expect(mutations.updated).toEqual([]);
   });
 
   it("maps query and mutation failures to service error responses", async () => {
