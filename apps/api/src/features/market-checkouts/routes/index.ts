@@ -141,6 +141,7 @@ interface MarketCheckoutChildOrder {
 
 interface MarketCheckoutSession {
   id: string;
+  customerId?: string;
   market: {
     id: string;
     slug: string;
@@ -180,7 +181,7 @@ interface MarketCheckoutSession {
  */
 export type PublicMarketCheckoutSession = Omit<
   MarketCheckoutSession,
-  "phoneLastDigits"
+  "phoneLastDigits" | "customerId"
 >;
 
 function toPublicMarketCheckout(
@@ -604,6 +605,7 @@ app.post("/", optionalCanonicalCustomerAuthMiddleware, async (c) => {
     await recordFailedMarketCheckoutSession(c.env, {
       checkoutId,
       market,
+      customerId: c.get("customer")?.id,
       phoneLastDigits: data.phoneLastDigits,
       children,
       compensationFailed,
@@ -618,6 +620,7 @@ app.post("/", optionalCanonicalCustomerAuthMiddleware, async (c) => {
   );
   const session: MarketCheckoutSession = {
     id: checkoutId,
+    customerId: c.get("customer")?.id,
     market: {
       id: market.id,
       slug: market.slug,
@@ -2345,6 +2348,7 @@ async function recordFailedMarketCheckoutSession(
       platformFeeRateBps?: number;
     };
     phoneLastDigits?: string;
+    customerId?: string;
     children: Array<{
       restaurantId: string;
       restaurantName: string;
@@ -2359,8 +2363,14 @@ async function recordFailedMarketCheckoutSession(
     compensationFailed: boolean;
   },
 ): Promise<void> {
-  const { checkoutId, market, phoneLastDigits, children, compensationFailed } =
-    params;
+  const {
+    checkoutId,
+    market,
+    customerId,
+    phoneLastDigits,
+    children,
+    compensationFailed,
+  } = params;
 
   const failedSession: MarketCheckoutSession = {
     id: checkoutId,
@@ -2371,6 +2381,7 @@ async function recordFailedMarketCheckoutSession(
       platformFeeRateBps: market.platformFeeRateBps,
     },
     status: compensationFailed ? "requires_manual_review" : "failed",
+    customerId,
     phoneLastDigits,
     childOrders: children.map((child) => ({
       restaurantId: child.restaurantId,
@@ -2437,6 +2448,7 @@ async function persistMarketCheckoutSession(
     ),
     status: session.status,
     paymentStatus: session.payment?.status ?? "pending",
+    customerId: session.customerId ?? null,
     phoneLastDigits: session.phoneLastDigits ?? null,
     subtotalCents: session.subtotal,
     childOrderCount: session.childOrders.length,
@@ -2870,6 +2882,7 @@ async function readPersistedMarketCheckoutOpsSessions(
       platformFeeRateBps: row.platformFeeRateBps,
     },
     status: row.status as MarketCheckoutSession["status"],
+    customerId: row.customerId ?? undefined,
     phoneLastDigits: row.phoneLastDigits ?? undefined,
     childOrders: (childrenByCheckout.get(row.id) ?? []).map((child) => ({
       restaurantId: child.restaurantId,
@@ -3325,6 +3338,7 @@ async function readPersistedMarketCheckoutSession(
       platformFeeRateBps: row.platformFeeRateBps,
     },
     status: row.status as MarketCheckoutSession["status"],
+    customerId: row.customerId ?? undefined,
     phoneLastDigits: row.phoneLastDigits ?? undefined,
     childOrders: children.map((child) => ({
       restaurantId: child.restaurantId,
