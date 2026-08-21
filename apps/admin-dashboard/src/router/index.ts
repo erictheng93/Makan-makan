@@ -143,6 +143,16 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: "print-agents",
+        name: "PrintAgents",
+        component: () => import("@/views/PrintAgentsView.vue"),
+        meta: {
+          titleKey: "pages.printAgents",
+          // 收銀（4）看得到狀態，核發／撤銷的端點另外只開給 0/1。
+          roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.CASHIER],
+        },
+      },
+      {
         path: "menu/option-groups",
         name: "MenuOptionGroups",
         component: () => import("@/views/OptionGroupsView.vue"),

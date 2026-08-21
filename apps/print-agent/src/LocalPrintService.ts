@@ -871,10 +871,20 @@ export class LocalPrintService {
       // Neither the register nor the restaurant is sent: the cloud derives
       // both from the credential. An agent that could name its own tenant
       // could claim another shop's receipts.
-      const response = await fetch(
-        new URL("print/jobs", `${this.config.cloudEndpoint}/`),
-        { headers: { "X-Print-Agent-Key": cloudKey } },
-      );
+      //
+      // Printer counts ride along on the poll instead of a second heartbeat.
+      // Without them the cloud only knows the agent is alive, which reads the
+      // same whether the printer is working or unplugged.
+      const url = new URL("print/jobs", `${this.config.cloudEndpoint}/`);
+      const devices = await this.printerCounts();
+      if (devices) {
+        url.searchParams.set("printersTotal", String(devices.total));
+        url.searchParams.set("printersOnline", String(devices.online));
+      }
+
+      const response = await fetch(url, {
+        headers: { "X-Print-Agent-Key": cloudKey },
+      });
       if (!response.ok)
         throw new Error(`Cloud job poll failed (${response.status})`);
       const payload = (await response.json()) as {
@@ -896,6 +906,23 @@ export class LocalPrintService {
       );
     } finally {
       this.cloudPollInFlight = false;
+    }
+  }
+
+  /**
+   * 目前的印表機台數。健康檢查失敗時回 null —— 寧可讓雲端沿用上一筆讀數，
+   * 也不要把「我問不到」誤報成「零台在線」。
+   */
+  private async printerCounts(): Promise<{
+    total: number;
+    online: number;
+  } | null> {
+    try {
+      const health = await this.printAgentService.healthCheck();
+      return { total: health.devices.total, online: health.devices.online };
+    } catch (error) {
+      console.error("Printer health probe failed:", error);
+      return null;
     }
   }
 

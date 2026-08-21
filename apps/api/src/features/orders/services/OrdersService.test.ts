@@ -16,6 +16,13 @@ const broadcastNewOrder = vi.hoisted(() => vi.fn());
 const broadcastOrderStatusUpdate = vi.hoisted(() => vi.fn());
 const broadcastOrderCancelled = vi.hoisted(() => vi.fn());
 const generateEventId = vi.hoisted(() => vi.fn());
+const createKitchenTicket = vi.hoisted(() => vi.fn());
+
+vi.mock("../../pos/services/ReceiptService", () => ({
+  ReceiptService: function ReceiptService() {
+    return { createKitchenTicket };
+  },
+}));
 
 vi.mock("@makanmasak/database", () => ({
   // Must mirror the real export: the service matches base-service errors
@@ -1527,5 +1534,57 @@ describe("OrdersService workflows", () => {
     await expect(service.updateItemStatus(501, "ready")).rejects.toThrow(
       "db down",
     );
+  });
+});
+
+describe("OrdersService kitchen tickets", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    createKitchenTicket.mockResolvedValue({ success: true });
+  });
+
+  it("queues a kitchen ticket when an order is confirmed", async () => {
+    const service = new OrdersService(createEnv() as never);
+    getBaseOrder.mockResolvedValue(
+      createOrder({ id: "30", status: "pending" }),
+    );
+    updateBaseOrderStatus.mockResolvedValue(
+      createOrder({ id: "30", status: "confirmed" }),
+    );
+
+    await service.updateOrderStatus("30", { status: "confirmed" }, "1", 1);
+
+    expect(createKitchenTicket).toHaveBeenCalledWith("30");
+  });
+
+  it("does not queue one for any other transition", async () => {
+    const service = new OrdersService(createEnv() as never);
+    getBaseOrder.mockResolvedValue(
+      createOrder({ id: "31", status: "confirmed" }),
+    );
+    updateBaseOrderStatus.mockResolvedValue(
+      createOrder({ id: "31", status: "preparing" }),
+    );
+
+    await service.updateOrderStatus("31", { status: "preparing" }, "1", 2);
+
+    expect(createKitchenTicket).not.toHaveBeenCalled();
+  });
+
+  it("still completes the status change when the ticket cannot be queued", async () => {
+    // The order is already committed by this point. Failing the request would
+    // leave the caller believing the transition did not happen.
+    const service = new OrdersService(createEnv() as never);
+    getBaseOrder.mockResolvedValue(
+      createOrder({ id: "32", status: "pending" }),
+    );
+    updateBaseOrderStatus.mockResolvedValue(
+      createOrder({ id: "32", status: "confirmed" }),
+    );
+    createKitchenTicket.mockRejectedValue(new Error("printer queue offline"));
+
+    await expect(
+      service.updateOrderStatus("32", { status: "confirmed" }, "1", 1),
+    ).resolves.toMatchObject({ id: "32", status: "confirmed" });
   });
 });

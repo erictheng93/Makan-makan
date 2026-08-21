@@ -46,6 +46,52 @@ const enUS: Messages = {
     retry: "Retry",
     processing: "Processing",
   },
+  printAgents: {
+    title: "Print agents",
+    description:
+      "One credential per on-site printer. An agent bound to a till prints that till's receipts; an unbound one prints the kitchen tickets raised when an order is confirmed.",
+    issue: "Issue credential",
+    revoke: "Revoke",
+    revokeConfirm:
+      'Revoke "{label}"? That printer stops collecting jobs immediately.',
+    revokeFailed: "Could not revoke the credential",
+    issueFailed: "Could not issue the credential",
+    loadFailed: "Could not load print agents",
+    lastSeen: "Last reported {time}",
+    scope: {
+      shop: "Whole shop",
+      register: "Till {name}",
+    },
+    status: {
+      online: "Healthy",
+      no_printer: "No printer online",
+      offline: "Offline",
+      never_seen: "Never connected",
+    },
+    printers: {
+      count: "{online}/{total} printers online",
+      unknown: "Printer status unknown",
+    },
+    empty: {
+      title: "No print agents yet",
+      hint: "Issue a credential and set it as PRINT_AGENT_CLOUD_KEY on the shop's print agent to start collecting jobs.",
+    },
+    form: {
+      label: "Name",
+      labelPlaceholder: "e.g. Counter printer",
+      register: "Bind to till",
+      registerNone: "Unbound (whole shop, includes kitchen tickets)",
+      registerHint:
+        "An unbound agent receives the kitchen tickets raised when an order is confirmed.",
+      submit: "Issue",
+    },
+    issued: {
+      title: "Credential issued",
+      warning:
+        "The key is shown once. It cannot be retrieved after you close this.",
+      done: "Saved it",
+    },
+  },
   optionGroups: {
     usedByItems: "used by {count} dishes",
     deleteAffects: "Deleting affects {count} dishes",
@@ -1716,6 +1762,7 @@ const enUS: Messages = {
     feedback: "Feedback",
   },
   pages: {
+    printAgents: "Print Agents",
     optionGroups: "Shared Option Groups",
     login: "Login",
     forgotPassword: "Forgot Password",

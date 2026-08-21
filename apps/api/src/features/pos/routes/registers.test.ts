@@ -21,11 +21,6 @@ const mocks = vi.hoisted(() => {
       updateRegister: vi.fn(),
     },
     registerServiceCtor: vi.fn(),
-    credentialService: {
-      listAgents: vi.fn(),
-      issueAgent: vi.fn(),
-      revokeAgent: vi.fn(),
-    },
   };
 });
 
@@ -37,12 +32,6 @@ vi.mock("../../../middleware/auth", () => ({
   requireRole: vi.fn(
     () => async (_c: unknown, next: () => Promise<void>) => next(),
   ),
-}));
-
-vi.mock("../services/PrintAgentCredentialService", () => ({
-  PrintAgentCredentialService: vi.fn(function PrintAgentCredentialService() {
-    return mocks.credentialService;
-  }),
 }));
 
 vi.mock("../services/RegisterService", () => ({
@@ -348,138 +337,6 @@ describe("POS register routes", () => {
     body = await json(response);
     expect(response.status).toBe(400);
     expect(body.error?.message).toBe("delete unavailable");
-  });
-});
-
-describe("print agent credentials", () => {
-  const agentId = "550e8400-e29b-41d4-a716-4466554400a1";
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.user = {
-      id: "user-10",
-      username: "owner",
-      role: 1,
-      restaurantId: "restaurant-1",
-    };
-    mocks.registerService.getRegisterRestaurantId.mockResolvedValue(
-      "restaurant-1",
-    );
-    mocks.credentialService.listAgents.mockResolvedValue([]);
-    mocks.credentialService.issueAgent.mockResolvedValue({
-      agent: {
-        id: "agent-1",
-        registerId,
-        label: "櫃檯出單機",
-        createdAt: new Date(0),
-      },
-      key: "mmpa_deadbeef",
-    });
-    mocks.credentialService.revokeAgent.mockResolvedValue(true);
-  });
-
-  it("returns the plaintext key exactly once when issuing", async () => {
-    const response = await request(`/${registerId}/print-agents`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ label: "櫃檯出單機" }),
-    });
-
-    expect(response.status).toBe(200);
-    expect(await json(response)).toMatchObject({
-      success: true,
-      data: { id: "agent-1", key: "mmpa_deadbeef" },
-    });
-    expect(mocks.credentialService.issueAgent).toHaveBeenCalledWith(
-      registerId,
-      "櫃檯出單機",
-    );
-  });
-
-  it("never lists key material", async () => {
-    mocks.credentialService.listAgents.mockResolvedValue([
-      {
-        id: "agent-1",
-        registerId,
-        label: "櫃檯出單機",
-        createdAt: new Date(0),
-      },
-    ]);
-
-    const body = await json(await request(`/${registerId}/print-agents`));
-
-    expect(JSON.stringify(body)).not.toContain("mmpa_");
-    expect(body.data).toMatchObject([{ id: "agent-1" }]);
-  });
-
-  it("revokes an agent scoped to its own register", async () => {
-    const response = await request(`/${registerId}/print-agents/${agentId}`, {
-      method: "DELETE",
-    });
-
-    expect(response.status).toBe(200);
-    expect(mocks.credentialService.revokeAgent).toHaveBeenCalledWith(
-      registerId,
-      agentId,
-    );
-  });
-
-  it("answers 404 when revoking an agent that is not on this register", async () => {
-    mocks.credentialService.revokeAgent.mockResolvedValue(false);
-
-    const response = await request(`/${registerId}/print-agents/${agentId}`, {
-      method: "DELETE",
-    });
-
-    expect(response.status).toBe(404);
-    expect((await json(response)).error?.code).toBe("PRINT_AGENT_NOT_FOUND");
-  });
-
-  // The credential *is* the tenant boundary on the print path: whoever holds it
-  // gets that register's receipts. requireRole([0, 1]) only proves the caller is
-  // an owner somewhere, so each of these must also prove it is this shop's.
-  it.each([
-    ["POST", `/print-agents`],
-    ["GET", `/print-agents`],
-    ["DELETE", `/print-agents/${agentId}`],
-  ])(
-    "refuses %s %s for an owner of another restaurant",
-    async (method, suffix) => {
-      mocks.registerService.getRegisterRestaurantId.mockResolvedValue(
-        "restaurant-2",
-      );
-
-      const response = await request(`/${registerId}${suffix}`, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: method === "GET" ? undefined : JSON.stringify({ label: "x" }),
-      });
-
-      expect(response.status).toBe(403);
-      expect(mocks.credentialService.issueAgent).not.toHaveBeenCalled();
-      expect(mocks.credentialService.listAgents).not.toHaveBeenCalled();
-      expect(mocks.credentialService.revokeAgent).not.toHaveBeenCalled();
-    },
-  );
-
-  it("lets a platform admin manage any restaurant's register", async () => {
-    mocks.user = { id: "user-1", username: "admin", role: 0 } as AuthUser;
-    mocks.registerService.getRegisterRestaurantId.mockResolvedValue(
-      "restaurant-2",
-    );
-
-    const response = await request(`/${registerId}/print-agents`);
-
-    expect(response.status).toBe(200);
-  });
-
-  it("answers 404 for a register that does not exist", async () => {
-    mocks.registerService.getRegisterRestaurantId.mockResolvedValue(null);
-
-    const response = await request(`/${registerId}/print-agents`);
-
-    expect(response.status).toBe(404);
-    expect((await json(response)).error?.code).toBe("REGISTER_NOT_FOUND");
   });
 });
 

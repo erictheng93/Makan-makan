@@ -46,6 +46,51 @@ const viVN: Messages = {
     retry: "Thử lại",
     processing: "Xử lý",
   },
+  printAgents: {
+    title: "Tác nhân in",
+    description:
+      "Mỗi máy in tại cửa hàng có một thông tin xác thực riêng. Tác nhân gắn với quầy thu ngân sẽ in hóa đơn của quầy đó; tác nhân không gắn quầy sẽ in phiếu bếp phát sinh khi đơn được xác nhận.",
+    issue: "Cấp thông tin xác thực",
+    revoke: "Thu hồi",
+    revokeConfirm:
+      'Thu hồi "{label}"? Máy in đó sẽ ngừng nhận việc ngay lập tức.',
+    revokeFailed: "Không thể thu hồi",
+    issueFailed: "Không thể cấp mới",
+    loadFailed: "Không tải được danh sách tác nhân in",
+    lastSeen: "Báo cáo lần cuối {time}",
+    scope: {
+      shop: "Toàn cửa hàng",
+      register: "Quầy {name}",
+    },
+    status: {
+      online: "Bình thường",
+      no_printer: "Không có máy in trực tuyến",
+      offline: "Ngoại tuyến",
+      never_seen: "Chưa từng kết nối",
+    },
+    printers: {
+      count: "{online}/{total} máy in trực tuyến",
+      unknown: "Không rõ trạng thái máy in",
+    },
+    empty: {
+      title: "Chưa có tác nhân in nào",
+      hint: "Cấp một thông tin xác thực và đặt vào PRINT_AGENT_CLOUD_KEY của tác nhân in tại cửa hàng để bắt đầu nhận việc.",
+    },
+    form: {
+      label: "Tên",
+      labelPlaceholder: "ví dụ: Máy in quầy",
+      register: "Gắn với quầy",
+      registerNone: "Không gắn (toàn cửa hàng, gồm phiếu bếp)",
+      registerHint:
+        "Tác nhân không gắn quầy sẽ nhận phiếu bếp phát sinh khi đơn được xác nhận.",
+      submit: "Cấp",
+    },
+    issued: {
+      title: "Đã cấp thông tin xác thực",
+      warning: "Khóa chỉ hiển thị một lần. Đóng lại sẽ không lấy lại được.",
+      done: "Đã lưu",
+    },
+  },
   optionGroups: {
     usedByItems: "{count} món đang dùng",
     deleteAffects: "Xóa sẽ ảnh hưởng {count} món",
@@ -1625,6 +1670,7 @@ const viVN: Messages = {
     },
   },
   pages: {
+    printAgents: "Tác nhân in",
     optionGroups: "Nhóm tùy chọn dùng chung",
     login: "Đăng nhập",
     forgotPassword: "Quên mật khẩu",

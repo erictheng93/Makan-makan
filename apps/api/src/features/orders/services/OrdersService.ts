@@ -30,6 +30,7 @@ import type {
   NewOrderEvent,
 } from "@makanmasak/shared-types";
 import { RestaurantOrderPushService } from "../../push/services/RestaurantOrderPushService";
+import { ReceiptService } from "../../pos/services/ReceiptService";
 import { ORDER_STATUS_TRANSITIONS, ROLE_STATUS_PERMISSIONS } from "../types";
 import {
   clearGuestActiveOrderLock,
@@ -492,6 +493,10 @@ export class OrdersService implements IOrdersService {
 
       if (!updatedOrder) {
         throw new Error("Failed to update order status");
+      }
+
+      if (statusData.status === "confirmed") {
+        await this.emitKitchenTicket(id);
       }
 
       await finalizeOrderStatusSideEffects({
@@ -1341,6 +1346,29 @@ export class OrdersService implements IOrdersService {
       sortBy: filters.sortBy,
       sortOrder: filters.sortOrder,
     };
+  }
+
+  /**
+   * 訂單一確認就把廚房票排進待印佇列。
+   *
+   * 刻意吞掉失敗：訂單狀態已經寫進資料庫了，不能因為排不進出單佇列就把它回滾
+   * 或讓整個請求失敗。印不出來是可觀察的（收據列停在 pending），而狀態被回滾
+   * 不是。
+   */
+  private async emitKitchenTicket(orderId: string): Promise<void> {
+    try {
+      const result = await new ReceiptService(this.env.DB).createKitchenTicket(
+        orderId,
+      );
+      if (!result.success) {
+        this.logger.warn("Kitchen ticket not queued", {
+          orderId,
+          error: result.error,
+        });
+      }
+    } catch (error) {
+      this.logger.warn("Kitchen ticket not queued", { orderId, error });
+    }
   }
 
   private validateStatusTransition(

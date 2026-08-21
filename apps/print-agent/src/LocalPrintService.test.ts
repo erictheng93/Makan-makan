@@ -406,9 +406,16 @@ describe("LocalPrintService cloud job dispatch", () => {
 
     await pollCloudJobs(service);
 
-    expect(cloudCalls[0]?.url).toBe(`${CLOUD_ENDPOINT}/print/jobs`);
-    // No register and no restaurant on the wire: the cloud derives both from
-    // the credential, so this agent cannot ask for another shop's receipts.
+    const polled = new URL(String(cloudCalls[0]?.url));
+    expect(polled.origin + polled.pathname).toBe(
+      `${CLOUD_ENDPOINT}/print/jobs`,
+    );
+    // No register and no restaurant anywhere on the wire: the cloud derives
+    // both from the credential, so this agent cannot ask for another shop's
+    // receipts. Asserted per-parameter rather than against a whole URL string,
+    // which would also break every time an unrelated parameter is added.
+    expect(polled.searchParams.get("registerId")).toBeNull();
+    expect(polled.searchParams.get("restaurantId")).toBeNull();
     expect(cloudCalls[0]?.init?.headers).toEqual({
       "X-Print-Agent-Key": CLOUD_KEY,
     });

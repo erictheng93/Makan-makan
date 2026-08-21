@@ -48,6 +48,49 @@ const zhTWCore = {
   },
 
   // 菜單管理
+  printAgents: {
+    title: "列印代理",
+    description:
+      "每台店內出單機一份憑證。綁收銀機的只印該台的收據，不綁的印訂單確認時自動產生的廚房票。",
+    issue: "核發憑證",
+    revoke: "撤銷",
+    revokeConfirm: "確定要撤銷「{label}」？該台出單機會立刻停止取件。",
+    revokeFailed: "撤銷失敗",
+    issueFailed: "核發失敗",
+    loadFailed: "載入列印代理失敗",
+    lastSeen: "最後回報 {time}",
+    scope: {
+      shop: "全店",
+      register: "收銀機 {name}",
+    },
+    status: {
+      online: "正常",
+      no_printer: "無印表機在線",
+      offline: "離線",
+      never_seen: "尚未連線",
+    },
+    printers: {
+      count: "印表機 {online}/{total} 在線",
+      unknown: "印表機狀態未知",
+    },
+    empty: {
+      title: "尚未核發任何列印代理",
+      hint: "核發一份憑證，填進店內出單機的 PRINT_AGENT_CLOUD_KEY 就會開始取件。",
+    },
+    form: {
+      label: "名稱",
+      labelPlaceholder: "例如：櫃檯出單機",
+      register: "綁定收銀機",
+      registerNone: "不綁定（全店，含廚房票）",
+      registerHint: "不綁定的代理會收到訂單確認時自動產生的廚房出單票。",
+      submit: "核發",
+    },
+    issued: {
+      title: "憑證已核發",
+      warning: "金鑰只會顯示這一次，關閉後無法再取得。",
+      done: "我已保存",
+    },
+  },
   optionGroups: {
     usedByItems: "{count} 道菜使用中",
     deleteAffects: "刪除會影響 {count} 道菜",
@@ -1780,6 +1823,7 @@ const zhTWCore = {
 
   // 頁面標題
   pages: {
+    printAgents: "列印代理",
     optionGroups: "共用選項組",
     login: "登入",
     forgotPassword: "忘記密碼",

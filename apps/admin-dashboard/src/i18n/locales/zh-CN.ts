@@ -46,6 +46,49 @@ const zhCN: Messages = {
     retry: "重试",
     processing: "处理中...",
   },
+  printAgents: {
+    title: "打印代理",
+    description:
+      "每台店内出单机一份凭证。绑定收银机的只打印该台的收据，不绑定的打印订单确认时自动生成的厨房票。",
+    issue: "签发凭证",
+    revoke: "撤销",
+    revokeConfirm: "确定要撤销“{label}”？该台出单机会立即停止取件。",
+    revokeFailed: "撤销失败",
+    issueFailed: "签发失败",
+    loadFailed: "加载打印代理失败",
+    lastSeen: "最后上报 {time}",
+    scope: {
+      shop: "全店",
+      register: "收银机 {name}",
+    },
+    status: {
+      online: "正常",
+      no_printer: "无打印机在线",
+      offline: "离线",
+      never_seen: "尚未连接",
+    },
+    printers: {
+      count: "打印机 {online}/{total} 在线",
+      unknown: "打印机状态未知",
+    },
+    empty: {
+      title: "尚未签发任何打印代理",
+      hint: "签发一份凭证，填入店内出单机的 PRINT_AGENT_CLOUD_KEY 即可开始取件。",
+    },
+    form: {
+      label: "名称",
+      labelPlaceholder: "例如：柜台出单机",
+      register: "绑定收银机",
+      registerNone: "不绑定（全店，含厨房票）",
+      registerHint: "不绑定的代理会收到订单确认时自动生成的厨房出单票。",
+      submit: "签发",
+    },
+    issued: {
+      title: "凭证已签发",
+      warning: "密钥只会显示这一次，关闭后无法再获取。",
+      done: "我已保存",
+    },
+  },
   optionGroups: {
     usedByItems: "{count} 个菜品使用中",
     deleteAffects: "删除会影响 {count} 个菜品",
@@ -1601,6 +1644,7 @@ const zhCN: Messages = {
     accountManagement: "帐号管理",
   },
   pages: {
+    printAgents: "打印代理",
     optionGroups: "共用选项组",
     login: "登录",
     forgotPassword: "忘记密码",
