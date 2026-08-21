@@ -44,10 +44,15 @@ const readyOrder = {
 describe("ServiceView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(api.get).mockImplementation(async (_url, options) => {
-      const orders = options?.status === "ready" ? [readyOrder] : [];
-      return { data: { data: orders } } as never;
-    });
+    // api.get takes `paramsOrConfig?: unknown`; optional-chaining it narrows to
+    // `{}`, which has no `status`. Cast to the shape ServiceView actually sends.
+    vi.mocked(api.get).mockImplementation(
+      async (_url: string, paramsOrConfig?: unknown) => {
+        const options = paramsOrConfig as { status?: string } | undefined;
+        const orders = options?.status === "ready" ? [readyOrder] : [];
+        return { data: { data: orders } } as never;
+      },
+    );
     vi.mocked(api.put).mockResolvedValue({ data: { data: {} } } as never);
   });
 
