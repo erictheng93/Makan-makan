@@ -1553,6 +1553,49 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
   });
 
+  // `validateGroupOrderAndMember` reads the group's status, and a finalizer can
+  // claim between that read and the insert. The item therefore lands staged and
+  // is published by a conditional write; losing that race must leave nothing
+  // behind, not an active row on a group that has already been billed.
+  it("discards a staged cart item when the group is claimed before it is published", async () => {
+    const service = createService();
+    const db = createDb(
+      {
+        groupOrders: [[baseGroupOrder], [{ restaurantId: "restaurant-1" }]],
+        groupMembers: [[hostMember]],
+        menuItems: [
+          [
+            {
+              id: 10,
+              restaurantId: "restaurant-1",
+              name: "Laksa",
+              price: 9,
+              priceCents: 900,
+            },
+          ],
+        ],
+      },
+      { groupCartItems: { update: [[]] } },
+    );
+    useDb(service, db);
+
+    await expect(
+      service.addCartItem("group-1", {
+        memberId: "member-1",
+        menuItemId: 10,
+        quantity: 1,
+      }),
+    ).resolves.toEqual({
+      success: false,
+      error: "Group order is no longer active",
+    });
+
+    // Staged, never published, and cleaned up.
+    expect(db.inserts).toHaveLength(1);
+    expect(db.inserts[0].payload).toMatchObject({ status: "staging" });
+    expect(db.deletes).toContain(groupCartItems);
+  });
+
   it("rejects cart updates and removals once the group is no longer active", async () => {
     const storedItem = {
       id: "item-1",
