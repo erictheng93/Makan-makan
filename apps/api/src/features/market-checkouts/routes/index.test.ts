@@ -497,6 +497,7 @@ type PersistableCheckoutSessionFixture = Omit<
   "phoneLastDigits"
 > & {
   phoneLastDigits?: string;
+  customerId?: string;
   payment?: ReturnType<typeof providerSplitPaidSessionFixture>["payment"];
   appliedVoucher?: AppliedMarketCheckoutVoucher;
 };
@@ -515,6 +516,7 @@ function persistedSessionFixtures(
           platformFeeRateBps: session.market.platformFeeRateBps ?? 0,
           status: session.status,
           paymentStatus: session.payment?.status ?? "pending",
+          customerId: session.customerId ?? null,
           phoneLastDigits: session.phoneLastDigits ?? null,
           subtotalCents: session.subtotal,
           childOrderCount: session.childOrders.length,
@@ -1603,6 +1605,127 @@ describe("market checkout routes", () => {
       expect.stringContaining('"orderId":"1001"'),
       { expirationTtl: 14400 },
     );
+  });
+
+  it("lets the persisted checkout owner recover a guest token without phone digits", async () => {
+    signedInCustomer.value = { id: "customer-9" };
+    setSelectFixtures({
+      marketCheckoutSessions: [
+        [
+          {
+            id: "checkout-1",
+            customerId: "customer-9",
+            marketId: "market-1",
+            marketSlug: "fengjia",
+            marketName: "逢甲夜市",
+            status: "submitted",
+            paymentStatus: "pending",
+            phoneLastDigits: "789",
+            subtotalCents: 12000,
+            childOrderCount: 1,
+            paymentSummary: null,
+            appliedVoucher: null,
+            createdAt: new Date("2026-06-01T10:00:00.000Z"),
+            updatedAt: new Date("2026-06-01T10:00:00.000Z"),
+          },
+        ],
+      ],
+      marketCheckoutChildOrders: [
+        [
+          {
+            checkoutId: "checkout-1",
+            restaurantId: "restaurant-1",
+            restaurantName: "雞排攤",
+            orderId: "1001",
+            orderNumber: "A001",
+            totalAmountCents: 12000,
+            tokenExpiresAt: new Date("2026-06-01T12:00:00.000Z"),
+          },
+        ],
+      ],
+    });
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/guest-token", {
+        method: "POST",
+        body: JSON.stringify({ orderId: "1001" }),
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it("still demands phone digits when nobody owns the checkout", async () => {
+    // Regression guard for the `undefined === undefined` shape of an ownership
+    // check: an anonymous caller and an unowned checkout must not compare equal
+    // and skip the phone credential. Every checkout created before customer_id
+    // existed, and every checkout placed while signed out, lands here.
+    setNoPersistedCheckoutFixtures();
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify(unpaidCheckoutSessionFixture()),
+    );
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/guest-token", {
+        method: "POST",
+        body: JSON.stringify({ orderId: "1001" }),
+      }),
+      env as never,
+    );
+
+    await expectApiError(response, 403, "PHONE_VERIFICATION_FAILED");
+    expect(env.CACHE_KV.put).toHaveBeenCalledWith(
+      "market_checkout_recover_attempts:checkout-1",
+      "1",
+      expect.objectContaining({ expirationTtl: 3600 }),
+    );
+  });
+
+  it("does not treat a different signed-in customer as the owner", async () => {
+    signedInCustomer.value = { id: "customer-outsider" };
+    setSelectFixtures(
+      persistedSessionFixtures({
+        ...unpaidCheckoutSessionFixture(),
+        customerId: "customer-9",
+      }),
+    );
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/guest-token", {
+        method: "POST",
+        body: JSON.stringify({ orderId: "1001" }),
+      }),
+      createEnv() as never,
+    );
+
+    await expectApiError(response, 403, "PHONE_VERIFICATION_FAILED");
+  });
+
+  it("keeps the owner's recovery open while the phone lockout is in force", async () => {
+    // The lockout guards a three-digit credential. An attacker who burns it
+    // must not be able to shut the account holder out of their own checkout.
+    signedInCustomer.value = { id: "customer-9" };
+    setSelectFixtures(
+      persistedSessionFixtures({
+        ...unpaidCheckoutSessionFixture(),
+        customerId: "customer-9",
+      }),
+    );
+    const env = createEnv();
+    await env.CACHE_KV.put("market_checkout_recover_attempts:checkout-1", "5");
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/guest-token", {
+        method: "POST",
+        body: JSON.stringify({ orderId: "1001" }),
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
   });
 
   it("rejects guest token recovery when phone digits do not match", async () => {
