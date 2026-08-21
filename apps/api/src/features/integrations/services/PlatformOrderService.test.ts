@@ -23,6 +23,9 @@ const mocks = vi.hoisted(() => ({
     getDecryptedCredentials: vi.fn(),
     getIntegration: vi.fn(),
   },
+  receiptService: {
+    createKitchenTicket: vi.fn(),
+  },
 }));
 
 vi.mock("drizzle-orm/d1", () => ({
@@ -36,6 +39,12 @@ vi.mock("../adapters/PlatformAdapter", () => ({
 vi.mock("./PlatformIntegrationService", () => ({
   PlatformIntegrationService: vi.fn(function PlatformIntegrationService() {
     return mocks.integrationService;
+  }),
+}));
+
+vi.mock("../../pos/services/ReceiptService", () => ({
+  ReceiptService: vi.fn(function ReceiptService() {
+    return mocks.receiptService;
   }),
 }));
 
@@ -151,6 +160,9 @@ describe("PlatformOrderService", () => {
     mocks.integrationService.getDecryptedCredentials.mockResolvedValue({
       accessToken: "token",
     });
+    mocks.receiptService.createKitchenTicket.mockResolvedValue({
+      success: true,
+    });
   });
 
   it("creates internal platform orders and skips unmapped items", async () => {
@@ -232,6 +244,91 @@ describe("PlatformOrderService", () => {
       expect.objectContaining({ platformStatus: "accepted" }),
       expect.objectContaining({ status: "confirmed" }),
     ]);
+    expect(mocks.receiptService.createKitchenTicket).toHaveBeenCalledOnce();
+    expect(mocks.receiptService.createKitchenTicket).toHaveBeenCalledWith(
+      "order-101",
+    );
+  });
+
+  it("does not queue a kitchen ticket when the order stays pending", async () => {
+    mockMutations();
+    mockSelectResults({
+      platformMenuMappings: [
+        [{ platformItemId: "platform-item-1", menuItemId: 501 }],
+      ],
+    });
+
+    await createService().processWebhook(
+      "uber_eats",
+      { id: "uber-order-1" },
+      "restaurant-1",
+    );
+
+    expect(mocks.receiptService.createKitchenTicket).not.toHaveBeenCalled();
+  });
+
+  it("keeps the confirmed order when the kitchen ticket cannot be queued", async () => {
+    const mutations = mockMutations();
+    mockSelectResults({
+      platformMenuMappings: [
+        [{ platformItemId: "platform-item-1", menuItemId: 501 }],
+      ],
+    });
+    mocks.integrationService.getIntegration.mockResolvedValueOnce({
+      config: { autoAcceptOrders: true },
+    });
+    mocks.receiptService.createKitchenTicket.mockRejectedValueOnce(
+      new Error("printer queue down"),
+    );
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await expect(
+      createService().processWebhook(
+        "uber_eats",
+        { id: "uber-order-1" },
+        "restaurant-1",
+      ),
+    ).resolves.toBe("order-101");
+
+    expect(mutations.updated).toEqual([
+      expect.objectContaining({ platformStatus: "accepted" }),
+      expect.objectContaining({ status: "confirmed" }),
+    ]);
+    expect(console.error).toHaveBeenCalledWith(
+      "Failed to queue kitchen ticket for order order-101:",
+      expect.any(Error),
+    );
+  });
+
+  it("logs a rejected kitchen ticket without failing the webhook", async () => {
+    const mutations = mockMutations();
+    mockSelectResults({
+      platformMenuMappings: [
+        [{ platformItemId: "platform-item-1", menuItemId: 501 }],
+      ],
+    });
+    mocks.integrationService.getIntegration.mockResolvedValueOnce({
+      config: { autoAcceptOrders: true },
+    });
+    mocks.receiptService.createKitchenTicket.mockResolvedValueOnce({
+      success: false,
+      error: "訂單不存在",
+    });
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await expect(
+      createService().processWebhook(
+        "uber_eats",
+        { id: "uber-order-1" },
+        "restaurant-1",
+      ),
+    ).resolves.toBe("order-101");
+
+    expect(mutations.updated).toHaveLength(2);
+    expect(console.error).toHaveBeenCalledWith(
+      "Failed to queue kitchen ticket for order order-101:",
+      "訂單不存在",
+    );
   });
 
   it("does not fail webhook processing when auto-accept fails", async () => {
@@ -256,6 +353,7 @@ describe("PlatformOrderService", () => {
     ).resolves.toBe("order-101");
 
     expect(mutations.updated).toHaveLength(0);
+    expect(mocks.receiptService.createKitchenTicket).not.toHaveBeenCalled();
     expect(console.error).toHaveBeenCalledWith(
       "Failed to auto-accept order uber-order-1:",
       expect.any(Error),

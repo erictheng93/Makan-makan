@@ -8,6 +8,18 @@ const EXCLUDED_PREFIXES = [
   "/api/v1/qr",
   "/api/v1/webhooks",
   "/api/v1/integrations/webhooks",
+  // Local print agents poll GET /print/jobs on their heartbeat (60s by
+  // default) and acknowledge each receipt via POST /print/jobs/:id/ack. That
+  // is 1440+ machine-driven calls a day per agent, billed to the restaurant as
+  // if a customer had used the API. It is infrastructure polling, not tenant
+  // usage — same reason the webhook prefixes above are exempt.
+  //
+  // Scoped to /jobs rather than the whole feature, matching the CSRF exemption
+  // in app-factory.ts: anything added under /print later that a browser drives
+  // is real usage, and a bare "/api/v1/print" would silence it. Note this does
+  // NOT cover /api/v1/pos/print-agents — the admin UI that lists and issues
+  // agent credentials is browser traffic and stays metered.
+  "/api/v1/print/jobs",
 ];
 
 const EXCLUDED_PATHS = new Set([

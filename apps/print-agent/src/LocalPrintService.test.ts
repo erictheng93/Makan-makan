@@ -3,7 +3,10 @@ import type { AddressInfo, Server as NetServer } from "node:net";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WebSocket } from "ws";
 import type { PrintJob } from "@makanmasak/shared-types";
-import { LocalPrintService } from "./LocalPrintService";
+import {
+  LocalPrintService,
+  MAX_CLOUD_JOBS_PER_DRAIN,
+} from "./LocalPrintService";
 import type { LocalPrintServiceConfig } from "./LocalPrintService";
 
 const API_KEY = "test-print-agent-api-key";
@@ -356,10 +359,10 @@ describe("LocalPrintService cloud job dispatch", () => {
   const pollCloudJobs = (target: LocalPrintService): Promise<void> =>
     (target as unknown as { pollCloudJobs(): Promise<void> }).pollCloudJobs();
 
-  const pendingJob = () => ({
+  const pendingJob = (receiptId = "receipt-1") => ({
     success: true,
     data: {
-      receiptId: "receipt-1",
+      receiptId,
       request: {
         country: "TW",
         type: "receipt",
@@ -378,18 +381,51 @@ describe("LocalPrintService cloud job dispatch", () => {
     },
   });
 
-  const serveOneJob = () => {
-    cloudHandler = (url) =>
-      url.includes("/ack")
-        ? Response.json({ success: true })
-        : Response.json(pendingJob());
+  /** Hands out the given receipts one per poll, then reports an empty queue. */
+  const serveQueuedJobs = (receiptIds: string[]) => {
+    const queued = [...receiptIds];
+    cloudHandler = (url) => {
+      if (url.includes("/ack")) return Response.json({ success: true });
+      const receiptId = queued.shift();
+      return Response.json(
+        receiptId ? pendingJob(receiptId) : { success: true, data: null },
+      );
+    };
   };
 
+  const jobPolls = () =>
+    cloudCalls.filter((call) => !call.url.includes("/ack"));
+
+  const ackedReceipts = () =>
+    cloudCalls
+      .filter((call) => call.url.includes("/ack"))
+      .map((call) => new URL(call.url).pathname.split("/").at(-2));
+
+  const printsCompletedJobs = (target: LocalPrintService) => {
+    const agent = target.getPrintAgentService();
+    vi.spyOn(agent, "getJobStatus").mockResolvedValue({
+      id: "job-1",
+      status: "completed",
+      deviceId: "USB-1",
+    } as unknown as PrintJob);
+    return vi
+      .spyOn(agent, "createPrintJob")
+      .mockResolvedValue({ success: true, jobId: "job-1" });
+  };
+
+  const serveOneJob = () => serveQueuedJobs(["receipt-1"]);
+
+  /**
+   * The queue is drained, so the last cloud call is the empty poll that ended
+   * the drain. Read the last acknowledgement, not the last call.
+   */
   const acknowledgement = () =>
-    JSON.parse(String(cloudCalls.at(-1)?.init?.body)) as Record<
-      string,
-      unknown
-    >;
+    JSON.parse(
+      String(
+        cloudCalls.filter((call) => call.url.includes("/ack")).at(-1)?.init
+          ?.body,
+      ),
+    ) as Record<string, unknown>;
 
   it("claims a job for its own register and acknowledges a completed print", async () => {
     service = new LocalPrintService(createConfig());
@@ -481,6 +517,48 @@ describe("LocalPrintService cloud job dispatch", () => {
     });
   });
 
+  it("stops the drain when a print fails instead of burning the backlog", async () => {
+    // The cloud re-queues a failed receipt rather than settling it, so a drain
+    // that carried on would re-claim the same one immediately, fail again, and
+    // spend its whole delivery budget in seconds — then do the same to every
+    // receipt behind it. One failed attempt per heartbeat is the pacing the
+    // cloud's retry rule assumes.
+    service = new LocalPrintService(createConfig());
+    const agent = service.getPrintAgentService();
+    vi.spyOn(agent, "createPrintJob").mockResolvedValue({
+      success: false,
+      error: { code: "NO_PRINTER_AVAILABLE", message: "No printer available" },
+    });
+    serveQueuedJobs(["receipt-1", "receipt-2", "receipt-3"]);
+
+    await pollCloudJobs(service);
+
+    // One claim, one failed acknowledgement, and the backlog left untouched.
+    expect(jobPolls()).toHaveLength(1);
+    expect(ackedReceipts()).toEqual(["receipt-1"]);
+    expect(acknowledgement()).toMatchObject({ status: "failed" });
+  });
+
+  it("resumes the backlog on the next poll once printing recovers", async () => {
+    service = new LocalPrintService(createConfig());
+    const agent = service.getPrintAgentService();
+    const createPrintJob = vi.spyOn(agent, "createPrintJob").mockResolvedValue({
+      success: false,
+      error: { code: "NO_PRINTER_AVAILABLE", message: "No printer available" },
+    });
+    serveQueuedJobs(["receipt-1", "receipt-2"]);
+
+    await pollCloudJobs(service);
+    expect(jobPolls()).toHaveLength(1);
+
+    // Printer comes back: the very next heartbeat drains what is left.
+    printsCompletedJobs(service);
+    createPrintJob.mockResolvedValue({ success: true, jobId: "job-1" });
+    await pollCloudJobs(service);
+
+    expect(ackedReceipts()).toEqual(["receipt-1", "receipt-2"]);
+  });
+
   it("stays a local-only print server when no cloud credential is configured", async () => {
     // A shop can run the agent purely for the POS on the same LAN. Without a
     // credential there is no tenant to poll for, so it must not call out at
@@ -504,6 +582,115 @@ describe("LocalPrintService cloud job dispatch", () => {
 
     expect(createPrintJob).not.toHaveBeenCalled();
     expect(cloudCalls).toHaveLength(1);
+  });
+
+  it("drains the whole queue in one poll instead of one receipt per heartbeat", async () => {
+    // The cloud returns one receipt per call. Claiming once per heartbeat made
+    // a dinner-rush backlog of four take four minutes to print.
+    service = new LocalPrintService(createConfig());
+    const createPrintJob = printsCompletedJobs(service);
+    serveQueuedJobs(["receipt-1", "receipt-2", "receipt-3", "receipt-4"]);
+
+    await pollCloudJobs(service);
+
+    expect(createPrintJob).toHaveBeenCalledTimes(4);
+    expect(ackedReceipts()).toEqual([
+      "receipt-1",
+      "receipt-2",
+      "receipt-3",
+      "receipt-4",
+    ]);
+    // Four claims plus the empty poll that ends the drain — it stops on the
+    // empty queue rather than claiming until the bound.
+    expect(jobPolls()).toHaveLength(5);
+  });
+
+  it("keeps reporting printer counts on every claim of a drain", async () => {
+    service = new LocalPrintService(createConfig());
+    printsCompletedJobs(service);
+    serveQueuedJobs(["receipt-1", "receipt-2"]);
+
+    await pollCloudJobs(service);
+
+    // Counts ride along on the poll; a drain that dropped them after the first
+    // claim would leave the cloud with a stale reading for a whole heartbeat.
+    for (const call of jobPolls()) {
+      const polled = new URL(call.url);
+      expect(polled.searchParams.get("printersTotal")).toBe("0");
+      expect(polled.searchParams.get("printersOnline")).toBe("0");
+    }
+  });
+
+  it("ignores a heartbeat that fires mid-drain", async () => {
+    // Two concurrent drains would claim and print the same receipts twice.
+    service = new LocalPrintService(createConfig());
+    const target = service;
+    let heartbeat: Promise<void> | undefined;
+    const agent = target.getPrintAgentService();
+    vi.spyOn(agent, "getJobStatus").mockResolvedValue({
+      id: "job-1",
+      status: "completed",
+      deviceId: "USB-1",
+    } as unknown as PrintJob);
+    const createPrintJob = vi
+      .spyOn(agent, "createPrintJob")
+      .mockImplementation(async () => {
+        heartbeat ??= pollCloudJobs(target);
+        return { success: true, jobId: "job-1" };
+      });
+    serveQueuedJobs(["receipt-1", "receipt-2"]);
+
+    await pollCloudJobs(target);
+    await heartbeat;
+
+    expect(createPrintJob).toHaveBeenCalledTimes(2);
+    expect(ackedReceipts()).toEqual(["receipt-1", "receipt-2"]);
+  });
+
+  it("stops draining at its bound instead of looping forever", async () => {
+    // A cloud that keeps handing back a receipt it never marks done would
+    // otherwise pin the agent here and it would never poll — or stop — again.
+    service = new LocalPrintService(createConfig());
+    const createPrintJob = printsCompletedJobs(service);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    cloudHandler = (url) =>
+      url.includes("/ack")
+        ? Response.json({ success: true })
+        : Response.json(pendingJob());
+
+    await pollCloudJobs(service);
+
+    expect(createPrintJob).toHaveBeenCalledTimes(MAX_CLOUD_JOBS_PER_DRAIN);
+    expect(jobPolls()).toHaveLength(MAX_CLOUD_JOBS_PER_DRAIN);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining(String(MAX_CLOUD_JOBS_PER_DRAIN)),
+    );
+  });
+
+  it("stops draining on the first failed claim rather than hot-looping", async () => {
+    service = new LocalPrintService(createConfig());
+    const createPrintJob = printsCompletedJobs(service);
+    let polls = 0;
+    cloudHandler = (url) => {
+      if (url.includes("/ack")) return Response.json({ success: true });
+      polls += 1;
+      return polls === 1
+        ? Response.json(pendingJob())
+        : new Response("upstream down", { status: 500 });
+    };
+
+    await expect(pollCloudJobs(service)).rejects.toThrow(
+      /Cloud job poll failed \(500\)/,
+    );
+
+    expect(createPrintJob).toHaveBeenCalledOnce();
+    expect(polls).toBe(2);
+
+    // The in-flight guard must be released even when the drain throws, or one
+    // bad poll would silence the agent until it is restarted.
+    cloudHandler = () => Response.json({ success: true, data: null });
+    await pollCloudJobs(service);
+    expect(jobPolls()).toHaveLength(3);
   });
 
   it("keeps serving local print jobs when the startup cloud poll fails", async () => {
