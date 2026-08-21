@@ -18,7 +18,6 @@ import {
 } from "./middleware/security";
 import {
   smartCacheMiddleware,
-  cacheWarmingMiddleware,
   isPublicApiCacheableRequest,
   getRestaurantIdForCacheScope,
 } from "./middleware/edge-cache";
@@ -365,9 +364,6 @@ export function createApp(
         },
       }),
     );
-
-    // 🎯 PERFORMANCE: Predictive cache warming (+0.3 points)
-    app.use("*", cacheWarmingMiddleware());
   }
 
   // Rate limiting is handled by geoIntelligentRateLimitMiddleware, registered above.

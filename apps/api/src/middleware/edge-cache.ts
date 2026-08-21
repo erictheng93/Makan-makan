@@ -144,15 +144,6 @@ export class EdgeCacheManager {
         // cache cost more the better it worked. If hit rate is ever needed
         // again, it belongs in Analytics Engine, not in a per-request KV write.
 
-        // Proactive revalidation for high-priority content
-        if (
-          options.priority === "high" &&
-          data.cached_at !== undefined &&
-          this.shouldRevalidate(data.cached_at)
-        ) {
-          this.context.waitUntil(this.revalidateInBackground(key, options));
-        }
-
         return data.value as T;
       }
 
@@ -172,11 +163,11 @@ export class EdgeCacheManager {
         return value;
       }
 
-      // LAYER 3: Cache miss - trigger intelligent preloading
-      if (this.shouldPreload(key)) {
-        this.context.waitUntil(this.triggerPreloadJob(key, options));
-      }
-
+      // LAYER 3: Cache miss. There is no preload/revalidate tier: both were
+      // routed at `env.PRELOAD_QUEUE` / `env.REVALIDATION_QUEUE`, which no
+      // wrangler.toml in this repo has ever declared, so the optional-chained
+      // `?.send` was a no-op in every environment including production. The
+      // caller re-fetches on miss, which is what actually happened all along.
       return null;
     } catch (error) {
       console.error("Edge cache retrieval error:", error);
@@ -366,21 +357,6 @@ export class EdgeCacheManager {
     return Date.now() > metadata.expires_at;
   }
 
-  private shouldRevalidate(cachedAt: number): boolean {
-    const age = Date.now() - cachedAt;
-    const maxAge = 5 * 60 * 1000; // 5 minutes
-    return age > maxAge;
-  }
-
-  private shouldPreload(key: string): boolean {
-    // Preload for restaurant menu items, popular queries
-    return (
-      key.includes("menu:") ||
-      key.includes("restaurant:") ||
-      key.includes("popular:")
-    );
-  }
-
   private async populateCacheAPI(
     cacheKey: string,
     metadata: CacheMetadata,
@@ -435,39 +411,6 @@ export class EdgeCacheManager {
       await this.kv.put(mappingKey, JSON.stringify(variants), {
         expirationTtl: 24 * 60 * 60,
       });
-    }
-  }
-
-  async triggerPreloadJob(
-    key: string,
-    options: Partial<CacheOptions>,
-  ): Promise<void> {
-    try {
-      // Queue preload job for background processing
-      await this.env.PRELOAD_QUEUE?.send({
-        key,
-        options,
-        triggered_at: Date.now(),
-        priority: options.priority || "normal",
-      });
-    } catch (error) {
-      console.error("Failed to trigger preload job:", error);
-    }
-  }
-
-  private async revalidateInBackground(
-    key: string,
-    options: Partial<CacheOptions>,
-  ): Promise<void> {
-    try {
-      // Queue revalidation job
-      await this.env.REVALIDATION_QUEUE?.send({
-        key,
-        options,
-        revalidate_at: Date.now(),
-      });
-    } catch (error) {
-      console.error("Failed to queue revalidation:", error);
     }
   }
 
@@ -628,35 +571,12 @@ export function smartCacheMiddleware(
   };
 }
 
-/**
- * Cache warming middleware for predictive optimization
- */
-export function cacheWarmingMiddleware() {
-  return async (c: Context<{ Bindings: Env }>, next: Next) => {
-    const cacheManager = new EdgeCacheManager(
-      c.env.CACHE_KV,
-      c.executionCtx,
-      c.env,
-    );
-
-    // Predictive warming based on request patterns
-    const path = c.req.path;
-    const restaurantId = getRestaurantIdForCacheScope(c);
-
-    // Warm related endpoints
-    if (path.includes("/menu/") && restaurantId) {
-      c.executionCtx.waitUntil(
-        cacheManager.triggerPreloadJob(`menu:${restaurantId}:popular`, {
-          ttl: 600,
-          tags: [`restaurant:${restaurantId}`, "menu", "popular"],
-          priority: "high",
-        }),
-      );
-    }
-
-    await next();
-  };
-}
+// `cacheWarmingMiddleware` used to live here. It ran on every request, built an
+// EdgeCacheManager, and on `/menu/` paths enqueued a preload job to
+// `env.PRELOAD_QUEUE` — a binding no wrangler.toml declares, so the whole
+// middleware was a no-op behind `?.send`. Nothing warmed. Removed rather than
+// wired up: on a cache miss the caller already fetches and `set()`s the result,
+// which is the same warm-up one request later and costs nothing extra.
 
 declare module "hono" {
   interface ContextVariableMap {
