@@ -32,6 +32,37 @@ import {
 const app = new Hono<{ Bindings: Env }>();
 
 /**
+ * 確認呼叫者真的擁有這台收銀機。
+ *
+ * `requireRole([0, 1])` 證明的是「這個人是某家店的店主」，不是「這台收銀機是
+ * 他的」—— 少了這一道，帶著別家店的 registerId 就能讀設定、改設定、停用甚至
+ * 刪除（#229）。服務層也擋不住：RegisterService 的每個方法都只用
+ * `where(eq(cashRegisters.id, registerId))`。
+ *
+ * 平台管理員（role 0）不綁餐廳，所以跳過。
+ *
+ * 不存在回 404、別家店回 403：403 因此會洩漏「這個 id 存在」，但 registerId
+ * 是 UUID 且清單端點已經鎖回自己餐廳，猜得中才問得出來。這樣與同檔案其他端點
+ * 的 REGISTER_NOT_FOUND 行為一致。
+ */
+async function requireRegisterOwnership(
+  c: { get(key: "user"): AuthUser; env: Env },
+  registerId: string,
+): Promise<void> {
+  const user = c.get("user");
+  const restaurantId = await new RegisterService(
+    c.env.DB,
+  ).getRegisterRestaurantId(registerId);
+
+  if (!restaurantId) {
+    throw notFound("收銀機不存在", "REGISTER_NOT_FOUND");
+  }
+  if (user.role !== 0 && String(user.restaurantId) !== restaurantId) {
+    throw forbidden("只能管理自己餐廳的收銀機");
+  }
+}
+
+/**
  * 創建收銀機
  * POST /registers
  */
@@ -67,36 +98,47 @@ app.post(
  * 獲取收銀機列表
  * GET /registers
  */
-app.get("/", authMiddleware, validateQuery(registerQuerySchema), async (c) => {
-  const user = c.get("user");
-  const query = c.get("validatedQuery");
+app.get(
+  "/",
+  authMiddleware,
+  // 收銀機清單對廚師（2）與送菜員（3）沒有用途，而在補上角色閘門之前這支只有
+  // authMiddleware，任何登入者都進得來。
+  requireRole([0, 1, 4]), // Admin, Owner, Cashier
+  validateQuery(registerQuerySchema),
+  async (c) => {
+    const user = c.get("user");
+    const query = c.get("validatedQuery");
 
-  // 確定餐廳ID
-  let restaurantId: string | undefined;
-  if (query.restaurantId) {
-    restaurantId = query.restaurantId;
-    // 權限檢查
-    if (user.role === 1 && user.restaurantId !== restaurantId) {
-      throw forbidden("只能查看自己餐廳的收銀機");
+    // 確定餐廳ID
+    let restaurantId: string | undefined;
+    if (query.restaurantId) {
+      restaurantId = query.restaurantId;
+      // 租戶檢查。先前只比對 role === 1，於是收銀（4）帶 ?restaurantId= 就能列
+      // 舉任意餐廳的收銀機 —— 那份清單含 id，正是 :registerId 端點需要的東西
+      // （#229）。restaurantId 在 AuthUser 上是 string | number，所以要轉字串
+      // 再比，否則型別不同會恆真。
+      if (user.role !== 0 && String(user.restaurantId) !== restaurantId) {
+        throw forbidden("只能查看自己餐廳的收銀機");
+      }
+    } else if (user.restaurantId) {
+      restaurantId = String(user.restaurantId);
+    } else {
+      throw badRequest("需要指定餐廳ID");
     }
-  } else if (user.restaurantId) {
-    restaurantId = String(user.restaurantId);
-  } else {
-    throw badRequest("需要指定餐廳ID");
-  }
 
-  const registerService = new RegisterService(c.env.DB);
-  const result = await registerService.getRegisters(restaurantId!);
+    const registerService = new RegisterService(c.env.DB);
+    const result = await registerService.getRegisters(restaurantId!);
 
-  if (!result.success) {
-    throw badRequest(result.error || "獲取收銀機列表失敗");
-  }
+    if (!result.success) {
+      throw badRequest(result.error || "獲取收銀機列表失敗");
+    }
 
-  return c.json({
-    success: true,
-    data: result.data,
-  });
-});
+    return c.json({
+      success: true,
+      data: result.data,
+    });
+  },
+);
 
 /**
  * 獲取收銀機狀態
@@ -109,6 +151,7 @@ app.get(
   validateParams(registerParamsSchema),
   async (c) => {
     const { registerId } = c.get("validatedParams");
+    await requireRegisterOwnership(c, registerId);
 
     const registerService = new RegisterService(c.env.DB);
     const result = await registerService.getRegisterStatus(registerId);
@@ -140,6 +183,7 @@ app.put(
   async (c) => {
     const { registerId } = c.get("validatedParams");
     const data = c.get("validatedBody");
+    await requireRegisterOwnership(c, registerId);
 
     const registerService = new RegisterService(c.env.DB);
     const result = await registerService.updateRegister(registerId, data);
@@ -166,6 +210,7 @@ app.post(
   validateParams(registerParamsSchema),
   async (c) => {
     const { registerId } = c.get("validatedParams");
+    await requireRegisterOwnership(c, registerId);
 
     const registerService = new RegisterService(c.env.DB);
     const result = await registerService.toggleRegisterStatus(registerId, true);
@@ -192,6 +237,7 @@ app.post(
   validateParams(registerParamsSchema),
   async (c) => {
     const { registerId } = c.get("validatedParams");
+    await requireRegisterOwnership(c, registerId);
 
     const registerService = new RegisterService(c.env.DB);
     const result = await registerService.toggleRegisterStatus(
@@ -221,6 +267,7 @@ app.delete(
   validateParams(registerParamsSchema),
   async (c) => {
     const { registerId } = c.get("validatedParams");
+    await requireRegisterOwnership(c, registerId);
 
     const registerService = new RegisterService(c.env.DB);
     const result = await registerService.deleteRegister(registerId);
@@ -237,31 +284,6 @@ app.delete(
 );
 
 /**
- * 列印代理憑證
- *
- * 這台收銀機的代理靠這把金鑰認證，雲端再從金鑰推導出收銀機與餐廳。金鑰換句話
- * 說就是租戶邊界本身，所以這三支端點都必須確認呼叫者真的擁有這台收銀機 ——
- * requireRole([0, 1]) 只擋到角色，擋不到「別家店的店主」。
- */
-async function requireRegisterOwnership(
-  c: { get(key: "user"): AuthUser; env: Env },
-  registerId: string,
-): Promise<PrintAgentCredentialService> {
-  const user = c.get("user");
-  const service = new PrintAgentCredentialService(c.env.DB);
-  const restaurantId = await service.getRegisterRestaurantId(registerId);
-
-  if (!restaurantId) {
-    throw notFound("收銀機不存在", "REGISTER_NOT_FOUND");
-  }
-  if (user.role !== 0 && user.restaurantId !== restaurantId) {
-    throw forbidden("只能管理自己餐廳的收銀機");
-  }
-
-  return service;
-}
-
-/**
  * 列出收銀機的列印代理
  * GET /registers/:registerId/print-agents
  */
@@ -272,7 +294,8 @@ app.get(
   validateParams(registerParamsSchema),
   async (c) => {
     const { registerId } = c.get("validatedParams");
-    const service = await requireRegisterOwnership(c, registerId);
+    await requireRegisterOwnership(c, registerId);
+    const service = new PrintAgentCredentialService(c.env.DB);
 
     return c.json({
       success: true,
@@ -294,7 +317,8 @@ app.post(
   async (c) => {
     const { registerId } = c.get("validatedParams");
     const { label } = c.get("validatedBody");
-    const service = await requireRegisterOwnership(c, registerId);
+    await requireRegisterOwnership(c, registerId);
+    const service = new PrintAgentCredentialService(c.env.DB);
 
     const { agent, key } = await service.issueAgent(registerId, label);
 
@@ -321,7 +345,8 @@ app.delete(
   validateParams(printAgentParamsSchema),
   async (c) => {
     const { registerId, agentId } = c.get("validatedParams");
-    const service = await requireRegisterOwnership(c, registerId);
+    await requireRegisterOwnership(c, registerId);
+    const service = new PrintAgentCredentialService(c.env.DB);
 
     if (!(await service.revokeAgent(registerId, agentId))) {
       throw notFound("列印代理不存在", "PRINT_AGENT_NOT_FOUND");

@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => {
     user,
     registerService: {
       createRegister: vi.fn(),
+      getRegisterRestaurantId: vi.fn(),
       deleteRegister: vi.fn(),
       getRegisters: vi.fn(),
       getRegisterStatus: vi.fn(),
@@ -21,7 +22,6 @@ const mocks = vi.hoisted(() => {
     },
     registerServiceCtor: vi.fn(),
     credentialService: {
-      getRegisterRestaurantId: vi.fn(),
       listAgents: vi.fn(),
       issueAgent: vi.fn(),
       revokeAgent: vi.fn(),
@@ -102,6 +102,9 @@ describe("POS register routes", () => {
       role: 1,
       restaurantId: "restaurant-1",
     };
+    mocks.registerService.getRegisterRestaurantId.mockResolvedValue(
+      "restaurant-1",
+    );
     mocks.registerService.createRegister.mockResolvedValue({
       success: true,
       data: register,
@@ -359,7 +362,7 @@ describe("print agent credentials", () => {
       role: 1,
       restaurantId: "restaurant-1",
     };
-    mocks.credentialService.getRegisterRestaurantId.mockResolvedValue(
+    mocks.registerService.getRegisterRestaurantId.mockResolvedValue(
       "restaurant-1",
     );
     mocks.credentialService.listAgents.mockResolvedValue([]);
@@ -442,7 +445,7 @@ describe("print agent credentials", () => {
   ])(
     "refuses %s %s for an owner of another restaurant",
     async (method, suffix) => {
-      mocks.credentialService.getRegisterRestaurantId.mockResolvedValue(
+      mocks.registerService.getRegisterRestaurantId.mockResolvedValue(
         "restaurant-2",
       );
 
@@ -461,7 +464,7 @@ describe("print agent credentials", () => {
 
   it("lets a platform admin manage any restaurant's register", async () => {
     mocks.user = { id: "user-1", username: "admin", role: 0 } as AuthUser;
-    mocks.credentialService.getRegisterRestaurantId.mockResolvedValue(
+    mocks.registerService.getRegisterRestaurantId.mockResolvedValue(
       "restaurant-2",
     );
 
@@ -471,11 +474,142 @@ describe("print agent credentials", () => {
   });
 
   it("answers 404 for a register that does not exist", async () => {
-    mocks.credentialService.getRegisterRestaurantId.mockResolvedValue(null);
+    mocks.registerService.getRegisterRestaurantId.mockResolvedValue(null);
 
     const response = await request(`/${registerId}/print-agents`);
 
     expect(response.status).toBe(404);
     expect((await json(response)).error?.code).toBe("REGISTER_NOT_FOUND");
+  });
+});
+
+describe("register tenant boundaries (#229)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.user = {
+      id: "user-10",
+      username: "owner",
+      role: 1,
+      restaurantId: "restaurant-1",
+    };
+    mocks.registerService.getRegisters.mockResolvedValue({
+      success: true,
+      data: [register],
+    });
+  });
+
+  // requireRole([0, 1]) proves the caller owns *a* restaurant, not that this
+  // register belongs to it. RegisterService offers no second line of defence:
+  // every one of these methods filters on the register id alone.
+  it.each([
+    ["GET", `/${registerId}/status`, "getRegisterStatus"],
+    ["PUT", `/${registerId}`, "updateRegister"],
+    ["POST", `/${registerId}/activate`, "toggleRegisterStatus"],
+    ["POST", `/${registerId}/deactivate`, "toggleRegisterStatus"],
+    ["DELETE", `/${registerId}`, "deleteRegister"],
+  ])(
+    "refuses %s %s when the register belongs to another restaurant",
+    async (method, path, serviceMethod) => {
+      mocks.registerService.getRegisterRestaurantId.mockResolvedValue(
+        "restaurant-2",
+      );
+
+      const response = await request(path, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: method === "GET" ? undefined : JSON.stringify({ name: "Taken" }),
+      });
+
+      expect(response.status).toBe(403);
+      // Asserting the status alone would pass an implementation that mutates
+      // first and reports the error afterwards.
+      expect(
+        mocks.registerService[
+          serviceMethod as keyof typeof mocks.registerService
+        ],
+      ).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ["GET", `/${registerId}/status`],
+    ["PUT", `/${registerId}`],
+    ["DELETE", `/${registerId}`],
+  ])(
+    "answers 404 for %s %s on a register that does not exist",
+    async (method, path) => {
+      mocks.registerService.getRegisterRestaurantId.mockResolvedValue(null);
+
+      const response = await request(path, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: method === "GET" ? undefined : JSON.stringify({ name: "Taken" }),
+      });
+
+      expect(response.status).toBe(404);
+      expect((await json(response)).error?.code).toBe("REGISTER_NOT_FOUND");
+    },
+  );
+
+  it("still lets an owner manage a register in their own restaurant", async () => {
+    mocks.registerService.getRegisterRestaurantId.mockResolvedValue(
+      "restaurant-1",
+    );
+
+    const response = await request(`/${registerId}/deactivate`, {
+      method: "POST",
+    });
+
+    expect(response.status).toBe(200);
+    expect(mocks.registerService.toggleRegisterStatus).toHaveBeenCalledWith(
+      registerId,
+      false,
+    );
+  });
+
+  it("lets a platform admin manage any restaurant's register", async () => {
+    mocks.user = { id: "user-1", username: "admin", role: 0 } as AuthUser;
+    mocks.registerService.getRegisterRestaurantId.mockResolvedValue(
+      "restaurant-2",
+    );
+
+    const response = await request(`/${registerId}/deactivate`, {
+      method: "POST",
+    });
+
+    expect(response.status).toBe(200);
+  });
+
+  // The listing is what makes the register ids above reachable at all. It
+  // previously checked only role 1, so a cashier could enumerate any
+  // restaurant's registers by passing ?restaurantId=.
+  it("refuses a cashier listing another restaurant's registers", async () => {
+    mocks.user = {
+      id: "user-40",
+      username: "cashier",
+      role: 4,
+      restaurantId: "restaurant-1",
+    };
+
+    const response = await request("/?restaurantId=restaurant-2");
+
+    expect(response.status).toBe(403);
+    expect(mocks.registerService.getRegisters).not.toHaveBeenCalled();
+  });
+
+  it("scopes a cashier's own listing to their restaurant", async () => {
+    mocks.user = {
+      id: "user-40",
+      username: "cashier",
+      role: 4,
+      restaurantId: "restaurant-1",
+    };
+
+    const response = await request("/?restaurantId=restaurant-1");
+
+    expect(response.status).toBe(200);
+    expect(mocks.registerService.getRegisters).toHaveBeenCalledWith(
+      "restaurant-1",
+    );
   });
 });

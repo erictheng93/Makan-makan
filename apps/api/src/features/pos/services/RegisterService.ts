@@ -112,6 +112,22 @@ export class RegisterService {
   }
 
   /**
+   * 收銀機所屬的餐廳，用於路由層的租戶檢查。收銀機不存在時回 null。
+   *
+   * 這裡刻意只回餐廳 id 而不是整列：呼叫端要決定的是「可不可以碰」，在授權
+   * 通過之前不該先把資料撈出來。
+   */
+  async getRegisterRestaurantId(registerId: string): Promise<string | null> {
+    const [register] = await this.db
+      .select({ restaurantId: cashRegisters.restaurantId })
+      .from(cashRegisters)
+      .where(eq(cashRegisters.id, registerId))
+      .limit(1);
+
+    return register?.restaurantId ?? null;
+  }
+
+  /**
    * 獲取收銀機狀態
    */
   async getRegisterStatus(registerId: string): Promise<{

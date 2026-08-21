@@ -7,7 +7,7 @@
 
 import { drizzle } from "drizzle-orm/d1";
 import { and, desc, eq, isNull } from "drizzle-orm";
-import { cashRegisters, printAgents } from "@makanmasak/database";
+import { printAgents } from "@makanmasak/database";
 import { generateUUID } from "@makanmasak/utils";
 import {
   generatePrintAgentKey,
@@ -27,19 +27,6 @@ export class PrintAgentCredentialService {
 
   constructor(d1: D1Database) {
     this.db = drizzle(d1);
-  }
-
-  /**
-   * 收銀機所屬的餐廳，用於路由層的租戶檢查。收銀機不存在時回 null。
-   */
-  async getRegisterRestaurantId(registerId: string): Promise<string | null> {
-    const [register] = await this.db
-      .select({ restaurantId: cashRegisters.restaurantId })
-      .from(cashRegisters)
-      .where(eq(cashRegisters.id, registerId))
-      .limit(1);
-
-    return register?.restaurantId ?? null;
   }
 
   /**
