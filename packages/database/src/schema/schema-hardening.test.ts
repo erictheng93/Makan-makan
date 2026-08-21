@@ -12,6 +12,7 @@ import {
   backupSchedules,
   marketCheckoutPayments,
   paymentTransactions,
+  platformWebhookLogs,
   restoreOperations,
 } from "./index";
 
@@ -37,12 +38,29 @@ const FRESH_BASELINE =
   "packages/database/migrations_fresh/0000_baseline_strict.sql";
 const LEGACY_HARDENING =
   "packages/database/migrations/0089_schema_hardening_payment_idempotency_backup_timestamps.sql";
+const FRESH_WEBHOOK_DEDUP =
+  "packages/database/migrations_fresh/0005_platform_webhook_event_dedup.sql";
 
 function migrationPath(path: string): string {
   return readFileSync(resolve(REPO_ROOT, path), "utf8");
 }
 
 describe("schema hardening", () => {
+  it("deduplicates provider webhook event IDs when present", () => {
+    const indexes = getTableConfig(platformWebhookLogs).indexes;
+    const migration = migrationPath(FRESH_WEBHOOK_DEDUP);
+
+    expect(
+      indexes.some(
+        (index) => index.config.name === "platform_webhook_logs_event_unique",
+      ),
+    ).toBe(true);
+    expect(migration).toContain(
+      "CREATE UNIQUE INDEX `platform_webhook_logs_event_unique`",
+    );
+    expect(migration).toContain("WHERE `platform_event_id` IS NOT NULL");
+  });
+
   it("keeps nullable payment idempotency keys unique when present", () => {
     const paymentIndexes = getTableConfig(paymentTransactions).indexes;
     const marketIndexes = getTableConfig(marketCheckoutPayments).indexes;

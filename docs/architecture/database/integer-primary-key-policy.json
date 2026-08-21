@@ -290,7 +290,7 @@
   {
     "tableName": "platform_webhook_logs",
     "schemaFile": "packages/database/src/schema/platform-webhook-logs.ts",
-    "line": 29,
+    "line": 36,
     "category": "audit_log",
     "migrationPlan": "retain",
     "rationale": "Webhook logs are append-only integration audit records."
