@@ -8,7 +8,7 @@
 
 把 `ready` 的餐點送到桌上，然後標記 `delivered`。
 這是四條現場流程裡**最薄的一條**——沒有專屬的 API feature，整條流程只借用訂單端點。
-也因此它是目前合約破損最明顯的一條，見 §5。
+「配送中」不是訂單狀態，是這台裝置上的本地標記，見 §4。
 
 ## 2. 觸發與前置條件
 
@@ -30,32 +30,38 @@
 
 `delivered` 之後只能走 `paid` 或 `refunded`，不能再取消。
 
-## 4. 實作上的 Happy path 與它的落差
-
-`ServiceView.vue` 實際上做的是：
-
-| 前端行為 | 後端合約 | 結果 |
-| --- | --- | --- |
-| `GET /orders?status=ready,delivering` | `orderFilterSchema.status` 逐項比對 `ORDER_STATUSES` | **400 VALIDATION_ERROR**，清單拉不到 |
-| `PUT /orders/:id/status` body `{ status: "delivering" }` | `updateOrderStatusSchema.status = z.enum(ORDER_STATUSES)` | **400 VALIDATION_ERROR**，「開始配送」按不動 |
+## 4. 「配送中」為什麼只存在於前端
 
 `delivering` 不是合法的訂單狀態。八個合法值是
 `pending / confirmed / preparing / ready / delivered / paid / cancelled / refunded`
-（`packages/shared-types/src/order.ts:120`）。
+（`packages/shared-types/src/order.ts:120`），`orderFilterSchema` 與
+`updateOrderStatusSchema` 都逐項比對這份清單，送第九個值一律 400。
 
-**兩條路可以修，但要先決定哪一條**：
+送菜員領走餐點不是訂單本身的狀態變化，而是「這台裝置上的這個人正在處理」，
+所以它被留在前端當本地標記（#224 採 A 案）：
 
-1. 把 `delivering` 變成真正的狀態——要動 `ORDER_STATUSES`、轉移表、角色權限表、DB 欄位語意，
-   影響顧客追蹤頁與所有既有查詢。
-2. 把「配送中」留在前端當本地標記——`ServiceView` 自己記哪幾筆已被領走，不打 API，
-   只有真的送達時才呼叫一次 `delivered`。
+| 前端行為 | 送出什麼 |
+| --- | --- |
+| 待送清單 | `GET /orders?status=ready` — 只有伺服器認得的值 |
+| 開始配送 | **不打 API**，只寫 `localPhase` |
+| 標記送達 | `PUT /orders/:id/status` → `delivered` |
+
+`ServiceOrder` 因此拆成兩個欄位：`status` 是伺服器真相，`localPhase` 是本地階段。
+本地階段連同開始時間與領取者寫進 `sessionStorage`（key `service-view:delivery-phase`），
+因為 `refreshOrders` 每次都用伺服器回應重建整個清單——不還原就會把送菜員手上的單
+洗回「開始配送」，並連帶失去配送時長與 `assignedTo`。伺服器記下 `delivered` 之後，
+本地階段隨即清除；不再列為 `ready` 的單也會在下次重整時一併剪掉。
+
+**代價**：換一台裝置看不到「誰領走了」。要跨裝置共享就得把 `delivering` 變成真正的
+第九個狀態，那要一起動 `ORDER_STATUSES`、轉移表、`ROLE_STATUS_PERMISSIONS[3]`、
+DB 時間戳欄位、顧客追蹤頁文案與 i18n key，以及所有以 `ready` 為終點的查詢。
 
 ## 5. Edge cases 與失敗模式
 
 | 情境 | 系統行為 | 錯誤碼 | 風險 |
 | --- | --- | --- | --- |
-| 前端送 `delivering` | 400，畫面上是「操作沒有反應」 | `VALIDATION_ERROR` | 🔴 P0 |
-| 待送清單查詢帶 `delivering` | 400，整個清單空白 | `VALIDATION_ERROR` | 🔴 P0 |
+| 送菜員換裝置或換瀏覽器分頁 | 看不到自己已領取的單（本地階段不跨裝置） | — | 🟡 P2 |
+| 瀏覽器停用 `sessionStorage` | 本地階段只存在記憶體，重載後回到「開始配送」 | — | 🟡 P2 |
 | 送菜員想標 `paid` | 403 | `FORBIDDEN` | 🟠 P1 |
 | 從 `preparing` 直接標 `delivered` | 409（必須先 `ready`） | `INVALID_STATUS_TRANSITION` | 🟠 P1 |
 | 兩人同時標同一單送達 | 409 版本衝突 | `ORDER_VERSION_CONFLICT` | 🟡 P2 |
@@ -75,13 +81,16 @@
 
 **測試**
 
-- 目前**沒有**針對送菜流程的 API 或瀏覽器測試。
-  `tests/e2e/integration/real-workflows.spec.ts` 涵蓋顧客、店家、廚房、管理與入駐，不含 `/service`。
+- `apps/admin-dashboard/src/views/ServiceView.test.ts` — 驗證送出的 query 與 body
+  只含合法狀態值，且本地配送階段能跨重整與重載保留、送達後清除。這是 CI 實際會跑的那道守門。
+- `tests/e2e/integration/real-workflows.spec.ts` — 送菜流程（`ready` → 標記送達 → 桌位釋放）。
+  屬於 `integration` project，需要 `WORKFLOW_ADMIN_URL`／`SMOKE_ADMIN_URL` 才會跑；
+  目前 CI 的兩條 E2E 路徑都不含這個 project，等同只在本機手動執行。
 
 ## 7. 已知缺口
 
-- **前後端狀態合約不一致**（見 §4）。這條流程目前在真實 API 上跑不通。
-- **沒有任何自動化測試覆蓋**，所以上面那個不一致沒有被 CI 擋下來。
-- **沒有指派機制**。`ServiceView` 有 `assignedTo` 的概念，但後端訂單沒有對應欄位，
-  「誰負責這一單」無法跨裝置共享。
+- **沒有指派機制**。`assignedTo` 只存在於本地階段，後端訂單沒有對應欄位，
+  「誰負責這一單」無法跨裝置共享（見 §4 的代價）。
+- **`integration` project 不在任何 CI 路徑上**，送菜流程的 E2E 寫了但不會自動執行；
+  真正在 CI 擋住狀態合約回歸的是元件測試。
 - **沒有送達失敗的處理路徑**。送錯桌、客人已離開這些情境只能靠取消或人工協調。
