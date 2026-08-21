@@ -230,14 +230,35 @@ function createDb(
           return builder;
         }),
         where: vi.fn(() => builder),
-        returning: vi.fn(() => fixtures.returning()),
+        returning: vi.fn(() => {
+          // Most cart-write tests only care about the subsequent totals. Give
+          // their conditional write a successful row unless a test explicitly
+          // supplies a fixture for the guard result.
+          if (
+            table === groupCartItems &&
+            !mutationFixtures.groupCartItems?.update
+          ) {
+            return [{}];
+          }
+          return fixtures.returning();
+        }),
       };
       return builder;
     }),
     delete: vi.fn((table: unknown) => {
       const builder = {
-        where: vi.fn(async () => {
+        where: vi.fn(() => {
           deletes.push(table);
+          return builder;
+        }),
+        returning: vi.fn(() => {
+          if (
+            table === groupCartItems &&
+            !mutationFixtures.groupCartItems?.delete
+          ) {
+            return [{}];
+          }
+          return mutationDb.delete(table).returning();
         }),
       };
       return builder;
@@ -1532,6 +1553,48 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
   });
 
+  it("rejects cart updates and removals once the group is no longer active", async () => {
+    const storedItem = {
+      id: "item-1",
+      groupOrderId: "group-1",
+      memberId: "member-1",
+      menuItemId: 10,
+      unitPriceCents: 900,
+      totalPriceCents: 900,
+      quantity: 1,
+    };
+
+    const updateService = createService();
+    useDb(
+      updateService,
+      createDb(
+        { groupCartItems: [[storedItem]] },
+        { groupCartItems: { update: [[]] } },
+      ),
+    );
+    await expect(
+      updateService.updateCartItem("group-1", "item-1", { quantity: 2 }),
+    ).resolves.toEqual({
+      success: false,
+      error: "Group order is no longer active",
+    });
+
+    const removeService = createService();
+    useDb(
+      removeService,
+      createDb(
+        { groupCartItems: [[storedItem]] },
+        { groupCartItems: { delete: [[]] } },
+      ),
+    );
+    await expect(
+      removeService.removeCartItem("group-1", "item-1", "member-1"),
+    ).resolves.toEqual({
+      success: false,
+      error: "Group order is no longer active",
+    });
+  });
+
   /**
    * Members may clear each other's dishes off the shared cart, so the caller
    * and the item's owner are no longer the same person. Everything the
@@ -2600,12 +2663,16 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       expect(createOrder.mock.calls[0][0].items[0]).not.toHaveProperty(
         "customizations",
       );
-      expect(service.splitBill).toHaveBeenCalledWith("group-1", {
-        splitType: "proportional",
-        sharedServiceChargeCents: 600,
-        sharedTaxCents: 300,
-        orderTotalCents: 3900,
-      });
+      expect(service.splitBill).toHaveBeenCalledWith(
+        "group-1",
+        {
+          splitType: "proportional",
+          sharedServiceChargeCents: 600,
+          sharedTaxCents: 300,
+          orderTotalCents: 3900,
+        },
+        [expect.objectContaining({ id: "cart-10", quantity: 2 })],
+      );
       expect(db.updates.map((update) => update.payload)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ status: "finalizing" }),
@@ -2675,12 +2742,16 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         success: true,
         data: { masterOrderId: "order-1", status: "completed" },
       });
-      expect(duplicate.service.splitBill).toHaveBeenCalledWith("group-1", {
-        splitType: "individual",
-        sharedServiceChargeCents: 600,
-        sharedTaxCents: 300,
-        orderTotalCents: 3900,
-      });
+      expect(duplicate.service.splitBill).toHaveBeenCalledWith(
+        "group-1",
+        {
+          splitType: "individual",
+          sharedServiceChargeCents: 600,
+          sharedTaxCents: 300,
+          orderTotalCents: 3900,
+        },
+        [expect.objectContaining({ id: "cart-10", quantity: 2 })],
+      );
     });
 
     it("prevents concurrent finalizers from creating a second real order", async () => {
@@ -2730,9 +2801,9 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
 
     it("defines finalize boundaries for empty, completed, and cancelled groups", async () => {
-      // Each of these three bails before claiming the finalizing mutex, so
-      // none of them may draw an update fixture — an empty queue says so.
-      const empty = createFinalizeService({ cartItems: [], claimQueue: [] });
+      // An empty cart can only be known after the finalizing claim, which is
+      // then released without creating an order.
+      const empty = createFinalizeService({ cartItems: [] });
       await expect(
         empty.service.finalizeGroupOrder("group-1"),
       ).resolves.toEqual({
