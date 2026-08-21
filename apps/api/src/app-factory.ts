@@ -345,19 +345,27 @@ export function createApp(
         // can't enumerate. Drop it. Authorization is handled by short-circuiting
         // the cache for authenticated requests, so it's redundant here too.
         varyHeaders: ["X-Restaurant-ID", "CF-IPCountry"],
+        // One tag, not seven. `set()` pays a KV read plus a KV write per tag to
+        // maintain its `tag:*` key list, and KV writes are the most expensive KV
+        // op ($5.00/M, 1M/month free) — so each tag here is a recurring per-miss
+        // cost, not a free label. `restaurant:{id}` is the only tag anything
+        // ever invalidates by (see the `invalidate(..., "tag")` call in
+        // smartCacheMiddleware), and it already reaches every cached public GET
+        // for that restaurant, which is the coverage the tag sweep exists for.
+        //
+        // The tags that were dropped fell into two groups, both dead weight:
+        //   - Global ones ("api", "menu", "orders", "analytics", "qr") named no
+        //     restaurant, so their KV lists accumulated every key of that type
+        //     across every tenant, without bound, and nothing invalidated by
+        //     them.
+        //   - Scoped ones ("menu:{id}", "orders:{id}", "payments:{id}") were
+        //     already covered by `restaurant:{id}`. `menu:{id}` also stringified
+        //     to the literal "menu:undefined" whenever the request had no
+        //     restaurant scope.
+        // Add a narrower tag back only alongside the invalidate() call that uses it.
         cacheTags: (c) => {
           const restaurantId = getRestaurantIdForCacheScope(c);
-          const tags = ["api"];
-          if (restaurantId) tags.push(`restaurant:${restaurantId}`);
-          if (c.req.path.includes("/menu"))
-            tags.push("menu", `menu:${restaurantId}`);
-          if (c.req.path.includes("/orders"))
-            tags.push("orders", `orders:${restaurantId}`);
-          if (c.req.path.includes("/analytics")) tags.push("analytics");
-          if (c.req.path.includes("/qr")) tags.push("qr");
-          if (c.req.path.includes("/payments"))
-            tags.push("payments", `payments:${restaurantId}`);
-          return tags;
+          return restaurantId ? [`restaurant:${restaurantId}`] : [];
         },
         shouldCache: (c) => {
           return isPublicApiCacheableRequest(c.req.method, c.req.path);
