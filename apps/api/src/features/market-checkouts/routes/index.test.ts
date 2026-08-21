@@ -2285,6 +2285,79 @@ describe("market checkout routes", () => {
     expect(processPayment).not.toHaveBeenCalled();
   });
 
+  it("accepts holder proof from the header the JWT cannot displace", async () => {
+    // The customer app puts either the customer JWT or a guest token in
+    // Authorization, never both, so a signed-in shopper paying a checkout they
+    // placed while signed out sends the token here instead. Every other test
+    // reaches this gate through Authorization, which leaves the header the real
+    // client depends on unexercised.
+    signedInCustomer.value = { id: "customer-outsider" };
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify(unpaidCheckoutSessionFixture()),
+    );
+
+    const response = await routes.fetch(
+      new Request("https://test/checkout-1/voucher", {
+        method: "DELETE",
+        headers: { "X-Guest-Token": MARKET_HOLDER_TOKEN },
+      }),
+      env as never,
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it("rejects a guest token that is no longer in the cache", async () => {
+    // Guest tokens live four hours in KV. Once one expires the lookup misses,
+    // and the caller has to be turned away rather than falling through on the
+    // strength of holding a well-formed token.
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify(unpaidCheckoutSessionFixture()),
+    );
+
+    const response = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/checkout-1/voucher", {
+          method: "DELETE",
+          headers: { Authorization: "Bearer gt_expired-token" },
+        }),
+        env as never,
+      ),
+    );
+
+    await expectApiError(response, 403, "MARKET_CHECKOUT_ACCESS_DENIED");
+    expect(releaseVoucherReservation).not.toHaveBeenCalled();
+  });
+
+  it("rejects a guest token whose cached payload is unreadable", async () => {
+    // KV hands back whatever was written. A truncated or half-written value
+    // must fail closed: the gate cannot read an order id out of it, so it has
+    // no grounds to call this caller a holder.
+    const env = createEnv();
+    await env.CACHE_KV.put(
+      "market_checkout:checkout-1",
+      JSON.stringify(unpaidCheckoutSessionFixture()),
+    );
+    await env.CACHE_KV.put("guest_token:gt_corrupt-token", "{not json");
+
+    const response = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/checkout-1/voucher", {
+          method: "DELETE",
+          headers: { Authorization: "Bearer gt_corrupt-token" },
+        }),
+        env as never,
+      ),
+    );
+
+    await expectApiError(response, 403, "MARKET_CHECKOUT_ACCESS_DENIED");
+    expect(releaseVoucherReservation).not.toHaveBeenCalled();
+  });
+
   it("rejects checkout mutations carrying another checkout's guest token", async () => {
     const env = createEnv();
     await env.CACHE_KV.put(
