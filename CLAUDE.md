@@ -254,7 +254,25 @@ declarations were aligned to match so they do not contradict the override.
 `package.json` takes no comments, which is why the reason is recorded here.
 
 Adding a package that declares its own version of any of the three re-splits the
-graph. To check, `ls node_modules/.pnpm/vitest@*` should list exactly one entry.
+graph. Check what is **linked**, not what is left in the virtual store:
+
+```bash
+for m in node_modules apps/*/node_modules packages/*/node_modules; do
+  [ -L "$m/vitest" ] && readlink "$m/vitest"
+done | sed 's#.*\.pnpm/##' | sort -u
+```
+
+One line out means every package shares one instance; two or more names the peer
+set that split it (the `_@types+node@NN` segment is usually the culprit).
+
+Do **not** use `ls node_modules/.pnpm/vitest@*` for this — it counts directories,
+and pnpm leaves the pre-consolidation ones behind. Measured 2026-08-21 right after
+`pnpm install --frozen-lockfile`: that `ls` printed 7 entries (peers `@types/node`
+20.19.28 / 22.19.5 / 24.10.7 / 25.0.7) while the lockfile resolved a single
+`@types/node@25.0.7` and every live symlink pointed at the same instance. Six of
+the seven were orphans. They are harmless — nothing links to them — but they make
+the check read as a permanent false alarm. `rm -rf node_modules && pnpm install`
+clears them if the count matters to you.
 
 ### One worktree per session
 
