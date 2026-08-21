@@ -88,7 +88,10 @@ const recoverMarketCheckoutGuestTokenSchema = z.object({
     }
     return value;
   }, z.string().trim().min(1)),
-  phoneLastDigits: z.string().regex(/^\d{3}$/),
+  phoneLastDigits: z
+    .string()
+    .regex(/^\d{3}$/)
+    .optional(),
 });
 
 const refundMarketCheckoutSchema = z.object({
@@ -1119,6 +1122,7 @@ app.post(
     keyPrefix: "market_guest_token_recover",
     message: "Too many guest token recovery attempts. Please try again later.",
   }),
+  optionalCanonicalCustomerAuthMiddleware,
   async (c) => {
     const checkoutId = c.req.param("id") ?? "";
     const body = await c.req.json();
@@ -1145,51 +1149,58 @@ app.post(
       throw notFound("Market checkout not found");
     }
 
-    // Per-checkout brute-force lockout: the phone code is only 3 digits, so
-    // lock the recovery flow for a checkout after a few failed attempts —
-    // regardless of source IP — so the 1000-value space cannot be enumerated.
-    const attemptsKey = `market_checkout_recover_attempts:${checkoutId}`;
-    const MAX_RECOVER_ATTEMPTS = 5;
-    const RECOVER_LOCK_TTL_SECONDS = 60 * 60; // 1 hour
-    const priorAttempts = Number((await c.env.CACHE_KV.get(attemptsKey)) ?? 0);
-    if (priorAttempts >= MAX_RECOVER_ATTEMPTS) {
-      return c.json(
-        {
-          success: false,
-          error: {
-            code: "VERIFICATION_ATTEMPTS_EXCEEDED",
-            message:
-              "Too many failed verification attempts for this checkout. Please try again later.",
-          },
-        },
-        429,
+    // Both sides must be a real identity. `undefined === undefined` would make
+    // every anonymous checkout (and every checkout created before customer_id
+    // existed) look owned by every unauthenticated caller, which would skip the
+    // phone check entirely — the exact opposite of what this gate is for.
+    const signedInCustomerId = c.get("customer")?.id;
+    const isOwner =
+      signedInCustomerId !== undefined &&
+      signedInCustomerId === session.customerId;
+    if (!isOwner) {
+      // Per-checkout brute-force lockout only applies to the low-entropy
+      // phone recovery credential; it must never lock out the account owner.
+      const attemptsKey = `market_checkout_recover_attempts:${checkoutId}`;
+      const MAX_RECOVER_ATTEMPTS = 5;
+      const RECOVER_LOCK_TTL_SECONDS = 60 * 60; // 1 hour
+      const priorAttempts = Number(
+        (await c.env.CACHE_KV.get(attemptsKey)) ?? 0,
       );
-    }
-
-    // Fail closed: a session without a stored phone code cannot be recovered,
-    // and the supplied code must match unconditionally. A failed attempt
-    // increments the per-checkout counter.
-    if (
-      !session.phoneLastDigits ||
-      session.phoneLastDigits !== parsed.data.phoneLastDigits
-    ) {
-      await c.env.CACHE_KV.put(attemptsKey, String(priorAttempts + 1), {
-        expirationTtl: RECOVER_LOCK_TTL_SECONDS,
-      });
-      return c.json(
-        {
-          success: false,
-          error: {
-            code: "PHONE_VERIFICATION_FAILED",
-            message: "Phone verification failed for this market checkout",
+      if (priorAttempts >= MAX_RECOVER_ATTEMPTS) {
+        return c.json(
+          {
+            success: false,
+            error: {
+              code: "VERIFICATION_ATTEMPTS_EXCEEDED",
+              message:
+                "Too many failed verification attempts for this checkout. Please try again later.",
+            },
           },
-        },
-        403,
-      );
-    }
+          429,
+        );
+      }
 
-    // Successful verification clears the failure counter.
-    await c.env.CACHE_KV.delete(attemptsKey);
+      if (
+        !session.phoneLastDigits ||
+        session.phoneLastDigits !== parsed.data.phoneLastDigits
+      ) {
+        await c.env.CACHE_KV.put(attemptsKey, String(priorAttempts + 1), {
+          expirationTtl: RECOVER_LOCK_TTL_SECONDS,
+        });
+        return c.json(
+          {
+            success: false,
+            error: {
+              code: "PHONE_VERIFICATION_FAILED",
+              message: "Phone verification failed for this market checkout",
+            },
+          },
+          403,
+        );
+      }
+
+      await c.env.CACHE_KV.delete(attemptsKey);
+    }
 
     const child = session.childOrders.find(
       (order) => String(order.orderId) === parsed.data.orderId,
