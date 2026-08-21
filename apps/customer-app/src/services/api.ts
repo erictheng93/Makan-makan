@@ -324,8 +324,15 @@ class ApiClient {
 
   // DELETE 請求
   // 允許帶 body：群組購物車的刪除需要送出呼叫者的成員憑證
-  async delete<T = unknown>(url: string, data?: unknown): Promise<T> {
-    return this.request<T>({ method: "DELETE", url, data });
+  // `data` stays the second parameter: useGroupOrder.removeFromCart sends a
+  // body with its DELETE, and demoting it to a config slot would spread those
+  // fields into the request options instead.
+  async delete<T = unknown>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig,
+  ): Promise<T> {
+    return this.request<T>({ method: "DELETE", url, data, ...config });
   }
 
   // PATCH 請求
