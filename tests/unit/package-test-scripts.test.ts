@@ -115,7 +115,16 @@ function runGuardWithConfig(vitestConfig: string): {
   try {
     return {
       code: 0,
-      output: execFileSync(process.execPath, [guard], { encoding: "utf8" }),
+      // `stdio` must be explicit. Without it execFileSync still captures the
+      // child's stderr, but *also* echoes it to the parent's — so the guard's
+      // own `❌ ... does not spread the shared worker ceiling` output from the
+      // rejection cases below lands in the `pnpm verify` log, where it reads
+      // as a real failure against a `packages/demo` that only ever exists
+      // inside this fixture's tmpdir.
+      output: execFileSync(process.execPath, [guard], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      }),
     };
   } catch (error) {
     const failure = error as { status: number; stdout: string; stderr: string };
