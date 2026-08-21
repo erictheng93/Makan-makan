@@ -283,10 +283,25 @@ app.post("/jobs/:receiptId/ack", async (c) => {
     );
 
   const db = drizzle(c.env.DB);
+
+  // A reported failure is not terminal on its own: a paper jam or a printer
+  // that was briefly offline would otherwise mean that receipt is silently
+  // never printed until a human notices. Below the attempt budget the row goes
+  // back to `pending` so the next poll re-claims it; at the budget it stays
+  // `failed`. `print_attempts` is already incremented by every claim, so it
+  // bounds the retries with no second counter. There is no backoff — retries
+  // are paced by the agent's own poll cadence.
+  const settledStatus =
+    parsed.data.status === "printed"
+      ? "printed"
+      : sql`CASE WHEN ${receipts.printAttempts} >= ${MAX_DELIVERY_ATTEMPTS} THEN 'failed' ELSE 'pending' END`;
+
   const settled = await db
     .update(receipts)
     .set({
-      printStatus: parsed.data.status,
+      printStatus: settledStatus,
+      // Written even when the row returns to `pending`, so the last error is
+      // still readable while the retry is queued.
       printerName: parsed.data.printerName ?? null,
       printerResponse: parsed.data.response ?? null,
       claimedAt: null,

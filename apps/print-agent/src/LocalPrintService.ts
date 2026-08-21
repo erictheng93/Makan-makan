@@ -39,6 +39,18 @@ const isWebSocketMessage = (value: unknown): value is WebSocketMessage => {
 
 const LOOPBACK_HOST = "127.0.0.1";
 
+/**
+ * The most receipts one drain will claim.
+ *
+ * Bounds the failure mode where the cloud keeps handing back a receipt it
+ * never marks done — an acknowledgement that does not land, say — which would
+ * otherwise pin the agent in a print loop that never returns to the heartbeat
+ * and never observes stop(). At the second or two a receipt actually takes,
+ * 20 still clears a realistic dinner-rush backlog inside one heartbeat
+ * interval, and anything past it is only deferred to the next heartbeat.
+ */
+export const MAX_CLOUD_JOBS_PER_DRAIN = 20;
+
 export interface LocalPrintServiceConfig {
   // 網路設定
   port: number;
@@ -865,48 +877,92 @@ export class LocalPrintService {
     // 沒有雲端憑證就只當本機列印伺服器 —— 這是合法的設定，不是錯誤。
     const cloudKey = this.config.cloudKey;
     if (!cloudKey) return;
+    // The guard spans the whole drain, not a single claim: a heartbeat that
+    // fires while we are still working through the backlog would otherwise
+    // start a second drain and have both claim the same receipts.
     if (this.cloudPollInFlight) return;
     this.cloudPollInFlight = true;
     try {
-      // Neither the register nor the restaurant is sent: the cloud derives
-      // both from the credential. An agent that could name its own tenant
-      // could claim another shop's receipts.
-      //
-      // Printer counts ride along on the poll instead of a second heartbeat.
-      // Without them the cloud only knows the agent is alive, which reads the
-      // same whether the printer is working or unplugged.
-      const url = new URL("print/jobs", `${this.config.cloudEndpoint}/`);
-      const devices = await this.printerCounts();
-      if (devices) {
-        url.searchParams.set("printersTotal", String(devices.total));
-        url.searchParams.set("printersOnline", String(devices.online));
+      // The cloud hands back at most one receipt per call, so claiming once
+      // per heartbeat printed a dinner-rush backlog at one receipt a minute.
+      // Keep claiming until the queue is empty instead.
+      let claimed = 0;
+      while (claimed < MAX_CLOUD_JOBS_PER_DRAIN) {
+        // A throw propagates out of the drain on purpose: an unreachable or
+        // erroring cloud must cost one call per heartbeat, not a tight loop
+        // of MAX_CLOUD_JOBS_PER_DRAIN of them.
+        const outcome = await this.claimAndPrintOneJob(cloudKey);
+        if (outcome !== "printed") return;
+        claimed += 1;
       }
-
-      const response = await fetch(url, {
-        headers: { "X-Print-Agent-Key": cloudKey },
-      });
-      if (!response.ok)
-        throw new Error(`Cloud job poll failed (${response.status})`);
-      const payload = (await response.json()) as {
-        data: { receiptId: string; request: PrintRequest } | null;
-      };
-      if (!payload.data) return;
-
-      const request = payload.data.request;
-      request.data.order.createdAt = new Date(request.data.order.createdAt);
-      const result = await this.printAgentService.createPrintJob(request);
-      const acknowledgement =
-        result.success && result.jobId
-          ? await this.waitForPrintCompletion(result.jobId)
-          : { status: "failed" as const, response: result.error?.message };
-      await this.acknowledgeCloudJob(
-        cloudKey,
-        payload.data.receiptId,
-        acknowledgement,
+      console.warn(
+        `⚠️  Cloud job drain stopped at its ${MAX_CLOUD_JOBS_PER_DRAIN}-receipt bound; the rest wait for the next heartbeat`,
       );
     } finally {
       this.cloudPollInFlight = false;
     }
+  }
+
+  /**
+   * Claims and prints at most one receipt.
+   *
+   * "empty" and "failed" both end the drain. Stopping on a failure matters
+   * now that the cloud re-queues a failed receipt instead of settling it: the
+   * drain would otherwise re-claim that same receipt immediately, fail again,
+   * and burn its whole delivery budget in seconds — and then do the same to
+   * every other receipt in the queue. Whatever just broke the printer is
+   * almost certainly still broken for the next receipt, so the useful move is
+   * to leave the backlog alone and try again on the next heartbeat. That is
+   * also what makes the cloud's "no backoff, paced by the poll cadence"
+   * assumption true.
+   *
+   * The cost is a receipt the printer chokes on specifically: it stalls the
+   * queue behind it for as many heartbeats as its budget allows, then settles
+   * to failed and the queue moves on. A real outage is far more common than a
+   * poison receipt, and this recovers from it without human help.
+   */
+  private async claimAndPrintOneJob(
+    cloudKey: string,
+  ): Promise<"empty" | "printed" | "failed"> {
+    // Neither the register nor the restaurant is sent: the cloud derives
+    // both from the credential. An agent that could name its own tenant
+    // could claim another shop's receipts.
+    //
+    // Printer counts ride along on the poll instead of a second heartbeat.
+    // Without them the cloud only knows the agent is alive, which reads the
+    // same whether the printer is working or unplugged. They are re-read on
+    // every claim so a printer that dies mid-drain is reported while the
+    // drain is still running.
+    const url = new URL("print/jobs", `${this.config.cloudEndpoint}/`);
+    const devices = await this.printerCounts();
+    if (devices) {
+      url.searchParams.set("printersTotal", String(devices.total));
+      url.searchParams.set("printersOnline", String(devices.online));
+    }
+
+    const response = await fetch(url, {
+      headers: { "X-Print-Agent-Key": cloudKey },
+    });
+    if (!response.ok)
+      throw new Error(`Cloud job poll failed (${response.status})`);
+    const payload = (await response.json()) as {
+      data: { receiptId: string; request: PrintRequest } | null;
+    };
+    if (!payload.data) return "empty";
+
+    const request = payload.data.request;
+    request.data.order.createdAt = new Date(request.data.order.createdAt);
+    const result = await this.printAgentService.createPrintJob(request);
+    const acknowledgement =
+      result.success && result.jobId
+        ? await this.waitForPrintCompletion(result.jobId)
+        : { status: "failed" as const, response: result.error?.message };
+    await this.acknowledgeCloudJob(
+      cloudKey,
+      payload.data.receiptId,
+      acknowledgement,
+    );
+    return acknowledgement.status === "printed" ? "printed" : "failed";
   }
 
   /**

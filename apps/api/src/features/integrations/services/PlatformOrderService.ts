@@ -13,6 +13,7 @@ import type {
 import type { Env } from "../../../types/env";
 import { getAdapter } from "../adapters/PlatformAdapter";
 import { PlatformIntegrationService } from "./PlatformIntegrationService";
+import { ReceiptService } from "../../pos/services/ReceiptService";
 import { toRequiredCents } from "../../../shared/utils/money";
 
 export class PlatformOrderService {
@@ -137,6 +138,8 @@ export class PlatformOrderService {
           .update(orders)
           .set({ status: "confirmed", updatedAt: new Date() })
           .where(eq(orders.id, orderId));
+
+        await this.emitKitchenTicket(orderId);
       } catch (error) {
         console.error(
           `Failed to auto-accept order ${parsedOrder.platformOrderId}:`,
@@ -146,6 +149,37 @@ export class PlatformOrderService {
     }
 
     return orderId;
+  }
+
+  /**
+   * Auto-accept writes the orders row straight to "confirmed" instead of going
+   * through OrdersService.updateOrderStatus, so the kitchen ticket has to be
+   * queued here too — otherwise a delivery-platform order never reaches the
+   * shop's print agent.
+   *
+   * Failures are swallowed on purpose: the status is already committed, and a
+   * webhook that fails gets redelivered by the platform, which would duplicate
+   * the whole order. A ticket that never printed is observable (the receipt row
+   * stays pending); a redelivered order is not. Duplicate calls are harmless —
+   * createKitchenTicket refuses to open a second ticket for the same order.
+   */
+  private async emitKitchenTicket(orderId: string): Promise<void> {
+    try {
+      const result = await new ReceiptService(this.env.DB).createKitchenTicket(
+        orderId,
+      );
+      if (!result.success) {
+        console.error(
+          `Failed to queue kitchen ticket for order ${orderId}:`,
+          result.error,
+        );
+      }
+    } catch (error) {
+      console.error(
+        `Failed to queue kitchen ticket for order ${orderId}:`,
+        error,
+      );
+    }
   }
 
   async syncStatusToPlatform(

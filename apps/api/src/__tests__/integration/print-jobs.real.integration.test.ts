@@ -310,9 +310,38 @@ describe("cloud print dispatch — real D1", () => {
     expect((await receiptRow("receipt-a"))?.printStatus).toBe("printing");
   });
 
-  it("records a failed print without stamping a printed time", async () => {
+  it("re-queues a failed print that still has attempts left", async () => {
     await seedReceipt("receipt-a", REGISTER_A, ORDER_A);
     await poll(KEY_A);
+
+    await ack(KEY_A, "receipt-a", {
+      status: "failed",
+      printerName: "USB-1",
+      response: "Paper out",
+    });
+
+    const row = await receiptRow("receipt-a");
+    // A jam is transient. Leaving the row `failed` here is what made a receipt
+    // silently never print until someone noticed and reprinted it by hand.
+    expect(row?.printStatus).toBe("pending");
+    expect(row?.printedAt).toBeNull();
+    // The last error stays readable while the retry is queued.
+    expect(row?.printerResponse).toBe("Paper out");
+    expect(row?.printerName).toBe("USB-1");
+    expect(row?.claimedAt).toBeNull();
+
+    // The very next poll picks it up again — the retry is paced by the poll
+    // cadence, there is no backoff.
+    const body = await claimedJob(await poll(KEY_A));
+    expect(body.data?.receiptId).toBe("receipt-a");
+    expect((await receiptRow("receipt-a"))?.printAttempts).toBe(2);
+  });
+
+  it("keeps a failed print failed once the attempt budget is spent", async () => {
+    // One short of the budget, so the poll below lands on exactly the cap.
+    await seedReceipt("receipt-a", REGISTER_A, ORDER_A, { printAttempts: 4 });
+    await poll(KEY_A);
+    expect((await receiptRow("receipt-a"))?.printAttempts).toBe(5);
 
     await ack(KEY_A, "receipt-a", {
       status: "failed",
@@ -324,6 +353,32 @@ describe("cloud print dispatch — real D1", () => {
     expect(row?.printStatus).toBe("failed");
     expect(row?.printedAt).toBeNull();
     expect(row?.printerResponse).toBe("Paper out");
+
+    // Terminal: no later poll reclaims it.
+    expect((await claimedJob(await poll(KEY_A))).data).toBeNull();
+    expect((await receiptRow("receipt-a"))?.printAttempts).toBe(5);
+  });
+
+  it("bounds the retry loop by the delivery budget", async () => {
+    await seedReceipt("receipt-a", REGISTER_A, ORDER_A);
+
+    // The same claim/fail cycle the agent would drive against a printer that
+    // never recovers. It has to stop on its own.
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      expect((await claimedJob(await poll(KEY_A))).data?.receiptId).toBe(
+        "receipt-a",
+      );
+      await ack(KEY_A, "receipt-a", {
+        status: "failed",
+        response: `jam ${attempt}`,
+      });
+    }
+
+    const row = await receiptRow("receipt-a");
+    expect(row?.printStatus).toBe("failed");
+    expect(row?.printAttempts).toBe(5);
+    expect(row?.printerResponse).toBe("jam 5");
+    expect((await claimedJob(await poll(KEY_A))).data).toBeNull();
   });
 
   it("keeps a till agent away from register-less kitchen tickets", async () => {
