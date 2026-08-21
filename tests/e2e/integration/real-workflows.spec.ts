@@ -1062,6 +1062,14 @@ async function deleteManagementTenant(tenantId: string, token: string) {
 }
 
 async function confirmOrder(orderId: number, token: string) {
+  await updateOrderStatus(orderId, token, "confirmed");
+}
+
+async function updateOrderStatus(
+  orderId: number,
+  token: string,
+  status: "confirmed" | "preparing" | "ready",
+) {
   const response = await fetch(`${API_URL}/api/v1/orders/${orderId}/status`, {
     method: "PUT",
     headers: {
@@ -1069,10 +1077,10 @@ async function confirmOrder(orderId: number, token: string) {
       "Content-Type": "application/json",
       ...csrfHeaders(),
     },
-    body: JSON.stringify({ status: "confirmed" }),
+    body: JSON.stringify({ status }),
   });
 
-  expect(response.ok, `confirm order status ${response.status}`).toBe(true);
+  expect(response.ok, `${status} order status ${response.status}`).toBe(true);
 }
 
 async function fetchOrder(orderId: number, token: string): Promise<OrderBody> {
@@ -1823,6 +1831,121 @@ test.describe("Real system workflows", () => {
           return body.data?.status;
         })
         .toBe("confirmed");
+      await expect(page.locator("vite-error-overlay")).toHaveCount(0);
+    } finally {
+      await cancelOrderAsOwner(orderId!, loginData.token!);
+      await fetch(`${API_URL}/api/v1/guest-orders/${orderId}/cancel`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${guestToken}` },
+      }).catch(() => {
+        /* best-effort cleanup */
+      });
+    }
+  });
+
+  test("service delivery marks a ready order delivered without sending an unsupported status", async ({
+    page,
+  }) => {
+    test.setTimeout(180_000);
+
+    skipWhen(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
+
+    const loginData = await getLoginData();
+    skipWhen(
+      !loginData?.token || !loginData.user,
+      "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
+    );
+
+    const fixtureIds = await resolveFixtureIds();
+    skipWhen(
+      !fixtureIds.restaurantId ||
+        fixtureIds.menuItemId === undefined ||
+        !fixtureIds.tableId,
+      "WORKFLOW_RESTAURANT_ID, WORKFLOW_MENU_ITEM_ID, and WORKFLOW_TABLE_ID are required for service workflow",
+    );
+
+    const createResponse = await fetch(`${API_URL}/api/v1/guest-orders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        restaurantId: fixtureIds.restaurantId,
+        orderType: "table",
+        tableId: fixtureIds.tableId,
+        items: [{ menuItemId: fixtureIds.menuItemId, quantity: 1 }],
+        guestName: "workflow-service",
+        phoneLastDigits: randomPhoneLastDigits(),
+      }),
+    });
+    expect(
+      createResponse.ok,
+      `service workflow order create status ${createResponse.status}`,
+    ).toBe(true);
+
+    const createBody = (await createResponse.json()) as GuestOrderResponse;
+    const orderId = createBody.data?.order?.id;
+    const orderNumber = createBody.data?.order?.orderNumber;
+    const guestToken = createBody.data?.guestToken;
+    expect(typeof orderId, "created service order id").toBe("number");
+    expect(typeof orderNumber, "created service order number").toBe("string");
+    expect(typeof guestToken, "service guest token").toBe("string");
+
+    await confirmOrder(orderId!, loginData.token!);
+    await updateOrderStatus(orderId!, loginData.token!, "preparing");
+    await updateOrderStatus(orderId!, loginData.token!, "ready");
+    const readyOrder = await fetchOrder(orderId!, loginData.token!);
+    expect(readyOrder.data?.status).toBe("ready");
+
+    await installAdminSession(page, loginData);
+    const statusRequests: string[] = [];
+    page.on("request", (request) => {
+      if (
+        request.method() === "PUT" &&
+        request.url().includes(`/api/v1/orders/${orderId}/status`)
+      ) {
+        statusRequests.push(request.postData() ?? "");
+      }
+    });
+
+    try {
+      const readyListResponse = page.waitForResponse((response) => {
+        const url = new URL(response.url());
+        return (
+          url.pathname.endsWith("/api/v1/orders") &&
+          url.searchParams.get("status") === "ready" &&
+          response.ok()
+        );
+      });
+      await page.goto(`${ADMIN_URL}/service`, {
+        timeout: 60_000,
+        waitUntil: "domcontentloaded",
+      });
+      await readyListResponse;
+
+      await expect(page.getByText(orderNumber!, { exact: true })).toBeVisible();
+      await page.getByRole("button", { name: "Start Delivery" }).click();
+      expect(statusRequests).toHaveLength(0);
+
+      const deliveredResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes(`/api/v1/orders/${orderId}/status`) &&
+          response.request().method() === "PUT",
+      );
+      await page.getByRole("button", { name: "Confirm Delivered" }).click();
+      const deliveredResponse = await deliveredResponsePromise;
+      expect(
+        deliveredResponse.ok(),
+        `service delivery status update ${deliveredResponse.status()}`,
+      ).toBe(true);
+      expect(statusRequests).toEqual([
+        expect.stringContaining('"status":"delivered"'),
+      ]);
+
+      await expect
+        .poll(
+          async () =>
+            (await fetchOrder(orderId!, loginData.token!)).data?.status,
+        )
+        .toBe("delivered");
       await expect(page.locator("vite-error-overlay")).toHaveCount(0);
     } finally {
       await cancelOrderAsOwner(orderId!, loginData.token!);
