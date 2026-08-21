@@ -125,8 +125,10 @@ describe("market discovery schema", () => {
         "payment_summary",
         "created_at_ms",
         "updated_at_ms",
+        "customer_id",
       ]),
     );
+    expect(columnSqlType(marketCheckoutSessions, "customer_id")).toBe("text");
     expect(columnSqlType(marketCheckoutSessions, "id")).toBe("text");
     expect(columnSqlType(marketCheckoutSessions, "platform_fee_rate_bps")).toBe(
       "integer",

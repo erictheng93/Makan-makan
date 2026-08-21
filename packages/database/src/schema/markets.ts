@@ -8,6 +8,7 @@ import {
 } from "drizzle-orm/sqlite-core";
 import { relations, sql } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
+import { customers } from "./customers";
 import { restaurants } from "./restaurants";
 
 export type MarketGeoJsonBoundary =
@@ -181,12 +182,22 @@ export const marketCheckoutSessions = sqliteTable(
     > | null>(),
     createdAt: integer("created_at_ms", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at_ms", { mode: "timestamp_ms" }).notNull(),
+    // Last, to match the physical column order: 0002 adds it with ALTER TABLE
+    // ADD COLUMN, which always appends. Declaring it mid-table would leave a
+    // regenerated baseline and a migrated database disagreeing on order for no
+    // reason.
+    customerId: text("customer_id").references(() => customers.id, {
+      onDelete: "set null",
+    }),
   },
   (table) => ({
     marketCreatedIdx: index("market_checkout_sessions_market_created_idx").on(
       table.marketId,
       table.createdAt,
     ),
+    customerCreatedIdx: index(
+      "market_checkout_sessions_customer_created_idx",
+    ).on(table.customerId, table.createdAt),
     paymentStatusIdx: index("market_checkout_sessions_payment_status_idx").on(
       table.paymentStatus,
     ),
