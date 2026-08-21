@@ -41,6 +41,14 @@ export interface GroupOrderFinalizeFailure {
   splitError: string;
   /** ISO 8601. */
   failedAt: string;
+  /** Diagnostics from later recovery attempts; the original failure stays intact. */
+  recoveryErrorDetails?: Array<{
+    code: string;
+    splitError: string;
+    expectedTotalCents?: number;
+    roundedTotalCents?: number;
+    attemptedAt: string;
+  }>;
 }
 
 export const GROUP_ORDER_FEE_MODES = ["proportional", "equal", "host"] as const;

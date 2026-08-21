@@ -184,6 +184,7 @@ interface GroupOrderListItem {
   id: string;
   shareCode: string;
   masterOrderId: string | null;
+  finalizeFailure?: GroupOrderFinalizeFailure;
   tableNumber: string | null;
   status: GroupOrderStatus;
   hostName: string;
@@ -319,12 +320,13 @@ export class GroupOrdersService implements IGroupOrderService {
       return rows.map((row) => {
         const memberRows = membersByOrder.get(row.id) || [];
         const cartItemRows = cartItemsByOrder.get(row.id) || [];
-        const settings = row.settings;
+        const settings = (row.settings || {}) as GroupOrderSettings;
         const totalAmount = moneyAmount(row.totalAmountCents);
         return {
           id: row.id,
           shareCode: row.shareCode,
-          masterOrderId: null,
+          masterOrderId: row.masterOrderId,
+          finalizeFailure: settings.finalizeFailure,
           tableNumber:
             settings?.tableNumber || (row.tableId ? String(row.tableId) : null),
           status: this.narrowStatus(row.status, row.id),
@@ -1598,6 +1600,111 @@ export class GroupOrdersService implements IGroupOrderService {
     } finally {
       this.performance.endTimer(timer);
     }
+  }
+
+  /**
+   * Re-run a split that failed after the real order was already created.
+   * The order totals are immutable at this point, so recovery only reuses the
+   * recorded amounts and moves the group into the normal settlement state.
+   */
+  async recoverFinalization(groupOrderId: string): Promise<{
+    success: boolean;
+    data?: { masterOrderId: string; status: "checkout" };
+    error?: string;
+  }> {
+    const groupOrderRows = await this.db
+      .select()
+      .from(groupOrders)
+      .where(eq(groupOrders.id, groupOrderId));
+    const groupOrder = groupOrderRows[0];
+
+    if (!groupOrder) {
+      return { success: false, error: "Group order not found" };
+    }
+    if (
+      groupOrder.status !== "finalizing_failed" ||
+      !groupOrder.masterOrderId
+    ) {
+      return {
+        success: false,
+        error: "Group order is not awaiting finalization recovery",
+      };
+    }
+
+    const settings = (groupOrder.settings || {}) as GroupOrderSettings;
+    const failure = settings.finalizeFailure;
+    if (!failure) {
+      return {
+        success: false,
+        error: "Missing finalization failure diagnostics",
+      };
+    }
+
+    const splitResult = await this.splitBill(groupOrderId, {
+      splitType: this.splitTypeFromStoredValue(groupOrder.splitType),
+      sharedServiceChargeCents: failure.serviceChargeCents,
+      sharedTaxCents: failure.taxAmountCents,
+      orderTotalCents: failure.orderTotalCents,
+    });
+
+    if (!splitResult.success) {
+      const attemptedAt = new Date().toISOString();
+      const recoveryErrorDetails = [
+        ...(failure.recoveryErrorDetails ?? []),
+        {
+          code: splitResult.errorDetails?.code ?? "SPLIT_BILL_FAILED",
+          splitError: splitResult.error ?? "Failed to split bill",
+          expectedTotalCents: splitResult.errorDetails?.expectedTotalCents,
+          roundedTotalCents: splitResult.errorDetails?.roundedTotalCents,
+          attemptedAt,
+        },
+      ];
+
+      await this.db
+        .update(groupOrders)
+        .set({
+          status: "finalizing_failed",
+          settings: {
+            ...settings,
+            finalizeFailure: { ...failure, recoveryErrorDetails },
+          },
+          updatedAt: new Date(),
+        })
+        .where(eq(groupOrders.id, groupOrderId));
+
+      return {
+        success: false,
+        error: splitResult.error ?? "Failed to split bill",
+      };
+    }
+
+    const { finalizeFailure: _finalizeFailure, ...recoveredSettings } =
+      settings;
+    const now = new Date();
+    await this.db
+      .update(groupOrders)
+      .set({
+        status: "checkout",
+        settings: recoveredSettings,
+        lockedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(groupOrders.id, groupOrderId));
+
+    await this.logActivity(
+      groupOrderId,
+      null,
+      "bill_split",
+      "Finalization recovery split the bill",
+      { masterOrderId: groupOrder.masterOrderId },
+    );
+    await this.cache.delete(`group_order:${groupOrderId}`);
+    await this.cache.delete(`group_order_summary:${groupOrderId}`);
+
+    return {
+      success: true,
+      data: { masterOrderId: groupOrder.masterOrderId, status: "checkout" },
+    };
   }
 
   /**
@@ -3078,6 +3185,7 @@ export class GroupOrdersService implements IGroupOrderService {
       totalAmount: moneyAmount(data.totalAmountCents),
       finalizedAt: lockedAt,
       paidAt: completedAt,
+      finalizeFailure: settings.finalizeFailure,
       createdAt,
       updatedAt,
     };

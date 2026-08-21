@@ -125,8 +125,14 @@
                   <option value="active">
                     {{ t("groupOrders.status.active") }}
                   </option>
-                  <option value="ready_to_pay">
-                    {{ t("groupOrders.status.readyToPay") }}
+                  <option value="finalizing">
+                    {{ t("groupOrders.status.finalizing") }}
+                  </option>
+                  <option value="finalizing_failed">
+                    {{ t("groupOrders.status.finalizingFailed") }}
+                  </option>
+                  <option value="checkout">
+                    {{ t("groupOrders.status.checkout") }}
                   </option>
                   <option value="completed">
                     {{ t("groupOrders.status.completed") }}
@@ -387,6 +393,64 @@
                     <span>{{ selectedGroupOrder.hostName }}</span>
                   </div>
                 </div>
+              </div>
+
+              <!-- 成員列表 -->
+              <div
+                v-if="selectedGroupOrder.finalizeFailure"
+                class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm"
+              >
+                <h5 class="mb-2 font-medium text-red-900">
+                  {{ t("groupOrders.finalizeFailure.title") }}
+                </h5>
+                <dl class="space-y-1 text-red-800">
+                  <div class="flex justify-between gap-4">
+                    <dt>{{ t("groupOrders.finalizeFailure.code") }}</dt>
+                    <dd class="font-mono">
+                      {{ selectedGroupOrder.finalizeFailure.code }}
+                    </dd>
+                  </div>
+                  <div class="flex justify-between gap-4">
+                    <dt>{{ t("groupOrders.finalizeFailure.failedAt") }}</dt>
+                    <dd>
+                      {{
+                        formatDateTime(
+                          selectedGroupOrder.finalizeFailure.failedAt,
+                        )
+                      }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{{ t("groupOrders.finalizeFailure.error") }}</dt>
+                    <dd>{{ selectedGroupOrder.finalizeFailure.splitError }}</dd>
+                  </div>
+                  <div
+                    v-if="
+                      selectedGroupOrder.finalizeFailure.expectedTotalCents !==
+                        undefined &&
+                      selectedGroupOrder.finalizeFailure.roundedTotalCents !==
+                        undefined
+                    "
+                    class="flex justify-between gap-4"
+                  >
+                    <dt>
+                      {{ t("groupOrders.finalizeFailure.totalMismatch") }}
+                    </dt>
+                    <dd>
+                      {{
+                        formatCents(
+                          selectedGroupOrder.finalizeFailure.expectedTotalCents,
+                        )
+                      }}
+                      /
+                      {{
+                        formatCents(
+                          selectedGroupOrder.finalizeFailure.roundedTotalCents,
+                        )
+                      }}
+                    </dd>
+                  </div>
+                </dl>
               </div>
 
               <!-- 成員列表 -->
@@ -928,11 +992,14 @@ const canCreateGroupOrder = computed(() => {
 // formatTime treats a bare string as an "HH:mm" time-of-day, so ISO datetimes
 // must be converted to a Date first.
 const formatClockTime = (dateTime: string) => formatTime(new Date(dateTime));
+const formatCents = (amountCents: number) => formatPrice(amountCents / 100);
 
 const getStatusClass = (status: string) => {
   const classes: Record<string, string> = {
     active: "bg-blue-100 text-blue-800",
-    ready_to_pay: "bg-green-100 text-green-800",
+    finalizing: "bg-yellow-100 text-yellow-800",
+    finalizing_failed: "bg-red-100 text-red-800",
+    checkout: "bg-green-100 text-green-800",
     completed: "bg-gray-100 text-gray-800",
     cancelled: "bg-red-100 text-red-800",
   };
@@ -942,7 +1009,9 @@ const getStatusClass = (status: string) => {
 const getStatusText = (status: string) => {
   const texts: Record<string, string> = {
     active: t("groupOrders.status.active"),
-    ready_to_pay: t("groupOrders.status.readyToPay"),
+    finalizing: t("groupOrders.status.finalizing"),
+    finalizing_failed: t("groupOrders.status.finalizingFailed"),
+    checkout: t("groupOrders.status.checkout"),
     completed: t("groupOrders.status.completed"),
     cancelled: t("groupOrders.status.cancelled"),
   };

@@ -615,6 +615,41 @@ app.post(
 );
 
 /**
+ * Recover a split that failed after the real order was created.
+ * POST /api/v1/orders/group/{groupOrderId}/finalize/recover
+ */
+app.post(
+  "/:groupOrderId/finalize/recover",
+  authMiddleware,
+  requireRole([0, 1]),
+  moduleGate("online_ordering"),
+  validateParams(groupOrderSchemas.groupOrderIdParam),
+  async (c) => {
+    const { groupOrderId } = c.get("validatedParams");
+    const user = c.get("user");
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    const summary = await groupOrderService.getGroupOrder(groupOrderId);
+
+    if (!summary) {
+      throw notFound("Group order not found");
+    }
+    if (
+      user.role === 1 &&
+      String(summary.groupOrder.restaurantId) !== String(user.restaurantId)
+    ) {
+      throw forbidden("Access denied: can only recover own restaurant orders");
+    }
+
+    const result = await groupOrderService.recoverFinalization(groupOrderId);
+    if (!result.success) {
+      throw badRequest(result.error ?? "Failed to recover finalization");
+    }
+
+    return c.json({ success: true, data: result.data });
+  },
+);
+
+/**
  * Get group order statistics
  * GET /api/v1/orders/group/statistics
  * NOTE: This route MUST be defined BEFORE /:groupOrderId to avoid matching 'statistics' as a groupOrderId

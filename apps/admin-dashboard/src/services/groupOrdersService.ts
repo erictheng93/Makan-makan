@@ -16,7 +16,20 @@ export interface GroupOrder {
   shareCode: string;
   masterOrderId: string | null;
   tableNumber: string | null;
-  status: "active" | "ready_to_pay" | "completed" | "cancelled";
+  status:
+    | "active"
+    | "finalizing"
+    | "finalizing_failed"
+    | "checkout"
+    | "completed"
+    | "cancelled";
+  finalizeFailure?: {
+    code: string;
+    splitError: string;
+    failedAt: string;
+    expectedTotalCents?: number;
+    roundedTotalCents?: number;
+  };
   hostName: string;
   memberCount: number;
   totalAmount: number;

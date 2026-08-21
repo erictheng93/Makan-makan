@@ -9,6 +9,7 @@ import type {
   CartItemCustomizations,
   GroupActivityMetadata,
   GroupOrderFeeMode,
+  GroupOrderFinalizeFailure,
   GroupOrderStatus,
 } from "@makanmasak/shared-types";
 
@@ -34,6 +35,7 @@ export interface GroupOrder extends Omit<BaseEntity, "id"> {
   totalAmount: number;
   finalizedAt?: Date;
   paidAt?: Date;
+  finalizeFailure?: GroupOrderFinalizeFailure;
 }
 
 export interface GroupOrderMember extends Omit<BaseEntity, "id"> {

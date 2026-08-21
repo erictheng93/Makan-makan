@@ -29,6 +29,7 @@ const cleanupExpiredGroups = vi.hoisted(() => vi.fn());
 const isHostSession = vi.hoisted(() => vi.fn());
 const isMemberSession = vi.hoisted(() => vi.fn());
 const finalizeGroupOrder = vi.hoisted(() => vi.fn());
+const recoverFinalization = vi.hoisted(() => vi.fn());
 const meterEmit = vi.hoisted(() => vi.fn());
 const broadcastEvent = vi.hoisted(() => vi.fn());
 const generateEventId = vi.hoisted(() => vi.fn());
@@ -42,7 +43,10 @@ vi.mock("../../../middleware/auth", () => ({
     c.set("user", currentUser.value);
     await next();
   }),
-  requireRole: vi.fn(() => async (_c: unknown, next: () => Promise<void>) => {
+  requireRole: vi.fn((allowedRoles: number[]) => async (c, next) => {
+    if (!allowedRoles.includes(c.get("user").role)) {
+      return c.json({ success: false }, 403);
+    }
     await next();
   }),
 }));
@@ -83,6 +87,7 @@ vi.mock("../services/GroupOrdersService", () => ({
     isHostSession = isHostSession;
     isMemberSession = isMemberSession;
     finalizeGroupOrder = finalizeGroupOrder;
+    recoverFinalization = recoverFinalization;
   },
 }));
 
@@ -165,6 +170,7 @@ describe("group orders routes", () => {
     isHostSession.mockReset();
     isMemberSession.mockReset();
     finalizeGroupOrder.mockReset();
+    recoverFinalization.mockReset();
     meterEmit.mockReset();
     meterEmit.mockResolvedValue(undefined);
     broadcastEvent.mockReset();
@@ -485,6 +491,39 @@ describe("group orders routes", () => {
 
     expect(forbiddenResponse.status).toBe(500);
     expect(finalizeGroupOrder).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets an admin recover a failed finalization but blocks an unauthorized role", async () => {
+    getGroupOrder.mockResolvedValue({
+      groupOrder: { id: groupOrderId, restaurantId: "restaurant-1" },
+    });
+    recoverFinalization.mockResolvedValue({
+      success: true,
+      data: { masterOrderId: "order-1", status: "checkout" },
+    });
+    const env = createEnv();
+
+    currentUser.value = { ...currentUser.value, role: 0 };
+    const recoveredResponse = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/finalize/recover`, {
+        method: "POST",
+      }),
+      env as never,
+    );
+
+    expect(recoveredResponse.status).toBe(200);
+    expect(recoverFinalization).toHaveBeenCalledWith(groupOrderId);
+
+    currentUser.value = { ...currentUser.value, role: 2 };
+    const forbiddenResponse = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/finalize/recover`, {
+        method: "POST",
+      }),
+      env as never,
+    );
+
+    expect(forbiddenResponse.status).toBe(403);
+    expect(recoverFinalization).toHaveBeenCalledTimes(1);
   });
 
   it("runs cart, split, payment, and leave workflows", async () => {

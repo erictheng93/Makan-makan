@@ -2999,6 +2999,104 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     });
   });
 
+  describe("recoverFinalization", () => {
+    const failure = {
+      code: "SPLIT_TOTAL_MISMATCH",
+      masterOrderId: "order-1",
+      orderTotalCents: 3900,
+      serviceChargeCents: 600,
+      taxAmountCents: 300,
+      expectedTotalCents: 3900,
+      roundedTotalCents: 3000,
+      splitError: "Split total does not match order total",
+      failedAt: "2026-06-07T01:00:00.000Z",
+    };
+
+    it("retries a failed finalization with its stored totals and enters checkout", async () => {
+      const service = createService();
+      service.splitBill = vi.fn(async () => ({ success: true, data: [] }));
+      const db = createDb({
+        groupOrders: [
+          [
+            {
+              ...baseGroupOrder,
+              status: "finalizing_failed",
+              masterOrderId: "order-1",
+              splitType: "individual",
+              settings: { finalizeFailure: failure },
+            },
+          ],
+        ],
+      });
+      useDb(service, db);
+
+      await expect(service.recoverFinalization("group-1")).resolves.toEqual({
+        success: true,
+        data: { masterOrderId: "order-1", status: "checkout" },
+      });
+      expect(service.splitBill).toHaveBeenCalledWith("group-1", {
+        splitType: "individual",
+        sharedServiceChargeCents: 600,
+        sharedTaxCents: 300,
+        orderTotalCents: 3900,
+      });
+      expect(db.updates.map((update) => update.payload)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            status: "checkout",
+            settings: {},
+          }),
+        ]),
+      );
+    });
+
+    it("preserves the original failure timestamp and appends retry diagnostics when recovery fails", async () => {
+      const service = createService();
+      service.splitBill = vi.fn(async () => ({
+        success: false,
+        error: "No active members found",
+        errorDetails: { code: "NO_ACTIVE_MEMBERS" },
+      }));
+      const db = createDb({
+        groupOrders: [
+          [
+            {
+              ...baseGroupOrder,
+              status: "finalizing_failed",
+              masterOrderId: "order-1",
+              settings: { finalizeFailure: failure },
+            },
+          ],
+        ],
+      });
+      useDb(service, db);
+
+      await expect(service.recoverFinalization("group-1")).resolves.toEqual({
+        success: false,
+        error: "No active members found",
+      });
+
+      expect(db.updates.map((update) => update.payload)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            status: "finalizing_failed",
+            settings: expect.objectContaining({
+              finalizeFailure: expect.objectContaining({
+                failedAt: "2026-06-07T01:00:00.000Z",
+                recoveryErrorDetails: [
+                  expect.objectContaining({
+                    code: "NO_ACTIVE_MEMBERS",
+                    splitError: "No active members found",
+                  }),
+                ],
+              }),
+            }),
+          }),
+        ]),
+      );
+    });
+  });
+
   describe("processPayment — Plan A manual settlement", () => {
     it("marks a member's split bill paid with paymentMethod cash and no real gateway involved", async () => {
       const service = createService();
