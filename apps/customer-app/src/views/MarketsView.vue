@@ -286,6 +286,8 @@ import {
   listRecentMarketCheckouts,
   type StoredMarketCheckout,
 } from "@/utils/marketCheckouts";
+import { hasCustomerAccessToken } from "@/services/customerAccessToken";
+import { orderApi } from "@/services/orderApi";
 import { isMarketType, MARKET_TYPE_OPTIONS } from "@/utils/marketTypes";
 import { useFeatureAvailability } from "@/composables/useFeatureAvailability";
 import { useI18n } from "@/composables/useI18n";
@@ -503,11 +505,38 @@ function openCheckout(checkout: StoredMarketCheckout) {
 onMounted(() => {
   favoriteMarkets.value = listFavoriteMarkets().map(storedMarketToListItem);
   recentMarkets.value = listRecentMarkets().map(storedMarketToListItem);
-  recentCheckouts.value = listRecentMarketCheckouts();
+  void loadRecentCheckouts();
   loadAreas();
   loadNearbyFromQuery();
   reloadList();
 });
+
+async function loadRecentCheckouts() {
+  if (!hasCustomerAccessToken()) {
+    recentCheckouts.value = listRecentMarketCheckouts();
+    return;
+  }
+
+  try {
+    const checkouts = await orderApi.listMyMarketCheckouts();
+    recentCheckouts.value = checkouts.map((checkout) => ({
+      id: checkout.id,
+      marketSlug: checkout.market.slug,
+      marketName: checkout.market.name,
+      childOrderCount: checkout.childOrderCount,
+      totalAmount: checkout.subtotal,
+      paymentStatus: checkout.paymentStatus,
+      createdAt: checkout.createdAt,
+      updatedAt: Date.parse(checkout.createdAt),
+    }));
+  } catch (error) {
+    // The account list is the authoritative one once signed in; falling back to
+    // the device list keeps the page useful when the request fails, but it
+    // must stay visible in the console rather than looking like a clean load.
+    console.error("Failed to load customer market checkouts:", error);
+    recentCheckouts.value = listRecentMarketCheckouts();
+  }
+}
 
 function marketCheckoutPaymentLabel(
   status: StoredMarketCheckout["paymentStatus"],

@@ -4,6 +4,7 @@ import { orderApi } from "@/services/orderApi";
 
 vi.mock("@/services/api", () => ({
   apiClient: {
+    get: vi.fn(),
     post: vi.fn(),
     delete: vi.fn(),
   },
@@ -75,6 +76,29 @@ describe("orderApi market checkout vouchers", () => {
       "/market-checkouts/checkout-1/pay",
       expect.objectContaining({ method: "market_online" }),
       { headers: { "X-Guest-Token": "gt_holder" } },
+    );
+  });
+
+  it("returns the market checkout history as the client unwrapped it", async () => {
+    // apiClient already strips the `{ success, data }` envelope; reading a
+    // further `.data` off the result yields undefined and silently empties the
+    // account history.
+    vi.mocked(apiClient.get).mockResolvedValueOnce([
+      {
+        id: "checkout-1",
+        market: { slug: "fengjia", name: "\u9022\u7532\u591c\u5e02" },
+        paymentStatus: "paid",
+        childOrderCount: 2,
+        subtotal: 24000,
+        createdAt: "2026-06-01T10:00:00.000Z",
+      },
+    ]);
+
+    await expect(orderApi.listMyMarketCheckouts()).resolves.toMatchObject([
+      { id: "checkout-1", childOrderCount: 2 },
+    ]);
+    expect(apiClient.get).toHaveBeenCalledWith(
+      "/customers/me/market-checkouts",
     );
   });
 });
