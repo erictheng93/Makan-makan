@@ -99,6 +99,12 @@ function cartItemTotalAmount(item: {
   return moneyAmount(item.totalPriceCents);
 }
 
+// A cart item is inserted under this status and published by a conditional
+// UPDATE. Every reader — including a finalizer's snapshot — selects only
+// "active" rows, so a staged row is invisible until that write proves the
+// group still accepts changes.
+const STAGED_CART_ITEM_STATUS = "staging";
+
 function groupOrderIsActive(groupOrderId: string) {
   return sql`(
     SELECT ${groupOrders.status}
@@ -900,7 +906,7 @@ export class GroupOrdersService implements IGroupOrderService {
       const unitPrice = fromCents(unitPriceCents);
       const totalPrice = fromCents(totalPriceCents);
 
-      // Create cart item
+      // Create the cart item staged, so nothing can observe it yet.
       const itemId = randomUUID();
       const now = new Date();
       await this.db.insert(groupCartItems).values({
@@ -914,10 +920,31 @@ export class GroupOrdersService implements IGroupOrderService {
         customizations: (itemData.customizations ||
           {}) as CartItemCustomizations,
         specialInstructions: itemData.specialInstructions || null,
-        status: "active",
+        status: STAGED_CART_ITEM_STATUS,
         addedAt: now,
         updatedAt: now,
       });
+
+      // Publish it only while the group still accepts cart changes. The status
+      // check has to be this write's own predicate: `validateGroupOrderAndMember`
+      // above read the status, and a finalizer can claim between that read and
+      // here. Because the row only becomes visible when this UPDATE succeeds,
+      // a claim that wins the race leaves the item out of the finalizer's
+      // snapshot and out of the bill, rather than stranding it on a closed group.
+      const publishedRows = await this.db
+        .update(groupCartItems)
+        .set({ status: "active", updatedAt: now })
+        .where(
+          and(eq(groupCartItems.id, itemId), groupOrderIsActive(groupOrderId)),
+        )
+        .returning({ id: groupCartItems.id });
+
+      if (publishedRows.length === 0) {
+        await this.db
+          .delete(groupCartItems)
+          .where(eq(groupCartItems.id, itemId));
+        return { success: false, error: "Group order is no longer active" };
+      }
 
       // Update member's total amount (via split_bills)
       await this.updateMemberTotal(groupOrderId, itemData.memberId);

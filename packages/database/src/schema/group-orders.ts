@@ -159,7 +159,10 @@ export const groupCartItems = sqliteTable(
     specialInstructions: text("special_instructions"),
 
     // 狀態
-    status: text("status").notNull().default("active"), // active, removed, ordered
+    // staging = inserted but not yet published; every reader selects only
+    // "active", so a staged row is invisible until the conditional write in
+    // GroupOrdersService.addCartItem proves the group still accepts changes.
+    status: text("status").notNull().default("active"), // staging, active, removed, ordered
 
     // 時間戳 (milliseconds)
     addedAt: integer("added_at_ms", { mode: "timestamp_ms" }).notNull(),
