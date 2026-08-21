@@ -17,10 +17,11 @@
  *   2. If the payload ever gains per-tenant or per-user content, the cache key
  *      must gain the same dimension, or this becomes a data leak.
  *
- * The repo's EdgeCacheManager is deliberately not used here: it spends a KV
- * read and a KV write per request on hit accounting, which is the exact cost
- * this is meant to remove, and smartCacheMiddleware skips authenticated
- * requests outright.
+ * The repo's EdgeCacheManager is deliberately not used here: smartCacheMiddleware
+ * skips authenticated requests outright, and this route is authenticated. (It
+ * also used to spend a KV read and a KV write per request on hit accounting —
+ * the exact cost this is meant to remove — but that accounting has since been
+ * deleted, so that is no longer a reason to avoid it.)
  */
 
 /**

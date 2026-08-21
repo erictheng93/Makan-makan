@@ -24,8 +24,6 @@ export interface CacheMetadata {
   cached_at: number;
   expires_at: number;
   tags: string[];
-  hit_count: number;
-  last_accessed: number;
 }
 
 interface CacheHealthMetrics {
@@ -137,8 +135,14 @@ export class EdgeCacheManager {
       ) {
         const data = (await cacheResponse.json()) as CachedResponseEnvelope;
 
-        // Update hit count asynchronously
-        this.context.waitUntil(this.incrementHitCount(key));
+        // A Cache API hit costs nothing. It used to cost a KV read plus a KV
+        // write (the most expensive KV op, $5.00/M with 1M/month free) to bump
+        // a `hit_count` that no code in this repo ever read — `getHealthMetrics`
+        // reads `cache:health:metrics`, a key nothing writes. Worse, that write
+        // re-put the entry without `expirationTtl`, so the first hit turned a
+        // 5-minute cache entry into a permanent KV key. The counter made the
+        // cache cost more the better it worked. If hit rate is ever needed
+        // again, it belongs in Analytics Engine, not in a per-request KV write.
 
         // Proactive revalidation for high-priority content
         if (
@@ -162,8 +166,8 @@ export class EdgeCacheManager {
           this.populateCacheAPI(cacheKey, kvData, options.ttl || 300),
         );
 
-        // Update access metadata
-        this.context.waitUntil(this.updateAccessMetadata(key, kvData));
+        // No access-metadata write here either — same dead `hit_count`, same
+        // dropped `expirationTtl`. See the Layer 1 note above.
 
         return value;
       }
@@ -195,8 +199,6 @@ export class EdgeCacheManager {
       cached_at: Date.now(),
       expires_at: Date.now() + options.ttl * 1000,
       tags: options.tags || [],
-      hit_count: 0,
-      last_accessed: Date.now(),
     };
 
     const cacheKey = this.buildCacheKey(key, options.vary);
@@ -398,32 +400,6 @@ export class EdgeCacheManager {
       );
     } catch (error) {
       console.error("Failed to populate Cache API:", error);
-    }
-  }
-
-  private async incrementHitCount(key: string): Promise<void> {
-    try {
-      const metadata = await this.kv.get<CacheMetadata>(key, { type: "json" });
-      if (metadata) {
-        metadata.hit_count += 1;
-        metadata.last_accessed = Date.now();
-        await this.kv.put(key, JSON.stringify(metadata));
-      }
-    } catch (error) {
-      console.error("Failed to increment hit count:", error);
-    }
-  }
-
-  private async updateAccessMetadata(
-    key: string,
-    metadata: CacheMetadata,
-  ): Promise<void> {
-    try {
-      metadata.hit_count += 1;
-      metadata.last_accessed = Date.now();
-      await this.kv.put(key, JSON.stringify(metadata));
-    } catch (error) {
-      console.error("Failed to update access metadata:", error);
     }
   }
 
