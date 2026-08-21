@@ -1,0 +1,34 @@
+# Guard scripts and the regression suite that covers each one.
+#
+# Two consumers read this file, which is the whole point of it existing:
+#
+#   scripts/classify-ci-changes.sh   sets guard_tests=true when a listed script
+#                                    changes, so CI runs the lane
+#   scripts/run-guard-tests.cjs      is `pnpm test:ci-guards`, and runs the
+#                                    listed suites
+#
+# They used to hold separate hardcoded lists, and drifted: four scripts
+# (check-strict-tables, check-vitest-results, generate-strict-baseline,
+# check-no-automated-destructive-wrangler) had a regression suite that never ran
+# on the PR that changed them, because the classifier scored them as plain
+# `scripts/*` tooling and the unit-test job is gated on `app`.
+#
+# The pairing has to be declared rather than inferred: suite and script names do
+# not line up (code-scanning-regressions covers check-docs-drift), a suite may
+# name other scripts as test *input* (check-no-automated-destructive-wrangler
+# names six), and one builds its path with join() so no literal appears at all.
+#
+# Plain whitespace-delimited text, not JSON: bash has to read this too, and Git
+# Bash on Windows -- where the classifier's own suite runs it -- has no jq.
+#
+# Format: <guard script> <regression suite>
+
+scripts/classify-ci-changes.sh                       tests/unit/ci-change-classifier.test.ts
+scripts/check-docs-drift.cjs                         tests/unit/code-scanning-regressions.test.ts
+scripts/check-migration-dual-track.cjs               tests/unit/migration-dual-track.test.ts
+scripts/check-no-automated-destructive-wrangler.cjs  tests/unit/check-no-automated-destructive-wrangler.test.ts
+scripts/check-package-test-scripts.cjs               tests/unit/package-test-scripts.test.ts
+scripts/check-production-config.cjs                  tests/unit/check-production-config.test.ts
+scripts/check-strict-tables.cjs                      tests/unit/check-strict-tables.test.ts
+scripts/check-vitest-results.cjs                     tests/unit/check-vitest-results.test.ts
+scripts/generate-strict-baseline.cjs                 tests/unit/generate-strict-baseline.test.ts

@@ -3,6 +3,24 @@
 set -euo pipefail
 
 full="${1:-false}"
+
+# Which scripts have a regression suite is declared once, in guard-suites.txt,
+# and read here and by scripts/run-guard-tests.cjs. Keeping a second copy in
+# this case statement is what let four guards go unrun on the very PRs that
+# changed them. Resolve against this script's own directory: CI invokes it from
+# the repo root, its test suite by absolute path.
+guard_suites_file="$(dirname "$0")/guard-suites.txt"
+guarded_scripts="$(awk '!/^#/ && NF { print $1 }' "$guard_suites_file")"
+
+is_guarded_script() {
+  while IFS= read -r guarded; do
+    [ "$1" = "$guarded" ] && return 0
+  done <<EOF
+$guarded_scripts
+EOF
+  return 1
+}
+
 app=false
 backend=false
 frontend=false
@@ -39,20 +57,11 @@ else
       .prettierignore | .prettierrc*)
         tooling=true
         ;;
-      scripts/classify-ci-changes.sh | \
-        scripts/check-package-test-scripts.cjs | \
-        scripts/check-no-automated-destructive-wrangler.cjs | \
-        scripts/check-strict-tables.cjs | \
-        scripts/check-vitest-results.cjs | \
-        scripts/generate-strict-baseline.cjs | \
-        scripts/check-production-config.cjs | \
-        scripts/check-migration-dual-track.cjs | \
-        scripts/check-docs-drift.cjs)
-        tooling=true
-        guard_tests=true
-        ;;
       scripts/*)
         tooling=true
+        if is_guarded_script "$file"; then
+          guard_tests=true
+        fi
         ;;
       .github/workflows/*)
         full=true
