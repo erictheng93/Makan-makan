@@ -18,6 +18,10 @@
     {
       "fresh": "0003_restaurant_scoped_print_dispatch.sql",
       "reason": "Restaurant-scoped print dispatch and agent device health; the management-api database has no receipts, cash_registers or print_agents to pair against."
+    },
+    {
+      "fresh": "0004_market_checkout_customer.sql",
+      "reason": "market_checkout_sessions exists only in the platform API database; the management API has no corresponding market checkout table."
     }
   ],
   "legacyOnly": [
