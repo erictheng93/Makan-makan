@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -22,6 +23,20 @@ const classifier = path
   .resolve(process.cwd(), "scripts/classify-ci-changes.sh")
   .replace(/\\/g, "/");
 
+// Derive the root from the classifier rather than reading process.cwd() twice.
+const repoRoot = path.dirname(path.dirname(classifier));
+
+function guardSuites(): Array<{ script: string; suite: string }> {
+  return readFileSync(path.join(repoRoot, "scripts/guard-suites.txt"), "utf8")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"))
+    .map((line) => {
+      const [script, suite] = line.split(/\s+/);
+      return { script, suite };
+    });
+}
+
 // On Windows, a bare `bash` usually resolves to C:\Windows\system32\bash.exe --
 // that is WSL, which mounts this drive under /mnt and so cannot see the repo
 // path at all. Git ships a bash that shares the Win32 namespace, and it lives
@@ -30,20 +45,33 @@ function resolveBash(): string | null {
   if (process.platform !== "win32") return "bash";
 
   const located = spawnSync("where", ["git"], { encoding: "utf8" });
-  const gitExe = located.stdout?.split(/\r?\n/)[0]?.trim();
-  if (!gitExe) return null;
+  const gitExes = (located.stdout ?? "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 
-  const gitBash = path
-    .resolve(path.dirname(gitExe), "..", "bin", "bash.exe")
-    .replace(/\\/g, "/");
+  // `where git` answers with whichever copy PATH puts first, and the layouts
+  // sit at different depths: Git\cmd\git.exe is one level above bin\bash.exe,
+  // Git\mingw64\bin\git.exe is two. Taking only the first answer and only the
+  // first shape is how this suite silently skipped all 23 of its cases on a
+  // machine whose PATH happened to lead with mingw64.
+  const candidates = gitExes.flatMap((gitExe) => [
+    path.resolve(path.dirname(gitExe), "..", "bin", "bash.exe"),
+    path.resolve(path.dirname(gitExe), "..", "..", "bin", "bash.exe"),
+    path.resolve(path.dirname(gitExe), "..", "..", "usr", "bin", "bash.exe"),
+  ]);
 
-  // Confirm rather than assume: layouts differ between the Git installer and
-  // portable/scoop copies, and a bash that cannot stat the script is useless.
-  const probe = spawnSync(gitBash, ["-c", `test -f '${classifier}'`], {
-    encoding: "utf8",
-  });
+  // Confirm rather than assume: a bash that cannot stat the script is useless.
+  for (const candidate of candidates) {
+    const gitBash = candidate.replace(/\\/g, "/");
+    const probe = spawnSync(gitBash, ["-c", `test -f '${classifier}'`], {
+      encoding: "utf8",
+    });
 
-  return probe.status === 0 ? gitBash : null;
+    if (probe.status === 0) return gitBash;
+  }
+
+  return null;
 }
 
 const bashCommand = resolveBash();
@@ -141,6 +169,25 @@ describe.skipIf(bashCommand === null)("CI change classifier", () => {
       guard_tests: true,
     });
   });
+
+  // Both consumers of guard-suites.txt have to agree with it, or a guard goes
+  // unrun on the PR that changes it -- which is how four of them shipped.
+  it.each(guardSuites())(
+    "routes $script to the guard lane and pairs it with an existing suite",
+    ({ script, suite }) => {
+      expect(existsSync(path.join(repoRoot, script)), `${script} exists`).toBe(
+        true,
+      );
+      expect(existsSync(path.join(repoRoot, suite)), `${suite} exists`).toBe(
+        true,
+      );
+      expect(classify([script])).toEqual({
+        ...none,
+        tooling: true,
+        guard_tests: true,
+      });
+    },
+  );
 
   it("runs tooling checks without guard tests for other scripts", () => {
     expect(classify(["scripts/setup-secrets.ts"])).toEqual({
