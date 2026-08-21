@@ -86,6 +86,7 @@ function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
 function mockMutations(returningRows: unknown[] = [{ id: "log-1" }]) {
   const inserted: unknown[] = [];
   const updated: unknown[] = [];
+  const onConflictDoNothing = vi.fn();
 
   mocks.db.insert.mockImplementation(() => {
     const builder = {
@@ -94,7 +95,9 @@ function mockMutations(returningRows: unknown[] = [{ id: "log-1" }]) {
         return builder;
       }),
       returning: vi.fn(() => Promise.resolve(returningRows)),
+      onConflictDoNothing,
     };
+    onConflictDoNothing.mockImplementation(() => builder);
     return builder;
   });
 
@@ -113,7 +116,7 @@ function mockMutations(returningRows: unknown[] = [{ id: "log-1" }]) {
     return builder;
   });
 
-  return { inserted, updated };
+  return { inserted, updated, onConflictDoNothing };
 }
 
 function request(path: string, init: RequestInit = {}) {
@@ -292,6 +295,30 @@ describe("platform webhook routes", () => {
       status: "received",
     });
     expect(mutations.updated[0]).toMatchObject({ status: "processed" });
+  });
+
+  it("acknowledges a duplicate event before creating another order", async () => {
+    const mutations = mockMutations([]);
+    mockSelectResults({ platformIntegrations: [[integration()]] });
+
+    const response = await request("/uber-eats", {
+      method: "POST",
+      body: JSON.stringify(webhookPayload()),
+      headers: { "Content-Type": "application/json" },
+    });
+    const body = await json(response);
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({
+      success: true,
+      data: { duplicate: true },
+    });
+    expect(mocks.orderService.processWebhook).not.toHaveBeenCalled();
+    expect(mutations.inserted[0]).toMatchObject({
+      platform: "uber_eats",
+      platformEventId: "event-1",
+    });
+    expect(mutations.onConflictDoNothing).toHaveBeenCalled();
   });
 
   it("acknowledges payment events without order processing", async () => {

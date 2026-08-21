@@ -22,6 +22,10 @@
     {
       "fresh": "0004_market_checkout_customer.sql",
       "reason": "market_checkout_sessions exists only in the platform API database; the management API has no corresponding market checkout table."
+    },
+    {
+      "fresh": "0005_platform_webhook_event_dedup.sql",
+      "reason": "Webhook ingestion and platform_webhook_logs belong to the platform API; the management API does not receive third-party delivery webhooks."
     }
   ],
   "legacyOnly": [

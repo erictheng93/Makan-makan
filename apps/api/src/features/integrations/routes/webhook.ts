@@ -148,6 +148,8 @@ webhookRoutes.post(
     // Log webhook receipt
     const now = new Date();
     const eventType = (payload.event_type as string) ?? "order";
+    const platformEventId =
+      typeof payload.event_id === "string" ? payload.event_id : null;
 
     const [insertedLog] = await db
       .insert(platformWebhookLogs)
@@ -155,11 +157,19 @@ webhookRoutes.post(
         restaurantId: integration.integration.restaurantId,
         platform: "uber_eats",
         eventType,
+        platformEventId,
         payload: body as unknown as Record<string, unknown>,
         status: "received",
         createdAt: now,
       })
+      .onConflictDoNothing()
       .returning({ id: platformWebhookLogs.id });
+
+    // Uber reuses event_id when delivery is retried. The unique insert is the
+    // durable, atomic reservation: do not enter order creation a second time.
+    if (!insertedLog) {
+      return c.json({ success: true, data: { duplicate: true } }, 200);
+    }
 
     const logId = insertedLog.id;
 
