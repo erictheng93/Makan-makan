@@ -49,6 +49,12 @@ vi.mock("@makanmasak/database", () => ({
   platformWebhookLogs: {
     id: "id",
   },
+  WEBHOOK_LOG_STATUS: {
+    RECEIVED: "received",
+    PROCESSED: "processed",
+    FAILED: "failed",
+    IGNORED: "ignored",
+  },
 }));
 
 vi.mock("../adapters/PlatformAdapter", () => ({
@@ -86,6 +92,7 @@ function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
 function mockMutations(returningRows: unknown[] = [{ id: "log-1" }]) {
   const inserted: unknown[] = [];
   const updated: unknown[] = [];
+  const onConflictDoNothing = vi.fn();
 
   mocks.db.insert.mockImplementation(() => {
     const builder = {
@@ -94,7 +101,9 @@ function mockMutations(returningRows: unknown[] = [{ id: "log-1" }]) {
         return builder;
       }),
       returning: vi.fn(() => Promise.resolve(returningRows)),
+      onConflictDoNothing,
     };
+    onConflictDoNothing.mockImplementation(() => builder);
     return builder;
   });
 
@@ -113,7 +122,7 @@ function mockMutations(returningRows: unknown[] = [{ id: "log-1" }]) {
     return builder;
   });
 
-  return { inserted, updated };
+  return { inserted, updated, onConflictDoNothing };
 }
 
 function request(path: string, init: RequestInit = {}) {
@@ -294,6 +303,76 @@ describe("platform webhook routes", () => {
     expect(mutations.updated[0]).toMatchObject({ status: "processed" });
   });
 
+  it("acknowledges a duplicate event before creating another order", async () => {
+    const mutations = mockMutations([]);
+    mockSelectResults({ platformIntegrations: [[integration()]] });
+
+    const response = await request("/uber-eats", {
+      method: "POST",
+      body: JSON.stringify(webhookPayload()),
+      headers: { "Content-Type": "application/json" },
+    });
+    const body = await json(response);
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({
+      success: true,
+      data: { duplicate: true },
+    });
+    expect(mocks.orderService.processWebhook).not.toHaveBeenCalled();
+    expect(mutations.inserted[0]).toMatchObject({
+      platform: "uber_eats",
+      platformEventId: "event-1",
+    });
+    expect(mutations.onConflictDoNothing).toHaveBeenCalled();
+  });
+
+  it("reserves the camelCase event id the idempotency middleware also accepts", async () => {
+    const mutations = mockMutations();
+    mockSelectResults({ platformIntegrations: [[integration()]] });
+
+    const response = await request("/uber-eats", {
+      method: "POST",
+      body: JSON.stringify({
+        ...webhookPayload(),
+        event_id: undefined,
+        eventId: "event-camel",
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    expect(response.status).toBe(200);
+    expect(mutations.inserted[0]).toMatchObject({
+      platformEventId: "event-camel",
+    });
+  });
+
+  it("acknowledges event types that do not announce a new order", async () => {
+    const mutations = mockMutations();
+    mockSelectResults({ platformIntegrations: [[integration()]] });
+
+    const response = await request("/uber-eats", {
+      method: "POST",
+      body: JSON.stringify(webhookPayload({ event_type: "orders.cancel" })),
+      headers: { "Content-Type": "application/json" },
+    });
+    const body = await json(response);
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({
+      success: true,
+      data: {
+        acknowledged: true,
+        eventType: "orders.cancel",
+        handled: false,
+      },
+    });
+    // Routing a cancellation through order creation is what produced the
+    // orphan orders in #237.
+    expect(mocks.orderService.processWebhook).not.toHaveBeenCalled();
+    expect(mutations.updated[0]).toMatchObject({ status: "ignored" });
+  });
+
   it("acknowledges payment events without order processing", async () => {
     const mutations = mockMutations();
     mockSelectResults({ platformIntegrations: [[integration()]] });
@@ -341,9 +420,12 @@ describe("platform webhook routes", () => {
         message: "Processing failed",
       },
     });
+    // The reservation is released so the platform's redelivery is processed
+    // rather than acknowledged as a duplicate that never happened.
     expect(mutations.updated[0]).toMatchObject({
       status: "failed",
       error: "menu item missing",
+      platformEventId: null,
     });
   });
 

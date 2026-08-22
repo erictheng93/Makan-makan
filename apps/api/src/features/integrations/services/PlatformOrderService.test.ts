@@ -9,6 +9,7 @@ import type { Env } from "../../../types/env";
 
 const mocks = vi.hoisted(() => ({
   db: {
+    batch: vi.fn(),
     insert: vi.fn(),
     select: vi.fn(),
     update: vi.fn(),
@@ -30,6 +31,11 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
+}));
+
+vi.mock("@makanmasak/utils", async (importOriginal) => ({
+  ...((await importOriginal()) as Record<string, unknown>),
+  generateUUID: vi.fn(() => "order-101"),
 }));
 
 vi.mock("../adapters/PlatformAdapter", () => ({
@@ -73,6 +79,14 @@ function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
 function mockMutations() {
   const inserted: unknown[] = [];
   const updated: unknown[] = [];
+  const batches: unknown[][] = [];
+
+  // The statements handed to batch() are the same builders insert() returns,
+  // so `inserted` already holds their payloads by the time batch() is called.
+  mocks.db.batch.mockImplementation((statements: unknown[]) => {
+    batches.push(statements);
+    return Promise.resolve(statements.map(() => ({})));
+  });
 
   mocks.db.insert.mockImplementation(() => {
     const builder = {
@@ -106,7 +120,7 @@ function mockMutations() {
     return builder;
   });
 
-  return { inserted, updated };
+  return { inserted, updated, batches };
 }
 
 function createService() {
@@ -168,6 +182,7 @@ describe("PlatformOrderService", () => {
   it("creates internal platform orders and skips unmapped items", async () => {
     const mutations = mockMutations();
     mockSelectResults({
+      platformOrders: [[]],
       platformMenuMappings: [
         [{ platformItemId: "platform-item-1", menuItemId: 501 }],
       ],
@@ -215,11 +230,81 @@ describe("PlatformOrderService", () => {
       platformStatus: "received",
       rawPayload: { id: "uber-order-1" },
     });
+    // All three writes go out as one transaction, so the mapping row cannot
+    // reject after the order rows have already committed (#237).
+    expect(mocks.db.batch).toHaveBeenCalledOnce();
+    expect(mutations.batches[0]).toHaveLength(3);
+  });
+
+  it("returns the mapped order without writing when the platform order is already known", async () => {
+    const mutations = mockMutations();
+    mockSelectResults({
+      platformOrders: [[{ orderId: "order-existing" }]],
+    });
+
+    await expect(
+      createService().processWebhook(
+        "uber_eats",
+        { id: "uber-order-1" },
+        "restaurant-1",
+      ),
+    ).resolves.toBe("order-existing");
+
+    expect(mutations.inserted).toHaveLength(0);
+    expect(mocks.db.batch).not.toHaveBeenCalled();
+    expect(mocks.integrationService.getIntegration).not.toHaveBeenCalled();
+  });
+
+  it("returns the winning order when a concurrent delivery takes the mapping", async () => {
+    const mutations = mockMutations();
+    mockSelectResults({
+      // Empty on the way in, then the winner's row once the batch is rejected.
+      platformOrders: [[], [{ orderId: "order-winner" }]],
+      platformMenuMappings: [
+        [{ platformItemId: "platform-item-1", menuItemId: 501 }],
+      ],
+    });
+    mocks.db.batch.mockRejectedValueOnce(
+      new Error("UNIQUE constraint failed: platform_orders.platform_order_id"),
+    );
+
+    await expect(
+      createService().processWebhook(
+        "uber_eats",
+        { id: "uber-order-1" },
+        "restaurant-1",
+      ),
+    ).resolves.toBe("order-winner");
+
+    // Nothing survives a rejected batch, so there is no orphan to reclaim and
+    // no auto-accept for an order this call did not create.
+    expect(mutations.updated).toHaveLength(0);
+    expect(mocks.receiptService.createKitchenTicket).not.toHaveBeenCalled();
+  });
+
+  it("propagates a batch failure that is not a duplicate", async () => {
+    mockMutations();
+    mockSelectResults({
+      platformOrders: [[], []],
+      platformMenuMappings: [
+        [{ platformItemId: "platform-item-1", menuItemId: 501 }],
+      ],
+    });
+    mocks.db.batch.mockRejectedValueOnce(new Error("D1_ERROR: disk full"));
+
+    await expect(
+      createService().processWebhook(
+        "uber_eats",
+        { id: "uber-order-1" },
+        "restaurant-1",
+      ),
+    ).rejects.toThrow("D1_ERROR: disk full");
   });
 
   it("auto-accepts configured platform orders and confirms the internal order", async () => {
     const mutations = mockMutations();
     mockSelectResults({
+      platformOrders: [[]],
       platformMenuMappings: [
         [{ platformItemId: "platform-item-1", menuItemId: 501 }],
       ],
@@ -253,6 +338,7 @@ describe("PlatformOrderService", () => {
   it("does not queue a kitchen ticket when the order stays pending", async () => {
     mockMutations();
     mockSelectResults({
+      platformOrders: [[]],
       platformMenuMappings: [
         [{ platformItemId: "platform-item-1", menuItemId: 501 }],
       ],
@@ -270,6 +356,7 @@ describe("PlatformOrderService", () => {
   it("keeps the confirmed order when the kitchen ticket cannot be queued", async () => {
     const mutations = mockMutations();
     mockSelectResults({
+      platformOrders: [[]],
       platformMenuMappings: [
         [{ platformItemId: "platform-item-1", menuItemId: 501 }],
       ],
@@ -303,6 +390,7 @@ describe("PlatformOrderService", () => {
   it("logs a rejected kitchen ticket without failing the webhook", async () => {
     const mutations = mockMutations();
     mockSelectResults({
+      platformOrders: [[]],
       platformMenuMappings: [
         [{ platformItemId: "platform-item-1", menuItemId: 501 }],
       ],
@@ -334,6 +422,7 @@ describe("PlatformOrderService", () => {
   it("does not fail webhook processing when auto-accept fails", async () => {
     const mutations = mockMutations();
     mockSelectResults({
+      platformOrders: [[]],
       platformMenuMappings: [
         [{ platformItemId: "platform-item-1", menuItemId: 501 }],
       ],

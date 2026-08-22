@@ -3,7 +3,14 @@
  * 外送平台 Webhook 事件記錄 — 用於除錯和稽核
  */
 
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  index,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 import type { PlatformType } from "./platform-integrations";
 
 // ================================================
@@ -14,6 +21,9 @@ export const WEBHOOK_LOG_STATUS = {
   RECEIVED: "received",
   PROCESSED: "processed",
   FAILED: "failed",
+  // Delivered and understood, but this event type has no handler. Distinct
+  // from PROCESSED so an unhandled event type stays visible in the log.
+  IGNORED: "ignored",
 } as const;
 
 export type WebhookLogStatus =
@@ -31,6 +41,9 @@ export const platformWebhookLogs = sqliteTable(
     // Platform info
     platform: text("platform").$type<PlatformType>().notNull(),
     eventType: text("event_type").notNull(),
+    // Provider event IDs are stable across redelivery and reserve processing
+    // before any order-side effects are written.
+    platformEventId: text("platform_event_id"),
 
     // Restaurant reference (nullable — may not be determined yet)
     restaurantId: text("restaurant_id"),
@@ -58,6 +71,9 @@ export const platformWebhookLogs = sqliteTable(
       table.eventType,
       table.createdAt,
     ),
+    eventUniqueIdx: uniqueIndex("platform_webhook_logs_event_unique")
+      .on(table.platform, table.platformEventId)
+      .where(sql`${table.platformEventId} IS NOT NULL`),
     // Query by restaurant
     restaurantIdx: index("platform_webhook_logs_restaurant_idx").on(
       table.restaurantId,
