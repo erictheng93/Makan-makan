@@ -4,6 +4,7 @@ import { eq, and } from "drizzle-orm";
 import {
   platformIntegrations,
   platformWebhookLogs,
+  WEBHOOK_LOG_STATUS,
 } from "@makanmasak/database";
 import type { Env } from "../../../types/env";
 import { getAdapter } from "../adapters/PlatformAdapter";
@@ -12,6 +13,24 @@ import { PlatformIntegrationService } from "../services/PlatformIntegrationServi
 import { idempotencyMiddleware } from "../../../middleware/idempotency";
 
 const webhookRoutes = new Hono<{ Bindings: Env }>();
+
+/**
+ * Event types that announce a new order. Only these may reach
+ * `processWebhook`, which builds a brand-new internal order out of the
+ * payload: routing a cancellation or a status change through it would either
+ * collide with the order we already have or invent one that never existed.
+ *
+ * An unrecognised type is acknowledged and logged as `ignored` rather than
+ * guessed at. That is deliberately the safe direction — a dropped event stays
+ * visible in `platform_webhook_logs` with its type and raw payload, while a
+ * guessed one writes an order nobody placed.
+ */
+const ORDER_CREATION_EVENT_TYPES = new Set([
+  "order",
+  "order.created",
+  "orders.notification",
+  "orders.scheduled.notification",
+]);
 
 // Webhook error bodies are an external platform contract. Uber Eats and
 // Foodpanda determine delivery success from the HTTP status, so these routes
@@ -148,8 +167,9 @@ webhookRoutes.post(
     // Log webhook receipt
     const now = new Date();
     const eventType = (payload.event_type as string) ?? "order";
-    const platformEventId =
-      typeof payload.event_id === "string" ? payload.event_id : null;
+    // Both spellings, to match the key the idempotency middleware resolves.
+    const rawEventId = payload.event_id ?? payload.eventId;
+    const platformEventId = typeof rawEventId === "string" ? rawEventId : null;
 
     const [insertedLog] = await db
       .insert(platformWebhookLogs)
@@ -159,7 +179,7 @@ webhookRoutes.post(
         eventType,
         platformEventId,
         payload: body as unknown as Record<string, unknown>,
-        status: "received",
+        status: WEBHOOK_LOG_STATUS.RECEIVED,
         createdAt: now,
       })
       .onConflictDoNothing()
@@ -180,7 +200,10 @@ webhookRoutes.post(
     if (eventType.startsWith("payment.")) {
       await db
         .update(platformWebhookLogs)
-        .set({ status: "processed", processedAt: new Date() })
+        .set({
+          status: WEBHOOK_LOG_STATUS.PROCESSED,
+          processedAt: new Date(),
+        })
         .where(eq(platformWebhookLogs.id, logId));
 
       return c.json(
@@ -189,6 +212,25 @@ webhookRoutes.post(
           data: {
             acknowledged: true,
             eventType,
+          },
+        },
+        200,
+      );
+    }
+
+    if (!ORDER_CREATION_EVENT_TYPES.has(eventType)) {
+      await db
+        .update(platformWebhookLogs)
+        .set({ status: WEBHOOK_LOG_STATUS.IGNORED, processedAt: new Date() })
+        .where(eq(platformWebhookLogs.id, logId));
+
+      return c.json(
+        {
+          success: true,
+          data: {
+            acknowledged: true,
+            eventType,
+            handled: false,
           },
         },
         200,
@@ -206,7 +248,10 @@ webhookRoutes.post(
 
       await db
         .update(platformWebhookLogs)
-        .set({ status: "processed", processedAt: new Date() })
+        .set({
+          status: WEBHOOK_LOG_STATUS.PROCESSED,
+          processedAt: new Date(),
+        })
         .where(eq(platformWebhookLogs.id, logId));
 
       return c.json({ success: true, orderId }, 200);
@@ -217,9 +262,15 @@ webhookRoutes.post(
       await db
         .update(platformWebhookLogs)
         .set({
-          status: "failed",
+          status: WEBHOOK_LOG_STATUS.FAILED,
           error: errorMessage,
           processedAt: new Date(),
+          // Release the reservation. The event was not processed, so the 500
+          // below is an honest "retry me" and a redelivery has to be allowed
+          // through. processWebhook is idempotent per platform order now, so
+          // retrying it can no longer duplicate anything. The provider's event
+          // id is still on this row inside `payload`.
+          platformEventId: null,
         })
         .where(eq(platformWebhookLogs.id, logId));
 

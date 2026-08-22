@@ -1,11 +1,13 @@
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, desc } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import {
   platformOrders,
   platformMenuMappings,
   orders,
   orderItems,
 } from "@makanmasak/database";
+import { generateUUID } from "@makanmasak/utils";
 import type {
   PlatformType,
   PlatformOrdersFilter,
@@ -27,6 +29,29 @@ export class PlatformOrderService {
     this.integrationService = new PlatformIntegrationService(env);
   }
 
+  /**
+   * Turns one platform order notification into an internal order, at most once
+   * per (platform, platformOrderId).
+   *
+   * The uniqueness of that pair is owned by `platform_orders_platform_order_idx`,
+   * and it used to be consulted only by the last write of the sequence — so a
+   * second notification for an order we already had wrote `orders` and
+   * `order_items`, hit the index, and left both behind with no mapping row and
+   * nothing to reclaim them (issue #237). Two mechanisms replace that:
+   *
+   *  1. The read below answers the ordinary case — the platform order is
+   *     already mapped, so return the internal order it maps to and write
+   *     nothing at all.
+   *  2. Two concurrent first deliveries both pass that read. Every write is
+   *     therefore issued as one `db.batch`, which D1 executes as a SQL
+   *     transaction: the index rejects the loser's mapping row and the whole
+   *     batch rolls back, so its `orders` and `order_items` never commit. The
+   *     loser then re-reads and returns the winner's order.
+   *
+   * D1 has no `db.transaction`; `batch` is its only atomic multi-statement
+   * primitive, which is why the writes are collected rather than awaited one
+   * by one.
+   */
   async processWebhook(
     platform: PlatformType,
     payload: unknown,
@@ -34,6 +59,12 @@ export class PlatformOrderService {
   ): Promise<string> {
     const adapter = getAdapter(platform);
     const parsedOrder = await adapter.parseOrder(payload);
+
+    const mappedOrderId = await this.findMappedOrderId(
+      platform,
+      parsedOrder.platformOrderId,
+    );
+    if (mappedOrderId) return mappedOrderId;
 
     // Map platform item IDs to internal menu item IDs
     const mappings = await this.db
@@ -58,9 +89,10 @@ export class PlatformOrderService {
     const discountAmountCents = 0;
     const totalAmountCents = toRequiredCents(parsedOrder.totalAmount);
 
-    const [insertedOrder] = await this.db
-      .insert(orders)
-      .values({
+    const orderId = generateUUID();
+    const writes: BatchItem<"sqlite">[] = [
+      this.db.insert(orders).values({
+        id: orderId,
         restaurantId,
         orderNumber: `PL-${Date.now()}`,
         status: "pending",
@@ -80,10 +112,8 @@ export class PlatformOrderService {
         discountAmountCents,
         createdAt: now,
         updatedAt: now,
-      })
-      .returning({ id: orders.id });
-
-    const orderId = insertedOrder.id;
+      }),
+    ];
 
     // Create order items
     for (const item of parsedOrder.items) {
@@ -92,29 +122,51 @@ export class PlatformOrderService {
       const unitPriceCents = toRequiredCents(item.unitPrice);
       const totalPriceCents = unitPriceCents * item.quantity;
 
-      await this.db.insert(orderItems).values({
-        orderId,
-        menuItemId,
-        quantity: item.quantity,
-        unitPriceCents,
-        totalPriceCents,
-        itemSnapshot: { name: item.name },
-        createdAt: now,
-      });
+      writes.push(
+        this.db.insert(orderItems).values({
+          orderId,
+          menuItemId,
+          quantity: item.quantity,
+          unitPriceCents,
+          totalPriceCents,
+          itemSnapshot: { name: item.name },
+          createdAt: now,
+        }),
+      );
     }
 
-    // Create platform order mapping
-    await this.db.insert(platformOrders).values({
-      orderId,
-      restaurantId,
-      platform,
-      platformOrderId: parsedOrder.platformOrderId,
-      platformStoreId: parsedOrder.platformStoreId,
-      platformStatus: "received",
-      rawPayload: parsedOrder.rawPayload as Record<string, unknown>,
-      createdAt: now,
-      updatedAt: now,
-    });
+    // Create platform order mapping. Kept last so the unique index sees a
+    // complete order, but it is now inside the same transaction as the rows
+    // above, so a rejection takes all of them with it.
+    writes.push(
+      this.db.insert(platformOrders).values({
+        orderId,
+        restaurantId,
+        platform,
+        platformOrderId: parsedOrder.platformOrderId,
+        platformStoreId: parsedOrder.platformStoreId,
+        platformStatus: "received",
+        rawPayload: parsedOrder.rawPayload as Record<string, unknown>,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    );
+
+    try {
+      await this.db.batch(
+        writes as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
+      );
+    } catch (error) {
+      // The batch rolled back, so this attempt left nothing behind. If a
+      // concurrent delivery won the race, its mapping is committed and this
+      // call is a duplicate; anything else is a real failure to report.
+      const racedOrderId = await this.findMappedOrderId(
+        platform,
+        parsedOrder.platformOrderId,
+      );
+      if (racedOrderId) return racedOrderId;
+      throw error;
+    }
 
     // Auto-accept if configured
     const integration = await this.integrationService.getIntegration(
@@ -152,16 +204,39 @@ export class PlatformOrderService {
   }
 
   /**
+   * The internal order a platform order already maps to, or null when this is
+   * the first time we have seen it.
+   */
+  private async findMappedOrderId(
+    platform: PlatformType,
+    platformOrderId: string,
+  ): Promise<string | null> {
+    const [existing] = await this.db
+      .select({ orderId: platformOrders.orderId })
+      .from(platformOrders)
+      .where(
+        and(
+          eq(platformOrders.platform, platform),
+          eq(platformOrders.platformOrderId, platformOrderId),
+        ),
+      )
+      .limit(1);
+
+    return existing?.orderId ?? null;
+  }
+
+  /**
    * Auto-accept writes the orders row straight to "confirmed" instead of going
    * through OrdersService.updateOrderStatus, so the kitchen ticket has to be
    * queued here too — otherwise a delivery-platform order never reaches the
    * shop's print agent.
    *
-   * Failures are swallowed on purpose: the status is already committed, and a
-   * webhook that fails gets redelivered by the platform, which would duplicate
-   * the whole order. A ticket that never printed is observable (the receipt row
-   * stays pending); a redelivered order is not. Duplicate calls are harmless —
-   * createKitchenTicket refuses to open a second ticket for the same order.
+   * Failures are swallowed on purpose: the status is already committed, so
+   * failing the webhook here would only buy a redelivery that re-runs work
+   * already done. A ticket that never printed is observable (the receipt row
+   * stays pending). Duplicate calls are harmless twice over —
+   * createKitchenTicket refuses to open a second ticket for the same order,
+   * and a redelivery no longer re-creates the order it belongs to.
    */
   private async emitKitchenTicket(orderId: string): Promise<void> {
     try {
