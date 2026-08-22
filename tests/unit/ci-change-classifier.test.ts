@@ -203,11 +203,22 @@ describe.skipIf(bashCommand === null)("CI change classifier", () => {
     });
   });
 
-  it("does not run API integration tests for an isolated worker change", () => {
+  it("does not run integration tests for a worker that owns no real suite", () => {
+    expect(classify(["apps/backup-scheduler/src/index.ts"])).toEqual({
+      ...none,
+      app: true,
+      backend: true,
+    });
+  });
+
+  // The orphan sweep's only real-D1 test runs in the real-integration job and
+  // nowhere else, so a change to the sweep has to reach that job.
+  it("runs the real integration suite for an image-processor change", () => {
     expect(classify(["apps/image-processor/src/index.ts"])).toEqual({
       ...none,
       app: true,
       backend: true,
+      integration: true,
     });
   });
 
