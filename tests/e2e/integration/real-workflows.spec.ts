@@ -148,7 +148,7 @@ interface GuestOrderResponse {
   success: boolean;
   data?: {
     order?: {
-      id?: number;
+      id?: string;
       orderNumber?: string;
     };
     guestToken?: string;
@@ -229,7 +229,7 @@ interface MarketCheckoutBody {
       childOrders?: Array<{
         restaurantId?: string;
         restaurantName?: string;
-        orderId?: number;
+        orderId?: string;
         orderNumber?: string;
         totalAmount?: number;
       }>;
@@ -238,7 +238,7 @@ interface MarketCheckoutBody {
     childOrders?: Array<{
       restaurantId?: string;
       order?: {
-        id?: number;
+        id?: string;
       };
       guestToken?: string;
     }>;
@@ -248,7 +248,7 @@ interface MarketCheckoutBody {
 interface OrderBody {
   success: boolean;
   data?: {
-    id?: number;
+    id?: string;
     status?: string;
     items?: Array<{
       id?: number;
@@ -261,15 +261,15 @@ interface KitchenOrdersBody {
   success: boolean;
   data?: {
     pending?: Array<{
-      id?: number;
+      id?: string;
       items?: Array<{ id?: number; status?: string }>;
     }>;
     preparing?: Array<{
-      id?: number;
+      id?: string;
       items?: Array<{ id?: number; status?: string }>;
     }>;
     ready?: Array<{
-      id?: number;
+      id?: string;
       items?: Array<{ id?: number; status?: string }>;
     }>;
   };
@@ -1061,12 +1061,12 @@ async function deleteManagementTenant(tenantId: string, token: string) {
   });
 }
 
-async function confirmOrder(orderId: number, token: string) {
+async function confirmOrder(orderId: string, token: string) {
   await updateOrderStatus(orderId, token, "confirmed");
 }
 
 async function updateOrderStatus(
-  orderId: number,
+  orderId: string,
   token: string,
   status: "confirmed" | "preparing" | "ready",
 ) {
@@ -1083,7 +1083,7 @@ async function updateOrderStatus(
   expect(response.ok, `${status} order status ${response.status}`).toBe(true);
 }
 
-async function fetchOrder(orderId: number, token: string): Promise<OrderBody> {
+async function fetchOrder(orderId: string, token: string): Promise<OrderBody> {
   const response = await fetch(`${API_URL}/api/v1/orders/${orderId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -1126,7 +1126,7 @@ async function deleteCategoryAsOwner(categoryId: number, token: string) {
   });
 }
 
-async function cancelOrderAsOwner(orderId: number, token: string) {
+async function cancelOrderAsOwner(orderId: string, token: string) {
   await fetch(`${API_URL}/api/v1/orders/${orderId}`, {
     method: "DELETE",
     headers: {
@@ -1154,7 +1154,7 @@ async function fetchKitchenOrders(
   return (await response.json()) as KitchenOrdersBody;
 }
 
-function findKitchenOrder(body: KitchenOrdersBody, orderId: number) {
+function findKitchenOrder(body: KitchenOrdersBody, orderId: string) {
   return [
     ...(body.data?.pending ?? []),
     ...(body.data?.preparing ?? []),
@@ -1323,7 +1323,7 @@ test.describe("Real system workflows", () => {
     await page.locator("#customer-name").fill("Workflow UI");
     await page.locator("#customer-phone").fill("0912345678");
 
-    let orderId: number | undefined;
+    let orderId: string | undefined;
     let guestToken: string | undefined;
 
     try {
@@ -1370,7 +1370,7 @@ test.describe("Real system workflows", () => {
       orderId = createBody.data?.order?.id;
       guestToken = createBody.data?.guestToken;
 
-      expect(typeof orderId, "created order id").toBe("number");
+      expect(typeof orderId, "created order id").toBe("string");
       expect(typeof guestToken, "created guest token").toBe("string");
 
       await page.waitForURL(`**/order/${orderId}`, { timeout: 45_000 });
@@ -1719,7 +1719,7 @@ test.describe("Real system workflows", () => {
     const orderNumber = createBody.data?.order?.orderNumber;
     const guestToken = createBody.data?.guestToken;
 
-    expect(typeof orderId, "created order id").toBe("number");
+    expect(typeof orderId, "created order id").toBe("string");
     expect(typeof guestToken, "created guest token").toBe("string");
 
     await page.addInitScript((token) => {
@@ -1789,7 +1789,7 @@ test.describe("Real system workflows", () => {
     const orderId = createBody.data?.order?.id;
     const guestToken = createBody.data?.guestToken;
 
-    expect(typeof orderId, "created order id").toBe("number");
+    expect(typeof orderId, "created order id").toBe("string");
     expect(typeof guestToken, "created guest token").toBe("string");
 
     await installAdminSession(page, loginData);
@@ -1885,7 +1885,7 @@ test.describe("Real system workflows", () => {
     const orderId = createBody.data?.order?.id;
     const orderNumber = createBody.data?.order?.orderNumber;
     const guestToken = createBody.data?.guestToken;
-    expect(typeof orderId, "created service order id").toBe("number");
+    expect(typeof orderId, "created service order id").toBe("string");
     expect(typeof orderNumber, "created service order number").toBe("string");
     expect(typeof guestToken, "service guest token").toBe("string");
 
@@ -2256,7 +2256,7 @@ test.describe("Real system workflows", () => {
     const orderId = createBody.data?.order?.id;
     const guestToken = createBody.data?.guestToken;
 
-    expect(typeof orderId, "created order id").toBe("number");
+    expect(typeof orderId, "created order id").toBe("string");
     expect(typeof guestToken, "created guest token").toBe("string");
 
     await confirmOrder(orderId!, ownerLoginData!.token!);
@@ -2301,7 +2301,7 @@ test.describe("Real system workflows", () => {
       ).toHaveAttribute("data-connection-status", /^(connected|connecting)$/);
 
       await page.evaluate(
-        ({ restaurantId, syntheticOrderId }) => {
+        ({ restaurantId, syntheticOrderId, syntheticItemId }) => {
           const order = {
             id: syntheticOrderId,
             orderNumber: `WF-AUDIO-${syntheticOrderId}`,
@@ -2311,8 +2311,8 @@ test.describe("Real system workflows", () => {
             customer: { name: "Workflow Audio" },
             items: [
               {
-                id: syntheticOrderId + 1,
-                orderItemId: syntheticOrderId + 1,
+                id: syntheticItemId,
+                orderItemId: syntheticItemId,
                 name: "Audio workflow item",
                 menuItemName: "Audio workflow item",
                 quantity: 1,
@@ -2355,7 +2355,8 @@ test.describe("Real system workflows", () => {
         },
         {
           restaurantId: fixtureIds.restaurantId!,
-          syntheticOrderId: orderId! + 100000,
+          syntheticOrderId: `workflow-audio-${orderId!}`,
+          syntheticItemId: 900_001,
         },
       );
       await expect
@@ -2428,7 +2429,7 @@ test.describe("Real system workflows", () => {
               : [];
             const cachedOrder = cachedOrders
               ? JSON.parse(cachedOrders).find(
-                  (order: { id?: number }) => order.id === targetOrderId,
+                  (order: { id?: string }) => order.id === targetOrderId,
                 )
               : undefined;
             const cachedItem = cachedOrder?.items?.find(
@@ -2444,7 +2445,7 @@ test.describe("Real system workflows", () => {
               queued: actions.some(
                 (action: {
                   type?: string;
-                  orderId?: number;
+                  orderId?: string;
                   itemId?: number;
                   synced?: boolean;
                 }) =>
