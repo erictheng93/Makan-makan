@@ -13,8 +13,8 @@ import {
   createTestDatabase,
   type TestDatabase,
 } from "@makanmasak/database/testing";
-import { sweepOrphanedImages } from "./index";
-import type { Env } from "./types/env";
+import { sweepOrphanedImages } from "../../index";
+import type { Env } from "../../types/env";
 
 const HOUR = 60 * 60 * 1000;
 let testDb: TestDatabase;
