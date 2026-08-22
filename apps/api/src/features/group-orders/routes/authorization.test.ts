@@ -31,6 +31,7 @@ const groupServiceMocks = vi.hoisted(() => ({
   isHostSession: vi.fn(),
   isMemberSession: vi.fn(),
   getGroupOrder: vi.fn(),
+  getGroupOrderStatus: vi.fn(),
 }));
 
 vi.mock("../services/GroupOrdersService", () => ({
@@ -144,6 +145,7 @@ describe("group order mutations require proof of who is calling", () => {
     groupServiceMocks.getGroupOrder.mockResolvedValue({
       groupOrder: { id: GROUP_ORDER_ID, restaurantId: "rest-1" },
     });
+    groupServiceMocks.getGroupOrderStatus.mockResolvedValue("active");
   });
 
   describe("POST /:groupOrderId/split", () => {

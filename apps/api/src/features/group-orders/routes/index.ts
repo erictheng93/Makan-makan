@@ -35,6 +35,7 @@ import {
   notFound,
   forbidden,
   badRequest,
+  conflict,
 } from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -642,6 +643,15 @@ app.post(
 
     const result = await groupOrderService.recoverFinalization(groupOrderId);
     if (!result.success) {
+      if (
+        result.errorCode === "GROUP_ORDER_FINALIZATION_RECOVERY_IN_PROGRESS" ||
+        result.errorCode === "GROUP_ORDER_FINALIZATION_RECOVERY_RECLAIMED"
+      ) {
+        throw conflict(
+          result.error ?? "Finalization recovery cannot be completed",
+          result.errorCode,
+        );
+      }
       throw badRequest(result.error ?? "Failed to recover finalization");
     }
 
@@ -884,6 +894,18 @@ app.post(
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     await requireHostSession(groupOrderService, groupOrderId, memberToken);
+    const status = await groupOrderService.getGroupOrderStatus(groupOrderId);
+
+    if (!status) {
+      throw notFound("Group order not found");
+    }
+    if (status !== "active") {
+      throw conflict(
+        "Only active group orders can be split",
+        "GROUP_ORDER_SPLIT_NOT_ACTIVE",
+      );
+    }
+
     const result = await groupOrderService.splitBill(groupOrderId, splitData);
 
     if (!result.success) {

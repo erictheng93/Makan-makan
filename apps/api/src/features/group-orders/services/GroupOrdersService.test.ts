@@ -422,6 +422,31 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     await expect(db.select().from(restaurants)).rejects.toThrow("restaurants");
   });
 
+  it("reads split eligibility status directly from the database without consulting the summary cache", async () => {
+    const { kv } = createKV();
+    const service = new GroupOrdersService({} as D1Database, kv);
+    useDb(service, createDb({ groupOrders: [[{ status: "checkout" }]] }));
+
+    await expect(service.getGroupOrderStatus("group-1")).resolves.toBe(
+      "checkout",
+    );
+    expect(kv.get).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when D1 contains an unknown group-order status", async () => {
+    const { kv } = createKV();
+    const service = new GroupOrdersService({} as D1Database, kv);
+    useDb(
+      service,
+      createDb({ groupOrders: [[{ status: "unexpected_status" }]] }),
+    );
+
+    await expect(service.getGroupOrderStatus("group-1")).rejects.toThrow(
+      "UNKNOWN_GROUP_ORDER_STATUS",
+    );
+    expect(kv.get).not.toHaveBeenCalled();
+  });
+
   it("formats group orders with defaults, cents-first money, and timestamp compatibility", () => {
     const service = createService();
 
@@ -3012,7 +3037,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       failedAt: "2026-06-07T01:00:00.000Z",
     };
 
-    it("retries a failed finalization with its stored totals and enters checkout", async () => {
+    it("completes recovery after claiming finalizing, so its internal split remains allowed", async () => {
       const service = createService();
       service.splitBill = vi.fn(async () => ({ success: true, data: [] }));
       const db = createDb(
@@ -3043,6 +3068,9 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         success: true,
         data: { masterOrderId: "order-1", status: "checkout" },
       });
+      expect(db.updates.map((update) => update.payload)).toContainEqual(
+        expect.objectContaining({ status: "finalizing" }),
+      );
       expect(service.splitBill).toHaveBeenCalledWith("group-1", {
         splitType: "individual",
         sharedServiceChargeCents: 600,
@@ -3135,6 +3163,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         success: false,
         error:
           "Group order finalization recovery was reclaimed before it completed",
+        errorCode: "GROUP_ORDER_FINALIZATION_RECOVERY_RECLAIMED",
       });
     });
 
@@ -3161,6 +3190,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       await expect(service.recoverFinalization("group-1")).resolves.toEqual({
         success: false,
         error: "Group order finalization recovery is already in progress",
+        errorCode: "GROUP_ORDER_FINALIZATION_RECOVERY_IN_PROGRESS",
       });
       expect(service.splitBill).not.toHaveBeenCalled();
     });

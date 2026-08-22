@@ -857,6 +857,34 @@ export class GroupOrdersService implements IGroupOrderService {
   }
 
   /**
+   * Reads the lifecycle from D1 for mutation guards. Unlike getGroupOrder,
+   * this deliberately bypasses the five-minute summary cache.
+   */
+  async getGroupOrderStatus(
+    groupOrderId: string,
+  ): Promise<GroupOrderStatus | null> {
+    const groupOrderRows = await this.db
+      .select({ status: groupOrders.status })
+      .from(groupOrders)
+      .where(eq(groupOrders.id, groupOrderId));
+
+    const rawStatus = groupOrderRows[0]?.status;
+    if (!rawStatus) return null;
+
+    const status = parseGroupOrderStatus(rawStatus);
+    if (!status) {
+      this.errorTracker.logError(
+        "getGroupOrderStatus",
+        new Error("UNKNOWN_GROUP_ORDER_STATUS"),
+        { groupOrderId, status: rawStatus },
+      );
+      throw new Error("UNKNOWN_GROUP_ORDER_STATUS");
+    }
+
+    return status;
+  }
+
+  /**
    * Add item to cart
    */
   async addCartItem(
@@ -1611,6 +1639,9 @@ export class GroupOrdersService implements IGroupOrderService {
     success: boolean;
     data?: { masterOrderId: string; status: "checkout" };
     error?: string;
+    errorCode?:
+      | "GROUP_ORDER_FINALIZATION_RECOVERY_IN_PROGRESS"
+      | "GROUP_ORDER_FINALIZATION_RECOVERY_RECLAIMED";
   }> {
     const groupOrderRows = await this.db
       .select()
@@ -1666,6 +1697,7 @@ export class GroupOrdersService implements IGroupOrderService {
       return {
         success: false,
         error: "Group order finalization recovery is already in progress",
+        errorCode: "GROUP_ORDER_FINALIZATION_RECOVERY_IN_PROGRESS",
       };
     }
 
@@ -1743,6 +1775,7 @@ export class GroupOrdersService implements IGroupOrderService {
         success: false,
         error:
           "Group order finalization recovery was reclaimed before it completed",
+        errorCode: "GROUP_ORDER_FINALIZATION_RECOVERY_RECLAIMED",
       };
     }
 
