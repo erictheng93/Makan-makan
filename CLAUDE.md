@@ -52,6 +52,32 @@ MakanMasak is a modern, serverless restaurant management system built on Cloudfl
   **not** referenced by any `wrangler.toml`; despite the "deployment track" name it
   is applied by nothing, and replaying it from empty fails 107 statements. Do not
   add migrations there expecting them to ship.
+- **Production's schema did not come from the baseline.** That `migrations_dir`
+  points at the fresh track says where wrangler reads from; it says nothing about
+  how the live database was built. `makanmasak-prod` was migrated off the legacy
+  track and its `d1_migrations` ledger still carries those filenames
+  (`0000_loose_skin.sql` … `0084_customer_auth_identities.sql`). The squash
+  renamed everything underneath it, so for a while wrangler read every fresh file
+  as unapplied — `0000_baseline_strict.sql` included — and
+  `pnpm db:migrate:prod` would have replayed the whole baseline over a live
+  125-table database. `migrations_fresh/0001`–`0005` had in fact never reached
+  production; they were applied by hand on 2026-08-22 and recorded, and the
+  baseline was then recorded as applied purely to mean **"never run this file
+  against prod"** (issue #240). `migrations list` is clean again and
+  `pnpm db:migrate:prod` is safe for 0006 onward.
+
+  That ledger row is **not** a claim that the live schema equals the baseline:
+  production has 126 tables against the baseline's 118, and the two lineages
+  still differ. Never use it as evidence that they match — a rebuild-from-
+  baseline or a schema diff has to establish that separately.
+- **Before applying anything to production D1 by hand**: `wrangler d1 export`
+  fails on this database (`cannot export databases with Virtual Tables (fts5)`),
+  so build the schema copy by pulling `sql` out of `sqlite_master` instead.
+  Replay the migration against that copy, check the end state (no leftover
+  `__new_*` tables, STRICT still on the recreated tables), and only then run
+  `d1 execute --file` against `--remote`, verify with `pragma_table_info`, and
+  `INSERT OR IGNORE INTO d1_migrations`. Check row counts first: a
+  recreate-table migration is only trivially safe while the table is empty.
 - **Migration Guard**: changes after the reviewed checkpoint must be paired or documented in `packages/database/migration-dual-track.json`, then verified with `pnpm check:migration-dual-track`.
 - **ID Strategy**: mixed by design while legacy modules remain. New domain tables should prefer `TEXT` UUID v7 primary keys, but existing integer-autoincrement tables are still valid until a scoped migration retires them. Do not claim the whole database is UUID-only.
 - **Timestamp Strategy**: use `INTEGER` Unix milliseconds via Drizzle `{ mode: "timestamp_ms" }`. Avoid new `TEXT` timestamp columns.
