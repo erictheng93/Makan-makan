@@ -110,6 +110,39 @@ describe("settlement trust level", () => {
     expect(bill.settledBy).toBeNull();
   });
 
+  it("finalizes into completed only after creating the member split bills", async () => {
+    const restaurant = await seed.restaurant();
+    const item = await seed.menuItem(restaurant.id, {
+      name: "雞肉飯",
+      isAvailable: true,
+      priceCents: 12000,
+    });
+    const created = await service().createGroupOrder(
+      { restaurantId: String(restaurant.id), hostName: "Alex" } as never,
+      null,
+    );
+    if (!created.data) throw new Error(created.error);
+
+    await service().addCartItem(created.data.groupOrderId, {
+      memberId: created.data.host.id,
+      menuItemId: Number(item.id),
+      quantity: 1,
+    } as never);
+
+    const finalized = await service().finalizeGroupOrder(
+      created.data.groupOrderId,
+    );
+    const summary = await service().getGroupOrder(created.data.groupOrderId);
+
+    expect(finalized).toMatchObject({
+      success: true,
+      data: { status: "completed" },
+    });
+    expect(summary?.groupOrder.status).toBe("completed");
+    expect(summary?.splitBills).toHaveLength(1);
+    expect(summary?.splitBills[0]?.memberId).toBe(created.data.host.id);
+  });
+
   it("rejects a second split bill for the same group member at the database boundary", async () => {
     const { groupOrderId, hostId } = await tableWithSplitBill();
 

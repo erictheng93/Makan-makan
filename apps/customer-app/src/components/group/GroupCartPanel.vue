@@ -42,19 +42,10 @@ const emit = defineEmits<{
   (e: "remove-item", itemId: string): void;
   (e: "change-split-mode", mode: SplitBillConfig["mode"]): void;
   (e: "change-fee-mode", mode: GroupOrderFeeMode): void;
-  (e: "start-settlement"): void;
   (e: "settle-my-share"): void;
 }>();
 
 const isSettling = computed(() => props.splitBills.length > 0);
-const isOrderSubmitted = computed(() => props.orderStatus === "completed");
-const canStartSettlement = computed(
-  () =>
-    props.isHost &&
-    isOrderSubmitted.value &&
-    !isSettling.value &&
-    props.cartItems.length > 0,
-);
 const settledCount = computed(
   () => props.splitBills.filter((bill) => bill.isSettled).length,
 );
@@ -293,7 +284,7 @@ function getMemberColor(memberId: string): string {
     <!-- Split Bill Summary -->
     <div class="px-4 py-4 bg-gray-50 border-t border-gray-100">
       <!-- Split Mode Selector (Host Only) -->
-      <div v-if="isHost && !isOrderSubmitted" class="mb-4">
+      <div v-if="isHost && orderStatus === 'active'" class="mb-4">
         <label class="block text-xs font-medium text-gray-500 mb-2">
           {{ t("group.splitMethod") }}
         </label>
@@ -395,17 +386,6 @@ function getMemberColor(memberId: string): string {
             formatPrice(myShare)
           }}</span>
         </div>
-
-        <!-- Settling starts after the order has been sent to the restaurant. -->
-        <button
-          v-if="canStartSettlement"
-          type="button"
-          data-testid="start-settlement"
-          class="mt-3 w-full rounded-full bg-ios-blue py-3 text-sm font-semibold text-white active:scale-95 transition-transform duration-150"
-          @click="emit('start-settlement')"
-        >
-          {{ t("group.startSettlement") }}
-        </button>
 
         <div v-if="isSettling" data-testid="settlement-panel" class="mt-3">
           <div class="flex items-center justify-between mb-2">

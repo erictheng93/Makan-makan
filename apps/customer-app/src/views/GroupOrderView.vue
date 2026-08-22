@@ -127,14 +127,6 @@ async function changeFeeMode(mode: GroupOrderFeeMode): Promise<void> {
   }
 }
 
-async function startSettlement(): Promise<void> {
-  try {
-    await group.startSettlement();
-  } catch (error) {
-    viewError.value = t(getGroupOrderErrorI18nKey(error, "group.splitFailed"));
-  }
-}
-
 async function settleMyShare(): Promise<void> {
   try {
     await group.settleMyShare();
@@ -260,7 +252,6 @@ onUnmounted(() => {
           @remove-item="removeItem"
           @change-split-mode="changeSplitMode"
           @change-fee-mode="changeFeeMode"
-          @start-settlement="startSettlement"
           @settle-my-share="settleMyShare"
         />
 

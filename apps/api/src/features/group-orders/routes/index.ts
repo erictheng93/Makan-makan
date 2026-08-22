@@ -883,6 +883,10 @@ app.delete(
 /**
  * Split bill
  * POST /api/v1/orders/group/{groupOrderId}/split
+ *
+ * No customer client calls this endpoint. Finalization owns the live split
+ * after locking the order; active-only prevents a host from overwriting those
+ * finalized bills with stale client-side rates.
  */
 app.post(
   "/:groupOrderId/split",

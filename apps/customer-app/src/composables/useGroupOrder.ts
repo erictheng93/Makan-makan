@@ -876,26 +876,6 @@ export function useGroupOrder(options: {
   }
 
   /**
-   * Builds settlement rows after the order has been sent. It does not change
-   * the group order lifecycle; split_bills carry settlement progress.
-   */
-  async function startSettlement(): Promise<void> {
-    if (!groupOrder.value) return;
-
-    const groupOrderId = groupOrder.value.id;
-    hydrateHostCredentials(groupOrderId);
-    if (!memberToken.value) {
-      throw groupOrderError("GROUP_HOST_CREDENTIAL_REQUIRED");
-    }
-
-    await apiClient.post(`/orders/group/${groupOrderId}/split`, {
-      splitType: groupOrder.value.splitBillConfig.mode,
-      memberToken: memberToken.value,
-    });
-    await loadGroupOrder(groupOrderId);
-  }
-
-  /**
    * Marks this diner's own share settled. No money moves — it tells the table
    * who has sorted themselves out.
    */
@@ -1119,7 +1099,6 @@ export function useGroupOrder(options: {
     removeFromCart,
     setSplitBillMode,
     setFeeMode,
-    startSettlement,
     settleMyShare,
     splitBills,
     isSettling,
