@@ -21,6 +21,9 @@ export const WEBHOOK_LOG_STATUS = {
   RECEIVED: "received",
   PROCESSED: "processed",
   FAILED: "failed",
+  // Delivered and understood, but this event type has no handler. Distinct
+  // from PROCESSED so an unhandled event type stays visible in the log.
+  IGNORED: "ignored",
 } as const;
 
 export type WebhookLogStatus =
