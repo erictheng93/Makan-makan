@@ -2758,6 +2758,12 @@ const viVN: Messages = {
       recover: "Thử lại chốt đơn",
       recovering: "Đang thử lại chốt đơn…",
       recoveryFailed: "Khôi phục chốt đơn thất bại",
+      recoveryInProgress:
+        "Một nhân viên khác đang khôi phục đơn này. Vui lòng thử lại sau ít phút.",
+      recoveryReclaimed:
+        "Hệ thống đã thu hồi lần khôi phục này. Vui lòng thử lại.",
+      recoveryRetryFailed:
+        "Chốt đơn lại thất bại. Hãy xem lịch sử khôi phục mới nhất trước khi thử lại.",
       recoveryHistory: "Lịch sử khôi phục",
       recoveryAttempts: "Số lần khôi phục",
       recoveryAttemptedAt: "Thử lúc",

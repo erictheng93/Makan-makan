@@ -84,6 +84,18 @@ const stats = {
   paymentMethodDistribution: {},
 };
 
+const apiError = (code: string, status: number) => ({
+  response: {
+    status,
+    data: {
+      error: {
+        code,
+        requestId: "request-1",
+      },
+    },
+  },
+});
+
 describe("GroupOrdersView finalization recovery", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -184,22 +196,42 @@ describe("GroupOrdersView finalization recovery", () => {
     await flushPromises();
   });
 
-  it("keeps a recovery failure visible in the detail panel", async () => {
-    vi.mocked(groupOrdersService.recoverFinalization).mockRejectedValueOnce(
-      new Error("Recovery request failed"),
-    );
-    const wrapper = await mountSelectedOrder();
+  it.each([
+    [
+      "GROUP_ORDER_FINALIZATION_RECOVERY_IN_PROGRESS",
+      409,
+      "groupOrders.finalizeFailure.recoveryInProgress",
+    ],
+    [
+      "GROUP_ORDER_FINALIZATION_RECOVERY_RECLAIMED",
+      409,
+      "groupOrders.finalizeFailure.recoveryReclaimed",
+    ],
+    ["BAD_REQUEST", 400, "groupOrders.finalizeFailure.recoveryRetryFailed"],
+  ])(
+    "shows localized recovery guidance for %s and refreshes retry history",
+    async (code, status, expectedKey) => {
+      vi.mocked(groupOrdersService.recoverFinalization).mockRejectedValueOnce(
+        apiError(code, status),
+      );
+      const wrapper = await mountSelectedOrder();
+      vi.clearAllMocks();
+      vi.mocked(groupOrdersService.getGroupOrders).mockResolvedValue([
+        failedGroupOrder(),
+      ]);
+      vi.mocked(groupOrdersService.getGroupOrderStats).mockResolvedValue(stats);
 
-    await wrapper
-      .get('[data-testid="recover-finalization-group-1"]')
-      .trigger("click");
-    await flushPromises();
+      await wrapper
+        .get('[data-testid="recover-finalization-group-1"]')
+        .trigger("click");
+      await flushPromises();
 
-    expect(
-      wrapper.get('[data-testid="finalization-recovery-error"]'),
-    ).toBeTruthy();
-    expect(wrapper.text()).toContain(
-      "groupOrders.finalizeFailure.recoveryFailed",
-    );
-  });
+      const error = wrapper.get('[data-testid="finalization-recovery-error"]');
+      expect(error.text()).toContain(expectedKey);
+      expect(error.text()).not.toContain("Request failed with status code");
+      expect(groupOrdersService.getGroupOrders).toHaveBeenCalledWith(
+        expect.objectContaining({ restaurantId: "restaurant-1" }),
+      );
+    },
+  );
 });

@@ -2749,6 +2749,12 @@ const enUS: Messages = {
       recover: "Retry finalization",
       recovering: "Retrying finalization…",
       recoveryFailed: "Finalization recovery failed",
+      recoveryInProgress:
+        "Another operator is already recovering this order. Try again shortly.",
+      recoveryReclaimed:
+        "The system reclaimed this recovery attempt. Please retry.",
+      recoveryRetryFailed:
+        "Finalization failed again. Review the latest recovery history before retrying.",
       recoveryHistory: "Recovery history",
       recoveryAttempts: "Recovery attempts",
       recoveryAttemptedAt: "Attempted at",

@@ -952,6 +952,7 @@ import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import { useAuthStore } from "@/stores/auth";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 import {
   groupOrdersService,
   type GroupOrder as ApiGroupOrder,
@@ -1160,10 +1161,17 @@ const recoverFinalization = async (groupOrderId: string) => {
     await groupOrdersService.recoverFinalization(groupOrderId);
     await refreshGroupOrders();
   } catch (error) {
-    finalizationRecoveryError.value =
-      error instanceof Error
-        ? error.message
-        : t("groupOrders.finalizeFailure.recoveryFailed");
+    finalizationRecoveryError.value = resolveUserFacingError(error, t, {
+      codeKeys: {
+        GROUP_ORDER_FINALIZATION_RECOVERY_IN_PROGRESS:
+          "groupOrders.finalizeFailure.recoveryInProgress",
+        GROUP_ORDER_FINALIZATION_RECOVERY_RECLAIMED:
+          "groupOrders.finalizeFailure.recoveryReclaimed",
+        BAD_REQUEST: "groupOrders.finalizeFailure.recoveryRetryFailed",
+      },
+      fallbackKey: "groupOrders.finalizeFailure.recoveryRetryFailed",
+    }).message;
+    await refreshGroupOrders();
   } finally {
     isRecoveringFinalization.value = false;
   }

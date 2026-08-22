@@ -2758,6 +2758,12 @@ const jaJP: Messages = {
       recover: "精算を再試行",
       recovering: "精算を再試行中…",
       recoveryFailed: "精算の復旧に失敗しました",
+      recoveryInProgress:
+        "別の担当者がこの注文を復旧しています。しばらくしてから再試行してください。",
+      recoveryReclaimed:
+        "この復旧処理はシステムにより回収されました。再試行してください。",
+      recoveryRetryFailed:
+        "精算が再び失敗しました。最新の復旧履歴を確認してから再試行してください。",
       recoveryHistory: "復旧履歴",
       recoveryAttempts: "復旧試行回数",
       recoveryAttemptedAt: "試行時刻",

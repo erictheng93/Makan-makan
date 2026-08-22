@@ -2771,6 +2771,12 @@ const idID: Messages = {
       recover: "Coba lagi penyelesaian",
       recovering: "Mencoba lagi penyelesaian…",
       recoveryFailed: "Pemulihan penyelesaian gagal",
+      recoveryInProgress:
+        "Operator lain sedang memulihkan pesanan ini. Coba lagi sebentar lagi.",
+      recoveryReclaimed:
+        "Sistem mengambil kembali upaya pemulihan ini. Silakan coba lagi.",
+      recoveryRetryFailed:
+        "Penyelesaian kembali gagal. Periksa riwayat pemulihan terbaru sebelum mencoba lagi.",
       recoveryHistory: "Riwayat pemulihan",
       recoveryAttempts: "Upaya pemulihan",
       recoveryAttemptedAt: "Dicoba pada",
