@@ -1,4 +1,5 @@
 import { apiClient, unwrapApiData } from "./api";
+import type { GroupOrderFinalizeFailure } from "@makanmasak/shared-types";
 
 // 型別定義
 export interface GroupOrderMember {
@@ -9,6 +10,15 @@ export interface GroupOrderMember {
   totalAmount: number;
   paymentStatus: "unpaid" | "pending" | "paid";
   joinedAt: string;
+}
+
+export type RecoveryErrorDetails = NonNullable<
+  GroupOrderFinalizeFailure["recoveryErrorDetails"]
+>[number];
+
+export interface RecoverFinalizationResponse {
+  masterOrderId: string;
+  status: "checkout";
 }
 
 export interface GroupOrder {
@@ -23,13 +33,15 @@ export interface GroupOrder {
     | "checkout"
     | "completed"
     | "cancelled";
-  finalizeFailure?: {
-    code: string;
-    splitError: string;
-    failedAt: string;
-    expectedTotalCents?: number;
-    roundedTotalCents?: number;
-  };
+  finalizeFailure?: Pick<
+    GroupOrderFinalizeFailure,
+    | "code"
+    | "splitError"
+    | "failedAt"
+    | "expectedTotalCents"
+    | "roundedTotalCents"
+    | "recoveryErrorDetails"
+  >;
   hostName: string;
   memberCount: number;
   totalAmount: number;
@@ -104,6 +116,15 @@ export const groupOrdersService = {
 
   async cancelGroupOrder(id: string, reason?: string): Promise<void> {
     await apiClient.post(`/orders/group/${id}/cancel`, { reason });
+  },
+
+  async recoverFinalization(
+    groupOrderId: string,
+  ): Promise<RecoverFinalizationResponse> {
+    const response = await apiClient.post(
+      `/orders/group/${groupOrderId}/finalize/recover`,
+    );
+    return unwrapApiData<RecoverFinalizationResponse>(response);
   },
 
   // 分享功能

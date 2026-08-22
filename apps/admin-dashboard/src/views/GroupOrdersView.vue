@@ -295,6 +295,7 @@
                   </button>
 
                   <button
+                    :data-testid="`group-order-details-${groupOrder.id}`"
                     class="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700 transition-colors"
                     @click.stop="selectGroupOrder(groupOrder)"
                   >
@@ -395,7 +396,7 @@
                 </div>
               </div>
 
-              <!-- 成員列表 -->
+              <!-- 最終結帳失敗診斷與復原 -->
               <div
                 v-if="selectedGroupOrder.finalizeFailure"
                 class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm"
@@ -451,6 +452,60 @@
                     </dd>
                   </div>
                 </dl>
+                <div
+                  v-if="
+                    selectedGroupOrder.finalizeFailure.recoveryErrorDetails
+                      ?.length
+                  "
+                  class="mt-3 border-t border-red-200 pt-3"
+                >
+                  <h6 class="font-medium text-red-900">
+                    {{ t("groupOrders.finalizeFailure.recoveryHistory") }}
+                  </h6>
+                  <p class="mt-1 text-red-800">
+                    {{ t("groupOrders.finalizeFailure.recoveryAttempts") }}:
+                    {{
+                      selectedGroupOrder.finalizeFailure.recoveryErrorDetails
+                        .length
+                    }}
+                  </p>
+                  <ul class="mt-2 space-y-1 text-red-800">
+                    <li
+                      v-for="recoveryError in selectedGroupOrder.finalizeFailure
+                        .recoveryErrorDetails"
+                      :key="`${recoveryError.code}-${recoveryError.attemptedAt}`"
+                    >
+                      <span class="font-mono">{{ recoveryError.code }}</span>
+                      ·
+                      {{
+                        t("groupOrders.finalizeFailure.recoveryAttemptedAt")
+                      }}:
+                      {{ formatDateTime(recoveryError.attemptedAt) }}
+                    </li>
+                  </ul>
+                </div>
+                <p
+                  v-if="finalizationRecoveryError"
+                  data-testid="finalization-recovery-error"
+                  role="alert"
+                  class="mt-3 rounded-lg border border-red-300 bg-white p-3 text-red-900"
+                >
+                  {{ t("groupOrders.finalizeFailure.recoveryFailed") }}:
+                  {{ finalizationRecoveryError }}
+                </p>
+                <button
+                  v-if="selectedGroupOrder.status === 'finalizing_failed'"
+                  :data-testid="`recover-finalization-${selectedGroupOrder.id}`"
+                  :disabled="isRecoveringFinalization"
+                  class="mt-4 rounded-lg bg-red-700 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  @click="recoverFinalization(selectedGroupOrder.id)"
+                >
+                  {{
+                    isRecoveringFinalization
+                      ? t("groupOrders.finalizeFailure.recovering")
+                      : t("groupOrders.finalizeFailure.recover")
+                  }}
+                </button>
               </div>
 
               <!-- 成員列表 -->
@@ -936,6 +991,8 @@ const showCreateDialog = ref(false);
 const showShareDialog = ref(false);
 const showJoinDialog = ref(false);
 const joinShareCode = ref("");
+const isRecoveringFinalization = ref(false);
+const finalizationRecoveryError = ref<string | null>(null);
 
 // 統計數據 - populated from API
 const activeGroupOrders = ref(0);
@@ -989,8 +1046,7 @@ const canCreateGroupOrder = computed(() => {
 });
 
 // 工具函數
-// formatTime treats a bare string as an "HH:mm" time-of-day, so ISO datetimes
-// must be converted to a Date first.
+// formatTime expects an HH:mm value, so ISO datetimes must first become Date.
 const formatClockTime = (dateTime: string) => formatTime(new Date(dateTime));
 const formatCents = (amountCents: number) => formatPrice(amountCents / 100);
 
@@ -1001,7 +1057,7 @@ const getStatusClass = (status: string) => {
     finalizing_failed: "bg-red-100 text-red-800",
     checkout: "bg-green-100 text-green-800",
     completed: "bg-gray-100 text-gray-800",
-    cancelled: "bg-red-100 text-red-800",
+    cancelled: "bg-gray-100 text-gray-800",
   };
   return classes[status] || "bg-gray-100 text-gray-800";
 };
@@ -1062,6 +1118,7 @@ const normalizeGroupOrder = (order: ApiGroupOrderPayload): GroupOrder => {
 // 操作函數
 const selectGroupOrder = (groupOrder: GroupOrder) => {
   selectedGroupOrder.value = groupOrder;
+  finalizationRecoveryError.value = null;
 };
 
 const refreshGroupOrders = async () => {
@@ -1090,6 +1147,25 @@ const refreshGroupOrders = async () => {
     }
   } catch (err) {
     console.error("Failed to refresh group orders:", err);
+  }
+};
+
+const recoverFinalization = async (groupOrderId: string) => {
+  if (isRecoveringFinalization.value) return;
+
+  isRecoveringFinalization.value = true;
+  finalizationRecoveryError.value = null;
+
+  try {
+    await groupOrdersService.recoverFinalization(groupOrderId);
+    await refreshGroupOrders();
+  } catch (error) {
+    finalizationRecoveryError.value =
+      error instanceof Error
+        ? error.message
+        : t("groupOrders.finalizeFailure.recoveryFailed");
+  } finally {
+    isRecoveringFinalization.value = false;
   }
 };
 
