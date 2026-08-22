@@ -41,6 +41,18 @@ webhookRoutes.post(
   "/uber-eats",
   idempotencyMiddleware({
     scope: "webhook",
+    // Without this the 500 below is cached and replayed for the full 24h TTL,
+    // which outlives Uber's retry window — so the release of
+    // `platform_webhook_logs.platform_event_id` on the failure path never gets
+    // a chance to matter and the order is silently dropped.
+    //
+    // Re-running is safe here because two layers guard it: the unique
+    // event-id index on `platform_webhook_logs` still rejects a redelivery of
+    // an event that *did* process (it is only cleared on the same failure
+    // path), and `PlatformOrderService.processWebhook` is idempotent per
+    // platform order, so a retry after a partial failure converges instead of
+    // duplicating.
+    releaseOnServerError: true,
     keyResolver: (c, rawBody) => {
       const headerKey = c.req.header("Idempotency-Key");
       if (headerKey) return headerKey;

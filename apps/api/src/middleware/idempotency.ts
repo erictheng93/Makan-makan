@@ -18,6 +18,22 @@ export interface IdempotencyOptions {
   scope: string;
   ttlSeconds?: number;
   requireKey?: boolean;
+  /**
+   * Release the reservation instead of caching the response when the handler
+   * answers 5xx.
+   *
+   * A 5xx is not an outcome, it is "unknown, retry me". Caching it turns one
+   * transient failure into the answer for every redelivery for the whole TTL
+   * (24h by default) — far longer than any provider's retry window, so the
+   * event is simply lost.
+   *
+   * Default is **off** on purpose. A route may have produced partial effects
+   * before it errored — `features/payments/routes/index.ts` can have charged a
+   * gateway and then failed to persist the transaction — and re-running that is
+   * worse than replaying the failure. Only turn this on where the handler
+   * underneath is proven idempotent.
+   */
+  releaseOnServerError?: boolean;
   keyResolver?: (
     c: Context<{ Bindings: Env }>,
     rawBody: string,
@@ -69,7 +85,9 @@ async function readExisting(
     .first<IdempotencyRecord>();
 }
 
-async function deleteExpired(c: Context<{ Bindings: Env }>, key: string) {
+// Serves two callers: dropping a record whose TTL has run out, and releasing a
+// reservation whose handler answered 5xx (see `releaseOnServerError`).
+async function deleteKey(c: Context<{ Bindings: Env }>, key: string) {
   await c.env.DB.prepare("DELETE FROM idempotency_keys WHERE key = ?")
     .bind(key)
     .run();
@@ -170,7 +188,7 @@ export function idempotencyMiddleware(
     const existing = await readExisting(c, key);
 
     if (existing && existing.expires_at <= now) {
-      await deleteExpired(c, key);
+      await deleteKey(c, key);
     } else if (existing) {
       if (existing.scope !== options.scope) {
         throw jsonError(
@@ -246,6 +264,13 @@ export function idempotencyMiddleware(
     }
 
     await next();
+
+    // Nothing was decided, so nothing is worth remembering: drop the
+    // reservation and let the next delivery of this key run the handler again.
+    if (options.releaseOnServerError && c.res.status >= 500) {
+      await deleteKey(c, key);
+      return;
+    }
 
     const response = c.res.clone();
     const responseBody = await response.text();
