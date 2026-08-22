@@ -3029,7 +3029,13 @@ describe("GroupOrdersService formatting and cache behavior", () => {
             ],
           ],
         },
-        { groupOrders: { update: [[{ id: "group-1" }]] } },
+        // Two conditional writes: the claim, then the settle. Both report the
+        // row they matched, and both have to match for recovery to succeed.
+        {
+          groupOrders: {
+            update: [[{ id: "group-1" }], [{ id: "group-1" }]],
+          },
+        },
       );
       useDb(service, db);
 
@@ -3100,6 +3106,36 @@ describe("GroupOrdersService formatting and cache behavior", () => {
           }),
         ]),
       );
+    });
+
+    it("refuses to report success when the expiry sweep reclaimed the attempt", async () => {
+      const service = createService();
+      service.splitBill = vi.fn(async () => ({ success: true, data: [] }));
+      const db = createDb(
+        {
+          groupOrders: [
+            [
+              {
+                ...baseGroupOrder,
+                status: "finalizing_failed",
+                masterOrderId: "order-1",
+                settings: { finalizeFailure: failure },
+              },
+            ],
+          ],
+        },
+        // The claim wins, but by the time the settle runs the sweep has decided
+        // this attempt was abandoned and moved the row back — so it matches
+        // nothing.
+        { groupOrders: { update: [[{ id: "group-1" }], []] } },
+      );
+      useDb(service, db);
+
+      await expect(service.recoverFinalization("group-1")).resolves.toEqual({
+        success: false,
+        error:
+          "Group order finalization recovery was reclaimed before it completed",
+      });
     });
 
     it("allows only one recovery attempt to claim a failed finalization", async () => {

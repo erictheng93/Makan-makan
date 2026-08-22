@@ -1643,9 +1643,16 @@ export class GroupOrdersService implements IGroupOrderService {
     // Claim recovery before splitBill performs its read-then-write bill
     // upserts. Without this conditional transition, concurrent admin retries
     // can both observe no existing bill and insert duplicates for a member.
+    //
+    // `lockedAt` is re-stamped rather than left alone: the expiry sweep decides
+    // a claim is abandoned by how old `lockedAt` is, and the value already on
+    // the row belongs to the original finalize attempt — minutes or hours
+    // earlier. Leaving it would make every recovery look abandoned the instant
+    // it started.
+    const claimedAt = new Date();
     const claimedRows = await this.db
       .update(groupOrders)
-      .set({ status: "finalizing", updatedAt: new Date() })
+      .set({ status: "finalizing", lockedAt: claimedAt, updatedAt: claimedAt })
       .where(
         and(
           eq(groupOrders.id, groupOrderId),
@@ -1709,7 +1716,7 @@ export class GroupOrdersService implements IGroupOrderService {
     const { finalizeFailure: _finalizeFailure, ...recoveredSettings } =
       settings;
     const now = new Date();
-    await this.db
+    const settledRows = await this.db
       .update(groupOrders)
       .set({
         status: "checkout",
@@ -1723,7 +1730,21 @@ export class GroupOrdersService implements IGroupOrderService {
           eq(groupOrders.status, "finalizing"),
           eq(groupOrders.masterOrderId, groupOrder.masterOrderId),
         ),
-      );
+      )
+      .returning({ id: groupOrders.id });
+
+    // The claim was taken from us — the expiry sweep decided this attempt had
+    // been abandoned and moved the group back to `finalizing_failed`. The
+    // bills are written and splitBill upserts by member, so re-running is
+    // safe; what is not safe is telling the caller this settled when the row
+    // says otherwise.
+    if (settledRows.length === 0) {
+      return {
+        success: false,
+        error:
+          "Group order finalization recovery was reclaimed before it completed",
+      };
+    }
 
     await this.logActivity(
       groupOrderId,

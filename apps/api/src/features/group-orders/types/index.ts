@@ -272,7 +272,8 @@ export type ActivityType =
   | "payment_made"
   | "order_finalized"
   | "order_cancelled"
-  | "group_expired";
+  | "group_expired"
+  | "finalize_claim_abandoned";
 
 // Statistics and Analytics
 export interface GroupOrderStatistics {

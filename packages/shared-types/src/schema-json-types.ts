@@ -166,6 +166,12 @@ export interface GroupActivityMetadata {
   reason?: string;
   /** Unix ms. Recorded on `group_expired` activity by the expiry sweep. */
   expiredAt?: number;
+  /**
+   * The real order a finalize claim had already created. Recorded on
+   * `finalize_claim_abandoned` by the expiry sweep, so the log says which
+   * order is outstanding without a second lookup.
+   */
+  masterOrderId?: string;
 }
 
 // ================================================

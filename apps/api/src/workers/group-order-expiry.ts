@@ -14,7 +14,10 @@ import { randomUUID } from "crypto";
 import { drizzle } from "drizzle-orm/d1";
 import { and, eq, gt, isNotNull, isNull, lt, lte } from "drizzle-orm";
 import { groupActivityLogs, groupOrders } from "@makanmasak/database";
-import type { GroupOrderSettings } from "@makanmasak/shared-types";
+import type {
+  GroupOrderFinalizeFailure,
+  GroupOrderSettings,
+} from "@makanmasak/shared-types";
 import {
   EMPTY_GROUP_ORDER_ERROR,
   GroupOrdersService,
@@ -31,11 +34,26 @@ export const GROUP_ORDER_FINALIZING_STALE_MS = 10 * 60 * 1000;
 const ACTIVE: GroupOrderStatus = "active";
 const CANCELLED: GroupOrderStatus = "cancelled";
 const FINALIZING: GroupOrderStatus = "finalizing";
+const FINALIZING_FAILED: GroupOrderStatus = "finalizing_failed";
+
+/**
+ * Written into `settings.finalizeFailure.code` when the sweep finds a claim
+ * that died after the real order was created but before the split resolved.
+ * Distinct from the split-level codes so an operator can tell "the split was
+ * attempted and rejected" apart from "nobody ever got that far".
+ */
+export const ABANDONED_FINALIZE_CLAIM_CODE = "FINALIZE_CLAIM_ABANDONED";
 
 export interface GroupOrderExpirySweepResult {
   finalized: number;
   cancelled: number;
   warned: number;
+  /**
+   * Claims that died after their real order was created and have been moved to
+   * `finalizing_failed` so an operator can recover them. A non-zero value is
+   * not an error, but it does mean money is outstanding on those groups.
+   */
+  awaitingRecovery: number;
   errors: string[];
 }
 
@@ -104,6 +122,89 @@ async function cancelExpiredGroupOrder(
   return true;
 }
 
+/**
+ * Move a finalize claim whose isolate died after the real order was created
+ * into `finalizing_failed`.
+ *
+ * The bulk sweep at the end of `sweepExpiringGroupOrders` refuses these rows on
+ * purpose: handing one back to a second finalizer would place a second order.
+ * But refusing them is not the same as resolving them. Nothing else moves a
+ * group out of `finalizing` — `finalizeGroupOrder` rejects a group that is
+ * already `finalizing`, and `recoverFinalization` only accepts
+ * `finalizing_failed` — so the group sits with a real order outstanding, no
+ * split, nobody charged, and no action available to the restaurant. That is
+ * precisely the condition `finalizing_failed` exists to name.
+ *
+ * The diagnostics carry the totals `finalizeGroupOrder` persisted onto the row
+ * immediately before it split, so the recovery endpoint has the amounts it
+ * needs to re-run. Nothing here is invented: it is read back from the columns
+ * the finalizer wrote.
+ */
+async function demoteAbandonedFinalizeClaim(
+  db: GroupOrderSweepDb,
+  groupOrder: typeof groupOrders.$inferSelect,
+  now: Date,
+): Promise<boolean> {
+  // The caller selects on masterOrderId being set, so this never fires. It is
+  // here to narrow the type honestly: the alternative is defaulting to an
+  // empty string, which would write a diagnostic record naming no order at
+  // all and hand an operator a dead end to chase.
+  const masterOrderId = groupOrder.masterOrderId;
+  if (!masterOrderId) return false;
+
+  const settings = readSettings(groupOrder.settings);
+
+  // An abandoned *recovery* attempt already carries the original failure. Keep
+  // it: `failedAt` is what the admin panel shows as the first failure, and
+  // #231 asks specifically that a retry never overwrite it.
+  const finalizeFailure: GroupOrderFinalizeFailure =
+    settings.finalizeFailure ?? {
+      code: ABANDONED_FINALIZE_CLAIM_CODE,
+      masterOrderId,
+      orderTotalCents: groupOrder.finalAmountCents ?? 0,
+      serviceChargeCents: groupOrder.serviceChargeCents ?? 0,
+      taxAmountCents: groupOrder.taxAmountCents ?? 0,
+      splitError:
+        "Finalization claim was abandoned after the order was created",
+      failedAt: now.toISOString(),
+    };
+
+  // Conditional on the status we selected under: the owning isolate may have
+  // woken up and finished between the read and this write.
+  const demoted = await db
+    .update(groupOrders)
+    .set({
+      status: FINALIZING_FAILED,
+      settings: { ...settings, finalizeFailure },
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(groupOrders.id, groupOrder.id),
+        eq(groupOrders.status, FINALIZING),
+      ),
+    )
+    .returning({ id: groupOrders.id });
+
+  if (demoted.length === 0) return false;
+
+  await db.insert(groupActivityLogs).values({
+    id: randomUUID(),
+    groupOrderId: groupOrder.id,
+    memberId: null,
+    action: "finalize_claim_abandoned",
+    description:
+      "Finalization claim was abandoned after the order was created; awaiting recovery",
+    metadata: {
+      masterOrderId,
+      reason: finalizeFailure.code,
+    },
+    createdAt: now,
+  });
+
+  return true;
+}
+
 async function invalidateGroupOrderCache(
   env: Env,
   groupOrder: SweepGroupOrder,
@@ -125,6 +226,7 @@ export async function sweepExpiringGroupOrders(
     finalized: 0,
     cancelled: 0,
     warned: 0,
+    awaitingRecovery: 0,
     errors: [],
   };
 
@@ -234,6 +336,32 @@ export async function sweepExpiringGroupOrders(
         lt(groupOrders.lockedAt, staleBefore),
       ),
     );
+
+  // The other half of the same stuck claim: the order already exists, so the
+  // sweep above must not touch it, but leaving it in `finalizing` strands it
+  // where nothing can act on it. See demoteAbandonedFinalizeClaim.
+  const abandonedClaims = await db
+    .select()
+    .from(groupOrders)
+    .where(
+      and(
+        eq(groupOrders.status, FINALIZING),
+        isNotNull(groupOrders.masterOrderId),
+        isNotNull(groupOrders.lockedAt),
+        lt(groupOrders.lockedAt, staleBefore),
+      ),
+    );
+
+  for (const groupOrder of abandonedClaims) {
+    try {
+      if (await demoteAbandonedFinalizeClaim(db, groupOrder, now)) {
+        await invalidateGroupOrderCache(env, groupOrder);
+        result.awaitingRecovery++;
+      }
+    } catch (error) {
+      result.errors.push(`${groupOrder.id}: ${(error as Error).message}`);
+    }
+  }
 
   return result;
 }
