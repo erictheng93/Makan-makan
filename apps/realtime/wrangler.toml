@@ -22,31 +22,23 @@ bindings = [
   { name = "REALTIME_SESSION", class_name = "RealtimeSession" }
 ]
 
-# SQLite backend, not the key-value one. Two independent reasons:
+# legacy-kv, not SQLite — this is a declaration of what is already
+# provisioned, not a choice. RealtimeSession was created by the 2026-07-22
+# production deploy, when this file still said `new_classes`, so the live
+# namespace on makanmasak-realtime-prod is key-value backed. Cloudflare cannot
+# change a deployed class's storage backend in place: `new_sqlite_classes` on an
+# existing key-value class is rejected, and the `exports` reconciler fails it as
+# `storage_type_mismatch`. The worker is already past `tag = "v1"`, so this
+# entry is history — wrangler sends no migration for it — and rewriting it does
+# not move the backend, it only makes the file disagree with production.
 #
-# 1. Deployability. Since 2026-07-09 Cloudflare refuses `new_classes` on any
-#    account that does not already own a key-value-backed namespace:
-#    "Creating new key-value backed Durable Object namespaces is no longer
-#    supported on this account." Nothing in this project has ever been
-#    deployed, so `new_classes` here was a deploy that would fail on first try.
-#
-# 2. Cost. The key-value backend bills in 4 KB request units — reads $0.20/M
-#    over 1M/month free, writes $1.00/M over 1M/month free. The SQLite backend
-#    bills whole rows regardless of row size — reads $0.001/M over 25B/month
-#    free, writes $1.00/M over 50M/month free. RealtimeSession persists its
-#    event history by rewriting the entire ~100-event array on every broadcast
-#    (addToEventHistory), which is roughly 5 write units per broadcast on the
-#    key-value backend versus exactly 1 row on SQLite, against a free tier
-#    50x larger. No code change is needed for this: `storage.get`/`storage.put`
-#    are still supported on SQLite-backed objects, they are just billed by row.
-#
-# This cannot be changed after the class is deployed — `new_sqlite_classes` on
-# an existing key-value-backed class is rejected, and Cloudflare has not yet
-# shipped a migration path. Getting it right before first deploy is the whole
-# window.
+# The cost argument for SQLite is real (4 KB request units vs whole rows, and a
+# free tier 50x larger for writes) but it is not reachable from here. Revisit
+# when Cloudflare ships the key-value → SQLite migration path they have
+# promised; until then the lever is addToEventHistory's full-array rewrite.
 [[migrations]]
 tag = "v1"
-new_sqlite_classes = ["RealtimeSession"]
+new_classes = ["RealtimeSession"]
 
 # Local D1 binding — RealtimeSession DurableObject's
 # validateRestaurantAccess() needs to query users.restaurant_id to confirm
