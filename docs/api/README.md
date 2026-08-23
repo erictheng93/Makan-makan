@@ -39,7 +39,7 @@ Authorization: Bearer <your_jwt_token>
 > 自動生成，請勿手動編輯。執行 `node scripts/check-docs-drift.cjs --write` 重新生成。
 > Source of truth: `apps/api/src/app-factory.ts` 的 `apiV1.route(...)` 掛載點。
 
-共 **50** 個掛載點（全部相對於 `/api/v1`）。
+共 **51** 個掛載點（全部相對於 `/api/v1`）。
 
 | Prefix | Router | 說明 |
 | ------ | ------ | ---- |
@@ -66,6 +66,7 @@ Authorization: Bearer <your_jwt_token>
 | `/payments` | `paymentsFeature.routes` |  |
 | `/manager` | `managerFeature.actionsRoutes` |  |
 | `/audit-logs` | `managerFeature.auditLogsRoutes` |  |
+| `/print` | `printRoutes` |  |
 | `/tables` | `tablesFeature.routes` |  |
 | `/seats` | `seatsFeature.routes` |  |
 | `/users` | `usersFeature.routes` |  |
@@ -438,6 +439,17 @@ Authorization: Bearer <your_jwt_token>
 | POST   | `/pos/receipts/:receiptId/cancel`     | 作廢收據    | Protected |
 | GET    | `/pos/registers/:registerId/receipts` | 收據列表    | Protected |
 | GET    | `/pos/receipts/:receiptId`            | 收據詳情    | Protected |
+
+### Print Agent (`/print`) — 2 routes
+
+These machine-to-machine endpoints authenticate with the
+`X-Print-Agent-Key` header, not a browser session. They are restricted to the
+agent's restaurant and register scope.
+
+| Method | Path                           | Description                                  | Auth            |
+| ------ | ------------------------------ | -------------------------------------------- | --------------- |
+| GET    | `/print/jobs`                  | Claim the next pending receipt print job     | Print agent key |
+| POST   | `/print/jobs/:receiptId/ack`   | Acknowledge a claimed job as printed/failed  | Print agent key |
 
 ### Kitchen (`/kitchen`) — 5 routes
 
