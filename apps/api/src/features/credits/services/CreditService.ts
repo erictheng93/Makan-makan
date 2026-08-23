@@ -124,47 +124,49 @@ export class CreditService {
       ? await bcrypt.hash(input.pin, BCRYPT_COST)
       : null;
     const expiresAt = new Date(Date.now() + CREDIT_ROLLING_EXPIRY_MS);
-
-    const [account] = await this.db
-      .insert(creditAccounts)
-      .values({
-        ownerCustomerId: input.ownerCustomerId ?? null,
-        currency: input.currency,
-        balanceCents: input.initialBalanceCents ?? 0,
-        expiresAtMs: expiresAt,
-      })
-      .returning();
-
+    const initialBalanceCents = input.initialBalanceCents ?? 0;
+    const accountId = generateUUID();
+    const cardId = generateUUID();
     const publicId = generateUUID();
-    const [card] = await this.db
-      .insert(creditCards)
-      .values({
-        accountId: account.id,
-        publicId,
-        secretHash,
-      })
-      .returning();
+
+    const createAccount = this.db.insert(creditAccounts).values({
+      id: accountId,
+      ownerCustomerId: input.ownerCustomerId ?? null,
+      currency: input.currency,
+      balanceCents: initialBalanceCents,
+      expiresAtMs: expiresAt,
+    });
+
+    const createCard = this.db.insert(creditCards).values({
+      id: cardId,
+      accountId,
+      publicId,
+      secretHash,
+    });
 
     // Audit the opening balance as a ledger entry so the ledger is the complete
     // source of truth (balance == sum(ledger)) — no un-audited money creation.
-    if ((input.initialBalanceCents ?? 0) > 0) {
-      await this.db.insert(creditLedgerEntries).values({
-        accountId: account.id,
+    if (initialBalanceCents > 0) {
+      const recordOpeningBalance = this.db.insert(creditLedgerEntries).values({
+        accountId,
         entryType: "adjust",
-        amountCents: account.balanceCents,
-        balanceAfterCents: account.balanceCents,
-        currency: account.currency,
+        amountCents: initialBalanceCents,
+        balanceAfterCents: initialBalanceCents,
+        currency: input.currency,
         sourceType: "card_issue",
-        sourceId: card.id,
-        idempotencyKey: `credit-issue:${account.id}`,
+        sourceId: cardId,
+        idempotencyKey: `credit-issue:${accountId}`,
       });
+      await this.db.batch([createAccount, createCard, recordOpeningBalance]);
+    } else {
+      await this.db.batch([createAccount, createCard]);
     }
 
     return {
-      cardId: card.id,
-      publicId: card.publicId,
-      accountId: account.id,
-      currency: account.currency,
+      cardId,
+      publicId,
+      accountId,
+      currency: input.currency,
     };
   }
 
@@ -472,7 +474,10 @@ export class CreditService {
     for (const account of candidates) {
       // Isolate each account so one bad row can't abort the rest of the batch.
       try {
-        const zeroed = await this.db
+        const expiryIdempotencyKey = `credit-expire:${account.id}:${
+          account.expiresAtMs?.getTime() ?? now.getTime()
+        }`;
+        const zeroBalance = this.db
           .update(creditAccounts)
           .set({
             balanceCents: 0,
@@ -487,23 +492,34 @@ export class CreditService {
             ),
           )
           .returning({ id: creditAccounts.id });
+        const recordExpiry = this.db.insert(creditLedgerEntries).select(
+          this.db
+            .select({
+              id: sql<string>`${generateUUID()}`.as("id"),
+              accountId: creditAccounts.id,
+              entryType: sql<CreditEntryType>`'expire'`.as("entry_type"),
+              amountCents: sql<number>`${-account.balanceCents}`.as(
+                "amount_cents",
+              ),
+              balanceAfterCents: sql<number>`0`.as("balance_after_cents"),
+              currency: creditAccounts.currency,
+              sourceType: sql<string>`'expiry_job'`.as("source_type"),
+              sourceId: creditAccounts.id,
+              idempotencyKey: sql<string>`${expiryIdempotencyKey}`.as(
+                "idempotency_key",
+              ),
+            })
+            .from(creditAccounts)
+            .where(
+              and(
+                eq(creditAccounts.id, account.id),
+                eq(creditAccounts.version, account.version + 1),
+                eq(creditAccounts.balanceCents, 0),
+              ),
+            ),
+        );
+        const [zeroed] = await this.db.batch([zeroBalance, recordExpiry]);
         if (zeroed.length === 0) continue; // concurrent activity won
-
-        await this.db
-          .insert(creditLedgerEntries)
-          .values({
-            accountId: account.id,
-            entryType: "expire",
-            amountCents: -account.balanceCents,
-            balanceAfterCents: 0,
-            currency: account.currency,
-            sourceType: "expiry_job",
-            sourceId: account.id,
-            idempotencyKey: `credit-expire:${account.id}:${
-              account.expiresAtMs?.getTime() ?? now.getTime()
-            }`,
-          })
-          .onConflictDoNothing({ target: creditLedgerEntries.idempotencyKey });
 
         expired += 1;
         totalExpiredCents += account.balanceCents;

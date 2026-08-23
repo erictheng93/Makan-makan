@@ -15,7 +15,11 @@ import {
   createTestDatabase,
   type TestDatabase,
 } from "@makanmasak/database/testing";
-import { creditAccounts, creditLedgerEntries } from "@makanmasak/database";
+import {
+  creditAccounts,
+  creditCards,
+  creditLedgerEntries,
+} from "@makanmasak/database";
 import { eq } from "drizzle-orm";
 import type { Env } from "../../types/env";
 import { CreditService } from "../../features/credits/services/CreditService";
@@ -75,6 +79,74 @@ describe("CreditService — issue & balance", () => {
       status: "active",
       cardStatus: "active",
     });
+  });
+
+  it("rolls back the account when creating its card fails", async () => {
+    const service = makeService();
+
+    await testDb.db
+      .prepare(
+        `CREATE TRIGGER poison_credit_card_insert
+           BEFORE INSERT ON credit_cards
+           BEGIN SELECT RAISE(ABORT, 'poisoned card insert'); END`,
+      )
+      .run();
+
+    try {
+      await expect(
+        service.issueCard({ currency: "TWD", initialBalanceCents: 5000 }),
+      ).rejects.toThrow();
+
+      expect(await testDb.drizzle.select().from(creditAccounts).all()).toEqual(
+        [],
+      );
+      expect(await testDb.drizzle.select().from(creditCards).all()).toEqual([]);
+      expect(await service.findBalanceLedgerDrift()).toEqual([]);
+    } finally {
+      await testDb.db.prepare("DROP TRIGGER poison_credit_card_insert").run();
+    }
+  });
+});
+
+describe("CreditService — expiry atomicity", () => {
+  it("keeps the balance when writing the expiry ledger entry fails", async () => {
+    const service = makeService();
+    const card = await service.issueCard({
+      currency: "TWD",
+      initialBalanceCents: 5000,
+    });
+    const expiredAtMs = Date.now() - 1;
+    await testDb.drizzle
+      .update(creditAccounts)
+      .set({ expiresAtMs: new Date(expiredAtMs) })
+      .where(eq(creditAccounts.id, card.accountId));
+
+    await testDb.db
+      .prepare(
+        `CREATE TRIGGER poison_expiry_ledger_insert
+           BEFORE INSERT ON credit_ledger_entries
+           WHEN NEW.entry_type = 'expire'
+           BEGIN SELECT RAISE(ABORT, 'poisoned expiry ledger insert'); END`,
+      )
+      .run();
+
+    try {
+      const result = await service.expireStaleAccounts({
+        nowMs: Date.now(),
+      });
+
+      expect(result).toMatchObject({ expired: 0, totalExpiredCents: 0 });
+      expect(result.failures).toHaveLength(1);
+      expect((await service.getBalance(card.publicId)).balanceCents).toBe(5000);
+      expect(
+        (await ledgerEntriesFor(card.accountId)).filter(
+          (entry) => entry.entryType === "expire",
+        ),
+      ).toEqual([]);
+      expect(await service.findBalanceLedgerDrift()).toEqual([]);
+    } finally {
+      await testDb.db.prepare("DROP TRIGGER poison_expiry_ledger_insert").run();
+    }
   });
 });
 
