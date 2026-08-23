@@ -85,6 +85,21 @@ Rejected alternatives, so they do not get re-proposed:
 
 **Also worth deciding separately:** `USAGE_EVENTS_TTL_DAYS` is 90. Rows are aggregated into `usage_meters` within the hour and then exist only as dispute evidence. Dropping to ~35 days (one cycle plus a buffer) cuts the table's D1 storage by roughly 60% and is a business call, not a technical one. Bucketing largely subsumes this.
 
+### RealtimeSession is stuck on the key-value Durable Object backend
+
+**Priority:** P3 **Status:** Blocked on Cloudflare (identified 2026-08-23) **Files:** `apps/realtime/wrangler.toml`, `apps/realtime/src/durableObjects/RealtimeSession.ts`
+
+**Context:** `RealtimeSession` was provisioned key-value backed by the 2026-07-22 production deploy, when the migration still read `new_classes`. The key-value backend bills storage in 4 KB request units — reads $0.20/M over 1M/month included, writes $1.00/M over 1M/month included — while the SQLite backend bills whole rows regardless of size, reads $0.001/M over 25B included and writes $1.00/M over **50M** included. `addToEventHistory` rewrites the entire ~100-event array through `storage.put` on every broadcast, which is roughly 5 write units per broadcast on key-value against exactly 1 row on SQLite.
+
+**Do not flip the migration to `new_sqlite_classes`.** A deployed class's storage backend cannot be changed in place; Cloudflare rejects `new_sqlite_classes` on an existing key-value class and the `exports` reconciler reports `storage_type_mismatch`. Because `makanmasak-realtime-prod` is already past `tag = "v1"`, wrangler sends no migration for that entry at all, so editing it does not move the backend — it only makes the file disagree with production. Commit `af729cd3` did exactly that on the false premise that nothing had been deployed; reverted 2026-08-23.
+
+**Two ways out, neither free:**
+
+- Wait for Cloudflare's promised key-value → SQLite migration path (announced as future work in the 2026-07-09 changelog). Zero effort, unknown date.
+- Delete and re-provision the namespace under a new class name. That discards every object's stored state. `RealtimeSession` keeps only an event-history ring buffer and hibernating WebSocket attachments, so the loss is bounded — but every live socket drops. Only worth doing inside a planned maintenance window.
+
+**Reachable now, without touching the backend:** `addToEventHistory` rewrites the whole array on every broadcast. Writing one key per event with a monotonic suffix and deleting the tail would cut the write units per broadcast to ~1 on the current backend. That is the actual lever while the backend is frozen.
+
 ## payments / provider integrations
 
 ### Defer real payment acquirer integration
@@ -308,6 +323,25 @@ Rejected alternatives, so they do not get re-proposed:
 **Why deferred:** #207's scope was `no-explicit-any` in test code. Narrowing the return type is a production-signature change with its own callers to check, and the issue explicitly says such findings should be filed rather than forced through a cast in the test.
 
 **Scope:** Give the method a concrete return type (the formatted coupon row), let `PaginatedCouponsResponse` follow, then replace the test's local `CouponResponse` with `ServiceData<CouponsService["createCouponWithValidation"]>`.
+
+## deployment
+
+### The production deploy workflow has never successfully run
+
+**Priority:** P1 **Status:** Open (identified 2026-08-23) **Files:** `.github/workflows/deploy-production.yml`
+
+**Context:** `deploy-production.yml` has been dispatched exactly once, on 2026-07-24 (run `30110053816`). It failed in the first package `pnpm -r run deploy:prod` reached, `apps/backup-scheduler`, with:
+
+```
+✘ [ERROR] In a non-interactive environment, it's necessary to set a
+CLOUDFLARE_API_TOKEN environment variable for wrangler to work.
+```
+
+The step does pass `CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}`, so the repository (or `production` environment) secret is unset or empty. `pnpm -r` aborts on the first failure, so **nothing reached Cloudflare in that run** — no worker was uploaded, and no partial deploy needs unwinding. Every other run of this workflow was `workflow_run`-triggered and skipped by the confirmation gate.
+
+**Consequence:** every production deploy to date has been run by hand from a workstation. There is no deployment record in the repository, no post-deploy smoke test, and no way to tell from here which commit any given worker is serving.
+
+**Scope:** set the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets on the `production` environment (the account is `bdddc08c066a9abc285d75fe5947a468`, not the one a local `wrangler login` resolves to by default), re-dispatch, and confirm the smoke-test step actually runs. `PRODUCTION_URL` and `PRODUCTION_KITCHEN_URL` are read by that step and should be verified at the same time.
 
 ## Completed
 
