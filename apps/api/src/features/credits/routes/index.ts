@@ -55,7 +55,7 @@ app.post(
   "/cards/:publicId/topup",
   authMiddleware,
   ADMIN_ONLY,
-  idempotencyMiddleware({ scope: "credit" }),
+  idempotencyMiddleware({ scope: "credit", releaseOnServerError: true }),
   validateParams(publicIdParamSchema),
   validateBody(topupSchema),
   async (c) => {

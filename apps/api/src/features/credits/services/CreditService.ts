@@ -97,8 +97,9 @@ type CreditCardRow = typeof creditCards.$inferSelect;
  * Money-safety is enforced by a single conditional UPDATE with a balance guard
  * (`balance_cents >= :amount`) — atomic on D1, so concurrent spends on the same
  * balance cannot overspend and cannot double-spend (proven against real D1).
- * `idempotency_key` UNIQUE on the ledger makes every movement replay-safe; a
- * lost race compensates by reversing the duplicate deduction.
+ * `idempotency_key` UNIQUE on the ledger makes every movement replay-safe.
+ * Every balance/ledger pair is committed in one D1 batch, so a failed ledger
+ * insert rolls the balance update back instead of requiring compensation.
  */
 export class CreditService {
   private readonly db: ReturnType<typeof drizzle>;
@@ -219,45 +220,16 @@ export class CreditService {
     }
     await this.assertPinIfRequired(card, input.amountCents, input.pin);
 
-    // Atomic guarded deduction. The balance guard prevents overspend AND
-    // serialises concurrent spends — a losing concurrent spend matches 0 rows.
-    const expiresAt = new Date(Date.now() + CREDIT_ROLLING_EXPIRY_MS);
-    const deducted = await this.db
-      .update(creditAccounts)
-      .set({
-        balanceCents: sql`${creditAccounts.balanceCents} - ${input.amountCents}`,
-        version: sql`${creditAccounts.version} + 1`,
-        expiresAtMs: expiresAt,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(creditAccounts.id, account.id),
-          eq(creditAccounts.currency, input.currency),
-          eq(creditAccounts.status, "active"),
-          gte(creditAccounts.balanceCents, input.amountCents),
-        ),
-      )
-      .returning({ balanceAfter: creditAccounts.balanceCents });
-
-    if (deducted.length === 0) {
-      throw conflict("Insufficient credit balance", "INSUFFICIENT_BALANCE");
-    }
-    const balanceAfterCents = deducted[0].balanceAfter;
-
-    return this.appendLedgerOrCompensate({
+    return this.applyLedgerMovement({
       accountId: account.id,
       entryType: "spend",
       amountCents: -input.amountCents,
-      balanceAfterCents,
       currency: input.currency,
       idempotencyKey: input.idempotencyKey,
       sourceType: input.sourceType,
       sourceId: input.sourceId,
       marketCheckoutPaymentId: input.marketCheckoutPaymentId,
-      // Compensation if a concurrent twin already recorded this exact key:
-      // reverse our duplicate deduction (credit it back).
-      reverseAmountCents: input.amountCents,
+      requireActiveBalance: input.amountCents,
     });
   }
 
@@ -284,20 +256,14 @@ export class CreditService {
       );
     }
 
-    const balanceAfterCents = await this.applyDelta(
-      account.id,
-      input.amountCents,
-    );
-    return this.appendLedgerOrCompensate({
+    return this.applyLedgerMovement({
       accountId: account.id,
       entryType: "topup",
       amountCents: input.amountCents,
-      balanceAfterCents,
       currency: input.currency,
       idempotencyKey: input.idempotencyKey,
       sourceType: input.sourceType,
       sourceId: input.sourceId,
-      reverseAmountCents: -input.amountCents,
     });
   }
 
@@ -332,21 +298,15 @@ export class CreditService {
       );
     }
 
-    const balanceAfterCents = await this.applyDelta(
-      account.id,
-      input.amountCents,
-    );
-    return this.appendLedgerOrCompensate({
+    return this.applyLedgerMovement({
       accountId: account.id,
       entryType: "refund",
       amountCents: input.amountCents,
-      balanceAfterCents,
       currency: input.currency,
       idempotencyKey: input.idempotencyKey,
       sourceType: input.sourceType,
       sourceId: input.sourceId,
       marketCheckoutPaymentId: input.marketCheckoutPaymentId,
-      reverseAmountCents: -input.amountCents,
     });
   }
 
@@ -681,25 +641,6 @@ export class CreditService {
     }
   }
 
-  /** Increment/decrement balance (used by topup/refund — increments don't need a guard). */
-  private async applyDelta(
-    accountId: string,
-    deltaCents: number,
-  ): Promise<number> {
-    const expiresAt = new Date(Date.now() + CREDIT_ROLLING_EXPIRY_MS);
-    const [row] = await this.db
-      .update(creditAccounts)
-      .set({
-        balanceCents: sql`${creditAccounts.balanceCents} + ${deltaCents}`,
-        version: sql`${creditAccounts.version} + 1`,
-        expiresAtMs: expiresAt,
-        updatedAt: new Date(),
-      })
-      .where(eq(creditAccounts.id, accountId))
-      .returning({ balanceAfter: creditAccounts.balanceCents });
-    return row.balanceAfter;
-  }
-
   private async findLedgerByIdempotencyKey(key: string) {
     return this.db
       .select()
@@ -708,63 +649,111 @@ export class CreditService {
       .get();
   }
 
-  /**
-   * Insert the ledger entry; the UNIQUE idempotency key guards against a
-   * concurrent twin. If the insert finds a conflict the balance change we just
-   * made is a duplicate, so we reverse it and return the canonical entry.
-   */
-  private async appendLedgerOrCompensate(params: {
+  /** Atomically apply a balance delta and append its corresponding ledger row. */
+  private async applyLedgerMovement(params: {
     accountId: string;
     entryType: CreditEntryType;
     amountCents: number;
-    balanceAfterCents: number;
     currency: string;
     idempotencyKey: string;
     sourceType: string;
     sourceId?: string;
     marketCheckoutPaymentId?: string;
-    reverseAmountCents: number;
+    /** A spend needs the account to stay active and funded during the write. */
+    requireActiveBalance?: number;
   }): Promise<LedgerMovementResult> {
-    const [entry] = await this.db
-      .insert(creditLedgerEntries)
-      .values({
-        accountId: params.accountId,
-        entryType: params.entryType,
-        amountCents: params.amountCents,
-        balanceAfterCents: params.balanceAfterCents,
-        currency: params.currency,
-        sourceType: params.sourceType,
-        sourceId: params.sourceId ?? null,
-        marketCheckoutPaymentId: params.marketCheckoutPaymentId ?? null,
-        idempotencyKey: params.idempotencyKey,
-      })
-      .onConflictDoNothing({ target: creditLedgerEntries.idempotencyKey })
-      .returning();
-
-    if (entry) {
-      return {
-        ledgerEntryId: entry.id,
-        accountId: params.accountId,
-        balanceAfterCents: params.balanceAfterCents,
-      };
-    }
-
-    // Lost the race: a twin already recorded this idempotency key. Reverse the
-    // duplicate balance change and return the canonical entry.
-    await this.applyDelta(params.accountId, params.reverseAmountCents);
-    const canonical = await this.findLedgerByIdempotencyKey(
-      params.idempotencyKey,
+    const now = Date.now();
+    const expiresAtMs = now + CREDIT_ROLLING_EXPIRY_MS;
+    const accountPredicate = params.requireActiveBalance
+      ? " AND currency = ? AND status = 'active' AND balance_cents >= ?"
+      : "";
+    const accountBindings = params.requireActiveBalance
+      ? [params.currency, params.requireActiveBalance]
+      : [];
+    const update = this.env.DB.prepare(
+      `UPDATE credit_accounts
+          SET balance_cents = balance_cents + ?, version = version + 1,
+              expires_at_ms = ?, updated_at_ms = ?
+        WHERE id = ?${accountPredicate}`,
+    ).bind(
+      params.amountCents,
+      expiresAtMs,
+      now,
+      params.accountId,
+      ...accountBindings,
     );
-    if (!canonical) {
+    // `changes()` is the preceding UPDATE's affected-row count on this batch
+    // connection. It prevents a failed spend guard from adding a ledger row.
+    // This insert deliberately has no conflict-ignore clause: a duplicate key
+    // aborts the whole D1 batch, including the balance update.
+    const ledger = this.env.DB.prepare(
+      `INSERT INTO credit_ledger_entries
+           (id, account_id, entry_type, amount_cents, balance_after_cents,
+            currency, source_type, source_id, market_checkout_payment_id,
+            idempotency_key, created_at_ms)
+         SELECT ?, ?, ?, ?, balance_cents, ?, ?, ?, ?, ?, ?
+           FROM credit_accounts
+          WHERE id = ? AND changes() = 1
+         RETURNING id, account_id, balance_after_cents`,
+    ).bind(
+      generateUUID(),
+      params.accountId,
+      params.entryType,
+      params.amountCents,
+      params.currency,
+      params.sourceType,
+      params.sourceId ?? null,
+      params.marketCheckoutPaymentId ?? null,
+      params.idempotencyKey,
+      now,
+      params.accountId,
+    );
+
+    let updateResult: D1Result<unknown>;
+    let ledgerResult: D1Result<unknown>;
+    try {
+      [updateResult, ledgerResult] = await this.env.DB.batch([update, ledger]);
+    } catch (error) {
+      // A concurrent twin can reach the strict UNIQUE insert after its own
+      // preflight read. Its failed batch changed neither balance nor ledger;
+      // return the canonical ledger row once the winner commits.
+      const canonical = await this.findLedgerByIdempotencyKey(
+        params.idempotencyKey,
+      );
+      if (canonical) {
+        return {
+          ledgerEntryId: canonical.id,
+          accountId: canonical.accountId,
+          balanceAfterCents: canonical.balanceAfterCents,
+        };
+      }
+      throw error;
+    }
+    if (updateResult.meta.changes === 0) {
+      if (params.requireActiveBalance) {
+        throw conflict("Insufficient credit balance", "INSUFFICIENT_BALANCE");
+      }
       throw conflict(
-        "Credit ledger conflict could not be reconciled",
-        "CREDIT_LEDGER_CONFLICT",
+        "Credit account could not be updated",
+        "CREDIT_ACCOUNT_MOVEMENT_FAILED",
       );
     }
-    return {
-      ledgerEntryId: canonical.id,
-      accountId: canonical.accountId,
-      balanceAfterCents: canonical.balanceAfterCents,
-    };
+    {
+      const entry = ledgerResult.results[0] as
+        | {
+            id: string;
+            account_id: string;
+            balance_after_cents: number;
+          }
+        | undefined;
+      if (!entry) {
+        throw new Error("Credit movement batch did not append a ledger entry");
+      }
+      return {
+        ledgerEntryId: entry.id,
+        accountId: entry.account_id,
+        balanceAfterCents: entry.balance_after_cents,
+      };
+    }
   }
 }

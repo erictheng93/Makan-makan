@@ -113,6 +113,7 @@ export function createMutationFixtureDb<Name extends string>(
           inserted.push(payload);
           return builder;
         }),
+        select: vi.fn(() => builder),
         onConflictDoNothing: vi.fn(() => builder),
         onConflictDoUpdate: vi.fn(() => builder),
       };

@@ -3,6 +3,7 @@ import type { AuthUser } from "../../../middleware/auth";
 import { ApiError } from "../../../shared/utils/api-error";
 
 const mocks = vi.hoisted(() => ({
+  idempotencyOptions: [] as Array<Record<string, unknown>>,
   creditService: {
     issueCard: vi.fn(),
     topup: vi.fn(),
@@ -40,9 +41,10 @@ vi.mock("../../../middleware/auth", () => ({
 }));
 
 vi.mock("../../../middleware/idempotency", () => ({
-  idempotencyMiddleware: vi.fn(
-    () => async (_c: unknown, next: () => Promise<void>) => next(),
-  ),
+  idempotencyMiddleware: vi.fn((options: Record<string, unknown>) => {
+    mocks.idempotencyOptions.push(options);
+    return async (_c: unknown, next: () => Promise<void>) => next();
+  }),
 }));
 
 vi.mock("../../../middleware/rateLimiter", () => ({
@@ -190,6 +192,13 @@ describe("credits routes", () => {
     mocks.webhookService.handle.mockResolvedValue({
       credited: true,
       intentId: "intent-1",
+    });
+  });
+
+  it("releases a failed topup reservation so the safe ledger retry can run", () => {
+    expect(mocks.idempotencyOptions).toContainEqual({
+      scope: "credit",
+      releaseOnServerError: true,
     });
   });
 

@@ -108,6 +108,15 @@ function createFakeDb() {
   const selectFn = vi.fn();
   const insertFn = vi.fn();
   const updateFn = vi.fn();
+  const batchFn = vi.fn();
+  const drizzleBatchFn = vi.fn(
+    async (statements: unknown[]) => statements.map(() => []) as unknown[],
+  );
+  const prepareFn = vi.fn(() => ({
+    bind: vi.fn(function bind(this: unknown) {
+      return this;
+    }),
+  }));
 
   function mockSelectResults(fixtures: SelectFixtures<FixtureName> = {}) {
     const fixtureDb = createSelectFixtureDb(fixtureTables, fixtures);
@@ -129,19 +138,49 @@ function createFakeDb() {
     return fixtureDb;
   }
 
+  function mockBatchResults(results: Array<unknown[] | Error>) {
+    const queue = [...results];
+    batchFn.mockImplementation(async () => {
+      const result = queue.shift();
+      if (result === undefined) throw new Error("No batch fixtures remaining");
+      if (result instanceof Error) throw result;
+      return result;
+    });
+  }
+
+  function mockDrizzleBatchResults(results: Array<unknown[] | Error>) {
+    const queue = [...results];
+    drizzleBatchFn.mockImplementation(async () => {
+      const result = queue.shift();
+      if (result === undefined) {
+        throw new Error("No Drizzle batch fixtures remaining");
+      }
+      if (result instanceof Error) throw result;
+      return result;
+    });
+  }
+
   const db = {
     select: selectFn,
     insert: insertFn,
     update: updateFn,
+    batch: drizzleBatchFn,
   };
 
-  return { db, mockSelectResults, mockMutationResults };
+  return {
+    db,
+    rawDb: { batch: batchFn, prepare: prepareFn },
+    mockSelectResults,
+    mockMutationResults,
+    mockBatchResults,
+    mockDrizzleBatchResults,
+  };
 }
 
 function createService(options: Partial<Env> = {}) {
   const fake = createFakeDb();
   const service = new CreditService({
-    DB: {},
+    DB: fake.rawDb,
     CACHE_KV: {},
     ...options,
   } as Env);
@@ -205,9 +244,9 @@ describe("CreditService", () => {
     });
 
     expect(result).toEqual({
-      cardId: "card-1",
-      publicId: "card-public-id",
-      accountId: "account-1",
+      cardId: expect.any(String),
+      publicId: expect.any(String),
+      accountId: expect.any(String),
       currency: "TWD",
     });
     expect(bcryptHash).toHaveBeenCalledWith("1234", 10);
@@ -217,10 +256,10 @@ describe("CreditService", () => {
       balanceCents: 12000,
     });
     expect(mutations.inserted[2]).toMatchObject({
-      accountId: "account-1",
+      accountId: result.accountId,
       entryType: "adjust",
       amountCents: 12000,
-      idempotencyKey: "credit-issue:account-1",
+      idempotencyKey: `credit-issue:${result.accountId}`,
     });
 
     await expect(
@@ -253,27 +292,36 @@ describe("CreditService", () => {
     });
   });
 
-  it("spends with replay, guard, PIN, deduction, and ledger compensation branches", async () => {
-    const { service, mockSelectResults, mockMutationResults } = createService({
+  it("spends with replay, guard, PIN, and atomic ledger movement branches", async () => {
+    const {
+      service,
+      mockSelectResults,
+      mockMutationResults,
+      mockBatchResults,
+    } = createService({
       CREDIT_PIN_THRESHOLD_CENTS: "1000",
     } as Partial<Env>);
     const mutations = mockMutationResults({
       creditCards: { update: [{ changes: 1 }] }, // failed PIN bumps the retry count
-      creditAccounts: {
-        update: [
-          [], // overspend: the balance guard matches no row
-          [{ balanceAfter: 48000 }], // spend-ok deduction
-          [{ balanceAfter: 47000 }], // race: this deduction lands
-          [{ balanceAfter: 50000 }], // race: and is compensated back
-        ],
-      },
-      creditLedgerEntries: {
-        insert: [
-          [{ id: "ledger-1" }],
-          [], // the idempotency twin conflicts, so nothing is returned
-        ],
-      },
     });
+    mockBatchResults([
+      [{ meta: { changes: 0 } }, { results: [] }],
+      [
+        { meta: { changes: 1 } },
+        {
+          results: [
+            {
+              id: "ledger-1",
+              account_id: "account-1",
+              balance_after_cents: 48000,
+            },
+          ],
+        },
+      ],
+      new Error(
+        "UNIQUE constraint failed: credit_ledger_entries.idempotency_key",
+      ),
+    ]);
     mockSelectResults({
       creditLedgerEntries: [
         [
@@ -409,13 +457,6 @@ describe("CreditService", () => {
       accountId: "account-1",
       balanceAfterCents: 48000,
     });
-    expect(mutations.inserted.at(-1)).toMatchObject({
-      entryType: "spend",
-      amountCents: -2000,
-      balanceAfterCents: 48000,
-      idempotencyKey: "spend-ok",
-      marketCheckoutPaymentId: "pay-1",
-    });
 
     mockSelectResults({
       creditLedgerEntries: [
@@ -448,23 +489,45 @@ describe("CreditService", () => {
   });
 
   it("topups, refunds, and resolves refunds from original spend keys", async () => {
-    const { service, mockSelectResults, mockMutationResults } = createService();
-    mockMutationResults({
-      creditAccounts: {
-        update: [
-          [{ balanceAfter: 55000 }], // topup-ok
-          [{ balanceAfter: 51000 }], // refund-ok
-          [{ balanceAfter: 50000 }], // refund resolved from the original spend
-        ],
-      },
-      creditLedgerEntries: {
-        insert: [
-          [{ id: "topup-ledger" }],
-          [{ id: "refund-ledger" }],
-          [{ id: "refund-from-spend" }],
-        ],
-      },
-    });
+    const { service, mockSelectResults, mockBatchResults } = createService();
+    mockBatchResults([
+      [
+        { meta: { changes: 1 } },
+        {
+          results: [
+            {
+              id: "topup-ledger",
+              account_id: "account-1",
+              balance_after_cents: 55000,
+            },
+          ],
+        },
+      ],
+      [
+        { meta: { changes: 1 } },
+        {
+          results: [
+            {
+              id: "refund-ledger",
+              account_id: "account-1",
+              balance_after_cents: 51000,
+            },
+          ],
+        },
+      ],
+      [
+        { meta: { changes: 1 } },
+        {
+          results: [
+            {
+              id: "refund-from-spend",
+              account_id: "account-1",
+              balance_after_cents: 50000,
+            },
+          ],
+        },
+      ],
+    ]);
 
     mockSelectResults({
       creditLedgerEntries: [
@@ -673,17 +736,21 @@ describe("CreditService", () => {
   });
 
   it("expires stale accounts with isolated failures and concurrent-update skips", async () => {
-    const { service, mockSelectResults, mockMutationResults } = createService();
-    const mutations = mockMutationResults({
-      creditAccounts: {
-        update: [
-          [], // account-skip: a concurrent write already moved the version on
-          [{ id: "account-expire" }],
-          new Error("write failed"), // account-fail: isolated, not fatal
-        ],
-      },
-      creditLedgerEntries: { insert: [{ changes: 1 }] },
+    const {
+      service,
+      mockSelectResults,
+      mockMutationResults,
+      mockDrizzleBatchResults,
+    } = createService();
+    mockMutationResults({
+      creditAccounts: { update: [[]] },
+      creditLedgerEntries: { insert: [[]] },
     });
+    mockDrizzleBatchResults([
+      [[], []],
+      [[{ id: "account-expire" }], []],
+      new Error("write failed"),
+    ]);
     mockSelectResults({
       creditAccounts: [
         [
@@ -721,13 +788,6 @@ describe("CreditService", () => {
       expired: 1,
       totalExpiredCents: 2000,
       failures: [{ accountId: "account-fail", error: "write failed" }],
-    });
-    expect(mutations.inserted.at(-1)).toMatchObject({
-      accountId: "account-expire",
-      entryType: "expire",
-      amountCents: -2000,
-      balanceAfterCents: 0,
-      sourceType: "expiry_job",
     });
   });
 });

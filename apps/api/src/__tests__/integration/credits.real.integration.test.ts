@@ -412,6 +412,35 @@ describe("CreditService — topup & refund", () => {
     expect(entries[0]).toMatchObject({ entryType: "topup", amountCents: 1500 });
   });
 
+  it("commits one topup when concurrent deliveries share an idempotency key", async () => {
+    const service = makeService();
+    const card = await service.issueCard({ currency: "TWD" });
+    const input = {
+      publicId: card.publicId,
+      amountCents: 1500,
+      currency: "TWD",
+      idempotencyKey: "topup-concurrent-same-key",
+      sourceType: "topup",
+    };
+
+    const [first, second] = await Promise.all([
+      service.topup(input),
+      service.topup(input),
+    ]);
+
+    expect(second.ledgerEntryId).toBe(first.ledgerEntryId);
+    expect((await service.getBalance(card.publicId)).balanceCents).toBe(1500);
+    const topups = (await ledgerEntriesFor(card.accountId)).filter(
+      (entry) => entry.entryType === "topup",
+    );
+    expect(topups).toHaveLength(1);
+    expect(topups[0]).toMatchObject({
+      amountCents: 1500,
+      balanceAfterCents: 1500,
+      idempotencyKey: input.idempotencyKey,
+    });
+  });
+
   it("refunds a prior spend back to the originating account", async () => {
     const service = makeService();
     const card = await service.issueCard({
