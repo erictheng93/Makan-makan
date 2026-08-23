@@ -241,6 +241,22 @@ describe("Role gap coverage: reservations & order status transitions", () => {
     );
     expect(chefPreparingRes.status).toBe(200);
 
+    const serviceClaimRes = await testApp.app.fetch(
+      new Request(
+        `https://test/api/v1/orders/${readyOrder.id}/delivery-claim`,
+        {
+          method: "POST",
+          headers: {
+            authorization: `Bearer ${serviceToken}`,
+            ...csrfHeaders(
+              "2222222222222222222222222222222222222222222222222222222222222222",
+            ),
+          },
+        },
+      ),
+    );
+    expect(serviceClaimRes.status).toBe(200);
+
     const serviceDeliveredRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/orders/${readyOrder.id}/status`, {
         method: "PUT",

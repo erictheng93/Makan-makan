@@ -1760,6 +1760,7 @@ const enUS: Messages = {
     restaurantManagement: "Shop Management",
     accountManagement: "Accounts",
     feedback: "Feedback",
+    printAgents: "Print Agents",
   },
   pages: {
     printAgents: "Print Agents",

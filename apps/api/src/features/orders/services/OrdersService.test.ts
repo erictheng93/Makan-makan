@@ -28,6 +28,7 @@ vi.mock("@makanmasak/database", () => ({
   // Must mirror the real export: the service matches base-service errors
   // against this prefix, so a missing one turns every mapping test red.
   INVALID_CUSTOMIZATION_PREFIX: "Invalid customization:",
+  isWebPushEnabled: () => true,
   OrderService: function OrderService() {
     return {
       createOrder: createBaseOrder,
@@ -66,6 +67,7 @@ function createEnv(
 
   return {
     DB: {},
+    WEB_PUSH_ENABLED: "true",
     WEB_PUSH_DELIVERER: pushDeliverer,
     CACHE_KV: {
       get: vi.fn(async (key: string, type?: "json") => {
@@ -656,7 +658,11 @@ describe("OrdersService workflows", () => {
           ? "guest_active:restaurant-1:token:guest-token"
           : null,
     });
-    const previous = createOrder({ status: "ready", version: 7 });
+    const previous = createOrder({
+      status: "ready",
+      version: 7,
+      deliveryAssignedTo: "20",
+    });
     const updated = createOrder({ status: "delivered", version: 8 });
     updateBaseOrderStatus.mockResolvedValue(updated);
     const service = new OrdersService(env as never);
