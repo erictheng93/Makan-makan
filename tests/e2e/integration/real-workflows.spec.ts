@@ -307,9 +307,9 @@ interface LoginResponse {
     token?: string;
     refreshToken?: string;
     csrfToken?: string;
-    createdUserId?: number;
+    createdUserId?: string;
     user?: SmokeLoginData["user"] & {
-      id?: number;
+      id?: string;
       username?: string;
       role?: number;
       permissions?: string[];
@@ -411,10 +411,10 @@ async function loginChef() {
       `local workflow chef create status ${createResponse.status}`,
     ).toBe(true);
     const createBody = (await createResponse.json()) as {
-      data?: { id?: number };
+      data?: { id?: string };
     };
     const createdUserId = createBody.data?.id;
-    expect(typeof createdUserId, "created chef user id").toBe("number");
+    expect(typeof createdUserId, "created chef user id").toBe("string");
 
     const loginData = await smokeLogin(API_URL, username, password);
     expect(loginData.user?.role, "created chef role").toBe(2);
