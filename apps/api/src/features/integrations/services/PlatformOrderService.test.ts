@@ -236,10 +236,15 @@ describe("PlatformOrderService", () => {
     expect(mutations.batches[0]).toHaveLength(3);
   });
 
-  it("returns the mapped order without writing when the platform order is already known", async () => {
+  it("resumes auto-accept processing for a mapped order that is still received", async () => {
     const mutations = mockMutations();
     mockSelectResults({
-      platformOrders: [[{ orderId: "order-existing" }]],
+      platformOrders: [
+        [{ orderId: "order-existing", platformStatus: "received" }],
+      ],
+    });
+    mocks.integrationService.getIntegration.mockResolvedValueOnce({
+      config: { autoAcceptOrders: true },
     });
 
     await expect(
@@ -252,7 +257,16 @@ describe("PlatformOrderService", () => {
 
     expect(mutations.inserted).toHaveLength(0);
     expect(mocks.db.batch).not.toHaveBeenCalled();
-    expect(mocks.integrationService.getIntegration).not.toHaveBeenCalled();
+    expect(mocks.adapter.acceptOrder).toHaveBeenCalledWith("uber-order-1", {
+      accessToken: "token",
+    });
+    expect(mutations.updated).toEqual([
+      expect.objectContaining({ platformStatus: "accepted" }),
+      expect.objectContaining({ status: "confirmed" }),
+    ]);
+    expect(mocks.receiptService.createKitchenTicket).toHaveBeenCalledWith(
+      "order-existing",
+    );
   });
 
   it("returns the winning order when a concurrent delivery takes the mapping", async () => {

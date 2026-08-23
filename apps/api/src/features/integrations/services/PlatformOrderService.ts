@@ -60,11 +60,21 @@ export class PlatformOrderService {
     const adapter = getAdapter(platform);
     const parsedOrder = await adapter.parseOrder(payload);
 
-    const mappedOrderId = await this.findMappedOrderId(
+    const mappedOrder = await this.findMappedOrder(
       platform,
       parsedOrder.platformOrderId,
     );
-    if (mappedOrderId) return mappedOrderId;
+    if (mappedOrder) {
+      await this.resumePostCreateProcessing(
+        mappedOrder.orderId,
+        mappedOrder.platformStatus,
+        restaurantId,
+        platform,
+        parsedOrder.platformOrderId,
+        adapter,
+      );
+      return mappedOrder.orderId;
+    }
 
     // Map platform item IDs to internal menu item IDs
     const mappings = await this.db
@@ -160,31 +170,62 @@ export class PlatformOrderService {
       // The batch rolled back, so this attempt left nothing behind. If a
       // concurrent delivery won the race, its mapping is committed and this
       // call is a duplicate; anything else is a real failure to report.
-      const racedOrderId = await this.findMappedOrderId(
+      const racedOrder = await this.findMappedOrder(
         platform,
         parsedOrder.platformOrderId,
       );
-      if (racedOrderId) return racedOrderId;
+      if (racedOrder) {
+        await this.resumePostCreateProcessing(
+          racedOrder.orderId,
+          racedOrder.platformStatus,
+          restaurantId,
+          platform,
+          parsedOrder.platformOrderId,
+          adapter,
+        );
+        return racedOrder.orderId;
+      }
       throw error;
     }
 
-    // Auto-accept if configured
+    await this.resumePostCreateProcessing(
+      orderId,
+      "received",
+      restaurantId,
+      platform,
+      parsedOrder.platformOrderId,
+      adapter,
+    );
+
+    return orderId;
+  }
+
+  private async resumePostCreateProcessing(
+    orderId: string,
+    platformStatus: string | null | undefined,
+    restaurantId: string,
+    platform: PlatformType,
+    platformOrderId: string,
+    adapter: ReturnType<typeof getAdapter>,
+  ): Promise<void> {
     const integration = await this.integrationService.getIntegration(
       restaurantId,
       platform,
     );
     if (integration?.config?.autoAcceptOrders) {
       try {
-        const creds = await this.integrationService.getDecryptedCredentials(
-          restaurantId,
-          platform,
-        );
-        await adapter.acceptOrder(parsedOrder.platformOrderId, creds);
+        if (platformStatus !== "accepted") {
+          const creds = await this.integrationService.getDecryptedCredentials(
+            restaurantId,
+            platform,
+          );
+          await adapter.acceptOrder(platformOrderId, creds);
 
-        await this.db
-          .update(platformOrders)
-          .set({ platformStatus: "accepted", updatedAt: new Date() })
-          .where(eq(platformOrders.orderId, orderId));
+          await this.db
+            .update(platformOrders)
+            .set({ platformStatus: "accepted", updatedAt: new Date() })
+            .where(eq(platformOrders.orderId, orderId));
+        }
 
         await this.db
           .update(orders)
@@ -193,26 +234,24 @@ export class PlatformOrderService {
 
         await this.emitKitchenTicket(orderId);
       } catch (error) {
-        console.error(
-          `Failed to auto-accept order ${parsedOrder.platformOrderId}:`,
-          error,
-        );
+        console.error(`Failed to auto-accept order ${platformOrderId}:`, error);
       }
     }
-
-    return orderId;
   }
 
   /**
-   * The internal order a platform order already maps to, or null when this is
-   * the first time we have seen it.
+   * The existing platform mapping and its acceptance progress, or null when
+   * this is the first time we have seen the platform order.
    */
-  private async findMappedOrderId(
+  private async findMappedOrder(
     platform: PlatformType,
     platformOrderId: string,
-  ): Promise<string | null> {
+  ): Promise<{ orderId: string; platformStatus: string | null } | null> {
     const [existing] = await this.db
-      .select({ orderId: platformOrders.orderId })
+      .select({
+        orderId: platformOrders.orderId,
+        platformStatus: platformOrders.platformStatus,
+      })
       .from(platformOrders)
       .where(
         and(
@@ -222,7 +261,7 @@ export class PlatformOrderService {
       )
       .limit(1);
 
-    return existing?.orderId ?? null;
+    return existing ?? null;
   }
 
   /**

@@ -150,7 +150,8 @@ async function demoteAbandonedFinalizeClaim(
   // empty string, which would write a diagnostic record naming no order at
   // all and hand an operator a dead end to chase.
   const masterOrderId = groupOrder.masterOrderId;
-  if (!masterOrderId) return false;
+  const lockedAt = groupOrder.lockedAt;
+  if (!masterOrderId || !lockedAt) return false;
 
   const settings = readSettings(groupOrder.settings);
 
@@ -182,6 +183,8 @@ async function demoteAbandonedFinalizeClaim(
       and(
         eq(groupOrders.id, groupOrder.id),
         eq(groupOrders.status, FINALIZING),
+        eq(groupOrders.masterOrderId, masterOrderId),
+        eq(groupOrders.lockedAt, lockedAt),
       ),
     )
     .returning({ id: groupOrders.id });

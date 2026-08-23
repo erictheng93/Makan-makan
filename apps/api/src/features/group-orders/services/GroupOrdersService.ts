@@ -2190,7 +2190,6 @@ export class GroupOrdersService implements IGroupOrderService {
           tipAmountCents: 0,
           totalAmountCents: toRequiredCents(bill.totalAmount),
           items: bill.items,
-          paymentStatus: "pending",
           updatedAt: now,
         } satisfies Partial<typeof splitBills.$inferInsert>;
 
@@ -2213,6 +2212,7 @@ export class GroupOrdersService implements IGroupOrderService {
           await this.db.insert(splitBills).values({
             id: billId,
             ...billPayload,
+            paymentStatus: "pending",
             createdAt: now,
           } as typeof splitBills.$inferInsert);
         }

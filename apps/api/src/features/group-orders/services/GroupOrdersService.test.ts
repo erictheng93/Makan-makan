@@ -2105,7 +2105,20 @@ describe("GroupOrdersService formatting and cache behavior", () => {
           },
         ],
       ],
-      splitBills: [[{ id: "split-1" }], []],
+      splitBills: [
+        [
+          {
+            id: "split-1",
+            memberId: "member-1",
+            paymentStatus: "paid",
+            paymentMethod: "cash",
+            transactionId: "settled-transaction",
+            paidAt: new Date("2026-06-07T00:00:00.000Z"),
+            settledBy: "staff",
+          },
+        ],
+        [],
+      ],
     });
     useDb(byItemService, byItemDb);
     await expect(
@@ -2129,6 +2142,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       splitType: "individual",
       finalAmountCents: 1980,
     });
+    expect(byItemDb.updates[0].payload).not.toHaveProperty("paymentStatus");
 
     const customService = createService();
     const customDb = createDb({
