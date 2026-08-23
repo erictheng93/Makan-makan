@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { orders } from "@makanmasak/database";
+import { orders, paymentTransactions } from "@makanmasak/database";
 import { createSelectFixtureDb } from "@makanmasak/database/testing";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import type { Env } from "../../../types/env";
@@ -35,7 +35,26 @@ interface PreparedStatement {
 }
 
 function queueOrderRows(rows: unknown[][]) {
-  Object.assign(mocks.db, createSelectFixtureDb({ orders }, { orders: rows }));
+  Object.assign(
+    mocks.db,
+    createSelectFixtureDb(
+      { orders, paymentTransactions },
+      {
+        orders: rows,
+        paymentTransactions: rows.map(() => []),
+      },
+    ),
+  );
+}
+
+function queuePaymentTransactionRows(rows: unknown[][]) {
+  Object.assign(
+    mocks.db,
+    createSelectFixtureDb(
+      { paymentTransactions },
+      { paymentTransactions: rows },
+    ),
+  );
 }
 
 function mockOrderUpdate(_returningRows: unknown[] = []) {
@@ -219,6 +238,16 @@ function order(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function paymentTransaction(overrides: Record<string, unknown> = {}) {
+  return {
+    transactionId: "pay_order-101_1780833600000",
+    orderId: "order-101",
+    amountCents: 12000,
+    status: "paid",
+    ...overrides,
+  };
+}
+
 function statementContaining(statements: PreparedStatement[], text: string) {
   return statements.find((statement) => statement.sql.includes(text));
 }
@@ -310,6 +339,37 @@ describe("PaymentService", () => {
           (statement) => (statement.payload as { eventType: string }).eventType,
         ),
     ).toEqual(["attempt", "success"]);
+  });
+
+  it("replays a recorded payment for the same idempotency key without new writes", async () => {
+    const { db, committed, statements } = createD1();
+    queuePaymentTransactionRows([[paymentTransaction()]]);
+
+    await expect(
+      new PaymentService(env(db)).processPayment(
+        {
+          orderId: "order-101",
+          paymentMode: "full",
+          amount: 120,
+          expectedTotal: 120,
+          method: "cash",
+        },
+        { idempotencyKey: "idem-1" },
+      ),
+    ).resolves.toEqual({
+      status: 200,
+      data: {
+        paymentId: "pay_order-101_1780833600000",
+        orderId: "order-101",
+        orderStatus: "paid",
+        paymentStatus: "paid",
+        authorizedTotal: 120,
+      },
+    });
+
+    expect(committed).toEqual([]);
+    expect(statements).toEqual([]);
+    expect(mocks.db.batch).not.toHaveBeenCalled();
   });
 
   it("does not commit payment ledger writes when a middle write fails", async () => {

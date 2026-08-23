@@ -211,6 +211,7 @@ describe("payments routes", () => {
         scope: "payment",
         requireKey: true,
         effectId: expect.any(Function),
+        releaseOnServerError: true,
       }),
     );
     expect(paymentOptions[1]).toEqual(
@@ -218,6 +219,7 @@ describe("payments routes", () => {
         scope: "payment",
         requireKey: true,
         effectId: expect.any(Function),
+        releaseOnServerError: true,
       }),
     );
     expect(idempotencyMiddleware).toHaveBeenCalledTimes(0);

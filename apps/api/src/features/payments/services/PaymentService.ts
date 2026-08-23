@@ -76,6 +76,15 @@ export class PaymentService {
     input: PaymentRequestInput,
     options: ProcessPaymentOptions = {},
   ): Promise<ProcessPaymentResult> {
+    if (options.idempotencyKey) {
+      const recorded = await this.findPaymentByIdempotencyKey(
+        options.idempotencyKey,
+      );
+      if (recorded) {
+        return processPaymentResultFromRow(recorded);
+      }
+    }
+
     const [existing] = await this.db
       .select()
       .from(orders)
@@ -262,6 +271,14 @@ export class PaymentService {
     };
   }
 
+  private async findPaymentByIdempotencyKey(key: string) {
+    return this.db
+      .select()
+      .from(paymentTransactions)
+      .where(eq(paymentTransactions.idempotencyKey, key))
+      .get();
+  }
+
   private preparePaymentTransactionInsert(
     data: {
       transactionId: string;
@@ -382,6 +399,26 @@ export class PaymentService {
       })
       .where(eq(paymentTransactions.transactionId, transactionId));
   }
+}
+
+function processPaymentResultFromRow(
+  payment: typeof paymentTransactions.$inferSelect,
+): ProcessPaymentResult {
+  const metadata = payment.metadata as { closeOrder?: unknown } | null;
+  const paymentStatus = payment.status;
+  const isPaid = paymentStatus === "paid";
+
+  return {
+    status: paymentStatus === "pending" ? 202 : 200,
+    data: {
+      paymentId: payment.transactionId,
+      orderId: payment.orderId,
+      orderStatus:
+        isPaid && metadata?.closeOrder !== false ? "paid" : "pending",
+      paymentStatus,
+      authorizedTotal: amountFromCents(payment.amountCents) ?? 0,
+    },
+  };
 }
 
 function canProcessPayment(role: number): boolean {
