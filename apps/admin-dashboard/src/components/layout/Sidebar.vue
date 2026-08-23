@@ -151,6 +151,7 @@ import {
   Crown,
   MessageSquare,
   CalendarCheck,
+  Printer,
 } from "lucide-vue-next";
 
 interface Props {
@@ -258,6 +259,18 @@ const navigationItems = computed(() => {
       path: "/dashboard/pos",
       label: t("nav.pos"),
       icon: CreditCard,
+      visible: authStore.hasPermission([
+        UserRole.ADMIN,
+        UserRole.OWNER,
+        UserRole.CASHIER,
+      ]),
+      section: "restaurant",
+    },
+    {
+      name: "print-agents",
+      path: "/dashboard/print-agents",
+      label: t("nav.printAgents"),
+      icon: Printer,
       visible: authStore.hasPermission([
         UserRole.ADMIN,
         UserRole.OWNER,

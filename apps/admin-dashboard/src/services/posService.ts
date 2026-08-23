@@ -184,21 +184,33 @@ export const posService = {
   },
 
   // 列印代理
-  async getPrintAgents(): Promise<PrintAgent[]> {
-    const response = await apiClient.get("/pos/print-agents");
+  async getPrintAgents(restaurantId?: string): Promise<PrintAgent[]> {
+    const response = await apiClient.get("/pos/print-agents", {
+      params: { restaurantId },
+    });
     return unwrapApiData<PrintAgent[]>(response);
   },
 
-  async issuePrintAgent(data: {
-    label: string;
-    registerId?: string;
-  }): Promise<PrintAgent & { key: string }> {
-    const response = await apiClient.post("/pos/print-agents", data);
+  async issuePrintAgent(
+    data: {
+      label: string;
+      registerId?: string;
+    },
+    restaurantId?: string,
+  ): Promise<PrintAgent & { key: string }> {
+    const response = await apiClient.post("/pos/print-agents", data, {
+      params: { restaurantId },
+    });
     return unwrapApiData<PrintAgent & { key: string }>(response);
   },
 
-  async revokePrintAgent(agentId: string): Promise<void> {
-    await apiClient.delete(`/pos/print-agents/${agentId}`);
+  async revokePrintAgent(
+    agentId: string,
+    restaurantId?: string,
+  ): Promise<void> {
+    await apiClient.delete(`/pos/print-agents/${agentId}`, {
+      params: { restaurantId },
+    });
   },
 
   // 收據管理

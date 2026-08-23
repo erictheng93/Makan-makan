@@ -11,6 +11,7 @@
           </p>
         </div>
         <button
+          v-if="canManagePrintAgents"
           type="button"
           data-testid="issue-agent"
           class="rounded-full bg-ios-primary px-4 py-2 text-[14px] font-semibold text-white transition-transform duration-150 active:scale-95"
@@ -126,6 +127,7 @@
               </p>
             </div>
             <button
+              v-if="canManagePrintAgents"
               type="button"
               data-testid="revoke-agent"
               class="rounded-full bg-[#F2F2F7] px-4 py-2 text-[13px] font-semibold text-ios-error transition-transform duration-150 active:scale-95"
@@ -166,9 +168,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useI18n } from "@/i18n";
 import { posService } from "@/services/posService";
+import { useAuthStore } from "@/stores/auth";
+import { UserRole } from "@/types";
 import type {
   CashRegister,
   PrintAgent,
@@ -176,6 +180,10 @@ import type {
 } from "@/services/posService";
 
 const { t } = useI18n();
+const authStore = useAuthStore();
+const canManagePrintAgents = computed(() =>
+  authStore.hasPermission([UserRole.ADMIN, UserRole.OWNER]),
+);
 
 const agents = ref<PrintAgent[]>([]);
 const registers = ref<CashRegister[]>([]);
@@ -232,7 +240,9 @@ async function load(): Promise<void> {
   isLoading.value = true;
   error.value = null;
   try {
-    agents.value = await posService.getPrintAgents();
+    agents.value = await posService.getPrintAgents(
+      authStore.restaurantId ?? undefined,
+    );
   } catch (cause) {
     error.value =
       cause instanceof Error ? cause.message : t("printAgents.loadFailed");
@@ -242,11 +252,16 @@ async function load(): Promise<void> {
 }
 
 async function issue(): Promise<void> {
+  if (!canManagePrintAgents.value) return;
+
   try {
-    const issued = await posService.issuePrintAgent({
-      label: form.value.label,
-      registerId: form.value.registerId || undefined,
-    });
+    const issued = await posService.issuePrintAgent(
+      {
+        label: form.value.label,
+        registerId: form.value.registerId || undefined,
+      },
+      authStore.restaurantId ?? undefined,
+    );
     issuedKey.value = issued.key;
     form.value = { label: "", registerId: "" };
     isIssuing.value = false;
@@ -258,12 +273,17 @@ async function issue(): Promise<void> {
 }
 
 async function revoke(agent: PrintAgent): Promise<void> {
+  if (!canManagePrintAgents.value) return;
+
   if (!window.confirm(t("printAgents.revokeConfirm", { label: agent.label }))) {
     return;
   }
 
   try {
-    await posService.revokePrintAgent(agent.id);
+    await posService.revokePrintAgent(
+      agent.id,
+      authStore.restaurantId ?? undefined,
+    );
     await load();
   } catch (cause) {
     error.value =

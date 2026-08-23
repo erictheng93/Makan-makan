@@ -9,6 +9,10 @@ const getPrintAgents = vi.fn();
 const issuePrintAgent = vi.fn();
 const revokePrintAgent = vi.fn();
 const getRegisters = vi.fn();
+const authState = {
+  restaurantId: "restaurant-1" as string | null,
+  canManagePrintAgents: true,
+};
 
 vi.mock("@/i18n", () => ({
   useI18n: () => ({ t: (key: string) => key, locale: ref("zh-TW") }),
@@ -21,6 +25,15 @@ vi.mock("@/services/posService", () => ({
     revokePrintAgent: (...args: unknown[]) => revokePrintAgent(...args),
     getRegisters: (...args: unknown[]) => getRegisters(...args),
   },
+}));
+
+vi.mock("@/stores/auth", () => ({
+  useAuthStore: () => ({
+    get restaurantId() {
+      return authState.restaurantId;
+    },
+    hasPermission: () => authState.canManagePrintAgents,
+  }),
 }));
 
 function agent(overrides: Record<string, unknown> = {}) {
@@ -44,12 +57,15 @@ describe("PrintAgentsView", () => {
     vi.clearAllMocks();
     getPrintAgents.mockResolvedValue([]);
     getRegisters.mockResolvedValue([]);
+    authState.restaurantId = "restaurant-1";
+    authState.canManagePrintAgents = true;
   });
 
   it("shows an empty state when no agent has been issued", async () => {
     const wrapper = mount(PrintAgentsView);
     await flushPromises();
 
+    expect(getPrintAgents).toHaveBeenCalledWith("restaurant-1");
     expect(wrapper.find('[data-testid="print-agents-empty"]').exists()).toBe(
       true,
     );
@@ -82,10 +98,13 @@ describe("PrintAgentsView", () => {
     await wrapper.find('[data-testid="issue-form"]').trigger("submit");
     await flushPromises();
 
-    expect(issuePrintAgent).toHaveBeenCalledWith({
-      label: "廚房出單機",
-      registerId: undefined,
-    });
+    expect(issuePrintAgent).toHaveBeenCalledWith(
+      {
+        label: "廚房出單機",
+        registerId: undefined,
+      },
+      "restaurant-1",
+    );
   });
 
   it("shows the plaintext key once after issuing", async () => {
@@ -116,5 +135,30 @@ describe("PrintAgentsView", () => {
     expect(wrapper.find('[data-testid="print-agents-error"]').exists()).toBe(
       false,
     );
+  });
+
+  it("forwards the selected restaurant when revoking an agent", async () => {
+    getPrintAgents.mockResolvedValue([agent()]);
+    revokePrintAgent.mockResolvedValue(undefined);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    const wrapper = mount(PrintAgentsView);
+    await flushPromises();
+    await wrapper.find('[data-testid="revoke-agent"]').trigger("click");
+    await flushPromises();
+
+    expect(revokePrintAgent).toHaveBeenCalledWith("agent-1", "restaurant-1");
+  });
+
+  it("hides credential actions from cashiers while retaining agent status", async () => {
+    authState.canManagePrintAgents = false;
+    getPrintAgents.mockResolvedValue([agent()]);
+
+    const wrapper = mount(PrintAgentsView);
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="issue-agent"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="revoke-agent"]').exists()).toBe(false);
+    expect(wrapper.findAll('[data-testid="print-agent-row"]')).toHaveLength(1);
   });
 });

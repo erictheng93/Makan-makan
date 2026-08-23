@@ -142,6 +142,9 @@ describe("Sidebar", () => {
       wrapper.find('[data-testid="nav-item-owner-overview"]').exists(),
     ).toBe(true);
     expect(wrapper.find('[data-testid="nav-item-pos"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="nav-item-print-agents"]').exists()).toBe(
+      true,
+    );
     expect(wrapper.find('[data-testid="nav-item-orders"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="nav-item-menu"]').exists()).toBe(true);
     expect(
