@@ -24,6 +24,7 @@
     "build:admin": "turbo run build --filter=./apps/admin-dashboard",
     "preview": "pnpm -r run preview",
     "typecheck": "turbo run typecheck",
+    "typecheck:tests": "tsc -p tests/tsconfig.json --noEmit",
     "lint": "turbo run lint",
     "lint:fix": "pnpm -r run lint:fix",
     "verify": "bash scripts/verify.sh",

@@ -76,6 +76,8 @@ if [ "$MODE" = "affected" ]; then
     pnpm exec turbo run typecheck lint test --affected --concurrency="$TURBO_CONCURRENCY"
 
   if root_tests_changed; then
+    step "root tests typecheck (tests/ changed)" \
+      pnpm run typecheck:tests
     step "root tests (tests/ changed)" \
       pnpm exec vitest run --project root
   fi
@@ -85,6 +87,7 @@ else
 
   step "lint" pnpm run lint
   step "typecheck" pnpm run typecheck
+  step "root tests typecheck" pnpm run typecheck:tests
   step "prettier" pnpm exec prettier --check "**/*.{ts,js,cjs,mjs,vue,json,md}"
   step "i18n locale coverage" pnpm run check:i18n-locales
   step "integration allowlist" node scripts/check-integration-allowlist.cjs
