@@ -4,8 +4,21 @@
  */
 
 import express from "express";
+import {
+  closeSync,
+  fsyncSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import type { IncomingMessage } from "http";
 import type { Server } from "http";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
+import { randomUUID } from "node:crypto";
 import { WebSocketServer, WebSocket } from "ws";
 import cors from "cors";
 import { PrintAgentService } from "./services/PrintAgentService";
@@ -73,6 +86,38 @@ type CloudAcknowledgement = {
   response?: string;
 };
 
+type PendingCloudAcknowledgement = {
+  receiptId: string;
+  acknowledgement: CloudAcknowledgement;
+};
+
+const isCloudAcknowledgement = (
+  value: unknown,
+): value is CloudAcknowledgement => {
+  if (typeof value !== "object" || value === null) return false;
+  const acknowledgement = value as Record<string, unknown>;
+  return (
+    (acknowledgement.status === "printed" ||
+      acknowledgement.status === "failed" ||
+      acknowledgement.status === "indeterminate") &&
+    (acknowledgement.printerName === undefined ||
+      typeof acknowledgement.printerName === "string") &&
+    (acknowledgement.response === undefined ||
+      typeof acknowledgement.response === "string")
+  );
+};
+
+const isPendingCloudAcknowledgement = (
+  value: unknown,
+): value is PendingCloudAcknowledgement => {
+  if (typeof value !== "object" || value === null) return false;
+  const pending = value as Record<string, unknown>;
+  return (
+    typeof pending.receiptId === "string" &&
+    isCloudAcknowledgement(pending.acknowledgement)
+  );
+};
+
 export interface LocalPrintServiceConfig {
   // 網路設定
   port: number;
@@ -83,6 +128,7 @@ export interface LocalPrintServiceConfig {
   apiKey: string; // 本機 HTTP/WS：POS 前端 -> 代理
   cloudKey?: string; // 雲端派工：代理 -> 雲端，由後台核發並綁定收銀機
   cloudEndpoint: string;
+  acknowledgementStorePath?: string;
 
   // 服務設定
   serviceName: string;
@@ -905,6 +951,7 @@ export class LocalPrintService {
     if (this.cloudPollInFlight) return;
     this.cloudPollInFlight = true;
     try {
+      if (!(await this.drainPendingAcknowledgements(cloudKey))) return;
       // The cloud hands back at most one receipt per call, so claiming once
       // per heartbeat printed a dinner-rush backlog at one receipt a minute.
       // Keep claiming until the queue is empty instead.
@@ -982,12 +1029,14 @@ export class LocalPrintService {
       result.success && result.jobId
         ? await this.waitForPrintCompletion(result.jobId)
         : { status: "failed" as const, response: result.error?.message };
-    await this.acknowledgeCloudJob(
-      cloudKey,
-      payload.data.receiptId,
+    await this.persistPendingAcknowledgement({
+      receiptId: payload.data.receiptId,
       acknowledgement,
-    );
-    return acknowledgement.status === "printed" ? "printed" : "failed";
+    });
+    return (await this.drainPendingAcknowledgements(cloudKey)) &&
+      acknowledgement.status === "printed"
+      ? "printed"
+      : "failed";
   }
 
   /**
@@ -1065,14 +1114,94 @@ export class LocalPrintService {
         };
   }
 
+  private acknowledgementStorePath(): string {
+    return (
+      this.config.acknowledgementStorePath ??
+      join(
+        homedir(),
+        ".makanmasak",
+        "print-agent",
+        "pending-cloud-acknowledgements.json",
+      )
+    );
+  }
+
+  private async readPendingAcknowledgements(): Promise<
+    PendingCloudAcknowledgement[]
+  > {
+    try {
+      const parsed: unknown = JSON.parse(
+        readFileSync(this.acknowledgementStorePath(), "utf8"),
+      );
+      if (
+        !Array.isArray(parsed) ||
+        !parsed.every(isPendingCloudAcknowledgement)
+      ) {
+        throw new Error("Pending acknowledgement store is invalid");
+      }
+      return parsed;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+      throw error;
+    }
+  }
+
+  private async writePendingAcknowledgements(
+    acknowledgements: PendingCloudAcknowledgement[],
+  ): Promise<void> {
+    const storePath = this.acknowledgementStorePath();
+    mkdirSync(dirname(storePath), { recursive: true });
+    const temporaryPath = `${storePath}.${process.pid}.${randomUUID()}.tmp`;
+    const file = openSync(temporaryPath, "w", 0o600);
+    try {
+      writeFileSync(file, JSON.stringify(acknowledgements));
+      fsyncSync(file);
+    } finally {
+      closeSync(file);
+    }
+    try {
+      renameSync(temporaryPath, storePath);
+    } catch (error) {
+      unlinkSync(temporaryPath);
+      throw error;
+    }
+  }
+
+  private async persistPendingAcknowledgement(
+    acknowledgement: PendingCloudAcknowledgement,
+  ): Promise<void> {
+    const pending = await this.readPendingAcknowledgements();
+    await this.writePendingAcknowledgements([
+      ...pending.filter(
+        (entry) => entry.receiptId !== acknowledgement.receiptId,
+      ),
+      acknowledgement,
+    ]);
+  }
+
+  private async drainPendingAcknowledgements(
+    cloudKey: string,
+  ): Promise<boolean> {
+    const pending = await this.readPendingAcknowledgements();
+    for (let index = 0; index < pending.length; index += 1) {
+      try {
+        await this.acknowledgeCloudJob(cloudKey, pending[index]);
+      } catch (error) {
+        console.error("Cloud acknowledgement retry failed:", error);
+        return false;
+      }
+      await this.writePendingAcknowledgements(pending.slice(index + 1));
+    }
+    return true;
+  }
+
   private async acknowledgeCloudJob(
     cloudKey: string,
-    receiptId: string,
-    acknowledgement: CloudAcknowledgement,
+    pending: PendingCloudAcknowledgement,
   ): Promise<void> {
     const response = await fetch(
       new URL(
-        `print/jobs/${encodeURIComponent(receiptId)}/ack`,
+        `print/jobs/${encodeURIComponent(pending.receiptId)}/ack`,
         `${this.config.cloudEndpoint}/`,
       ),
       {
@@ -1081,10 +1210,13 @@ export class LocalPrintService {
           "Content-Type": "application/json",
           "X-Print-Agent-Key": cloudKey,
         },
-        body: JSON.stringify(acknowledgement),
+        body: JSON.stringify(pending.acknowledgement),
       },
     );
-    if (!response.ok)
+    // The API updates only a receipt still in `printing`. A retry that races
+    // with a prior successful request therefore gets 404; it is terminal and
+    // safe to forget locally because the acknowledgement already settled.
+    if (!response.ok && response.status !== 404)
       throw new Error(`Cloud acknowledgement failed (${response.status})`);
   }
 

@@ -1,5 +1,8 @@
 import { createServer } from "node:net";
 import type { AddressInfo, Server as NetServer } from "node:net";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { WebSocket } from "ws";
 import type { PrintJob } from "@makanmasak/shared-types";
@@ -13,6 +16,10 @@ import type { LocalPrintServiceConfig } from "./LocalPrintService";
 const API_KEY = "test-print-agent-api-key";
 const CLOUD_ENDPOINT = "https://api.example/v1";
 const CLOUD_KEY = "mmpa_test_cloud_key";
+const TEST_ACKNOWLEDGEMENT_STORE_PATH = join(
+  tmpdir(),
+  "makan-print-agent-test-pending-acks.json",
+);
 
 const createConfig = (
   overrides: Partial<LocalPrintServiceConfig> = {},
@@ -25,6 +32,7 @@ const createConfig = (
   serviceName: "Print Agent",
   restaurantId: "restaurant-42",
   cloudKey: CLOUD_KEY,
+  acknowledgementStorePath: TEST_ACKNOWLEDGEMENT_STORE_PATH,
   autoDiscovery: false,
   discoveryInterval: 30000,
   heartbeatInterval: 60000,
@@ -136,6 +144,7 @@ const apiFetch = (
  * and a hidden dependency on the poll being non-fatal.
  */
 let cloudCalls: Array<{ url: string; init?: RequestInit }> = [];
+let stateDirectories: string[] = [];
 let cloudHandler: (url: string) => Response = () =>
   Response.json({ success: true, data: null });
 
@@ -156,6 +165,19 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+});
+
+afterEach(async () => {
+  await rm(TEST_ACKNOWLEDGEMENT_STORE_PATH, { force: true });
+  await Promise.all(
+    stateDirectories.map((directory) =>
+      rm(directory, {
+        recursive: true,
+        force: true,
+      }),
+    ),
+  );
+  stateDirectories = [];
 });
 
 const connectWebSocket = (
@@ -487,6 +509,71 @@ describe("LocalPrintService cloud job dispatch", () => {
       status: "printed",
       printerName: "USB-1",
     });
+  });
+
+  it("retries a persisted acknowledgement before claiming again after an ack outage", async () => {
+    const stateDirectory = await mkdtemp(join(tmpdir(), "makan-print-agent-"));
+    stateDirectories.push(stateDirectory);
+    const acknowledgementStorePath = join(stateDirectory, "pending-acks.json");
+    service = new LocalPrintService(createConfig({ acknowledgementStorePath }));
+    const createPrintJob = printsCompletedJobs(service);
+    let cloudStatus: "printing" | "printed" = "printing";
+    let failFirstAcknowledgement = true;
+    cloudHandler = (url) => {
+      if (url.includes("/ack")) {
+        if (failFirstAcknowledgement) {
+          failFirstAcknowledgement = false;
+          throw new Error("temporary network failure");
+        }
+        cloudStatus = "printed";
+        return Response.json({ success: true });
+      }
+      return Response.json(
+        cloudStatus === "printing"
+          ? pendingJob()
+          : { success: true, data: null },
+      );
+    };
+
+    await expect(pollCloudJobs(service)).resolves.toBeUndefined();
+    expect(createPrintJob).toHaveBeenCalledOnce();
+    expect(ackedReceipts()).toEqual(["receipt-1"]);
+
+    // A restart must remember the printed receipt; otherwise the cloud can
+    // re-issue its still-printing claim after its five-minute timeout.
+    service = new LocalPrintService(createConfig({ acknowledgementStorePath }));
+    await pollCloudJobs(service);
+
+    expect(createPrintJob).toHaveBeenCalledOnce();
+    expect(ackedReceipts()).toEqual(["receipt-1", "receipt-1"]);
+    expect(cloudStatus).toBe("printed");
+  });
+
+  it("forgets an acknowledgement the cloud reports as already settled", async () => {
+    const stateDirectory = await mkdtemp(join(tmpdir(), "makan-print-agent-"));
+    stateDirectories.push(stateDirectory);
+    service = new LocalPrintService(
+      createConfig({
+        acknowledgementStorePath: join(stateDirectory, "pending-acks.json"),
+      }),
+    );
+    const createPrintJob = printsCompletedJobs(service);
+    let claimed = false;
+    cloudHandler = (url) =>
+      url.includes("/ack")
+        ? new Response("already acknowledged", { status: 404 })
+        : Response.json(
+            claimed
+              ? { success: true, data: null }
+              : ((claimed = true), pendingJob()),
+          );
+
+    await pollCloudJobs(service);
+    await pollCloudJobs(service);
+
+    expect(createPrintJob).toHaveBeenCalledOnce();
+    expect(ackedReceipts()).toEqual(["receipt-1"]);
+    expect(jobPolls()).toHaveLength(3);
   });
 
   it("acknowledges failure when the local queue refuses the job", async () => {
