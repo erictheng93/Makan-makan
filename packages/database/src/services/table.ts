@@ -144,6 +144,12 @@ export class TableService extends BaseService {
         );
       }
 
+      // The v2 signature needs the generated table id, but its signing key is
+      // configuration that can and must be checked before committing the row.
+      // Otherwise a missing key is swallowed by the post-insert repair path,
+      // leaving a duplicate table number with an unusable pending QR code.
+      this.getQRCodeSigningKey();
+
       const [newTable] = await this.db
         .insert(tables)
         .values({
@@ -693,10 +699,7 @@ export class TableService extends BaseService {
     version: number = 1,
   ): Promise<string> {
     const baseUrl = resolveAppBaseUrl(this.env, "table QR codes");
-    const signingKey = this.env.QR_SIGNING_KEY;
-    if (!signingKey || signingKey.length < 32) {
-      throw new Error("QR_SIGNING_KEY must be set and at least 32 characters");
-    }
+    const signingKey = this.getQRCodeSigningKey();
 
     return buildSignedQRUrl(
       baseUrl,
@@ -709,6 +712,15 @@ export class TableService extends BaseService {
       },
       signingKey,
     );
+  }
+
+  private getQRCodeSigningKey(): string {
+    const signingKey = this.env.QR_SIGNING_KEY;
+    if (!signingKey || signingKey.length < 32) {
+      throw new Error("QR_SIGNING_KEY must be set and at least 32 characters");
+    }
+
+    return signingKey;
   }
 
   // 重新生成 QR Code

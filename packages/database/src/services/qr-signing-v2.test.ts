@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { parseSignedQRUrl } from "@makanmasak/utils";
-import { restaurants, seats } from "../schema";
+import { restaurants, seats, tables } from "../schema";
 import {
   createTestDatabase,
   REAL_D1_SETUP_TIMEOUT_MS,
@@ -98,6 +98,34 @@ describe("table and seat QR v2 generation", () => {
       parseSignedQRUrl(seatTwo.qrCode)?.signature,
     );
   });
+
+  it.each([undefined, "too-short"])(
+    "rejects an invalid signing key before inserting a table (%s)",
+    async (QR_SIGNING_KEY) => {
+      const service = new TableService(testDb.bindings.DB, {
+        JWT_SECRET: "test",
+        QR_SIGNING_KEY,
+        CLIENT_BASE_URL: "https://example.test",
+      });
+
+      await expect(
+        service.createTable({
+          restaurantId,
+          number: "INVALID-KEY",
+          capacity: 2,
+        }),
+      ).rejects.toThrow(
+        "QR_SIGNING_KEY must be set and at least 32 characters",
+      );
+
+      const persisted = await testDb.drizzle
+        .select({ id: tables.id })
+        .from(tables)
+        .where(eq(tables.number, "INVALID-KEY"));
+
+      expect(persisted).toHaveLength(0);
+    },
+  );
 
   it("leaves an unsignable placeholder when the post-insert v2 upgrade fails", async () => {
     const service = new TableService(testDb.bindings.DB, {
