@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   QR_PRINT_SIZE,
   printQRCodeSheet,
+  printQRCodeSheetInWindow,
   renderQRCodePrintSheet,
   type PrintableQRCode,
 } from "./qrPrintSheet";
@@ -103,6 +104,17 @@ describe("printQRCodeSheet", () => {
 
   it("reports failure when the popup is blocked instead of appearing to work", () => {
     expect(printQRCodeSheet("sheet", seats(3), () => null)).toBe(false);
+  });
+
+  it("prints in an already-opened window", () => {
+    vi.useFakeTimers();
+    const win = fakePrintWindow();
+
+    expect(printQRCodeSheetInWindow(win, "sheet", seats(1))).toBe(true);
+    vi.advanceTimersByTime(300);
+
+    expect(win.document.querySelectorAll(".qr-card")).toHaveLength(1);
+    expect(win.print).toHaveBeenCalledOnce();
   });
 
   it("refuses to open a window for an empty sheet", () => {

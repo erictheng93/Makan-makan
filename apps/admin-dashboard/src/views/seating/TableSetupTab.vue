@@ -577,7 +577,11 @@ import {
 } from "lucide-vue-next";
 import QRModeSelector from "@/components/tables/QRModeSelector.vue";
 import QRCodeRenderer from "@/components/tables/QRCodeRenderer.vue";
-import { printQRCodeSheet, toPrintableDataUrl } from "@/utils/qrPrintSheet";
+import {
+  printQRCodeSheet,
+  printQRCodeSheetInWindow,
+  toPrintableDataUrl,
+} from "@/utils/qrPrintSheet";
 import { getPrintableQrCode, isQrReady } from "@/utils/qrReadiness";
 
 const { t } = useI18n();
@@ -1153,6 +1157,12 @@ const printTableQRCodes = async (
     return;
   }
 
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    toast.error(t("tables.alert.printFailed"));
+    return;
+  }
+
   try {
     const qrCodes = await Promise.all(
       readyTargets.map(async (table) => ({
@@ -1160,7 +1170,13 @@ const printTableQRCodes = async (
         dataUrl: await toPrintableDataUrl(printableTableQrCode(table)),
       })),
     );
-    if (!printQRCodeSheet(t("tables.qrModal.printAllTitle"), qrCodes)) {
+    if (
+      !printQRCodeSheetInWindow(
+        printWindow,
+        t("tables.qrModal.printAllTitle"),
+        qrCodes,
+      )
+    ) {
       toast.error(t("tables.alert.printFailed"));
     }
   } catch (error) {
@@ -1170,7 +1186,7 @@ const printTableQRCodes = async (
 };
 
 const printAllTableQRCodes = async () => {
-  await printTableQRCodes(filteredTables.value);
+  await printTableQRCodes(tables.value);
 };
 
 const fetchTables = async () => {

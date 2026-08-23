@@ -38,12 +38,16 @@ vi.mock("@/composables/useConfirmModal", () => ({
 const printQRCodeSheetMock = vi.hoisted(() =>
   vi.fn((_title: string, _qrCodes: PrintableQRCode[]) => true),
 );
+const printQRCodeSheetInWindowMock = vi.hoisted(() =>
+  vi.fn((_window: Window, _title: string, _qrCodes: PrintableQRCode[]) => true),
+);
 const toPrintableDataUrlMock = vi.hoisted(() =>
   vi.fn(async (content: string) => `data:image/png;base64,${content}`),
 );
 
 vi.mock("@/utils/qrPrintSheet", () => ({
   printQRCodeSheet: printQRCodeSheetMock,
+  printQRCodeSheetInWindow: printQRCodeSheetInWindowMock,
   toPrintableDataUrl: toPrintableDataUrlMock,
 }));
 
@@ -94,6 +98,7 @@ async function mountTab(tables: Record<string, unknown>[] = []) {
 describe("TableSetupTab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(window, "open").mockReturnValue({} as Window);
     confirmMock.mockResolvedValue(true);
   });
 
@@ -343,6 +348,7 @@ describe("TableSetupTab", () => {
 describe("TableSetupTab QR print selection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(window, "open").mockReturnValue({} as Window);
     confirmMock.mockResolvedValue(true);
   });
 
@@ -425,8 +431,8 @@ describe("TableSetupTab QR print selection", () => {
     vm.toggleTableSelection(3);
     await vm.printSelectedTableQRCodes();
 
-    expect(printQRCodeSheetMock).toHaveBeenCalledOnce();
-    const [, codes] = printQRCodeSheetMock.mock.calls[0];
+    expect(printQRCodeSheetInWindowMock).toHaveBeenCalledOnce();
+    const [, , codes] = printQRCodeSheetInWindowMock.mock.calls[0];
     expect(codes).toHaveLength(2);
     expect(codes.map((code) => code.label)).toEqual([
       "tables.qrModal.title",
@@ -453,6 +459,27 @@ describe("TableSetupTab QR print selection", () => {
     await vm.printSelectedTableQRCodes();
 
     expect(toPrintableDataUrlMock).toHaveBeenCalledWith("pending-qr-1");
+  });
+
+  it("opens the print window before asynchronously encoding table QR codes", async () => {
+    let finishEncoding: ((dataUrl: string) => void) | undefined;
+    toPrintableDataUrlMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishEncoding = resolve;
+        }),
+    );
+    const wrapper = await mountTab([buildTable({ id: 1, number: "A1" })]);
+    const openWindow = vi.spyOn(window, "open").mockReturnValue({} as Window);
+
+    const printing = vmOf(wrapper).printAllTableQRCodes();
+
+    try {
+      expect(openWindow).toHaveBeenCalledOnce();
+    } finally {
+      finishEncoding?.("data:image/png;base64,qr-1");
+      await printing;
+    }
   });
 
   it("excludes placeholder pending table QR codes from selected printing", async () => {
@@ -491,13 +518,14 @@ describe("TableSetupTab QR print selection", () => {
     expect(wrapper.text()).toContain("qrReadiness.notReady");
   });
 
-  it("skips placeholder pending codes when printing all filtered tables", async () => {
+  it("prints every table despite an active filter", async () => {
     const wrapper = await mountTab([
       buildTable({ id: 1, number: "A1", location: "1F", qrCode: "pending:1" }),
       buildTable({ id: 2, number: "A2", location: "1F", qrCode: "qr-2" }),
       buildTable({ id: 3, number: "B1", location: "2F", qrCode: "qr-3" }),
     ]);
     const vm = vmOf(wrapper);
+    vi.spyOn(window, "open").mockReturnValue({} as Window);
 
     vm.searchQuery = "1F";
     await wrapper.vm.$nextTick();
@@ -508,6 +536,7 @@ describe("TableSetupTab QR print selection", () => {
     );
     expect(toPrintableDataUrlMock.mock.calls.map((call) => call[0])).toEqual([
       "qr-2",
+      "qr-3",
     ]);
   });
 

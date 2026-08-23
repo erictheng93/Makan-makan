@@ -104,6 +104,7 @@ function createPrintWindow() {
 describe("SeatManagement QR output", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(window, "open").mockReturnValue(createPrintWindow() as never);
     apiMocks.get.mockResolvedValue({
       data: {
         success: true,
@@ -165,6 +166,32 @@ describe("SeatManagement QR output", () => {
     expect(printWindow.document.body.textContent).toContain("01");
     expect(printWindow.document.body.textContent).toContain("02");
     expect(printWindow.print).toHaveBeenCalledOnce();
+  });
+
+  it("opens the print window before asynchronously encoding seat QR codes", async () => {
+    let finishEncoding: ((dataUrl: string) => void) | undefined;
+    qrToDataUrl.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishEncoding = resolve;
+        }),
+    );
+    const wrapper = mountSeatManagement([buildSeat(1, "01")]);
+    const printWindow = createPrintWindow();
+    const openWindow = vi
+      .spyOn(window, "open")
+      .mockReturnValue(printWindow as never);
+
+    const printing = (
+      wrapper.vm as unknown as { printAllSeatQRCodes: () => Promise<void> }
+    ).printAllSeatQRCodes();
+
+    try {
+      expect(openWindow).toHaveBeenCalledOnce();
+    } finally {
+      finishEncoding?.(qrDataUrl);
+      await printing;
+    }
   });
 
   it("prints prepared pending seat QR codes before live codes", async () => {

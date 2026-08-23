@@ -106,6 +106,22 @@ export function printQRCodeSheet(
   const printWindow = openWindow();
   if (!printWindow) return false;
 
+  return printQRCodeSheetInWindow(printWindow, title, qrCodes);
+}
+
+/**
+ * Render and print a sheet in a window opened during the user's click.
+ *
+ * Callers that need to encode QR data asynchronously should open the window
+ * before their first await, then pass it here once the data URLs are ready.
+ */
+export function printQRCodeSheetInWindow(
+  printWindow: Window,
+  title: string,
+  qrCodes: PrintableQRCode[],
+): boolean {
+  if (qrCodes.length === 0) return false;
+
   renderQRCodePrintSheet(printWindow, title, qrCodes);
   setTimeout(() => printWindow.print(), 300);
   return true;

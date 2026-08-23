@@ -402,7 +402,11 @@ const { t } = useI18n();
 const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 import QRCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
-import { printQRCodeSheet, toPrintableDataUrl } from "@/utils/qrPrintSheet";
+import {
+  printQRCodeSheet,
+  printQRCodeSheetInWindow,
+  toPrintableDataUrl,
+} from "@/utils/qrPrintSheet";
 import { getPrintableQrCode, isQrReady } from "@/utils/qrReadiness";
 import QRCodeRenderer from "./QRCodeRenderer.vue";
 import SeatGrid from "./SeatGrid.vue";
@@ -775,6 +779,12 @@ const printAllSeatQRCodes = async () => {
   }
   if (printableSeats.value.length === 0) return;
 
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    toast.error(t("seatManagement.alerts.printFailed"));
+    return;
+  }
+
   try {
     const qrCodes = await Promise.all(
       printableSeats.value.map(async (seat) => ({
@@ -788,7 +798,7 @@ const printAllSeatQRCodes = async () => {
     const title = t("seatManagement.printAllTitle", {
       table: props.tableNumber,
     });
-    if (!printQRCodeSheet(title, qrCodes)) {
+    if (!printQRCodeSheetInWindow(printWindow, title, qrCodes)) {
       toast.error(t("seatManagement.alerts.printFailed"));
     }
   } catch (error) {
