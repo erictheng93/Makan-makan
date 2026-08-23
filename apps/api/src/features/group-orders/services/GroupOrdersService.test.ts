@@ -115,7 +115,24 @@ function tableName(table: unknown) {
   return fixtureTableNames.get(table) ?? "<unknown table>";
 }
 
-function createQuery(nextResultFor: (table: unknown) => unknown) {
+function conditionContainsBoundValue(
+  condition: unknown,
+  expected: string,
+): boolean {
+  function visit(value: unknown): boolean {
+    if (Array.isArray(value)) return value.some(visit);
+    if (!value || typeof value !== "object") return false;
+    if ("value" in value && value.value === expected) return true;
+    return "queryChunks" in value && visit(value.queryChunks);
+  }
+
+  return visit(condition);
+}
+
+function createQuery(
+  nextResultFor: (table: unknown) => unknown,
+  onWhere?: (table: unknown, condition: unknown) => void,
+) {
   let selectedTable: unknown = unselectedTable;
   const builder = {
     from: vi.fn((table: unknown) => {
@@ -123,7 +140,10 @@ function createQuery(nextResultFor: (table: unknown) => unknown) {
       return builder;
     }),
     innerJoin: vi.fn(() => builder),
-    where: vi.fn(() => builder),
+    where: vi.fn((condition: unknown) => {
+      onWhere?.(selectedTable, condition);
+      return builder;
+    }),
     orderBy: vi.fn(() => builder),
     limit: vi.fn(() => builder),
     set: vi.fn(() => builder),
@@ -187,6 +207,7 @@ function createDb(
   const inserts: Array<{ table: unknown; payload: unknown }> = [];
   const updates: Array<{ table: unknown; payload: unknown }> = [];
   const deletes: unknown[] = [];
+  const selectWhereClauses: Array<{ table: unknown; condition: unknown }> = [];
   const mutationDb = createMutationFixtureDb(fixtureTables, mutationFixtures);
 
   const nextResultFor = (table: unknown) => {
@@ -209,7 +230,12 @@ function createDb(
     inserts,
     updates,
     deletes,
-    select: vi.fn(() => createQuery(nextResultFor)),
+    selectWhereClauses,
+    select: vi.fn(() =>
+      createQuery(nextResultFor, (table, condition) => {
+        selectWhereClauses.push({ table, condition });
+      }),
+    ),
     insert: vi.fn((table: unknown) => ({
       values: vi.fn(async (payload: unknown) => {
         inserts.push({ table, payload });
@@ -751,6 +777,39 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       },
     ]);
     expect(db.select).toHaveBeenCalledTimes(3);
+  });
+
+  it("only includes published cart items in group summaries and list counts", async () => {
+    const summaryService = createService();
+    const summaryDb = createDb({
+      groupOrders: [[baseGroupOrder]],
+      groupMembers: [[hostMember]],
+      groupCartItems: [[]],
+      groupActivityLogs: [[]],
+      splitBills: [[]],
+    });
+    useDb(summaryService, summaryDb);
+
+    await summaryService.getGroupOrder("group-1");
+
+    const listService = createService();
+    const listDb = createDb({
+      groupOrders: [[baseGroupOrder]],
+      groupMembers: [[hostMember]],
+      groupCartItems: [[]],
+    });
+    useDb(listService, listDb);
+
+    await listService.listGroupOrders("restaurant-1");
+
+    for (const db of [summaryDb, listDb]) {
+      const cartItemWhere = db.selectWhereClauses.find(
+        ({ table }) => table === groupCartItems,
+      );
+      expect(
+        conditionContainsBoundValue(cartItemWhere?.condition, "active"),
+      ).toBe(true);
+    }
   });
 
   it("returns empty lists when no rows exist or list queries fail", async () => {
@@ -2904,6 +2963,9 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         error: "Cannot finalize an empty group order",
       });
       expect(empty.createOrder).not.toHaveBeenCalled();
+      expect(empty.db.updates.map((update) => update.payload)).toContainEqual(
+        expect.objectContaining({ status: "active", lockedAt: null }),
+      );
 
       const completed = createFinalizeService({
         groupOrder: {

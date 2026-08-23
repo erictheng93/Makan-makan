@@ -300,7 +300,12 @@ export class GroupOrdersService implements IGroupOrderService {
         this.db
           .select()
           .from(groupCartItems)
-          .where(inArray(groupCartItems.groupOrderId, orderIds)),
+          .where(
+            and(
+              inArray(groupCartItems.groupOrderId, orderIds),
+              eq(groupCartItems.status, "active"),
+            ),
+          ),
       ]);
 
       // Group by order ID before returning the response.
@@ -798,7 +803,12 @@ export class GroupOrdersService implements IGroupOrderService {
         })
         .from(groupCartItems)
         .innerJoin(menuItems, eq(groupCartItems.menuItemId, menuItems.id))
-        .where(eq(groupCartItems.groupOrderId, groupOrderId))
+        .where(
+          and(
+            eq(groupCartItems.groupOrderId, groupOrderId),
+            eq(groupCartItems.status, "active"),
+          ),
+        )
         .orderBy(asc(groupCartItems.addedAt));
 
       // Get recent activities
@@ -1404,7 +1414,7 @@ export class GroupOrdersService implements IGroupOrderService {
       if (cartItems.length === 0) {
         await this.db
           .update(groupOrders)
-          .set({ status: "active", updatedAt: new Date() })
+          .set({ status: "active", lockedAt: null, updatedAt: new Date() })
           .where(
             and(
               eq(groupOrders.id, groupOrderId),
