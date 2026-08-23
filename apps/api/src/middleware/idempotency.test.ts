@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import { describe, expect, it, vi } from "vitest";
 import { idempotencyMiddleware, type IdempotencyOptions } from "./idempotency";
+import { ApiError } from "../shared/utils/api-error";
 import type { Env } from "../types/env";
 
 interface StoredRecord {
@@ -89,7 +90,35 @@ function createApp(
 ) {
   const app = new Hono<{ Bindings: Env }>();
   app.post("/", idempotencyMiddleware({ scope: "test", ...options }), handler);
+  // Mirrors the `app.onError` in app-factory.ts. Without it Hono's default
+  // handler flattens every throw to a bare 500, and the middleware's own 409
+  // and 422 answers would be untestable — they are thrown, not returned.
+  app.onError((err, c) =>
+    err instanceof ApiError
+      ? c.json(
+          { success: false, error: { code: err.code, message: err.message } },
+          err.status as 400 | 409 | 422 | 500,
+        )
+      : c.text("Internal Server Error", 500),
+  );
   return app;
+}
+
+/**
+ * Rewinds the stored record to what an isolate that died mid-request leaves
+ * behind: the reservation it wrote before the handler ran, with no response
+ * on it. Going through a real request first means the scope and request hash
+ * are the ones the middleware itself computes.
+ */
+function strandReservation(
+  db: ReturnType<typeof createIdempotencyDb>,
+  ageMs: number,
+) {
+  const record = db.table.get(KEY);
+  if (!record) throw new Error("nothing reserved to strand");
+  record.response_status = null;
+  record.response_body = null;
+  record.created_at = Date.now() - ageMs;
 }
 
 const KEY = "event-1";
@@ -247,6 +276,75 @@ describe("idempotencyMiddleware", () => {
           }),
         }),
       );
+    });
+  });
+
+  describe("abandoned reservations", () => {
+    it("takes over a reservation no handler ever answered", async () => {
+      // The reservation is written before the handler runs and only becomes a
+      // response afterwards. An isolate evicted in between leaves a row that
+      // answers every later delivery with 409 for the full 24h TTL — the same
+      // lost event the replay cache exists to prevent.
+      const db = createIdempotencyDb();
+      const handler = vi.fn<Handler>((c) =>
+        c.json({ success: true, data: { orderId: 101 } }, 200),
+      );
+      const app = createApp({}, handler);
+
+      await post(app, db);
+      strandReservation(db, 61_000);
+
+      const second = await post(app, db);
+
+      expect(handler).toHaveBeenCalledTimes(2);
+      expect(second.status).toBe(200);
+      expect(second.headers.get("X-Idempotent-Replay")).toBeNull();
+      expect(db.table.get(KEY)).toMatchObject({ response_status: 200 });
+    });
+
+    it("still refuses a reservation that is genuinely in flight", async () => {
+      // The lease must not become a licence to run two copies of a handler
+      // that is simply taking its time.
+      const db = createIdempotencyDb();
+      const handler = vi.fn<Handler>((c) =>
+        c.json({ success: true, data: { orderId: 101 } }, 200),
+      );
+      const app = createApp({}, handler);
+
+      await post(app, db);
+      strandReservation(db, 5_000);
+
+      const second = await post(app, db);
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(second.status).toBe(409);
+      await expect(second.json()).resolves.toMatchObject({
+        success: false,
+        error: { code: "IDEMPOTENCY_IN_PROGRESS" },
+      });
+    });
+
+    it("never takes over a record that already carries a response", async () => {
+      // Age alone must not unseat a stored reply: replaying it is the whole
+      // point of the table, and re-running the handler here would duplicate
+      // the effect the first call already had.
+      const db = createIdempotencyDb();
+      const handler = vi.fn<Handler>((c) =>
+        c.json({ success: true, data: { orderId: 101 } }, 200),
+      );
+      const app = createApp({}, handler);
+
+      await post(app, db);
+      const answered = db.table.get(KEY);
+      if (!answered) throw new Error("nothing stored to age");
+      // Reserved 23h ago, so it is far past the lease but still inside its TTL.
+      answered.created_at = Date.now() - 23 * 60 * 60 * 1000;
+
+      const second = await post(app, db);
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(second.status).toBe(200);
+      expect(second.headers.get("X-Idempotent-Replay")).toBe("true");
     });
   });
 });

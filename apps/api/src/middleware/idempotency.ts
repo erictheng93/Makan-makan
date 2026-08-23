@@ -44,6 +44,25 @@ export interface IdempotencyOptions {
   ) => string | null | Promise<string | null>;
 }
 
+/**
+ * How long a reservation may sit unanswered before the next delivery of the
+ * same key is allowed to take it over.
+ *
+ * A reservation is written before the handler runs and overwritten with the
+ * response after it returns. Nothing writes it if the request never gets
+ * there — an isolate evicted mid-flight, a CPU-limit kill, a throw in this
+ * middleware's own post-handler work. The row then sits with a null status
+ * for the whole TTL (24h by default) and answers every retry with 409, which
+ * is the same lost-event outcome the replay cache exists to prevent.
+ *
+ * A minute is far longer than any handler behind this middleware runs, and
+ * the writes underneath them are guarded in their own right (unique event-id
+ * and idempotency-key indexes), so the cost of taking over a reservation that
+ * somehow is still live is bounded. Nothing shortens the TTL of a reservation
+ * that did get answered — only an unanswered one is reclaimable.
+ */
+const IN_PROGRESS_LEASE_MS = 60_000;
+
 async function sha256Hex(input: string): Promise<string> {
   const bytes = new TextEncoder().encode(input);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -85,8 +104,23 @@ async function readExisting(
     .first<IdempotencyRecord>();
 }
 
-// Serves two callers: dropping a record whose TTL has run out, and releasing a
-// reservation whose handler answered 5xx (see `releaseOnServerError`).
+/**
+ * Whether a record has stopped speaking for a request: its TTL ran out, or it
+ * is a reservation whose handler never came back to answer it. A record that
+ * carries a response is never reclaimable however old it is — replaying it is
+ * the entire point of the table.
+ */
+function isReclaimable(record: IdempotencyRecord, now: number): boolean {
+  if (record.expires_at <= now) return true;
+  return (
+    record.response_status == null &&
+    record.created_at <= now - IN_PROGRESS_LEASE_MS
+  );
+}
+
+// Serves three callers: dropping a record whose TTL has run out, taking over a
+// reservation nobody answered, and releasing a reservation whose handler
+// answered 5xx (see `releaseOnServerError`).
 async function deleteKey(c: Context<{ Bindings: Env }>, key: string) {
   await c.env.DB.prepare("DELETE FROM idempotency_keys WHERE key = ?")
     .bind(key)
@@ -187,7 +221,7 @@ export function idempotencyMiddleware(
     const now = Date.now();
     const existing = await readExisting(c, key);
 
-    if (existing && existing.expires_at <= now) {
+    if (existing && isReclaimable(existing, now)) {
       await deleteKey(c, key);
     } else if (existing) {
       if (existing.scope !== options.scope) {
