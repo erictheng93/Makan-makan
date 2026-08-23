@@ -12,7 +12,7 @@
 import { fileURLToPath } from "node:url";
 
 interface QueryResult<T = unknown> {
-  results?: T[];
+  results: T[];
 }
 
 interface QueryStatement {
