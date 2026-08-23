@@ -137,6 +137,9 @@ describe("CreditService — expiry atomicity", () => {
 
       expect(result).toMatchObject({ expired: 0, totalExpiredCents: 0 });
       expect(result.failures).toHaveLength(1);
+      expect(result.failures[0]?.error).toContain(
+        "poisoned expiry ledger insert",
+      );
       expect((await service.getBalance(card.publicId)).balanceCents).toBe(5000);
       expect(
         (await ledgerEntriesFor(card.accountId)).filter(
@@ -147,6 +150,61 @@ describe("CreditService — expiry atomicity", () => {
     } finally {
       await testDb.db.prepare("DROP TRIGGER poison_expiry_ledger_insert").run();
     }
+  });
+
+  it("does not expire a stale snapshot after a concurrent full spend", async () => {
+    const service = makeService();
+    const card = await service.issueCard({
+      currency: "TWD",
+      initialBalanceCents: 5000,
+    });
+    await testDb.drizzle
+      .update(creditAccounts)
+      .set({ expiresAtMs: new Date(Date.now() - 1) })
+      .where(eq(creditAccounts.id, card.accountId));
+
+    let injectedSpend = false;
+    const wrappedDb = new Proxy(testDb.bindings.DB, {
+      get(target, property) {
+        if (property === "batch") {
+          return async (statements: D1PreparedStatement[]) => {
+            if (!injectedSpend) {
+              injectedSpend = true;
+              await service.spend({
+                publicId: card.publicId,
+                amountCents: 5000,
+                currency: "TWD",
+                idempotencyKey: "spend-before-expiry-batch",
+                sourceType: "market_checkout",
+              });
+            }
+            return target.batch(statements);
+          };
+        }
+        const value = Reflect.get(target, property, target);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const expiryService = makeService({ DB: wrappedDb });
+
+    const result = await expiryService.expireStaleAccounts({
+      nowMs: Date.now(),
+    });
+
+    expect(injectedSpend).toBe(true);
+    expect(result).toMatchObject({
+      scanned: 1,
+      expired: 0,
+      totalExpiredCents: 0,
+      failures: [],
+    });
+    expect((await service.getBalance(card.publicId)).balanceCents).toBe(0);
+    expect(
+      (await ledgerEntriesFor(card.accountId)).filter(
+        (entry) => entry.entryType === "expire",
+      ),
+    ).toEqual([]);
+    expect(await service.findBalanceLedgerDrift()).toEqual([]);
   });
 });
 

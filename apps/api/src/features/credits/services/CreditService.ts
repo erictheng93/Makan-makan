@@ -413,7 +413,6 @@ export class CreditService {
         id: creditAccounts.id,
         balanceCents: creditAccounts.balanceCents,
         version: creditAccounts.version,
-        currency: creditAccounts.currency,
         expiresAtMs: creditAccounts.expiresAtMs,
       })
       .from(creditAccounts)
@@ -437,49 +436,31 @@ export class CreditService {
         const expiryIdempotencyKey = `credit-expire:${account.id}:${
           account.expiresAtMs?.getTime() ?? now.getTime()
         }`;
-        const zeroBalance = this.db
-          .update(creditAccounts)
-          .set({
-            balanceCents: 0,
-            version: sql`${creditAccounts.version} + 1`,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(creditAccounts.id, account.id),
-              eq(creditAccounts.version, account.version),
-              gt(creditAccounts.balanceCents, 0),
-            ),
-          )
-          .returning({ id: creditAccounts.id });
-        const recordExpiry = this.db.insert(creditLedgerEntries).select(
-          this.db
-            .select({
-              id: sql<string>`${generateUUID()}`.as("id"),
-              accountId: creditAccounts.id,
-              entryType: sql<CreditEntryType>`'expire'`.as("entry_type"),
-              amountCents: sql<number>`${-account.balanceCents}`.as(
-                "amount_cents",
-              ),
-              balanceAfterCents: sql<number>`0`.as("balance_after_cents"),
-              currency: creditAccounts.currency,
-              sourceType: sql<string>`'expiry_job'`.as("source_type"),
-              sourceId: creditAccounts.id,
-              idempotencyKey: sql<string>`${expiryIdempotencyKey}`.as(
-                "idempotency_key",
-              ),
-            })
-            .from(creditAccounts)
-            .where(
-              and(
-                eq(creditAccounts.id, account.id),
-                eq(creditAccounts.version, account.version + 1),
-                eq(creditAccounts.balanceCents, 0),
-              ),
-            ),
+        const writtenAtMs = Date.now();
+        const zeroBalance = this.env.DB.prepare(
+          `UPDATE credit_accounts
+              SET balance_cents = 0, version = version + 1, updated_at_ms = ?
+            WHERE id = ? AND version = ? AND balance_cents > 0
+            RETURNING id`,
+        ).bind(writtenAtMs, account.id, account.version);
+        const recordExpiry = this.env.DB.prepare(
+          `INSERT INTO credit_ledger_entries
+               (id, account_id, entry_type, amount_cents, balance_after_cents,
+                currency, source_type, source_id, market_checkout_payment_id,
+                idempotency_key, created_at_ms)
+             SELECT ?, id, 'expire', ?, 0, currency, 'expiry_job', id, NULL, ?, ?
+               FROM credit_accounts
+              WHERE id = ? AND changes() = 1
+             RETURNING id`,
+        ).bind(
+          generateUUID(),
+          -account.balanceCents,
+          expiryIdempotencyKey,
+          writtenAtMs,
+          account.id,
         );
-        const [zeroed] = await this.db.batch([zeroBalance, recordExpiry]);
-        if (zeroed.length === 0) continue; // concurrent activity won
+        const [zeroed] = await this.env.DB.batch([zeroBalance, recordExpiry]);
+        if (zeroed.meta.changes === 0) continue; // concurrent activity won
 
         expired += 1;
         totalExpiredCents += account.balanceCents;

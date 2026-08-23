@@ -148,18 +148,6 @@ function createFakeDb() {
     });
   }
 
-  function mockDrizzleBatchResults(results: Array<unknown[] | Error>) {
-    const queue = [...results];
-    drizzleBatchFn.mockImplementation(async () => {
-      const result = queue.shift();
-      if (result === undefined) {
-        throw new Error("No Drizzle batch fixtures remaining");
-      }
-      if (result instanceof Error) throw result;
-      return result;
-    });
-  }
-
   const db = {
     select: selectFn,
     insert: insertFn,
@@ -173,7 +161,6 @@ function createFakeDb() {
     mockSelectResults,
     mockMutationResults,
     mockBatchResults,
-    mockDrizzleBatchResults,
   };
 }
 
@@ -736,19 +723,10 @@ describe("CreditService", () => {
   });
 
   it("expires stale accounts with isolated failures and concurrent-update skips", async () => {
-    const {
-      service,
-      mockSelectResults,
-      mockMutationResults,
-      mockDrizzleBatchResults,
-    } = createService();
-    mockMutationResults({
-      creditAccounts: { update: [[]] },
-      creditLedgerEntries: { insert: [[]] },
-    });
-    mockDrizzleBatchResults([
-      [[], []],
-      [[{ id: "account-expire" }], []],
+    const { service, mockSelectResults, mockBatchResults } = createService();
+    mockBatchResults([
+      [{ meta: { changes: 0 } }, { meta: { changes: 0 } }],
+      [{ meta: { changes: 1 } }, { meta: { changes: 1 } }],
       new Error("write failed"),
     ]);
     mockSelectResults({
