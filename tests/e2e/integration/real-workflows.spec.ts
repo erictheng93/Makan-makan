@@ -100,6 +100,13 @@ function assertLoginData(
   skipWhen(!value?.token || !value.user, reason);
 }
 
+function assertLoginToken(
+  value: SmokeLoginData | undefined,
+  reason: string,
+): asserts value is SmokeLoginData {
+  skipWhen(!value?.token, reason);
+}
+
 function assertChefLoginData(
   value: LoginResponse["data"] | undefined,
   reason: string,
@@ -2231,7 +2238,7 @@ test.describe("Real system workflows", () => {
     );
 
     const ownerLoginData = await getLoginData();
-    assertLoginData(
+    assertLoginToken(
       ownerLoginData,
       "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
     );

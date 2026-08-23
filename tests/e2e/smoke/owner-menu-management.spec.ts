@@ -311,9 +311,10 @@ function installOwnerMenuMocks(
       target.name =
         String((body as { name?: unknown })?.name ?? target.name).trim() ||
         target.name;
-      const nextNameEn = (body as { nameEn?: unknown }).nameEn;
+      const nextNameEn = (body as { nameEn?: unknown } | null)?.nameEn;
       if (nextNameEn !== undefined) target.nameEn = String(nextNameEn);
-      const nextDescription = (body as { description?: unknown }).description;
+      const nextDescription = (body as { description?: unknown } | null)
+        ?.description;
       if (nextDescription !== undefined) {
         target.description = String(nextDescription);
       }
@@ -457,7 +458,8 @@ function installOwnerMenuMocks(
       target.name =
         String((body as { name?: unknown })?.name ?? target.name).trim() ||
         target.name;
-      const nextDescription = (body as { description?: unknown }).description;
+      const nextDescription = (body as { description?: unknown } | null)
+        ?.description;
       if (nextDescription !== undefined) {
         target.description = String(nextDescription);
       }
