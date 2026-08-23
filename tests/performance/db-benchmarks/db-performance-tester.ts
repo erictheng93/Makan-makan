@@ -9,8 +9,20 @@
  * - Performance baseline management
  */
 
-import type { D1Database } from "@cloudflare/workers-types";
 import { fileURLToPath } from "node:url";
+
+interface QueryResult<T = unknown> {
+  results?: T[];
+}
+
+interface QueryStatement {
+  bind(...values: unknown[]): QueryStatement;
+  all<T = unknown>(): Promise<QueryResult<T>>;
+}
+
+interface QueryDatabase {
+  prepare(query: string): QueryStatement;
+}
 
 export interface QueryPerformanceResult {
   query: string;
@@ -42,17 +54,17 @@ export interface PerformanceBaseline {
       avgTime: number;
       p95Time: number;
       p99Time: number;
-      indexUsed: boolean;
+      indexUsed?: boolean;
     }
   >;
 }
 
 export class DatabasePerformanceTester {
-  private db: D1Database;
+  private db: QueryDatabase;
   private queryLog: QueryPerformanceResult[] = [];
   private enableQueryLogging: boolean = false;
 
-  constructor(db: D1Database) {
+  constructor(db: QueryDatabase) {
     this.db = db;
   }
 

@@ -6,6 +6,7 @@ import { groupActivityLogs, groupOrders } from "@makanmasak/database";
 import type { GroupOrderSettings } from "@makanmasak/shared-types";
 import { EMPTY_GROUP_ORDER_ERROR } from "../features/group-orders/services/GroupOrdersService";
 import {
+  ABANDONED_FINALIZE_CLAIM_CODE,
   GROUP_ORDER_EXPIRY_WARNING_MS,
   GROUP_ORDER_FINALIZING_STALE_MS,
   sweepExpiringGroupOrders,
@@ -67,6 +68,9 @@ interface SeedRow {
   settings?: GroupOrderSettings;
   lockedAt?: Date | null;
   masterOrderId?: string | null;
+  finalAmountCents?: number | null;
+  serviceChargeCents?: number | null;
+  taxAmountCents?: number | null;
 }
 
 function createDb(): GroupOrderSweepDb {
@@ -87,6 +91,9 @@ async function seed(db: GroupOrderSweepDb, rows: SeedRow[]): Promise<void> {
       expiresAt: seedRow.expiresAt,
       lockedAt: seedRow.lockedAt ?? null,
       masterOrderId: seedRow.masterOrderId ?? null,
+      finalAmountCents: seedRow.finalAmountCents ?? null,
+      serviceChargeCents: seedRow.serviceChargeCents ?? null,
+      taxAmountCents: seedRow.taxAmountCents ?? null,
       settings: seedRow.settings ?? {},
       createdAt,
       updatedAt: createdAt,
@@ -165,6 +172,7 @@ describe("sweepExpiringGroupOrders", () => {
       finalized: 1,
       cancelled: 1,
       warned: 0,
+      awaitingRecovery: 0,
       errors: ["finalize-fail: order service down"],
     });
 
@@ -210,6 +218,7 @@ describe("sweepExpiringGroupOrders", () => {
       finalized: 0,
       cancelled: 1,
       warned: 0,
+      awaitingRecovery: 0,
       errors: [],
     });
 
@@ -350,7 +359,98 @@ describe("sweepExpiringGroupOrders", () => {
     expect(stale?.lockedAt).toBeNull();
     expect((await readRow(db, "failed"))?.status).toBe("finalizing_failed");
     // A claim whose real order already exists must never be handed back to a
-    // second finalizer, however stale it looks.
-    expect((await readRow(db, "stale-but-ordered"))?.status).toBe("finalizing");
+    // second finalizer, however stale it looks. It is resolved the other way,
+    // by the abandoned-claim pass below.
+    expect((await readRow(db, "stale-but-ordered"))?.status).not.toBe("active");
+  });
+
+  it("hands an abandoned claim whose order exists to the recovery path", async () => {
+    const db = createDb();
+    const env = createEnv();
+    await seed(db, [
+      {
+        id: "abandoned",
+        status: "finalizing",
+        expiresAt: new Date(now.getTime() - 1),
+        lockedAt: new Date(now.getTime() - GROUP_ORDER_FINALIZING_STALE_MS - 1),
+        masterOrderId: "order-abandoned",
+        finalAmountCents: 12_000,
+        serviceChargeCents: 1_200,
+        taxAmountCents: 600,
+      },
+    ]);
+
+    const result = await sweepExpiringGroupOrders(env, { now, db });
+
+    const row = await readRow(db, "abandoned");
+    expect(row?.status).toBe("finalizing_failed");
+    expect(result.awaitingRecovery).toBe(1);
+    // The totals come off the row the finalizer wrote, which is what
+    // recoverFinalization re-runs the split with.
+    expect(
+      (row?.settings as GroupOrderSettings | null)?.finalizeFailure,
+    ).toEqual(
+      expect.objectContaining({
+        code: ABANDONED_FINALIZE_CLAIM_CODE,
+        masterOrderId: "order-abandoned",
+        orderTotalCents: 12_000,
+        serviceChargeCents: 1_200,
+        taxAmountCents: 600,
+        failedAt: expect.any(String),
+      }),
+    );
+    expect(env.cacheDeletes).toContain("group_order:abandoned");
+  });
+
+  it("keeps the first failure when an abandoned claim was itself a recovery", async () => {
+    const db = createDb();
+    const env = createEnv();
+    const original = {
+      code: "SPLIT_TOTAL_MISMATCH",
+      masterOrderId: "order-retry",
+      orderTotalCents: 9_000,
+      serviceChargeCents: 900,
+      taxAmountCents: 450,
+      splitError: "Split total does not match order total",
+      failedAt: "2026-06-01T00:00:00.000Z",
+    };
+    await seed(db, [
+      {
+        id: "retry-abandoned",
+        status: "finalizing",
+        expiresAt: new Date(now.getTime() - 1),
+        lockedAt: new Date(now.getTime() - GROUP_ORDER_FINALIZING_STALE_MS - 1),
+        masterOrderId: "order-retry",
+        settings: { finalizeFailure: original },
+      },
+    ]);
+
+    await sweepExpiringGroupOrders(env, { now, db });
+
+    const row = await readRow(db, "retry-abandoned");
+    expect(row?.status).toBe("finalizing_failed");
+    // #231: a retry must never overwrite the original diagnostics.
+    expect(
+      (row?.settings as GroupOrderSettings | null)?.finalizeFailure,
+    ).toEqual(original);
+  });
+
+  it("leaves a claim alone while it is still inside the stale window", async () => {
+    const db = createDb();
+    const env = createEnv();
+    await seed(db, [
+      {
+        id: "running-recovery",
+        status: "finalizing",
+        expiresAt: new Date(now.getTime() - 1),
+        lockedAt: new Date(now.getTime() - GROUP_ORDER_FINALIZING_STALE_MS + 1),
+        masterOrderId: "order-running",
+      },
+    ]);
+
+    const result = await sweepExpiringGroupOrders(env, { now, db });
+
+    expect((await readRow(db, "running-recovery"))?.status).toBe("finalizing");
+    expect(result.awaitingRecovery).toBe(0);
   });
 });

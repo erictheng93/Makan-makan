@@ -85,8 +85,15 @@ else
         backend=true
         integration=true
         ;;
-      apps/realtime/* | apps/image-processor/* | apps/backup-scheduler/* | \
-        apps/print-agent/*)
+      # image-processor owns a real-D1 suite (orphan-sweep.real.integration),
+      # which only the real-integration job runs. Without `integration` a change
+      # to the sweep itself never exercises it.
+      apps/image-processor/*)
+        app=true
+        backend=true
+        integration=true
+        ;;
+      apps/realtime/* | apps/backup-scheduler/* | apps/print-agent/*)
         app=true
         backend=true
         ;;

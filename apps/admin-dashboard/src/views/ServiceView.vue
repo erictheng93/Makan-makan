@@ -618,7 +618,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, type Component } from "vue";
+import {
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onUnmounted,
+  type Component,
+} from "vue";
 import {
   ArrowPathIcon,
   TruckIcon,
@@ -702,16 +709,32 @@ const orders = ref<ServiceOrder[]>([]);
 
 // 「配送中」是這台裝置上的本地標記,不是訂單狀態——伺服器只認 ORDER_STATUSES 的
 // 八個值。存進 sessionStorage,讓重新整理清單或重載頁面都不會把送菜員手上的單洗掉。
-const DELIVERY_PHASE_STORAGE_KEY = "service-view:delivery-phase";
+const DELIVERY_PHASE_STORAGE_KEY_PREFIX = "service-view:delivery-phase";
 
 interface LocalDeliveryPhase {
   deliveryStartTime: string;
   assignedTo: string;
 }
 
-function readStoredDeliveryPhases(): Record<string, LocalDeliveryPhase> {
+function getDeliveryPhaseStorageKey(): string | null {
+  const restaurantId = authStore.restaurantId;
+  const userId = authStore.user?.id;
+  if (restaurantId == null || restaurantId === "" || userId == null) {
+    return null;
+  }
+
+  return `${DELIVERY_PHASE_STORAGE_KEY_PREFIX}:${encodeURIComponent(
+    String(restaurantId),
+  )}:${encodeURIComponent(String(userId))}`;
+}
+
+function readStoredDeliveryPhases(
+  storageKey = getDeliveryPhaseStorageKey(),
+): Record<string, LocalDeliveryPhase> {
+  if (!storageKey) return {};
+
   try {
-    const raw = sessionStorage.getItem(DELIVERY_PHASE_STORAGE_KEY);
+    const raw = sessionStorage.getItem(storageKey);
     if (!raw) return {};
     const parsed: unknown = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return {};
@@ -734,14 +757,30 @@ function readStoredDeliveryPhases(): Record<string, LocalDeliveryPhase> {
   }
 }
 
+let loadedDeliveryPhaseStorageKey = getDeliveryPhaseStorageKey();
 const localDeliveryPhases = ref<Record<string, LocalDeliveryPhase>>(
-  readStoredDeliveryPhases(),
+  readStoredDeliveryPhases(loadedDeliveryPhaseStorageKey),
 );
 
+function syncDeliveryPhasesWithAuthenticatedSession() {
+  const storageKey = getDeliveryPhaseStorageKey();
+  if (storageKey === loadedDeliveryPhaseStorageKey) return false;
+
+  loadedDeliveryPhaseStorageKey = storageKey;
+  localDeliveryPhases.value = readStoredDeliveryPhases(storageKey);
+  // Do not leave an earlier session's delivery actions usable while its
+  // replacement list is loading.
+  orders.value = [];
+  return true;
+}
+
 function persistDeliveryPhases() {
+  const storageKey = getDeliveryPhaseStorageKey();
+  if (!storageKey) return;
+
   try {
     sessionStorage.setItem(
-      DELIVERY_PHASE_STORAGE_KEY,
+      storageKey,
       JSON.stringify(localDeliveryPhases.value),
     );
   } catch {
@@ -760,6 +799,17 @@ function pruneDeliveryPhases(readyOrderIds: string[]) {
     }
   }
   if (changed) persistDeliveryPhases();
+}
+
+function isCompleteReadyOrderResponse(response: { data: unknown }) {
+  const payload = response.data;
+  if (!payload || typeof payload !== "object") return false;
+
+  const pagination = (payload as { pagination?: unknown }).pagination;
+  if (!pagination || typeof pagination !== "object") return false;
+
+  const totalPages = (pagination as { totalPages?: unknown }).totalPages;
+  return typeof totalPages === "number" && totalPages <= 1;
 }
 
 // 今日配送記錄 - populated from delivered orders
@@ -832,6 +882,9 @@ const updateCurrentTime = () => {
 
 const refreshOrders = async () => {
   try {
+    // Auth may hydrate after this view is created, or change without a reload.
+    syncDeliveryPhasesWithAuthenticatedSession();
+
     // Delivery in progress is local to this device, so only fetch server-ready orders.
     const response = await api.get("/orders", {
       status: "ready",
@@ -839,7 +892,11 @@ const refreshOrders = async () => {
     });
     const data = unwrapApiData<ApiOrder[]>(response);
     if (Array.isArray(data)) {
-      pruneDeliveryPhases(data.map((order) => String(order.id)));
+      // `/orders` is paginated. Only an explicitly single-page response proves
+      // that a locally tracked order has left the server's ready set.
+      if (isCompleteReadyOrderResponse(response)) {
+        pruneDeliveryPhases(data.map((order) => String(order.id)));
+      }
       orders.value = data.map((order) => {
         // The rebuilt row would otherwise drop the phase this device is
         // holding, sending an in-progress delivery back to「開始配送」.
@@ -929,7 +986,16 @@ const refreshOrders = async () => {
   }
 };
 
+watch(getDeliveryPhaseStorageKey, (storageKey, previousStorageKey) => {
+  if (storageKey === previousStorageKey) return;
+  if (syncDeliveryPhasesWithAuthenticatedSession() && storageKey) {
+    void refreshOrders();
+  }
+});
+
 const startDelivery = (order: ServiceOrder) => {
+  syncDeliveryPhasesWithAuthenticatedSession();
+
   const deliveryStartTime = new Date().toISOString();
   const assignedTo = String(authStore.user?.id || "current_user");
 
@@ -949,6 +1015,8 @@ const startDelivery = (order: ServiceOrder) => {
 
 const completeDelivery = async (order: ServiceOrder) => {
   try {
+    syncDeliveryPhasesWithAuthenticatedSession();
+
     await api.put(`/orders/${order.id}/status`, {
       status: "delivered",
       notes: `Delivered by service crew`,

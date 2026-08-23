@@ -422,6 +422,31 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     await expect(db.select().from(restaurants)).rejects.toThrow("restaurants");
   });
 
+  it("reads split eligibility status directly from the database without consulting the summary cache", async () => {
+    const { kv } = createKV();
+    const service = new GroupOrdersService({} as D1Database, kv);
+    useDb(service, createDb({ groupOrders: [[{ status: "checkout" }]] }));
+
+    await expect(service.getGroupOrderStatus("group-1")).resolves.toBe(
+      "checkout",
+    );
+    expect(kv.get).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when D1 contains an unknown group-order status", async () => {
+    const { kv } = createKV();
+    const service = new GroupOrdersService({} as D1Database, kv);
+    useDb(
+      service,
+      createDb({ groupOrders: [[{ status: "unexpected_status" }]] }),
+    );
+
+    await expect(service.getGroupOrderStatus("group-1")).rejects.toThrow(
+      "UNKNOWN_GROUP_ORDER_STATUS",
+    );
+    expect(kv.get).not.toHaveBeenCalled();
+  });
+
   it("formats group orders with defaults, cents-first money, and timestamp compatibility", () => {
     const service = createService();
 
@@ -2996,6 +3021,178 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         error: "Group order is already being finalized",
       });
       expect(createOrder).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("recoverFinalization", () => {
+    const failure = {
+      code: "SPLIT_TOTAL_MISMATCH",
+      masterOrderId: "order-1",
+      orderTotalCents: 3900,
+      serviceChargeCents: 600,
+      taxAmountCents: 300,
+      expectedTotalCents: 3900,
+      roundedTotalCents: 3000,
+      splitError: "Split total does not match order total",
+      failedAt: "2026-06-07T01:00:00.000Z",
+    };
+
+    it("completes recovery after claiming finalizing, so its internal split remains allowed", async () => {
+      const service = createService();
+      service.splitBill = vi.fn(async () => ({ success: true, data: [] }));
+      const db = createDb(
+        {
+          groupOrders: [
+            [
+              {
+                ...baseGroupOrder,
+                status: "finalizing_failed",
+                masterOrderId: "order-1",
+                splitType: "individual",
+                settings: { finalizeFailure: failure },
+              },
+            ],
+          ],
+        },
+        // Two conditional writes: the claim, then the settle. Both report the
+        // row they matched, and both have to match for recovery to succeed.
+        {
+          groupOrders: {
+            update: [[{ id: "group-1" }], [{ id: "group-1" }]],
+          },
+        },
+      );
+      useDb(service, db);
+
+      await expect(service.recoverFinalization("group-1")).resolves.toEqual({
+        success: true,
+        data: { masterOrderId: "order-1", status: "checkout" },
+      });
+      expect(db.updates.map((update) => update.payload)).toContainEqual(
+        expect.objectContaining({ status: "finalizing" }),
+      );
+      expect(service.splitBill).toHaveBeenCalledWith("group-1", {
+        splitType: "individual",
+        sharedServiceChargeCents: 600,
+        sharedTaxCents: 300,
+        orderTotalCents: 3900,
+      });
+      expect(db.updates.map((update) => update.payload)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            status: "checkout",
+            settings: {},
+          }),
+        ]),
+      );
+    });
+
+    it("preserves the original failure timestamp and appends retry diagnostics when recovery fails", async () => {
+      const service = createService();
+      service.splitBill = vi.fn(async () => ({
+        success: false,
+        error: "No active members found",
+        errorDetails: { code: "NO_ACTIVE_MEMBERS" },
+      }));
+      const db = createDb(
+        {
+          groupOrders: [
+            [
+              {
+                ...baseGroupOrder,
+                status: "finalizing_failed",
+                masterOrderId: "order-1",
+                settings: { finalizeFailure: failure },
+              },
+            ],
+          ],
+        },
+        { groupOrders: { update: [[{ id: "group-1" }]] } },
+      );
+      useDb(service, db);
+
+      await expect(service.recoverFinalization("group-1")).resolves.toEqual({
+        success: false,
+        error: "No active members found",
+      });
+
+      expect(db.updates.map((update) => update.payload)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            status: "finalizing_failed",
+            settings: expect.objectContaining({
+              finalizeFailure: expect.objectContaining({
+                failedAt: "2026-06-07T01:00:00.000Z",
+                recoveryErrorDetails: [
+                  expect.objectContaining({
+                    code: "NO_ACTIVE_MEMBERS",
+                    splitError: "No active members found",
+                  }),
+                ],
+              }),
+            }),
+          }),
+        ]),
+      );
+    });
+
+    it("refuses to report success when the expiry sweep reclaimed the attempt", async () => {
+      const service = createService();
+      service.splitBill = vi.fn(async () => ({ success: true, data: [] }));
+      const db = createDb(
+        {
+          groupOrders: [
+            [
+              {
+                ...baseGroupOrder,
+                status: "finalizing_failed",
+                masterOrderId: "order-1",
+                settings: { finalizeFailure: failure },
+              },
+            ],
+          ],
+        },
+        // The claim wins, but by the time the settle runs the sweep has decided
+        // this attempt was abandoned and moved the row back — so it matches
+        // nothing.
+        { groupOrders: { update: [[{ id: "group-1" }], []] } },
+      );
+      useDb(service, db);
+
+      await expect(service.recoverFinalization("group-1")).resolves.toEqual({
+        success: false,
+        error:
+          "Group order finalization recovery was reclaimed before it completed",
+        errorCode: "GROUP_ORDER_FINALIZATION_RECOVERY_RECLAIMED",
+      });
+    });
+
+    it("allows only one recovery attempt to claim a failed finalization", async () => {
+      const service = createService();
+      service.splitBill = vi.fn(async () => ({ success: true, data: [] }));
+      const db = createDb(
+        {
+          groupOrders: [
+            [
+              {
+                ...baseGroupOrder,
+                status: "finalizing_failed",
+                masterOrderId: "order-1",
+                settings: { finalizeFailure: failure },
+              },
+            ],
+          ],
+        },
+        { groupOrders: { update: [[]] } },
+      );
+      useDb(service, db);
+
+      await expect(service.recoverFinalization("group-1")).resolves.toEqual({
+        success: false,
+        error: "Group order finalization recovery is already in progress",
+        errorCode: "GROUP_ORDER_FINALIZATION_RECOVERY_IN_PROGRESS",
+      });
+      expect(service.splitBill).not.toHaveBeenCalled();
     });
   });
 

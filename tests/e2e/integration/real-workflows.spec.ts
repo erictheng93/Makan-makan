@@ -92,6 +92,21 @@ function skipWhen(condition: unknown, message: string): void {
   }
   test.skip(true, message);
 }
+
+function assertLoginData(
+  value: SmokeLoginData | undefined,
+  reason: string,
+): asserts value is SmokeLoginData {
+  skipWhen(!value?.token || !value.user, reason);
+}
+
+function assertChefLoginData(
+  value: LoginResponse["data"] | undefined,
+  reason: string,
+): asserts value is NonNullable<LoginResponse["data"]> {
+  skipWhen(!value?.token || !value.user, reason);
+}
+
 const SERVICE_ITEM_ID = Number(optionalEnv("WORKFLOW_SERVICE_ITEM_ID") || NaN);
 const MARKET_SLUG = optionalEnv("WORKFLOW_MARKET_SLUG");
 const TABLE_ID = Number(
@@ -148,7 +163,7 @@ interface GuestOrderResponse {
   success: boolean;
   data?: {
     order?: {
-      id?: number;
+      id?: string;
       orderNumber?: string;
     };
     guestToken?: string;
@@ -229,7 +244,7 @@ interface MarketCheckoutBody {
       childOrders?: Array<{
         restaurantId?: string;
         restaurantName?: string;
-        orderId?: number;
+        orderId?: string;
         orderNumber?: string;
         totalAmount?: number;
       }>;
@@ -238,7 +253,7 @@ interface MarketCheckoutBody {
     childOrders?: Array<{
       restaurantId?: string;
       order?: {
-        id?: number;
+        id?: string;
       };
       guestToken?: string;
     }>;
@@ -248,7 +263,7 @@ interface MarketCheckoutBody {
 interface OrderBody {
   success: boolean;
   data?: {
-    id?: number;
+    id?: string;
     status?: string;
     items?: Array<{
       id?: number;
@@ -261,15 +276,15 @@ interface KitchenOrdersBody {
   success: boolean;
   data?: {
     pending?: Array<{
-      id?: number;
+      id?: string;
       items?: Array<{ id?: number; status?: string }>;
     }>;
     preparing?: Array<{
-      id?: number;
+      id?: string;
       items?: Array<{ id?: number; status?: string }>;
     }>;
     ready?: Array<{
-      id?: number;
+      id?: string;
       items?: Array<{ id?: number; status?: string }>;
     }>;
   };
@@ -307,9 +322,9 @@ interface LoginResponse {
     token?: string;
     refreshToken?: string;
     csrfToken?: string;
-    createdUserId?: number;
+    createdUserId?: string;
     user?: SmokeLoginData["user"] & {
-      id?: number;
+      id?: string;
       username?: string;
       role?: number;
       permissions?: string[];
@@ -390,13 +405,13 @@ async function loginChef() {
       headers: {
         Authorization: `Bearer ${ownerLoginData.token}`,
         "Content-Type": "application/json",
-        origin: new URL(API_URL).origin,
         ...(ownerLoginData.csrfToken
           ? {
               "X-CSRF-Token": ownerLoginData.csrfToken,
               cookie: `csrf_token=${ownerLoginData.csrfToken}`,
             }
           : csrfHeaders()),
+        origin: new URL(API_URL).origin,
       },
       body: JSON.stringify({
         username,
@@ -411,10 +426,10 @@ async function loginChef() {
       `local workflow chef create status ${createResponse.status}`,
     ).toBe(true);
     const createBody = (await createResponse.json()) as {
-      data?: { id?: number };
+      data?: { id?: string };
     };
     const createdUserId = createBody.data?.id;
-    expect(typeof createdUserId, "created chef user id").toBe("number");
+    expect(typeof createdUserId, "created chef user id").toBe("string");
 
     const loginData = await smokeLogin(API_URL, username, password);
     expect(loginData.user?.role, "created chef role").toBe(2);
@@ -459,13 +474,13 @@ async function deactivateWorkflowChef(
     headers: {
       Authorization: `Bearer ${ownerLoginData.token}`,
       "Content-Type": "application/json",
-      origin: new URL(API_URL).origin,
       ...(ownerLoginData.csrfToken
         ? {
             "X-CSRF-Token": ownerLoginData.csrfToken,
             cookie: `csrf_token=${ownerLoginData.csrfToken}`,
           }
         : csrfHeaders()),
+      origin: new URL(API_URL).origin,
     },
     body: JSON.stringify({ isActive: false }),
   }).catch(() => {
@@ -1061,12 +1076,12 @@ async function deleteManagementTenant(tenantId: string, token: string) {
   });
 }
 
-async function confirmOrder(orderId: number, token: string) {
+async function confirmOrder(orderId: string, token: string) {
   await updateOrderStatus(orderId, token, "confirmed");
 }
 
 async function updateOrderStatus(
-  orderId: number,
+  orderId: string,
   token: string,
   status: "confirmed" | "preparing" | "ready",
 ) {
@@ -1083,7 +1098,7 @@ async function updateOrderStatus(
   expect(response.ok, `${status} order status ${response.status}`).toBe(true);
 }
 
-async function fetchOrder(orderId: number, token: string): Promise<OrderBody> {
+async function fetchOrder(orderId: string, token: string): Promise<OrderBody> {
   const response = await fetch(`${API_URL}/api/v1/orders/${orderId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -1126,7 +1141,7 @@ async function deleteCategoryAsOwner(categoryId: number, token: string) {
   });
 }
 
-async function cancelOrderAsOwner(orderId: number, token: string) {
+async function cancelOrderAsOwner(orderId: string, token: string) {
   await fetch(`${API_URL}/api/v1/orders/${orderId}`, {
     method: "DELETE",
     headers: {
@@ -1154,7 +1169,7 @@ async function fetchKitchenOrders(
   return (await response.json()) as KitchenOrdersBody;
 }
 
-function findKitchenOrder(body: KitchenOrdersBody, orderId: number) {
+function findKitchenOrder(body: KitchenOrdersBody, orderId: string) {
   return [
     ...(body.data?.pending ?? []),
     ...(body.data?.preparing ?? []),
@@ -1323,7 +1338,7 @@ test.describe("Real system workflows", () => {
     await page.locator("#customer-name").fill("Workflow UI");
     await page.locator("#customer-phone").fill("0912345678");
 
-    let orderId: number | undefined;
+    let orderId: string | undefined;
     let guestToken: string | undefined;
 
     try {
@@ -1370,7 +1385,7 @@ test.describe("Real system workflows", () => {
       orderId = createBody.data?.order?.id;
       guestToken = createBody.data?.guestToken;
 
-      expect(typeof orderId, "created order id").toBe("number");
+      expect(typeof orderId, "created order id").toBe("string");
       expect(typeof guestToken, "created guest token").toBe("string");
 
       await page.waitForURL(`**/order/${orderId}`, { timeout: 45_000 });
@@ -1719,7 +1734,7 @@ test.describe("Real system workflows", () => {
     const orderNumber = createBody.data?.order?.orderNumber;
     const guestToken = createBody.data?.guestToken;
 
-    expect(typeof orderId, "created order id").toBe("number");
+    expect(typeof orderId, "created order id").toBe("string");
     expect(typeof guestToken, "created guest token").toBe("string");
 
     await page.addInitScript((token) => {
@@ -1755,8 +1770,8 @@ test.describe("Real system workflows", () => {
     skipWhen(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
 
     const loginData = await getLoginData();
-    skipWhen(
-      !loginData?.token || !loginData.user,
+    assertLoginData(
+      loginData,
       "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
     );
 
@@ -1789,7 +1804,7 @@ test.describe("Real system workflows", () => {
     const orderId = createBody.data?.order?.id;
     const guestToken = createBody.data?.guestToken;
 
-    expect(typeof orderId, "created order id").toBe("number");
+    expect(typeof orderId, "created order id").toBe("string");
     expect(typeof guestToken, "created guest token").toBe("string");
 
     await installAdminSession(page, loginData);
@@ -1851,8 +1866,8 @@ test.describe("Real system workflows", () => {
     skipWhen(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
 
     const loginData = await getLoginData();
-    skipWhen(
-      !loginData?.token || !loginData.user,
+    assertLoginData(
+      loginData,
       "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
     );
 
@@ -1885,7 +1900,7 @@ test.describe("Real system workflows", () => {
     const orderId = createBody.data?.order?.id;
     const orderNumber = createBody.data?.order?.orderNumber;
     const guestToken = createBody.data?.guestToken;
-    expect(typeof orderId, "created service order id").toBe("number");
+    expect(typeof orderId, "created service order id").toBe("string");
     expect(typeof orderNumber, "created service order number").toBe("string");
     expect(typeof guestToken, "service guest token").toBe("string");
 
@@ -1964,8 +1979,8 @@ test.describe("Real system workflows", () => {
     skipWhen(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
 
     const loginData = await getLoginData();
-    skipWhen(
-      !loginData?.token || !loginData.user,
+    assertLoginData(
+      loginData,
       "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
     );
 
@@ -2069,8 +2084,8 @@ test.describe("Real system workflows", () => {
     skipWhen(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
 
     const loginData = await getLoginData();
-    skipWhen(
-      !loginData?.token || !loginData.user,
+    assertLoginData(
+      loginData,
       "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
     );
 
@@ -2216,14 +2231,14 @@ test.describe("Real system workflows", () => {
     );
 
     const ownerLoginData = await getLoginData();
-    skipWhen(
-      !ownerLoginData?.token,
+    assertLoginData(
+      ownerLoginData,
       "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
     );
 
     const chefLoginData = await loginChef();
-    skipWhen(
-      !chefLoginData?.token || !chefLoginData.user,
+    assertChefLoginData(
+      chefLoginData,
       "WORKFLOW_CHEF_USERNAME and WORKFLOW_CHEF_PASSWORD are required for non-local kitchen workflow",
     );
 
@@ -2256,7 +2271,7 @@ test.describe("Real system workflows", () => {
     const orderId = createBody.data?.order?.id;
     const guestToken = createBody.data?.guestToken;
 
-    expect(typeof orderId, "created order id").toBe("number");
+    expect(typeof orderId, "created order id").toBe("string");
     expect(typeof guestToken, "created guest token").toBe("string");
 
     await confirmOrder(orderId!, ownerLoginData!.token!);
@@ -2301,7 +2316,7 @@ test.describe("Real system workflows", () => {
       ).toHaveAttribute("data-connection-status", /^(connected|connecting)$/);
 
       await page.evaluate(
-        ({ restaurantId, syntheticOrderId }) => {
+        ({ restaurantId, syntheticOrderId, syntheticItemId }) => {
           const order = {
             id: syntheticOrderId,
             orderNumber: `WF-AUDIO-${syntheticOrderId}`,
@@ -2311,8 +2326,8 @@ test.describe("Real system workflows", () => {
             customer: { name: "Workflow Audio" },
             items: [
               {
-                id: syntheticOrderId + 1,
-                orderItemId: syntheticOrderId + 1,
+                id: syntheticItemId,
+                orderItemId: syntheticItemId,
                 name: "Audio workflow item",
                 menuItemName: "Audio workflow item",
                 quantity: 1,
@@ -2355,7 +2370,8 @@ test.describe("Real system workflows", () => {
         },
         {
           restaurantId: fixtureIds.restaurantId!,
-          syntheticOrderId: orderId! + 100000,
+          syntheticOrderId: `workflow-audio-${orderId!}`,
+          syntheticItemId: 900_001,
         },
       );
       await expect
@@ -2428,7 +2444,7 @@ test.describe("Real system workflows", () => {
               : [];
             const cachedOrder = cachedOrders
               ? JSON.parse(cachedOrders).find(
-                  (order: { id?: number }) => order.id === targetOrderId,
+                  (order: { id?: string }) => order.id === targetOrderId,
                 )
               : undefined;
             const cachedItem = cachedOrder?.items?.find(
@@ -2444,7 +2460,7 @@ test.describe("Real system workflows", () => {
               queued: actions.some(
                 (action: {
                   type?: string;
-                  orderId?: number;
+                  orderId?: string;
                   itemId?: number;
                   synced?: boolean;
                 }) =>

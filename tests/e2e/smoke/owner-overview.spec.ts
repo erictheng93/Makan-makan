@@ -240,7 +240,11 @@ async function openOwnerOverviewWithFastPoll(
 ) {
   await page.addInitScript((ms) => {
     const originalSetInterval = window.setInterval;
-    window.setInterval = ((handler, timeout, ...args) => {
+    window.setInterval = ((
+      handler: TimerHandler,
+      timeout?: number,
+      ...args: unknown[]
+    ) => {
       const safeTimeout = timeout ?? 0;
       if (safeTimeout === 30000) {
         return originalSetInterval(handler, ms, ...args);

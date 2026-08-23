@@ -81,6 +81,14 @@ vi.mock("../services/PlatformOrderService", () => ({
 
 import routes from "./webhook";
 import { platformIntegrations } from "@makanmasak/database";
+import { idempotencyMiddleware } from "../../../middleware/idempotency";
+
+// The route builds its middleware once, while `./webhook` is evaluated — long
+// before the first `beforeEach`. Snapshot the options here, because
+// `vi.clearAllMocks()` would otherwise erase the only call there is.
+const idempotencyOptions = vi
+  .mocked(idempotencyMiddleware)
+  .mock.calls.map(([options]) => options);
 
 const fixtureTables = { platformIntegrations };
 type SelectFixtureName = keyof typeof fixtureTables;
@@ -396,6 +404,17 @@ describe("platform webhook routes", () => {
     expect(mutations.updated).toEqual([
       expect.objectContaining({ status: "processed" }),
     ]);
+  });
+
+  it("configures the idempotency middleware to release the key on a 5xx", () => {
+    // This suite mocks the middleware to a pass-through, so the replay
+    // behaviour itself is covered in `middleware/idempotency.test.ts`. What
+    // has to be pinned here is the wiring: without this flag the 500 below is
+    // cached for the whole TTL and the released `platform_event_id` never
+    // gets a redelivery to accept.
+    expect(idempotencyOptions).toContainEqual(
+      expect.objectContaining({ releaseOnServerError: true }),
+    );
   });
 
   it("logs failed order processing and returns an error", async () => {

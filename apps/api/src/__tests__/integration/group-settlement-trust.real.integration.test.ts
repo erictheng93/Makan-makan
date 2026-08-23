@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { eq } from "drizzle-orm";
 import { splitBills } from "@makanmasak/database";
 import {
@@ -66,6 +68,39 @@ describe("settlement trust level", () => {
     return bill;
   };
 
+  async function insertDuplicateSplitBill(
+    groupOrderId: string,
+    memberId: string,
+    id: string,
+    paymentStatus: "pending" | "paid",
+    updatedAtMs: number,
+  ) {
+    await testApp.env.DB.prepare(
+      `INSERT INTO split_bills
+         (id, group_order_id, member_id, items, payment_status,
+          created_at_ms, updated_at_ms)
+       VALUES (?, ?, ?, '[]', ?, ?, ?)`,
+    )
+      .bind(id, groupOrderId, memberId, paymentStatus, 1, updatedAtMs)
+      .run();
+  }
+
+  async function runSplitBillMemberUniqueMigration() {
+    const sql = readFileSync(
+      resolve(
+        process.cwd(),
+        "../../packages/database/migrations_fresh/0006_split_bill_member_unique.sql",
+      ),
+      "utf8",
+    );
+    for (const statement of sql
+      .split("--> statement-breakpoint")
+      .map((value) => value.trim())
+      .filter(Boolean)) {
+      await testApp.env.DB.prepare(statement).run();
+    }
+  }
+
   it("leaves an unsettled share with no answer at all", async () => {
     const { hostId } = await tableWithSplitBill();
 
@@ -73,6 +108,114 @@ describe("settlement trust level", () => {
     expect(bill.paymentStatus).toBe("pending");
     // Nobody has said anything yet, so there is nothing to record.
     expect(bill.settledBy).toBeNull();
+  });
+
+  it("finalizes into completed only after creating the member split bills", async () => {
+    const restaurant = await seed.restaurant();
+    const item = await seed.menuItem(restaurant.id, {
+      name: "雞肉飯",
+      isAvailable: true,
+      priceCents: 12000,
+    });
+    const created = await service().createGroupOrder(
+      { restaurantId: String(restaurant.id), hostName: "Alex" } as never,
+      null,
+    );
+    if (!created.data) throw new Error(created.error);
+
+    await service().addCartItem(created.data.groupOrderId, {
+      memberId: created.data.host.id,
+      menuItemId: Number(item.id),
+      quantity: 1,
+    } as never);
+
+    const finalized = await service().finalizeGroupOrder(
+      created.data.groupOrderId,
+    );
+    const summary = await service().getGroupOrder(created.data.groupOrderId);
+
+    expect(finalized).toMatchObject({
+      success: true,
+      data: { status: "completed" },
+    });
+    expect(summary?.groupOrder.status).toBe("completed");
+    expect(summary?.splitBills).toHaveLength(1);
+    expect(summary?.splitBills[0]?.memberId).toBe(created.data.host.id);
+  });
+
+  it("rejects a second split bill for the same group member at the database boundary", async () => {
+    const { groupOrderId, hostId } = await tableWithSplitBill();
+
+    await expect(
+      insertDuplicateSplitBill(
+        groupOrderId,
+        hostId,
+        "duplicate-split-bill",
+        "pending",
+        2,
+      ),
+    ).rejects.toThrow(/UNIQUE constraint failed/);
+  });
+
+  it("migration cleanup keeps a paid bill over a newer unpaid duplicate", async () => {
+    const { groupOrderId, hostId } = await tableWithSplitBill();
+    const paidBill = await billFor(hostId);
+    let migrationApplied = false;
+
+    try {
+      await testApp.env.DB.prepare(
+        "DROP INDEX idx_split_bills_group_order_member_unique",
+      ).run();
+      await testApp.env.DB.prepare(
+        "UPDATE split_bills SET payment_status = 'paid', updated_at_ms = 10 WHERE id = ?",
+      )
+        .bind(paidBill.id)
+        .run();
+      await insertDuplicateSplitBill(
+        groupOrderId,
+        hostId,
+        "newer-pending-split-bill",
+        "pending",
+        20,
+      );
+
+      await runSplitBillMemberUniqueMigration();
+      migrationApplied = true;
+
+      const bills = await testApp.testDb.drizzle
+        .select()
+        .from(splitBills)
+        .where(eq(splitBills.groupOrderId, groupOrderId));
+      expect(bills).toHaveLength(1);
+      expect(bills[0]).toMatchObject({
+        id: paidBill.id,
+        paymentStatus: "paid",
+      });
+
+      await expect(
+        insertDuplicateSplitBill(
+          groupOrderId,
+          hostId,
+          "rejected-after-cleanup",
+          "pending",
+          30,
+        ),
+      ).rejects.toThrow(/UNIQUE constraint failed/);
+    } finally {
+      if (!migrationApplied) {
+        try {
+          await testApp.env.DB.prepare(
+            "DELETE FROM split_bills WHERE id = 'newer-pending-split-bill'",
+          ).run();
+          await testApp.env.DB.prepare(
+            "CREATE UNIQUE INDEX idx_split_bills_group_order_member_unique ON split_bills (group_order_id, member_id)",
+          ).run();
+        } catch {
+          // The preceding failure is the meaningful test result; a best-effort
+          // restoration failure must not replace it.
+        }
+      }
+    }
   });
 
   it("records a diner's own settlement as their word, not the restaurant's", async () => {

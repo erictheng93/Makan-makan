@@ -6,6 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ServiceView from "./ServiceView.vue";
 import { api } from "@/services/api";
 
+const authState = vi.hoisted(() => ({
+  restaurantId: "restaurant-1",
+  user: { id: 3, username: "service-crew" },
+}));
+
 vi.mock("@/i18n", () => ({
   useI18n: () => ({ t: (key: string) => key, locale: ref("zh-TW") }),
 }));
@@ -18,10 +23,7 @@ vi.mock("@/composables/useDateFormatter", () => ({
 }));
 
 vi.mock("@/stores/auth", () => ({
-  useAuthStore: () => ({
-    restaurantId: "restaurant-1",
-    user: { id: 3, username: "service-crew" },
-  }),
+  useAuthStore: () => authState,
 }));
 
 vi.mock("@/services/api", () => ({
@@ -45,6 +47,8 @@ describe("ServiceView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    authState.restaurantId = "restaurant-1";
+    authState.user = { id: 3, username: "service-crew" };
     // api.get takes `paramsOrConfig?: unknown`; optional-chaining it narrows to
     // `{}`, which has no `status`. Cast to the shape ServiceView actually sends.
     vi.mocked(api.get).mockImplementation(
@@ -129,6 +133,58 @@ describe("ServiceView", () => {
     wrapper.unmount();
   });
 
+  it("keeps a local delivery phase when a paginated ready response omits its order", async () => {
+    const wrapper = mount(ServiceView);
+    await flushPromises();
+    await startDeliveryOn(wrapper);
+
+    const storedBeforePagination = Array.from(
+      { length: sessionStorage.length },
+      (_, index) =>
+        [
+          sessionStorage.key(index),
+          sessionStorage.getItem(sessionStorage.key(index)!),
+        ] as const,
+    );
+
+    vi.mocked(api.get).mockImplementation(
+      async (_url: string, paramsOrConfig?: unknown) => {
+        const options = paramsOrConfig as { status?: string } | undefined;
+        if (options?.status === "ready") {
+          return {
+            data: {
+              data: [],
+              pagination: { page: 1, limit: 20, total: 21, totalPages: 2 },
+            },
+          } as never;
+        }
+        return { data: { data: [] } } as never;
+      },
+    );
+    await clickRefresh(wrapper);
+
+    expect(
+      Array.from({ length: sessionStorage.length }, (_, index) => [
+        sessionStorage.key(index),
+        sessionStorage.getItem(sessionStorage.key(index)!),
+      ]),
+    ).toEqual(storedBeforePagination);
+
+    vi.mocked(api.get).mockImplementation(
+      async (_url: string, paramsOrConfig?: unknown) => {
+        const options = paramsOrConfig as { status?: string } | undefined;
+        return {
+          data: { data: options?.status === "ready" ? [readyOrder] : [] },
+        } as never;
+      },
+    );
+    await clickRefresh(wrapper);
+
+    expect(wrapper.text()).toContain("serviceView.confirmDelivery");
+    expect(wrapper.text()).not.toContain("serviceView.startDelivery");
+    wrapper.unmount();
+  });
+
   it("restores the delivering phase after a reload", async () => {
     const first = mount(ServiceView);
     await flushPromises();
@@ -155,7 +211,9 @@ describe("ServiceView", () => {
     await confirmButton!.trigger("click");
     await flushPromises();
 
-    expect(sessionStorage.getItem("service-view:delivery-phase")).toBe("{}");
+    expect(
+      sessionStorage.getItem("service-view:delivery-phase:restaurant-1:3"),
+    ).toBe("{}");
 
     // A later refresh must not resurrect it.
     await clickRefresh(wrapper);
@@ -163,5 +221,37 @@ describe("ServiceView", () => {
     expect(wrapper.text()).not.toContain("serviceView.confirmDelivery");
 
     wrapper.unmount();
+  });
+
+  it("does not restore a delivery phase saved by a different crew member", async () => {
+    const first = mount(ServiceView);
+    await flushPromises();
+    await startDeliveryOn(first);
+    first.unmount();
+
+    authState.user = { id: 4, username: "other-service-crew" };
+    const otherCrew = mount(ServiceView);
+    await flushPromises();
+
+    expect(otherCrew.text()).toContain("serviceView.startDelivery");
+    expect(otherCrew.text()).not.toContain("serviceView.confirmDelivery");
+
+    otherCrew.unmount();
+  });
+
+  it("does not restore a delivery phase saved for a different restaurant", async () => {
+    const first = mount(ServiceView);
+    await flushPromises();
+    await startDeliveryOn(first);
+    first.unmount();
+
+    authState.restaurantId = "restaurant-2";
+    const otherRestaurant = mount(ServiceView);
+    await flushPromises();
+
+    expect(otherRestaurant.text()).toContain("serviceView.startDelivery");
+    expect(otherRestaurant.text()).not.toContain("serviceView.confirmDelivery");
+
+    otherRestaurant.unmount();
   });
 });

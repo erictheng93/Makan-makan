@@ -2,6 +2,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthUser } from "../../../middleware/auth";
 import routes from "./index";
 import { RealtimeEventType } from "@makanmasak/shared-types";
+import { ApiError } from "@makanmasak/utils";
+
+routes.onError((error, c) => {
+  if (error instanceof ApiError) {
+    return c.json(
+      { success: false, error: { code: error.code, message: error.message } },
+      error.status as 400 | 401 | 403 | 404 | 409,
+    );
+  }
+
+  return c.json({ success: false, error: { message: String(error) } }, 500);
+});
 
 const currentUser = vi.hoisted(() => ({
   value: {
@@ -18,6 +30,7 @@ const previewGroupByShareCode = vi.hoisted(() => vi.fn());
 const recoverHost = vi.hoisted(() => vi.fn());
 const getStatistics = vi.hoisted(() => vi.fn());
 const getGroupOrder = vi.hoisted(() => vi.fn());
+const getGroupOrderStatus = vi.hoisted(() => vi.fn());
 const addCartItem = vi.hoisted(() => vi.fn());
 const updateCartItem = vi.hoisted(() => vi.fn());
 const removeCartItem = vi.hoisted(() => vi.fn());
@@ -29,9 +42,15 @@ const cleanupExpiredGroups = vi.hoisted(() => vi.fn());
 const isHostSession = vi.hoisted(() => vi.fn());
 const isMemberSession = vi.hoisted(() => vi.fn());
 const finalizeGroupOrder = vi.hoisted(() => vi.fn());
+const recoverFinalization = vi.hoisted(() => vi.fn());
 const meterEmit = vi.hoisted(() => vi.fn());
 const broadcastEvent = vi.hoisted(() => vi.fn());
 const generateEventId = vi.hoisted(() => vi.fn());
+
+interface MockAuthContext {
+  get(key: "user"): AuthUser;
+  json(body: { success: false }, status: 403): Response;
+}
 
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c, next) => {
@@ -42,9 +61,15 @@ vi.mock("../../../middleware/auth", () => ({
     c.set("user", currentUser.value);
     await next();
   }),
-  requireRole: vi.fn(() => async (_c: unknown, next: () => Promise<void>) => {
-    await next();
-  }),
+  requireRole: vi.fn(
+    (allowedRoles: number[]) =>
+      async (c: MockAuthContext, next: () => Promise<void>) => {
+        if (!allowedRoles.includes(c.get("user").role)) {
+          return c.json({ success: false }, 403);
+        }
+        await next();
+      },
+  ),
 }));
 
 vi.mock("../../../middleware/moduleGate", () => ({
@@ -72,6 +97,7 @@ vi.mock("../services/GroupOrdersService", () => ({
     recoverHost = recoverHost;
     getStatistics = getStatistics;
     getGroupOrder = getGroupOrder;
+    getGroupOrderStatus = getGroupOrderStatus;
     addCartItem = addCartItem;
     updateCartItem = updateCartItem;
     removeCartItem = removeCartItem;
@@ -83,6 +109,7 @@ vi.mock("../services/GroupOrdersService", () => ({
     isHostSession = isHostSession;
     isMemberSession = isMemberSession;
     finalizeGroupOrder = finalizeGroupOrder;
+    recoverFinalization = recoverFinalization;
   },
 }));
 
@@ -154,6 +181,7 @@ describe("group orders routes", () => {
     recoverHost.mockReset();
     getStatistics.mockReset();
     getGroupOrder.mockReset();
+    getGroupOrderStatus.mockReset();
     addCartItem.mockReset();
     updateCartItem.mockReset();
     removeCartItem.mockReset();
@@ -165,6 +193,7 @@ describe("group orders routes", () => {
     isHostSession.mockReset();
     isMemberSession.mockReset();
     finalizeGroupOrder.mockReset();
+    recoverFinalization.mockReset();
     meterEmit.mockReset();
     meterEmit.mockResolvedValue(undefined);
     broadcastEvent.mockReset();
@@ -220,8 +249,7 @@ describe("group orders routes", () => {
       ),
     );
 
-    expect(response.status).toBe(500);
-    await expect(response.text()).resolves.toBe("Internal Server Error");
+    expect(response.status).toBe(403);
     expect(listGroupOrders).not.toHaveBeenCalled();
   });
 
@@ -483,13 +511,175 @@ describe("group orders routes", () => {
       ),
     );
 
-    expect(forbiddenResponse.status).toBe(500);
+    expect(forbiddenResponse.status).toBe(403);
     expect(finalizeGroupOrder).toHaveBeenCalledTimes(1);
   });
 
-  it("runs cart, split, payment, and leave workflows", async () => {
+  it("lets admins and the owning restaurant recover but blocks other roles and restaurants", async () => {
     getGroupOrder.mockResolvedValue({
       groupOrder: { id: groupOrderId, restaurantId: "restaurant-1" },
+    });
+    recoverFinalization.mockResolvedValue({
+      success: true,
+      data: { masterOrderId: "order-1", status: "checkout" },
+    });
+    const env = createEnv();
+
+    currentUser.value = { ...currentUser.value, role: 0 };
+    const recoveredResponse = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/finalize/recover`, {
+        method: "POST",
+      }),
+      env as never,
+    );
+
+    expect(recoveredResponse.status).toBe(200);
+    expect(recoverFinalization).toHaveBeenCalledWith(groupOrderId);
+
+    currentUser.value = { ...currentUser.value, role: 1 };
+    const ownerResponse = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/finalize/recover`, {
+        method: "POST",
+      }),
+      env as never,
+    );
+
+    expect(ownerResponse.status).toBe(200);
+    expect(recoverFinalization).toHaveBeenCalledTimes(2);
+
+    currentUser.value = {
+      ...currentUser.value,
+      role: 1,
+      restaurantId: "restaurant-2",
+    };
+    const otherRestaurantResponse = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request(`https://test/${groupOrderId}/finalize/recover`, {
+          method: "POST",
+        }),
+        env as never,
+      ),
+    );
+
+    expect(otherRestaurantResponse.status).toBe(403);
+    expect(recoverFinalization).toHaveBeenCalledTimes(2);
+
+    currentUser.value = { ...currentUser.value, role: 2 };
+    const forbiddenResponse = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/finalize/recover`, {
+        method: "POST",
+      }),
+      env as never,
+    );
+
+    expect(forbiddenResponse.status).toBe(403);
+    expect(recoverFinalization).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    [
+      "in progress",
+      "Group order finalization recovery is already in progress",
+      "GROUP_ORDER_FINALIZATION_RECOVERY_IN_PROGRESS",
+    ],
+    [
+      "reclaimed",
+      "Group order finalization recovery was reclaimed before it completed",
+      "GROUP_ORDER_FINALIZATION_RECOVERY_RECLAIMED",
+    ],
+  ])(
+    "returns a conflict when finalization recovery is %s",
+    async (_outcome, error, errorCode) => {
+      getGroupOrder.mockResolvedValue({
+        groupOrder: { id: groupOrderId, restaurantId: "restaurant-1" },
+      });
+      recoverFinalization.mockResolvedValue({
+        success: false,
+        error,
+        errorCode,
+      });
+
+      const response = await routes.fetch(
+        new Request(`https://test/${groupOrderId}/finalize/recover`, {
+          method: "POST",
+        }),
+        createEnv() as never,
+      );
+
+      expect(response.status).toBe(409);
+      await expect(response.json()).resolves.toMatchObject({
+        error: { code: errorCode },
+      });
+    },
+  );
+
+  it.each([
+    "finalizing",
+    "finalizing_failed",
+    "checkout",
+    "completed",
+    "cancelled",
+  ] as const)("rejects split when the group is %s", async (status) => {
+    getGroupOrderStatus.mockResolvedValue(status);
+    isHostSession.mockResolvedValue(true);
+
+    const response = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/split`, {
+        method: "POST",
+        body: JSON.stringify({
+          splitType: "equal",
+          memberToken: "host-session",
+        }),
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "GROUP_ORDER_SPLIT_NOT_ACTIVE" },
+    });
+    expect(splitBill).not.toHaveBeenCalled();
+  });
+
+  it("rejects a split using fresh status when the cached summary is stale", async () => {
+    getGroupOrder.mockResolvedValue({
+      groupOrder: {
+        id: groupOrderId,
+        restaurantId: "restaurant-1",
+        status: "active",
+      },
+    });
+    getGroupOrderStatus.mockResolvedValue("checkout");
+    isHostSession.mockResolvedValue(true);
+
+    const response = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/split`, {
+        method: "POST",
+        body: JSON.stringify({
+          splitType: "equal",
+          memberToken: "host-session",
+        }),
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "GROUP_ORDER_SPLIT_NOT_ACTIVE" },
+    });
+    expect(getGroupOrderStatus).toHaveBeenCalledWith(groupOrderId);
+    expect(getGroupOrder).not.toHaveBeenCalled();
+    expect(splitBill).not.toHaveBeenCalled();
+  });
+
+  it("runs cart, split, payment, and leave workflows", async () => {
+    getGroupOrderStatus.mockResolvedValue("active");
+    getGroupOrder.mockResolvedValue({
+      groupOrder: {
+        id: groupOrderId,
+        restaurantId: "restaurant-1",
+        status: "active",
+      },
     });
     addCartItem.mockResolvedValue({
       success: true,
@@ -742,10 +932,7 @@ describe("group orders routes", () => {
         ),
       );
 
-      // This harness mounts the router without the app's ApiError handler, so
-      // a forbidden throw surfaces as 500 here (same as the /lock case above).
-      // The assertion that matters is that the service was never reached.
-      expect(response.status).toBe(500);
+      expect(response.status).toBe(403);
       expect(getStatistics).not.toHaveBeenCalled();
     });
 

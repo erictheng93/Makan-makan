@@ -41,6 +41,14 @@ export interface GroupOrderFinalizeFailure {
   splitError: string;
   /** ISO 8601. */
   failedAt: string;
+  /** Diagnostics from later recovery attempts; the original failure stays intact. */
+  recoveryErrorDetails?: Array<{
+    code: string;
+    splitError: string;
+    expectedTotalCents?: number;
+    roundedTotalCents?: number;
+    attemptedAt: string;
+  }>;
 }
 
 export const GROUP_ORDER_FEE_MODES = ["proportional", "equal", "host"] as const;
@@ -158,6 +166,12 @@ export interface GroupActivityMetadata {
   reason?: string;
   /** Unix ms. Recorded on `group_expired` activity by the expiry sweep. */
   expiredAt?: number;
+  /**
+   * The real order a finalize claim had already created. Recorded on
+   * `finalize_claim_abandoned` by the expiry sweep, so the log says which
+   * order is outstanding without a second lookup.
+   */
+  masterOrderId?: string;
 }
 
 // ================================================

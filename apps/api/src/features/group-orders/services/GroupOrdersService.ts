@@ -184,6 +184,7 @@ interface GroupOrderListItem {
   id: string;
   shareCode: string;
   masterOrderId: string | null;
+  finalizeFailure?: GroupOrderFinalizeFailure;
   tableNumber: string | null;
   status: GroupOrderStatus;
   hostName: string;
@@ -319,12 +320,13 @@ export class GroupOrdersService implements IGroupOrderService {
       return rows.map((row) => {
         const memberRows = membersByOrder.get(row.id) || [];
         const cartItemRows = cartItemsByOrder.get(row.id) || [];
-        const settings = row.settings;
+        const settings = (row.settings || {}) as GroupOrderSettings;
         const totalAmount = moneyAmount(row.totalAmountCents);
         return {
           id: row.id,
           shareCode: row.shareCode,
-          masterOrderId: null,
+          masterOrderId: row.masterOrderId,
+          finalizeFailure: settings.finalizeFailure,
           tableNumber:
             settings?.tableNumber || (row.tableId ? String(row.tableId) : null),
           status: this.narrowStatus(row.status, row.id),
@@ -852,6 +854,34 @@ export class GroupOrdersService implements IGroupOrderService {
     } finally {
       this.performance.endTimer(timer);
     }
+  }
+
+  /**
+   * Reads the lifecycle from D1 for mutation guards. Unlike getGroupOrder,
+   * this deliberately bypasses the five-minute summary cache.
+   */
+  async getGroupOrderStatus(
+    groupOrderId: string,
+  ): Promise<GroupOrderStatus | null> {
+    const groupOrderRows = await this.db
+      .select({ status: groupOrders.status })
+      .from(groupOrders)
+      .where(eq(groupOrders.id, groupOrderId));
+
+    const rawStatus = groupOrderRows[0]?.status;
+    if (!rawStatus) return null;
+
+    const status = parseGroupOrderStatus(rawStatus);
+    if (!status) {
+      this.errorTracker.logError(
+        "getGroupOrderStatus",
+        new Error("UNKNOWN_GROUP_ORDER_STATUS"),
+        { groupOrderId, status: rawStatus },
+      );
+      throw new Error("UNKNOWN_GROUP_ORDER_STATUS");
+    }
+
+    return status;
   }
 
   /**
@@ -1598,6 +1628,171 @@ export class GroupOrdersService implements IGroupOrderService {
     } finally {
       this.performance.endTimer(timer);
     }
+  }
+
+  /**
+   * Re-run a split that failed after the real order was already created.
+   * The order totals are immutable at this point, so recovery only reuses the
+   * recorded amounts and moves the group into the normal settlement state.
+   */
+  async recoverFinalization(groupOrderId: string): Promise<{
+    success: boolean;
+    data?: { masterOrderId: string; status: "checkout" };
+    error?: string;
+    errorCode?:
+      | "GROUP_ORDER_FINALIZATION_RECOVERY_IN_PROGRESS"
+      | "GROUP_ORDER_FINALIZATION_RECOVERY_RECLAIMED";
+  }> {
+    const groupOrderRows = await this.db
+      .select()
+      .from(groupOrders)
+      .where(eq(groupOrders.id, groupOrderId));
+    const groupOrder = groupOrderRows[0];
+
+    if (!groupOrder) {
+      return { success: false, error: "Group order not found" };
+    }
+    if (
+      groupOrder.status !== "finalizing_failed" ||
+      !groupOrder.masterOrderId
+    ) {
+      return {
+        success: false,
+        error: "Group order is not awaiting finalization recovery",
+      };
+    }
+
+    const settings = (groupOrder.settings || {}) as GroupOrderSettings;
+    const failure = settings.finalizeFailure;
+    if (!failure) {
+      return {
+        success: false,
+        error: "Missing finalization failure diagnostics",
+      };
+    }
+
+    // Claim recovery before splitBill performs its read-then-write bill
+    // upserts. Without this conditional transition, concurrent admin retries
+    // can both observe no existing bill and insert duplicates for a member.
+    //
+    // `lockedAt` is re-stamped rather than left alone: the expiry sweep decides
+    // a claim is abandoned by how old `lockedAt` is, and the value already on
+    // the row belongs to the original finalize attempt — minutes or hours
+    // earlier. Leaving it would make every recovery look abandoned the instant
+    // it started.
+    const claimedAt = new Date();
+    const claimedRows = await this.db
+      .update(groupOrders)
+      .set({ status: "finalizing", lockedAt: claimedAt, updatedAt: claimedAt })
+      .where(
+        and(
+          eq(groupOrders.id, groupOrderId),
+          eq(groupOrders.status, "finalizing_failed"),
+          eq(groupOrders.masterOrderId, groupOrder.masterOrderId),
+        ),
+      )
+      .returning({ id: groupOrders.id });
+
+    if (claimedRows.length === 0) {
+      return {
+        success: false,
+        error: "Group order finalization recovery is already in progress",
+        errorCode: "GROUP_ORDER_FINALIZATION_RECOVERY_IN_PROGRESS",
+      };
+    }
+
+    const splitResult = await this.splitBill(groupOrderId, {
+      splitType: this.splitTypeFromStoredValue(groupOrder.splitType),
+      sharedServiceChargeCents: failure.serviceChargeCents,
+      sharedTaxCents: failure.taxAmountCents,
+      orderTotalCents: failure.orderTotalCents,
+    });
+
+    if (!splitResult.success) {
+      const attemptedAt = new Date().toISOString();
+      const recoveryErrorDetails = [
+        ...(failure.recoveryErrorDetails ?? []),
+        {
+          code: splitResult.errorDetails?.code ?? "SPLIT_BILL_FAILED",
+          splitError: splitResult.error ?? "Failed to split bill",
+          expectedTotalCents: splitResult.errorDetails?.expectedTotalCents,
+          roundedTotalCents: splitResult.errorDetails?.roundedTotalCents,
+          attemptedAt,
+        },
+      ];
+
+      await this.db
+        .update(groupOrders)
+        .set({
+          status: "finalizing_failed",
+          settings: {
+            ...settings,
+            finalizeFailure: { ...failure, recoveryErrorDetails },
+          },
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(groupOrders.id, groupOrderId),
+            eq(groupOrders.status, "finalizing"),
+            eq(groupOrders.masterOrderId, groupOrder.masterOrderId),
+          ),
+        );
+
+      return {
+        success: false,
+        error: splitResult.error ?? "Failed to split bill",
+      };
+    }
+
+    const { finalizeFailure: _finalizeFailure, ...recoveredSettings } =
+      settings;
+    const now = new Date();
+    const settledRows = await this.db
+      .update(groupOrders)
+      .set({
+        status: "checkout",
+        settings: recoveredSettings,
+        lockedAt: now,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(groupOrders.id, groupOrderId),
+          eq(groupOrders.status, "finalizing"),
+          eq(groupOrders.masterOrderId, groupOrder.masterOrderId),
+        ),
+      )
+      .returning({ id: groupOrders.id });
+
+    // The claim was taken from us — the expiry sweep decided this attempt had
+    // been abandoned and moved the group back to `finalizing_failed`. The
+    // bills are written and splitBill upserts by member, so re-running is
+    // safe; what is not safe is telling the caller this settled when the row
+    // says otherwise.
+    if (settledRows.length === 0) {
+      return {
+        success: false,
+        error:
+          "Group order finalization recovery was reclaimed before it completed",
+        errorCode: "GROUP_ORDER_FINALIZATION_RECOVERY_RECLAIMED",
+      };
+    }
+
+    await this.logActivity(
+      groupOrderId,
+      null,
+      "bill_split",
+      "Finalization recovery split the bill",
+      { masterOrderId: groupOrder.masterOrderId },
+    );
+    await this.cache.delete(`group_order:${groupOrderId}`);
+    await this.cache.delete(`group_order_summary:${groupOrderId}`);
+
+    return {
+      success: true,
+      data: { masterOrderId: groupOrder.masterOrderId, status: "checkout" },
+    };
   }
 
   /**
@@ -3078,6 +3273,7 @@ export class GroupOrdersService implements IGroupOrderService {
       totalAmount: moneyAmount(data.totalAmountCents),
       finalizedAt: lockedAt,
       paidAt: completedAt,
+      finalizeFailure: settings.finalizeFailure,
       createdAt,
       updatedAt,
     };

@@ -553,9 +553,10 @@ describe("useGroupOrder — data layer", () => {
   });
 
   /**
-   * `POST /split` performs the split: it moves the group to `checkout` and
-   * stamps `lockedAt`, which ends ordering for the whole table. Choosing a
-   * method must never reach it — that is what `PUT /split-type` is for.
+   * Choosing a method only stores the preference used later by finalization.
+   * It must not call `POST /split`, which writes bills immediately and is not
+   * part of the customer submission flow; that is what `PUT /split-type` is
+   * for.
    */
   it("records the split preference without triggering the split itself", async () => {
     const group = await createHostedGroup();

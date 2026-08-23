@@ -179,6 +179,10 @@ jobs:
             pnpm exec turbo run typecheck --affected
           fi
 
+      # tests/ is not a workspace package, so turbo cannot schedule it.
+      - name: 🎯 Root tests TypeScript 型別檢查
+        run: pnpm run typecheck:tests
+
       - name: 🌐 i18n locale coverage warning
         run: pnpm run check:i18n-locales
 

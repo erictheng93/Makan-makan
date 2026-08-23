@@ -68,37 +68,17 @@ function mountPanel(props: Record<string, unknown> = {}) {
 }
 
 describe("group settlement", () => {
-  it("offers settlement only to the host after the order is submitted", () => {
-    expect(mountPanel().find('[data-testid="start-settlement"]').exists()).toBe(
-      false,
-    );
-    expect(
-      mountPanel({ orderStatus: "completed" })
-        .find('[data-testid="start-settlement"]')
-        .exists(),
-    ).toBe(true);
-    expect(
-      mountPanel({ isHost: false, orderStatus: "completed" })
-        .find('[data-testid="start-settlement"]')
-        .exists(),
-    ).toBe(false);
-    expect(
-      mountPanel({ cartItems: [], orderStatus: "completed" })
-        .find('[data-testid="start-settlement"]')
-        .exists(),
-    ).toBe(false);
-  });
-
-  it("asks to split when the host says so", async () => {
+  it("does not offer a second settlement action after submission", () => {
     const wrapper = mountPanel({ orderStatus: "completed" });
 
-    await wrapper.get('[data-testid="start-settlement"]').trigger("click");
-
-    expect(wrapper.emitted("start-settlement")).toHaveLength(1);
+    expect(wrapper.find('[data-testid="start-settlement"]').exists()).toBe(
+      false,
+    );
   });
 
-  it("replaces the split button with everyone's shares once split", () => {
+  it("renders the shares created while submitting the order", () => {
     const wrapper = mountPanel({
+      orderStatus: "completed",
       splitBills: [splitBill(), splitBill({ id: "bill-2", memberId: "m-2" })],
       mySplitBill: splitBill(),
     });

@@ -54,7 +54,11 @@ export function isSubscriptionErrorCode(
  * The global interceptor still logs/parses them, but it must not add a second
  * generic toast on top of that dedicated UI.
  */
-export const DEDICATED_UI_ERROR_CODES = ["MENU_ITEM_MODIFIED"] as const;
+export const DEDICATED_UI_ERROR_CODES = [
+  "MENU_ITEM_MODIFIED",
+  "GROUP_ORDER_FINALIZATION_RECOVERY_IN_PROGRESS",
+  "GROUP_ORDER_FINALIZATION_RECOVERY_RECLAIMED",
+] as const;
 
 export type DedicatedUiErrorCode = (typeof DEDICATED_UI_ERROR_CODES)[number];
 

@@ -10,7 +10,13 @@
  * - group_activity_logs: 群組活動日誌
  */
 
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  index,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { restaurants } from "./restaurants";
 import { users } from "./users";
@@ -245,6 +251,9 @@ export const splitBills = sqliteTable(
       table.groupOrderId,
       table.paymentStatus,
     ),
+    groupOrderMemberUniqueIdx: uniqueIndex(
+      "idx_split_bills_group_order_member_unique",
+    ).on(table.groupOrderId, table.memberId),
   }),
 );
 

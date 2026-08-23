@@ -26,6 +26,10 @@
     {
       "fresh": "0005_platform_webhook_event_dedup.sql",
       "reason": "Webhook ingestion and platform_webhook_logs belong to the platform API; the management API does not receive third-party delivery webhooks."
+    },
+    {
+      "fresh": "0006_split_bill_member_unique.sql",
+      "reason": "The platform API owns group-order split-bill writes; the management API has no corresponding group-order settlement workflow to pair against."
     }
   ],
   "legacyOnly": [

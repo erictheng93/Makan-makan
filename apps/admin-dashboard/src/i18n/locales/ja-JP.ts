@@ -2743,9 +2743,30 @@ const jaJP: Messages = {
     allStatus: "すべてのステータス",
     status: {
       active: "アクティブ",
-      readyToPay: "支払い可能",
+      finalizing: "確定処理中",
+      finalizingFailed: "確定処理に失敗",
+      checkout: "会計中",
       completed: "完了",
       cancelled: "キャンセル済み",
+    },
+    finalizeFailure: {
+      title: "確定失敗の診断",
+      code: "コード",
+      error: "エラー",
+      failedAt: "最初の失敗時刻",
+      totalMismatch: "想定 / 丸め後の合計",
+      recover: "精算を再試行",
+      recovering: "精算を再試行中…",
+      recoveryFailed: "精算の復旧に失敗しました",
+      recoveryInProgress:
+        "別の担当者がこの注文を復旧しています。しばらくしてから再試行してください。",
+      recoveryReclaimed:
+        "この復旧処理はシステムにより回収されました。再試行してください。",
+      recoveryRetryFailed:
+        "精算が再び失敗しました。最新の復旧履歴を確認してから再試行してください。",
+      recoveryHistory: "復旧履歴",
+      recoveryAttempts: "復旧試行回数",
+      recoveryAttemptedAt: "試行時刻",
     },
     tableNumber: "テーブル{number}",
     takeaway: "テイクアウト",

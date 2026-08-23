@@ -35,6 +35,7 @@ import {
   notFound,
   forbidden,
   badRequest,
+  conflict,
 } from "../../../shared/utils/api-error";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -615,6 +616,50 @@ app.post(
 );
 
 /**
+ * Recover a split that failed after the real order was created.
+ * POST /api/v1/orders/group/{groupOrderId}/finalize/recover
+ */
+app.post(
+  "/:groupOrderId/finalize/recover",
+  authMiddleware,
+  requireRole([0, 1]),
+  moduleGate("online_ordering"),
+  validateParams(groupOrderSchemas.groupOrderIdParam),
+  async (c) => {
+    const { groupOrderId } = c.get("validatedParams");
+    const user = c.get("user");
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    const summary = await groupOrderService.getGroupOrder(groupOrderId);
+
+    if (!summary) {
+      throw notFound("Group order not found");
+    }
+    if (
+      user.role === 1 &&
+      String(summary.groupOrder.restaurantId) !== String(user.restaurantId)
+    ) {
+      throw forbidden("Access denied: can only recover own restaurant orders");
+    }
+
+    const result = await groupOrderService.recoverFinalization(groupOrderId);
+    if (!result.success) {
+      if (
+        result.errorCode === "GROUP_ORDER_FINALIZATION_RECOVERY_IN_PROGRESS" ||
+        result.errorCode === "GROUP_ORDER_FINALIZATION_RECOVERY_RECLAIMED"
+      ) {
+        throw conflict(
+          result.error ?? "Finalization recovery cannot be completed",
+          result.errorCode,
+        );
+      }
+      throw badRequest(result.error ?? "Failed to recover finalization");
+    }
+
+    return c.json({ success: true, data: result.data });
+  },
+);
+
+/**
  * Get group order statistics
  * GET /api/v1/orders/group/statistics
  * NOTE: This route MUST be defined BEFORE /:groupOrderId to avoid matching 'statistics' as a groupOrderId
@@ -838,6 +883,10 @@ app.delete(
 /**
  * Split bill
  * POST /api/v1/orders/group/{groupOrderId}/split
+ *
+ * No customer client calls this endpoint. Finalization owns the live split
+ * after locking the order; active-only prevents a host from overwriting those
+ * finalized bills with stale client-side rates.
  */
 app.post(
   "/:groupOrderId/split",
@@ -849,6 +898,18 @@ app.post(
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     await requireHostSession(groupOrderService, groupOrderId, memberToken);
+    const status = await groupOrderService.getGroupOrderStatus(groupOrderId);
+
+    if (!status) {
+      throw notFound("Group order not found");
+    }
+    if (status !== "active") {
+      throw conflict(
+        "Only active group orders can be split",
+        "GROUP_ORDER_SPLIT_NOT_ACTIVE",
+      );
+    }
+
     const result = await groupOrderService.splitBill(groupOrderId, splitData);
 
     if (!result.success) {

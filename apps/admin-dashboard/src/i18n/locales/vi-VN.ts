@@ -2743,9 +2743,30 @@ const viVN: Messages = {
     allStatus: "Tất cả trạng thái",
     status: {
       active: "Đang hoạt động",
-      readyToPay: "Sẵn sàng thanh toán",
+      finalizing: "Đang chốt đơn",
+      finalizingFailed: "Chốt đơn thất bại",
+      checkout: "Thanh toán",
       completed: "Hoàn thành",
       cancelled: "Đã hủy",
+    },
+    finalizeFailure: {
+      title: "Chẩn đoán chốt đơn",
+      code: "Mã",
+      error: "Lỗi",
+      failedAt: "Lần đầu thất bại",
+      totalMismatch: "Tổng dự kiến / đã làm tròn",
+      recover: "Thử lại chốt đơn",
+      recovering: "Đang thử lại chốt đơn…",
+      recoveryFailed: "Khôi phục chốt đơn thất bại",
+      recoveryInProgress:
+        "Một nhân viên khác đang khôi phục đơn này. Vui lòng thử lại sau ít phút.",
+      recoveryReclaimed:
+        "Hệ thống đã thu hồi lần khôi phục này. Vui lòng thử lại.",
+      recoveryRetryFailed:
+        "Chốt đơn lại thất bại. Hãy xem lịch sử khôi phục mới nhất trước khi thử lại.",
+      recoveryHistory: "Lịch sử khôi phục",
+      recoveryAttempts: "Số lần khôi phục",
+      recoveryAttemptedAt: "Thử lúc",
     },
     tableNumber: "Bàn {number}",
     takeaway: "Mang đi",

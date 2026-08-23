@@ -36,7 +36,6 @@ const groupOrderMock = vi.hoisted(() => ({
   mySplitBill: { value: undefined as unknown },
   isSettling: { value: false },
   settledCount: { value: 0 },
-  startSettlement: vi.fn(),
   settleMyShare: vi.fn(),
   sessionExpired: { value: false },
   currentMemberId: { value: "m-1" },
