@@ -59,7 +59,18 @@ export const GenerateShareCodeResponse = successEnvelope(
   }),
 );
 
-export const CreateGroupOrderResponse = successEnvelope(GroupOrderSchema);
+export const CreateGroupOrderResponse = successEnvelope(
+  z.object({
+    groupOrderId: z.string(),
+    shareCode: z.string(),
+    expiresAt: z.union([z.string(), z.date(), z.number()]),
+    host: GroupMemberSchema,
+    // Secret host membership credential, returned once to the creator and
+    // exchanged at POST /realtime/auth/group-token.
+    memberToken: z.string(),
+    recoveryCode: z.string(),
+  }),
+);
 
 export const JoinGroupResponse = successEnvelope(
   z.object({

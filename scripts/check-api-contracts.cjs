@@ -63,9 +63,10 @@ function extractSchemasFromFile(filePath) {
   while ((match = exportRegex.exec(content)) !== null) {
     const schemaName = match[1];
     const startIdx = match.index + match[0].length;
+    const endIdx = findInitializerEnd(content, startIdx);
 
     // Find the matching closing brace/paren for this schema
-    const fields = extractFieldsFromPosition(content, startIdx);
+    const fields = extractFieldsFromPosition(content, startIdx, endIdx);
     if (fields.length > 0) {
       schemas[schemaName] = fields.sort();
     }
@@ -89,14 +90,14 @@ function extractSchemasFromFile(filePath) {
 /**
  * Extract top-level field names from a z.object() definition.
  */
-function extractFieldsFromPosition(content, startIdx) {
+function extractFieldsFromPosition(content, startIdx, endIdx = content.length) {
   const fields = [];
 
   // Find the first z.object({ after startIdx
   const objectStart = content.indexOf("z.object({", startIdx);
-  if (objectStart === -1 || objectStart > startIdx + 200) {
+  if (objectStart === -1 || objectStart >= endIdx) {
     // Might be a simpler schema or chained call
-    return extractFieldsFromChained(content, startIdx);
+    return extractFieldsFromChained(content, startIdx, endIdx);
   }
 
   const fieldsStart = objectStart + "z.object({".length;
@@ -151,7 +152,7 @@ function extractFieldsFromPosition(content, startIdx) {
 /**
  * Extract fields from chained helper calls like successEnvelope(schema)
  */
-function extractFieldsFromChained(content, startIdx) {
+function extractFieldsFromChained(content, startIdx, endIdx = content.length) {
   // Check if it starts with a known helper
   const helpers = {
     successEnvelope: ["success", "data"],
@@ -161,7 +162,7 @@ function extractFieldsFromChained(content, startIdx) {
     errorEnvelope: ["success", "error"],
   };
 
-  const snippet = content.substring(startIdx, startIdx + 100);
+  const snippet = content.substring(startIdx, endIdx);
   for (const [helper, fields] of Object.entries(helpers)) {
     if (snippet.trimStart().startsWith(helper)) {
       return fields;
@@ -169,6 +170,87 @@ function extractFieldsFromChained(content, startIdx) {
   }
 
   return [];
+}
+
+/**
+ * Find the end of the current exported const initializer.
+ */
+function findInitializerEnd(content, startIdx) {
+  let pos = startIdx;
+  let parenDepth = 0;
+  let braceDepth = 0;
+  let bracketDepth = 0;
+  let inString = false;
+  let stringChar = "";
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  while (pos < content.length) {
+    const char = content[pos];
+    const next = content[pos + 1];
+
+    if (inLineComment) {
+      if (char === "\n") inLineComment = false;
+      pos++;
+      continue;
+    }
+
+    if (inBlockComment) {
+      if (char === "*" && next === "/") {
+        inBlockComment = false;
+        pos += 2;
+        continue;
+      }
+      pos++;
+      continue;
+    }
+
+    if (inString) {
+      if (char === stringChar && content[pos - 1] !== "\\") {
+        inString = false;
+      }
+      pos++;
+      continue;
+    }
+
+    if (char === "/" && next === "/") {
+      inLineComment = true;
+      pos += 2;
+      continue;
+    }
+
+    if (char === "/" && next === "*") {
+      inBlockComment = true;
+      pos += 2;
+      continue;
+    }
+
+    if (char === '"' || char === "'" || char === "`") {
+      inString = true;
+      stringChar = char;
+      pos++;
+      continue;
+    }
+
+    if (char === "(") parenDepth++;
+    else if (char === ")") parenDepth--;
+    else if (char === "{") braceDepth++;
+    else if (char === "}") braceDepth--;
+    else if (char === "[") bracketDepth++;
+    else if (char === "]") bracketDepth--;
+    else if (
+      char === ";" &&
+      parenDepth === 0 &&
+      braceDepth === 0 &&
+      bracketDepth === 0
+    ) {
+      return pos;
+    }
+
+    pos++;
+  }
+
+  return content.length;
 }
 
 // ---------------------------------------------------------------------------
