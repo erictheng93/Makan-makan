@@ -789,14 +789,14 @@ describe("TableService two-phase QR rotation", () => {
     expect((await readRow()).qrCode).toBe(liveQrBefore);
   });
 
-  it("discards a rotation without disturbing the live code", async () => {
+  it("consumes a discarded rotation version so its sticker can never return", async () => {
     const service = createTableService(testDb);
     await service.prepareQRCodeRotation(tableId);
     await service.discardQRCodeRotation(tableId);
 
     const row = await readRow();
     expect(row.qrCode).toBe(liveQrBefore);
-    expect(row.qrCodeVersion).toBe(1);
+    expect(row.qrCodeVersion).toBe(2);
     expect(row.pendingQrCode).toBeNull();
   });
 
@@ -807,8 +807,22 @@ describe("TableService two-phase QR rotation", () => {
     const second = await service.prepareQRCodeRotation(tableId);
 
     expect(second.success).toBe(true);
-    // Same version — the discarded one was never live, so it consumed nothing.
-    expect((await readRow()).pendingQrCodeVersion).toBe(2);
+    // The discarded sticker used version 2, so the next prepared code is 3.
+    expect((await readRow()).pendingQrCodeVersion).toBe(3);
     expect(second.qrCode).not.toBe(first.qrCode);
+  });
+
+  it("does not activate a prepared code after immediate regeneration", async () => {
+    const service = createTableService(testDb);
+    await service.prepareQRCodeRotation(tableId);
+    const regenerated = await service.regenerateQRCode(tableId);
+    const activated = await service.activateQRCodeRotation(tableId);
+
+    expect(regenerated.success).toBe(true);
+    expect(activated).toEqual({
+      success: false,
+      error: "No prepared QR code to activate",
+    });
+    expect((await readRow()).qrCodeVersion).toBe(2);
   });
 });

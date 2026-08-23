@@ -538,7 +538,6 @@ export class TableService extends BaseService {
           // this list payload — omitting it blanks every preview, the view
           // modal, download and print.
           qrCode: tables.qrCode,
-          qrCodeVersion: tables.qrCodeVersion,
           pendingQrCode: tables.pendingQrCode,
           pendingQrCodeVersion: tables.pendingQrCodeVersion,
           pendingQrPreparedAt: tables.pendingQrPreparedAt,
@@ -822,6 +821,7 @@ export class TableService extends BaseService {
     try {
       const table = await this.db
         .select({
+          qrCodeVersion: tables.qrCodeVersion,
           pendingQrCode: tables.pendingQrCode,
           pendingQrCodeVersion: tables.pendingQrCodeVersion,
         })
@@ -836,7 +836,7 @@ export class TableService extends BaseService {
         return { success: false, error: "No prepared QR code to activate" };
       }
 
-      await this.db
+      const activation = await this.db
         .update(tables)
         .set({
           qrCode: table.pendingQrCode,
@@ -846,7 +846,23 @@ export class TableService extends BaseService {
           pendingQrPreparedAt: null,
           updatedAt: new Date(),
         })
-        .where(and(eq(tables.id, tableId), isNull(tables.deletedAt)));
+        .where(
+          and(
+            eq(tables.id, tableId),
+            isNull(tables.deletedAt),
+            // Do not let an activation based on a stale read roll the live
+            // version backwards after another regeneration has completed.
+            eq(tables.qrCodeVersion, table.pendingQrCodeVersion - 1),
+            eq(tables.pendingQrCodeVersion, table.pendingQrCodeVersion),
+          ),
+        );
+
+      if (activation.meta.changes !== 1) {
+        return {
+          success: false,
+          error: "Prepared QR code rotation is no longer current",
+        };
+      }
 
       return { success: true, qrCode: table.pendingQrCode };
     } catch {
@@ -854,7 +870,11 @@ export class TableService extends BaseService {
     }
   }
 
-  /** Abandon a prepared rotation. The live code was never touched. */
+  /**
+   * Abandon a prepared rotation while consuming its version. A signed QR is
+   * deterministic for an entity/version pair, so reusing the version would
+   * make a discarded printed sticker valid if the later rotation were enabled.
+   */
   async discardQRCodeRotation(
     tableId: number,
   ): Promise<{ success: boolean; error?: string }> {
@@ -862,6 +882,10 @@ export class TableService extends BaseService {
       await this.db
         .update(tables)
         .set({
+          // Preserve the high-water mark even though this QR was never made
+          // live. This intentionally revokes the previous live sticker too;
+          // a caller must prepare and activate a replacement after discarding.
+          qrCodeVersion: sql`CASE WHEN ${tables.pendingQrCodeVersion} IS NOT NULL THEN ${tables.pendingQrCodeVersion} ELSE ${tables.qrCodeVersion} END`,
           pendingQrCode: null,
           pendingQrCodeVersion: null,
           pendingQrPreparedAt: null,
