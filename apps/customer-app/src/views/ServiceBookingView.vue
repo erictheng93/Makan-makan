@@ -257,7 +257,7 @@
               <dd class="font-semibold">{{ statusLabel(booking.status) }}</dd>
             </div>
           </dl>
-          <div class="mt-4 space-y-2">
+          <div v-if="!storedValueCreditsDisabled" class="mt-4 space-y-2">
             <input
               v-model="creditCardPublicId"
               data-testid="service-booking-credit-id"
@@ -351,6 +351,7 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import type { RestaurantServiceItem } from "@makanmasak/shared-types";
+import { useFeatureAvailability } from "@/composables/useFeatureAvailability";
 import { restaurantContactApi } from "@/services/restaurantContactApi";
 import { useI18n } from "@/composables/useI18n";
 import {
@@ -367,6 +368,10 @@ const props = defineProps<{
 
 const router = useRouter();
 const { t, tWithParams, currentLanguage, hasTranslation } = useI18n();
+const { isDisabled } = useFeatureAvailability();
+const storedValueCreditsDisabled = computed(() =>
+  isDisabled("storedValueCredits"),
+);
 const today = new Date().toISOString().slice(0, 10);
 
 const serviceItem = ref<RestaurantServiceItem | null>(null);
@@ -484,7 +489,7 @@ async function createBooking() {
 }
 
 async function payBooking() {
-  if (!booking.value) return;
+  if (storedValueCreditsDisabled.value || !booking.value) return;
   isPaying.value = true;
   errorMessage.value = "";
   successMessage.value = "";

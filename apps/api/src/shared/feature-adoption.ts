@@ -9,11 +9,10 @@
  * tests that stop it drifting away from the routes it describes.
  *
  * `enabledByDefault` is the deliberate part. A feature is only defaulted off
- * when switching it off changes nothing a user can see -- no frontend caller
- * and no production rows. Where a working UI calls the endpoints, the flag
- * exists and the adoption note is honest, but the default stays on: removing
- * working UI is a product decision, not a cleanup, and a gate that silently
- * 404s a screen someone is looking at is worse than the screen being pointless.
+ * when affected UI reads the same availability signal and hides its control
+ * before the request. Where a working UI calls the endpoints and has not been
+ * connected to that signal, the default stays on: silently 404ing a screen
+ * someone is looking at is worse than the screen being pointless.
  */
 
 export interface UnlaunchedFeature {
@@ -35,7 +34,7 @@ export const UNLAUNCHED_FEATURES = {
     flag: "STORED_VALUE_CREDITS_ENABLED",
     prefix: "/credits",
     adoption:
-      "0 credit_accounts, 0 credit_ledger_entries, 0 credit_topup_intents as of 2026-07-30, and no frontend caller. Money code that has never settled a real transaction should not be reachable.",
+      "0 credit_accounts, 0 credit_ledger_entries, and 0 credit_topup_intents as of 2026-07-30. ServiceBookingView has a credit-payment control, but it reads /info and hides whenever this flag is off; both its spending route and /credits are then refused. Money code that has never settled a real transaction should not be reachable.",
     enabledByDefault: false,
   },
   tenantBackups: {

@@ -78,9 +78,9 @@ describe("isFeatureEnabled", () => {
     }
   });
 
-  // Nothing a user can reach calls either of these: credits has no frontend
-  // caller at all, and the backup UI is orphaned -- BackupDashboard.vue has no
-  // router entry and no referrer.
+  // The service-booking credit control reads the same availability signal, and
+  // the backup UI is orphaned -- BackupDashboard.vue has no router entry or
+  // referrer. Both can therefore remain off unless explicitly enabled.
   it.each(["storedValueCredits", "tenantBackups"] as const)(
     "keeps %s off unless asked for",
     (key) => {

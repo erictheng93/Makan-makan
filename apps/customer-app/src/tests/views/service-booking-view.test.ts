@@ -7,6 +7,7 @@ import { serviceBookingsApi } from "@/services/serviceBookingsApi";
 import { i18n } from "@/i18n";
 
 const routerPush = vi.hoisted(() => vi.fn());
+const storedValueCreditsDisabled = vi.hoisted(() => ({ value: false }));
 
 vi.mock("@/composables/useI18n", () => ({
   useI18n: () => ({
@@ -21,6 +22,13 @@ vi.mock("@/composables/useI18n", () => ({
 vi.mock("vue-router", () => ({
   useRouter: () => ({
     push: routerPush,
+  }),
+}));
+
+vi.mock("@/composables/useFeatureAvailability", () => ({
+  useFeatureAvailability: () => ({
+    isDisabled: (feature: string) =>
+      feature === "storedValueCredits" && storedValueCreditsDisabled.value,
   }),
 }));
 
@@ -97,6 +105,7 @@ describe("ServiceBookingView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     routerPush.mockReset();
+    storedValueCreditsDisabled.value = false;
     vi.mocked(restaurantContactApi.listServiceItems).mockResolvedValue([
       serviceItem,
     ]);
@@ -219,5 +228,18 @@ describe("ServiceBookingView", () => {
       customerEmail: "guest@example.test",
     });
     expect(wrapper.text()).toContain("serviceBooking.cancelSuccess");
+  });
+
+  it("does not offer stored-value payment while credits are disabled", async () => {
+    storedValueCreditsDisabled.value = true;
+    const wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="service-booking-pay"]').exists()).toBe(
+      false,
+    );
+    expect(
+      wrapper.find('[data-testid="service-booking-credit-id"]').exists(),
+    ).toBe(false);
   });
 });
