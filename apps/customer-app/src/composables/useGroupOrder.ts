@@ -3,7 +3,7 @@
  * 群組點餐功能 - 處理即時購物車同步和分帳
  */
 
-import { ref, computed, onUnmounted } from "vue";
+import { computed, getCurrentInstance, onUnmounted, ref } from "vue";
 import { useWebSocket } from "./useWebSocket";
 import { apiClient } from "@/services/api";
 import {
@@ -1060,11 +1060,16 @@ export function useGroupOrder(options: {
   }
 
   // Cleanup
-  onUnmounted(() => {
-    if (isConnected.value) {
-      disconnectRealtime();
-    }
-  });
+  // The composable is also used by non-component consumers (for example,
+  // route loaders and unit tests). Vue only permits lifecycle registration
+  // while a component instance is active.
+  if (getCurrentInstance()) {
+    onUnmounted(() => {
+      if (isConnected.value) {
+        disconnectRealtime();
+      }
+    });
+  }
 
   return {
     // State

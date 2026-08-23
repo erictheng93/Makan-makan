@@ -30,6 +30,8 @@ const groupServiceMocks = vi.hoisted(() => ({
   recoverHost: vi.fn(),
 }));
 
+const meterEmit = vi.hoisted(() => vi.fn());
+
 vi.mock("../services/GroupOrdersService", () => ({
   GroupOrdersService: vi.fn(function GroupOrdersService() {
     return {
@@ -64,6 +66,10 @@ vi.mock("../../../middleware/quotaGate", () => ({
 vi.mock("../../../middleware/rateLimit", () => ({
   publicRateLimit: vi.fn(async (_c, next) => next()),
   strictRateLimit: vi.fn(async (_c, next) => next()),
+}));
+
+vi.mock("../../../shared/utils/meter", () => ({
+  meterEmit,
 }));
 
 vi.mock("@makanmasak/database", async (importOriginal) => {
@@ -122,6 +128,8 @@ describe("orders/* auth gating (bug #4)", () => {
     groupServiceMocks.previewGroupByShareCode.mockReset();
     groupServiceMocks.joinGroup.mockReset();
     groupServiceMocks.recoverHost.mockReset();
+    meterEmit.mockReset();
+    meterEmit.mockResolvedValue(undefined);
   });
 
   it("allows an anonymous guest to create a group order without a JWT", async () => {
