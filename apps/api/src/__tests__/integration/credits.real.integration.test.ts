@@ -295,6 +295,95 @@ describe("CreditService — spend guards", () => {
   });
 });
 
+describe("CreditService — movement atomicity", () => {
+  // A movement is a balance change plus the ledger entry that records it, and
+  // the two used to be separate statements. Whichever one runs second, a
+  // failure there left the other committed on its own: money moved with
+  // nothing recording it, or an entry claiming a movement that never
+  // happened. Both directions are covered here so the guarantee does not
+  // depend on which statement the implementation puts first.
+  //
+  // A trigger supplies the failure, because it aborts a statement the same
+  // way a real constraint or a disk error would. Triggers outlive
+  // `truncateAll`, so each one is dropped in a `finally`.
+
+  it("rolls the ledger entry back when the balance update fails", async () => {
+    const service = makeService();
+    const card = await service.issueCard({
+      currency: "TWD",
+      initialBalanceCents: 1000,
+    });
+
+    // 1000 - 400: the balance this one spend is about to write.
+    await testDb.db
+      .prepare(
+        `CREATE TRIGGER poison_balance_update
+           BEFORE UPDATE ON credit_accounts
+           WHEN NEW.balance_cents = 600
+           BEGIN SELECT RAISE(ABORT, 'poisoned balance update'); END`,
+      )
+      .run();
+
+    try {
+      await expect(
+        service.spend({
+          publicId: card.publicId,
+          amountCents: 400,
+          currency: "TWD",
+          idempotencyKey: "poisoned-update",
+          sourceType: "market_checkout",
+        }),
+      ).rejects.toThrow();
+
+      expect((await service.getBalance(card.publicId)).balanceCents).toBe(1000);
+      expect(
+        (await ledgerEntriesFor(card.accountId)).some(
+          (e) => e.idempotencyKey === "poisoned-update",
+        ),
+      ).toBe(false);
+      expect(await service.findBalanceLedgerDrift()).toEqual([]);
+    } finally {
+      await testDb.db.prepare("DROP TRIGGER poison_balance_update").run();
+    }
+  });
+
+  it("rolls the deduction back when the ledger insert fails", async () => {
+    const service = makeService();
+    const card = await service.issueCard({
+      currency: "TWD",
+      initialBalanceCents: 1000,
+    });
+
+    await testDb.db
+      .prepare(
+        `CREATE TRIGGER poison_ledger_insert
+           BEFORE INSERT ON credit_ledger_entries
+           WHEN NEW.idempotency_key = 'poisoned-insert'
+           BEGIN SELECT RAISE(ABORT, 'poisoned ledger insert'); END`,
+      )
+      .run();
+
+    try {
+      await expect(
+        service.spend({
+          publicId: card.publicId,
+          amountCents: 400,
+          currency: "TWD",
+          idempotencyKey: "poisoned-insert",
+          sourceType: "market_checkout",
+        }),
+      ).rejects.toThrow();
+
+      // The deduction rolled back with the entry it was batched against —
+      // otherwise the card is short with nothing in the ledger to show it.
+      expect((await service.getBalance(card.publicId)).balanceCents).toBe(1000);
+      expect(await service.findBalanceLedgerDrift()).toEqual([]);
+    } finally {
+      await testDb.db.prepare("DROP TRIGGER poison_ledger_insert").run();
+    }
+  });
+});
+
 describe("CreditService — threshold PIN", () => {
   const PIN_ENV = { CREDIT_PIN_THRESHOLD_CENTS: "1000" } as Partial<Env>;
 
