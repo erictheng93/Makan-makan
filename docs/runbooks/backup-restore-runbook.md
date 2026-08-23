@@ -22,9 +22,12 @@ rows, or a DR exercise.
 >   (`TENANT_BACKUPS_ENABLED`), and the `makanmasak-backup-scheduler-prod`
 >   Worker has been deleted — redeploy with `cd apps/backup-scheduler && pnpm
 >   run deploy:prod`, and uncomment the schedules in its `wrangler.toml` if you
->   want them back. The R2 bucket and its 90-day retention rule survive. That
->   feature is a tenant-facing product capability, not this platform's disaster
->   recovery.
+>   want them back. To restore the tenant-facing feature, also set the
+>   `TENANT_BACKUPS_ENABLED` variable on the production `makanmasak-api-prod`
+>   Worker to exactly `true`, then redeploy the API with `cd apps/api && pnpm
+>   run deploy:prod`; without this, `/api/v1/backup` will continue to return
+>   404. The R2 bucket and its 90-day retention rule survive. That feature is a
+>   tenant-facing product capability, not this platform's disaster recovery.
 
 ## Uptime Monitoring
 
