@@ -22,8 +22,15 @@ import { parseSignedQRUrl } from "../packages/utils/src/qr-signing";
 
 type Environment = "production" | "local";
 
-const DATABASES: Record<Environment, { name: string; remote: boolean }> = {
-  production: { name: "makanmakan-prod", remote: true },
+const DATABASES: Record<
+  Environment,
+  { name: string; remote: boolean; wranglerEnvironment?: string }
+> = {
+  production: {
+    name: "makanmasak-prod",
+    remote: true,
+    wranglerEnvironment: "production",
+  },
   local: { name: "makanmakan-local", remote: false },
 };
 
@@ -60,6 +67,7 @@ function query(env: Environment, sql: string): QrRow[] {
     "--command",
     sql,
   ];
+  if (db.wranglerEnvironment) args.push("--env", db.wranglerEnvironment);
   if (!db.remote) args.splice(5, 0, "--persist-to=./.wrangler/shared-state");
 
   const raw = execFileSync("npx", args, {

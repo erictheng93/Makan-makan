@@ -23,7 +23,7 @@ const idString = z.preprocess((value) => {
 /**
  * 創建合作夥伴Schema
  */
-export const createPartnershipSchema = z.object({
+const partnershipBaseSchema = z.object({
   partnerCode: z.string().min(2).max(50),
   partnerName: z.string().min(2).max(200),
   partnerNameEn: z.string().min(2).max(200).optional(),
@@ -50,9 +50,13 @@ export const createPartnershipSchema = z.object({
   contractDocumentUrl: z.url().optional(),
 
   // 認證設定
-  verificationMethod: z
-    .enum(["manual", "email_domain", "id_card", "qr_code", "api"])
-    .default("manual"),
+  verificationMethod: z.enum([
+    "manual",
+    "email_domain",
+    "id_card",
+    "qr_code",
+    "api",
+  ]),
   verificationConfig: z.record(z.string(), z.any()).optional(),
   allowedEmailDomains: z.array(z.string()).optional(),
 
@@ -68,10 +72,16 @@ export const createPartnershipSchema = z.object({
   metadata: z.record(z.string(), z.any()).optional(),
 });
 
+export const createPartnershipSchema = partnershipBaseSchema.extend({
+  verificationMethod: z
+    .enum(["manual", "email_domain", "id_card", "qr_code", "api"])
+    .default("manual"),
+});
+
 /**
  * 更新合作夥伴Schema
  */
-export const updatePartnershipSchema = createPartnershipSchema.partial();
+export const updatePartnershipSchema = partnershipBaseSchema.partial();
 
 /**
  * 合作夥伴查詢過濾器Schema
@@ -103,7 +113,7 @@ export const partnershipFiltersSchema = z.object({
 /**
  * 創建方案Schema
  */
-export const createPlanSchema = z.object({
+const planBaseSchema = z.object({
   partnershipId: z.uuid(),
   restaurantId: z.string().min(1),
 
@@ -119,7 +129,7 @@ export const createPlanSchema = z.object({
   maxDiscountAmount: z.number().nonnegative().optional(),
 
   // 使用條件
-  minOrderAmount: z.number().nonnegative().optional().default(0),
+  minOrderAmount: z.number().nonnegative().optional(),
   maxOrderAmount: z.number().nonnegative().optional(),
   applicableMenuItems: z.array(z.string()).optional(),
   applicableCategories: z.array(z.string()).optional(),
@@ -146,14 +156,14 @@ export const createPlanSchema = z.object({
   validTo: z.number().int().positive(),
 
   // 優先級和組合
-  priority: z.number().int().optional().default(0),
-  canCombineWithCoupons: z.boolean().optional().default(false),
-  canCombineWithPromotions: z.boolean().optional().default(false),
+  priority: z.number().int().optional(),
+  canCombineWithCoupons: z.boolean().optional(),
+  canCombineWithPromotions: z.boolean().optional(),
 
   // 顯示設定
   badgeText: z.string().max(50).optional(),
   badgeColor: z.string().max(20).optional(),
-  showOnMenu: z.boolean().optional().default(true),
+  showOnMenu: z.boolean().optional(),
 
   // 額外資訊
   termsAndConditions: z.string().max(2000).optional(),
@@ -161,10 +171,18 @@ export const createPlanSchema = z.object({
   metadata: z.record(z.string(), z.any()).optional(),
 });
 
+export const createPlanSchema = planBaseSchema.extend({
+  minOrderAmount: z.number().nonnegative().optional().default(0),
+  priority: z.number().int().optional().default(0),
+  canCombineWithCoupons: z.boolean().optional().default(false),
+  canCombineWithPromotions: z.boolean().optional().default(false),
+  showOnMenu: z.boolean().optional().default(true),
+});
+
 /**
  * 更新方案Schema
  */
-export const updatePlanSchema = createPlanSchema.partial().omit({
+export const updatePlanSchema = planBaseSchema.partial().omit({
   partnershipId: true,
   restaurantId: true,
 });

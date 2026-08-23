@@ -7,6 +7,10 @@ import { leaveSchemas } from "./leaves/schemas/validation";
 import { menuSchemas } from "./menu/schemas/validation";
 import { orderSchemas } from "./orders/schemas/validation";
 import { paymentSchemas } from "./payments/schemas/validation";
+import {
+  updatePartnershipSchema,
+  updatePlanSchema,
+} from "./partnerships/schemas/validation";
 import { qrCodeSchemas } from "./qr-codes/schemas/validation";
 import { realtimeSchemas } from "./realtime/schemas/validation";
 import { restaurantSchemas } from "./restaurants/schemas/validation";
@@ -33,6 +37,13 @@ const REGISTRIES: Array<[string, Record<string, unknown>]> = [
   ["menu", menuSchemas],
   ["orders", orderSchemas],
   ["payments", paymentSchemas],
+  [
+    "partnerships",
+    {
+      updatePartnershipSchema,
+      updatePlanSchema,
+    },
+  ],
   ["qrCodes", qrCodeSchemas],
   ["realtime", realtimeSchemas],
   ["restaurants", restaurantSchemas],
