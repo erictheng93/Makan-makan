@@ -852,7 +852,10 @@ export class TableService extends BaseService {
             isNull(tables.deletedAt),
             // Do not let an activation based on a stale read roll the live
             // version backwards after another regeneration has completed.
-            eq(tables.qrCodeVersion, table.pendingQrCodeVersion - 1),
+            eq(
+              sql<number>`coalesce(${tables.qrCodeVersion}, 0)`,
+              table.pendingQrCodeVersion - 1,
+            ),
             eq(tables.pendingQrCodeVersion, table.pendingQrCodeVersion),
           ),
         );

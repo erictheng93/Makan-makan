@@ -825,4 +825,27 @@ describe("TableService two-phase QR rotation", () => {
     });
     expect((await readRow()).qrCodeVersion).toBe(2);
   });
+
+  it("rejects a stale prepared version without downgrading the live QR", async () => {
+    const service = createTableService(testDb);
+    const prepared = await service.prepareQRCodeRotation(tableId);
+    const regenerated = await service.regenerateQRCode(tableId);
+
+    await testDb.drizzle
+      .update(tables)
+      .set({
+        pendingQrCode: prepared.qrCode,
+        pendingQrCodeVersion: 2,
+        pendingQrPreparedAt: new Date(),
+      })
+      .where(eq(tables.id, tableId));
+
+    await expect(service.activateQRCodeRotation(tableId)).resolves.toEqual({
+      success: false,
+      error: "Prepared QR code rotation is no longer current",
+    });
+    const row = await readRow();
+    expect(row.qrCode).toBe(regenerated.qrCode);
+    expect(row.qrCodeVersion).toBe(2);
+  });
 });
