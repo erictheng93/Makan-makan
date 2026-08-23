@@ -217,6 +217,19 @@ describe("check-no-automated-destructive-wrangler", () => {
     ]);
   });
 
+  it("catches a worker deletion after Wrangler global options", () => {
+    const root = fixture({
+      ".github/workflows/teardown.yml":
+        "      - run: wrangler --config=apps/api/wrangler.toml delete --name makanmasak-api-prod\n",
+    });
+
+    expect(
+      checkNoAutomatedDestructiveWrangler({ root }).violations,
+    ).toMatchObject([
+      { file: ".github/workflows/teardown.yml", command: "wrangler delete" },
+    ]);
+  });
+
   // The two must not be confused: "wrangler d1 delete" is the D1 entry, and a
   // report naming the wrong command sends the reader to the wrong runbook.
   it("reports a D1 deletion as D1, not as a worker deletion", () => {

@@ -328,6 +328,48 @@ describe("LeaveService tenant scoping", () => {
     expect(updated.restaurantId).toBe(restaurantId);
   });
 
+  it("rejects balance adjustments using another restaurant's leave type", async () => {
+    const service = new LeaveService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const { employeeId, approverId } = await seedLeaveFixtures(testDb, {
+      pendingDays: 0,
+      usedDays: 0,
+    });
+    await seedOtherRestaurant();
+
+    const [foreignLeaveType] = await testDb.drizzle
+      .insert(leaveTypes)
+      .values({
+        restaurantId: otherRestaurantId,
+        code: "OTHER",
+        name: "Other Restaurant Leave",
+        accrualType: "none",
+        accrualAmount: 0,
+        createdAt: new Date("2026-06-07T12:00:00.000Z"),
+        updatedAt: new Date("2026-06-07T12:00:00.000Z"),
+      } as never)
+      .returning({ id: leaveTypes.id });
+
+    await expect(
+      service.adjustLeaveBalance({
+        employeeId,
+        leaveTypeId: foreignLeaveType.id,
+        year,
+        adjustment: 1,
+        reason: "cross-tenant attempt",
+        adjustedBy: approverId,
+        restaurantId,
+      }),
+    ).rejects.toThrow("Leave type not found");
+
+    const balances = await testDb.drizzle
+      .select()
+      .from(employeeLeaveBalances)
+      .where(eq(employeeLeaveBalances.leaveTypeId, foreignLeaveType.id));
+    expect(balances).toHaveLength(0);
+  });
+
   it("rejects leave requests filed for another restaurant's employee", async () => {
     const service = new LeaveService(testDb.bindings.DB, {
       JWT_SECRET: "test",

@@ -1,15 +1,34 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { orderItems } from "@makanmasak/database";
 import { CouponsService } from "./CouponsService";
 
 function createService() {
   return new CouponsService({} as D1Database, { JWT_SECRET: "test" });
 }
 
-function createSelectChain(result: unknown[]) {
+function containsReference(
+  value: unknown,
+  target: unknown,
+  seen = new Set<unknown>(),
+): boolean {
+  if (value === target) return true;
+  if (!value || typeof value !== "object" || seen.has(value)) return false;
+  seen.add(value);
+  return Object.values(value).some((child) =>
+    containsReference(child, target, seen),
+  );
+}
+
+function createSelectChain(
+  result: unknown[],
+  resultForWhere?: (condition: unknown) => unknown[],
+) {
   const chain = {
     from: vi.fn(() => chain),
     innerJoin: vi.fn(() => chain),
-    where: vi.fn(() => chain),
+    where: vi.fn((condition: unknown) =>
+      resultForWhere ? createSelectChain(resultForWhere(condition)) : chain,
+    ),
     groupBy: vi.fn(() => chain),
     limit: vi.fn(() => chain),
     orderBy: vi.fn(async () => result),
@@ -100,7 +119,11 @@ function buildRedeemableCoupon(overrides: Record<string, unknown> = {}) {
 function setupUseCouponService({
   order = buildOrder() as Record<string, unknown> | null,
   coupon = buildRedeemableCoupon() as Record<string, unknown> | null,
-  orderItemRows = [] as Array<{ menuItemId: number; quantity: number }>,
+  orderItemRows = [] as Array<{
+    menuItemId: number;
+    quantity: number;
+    status?: string;
+  }>,
   itemCategoryRows = [] as Array<{
     category: { id: number } | null;
   }>,
@@ -114,7 +137,12 @@ function setupUseCouponService({
     .mockReturnValueOnce(createSelectChain(order ? [order] : []))
     .mockReturnValueOnce(createSelectChain(coupon ? [coupon] : []));
   if (coupon && (coupon.applicableMenuItems || coupon.applicableCategories)) {
-    select.mockReturnValueOnce(createSelectChain(orderItemRows));
+    const orderItemsSelect = createSelectChain(orderItemRows, (condition) =>
+      containsReference(condition, orderItems.status)
+        ? orderItemRows.filter((item) => item.status !== "cancelled")
+        : orderItemRows,
+    );
+    select.mockReturnValueOnce(orderItemsSelect);
   }
   if (coupon?.usageLimitPerUser) {
     select.mockReturnValueOnce(createSelectChain([{ count: userUsageCount }]));
@@ -687,6 +715,23 @@ describe("CouponsService", () => {
       });
       // 訂單 → 優惠券 → 訂單商品（只有設定了適用限制才查）
       expect(select).toHaveBeenCalledTimes(3);
+      expect(useCoupon).not.toHaveBeenCalled();
+    });
+
+    it("excludes cancelled items when loading coupon eligibility items", async () => {
+      const { service, useCoupon } = setupUseCouponService({
+        coupon: buildRedeemableCoupon({ applicableMenuItems: [99] }),
+        orderItemRows: [
+          { menuItemId: 99, quantity: 1, status: "cancelled" },
+          { menuItemId: 1, quantity: 1, status: "pending" },
+        ],
+      });
+
+      await expect(service.useCouponForOrder(input)).rejects.toMatchObject({
+        name: "ApiError",
+        code: "COUPON_NOT_APPLICABLE",
+        status: 400,
+      });
       expect(useCoupon).not.toHaveBeenCalled();
     });
 

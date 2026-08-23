@@ -6,7 +6,7 @@
 
 import { CouponService as BaseCouponService } from "@makanmasak/database";
 import { coupons, couponUsage, orderItems, orders } from "@makanmasak/database";
-import { and, eq, gte, lte, sql } from "drizzle-orm";
+import { and, eq, gte, lte, ne, sql } from "drizzle-orm";
 import {
   badRequest,
   conflict,
@@ -399,7 +399,12 @@ export class CouponsService extends BaseCouponService {
           quantity: orderItems.quantity,
         })
         .from(orderItems)
-        .where(eq(orderItems.orderId, input.orderId));
+        .where(
+          and(
+            eq(orderItems.orderId, input.orderId),
+            ne(orderItems.status, "cancelled"),
+          ),
+        );
     }
 
     const originalAmountCents = order.subtotalCents ?? 0;

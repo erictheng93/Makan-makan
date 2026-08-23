@@ -32,10 +32,14 @@ const GUARDED_COMMANDS = [
     pattern: /d1\s+time-travel\s+restore/,
   },
   { label: "wrangler d1 delete", pattern: /d1\s+delete(?![-\w])/ },
-  // Deletes a Worker. Needs the "wrangler" prefix to stay anchored: a bare
-  // /delete/ would match every other subcommand, and "wrangler d1 delete" must
-  // keep reporting as the D1 entry above rather than as this one.
-  { label: "wrangler delete", pattern: /wrangler\s+delete(?![-\w])/ },
+  // Deletes a Worker. Global Wrangler options may precede the subcommand;
+  // keep the "wrangler" prefix anchored so a bare /delete/ does not match
+  // unrelated commands, and `wrangler d1 delete` remains the D1 entry above.
+  {
+    label: "wrangler delete",
+    pattern:
+      /wrangler(?:\s+--[\w-]+(?:=[^\s]+|\s+[^\s-][^\s]*)?)*\s+delete(?![-\w])/,
+  },
 ];
 
 /**

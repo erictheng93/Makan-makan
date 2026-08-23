@@ -595,6 +595,14 @@ export class LeaveService extends BaseService {
         throw new Error("Employee not found in restaurant");
       }
 
+      const leaveType = await this.getLeaveType(
+        adjustment.leaveTypeId,
+        adjustment.restaurantId,
+      );
+      if (!leaveType) {
+        throw new Error("Leave type not found");
+      }
+
       // Read balance outside the transaction
       let balance = await this.getLeaveBalance(
         adjustment.employeeId,
