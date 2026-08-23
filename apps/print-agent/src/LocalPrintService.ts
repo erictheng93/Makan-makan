@@ -12,6 +12,7 @@ import { PrintAgentService } from "./services/PrintAgentService";
 import { validateConfig } from "./config/validation";
 import { PrinterDriverFactory } from "@makanmasak/queue-core/print";
 import type {
+  PrintJob,
   PrintRequest,
   PrintResponse,
   PrinterEvent,
@@ -50,6 +51,27 @@ const LOOPBACK_HOST = "127.0.0.1";
  * interval, and anything past it is only deferred to the next heartbeat.
  */
 export const MAX_CLOUD_JOBS_PER_DRAIN = 20;
+
+/**
+ * How long the agent watches the local queue before it stops waiting for the
+ * physical printer. The cloud's reclaim of an abandoned claim is written
+ * against this number, so the two have to stay in step.
+ */
+export const PRINT_COMPLETION_TIMEOUT_MS = 30_000;
+
+/**
+ * What the agent tells the cloud about a receipt it claimed.
+ *
+ * `indeterminate` is not a third flavour of failure — it is the absence of an
+ * observation. The cloud re-queues a `failed` receipt so a jam recovers on its
+ * own, which makes `failed` a claim that nothing reached paper. Reporting it
+ * for a job we merely stopped watching would print that receipt twice.
+ */
+type CloudAcknowledgement = {
+  status: "printed" | "failed" | "indeterminate";
+  printerName?: string;
+  response?: string;
+};
 
 export interface LocalPrintServiceConfig {
   // 網路設定
@@ -906,15 +928,18 @@ export class LocalPrintService {
   /**
    * Claims and prints at most one receipt.
    *
-   * "empty" and "failed" both end the drain. Stopping on a failure matters
-   * now that the cloud re-queues a failed receipt instead of settling it: the
-   * drain would otherwise re-claim that same receipt immediately, fail again,
-   * and burn its whole delivery budget in seconds — and then do the same to
-   * every other receipt in the queue. Whatever just broke the printer is
-   * almost certainly still broken for the next receipt, so the useful move is
-   * to leave the backlog alone and try again on the next heartbeat. That is
-   * also what makes the cloud's "no backoff, paced by the poll cadence"
-   * assumption true.
+   * "empty" and "failed" both end the drain, and "failed" covers every
+   * outcome that is not a confirmed print — an indeterminate one included.
+   * Stopping on a failure matters now that the cloud re-queues a failed
+   * receipt instead of settling it: the drain would otherwise re-claim that
+   * same receipt immediately, fail again, and burn its whole delivery budget
+   * in seconds — and then do the same to every other receipt in the queue.
+   * Whatever just broke the printer is almost certainly still broken for the
+   * next receipt, so the useful move is to leave the backlog alone and try
+   * again on the next heartbeat. That is also what makes the cloud's "no
+   * backoff, paced by the poll cadence" assumption true. A printer we waited
+   * 30s on and still could not read is wedged in the same way, so it stops the
+   * drain too, even though the cloud settles that one terminally.
    *
    * The cost is a receipt the printer chokes on specifically: it stalls the
    * queue behind it for as many heartbeats as its budget allows, then settles
@@ -982,40 +1007,68 @@ export class LocalPrintService {
     }
   }
 
-  private async waitForPrintCompletion(jobId: string): Promise<{
-    status: "printed" | "failed";
-    printerName?: string;
-    response?: string;
-  }> {
-    const deadline = Date.now() + 30_000;
+  /**
+   * The acknowledgement for a job the local queue has finished with, or null
+   * while it is still pending/printing and nothing can honestly be reported.
+   */
+  private settledAcknowledgement(
+    job: PrintJob | null,
+  ): CloudAcknowledgement | null {
+    if (job?.status === "completed") {
+      return { status: "printed", printerName: job.deviceId };
+    }
+    if (job?.status === "failed" || job?.status === "cancelled") {
+      return {
+        status: "failed",
+        printerName: job.deviceId,
+        response: job.error?.message,
+      };
+    }
+    return null;
+  }
+
+  private async waitForPrintCompletion(
+    jobId: string,
+  ): Promise<CloudAcknowledgement> {
+    const deadline = Date.now() + PRINT_COMPLETION_TIMEOUT_MS;
     while (Date.now() < deadline) {
-      const job = await this.printAgentService.getJobStatus(jobId);
-      if (job?.status === "completed") {
-        return { status: "printed", printerName: job.deviceId };
-      }
-      if (job?.status === "failed" || job?.status === "cancelled") {
-        return {
-          status: "failed",
-          printerName: job.deviceId,
-          response: job.error?.message,
-        };
-      }
+      const settled = this.settledAcknowledgement(
+        await this.printAgentService.getJobStatus(jobId),
+      );
+      if (settled) return settled;
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
-    return {
-      status: "failed",
-      response: "Timed out waiting for physical printer completion",
-    };
+
+    // One more read before giving up. The queue may have settled inside the
+    // last poll gap, and calling a print that did happen anything other than
+    // "printed" costs either a duplicate receipt or a lost one.
+    const settled = this.settledAcknowledgement(
+      await this.printAgentService.getJobStatus(jobId),
+    );
+    if (settled) return settled;
+
+    // Still running. The local queue only cancels a job that has not been
+    // handed to a printer yet, so a successful cancel proves nothing reached
+    // paper and the cloud is free to re-queue it. A refused cancel means the
+    // job is mid-print — it may well finish and print, on its own retries,
+    // long after we stopped watching — so its outcome is simply unknown.
+    const cancelled = await this.printAgentService.cancelJob(jobId);
+    return cancelled
+      ? {
+          status: "failed",
+          response:
+            "Cancelled before printing after waiting for the physical printer",
+        }
+      : {
+          status: "indeterminate",
+          response: "Timed out waiting for physical printer completion",
+        };
   }
 
   private async acknowledgeCloudJob(
     cloudKey: string,
     receiptId: string,
-    acknowledgement: {
-      status: "printed" | "failed";
-      printerName?: string;
-      response?: string;
-    },
+    acknowledgement: CloudAcknowledgement,
   ): Promise<void> {
     const response = await fetch(
       new URL(

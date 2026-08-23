@@ -6,6 +6,7 @@ import type { PrintJob } from "@makanmasak/shared-types";
 import {
   LocalPrintService,
   MAX_CLOUD_JOBS_PER_DRAIN,
+  PRINT_COMPLETION_TIMEOUT_MS,
 } from "./LocalPrintService";
 import type { LocalPrintServiceConfig } from "./LocalPrintService";
 
@@ -350,6 +351,9 @@ describe("LocalPrintService cloud job dispatch", () => {
   let service: LocalPrintService | undefined;
 
   afterEach(async () => {
+    // The printer-deadline tests install fake timers. Restore before stop(),
+    // which waits on real timers of its own.
+    vi.useRealTimers();
     if (service?.isServiceRunning()) {
       await service.stop();
     }
@@ -426,6 +430,19 @@ describe("LocalPrintService cloud job dispatch", () => {
           ?.body,
       ),
     ) as Record<string, unknown>;
+
+  /**
+   * Drives a drain past the agent's wait on the physical printer without
+   * spending 30 real seconds on it. The caller installs the fake timers so its
+   * job-status mock can be written against the same clock.
+   */
+  const drainPastThePrinterDeadline = async (
+    target: LocalPrintService,
+  ): Promise<void> => {
+    const drain = pollCloudJobs(target);
+    await vi.advanceTimersByTimeAsync(PRINT_COMPLETION_TIMEOUT_MS);
+    await drain;
+  };
 
   it("claims a job for its own register and acknowledges a completed print", async () => {
     service = new LocalPrintService(createConfig());
@@ -514,6 +531,99 @@ describe("LocalPrintService cloud job dispatch", () => {
       status: "failed",
       printerName: "USB-1",
       response: "Paper out",
+    });
+  });
+
+  it("reports an indeterminate outcome for a print it stopped watching mid-print", async () => {
+    // 30s is up and the job is still on the printer. The local queue keeps
+    // retrying a job like this well past that point, so it may yet come out on
+    // paper. The cloud re-queues anything reported `failed`, so claiming a
+    // failure here is how the same bill gets printed twice.
+    vi.useFakeTimers();
+    service = new LocalPrintService(createConfig());
+    const agent = service.getPrintAgentService();
+    vi.spyOn(agent, "createPrintJob").mockResolvedValue({
+      success: true,
+      jobId: "job-1",
+    });
+    vi.spyOn(agent, "getJobStatus").mockResolvedValue({
+      id: "job-1",
+      status: "printing",
+      deviceId: "USB-1",
+    } as unknown as PrintJob);
+    // Mid-print is exactly the state the local queue refuses to cancel.
+    const cancelJob = vi.spyOn(agent, "cancelJob").mockResolvedValue(false);
+    serveOneJob();
+
+    await drainPastThePrinterDeadline(service);
+
+    expect(cancelJob).toHaveBeenCalledOnce();
+    expect(cancelJob).toHaveBeenCalledWith("job-1");
+    expect(acknowledgement()).toEqual({
+      status: "indeterminate",
+      response: "Timed out waiting for physical printer completion",
+    });
+  });
+
+  it("reports a plain failure when the timed-out job never left the queue", async () => {
+    // The local queue only cancels a job still `pending`, so a cancel that
+    // succeeds proves nothing reached the printer. That is an observed
+    // outcome, and re-queueing it is safe.
+    vi.useFakeTimers();
+    service = new LocalPrintService(createConfig());
+    const agent = service.getPrintAgentService();
+    vi.spyOn(agent, "createPrintJob").mockResolvedValue({
+      success: true,
+      jobId: "job-1",
+    });
+    vi.spyOn(agent, "getJobStatus").mockResolvedValue({
+      id: "job-1",
+      status: "pending",
+      deviceId: "USB-1",
+    } as unknown as PrintJob);
+    const cancelJob = vi.spyOn(agent, "cancelJob").mockResolvedValue(true);
+    serveOneJob();
+
+    await drainPastThePrinterDeadline(service);
+
+    expect(cancelJob).toHaveBeenCalledWith("job-1");
+    expect(acknowledgement()).toEqual({
+      status: "failed",
+      response:
+        "Cancelled before printing after waiting for the physical printer",
+    });
+  });
+
+  it("acknowledges a print that completed inside the last poll gap", async () => {
+    vi.useFakeTimers();
+    service = new LocalPrintService(createConfig());
+    const agent = service.getPrintAgentService();
+    vi.spyOn(agent, "createPrintJob").mockResolvedValue({
+      success: true,
+      jobId: "job-1",
+    });
+    // Completes on the deadline itself — after the last poll of the wait loop
+    // and before the re-read that closes the race.
+    const deadline = Date.now() + PRINT_COMPLETION_TIMEOUT_MS;
+    vi.spyOn(agent, "getJobStatus").mockImplementation(
+      async () =>
+        ({
+          id: "job-1",
+          status: Date.now() < deadline ? "printing" : "completed",
+          deviceId: "USB-1",
+        }) as unknown as PrintJob,
+    );
+    const cancelJob = vi.spyOn(agent, "cancelJob").mockResolvedValue(false);
+    serveOneJob();
+
+    await drainPastThePrinterDeadline(service);
+
+    // Without the re-read the agent would cancel-and-report on a receipt that
+    // is already on paper.
+    expect(cancelJob).not.toHaveBeenCalled();
+    expect(acknowledgement()).toEqual({
+      status: "printed",
+      printerName: "USB-1",
     });
   });
 

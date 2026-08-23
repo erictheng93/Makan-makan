@@ -41,7 +41,7 @@ drain 只會把整個佇列的重試預算一起燒掉。代價是「印表機�
 | 端點 | 做了什麼 |
 | --- | --- |
 | `GET /api/v1/print/jobs` | 認領一筆待印收據（`print_status → 'printing'`、`claimed_at_ms`、`print_attempts + 1`），回傳出單內容 |
-| `POST /api/v1/print/jobs/:receiptId/ack` | 回報 `printed` / `failed`，附 `printerName`、`response` |
+| `POST /api/v1/print/jobs/:receiptId/ack` | 回報 `printed` / `failed` / `indeterminate`，附 `printerName`、`response` |
 
 **配對規則**：`代理.restaurant_id = 訂單.restaurant_id` **且**
 `收據.register_id IS 代理.register_id`（null-safe 相等）。
@@ -60,6 +60,12 @@ drain 只會把整個佇列的重試預算一起燒掉。代價是「印表機�
 `pending`，由下一次認領重試；達上限才維持 `failed`。沿用既有的次數預算，沒有第二個
 計數器。`printer_name` / `printer_response` 會保留，所以排隊重試期間仍看得到上一次
 的錯誤。
+
+**只有「觀察到的結果」才會重排**：`failed` 是代理親眼看著作業結束且沒印出來，所以重
+印是對的。代理等滿 30 秒仍不知道結果時回報的是 `indeterminate` —— 那張可能已經在紙
+上了（本地佇列還在重試一個取消不掉的作業），重排等於印第二張，因此不論還剩幾次額度
+一律終局判 `failed`，錯誤訊息留在列上讓人決定要不要手動重印。代理在放棄前會先試著取
+消本地作業：取消成功代表它根本還沒送到印表機，那才回報 `failed`。
 
 **沒有退避（backoff），節奏由代理的輪詢間隔提供** —— 這條成立的前提是**代理印失敗
 就結束當輪 drain**（見下節）。少了那條規則，drain 會立刻重新認領剛退回 `pending` 的
