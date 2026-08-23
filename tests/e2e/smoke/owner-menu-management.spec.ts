@@ -66,6 +66,8 @@ interface MenuMockHandlers {
 interface MenuCategoryFixture {
   id: number;
   name: string;
+  nameEn?: string;
+  description?: string;
   sortOrder: number;
   isActive?: boolean;
   isVisible?: boolean;
@@ -309,12 +311,12 @@ function installOwnerMenuMocks(
       target.name =
         String((body as { name?: unknown })?.name ?? target.name).trim() ||
         target.name;
-      target.nameEn = String(
-        (body as { nameEn?: unknown })?.nameEn ?? target.nameEn,
-      );
-      target.description = String(
-        (body as { description?: unknown })?.description ?? target.description,
-      );
+      const nextNameEn = (body as { nameEn?: unknown }).nameEn;
+      if (nextNameEn !== undefined) target.nameEn = String(nextNameEn);
+      const nextDescription = (body as { description?: unknown }).description;
+      if (nextDescription !== undefined) {
+        target.description = String(nextDescription);
+      }
       target.sortOrder =
         toNumber((body as { sortOrder?: unknown })?.sortOrder) ??
         target.sortOrder;
@@ -455,9 +457,10 @@ function installOwnerMenuMocks(
       target.name =
         String((body as { name?: unknown })?.name ?? target.name).trim() ||
         target.name;
-      target.description = String(
-        (body as { description?: unknown })?.description ?? target.description,
-      );
+      const nextDescription = (body as { description?: unknown }).description;
+      if (nextDescription !== undefined) {
+        target.description = String(nextDescription);
+      }
       target.price =
         toNumber((body as { price?: unknown })?.price) ?? target.price;
       target.isAvailable =

@@ -92,6 +92,21 @@ function skipWhen(condition: unknown, message: string): void {
   }
   test.skip(true, message);
 }
+
+function assertLoginData(
+  value: SmokeLoginData | undefined,
+  reason: string,
+): asserts value is SmokeLoginData {
+  skipWhen(!value?.token || !value.user, reason);
+}
+
+function assertChefLoginData(
+  value: LoginResponse["data"] | undefined,
+  reason: string,
+): asserts value is NonNullable<LoginResponse["data"]> {
+  skipWhen(!value?.token || !value.user, reason);
+}
+
 const SERVICE_ITEM_ID = Number(optionalEnv("WORKFLOW_SERVICE_ITEM_ID") || NaN);
 const MARKET_SLUG = optionalEnv("WORKFLOW_MARKET_SLUG");
 const TABLE_ID = Number(
@@ -390,13 +405,13 @@ async function loginChef() {
       headers: {
         Authorization: `Bearer ${ownerLoginData.token}`,
         "Content-Type": "application/json",
-        origin: new URL(API_URL).origin,
         ...(ownerLoginData.csrfToken
           ? {
               "X-CSRF-Token": ownerLoginData.csrfToken,
               cookie: `csrf_token=${ownerLoginData.csrfToken}`,
             }
           : csrfHeaders()),
+        origin: new URL(API_URL).origin,
       },
       body: JSON.stringify({
         username,
@@ -459,13 +474,13 @@ async function deactivateWorkflowChef(
     headers: {
       Authorization: `Bearer ${ownerLoginData.token}`,
       "Content-Type": "application/json",
-      origin: new URL(API_URL).origin,
       ...(ownerLoginData.csrfToken
         ? {
             "X-CSRF-Token": ownerLoginData.csrfToken,
             cookie: `csrf_token=${ownerLoginData.csrfToken}`,
           }
         : csrfHeaders()),
+      origin: new URL(API_URL).origin,
     },
     body: JSON.stringify({ isActive: false }),
   }).catch(() => {
@@ -1755,8 +1770,8 @@ test.describe("Real system workflows", () => {
     skipWhen(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
 
     const loginData = await getLoginData();
-    skipWhen(
-      !loginData?.token || !loginData.user,
+    assertLoginData(
+      loginData,
       "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
     );
 
@@ -1851,8 +1866,8 @@ test.describe("Real system workflows", () => {
     skipWhen(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
 
     const loginData = await getLoginData();
-    skipWhen(
-      !loginData?.token || !loginData.user,
+    assertLoginData(
+      loginData,
       "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
     );
 
@@ -1964,8 +1979,8 @@ test.describe("Real system workflows", () => {
     skipWhen(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
 
     const loginData = await getLoginData();
-    skipWhen(
-      !loginData?.token || !loginData.user,
+    assertLoginData(
+      loginData,
       "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
     );
 
@@ -2069,8 +2084,8 @@ test.describe("Real system workflows", () => {
     skipWhen(!ADMIN_URL, "WORKFLOW_ADMIN_URL/SMOKE_ADMIN_URL is required");
 
     const loginData = await getLoginData();
-    skipWhen(
-      !loginData?.token || !loginData.user,
+    assertLoginData(
+      loginData,
       "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
     );
 
@@ -2216,14 +2231,14 @@ test.describe("Real system workflows", () => {
     );
 
     const ownerLoginData = await getLoginData();
-    skipWhen(
-      !ownerLoginData?.token,
+    assertLoginData(
+      ownerLoginData,
       "WORKFLOW_AUTH_USERNAME/SMOKE_AUTH_USERNAME and password are required",
     );
 
     const chefLoginData = await loginChef();
-    skipWhen(
-      !chefLoginData?.token || !chefLoginData.user,
+    assertChefLoginData(
+      chefLoginData,
       "WORKFLOW_CHEF_USERNAME and WORKFLOW_CHEF_PASSWORD are required for non-local kitchen workflow",
     );
 

@@ -42,7 +42,7 @@ export interface PerformanceBaseline {
       avgTime: number;
       p95Time: number;
       p99Time: number;
-      indexUsed: boolean;
+      indexUsed?: boolean;
     }
   >;
 }
