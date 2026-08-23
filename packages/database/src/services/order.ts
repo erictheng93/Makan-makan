@@ -9,6 +9,7 @@ import {
   gte,
   lte,
   inArray,
+  isNull,
 } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { BaseService } from "./base";
@@ -1341,6 +1342,28 @@ export class OrderService extends BaseService {
     }
   }
 
+  async claimDelivery(id: string, userId: string): Promise<Order | null> {
+    const now = new Date();
+    const [order] = await this.db
+      .update(orders)
+      .set({
+        deliveryAssignedTo: userId,
+        deliveryStartTime: now,
+        version: sql`${orders.version} + 1`,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(orders.id, id),
+          eq(orders.status, ORDER_STATUS.READY),
+          isNull(orders.deliveryAssignedTo),
+        ),
+      )
+      .returning();
+
+    return order ? this.mapToOrder(order) : null;
+  }
+
   // 取消訂單
   async cancelOrder(id: string, reason?: string): Promise<Order> {
     try {
@@ -1671,6 +1694,8 @@ export class OrderService extends BaseService {
       preparingAt: toMillis(order.preparingAt),
       readyAt: toMillis(order.readyAt),
       deliveredAt: toMillis(order.deliveredAt),
+      deliveryAssignedTo: order.deliveryAssignedTo ?? undefined,
+      deliveryStartTime: toMillis(order.deliveryStartTime),
       paidAt: toMillis(order.paidAt),
       cancelledAt: toMillis(order.cancelledAt),
       paymentMethod: toOrderPaymentMethod(order.paymentMethod),

@@ -325,6 +325,7 @@ export const orderApi = {
   async getMarketCheckout(checkoutId: string): Promise<MarketCheckoutSummary> {
     const response = await apiClient.get<MarketCheckoutEnvelope>(
       `/market-checkouts/${checkoutId}`,
+      marketCheckoutHolderConfig(checkoutId),
     );
     return response.checkout;
   },

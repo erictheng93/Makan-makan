@@ -27,7 +27,7 @@ vi.mock("@/stores/auth", () => ({
 }));
 
 vi.mock("@/services/api", () => ({
-  api: { get: vi.fn(), put: vi.fn() },
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn() },
   unwrapApiData: (response: { data: { data: unknown } }) => response.data.data,
 }));
 
@@ -42,6 +42,7 @@ const readyOrder = {
   customerInfo: { name: "Ada", phone: "0912345678" },
   items: [],
 };
+let deliveryClaimed = false;
 
 describe("ServiceView", () => {
   beforeEach(() => {
@@ -49,16 +50,46 @@ describe("ServiceView", () => {
     sessionStorage.clear();
     authState.restaurantId = "restaurant-1";
     authState.user = { id: 3, username: "service-crew" };
+    deliveryClaimed = false;
     // api.get takes `paramsOrConfig?: unknown`; optional-chaining it narrows to
     // `{}`, which has no `status`. Cast to the shape ServiceView actually sends.
     vi.mocked(api.get).mockImplementation(
       async (_url: string, paramsOrConfig?: unknown) => {
-        const options = paramsOrConfig as { status?: string } | undefined;
-        const orders = options?.status === "ready" ? [readyOrder] : [];
+        const options = paramsOrConfig as
+          | { status?: string; restaurantId?: string }
+          | undefined;
+        const orders =
+          options?.status === "ready" && options.restaurantId === "restaurant-1"
+            ? [
+                {
+                  ...readyOrder,
+                  ...(deliveryClaimed
+                    ? {
+                        deliveryAssignedTo: "3",
+                        deliveryStartTime: Date.parse(
+                          "2026-08-21T12:01:00.000Z",
+                        ),
+                      }
+                    : {}),
+                },
+              ]
+            : [];
         return { data: { data: orders } } as never;
       },
     );
     vi.mocked(api.put).mockResolvedValue({ data: { data: {} } } as never);
+    vi.mocked(api.post).mockImplementation(async () => {
+      deliveryClaimed = true;
+      return {
+        data: {
+          data: {
+            ...readyOrder,
+            deliveryAssignedTo: "3",
+            deliveryStartTime: Date.parse("2026-08-21T12:01:00.000Z"),
+          },
+        },
+      } as never;
+    });
   });
 
   afterEach(() => {
@@ -99,7 +130,7 @@ describe("ServiceView", () => {
     expect(startButton).toBeDefined();
     await startButton!.trigger("click");
 
-    expect(api.put).not.toHaveBeenCalled();
+    expect(api.post).toHaveBeenCalledWith("/orders/order-1/delivery-claim");
     expect(wrapper.text()).toContain("serviceView.confirmDelivery");
 
     const confirmButton = wrapper
@@ -133,19 +164,10 @@ describe("ServiceView", () => {
     wrapper.unmount();
   });
 
-  it("keeps a local delivery phase when a paginated ready response omits its order", async () => {
+  it("waits for the server claim when a paginated response omits the order", async () => {
     const wrapper = mount(ServiceView);
     await flushPromises();
     await startDeliveryOn(wrapper);
-
-    const storedBeforePagination = Array.from(
-      { length: sessionStorage.length },
-      (_, index) =>
-        [
-          sessionStorage.key(index),
-          sessionStorage.getItem(sessionStorage.key(index)!),
-        ] as const,
-    );
 
     vi.mocked(api.get).mockImplementation(
       async (_url: string, paramsOrConfig?: unknown) => {
@@ -163,18 +185,24 @@ describe("ServiceView", () => {
     );
     await clickRefresh(wrapper);
 
-    expect(
-      Array.from({ length: sessionStorage.length }, (_, index) => [
-        sessionStorage.key(index),
-        sessionStorage.getItem(sessionStorage.key(index)!),
-      ]),
-    ).toEqual(storedBeforePagination);
+    expect(wrapper.text()).not.toContain("serviceView.confirmDelivery");
 
     vi.mocked(api.get).mockImplementation(
       async (_url: string, paramsOrConfig?: unknown) => {
         const options = paramsOrConfig as { status?: string } | undefined;
         return {
-          data: { data: options?.status === "ready" ? [readyOrder] : [] },
+          data: {
+            data:
+              options?.status === "ready"
+                ? [
+                    {
+                      ...readyOrder,
+                      deliveryAssignedTo: "3",
+                      deliveryStartTime: Date.parse("2026-08-21T12:01:00.000Z"),
+                    },
+                  ]
+                : [],
+          },
         } as never;
       },
     );
@@ -200,22 +228,22 @@ describe("ServiceView", () => {
     reloaded.unmount();
   });
 
-  it("drops the local phase once the server records the delivery", async () => {
+  it("drops the server claim once the server records the delivery", async () => {
     const wrapper = mount(ServiceView);
     await flushPromises();
 
     await startDeliveryOn(wrapper);
+    vi.mocked(api.put).mockImplementation(async () => {
+      deliveryClaimed = false;
+      return { data: { data: {} } } as never;
+    });
     const confirmButton = wrapper
       .findAll("button")
       .find((button) => button.text() === "serviceView.confirmDelivery");
     await confirmButton!.trigger("click");
     await flushPromises();
 
-    expect(
-      sessionStorage.getItem("service-view:delivery-phase:restaurant-1:3"),
-    ).toBe("{}");
-
-    // A later refresh must not resurrect it.
+    // A later refresh must show the state returned by the server.
     await clickRefresh(wrapper);
     expect(wrapper.text()).toContain("serviceView.startDelivery");
     expect(wrapper.text()).not.toContain("serviceView.confirmDelivery");
@@ -233,7 +261,7 @@ describe("ServiceView", () => {
     const otherCrew = mount(ServiceView);
     await flushPromises();
 
-    expect(otherCrew.text()).toContain("serviceView.startDelivery");
+    expect(otherCrew.text()).not.toContain("serviceView.startDelivery");
     expect(otherCrew.text()).not.toContain("serviceView.confirmDelivery");
 
     otherCrew.unmount();
@@ -249,7 +277,7 @@ describe("ServiceView", () => {
     const otherRestaurant = mount(ServiceView);
     await flushPromises();
 
-    expect(otherRestaurant.text()).toContain("serviceView.startDelivery");
+    expect(otherRestaurant.text()).not.toContain("serviceView.startDelivery");
     expect(otherRestaurant.text()).not.toContain("serviceView.confirmDelivery");
 
     otherRestaurant.unmount();

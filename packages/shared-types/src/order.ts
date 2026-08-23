@@ -95,6 +95,8 @@ export interface Order extends Omit<BaseEntity, "id"> {
   preparingAt: number | null;
   readyAt: number | null;
   deliveredAt: number | null;
+  deliveryAssignedTo?: string | null;
+  deliveryStartTime?: number | null;
   paidAt: number | null;
   cancelledAt: number | null;
   rating?: number;

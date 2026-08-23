@@ -100,6 +100,11 @@ export const orders = sqliteTable(
     preparingAt: integer("preparing_at_ms", { mode: "timestamp_ms" }),
     readyAt: integer("ready_at_ms", { mode: "timestamp_ms" }),
     deliveredAt: integer("delivered_at_ms", { mode: "timestamp_ms" }),
+    // A service-crew claim is independent from the canonical order status.
+    deliveryAssignedTo: text("delivery_assigned_to"),
+    deliveryStartTime: integer("delivery_start_time_ms", {
+      mode: "timestamp_ms",
+    }),
     paidAt: integer("paid_at_ms", { mode: "timestamp_ms" }),
     cancelledAt: integer("cancelled_at_ms", { mode: "timestamp_ms" }),
 

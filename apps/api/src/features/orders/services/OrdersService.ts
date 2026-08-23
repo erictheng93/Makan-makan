@@ -293,6 +293,26 @@ export class OrdersService implements IOrdersService {
     }
   }
 
+  async claimDelivery(
+    id: string,
+    userId: string,
+    caller?: CallerContext,
+  ): Promise<Order | null> {
+    const order = await this.getOrder(id);
+    if (!order) return null;
+    this.assertRestaurantAccess(order, caller);
+
+    const claimed = await this.baseOrderService.claimDelivery(id, userId);
+    if (!claimed) {
+      throw conflict(
+        "Order is no longer available for delivery",
+        "DELIVERY_ALREADY_CLAIMED",
+      );
+    }
+    await invalidateOrderCacheKeys(this.cacheKV, id);
+    return claimed;
+  }
+
   async getOrders(
     filters: OrderQueryFilters,
     userId?: string,
@@ -466,6 +486,16 @@ export class OrdersService implements IOrdersService {
       }
 
       this.assertRestaurantAccess(order, caller);
+
+      if (
+        statusData.status === "delivered" &&
+        order.deliveryAssignedTo !== userId
+      ) {
+        throw forbidden(
+          "Only the service crew member who claimed this delivery can complete it",
+          "DELIVERY_CLAIM_REQUIRED",
+        );
+      }
 
       // Validate status transition
       this.validateStatusTransition(order.status, statusData.status, userRole);

@@ -564,6 +564,28 @@ app.get(
  * Update order status
  * PUT /api/v1/orders/:id/status
  */
+app.post(
+  "/:id/delivery-claim",
+  customerAuthMiddleware,
+  requireRole([0, 3]),
+  moduleGate("online_ordering"),
+  validateParams(orderSchemas.params),
+  async (c) => {
+    const { id } = c.get("validatedParams");
+    const user: AuthUser = c.get("user");
+    const ordersService = new OrdersService(c.env);
+
+    const order = await ordersService.claimDelivery(
+      id,
+      String(user.id),
+      toCallerContext(user),
+    );
+    if (!order) throw notFound("Order not found");
+
+    return c.json({ success: true, data: serializeOrderForWire(order) });
+  },
+);
+
 app.put(
   "/:id/status",
   customerAuthMiddleware,

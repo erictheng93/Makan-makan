@@ -281,7 +281,10 @@
                     {{ t("serviceView.startDelivery") }}
                   </button>
                   <button
-                    v-else-if="order.localPhase === 'delivering'"
+                    v-else-if="
+                      order.localPhase === 'delivering' &&
+                      order.assignedTo === String(authStore.user?.id)
+                    "
                     class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm whitespace-nowrap"
                     @click="completeDelivery(order)"
                   >
@@ -900,16 +903,17 @@ const refreshOrders = async () => {
       orders.value = data.map((order) => {
         // The rebuilt row would otherwise drop the phase this device is
         // holding, sending an in-progress delivery back to「開始配送」.
-        const phase = localDeliveryPhases.value[String(order.id)];
         return {
           id: order.id,
           orderNumber: order.orderNumber,
           tableNumber: order.table?.number ?? "",
           orderType: order.orderType ?? "table",
           status: order.status,
-          localPhase: phase ? ("delivering" as const) : undefined,
-          deliveryStartTime: phase?.deliveryStartTime,
-          assignedTo: phase?.assignedTo,
+          localPhase: order.deliveryAssignedTo
+            ? ("delivering" as const)
+            : undefined,
+          deliveryStartTime: order.deliveryStartTime,
+          assignedTo: order.deliveryAssignedTo ?? undefined,
           priority: "normal",
           readyAt: order.readyAt ?? order.updatedAt,
           customerInfo: {
@@ -993,23 +997,21 @@ watch(getDeliveryPhaseStorageKey, (storageKey, previousStorageKey) => {
   }
 });
 
-const startDelivery = (order: ServiceOrder) => {
-  syncDeliveryPhasesWithAuthenticatedSession();
-
-  const deliveryStartTime = new Date().toISOString();
-  const assignedTo = String(authStore.user?.id || "current_user");
-
-  localDeliveryPhases.value[String(order.id)] = {
-    deliveryStartTime,
-    assignedTo,
-  };
-  persistDeliveryPhases();
-
-  const index = orders.value.findIndex((o) => o.id === order.id);
-  if (index > -1) {
-    orders.value[index].localPhase = "delivering";
-    orders.value[index].deliveryStartTime = deliveryStartTime;
-    orders.value[index].assignedTo = assignedTo;
+const startDelivery = async (order: ServiceOrder) => {
+  try {
+    const response = await api.post(`/orders/${order.id}/delivery-claim`);
+    const claimed = unwrapApiData<ApiOrder>(response);
+    const index = orders.value.findIndex(
+      (candidate) => candidate.id === order.id,
+    );
+    if (index > -1 && claimed) {
+      orders.value[index].localPhase = "delivering";
+      orders.value[index].deliveryStartTime = claimed.deliveryStartTime;
+      orders.value[index].assignedTo = claimed.deliveryAssignedTo ?? undefined;
+    }
+  } catch (err) {
+    console.error("Failed to claim delivery", err);
+    await refreshOrders();
   }
 };
 

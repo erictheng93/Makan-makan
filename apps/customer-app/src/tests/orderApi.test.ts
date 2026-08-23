@@ -79,6 +79,20 @@ describe("orderApi market checkout vouchers", () => {
     );
   });
 
+  it("sends the checkout-scoped guest token when loading a checkout", async () => {
+    getMarketCheckoutGuestToken.mockReturnValue("gt_holder");
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      checkout: { id: "checkout-1" },
+    });
+
+    await expect(orderApi.getMarketCheckout("checkout-1")).resolves.toEqual({
+      id: "checkout-1",
+    });
+    expect(apiClient.get).toHaveBeenCalledWith("/market-checkouts/checkout-1", {
+      headers: { "X-Guest-Token": "gt_holder" },
+    });
+  });
+
   it("returns the market checkout history as the client unwrapped it", async () => {
     // apiClient already strips the `{ success, data }` envelope; reading a
     // further `.data` off the result yields undefined and silently empties the

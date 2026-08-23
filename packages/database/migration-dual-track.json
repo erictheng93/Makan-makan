@@ -30,6 +30,10 @@
     {
       "fresh": "0006_split_bill_member_unique.sql",
       "reason": "The platform API owns group-order split-bill writes; the management API has no corresponding group-order settlement workflow to pair against."
+    },
+    {
+      "fresh": "0007_order_delivery_claims.sql",
+      "reason": "Delivery claims are part of the platform API service-crew workflow; the management API has no order-delivery execution surface."
     }
   ],
   "legacyOnly": [
