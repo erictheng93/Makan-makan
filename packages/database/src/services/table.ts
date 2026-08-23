@@ -538,6 +538,7 @@ export class TableService extends BaseService {
           // this list payload — omitting it blanks every preview, the view
           // modal, download and print.
           qrCode: tables.qrCode,
+          qrCodeVersion: tables.qrCodeVersion,
           pendingQrCode: tables.pendingQrCode,
           pendingQrCodeVersion: tables.pendingQrCodeVersion,
           pendingQrPreparedAt: tables.pendingQrPreparedAt,
@@ -821,7 +822,6 @@ export class TableService extends BaseService {
     try {
       const table = await this.db
         .select({
-          qrCodeVersion: tables.qrCodeVersion,
           pendingQrCode: tables.pendingQrCode,
           pendingQrCodeVersion: tables.pendingQrCodeVersion,
         })
