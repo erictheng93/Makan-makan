@@ -56,12 +56,34 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 **Do not move this meter to Analytics Engine.** It is not telemetry: `plan-quotas.ts` gives it soft/hard limits per plan tier, and `BillingCycleService.ts:66-75` computes billable overage as `total_quantity - hardLimit`. Analytics Engine samples at volume, so it cannot be the store of record for an invoiced quantity. (This corrects the first-pass recommendation from the 2026-08-21 cost review.)
 
-**Scope — pick one, both are real design changes:**
+**The real cost is index amplification, not the row itself.** One request's `usage_events` row is written three times over its life, and each write is amplified by the indexes covering it:
 
-- **In-isolate coalescing.** Buffer counts per `(restaurantId, meterKey)` in module scope and flush an aggregated row via `waitUntil` on a size or age threshold. Cuts rows written by roughly the batch factor. Cost: an isolate evicted with a non-empty buffer loses those counts. Undercounting only ever bills the customer less, which is the safe direction for an overage charge, but it makes the number non-reproducible — decide whether that is acceptable before building it.
-- **Per-restaurant counter Durable Object.** Exact, because the object is a single serialization point: increment in memory for free, persist on an alarm (~1/min). Turns 1M writes into ~1,440. Cost: one DO request per API request ($0.15/M over 1M/month free) plus DO compute, and a second DO class to declare — which must use `new_sqlite_classes` (see `apps/realtime/wrangler.toml` for why).
+| Stage | Rows written |
+| --- | --- |
+| `INSERT` — table, `restaurant_meter_time_idx`, and `pending_idx` (partial on `IS NULL`, which a fresh row matches) | 3 |
+| Hourly aggregator `UPDATE aggregated_at_ms` — table, row leaves `pending_idx`, row enters `ttl_idx` | 3 |
+| TTL `DELETE` at 90 days — table plus both covering indexes | 3 |
+| **Total per API request** | **~9** |
 
-**Also worth deciding separately:** `USAGE_EVENTS_TTL_DAYS` is 90. Rows are aggregated into `usage_meters` within the hour and then exist only as dispute evidence. Dropping to ~35 days (one cycle plus a buffer) cuts the table's D1 storage by roughly 60% and is a business call, not a technical one.
+**Scope — collapse the per-request row into an hourly bucket, in D1:**
+
+```sql
+INSERT INTO usage_meter_buckets (restaurant_id, meter_key, bucket_start_ms, quantity)
+VALUES (?, ?, ?, 1)
+ON CONFLICT (restaurant_id, meter_key, bucket_start_ms)
+DO UPDATE SET quantity = quantity + 1
+```
+
+The `UPDATE` touches only `quantity`, never a column in the conflict-target index, so it costs **one row written and zero index writes** — down from ~9. It stays exact: D1 serializes writes, so `quantity = quantity + 1` cannot lose an increment. The bucket row _is_ the aggregate, so the aggregator's `UPDATE` pass disappears, and the TTL sweep drops from tens of millions of rows to one per restaurant per hour.
+
+Rejected alternatives, so they do not get re-proposed:
+
+- **In-isolate coalescing.** An isolate evicted with a non-empty buffer loses those counts. Undercounting only ever bills the customer less, but the number stops being reproducible, which fails the accuracy-first requirement.
+- **Per-restaurant counter Durable Object.** To stay exact it must persist every increment, because a DO hibernates after 10 seconds idle and discards in-memory state — so it pays the same $1.00/M row write _plus_ $0.15/M in DO requests, making it strictly more expensive than the D1 bucket. Its compute duration is genuinely negligible (a counter DO meets every hibernation condition, so it is billed only for JS execution — roughly 125 GB-s per million requests against 400,000 GB-s included), but that is not enough to close the gap. Revisit it only if D1 _write throughput_ becomes the constraint rather than cost: D1 serializes every write onto one primary, and a counter DO gives each restaurant its own serialization point.
+
+**Note what is lost:** the per-request `metadata` (method, path, status) goes away. Nothing in billing reads it, but it is useful for debugging. That payload is genuine telemetry — sampling is fine — so Analytics Engine is the right home for it, kept separate from the billed count.
+
+**Also worth deciding separately:** `USAGE_EVENTS_TTL_DAYS` is 90. Rows are aggregated into `usage_meters` within the hour and then exist only as dispute evidence. Dropping to ~35 days (one cycle plus a buffer) cuts the table's D1 storage by roughly 60% and is a business call, not a technical one. Bucketing largely subsumes this.
 
 ## payments / provider integrations
 
