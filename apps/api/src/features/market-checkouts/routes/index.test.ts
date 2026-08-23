@@ -2288,9 +2288,12 @@ describe("market checkout routes", () => {
   it("accepts holder proof from the header the JWT cannot displace", async () => {
     // The customer app puts either the customer JWT or a guest token in
     // Authorization, never both, so a signed-in shopper paying a checkout they
-    // placed while signed out sends the token here instead. Every other test
-    // reaches this gate through Authorization, which leaves the header the real
-    // client depends on unexercised.
+    // placed while signed out sends the token in the dedicated header instead.
+    // Both credentials therefore ride along at once, and that is what the
+    // request below sends: the JWT holds Authorization while the guest token
+    // sits in X-Guest-Token. Sending the header on its own would still pass
+    // under a gate that reads Authorization first and stops there, which is
+    // exactly the regression this test exists to catch.
     signedInCustomer.value = { id: "customer-outsider" };
     const env = createEnv();
     await env.CACHE_KV.put(
@@ -2301,7 +2304,10 @@ describe("market checkout routes", () => {
     const response = await routes.fetch(
       new Request("https://test/checkout-1/voucher", {
         method: "DELETE",
-        headers: { "X-Guest-Token": MARKET_HOLDER_TOKEN },
+        headers: {
+          Authorization: "Bearer eyJhbGciOiJIUzI1NiJ9.e30.signature",
+          "X-Guest-Token": MARKET_HOLDER_TOKEN,
+        },
       }),
       env as never,
     );
