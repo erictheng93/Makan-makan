@@ -568,7 +568,12 @@ export function createApp(
   // that starts a market checkout is POST /api/v1/market-checkouts itself.
   for (const [prefix, key] of [
     ["/market-checkouts", "marketCheckouts"],
+    // A market checkout can also be settled by a cashier through the POS
+    // router, so the feature's public route prefix alone is not sufficient.
+    ["/pos/market-checkouts/*/pay", "marketCheckouts"],
     ["/credits", "storedValueCredits"],
+    // Service bookings use stored-value credits without going through /credits.
+    ["/service-bookings/*/pay", "storedValueCredits"],
     ["/backup", "tenantBackups"],
     ["/push", "webPush"],
     // Not a prefix of its own feature: customer-app subscribes through the

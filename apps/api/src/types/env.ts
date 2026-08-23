@@ -167,6 +167,7 @@ export interface Env {
   WEB_PUSH_VAPID_PUBLIC_KEY?: string;
   WEB_PUSH_VAPID_PRIVATE_KEY?: string;
   WEB_PUSH_VAPID_SUBJECT?: string;
+  WEB_PUSH_ENABLED?: string;
   WEB_PUSH_DELIVERER?: (delivery: {
     subscription: {
       id: string;

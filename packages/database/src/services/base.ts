@@ -33,6 +33,7 @@ export interface CloudflareEnv {
   WEB_PUSH_VAPID_PUBLIC_KEY?: string;
   WEB_PUSH_VAPID_PRIVATE_KEY?: string;
   WEB_PUSH_VAPID_SUBJECT?: string;
+  WEB_PUSH_ENABLED?: string;
   QR_SIGNING_KEY?: string;
   CLIENT_BASE_URL?: string;
   CORS_ORIGIN?: string;
@@ -68,6 +69,13 @@ export interface CloudflareEnv {
   LICENSE_KEY?: string;
   CENTRAL_API_URL?: string;
   PLATFORM_VERSION?: string;
+}
+
+/** Web push defaults on; only the explicit feature flag disables delivery. */
+export function isWebPushEnabled(
+  env: Pick<CloudflareEnv, "WEB_PUSH_ENABLED">,
+): boolean {
+  return env.WEB_PUSH_ENABLED !== "false";
 }
 
 // 基礎服務類別

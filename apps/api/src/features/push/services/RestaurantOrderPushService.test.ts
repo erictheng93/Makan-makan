@@ -106,4 +106,22 @@ describe("RestaurantOrderPushService", () => {
     expect(result).toEqual({ attempted: 0, delivered: 0 });
     expect(env.CACHE_KV.list).not.toHaveBeenCalled();
   });
+
+  it("does not deliver when web push is disabled", async () => {
+    const deliverer = vi.fn(async () => ({ ok: true, status: 201 }));
+    const env = createEnv({ deliverer });
+    env.WEB_PUSH_ENABLED = "false";
+
+    const result = await new RestaurantOrderPushService(env).notifyNewOrder({
+      restaurantId: "restaurant-1",
+      orderId: "order-1004",
+      orderNumber: "A004",
+      totalAmount: 60,
+      itemCount: 1,
+    });
+
+    expect(result).toEqual({ attempted: 0, delivered: 0 });
+    expect(env.CACHE_KV.list).not.toHaveBeenCalled();
+    expect(deliverer).not.toHaveBeenCalled();
+  });
 });

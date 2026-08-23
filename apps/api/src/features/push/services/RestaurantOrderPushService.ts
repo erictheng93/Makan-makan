@@ -1,4 +1,5 @@
 import type { Env } from "../../../types/env";
+import { isWebPushEnabled } from "@makanmasak/database";
 
 interface PushSubscriptionRecord {
   id: string;
@@ -29,7 +30,7 @@ export class RestaurantOrderPushService {
   constructor(private readonly env: Env) {}
 
   async notifyNewOrder(input: RestaurantOrderPushInput) {
-    if (!this.env.WEB_PUSH_DELIVERER) {
+    if (!isWebPushEnabled(this.env) || !this.env.WEB_PUSH_DELIVERER) {
       return { attempted: 0, delivered: 0 };
     }
 

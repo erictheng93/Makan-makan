@@ -74,12 +74,28 @@ describe("unlaunched feature gates", () => {
   });
 
   it("refuses a default-on feature once its flag is turned off", async () => {
-    const path = "/api/v1/market-checkouts/some-id";
+    const paths = [
+      "/api/v1/market-checkouts/some-id",
+      "/api/v1/pos/market-checkouts/some-id/pay",
+    ];
 
-    expect((await request(path)).status).not.toBe(404);
+    for (const path of paths) {
+      expect((await request(path, {}, "POST")).status).not.toBe(404);
+      expect(
+        (await request(path, { MARKET_CHECKOUTS_ENABLED: "false" }, "POST"))
+          .status,
+      ).toBe(404);
+    }
+  });
+
+  it("refuses the service-booking credit payment route by default", async () => {
+    const path = "/api/v1/service-bookings/some-id/pay";
+
+    expect((await request(path, {}, "POST")).status).toBe(404);
     expect(
-      (await request(path, { MARKET_CHECKOUTS_ENABLED: "false" })).status,
-    ).toBe(404);
+      (await request(path, { STORED_VALUE_CREDITS_ENABLED: "true" }, "POST"))
+        .status,
+    ).not.toBe(404);
   });
 
   // Regression: the webPush gate covered /push/* -- the staff routes -- while

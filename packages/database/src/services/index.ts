@@ -38,6 +38,7 @@ export {
   CustomerWebPushService,
   type CustomerPushDispatchResult,
 } from "./CustomerWebPushService";
+export { isWebPushEnabled } from "./base";
 export {
   NotificationService,
   type NotificationCategory,

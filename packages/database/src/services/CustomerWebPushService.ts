@@ -1,6 +1,6 @@
 import type { WaitingListResponse } from "@makanmasak/shared-types";
 import { sql } from "drizzle-orm";
-import { BaseService } from "./base";
+import { BaseService, isWebPushEnabled } from "./base";
 
 interface PushSubscriptionRow {
   id: string;
@@ -45,7 +45,7 @@ export class CustomerWebPushService extends BaseService {
   async sendWaitingCalled(
     ticket: WaitingListResponse,
   ): Promise<CustomerPushDispatchResult> {
-    if (!ticket.customerId) {
+    if (!isWebPushEnabled(this.env) || !ticket.customerId) {
       return emptyResult(true);
     }
 
