@@ -3124,7 +3124,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       failedAt: "2026-06-07T01:00:00.000Z",
     };
 
-    it("completes recovery after claiming finalizing, so its internal split remains allowed", async () => {
+    it("uses the current stored split type when recovering a failed finalization", async () => {
       const service = createService();
       service.splitBill = vi.fn(async () => ({ success: true, data: [] }));
       const db = createDb(
@@ -3158,6 +3158,8 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       expect(db.updates.map((update) => update.payload)).toContainEqual(
         expect.objectContaining({ status: "finalizing" }),
       );
+      // Recovery deliberately maps the value currently stored on the group,
+      // rather than reconstructing a split type from failure diagnostics.
       expect(service.splitBill).toHaveBeenCalledWith("group-1", {
         splitType: "individual",
         sharedServiceChargeCents: 600,

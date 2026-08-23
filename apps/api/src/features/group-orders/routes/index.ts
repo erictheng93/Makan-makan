@@ -485,7 +485,7 @@ app.post(
  * PUT /api/v1/orders/group/{groupOrderId}/split-type
  *
  * Host only, and deliberately separate from POST /split: that one performs the
- * split and closes the group for ordering. This only records the choice.
+ * split. This only records the choice used later by finalization.
  */
 app.put(
   "/:groupOrderId/split-type",
@@ -498,6 +498,17 @@ app.put(
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     await requireHostSession(groupOrderService, groupOrderId, memberToken);
+    const status = await groupOrderService.getGroupOrderStatus(groupOrderId);
+
+    if (!status) {
+      throw notFound("Group order not found");
+    }
+    if (status !== "active") {
+      throw conflict(
+        "Only active group orders can change split type",
+        "GROUP_ORDER_SPLIT_TYPE_NOT_ACTIVE",
+      );
+    }
 
     const result = await groupOrderService.setSplitType(
       groupOrderId,

@@ -35,6 +35,7 @@ const addCartItem = vi.hoisted(() => vi.fn());
 const updateCartItem = vi.hoisted(() => vi.fn());
 const removeCartItem = vi.hoisted(() => vi.fn());
 const splitBill = vi.hoisted(() => vi.fn());
+const setSplitType = vi.hoisted(() => vi.fn());
 const processPayment = vi.hoisted(() => vi.fn());
 const leaveGroup = vi.hoisted(() => vi.fn());
 const getActivities = vi.hoisted(() => vi.fn());
@@ -102,6 +103,7 @@ vi.mock("../services/GroupOrdersService", () => ({
     updateCartItem = updateCartItem;
     removeCartItem = removeCartItem;
     splitBill = splitBill;
+    setSplitType = setSplitType;
     processPayment = processPayment;
     leaveGroup = leaveGroup;
     getActivities = getActivities;
@@ -186,6 +188,7 @@ describe("group orders routes", () => {
     updateCartItem.mockReset();
     removeCartItem.mockReset();
     splitBill.mockReset();
+    setSplitType.mockReset();
     processPayment.mockReset();
     leaveGroup.mockReset();
     getActivities.mockReset();
@@ -639,6 +642,60 @@ describe("group orders routes", () => {
       error: { code: "GROUP_ORDER_SPLIT_NOT_ACTIVE" },
     });
     expect(splitBill).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "finalizing",
+    "finalizing_failed",
+    "checkout",
+    "completed",
+    "cancelled",
+  ] as const)(
+    "rejects a split type change when the group is %s",
+    async (status) => {
+      getGroupOrderStatus.mockResolvedValue(status);
+      isHostSession.mockResolvedValue(true);
+
+      const response = await routes.fetch(
+        new Request(`https://test/${groupOrderId}/split-type`, {
+          method: "PUT",
+          body: JSON.stringify({
+            splitType: "equal",
+            memberToken: "host-session",
+          }),
+        }),
+        createEnv() as never,
+      );
+
+      expect(response.status).toBe(409);
+      await expect(response.json()).resolves.toMatchObject({
+        error: { code: "GROUP_ORDER_SPLIT_TYPE_NOT_ACTIVE" },
+      });
+      expect(setSplitType).not.toHaveBeenCalled();
+    },
+  );
+
+  it("updates the split type for an active group", async () => {
+    getGroupOrderStatus.mockResolvedValue("active");
+    isHostSession.mockResolvedValue(true);
+    setSplitType.mockResolvedValue({
+      success: true,
+      data: { splitType: "equal" },
+    });
+
+    const response = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/split-type`, {
+        method: "PUT",
+        body: JSON.stringify({
+          splitType: "equal",
+          memberToken: "host-session",
+        }),
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(setSplitType).toHaveBeenCalledWith(groupOrderId, "equal");
   });
 
   it("returns not found when splitting a group order that does not exist", async () => {
