@@ -7,8 +7,8 @@
  * Reports, for one page:
  *   - how many characters #app rendered (0 means the SPA never mounted)
  *   - the document title
- *   - any /assets/ request that 4xx'd or came back as text/html, which is what
- *     a missing hashed bundle looks like once the SPA fallback swallows it
+ *   - any /assets/ request that failed, 4xx'd, or came back as text/html, which
+ *     is what a missing hashed bundle looks like once the SPA fallback swallows it
  *   - console errors and uncaught page errors
  *
  * ── Read this before trusting a clean result ────────────────────────────────
@@ -35,6 +35,10 @@
  */
 
 import { chromium } from "@playwright/test";
+import {
+  buildDeployPageUrl,
+  recordBadAsset,
+} from "./verify-pages-deploy-utils.mjs";
 
 const [host, path] = [process.argv[2], process.argv[3] || "/"];
 
@@ -63,15 +67,16 @@ page.on("console", (m) => {
 });
 page.on("pageerror", (e) => errors.push(String(e).slice(0, 110)));
 page.on("response", (r) => {
-  const url = r.url().split("?")[0];
-  if (!/\/assets\//.test(url)) return;
   const servedAsHtml = /text\/html/.test(r.headers()["content-type"] || "");
   if (r.status() >= 400 || servedAsHtml) {
-    badAssets.push(`${r.status()} ${url.split("/").pop()}`);
+    recordBadAsset(badAssets, r.url(), r.status());
   }
 });
+page.on("requestfailed", (request) => {
+  recordBadAsset(badAssets, request.url());
+});
 
-await page.goto(`https://${host}${path}?cb=${Date.now()}`, {
+await page.goto(buildDeployPageUrl(host, path), {
   waitUntil: "networkidle",
   timeout: 60000,
 });
