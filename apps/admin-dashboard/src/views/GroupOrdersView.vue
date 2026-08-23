@@ -493,12 +493,45 @@
                   {{ t("groupOrders.finalizeFailure.recoveryFailed") }}:
                   {{ finalizationRecoveryError }}
                 </p>
+                <label
+                  v-if="selectedGroupOrder.status === 'finalizing_failed'"
+                  :for="`finalization-bearer-${selectedGroupOrder.id}`"
+                  class="mt-3 block text-sm font-medium text-red-900"
+                >
+                  {{ t("groupOrders.finalizeFailure.bearerMember") }}
+                </label>
+                <select
+                  v-if="selectedGroupOrder.status === 'finalizing_failed'"
+                  :id="`finalization-bearer-${selectedGroupOrder.id}`"
+                  v-model="finalizationBearerMemberId"
+                  :disabled="isRecoveringFinalization"
+                  class="mt-1 block w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-sm text-gray-900 disabled:cursor-not-allowed disabled:opacity-60"
+                  :data-testid="`finalization-bearer-${selectedGroupOrder.id}`"
+                >
+                  <option value="">
+                    {{
+                      t("groupOrders.finalizeFailure.bearerMemberPlaceholder")
+                    }}
+                  </option>
+                  <option
+                    v-for="member in selectedGroupOrder.members"
+                    :key="member.id"
+                    :value="member.id"
+                  >
+                    {{ member.name || member.memberName || member.id }}
+                  </option>
+                </select>
                 <button
                   v-if="selectedGroupOrder.status === 'finalizing_failed'"
                   :data-testid="`recover-finalization-${selectedGroupOrder.id}`"
                   :disabled="isRecoveringFinalization"
                   class="mt-4 rounded-lg bg-red-700 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
-                  @click="recoverFinalization(selectedGroupOrder.id)"
+                  @click="
+                    recoverFinalization(
+                      selectedGroupOrder.id,
+                      finalizationBearerMemberId || undefined,
+                    )
+                  "
                 >
                   {{
                     isRecoveringFinalization
@@ -994,6 +1027,7 @@ const showJoinDialog = ref(false);
 const joinShareCode = ref("");
 const isRecoveringFinalization = ref(false);
 const finalizationRecoveryError = ref<string | null>(null);
+const finalizationBearerMemberId = ref("");
 
 // 統計數據 - populated from API
 const activeGroupOrders = ref(0);
@@ -1120,6 +1154,7 @@ const normalizeGroupOrder = (order: ApiGroupOrderPayload): GroupOrder => {
 const selectGroupOrder = (groupOrder: GroupOrder) => {
   selectedGroupOrder.value = groupOrder;
   finalizationRecoveryError.value = null;
+  finalizationBearerMemberId.value = "";
 };
 
 const refreshGroupOrders = async () => {
@@ -1151,14 +1186,23 @@ const refreshGroupOrders = async () => {
   }
 };
 
-const recoverFinalization = async (groupOrderId: string) => {
+const recoverFinalization = async (
+  groupOrderId: string,
+  bearerMemberId?: string,
+) => {
   if (isRecoveringFinalization.value) return;
 
   isRecoveringFinalization.value = true;
   finalizationRecoveryError.value = null;
 
   try {
-    await groupOrdersService.recoverFinalization(groupOrderId);
+    if (bearerMemberId) {
+      await groupOrdersService.recoverFinalization(groupOrderId, {
+        bearerMemberId,
+      });
+    } else {
+      await groupOrdersService.recoverFinalization(groupOrderId);
+    }
     await refreshGroupOrders();
   } catch (error) {
     finalizationRecoveryError.value = resolveUserFacingError(error, t, {

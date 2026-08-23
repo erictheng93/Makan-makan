@@ -616,6 +616,42 @@ describe("group orders routes", () => {
     },
   );
 
+  it("passes an optional bearer member to finalization recovery", async () => {
+    getGroupOrder.mockResolvedValue({
+      groupOrder: { id: groupOrderId, restaurantId: "restaurant-1" },
+    });
+    recoverFinalization.mockResolvedValue({
+      success: true,
+      data: { masterOrderId: "order-1", status: "checkout" },
+    });
+
+    const response = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/finalize/recover`, {
+        method: "POST",
+        body: JSON.stringify({ bearerMemberId: memberId }),
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(recoverFinalization).toHaveBeenCalledWith(groupOrderId, {
+      bearerMemberId: memberId,
+    });
+  });
+
+  it("rejects an invalid bearer member before recovery starts", async () => {
+    const response = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/finalize/recover`, {
+        method: "POST",
+        body: JSON.stringify({ bearerMemberId: "not-a-uuid" }),
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(400);
+    expect(recoverFinalization).not.toHaveBeenCalled();
+  });
+
   it.each([
     "finalizing",
     "finalizing_failed",

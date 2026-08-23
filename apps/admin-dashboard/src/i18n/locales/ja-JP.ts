@@ -2768,6 +2768,8 @@ const jaJP: Messages = {
       recoveryHistory: "復旧履歴",
       recoveryAttempts: "復旧試行回数",
       recoveryAttemptedAt: "試行時刻",
+      bearerMember: "このメンバーに全額を請求",
+      bearerMemberPlaceholder: "元の分割方法で再試行",
     },
     tableNumber: "テーブル{number}",
     takeaway: "テイクアウト",

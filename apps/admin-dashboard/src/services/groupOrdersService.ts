@@ -21,6 +21,10 @@ export interface RecoverFinalizationResponse {
   status: "checkout";
 }
 
+export interface RecoverFinalizationOptions {
+  bearerMemberId?: string;
+}
+
 export interface GroupOrder {
   id: string;
   shareCode: string;
@@ -120,9 +124,11 @@ export const groupOrdersService = {
 
   async recoverFinalization(
     groupOrderId: string,
+    options: RecoverFinalizationOptions = {},
   ): Promise<RecoverFinalizationResponse> {
     const response = await apiClient.post(
       `/orders/group/${groupOrderId}/finalize/recover`,
+      options,
     );
     return unwrapApiData<RecoverFinalizationResponse>(response);
   },

@@ -2781,6 +2781,8 @@ const idID: Messages = {
       recoveryHistory: "Riwayat pemulihan",
       recoveryAttempts: "Upaya pemulihan",
       recoveryAttemptedAt: "Dicoba pada",
+      bearerMember: "Tagihkan seluruh pesanan kepada anggota ini",
+      bearerMemberPlaceholder: "Coba lagi dengan pembagian awal",
     },
     tableNumber: "Meja {number}",
     takeaway: "Bawa Pulang",

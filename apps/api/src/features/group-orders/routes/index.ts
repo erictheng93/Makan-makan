@@ -19,6 +19,7 @@ import { meterEmit } from "../../../shared/utils/meter";
 import { toCsvRow } from "../../../shared/utils/csv";
 import {
   validateBody,
+  validateOptionalBody,
   validateQuery,
   validateParams,
 } from "../../../middleware/validation";
@@ -636,8 +637,10 @@ app.post(
   requireRole([0, 1]),
   moduleGate("online_ordering"),
   validateParams(groupOrderSchemas.groupOrderIdParam),
+  validateOptionalBody(groupOrderSchemas.recoverFinalization),
   async (c) => {
     const { groupOrderId } = c.get("validatedParams");
+    const { bearerMemberId } = c.get("validatedBody");
     const user = c.get("user");
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const summary = await groupOrderService.getGroupOrder(groupOrderId);
@@ -652,7 +655,11 @@ app.post(
       throw forbidden("Access denied: can only recover own restaurant orders");
     }
 
-    const result = await groupOrderService.recoverFinalization(groupOrderId);
+    const result = bearerMemberId
+      ? await groupOrderService.recoverFinalization(groupOrderId, {
+          bearerMemberId,
+        })
+      : await groupOrderService.recoverFinalization(groupOrderId);
     if (!result.success) {
       if (
         result.errorCode === "GROUP_ORDER_FINALIZATION_RECOVERY_IN_PROGRESS" ||

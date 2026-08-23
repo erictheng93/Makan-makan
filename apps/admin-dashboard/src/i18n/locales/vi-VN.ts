@@ -2768,6 +2768,8 @@ const viVN: Messages = {
       recoveryHistory: "Lịch sử khôi phục",
       recoveryAttempts: "Số lần khôi phục",
       recoveryAttemptedAt: "Thử lúc",
+      bearerMember: "Thu toàn bộ đơn từ thành viên này",
+      bearerMemberPlaceholder: "Thử lại theo cách chia ban đầu",
     },
     tableNumber: "Bàn {number}",
     takeaway: "Mang đi",

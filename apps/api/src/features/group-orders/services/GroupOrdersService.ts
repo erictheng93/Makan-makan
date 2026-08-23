@@ -1645,7 +1645,10 @@ export class GroupOrdersService implements IGroupOrderService {
    * The order totals are immutable at this point, so recovery only reuses the
    * recorded amounts and moves the group into the normal settlement state.
    */
-  async recoverFinalization(groupOrderId: string): Promise<{
+  async recoverFinalization(
+    groupOrderId: string,
+    options?: { bearerMemberId?: string },
+  ): Promise<{
     success: boolean;
     data?: { masterOrderId: string; status: "checkout" };
     error?: string;
@@ -1681,6 +1684,26 @@ export class GroupOrdersService implements IGroupOrderService {
       };
     }
 
+    if (options?.bearerMemberId) {
+      const activeBearer = await this.db
+        .select({ id: groupMembers.id, leftAt: groupMembers.leftAt })
+        .from(groupMembers)
+        .where(
+          and(
+            eq(groupMembers.groupOrderId, groupOrderId),
+            eq(groupMembers.id, options.bearerMemberId),
+            isNull(groupMembers.leftAt),
+          ),
+        );
+
+      if (activeBearer.length === 0 || activeBearer[0]?.leftAt) {
+        return {
+          success: false,
+          error: "Bearer member is not an active member of this group order",
+        };
+      }
+    }
+
     // Claim recovery before splitBill performs its read-then-write bill
     // upserts. Without this conditional transition, concurrent admin retries
     // can both observe no existing bill and insert duplicates for a member.
@@ -1711,12 +1734,32 @@ export class GroupOrdersService implements IGroupOrderService {
       };
     }
 
-    const splitResult = await this.splitBill(groupOrderId, {
-      splitType: this.splitTypeFromStoredValue(groupOrder.splitType),
-      sharedServiceChargeCents: failure.serviceChargeCents,
-      sharedTaxCents: failure.taxAmountCents,
-      orderTotalCents: failure.orderTotalCents,
-    });
+    const splitResult = await this.splitBill(
+      groupOrderId,
+      options?.bearerMemberId
+        ? {
+            splitType: "custom",
+            customAmounts: [
+              {
+                memberId: options.bearerMemberId,
+                amount: fromCents(
+                  failure.orderTotalCents -
+                    failure.serviceChargeCents -
+                    failure.taxAmountCents,
+                ),
+              },
+            ],
+            sharedServiceChargeCents: failure.serviceChargeCents,
+            sharedTaxCents: failure.taxAmountCents,
+            orderTotalCents: failure.orderTotalCents,
+          }
+        : {
+            splitType: this.splitTypeFromStoredValue(groupOrder.splitType),
+            sharedServiceChargeCents: failure.serviceChargeCents,
+            sharedTaxCents: failure.taxAmountCents,
+            orderTotalCents: failure.orderTotalCents,
+          },
+    );
 
     if (!splitResult.success) {
       const attemptedAt = new Date().toISOString();

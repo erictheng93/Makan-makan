@@ -67,7 +67,17 @@ const failedGroupOrder = (overrides: Partial<GroupOrder> = {}): GroupOrder => ({
   serviceCharge: 0,
   taxAmount: 0,
   itemCount: 1,
-  members: [],
+  members: [
+    {
+      id: "22222222-2222-4222-8222-222222222222",
+      groupOrderId: "group-1",
+      name: "Alex",
+      itemCount: 1,
+      totalAmount: 120,
+      paymentStatus: "unpaid",
+      joinedAt: "2026-08-22T09:00:00.000Z",
+    },
+  ],
   createdAt: "2026-08-22T09:00:00.000Z",
   completedAt: null,
   expiresAt: "2026-08-22T12:00:00.000Z",
@@ -167,6 +177,24 @@ describe("GroupOrdersView finalization recovery", () => {
     );
     expect(groupOrdersService.getGroupOrderStats).toHaveBeenCalledWith(
       expect.objectContaining({ restaurantId: "restaurant-1" }),
+    );
+  });
+
+  it("sends the selected member as the full-payment bearer", async () => {
+    const wrapper = await mountSelectedOrder();
+    vi.clearAllMocks();
+
+    await wrapper
+      .get('[data-testid="finalization-bearer-group-1"]')
+      .setValue("22222222-2222-4222-8222-222222222222");
+    await wrapper
+      .get('[data-testid="recover-finalization-group-1"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(groupOrdersService.recoverFinalization).toHaveBeenCalledWith(
+      "group-1",
+      { bearerMemberId: "22222222-2222-4222-8222-222222222222" },
     );
   });
 

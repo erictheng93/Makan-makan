@@ -267,6 +267,10 @@ export const processPaymentSchema = z.object({
   paymentDetails: z.record(z.string(), z.any()).optional(), // Additional payment details (card info, etc.)
 });
 
+export const recoverFinalizationSchema = z.object({
+  bearerMemberId: z.uuid("Invalid bearer member ID format").optional(),
+});
+
 export const recoverHostSchema = z.object({
   recoveryCode: z.string().min(1, "Recovery code is required").max(100),
 });
@@ -464,6 +468,7 @@ export const groupOrderSchemas = {
   feeModePreference: feeModePreferenceSchema,
   splitBill: splitBillSchema,
   processPayment: processPaymentSchema,
+  recoverFinalization: recoverFinalizationSchema,
   recoverHost: recoverHostSchema,
   lockGroupOrder: lockGroupOrderSchema,
 

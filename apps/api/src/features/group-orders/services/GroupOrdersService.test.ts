@@ -3176,6 +3176,78 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       );
     });
 
+    it("charges a selected active member the full recorded order total", async () => {
+      const service = createService();
+      service.splitBill = vi.fn(async () => ({ success: true, data: [] }));
+      const bearerMemberId = "22222222-2222-4222-8222-222222222222";
+      const db = createDb(
+        {
+          groupOrders: [
+            [
+              {
+                ...baseGroupOrder,
+                status: "finalizing_failed",
+                masterOrderId: "order-1",
+                settings: { finalizeFailure: failure },
+              },
+            ],
+          ],
+          groupMembers: [[{ ...hostMember, id: bearerMemberId }]],
+        },
+        { groupOrders: { update: [[{ id: "group-1" }], [{ id: "group-1" }]] } },
+      );
+      useDb(service, db);
+
+      await expect(
+        service.recoverFinalization("group-1", { bearerMemberId }),
+      ).resolves.toEqual({
+        success: true,
+        data: { masterOrderId: "order-1", status: "checkout" },
+      });
+      expect(service.splitBill).toHaveBeenCalledWith("group-1", {
+        splitType: "custom",
+        customAmounts: [{ memberId: bearerMemberId, amount: 30 }],
+        sharedServiceChargeCents: 600,
+        sharedTaxCents: 300,
+        orderTotalCents: 3900,
+      });
+    });
+
+    it.each(["missing", "departed"])(
+      "rejects a %s bearer without replacing the finalization diagnostics",
+      async (kind) => {
+        const service = createService();
+        service.splitBill = vi.fn();
+        const bearerMemberId = "22222222-2222-4222-8222-222222222222";
+        const db = createDb({
+          groupOrders: [
+            [
+              {
+                ...baseGroupOrder,
+                status: "finalizing_failed",
+                masterOrderId: "order-1",
+                settings: { finalizeFailure: failure },
+              },
+            ],
+          ],
+          groupMembers:
+            kind === "departed"
+              ? [[{ ...hostMember, id: bearerMemberId, leftAt: new Date() }]]
+              : [[]],
+        });
+        useDb(service, db);
+
+        await expect(
+          service.recoverFinalization("group-1", { bearerMemberId }),
+        ).resolves.toEqual({
+          success: false,
+          error: "Bearer member is not an active member of this group order",
+        });
+        expect(service.splitBill).not.toHaveBeenCalled();
+        expect(db.updates).toHaveLength(0);
+      },
+    );
+
     it("preserves the original failure timestamp and appends retry diagnostics when recovery fails", async () => {
       const service = createService();
       service.splitBill = vi.fn(async () => ({

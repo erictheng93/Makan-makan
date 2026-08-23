@@ -2713,6 +2713,8 @@ const zhCN: Messages = {
       recoveryHistory: "恢复记录",
       recoveryAttempts: "恢复尝试次数",
       recoveryAttemptedAt: "尝试时间",
+      bearerMember: "由此成员承担全额",
+      bearerMemberPlaceholder: "按原分账方式重试",
     },
     tableNumber: "桌号 {number}",
     takeaway: "外带",

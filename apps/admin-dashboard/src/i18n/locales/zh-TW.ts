@@ -2822,6 +2822,8 @@ const zhTWCore = {
       recoveryHistory: "復原記錄",
       recoveryAttempts: "復原嘗試次數",
       recoveryAttemptedAt: "嘗試時間",
+      bearerMember: "由此成員承擔全額",
+      bearerMemberPlaceholder: "依原分帳方式重試",
     },
     tableNumber: "桌號 {number}",
     takeaway: "外帶",

@@ -2759,6 +2759,8 @@ const enUS: Messages = {
       recoveryHistory: "Recovery history",
       recoveryAttempts: "Recovery attempts",
       recoveryAttemptedAt: "Attempted at",
+      bearerMember: "Charge the full order to",
+      bearerMemberPlaceholder: "Retry using the original split",
     },
     tableNumber: "Table {number}",
     takeaway: "Takeaway",

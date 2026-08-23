@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { eq } from "drizzle-orm";
-import { splitBills } from "@makanmasak/database";
+import { groupOrders, splitBills } from "@makanmasak/database";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
@@ -141,6 +141,64 @@ describe("settlement trust level", () => {
     expect(summary?.groupOrder.status).toBe("completed");
     expect(summary?.splitBills).toHaveLength(1);
     expect(summary?.splitBills[0]?.memberId).toBe(created.data.host.id);
+  });
+
+  it("charges exactly one selected bearer the recorded total during finalization recovery", async () => {
+    const restaurant = await seed.restaurant();
+    const item = await seed.menuItem(restaurant.id, {
+      name: "紅燒牛肉麵",
+      isAvailable: true,
+      priceCents: 12500,
+    });
+    const created = await service().createGroupOrder(
+      { restaurantId: String(restaurant.id), hostName: "Alex" } as never,
+      null,
+    );
+    if (!created.data) throw new Error(created.error);
+
+    const { groupOrderId, host } = created.data;
+    await service().addCartItem(groupOrderId, {
+      memberId: host.id,
+      menuItemId: Number(item.id),
+      quantity: 1,
+    } as never);
+    await testApp.testDb.drizzle
+      .update(groupOrders)
+      .set({
+        status: "finalizing_failed",
+        masterOrderId: "order-already-created",
+        settings: {
+          finalizeFailure: {
+            code: "SPLIT_TOTAL_MISMATCH",
+            masterOrderId: "order-already-created",
+            orderTotalCents: 12500,
+            serviceChargeCents: 0,
+            taxAmountCents: 0,
+            expectedTotalCents: 12500,
+            roundedTotalCents: 0,
+            splitError: "Split total does not match order total",
+            failedAt: "2026-08-23T00:00:00.000Z",
+          },
+        },
+      })
+      .where(eq(groupOrders.id, groupOrderId));
+
+    await expect(
+      service().recoverFinalization(groupOrderId, { bearerMemberId: host.id }),
+    ).resolves.toMatchObject({
+      success: true,
+      data: { status: "checkout" },
+    });
+
+    const bills = await testApp.testDb.drizzle
+      .select()
+      .from(splitBills)
+      .where(eq(splitBills.groupOrderId, groupOrderId));
+    expect(bills).toHaveLength(1);
+    expect(bills[0]).toMatchObject({
+      memberId: host.id,
+      totalAmountCents: 12500,
+    });
   });
 
   it("rejects a second split bill for the same group member at the database boundary", async () => {

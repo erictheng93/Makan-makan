@@ -56,6 +56,32 @@ export const validateBody = <T extends z.ZodTypeAny>(schema: T) =>
     },
   );
 
+/**
+ * Validate a JSON request body when it is present, while preserving endpoints
+ * that historically accepted an empty POST body.
+ */
+export const validateOptionalBody = <T extends z.ZodTypeAny>(schema: T) =>
+  createMiddleware<{ Variables: { validatedBody: z.infer<T> } }>(
+    async (c, next) => {
+      try {
+        const rawBody = await c.req.raw.clone().text();
+        const body = rawBody ? JSON.parse(rawBody) : {};
+        const validated = schema.parse(body);
+        c.set("validatedBody", validated);
+        await next();
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          throw badRequest(
+            "Validation failed",
+            "VALIDATION_ERROR",
+            formatZodDetails(error),
+          );
+        }
+        throw badRequest("Invalid JSON body", "INVALID_JSON");
+      }
+    },
+  );
+
 export const validateQuery = <T extends z.ZodTypeAny>(schema: T) =>
   createMiddleware<{ Variables: { validatedQuery: z.infer<T> } }>(
     async (c, next) => {
