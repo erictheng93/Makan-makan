@@ -337,6 +337,35 @@ describe("cloud print dispatch — real D1", () => {
     expect((await receiptRow("receipt-a"))?.printAttempts).toBe(2);
   });
 
+  it("never re-queues an indeterminate print, however many attempts are left", async () => {
+    await seedReceipt("receipt-a", REGISTER_A, ORDER_A);
+    await poll(KEY_A);
+
+    // The agent gave up waiting on the printer without ever learning the
+    // outcome — its local queue is still retrying a job it could not cancel.
+    // That bill may already be on paper, so a re-queue prints it twice.
+    await ack(KEY_A, "receipt-a", {
+      status: "indeterminate",
+      printerName: "USB-1",
+      response: "Timed out waiting for physical printer completion",
+    });
+
+    const row = await receiptRow("receipt-a");
+    expect(row?.printStatus).toBe("failed");
+    expect(row?.printAttempts).toBe(1);
+    expect(row?.printedAt).toBeNull();
+    // Readable on the row so a human can decide whether to reprint.
+    expect(row?.printerResponse).toBe(
+      "Timed out waiting for physical printer completion",
+    );
+    expect(row?.printerName).toBe("USB-1");
+    expect(row?.claimedAt).toBeNull();
+
+    // Terminal despite four attempts remaining: no later poll reclaims it.
+    expect((await claimedJob(await poll(KEY_A))).data).toBeNull();
+    expect((await receiptRow("receipt-a"))?.printAttempts).toBe(1);
+  });
+
   it("keeps a failed print failed once the attempt budget is spent", async () => {
     // One short of the budget, so the poll below lands on exactly the cap.
     await seedReceipt("receipt-a", REGISTER_A, ORDER_A, { printAttempts: 4 });

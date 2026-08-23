@@ -45,7 +45,10 @@ function optionalCount(raw: string | undefined): number | undefined {
 }
 
 const acknowledgementSchema = z.object({
-  status: z.enum(["printed", "failed"]),
+  // Additive on purpose: an agent that predates `indeterminate` only ever
+  // sends the first two values and keeps working untouched, so no version gate
+  // is needed on either side.
+  status: z.enum(["printed", "failed", "indeterminate"]),
   printerName: z.string().trim().max(200).optional(),
   response: z.string().max(2000).optional(),
 });
@@ -284,17 +287,29 @@ app.post("/jobs/:receiptId/ack", async (c) => {
 
   const db = drizzle(c.env.DB);
 
-  // A reported failure is not terminal on its own: a paper jam or a printer
-  // that was briefly offline would otherwise mean that receipt is silently
-  // never printed until a human notices. Below the attempt budget the row goes
+  // A re-queue is only safe for an outcome the agent actually observed.
+  //
+  // `failed` is such an outcome: the agent watched the job settle without
+  // reaching paper — a jam, a printer briefly offline — so reprinting is the
+  // right move, and treating it as terminal is what left a receipt silently
+  // never printed until a human noticed. Below the attempt budget the row goes
   // back to `pending` so the next poll re-claims it; at the budget it stays
   // `failed`. `print_attempts` is already incremented by every claim, so it
   // bounds the retries with no second counter. There is no backoff — retries
   // are paced by the agent's own poll cadence.
+  //
+  // `indeterminate` is the opposite: the agent stopped waiting without ever
+  // learning what happened, and its local queue keeps retrying a job it could
+  // not cancel. That receipt or kitchen ticket may already be on paper, so
+  // re-queueing it would print it a second time. It settles terminally as
+  // `failed` however many attempts are left, and the last error stays readable
+  // on the row for whoever decides to reprint it by hand.
   const settledStatus =
     parsed.data.status === "printed"
       ? "printed"
-      : sql`CASE WHEN ${receipts.printAttempts} >= ${MAX_DELIVERY_ATTEMPTS} THEN 'failed' ELSE 'pending' END`;
+      : parsed.data.status === "indeterminate"
+        ? "failed"
+        : sql`CASE WHEN ${receipts.printAttempts} >= ${MAX_DELIVERY_ATTEMPTS} THEN 'failed' ELSE 'pending' END`;
 
   const settled = await db
     .update(receipts)
