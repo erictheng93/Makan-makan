@@ -28,7 +28,7 @@ interface RoutableEvent {
  */
 interface RealtimeSessionInternals {
   roomInfo: { type: string; id: string } | null;
-  eventHistory: RoutableEvent[] | null;
+  eventLog: { key: string; event: RoutableEvent }[] | null;
   handleMessage(
     socket: WebSocket,
     data: string | ArrayBuffer,
@@ -105,8 +105,34 @@ function createState(input?: {
   const state = {
     storage: {
       get: vi.fn(async (key: string) => storage.get(key)),
-      put: vi.fn(async (key: string, value: unknown) => {
-        storage.set(key, value);
+      put: vi.fn(
+        async (
+          keyOrEntries: string | Record<string, unknown>,
+          value?: unknown,
+        ) => {
+          if (typeof keyOrEntries === "string") {
+            storage.set(keyOrEntries, value);
+            return;
+          }
+          for (const [key, entry] of Object.entries(keyOrEntries)) {
+            storage.set(key, entry);
+          }
+        },
+      ),
+      delete: vi.fn(async (keyOrKeys: string | string[]) => {
+        const keys = Array.isArray(keyOrKeys) ? keyOrKeys : [keyOrKeys];
+        const deleted = keys.filter((key) => storage.delete(key)).length;
+        return Array.isArray(keyOrKeys) ? deleted : deleted > 0;
+      }),
+      // Real storage.list() returns keys in lexicographic order, which is what
+      // the zero-padded evt: suffix relies on to mean insertion order.
+      list: vi.fn(async (options?: { prefix?: string }) => {
+        const prefix = options?.prefix ?? "";
+        return new Map(
+          [...storage.entries()]
+            .filter(([key]) => key.startsWith(prefix))
+            .sort(([a], [b]) => a.localeCompare(b)),
+        );
       }),
     },
     acceptWebSocket: vi.fn((socket: WebSocket) => {
@@ -123,6 +149,12 @@ function createState(input?: {
     __storage: Map<string, unknown>;
     acceptWebSocket: ReturnType<typeof vi.fn>;
     setWebSocketAutoResponse: ReturnType<typeof vi.fn>;
+    storage: DurableObjectStorage & {
+      get: ReturnType<typeof vi.fn>;
+      put: ReturnType<typeof vi.fn>;
+      delete: ReturnType<typeof vi.fn>;
+      list: ReturnType<typeof vi.fn>;
+    };
   };
 }
 
@@ -298,10 +330,13 @@ describe("RealtimeSession HTTP endpoints", () => {
       count: 1,
       events: [expect.objectContaining({ eventId: "evt-1" })],
     });
-    expect(state.storage.put).toHaveBeenCalledWith(
-      "eventHistory",
-      expect.arrayContaining([expect.objectContaining({ eventId: "evt-1" })]),
+    // One key per event, not one array rewritten per broadcast.
+    const persisted = [...state.__storage].filter(([key]) =>
+      key.startsWith("evt:"),
     );
+    expect(persisted).toHaveLength(1);
+    expect(persisted[0][1]).toMatchObject({ eventId: "evt-1" });
+    expect(state.__storage.has("eventHistory")).toBe(false);
   });
 
   it("returns only missed events when a history cursor is known", async () => {
@@ -1049,7 +1084,7 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       event("too-old", now - 90_000_000),
     );
 
-    const history = internals(session).eventHistory ?? [];
+    const history = (internals(session).eventLog ?? []).map((e) => e.event);
     expect(history).toHaveLength(99);
     expect(history[0].eventId).toBe("evt-6");
     expect(history.some((item) => item.eventId === "too-old")).toBe(false);
@@ -1063,6 +1098,101 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
       count: 99,
       note: "Event ID not found, returning all available events",
     });
+  });
+
+  it("writes one key per appended event and deletes only what the cap evicts", async () => {
+    const state = createState();
+    const session = createSession(createEnv(), state);
+    const now = Date.now();
+
+    // Fill to the cap, then append one more. This is the whole point of the
+    // per-event layout: the append costs one write request unit and the
+    // eviction one delete request, instead of rewriting the entire array.
+    for (let index = 0; index < 100; index++) {
+      await internals(session).addToEventHistory(event(`evt-${index}`, now));
+    }
+    state.storage.put.mockClear();
+    state.storage.delete.mockClear();
+
+    await internals(session).addToEventHistory(event("evt-100", now));
+
+    expect(state.storage.put).toHaveBeenCalledOnce();
+    expect(state.storage.put).toHaveBeenCalledWith(
+      expect.stringMatching(/^evt:\d+$/),
+      expect.objectContaining({ eventId: "evt-100" }),
+    );
+    expect(state.storage.delete).toHaveBeenCalledOnce();
+    expect(state.storage.delete).toHaveBeenCalledWith([
+      expect.stringMatching(/^evt:\d+$/),
+    ]);
+    expect(
+      [...state.__storage].filter(([key]) => key.startsWith("evt:")),
+    ).toHaveLength(100);
+  });
+
+  it("appends below the cap without deleting anything", async () => {
+    const state = createState();
+    const session = createSession(createEnv(), state);
+
+    await internals(session).addToEventHistory(event("evt-1", Date.now()));
+
+    expect(state.storage.put).toHaveBeenCalledOnce();
+    expect(state.storage.delete).not.toHaveBeenCalled();
+  });
+
+  it("spends no delete request on an event that arrives already expired", async () => {
+    const state = createState();
+    const session = createSession(createEnv(), state);
+
+    await internals(session).addToEventHistory(
+      event("too-old", Date.now() - 90_000_000),
+    );
+
+    // Never written, so there is nothing to delete either.
+    expect(state.storage.put).not.toHaveBeenCalled();
+    expect(state.storage.delete).not.toHaveBeenCalled();
+    expect(
+      [...state.__storage].filter(([key]) => key.startsWith("evt:")),
+    ).toEqual([]);
+  });
+
+  it("migrates the legacy event array to per-event keys, preserving order", async () => {
+    const now = Date.now();
+    const state = createState({
+      storage: new Map([
+        [
+          "eventHistory",
+          [event("old-1", now), event("old-2", now), event("old-3", now)],
+        ],
+      ]),
+    });
+    const session = createSession(createEnv(), state);
+
+    const response = await session.fetch(
+      new Request("https://do.test/history?since=old-1"),
+    );
+
+    // Order has to survive the move: the cursor only resolves to a suffix if
+    // storage.list()'s lexicographic order still means insertion order.
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      count: 2,
+      events: [
+        expect.objectContaining({ eventId: "old-2" }),
+        expect.objectContaining({ eventId: "old-3" }),
+      ],
+    });
+    expect(state.__storage.has("eventHistory")).toBe(false);
+    expect(
+      [...state.__storage].filter(([key]) => key.startsWith("evt:")),
+    ).toHaveLength(3);
+
+    // A migrated object keeps counting from where the array left off rather
+    // than colliding with a key it just wrote.
+    await internals(session).addToEventHistory(event("after", now));
+    expect(
+      [...state.__storage].filter(([key]) => key.startsWith("evt:")),
+    ).toHaveLength(4);
   });
 
   it("handles malformed broadcast request bodies as failed broadcasts", async () => {
@@ -1411,8 +1541,13 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     expect(activeSocket.deserializeAttachment()).toMatchObject({
       id: "active",
     });
-    expect(state.storage.put).toHaveBeenCalledWith("eventHistory", [
-      expect.objectContaining({ eventId: "fresh" }),
+    // The legacy array is migrated to one key per event on load, then the
+    // expired one is deleted rather than the whole array rewritten.
+    expect(state.__storage.has("eventHistory")).toBe(false);
+    expect(
+      [...state.__storage].filter(([key]) => key.startsWith("evt:")),
+    ).toEqual([
+      [expect.any(String), expect.objectContaining({ eventId: "fresh" })],
     ]);
 
     const freshOnlyState = createState({
@@ -1422,8 +1557,13 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
 
     await freshOnlySession.alarm();
 
-    expect(freshOnlyState.storage.put).toHaveBeenCalledWith("eventHistory", [
-      expect.objectContaining({ eventId: "still-fresh" }),
+    expect(
+      [...freshOnlyState.__storage].filter(([key]) => key.startsWith("evt:")),
+    ).toEqual([
+      [expect.any(String), expect.objectContaining({ eventId: "still-fresh" })],
     ]);
+    expect(freshOnlyState.storage.delete).not.toHaveBeenCalledWith(
+      expect.arrayContaining([expect.stringContaining("evt:")]),
+    );
   });
 });

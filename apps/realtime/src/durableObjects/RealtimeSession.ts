@@ -33,8 +33,28 @@ export interface ConnectionInfo {
   missedEvents?: RealtimeEvent[]; // 離線期間錯過的事件
 }
 
+// Legacy key: one array holding the whole history, rewritten on every
+// broadcast. Read once per object so an in-flight history survives the
+// deploy, then retired in favour of one key per event — see loadEventLog.
 const EVENT_HISTORY_STORAGE_KEY = "eventHistory";
+const EVENT_KEY_PREFIX = "evt:";
+// Zero-padded so storage.list()'s lexicographic order is insertion order.
+// 12 digits stays well inside Number's exact-integer range.
+const EVENT_SEQ_DIGITS = 12;
+// storage.delete() takes at most 128 keys per call.
+const MAX_KEYS_PER_DELETE = 128;
 const ROOM_INFO_STORAGE_KEY = "roomInfo";
+
+const eventKey = (seq: number): string =>
+  `${EVENT_KEY_PREFIX}${String(seq).padStart(EVENT_SEQ_DIGITS, "0")}`;
+
+const eventSeq = (key: string): number =>
+  Number(key.slice(EVENT_KEY_PREFIX.length));
+
+interface StoredEvent {
+  key: string;
+  event: RealtimeEvent;
+}
 const HEARTBEAT_REQUEST = "ping";
 const HEARTBEAT_RESPONSE = "pong";
 
@@ -42,8 +62,9 @@ export class RealtimeSession implements DurableObject {
   private state: DurableObjectState;
   private env: Env;
   private roomInfo: { type: string; id: string } | null = null;
-  // 事件歷史記錄（用於離線重連）
-  private eventHistory: RealtimeEvent[] | null = null;
+  // 事件歷史記錄（用於離線重連）— 每個事件一個 storage key
+  private eventLog: StoredEvent[] | null = null;
+  private nextEventSeq = 0;
   private readonly MAX_EVENT_HISTORY = 100; // 最多保留 100 個事件
   private readonly MAX_EVENT_AGE_MS = 24 * 60 * 60 * 1000; // 最多保留 24 小時的事件
 
@@ -630,31 +651,95 @@ export class RealtimeSession implements DurableObject {
   /**
    * 添加事件到歷史記錄
    */
-  private async loadEventHistory(): Promise<RealtimeEvent[]> {
-    if (this.eventHistory) return this.eventHistory;
+  private async loadEventLog(): Promise<StoredEvent[]> {
+    if (this.eventLog) return this.eventLog;
 
-    this.eventHistory =
-      (await this.state.storage.get<RealtimeEvent[]>(
+    const stored = await this.state.storage.list<RealtimeEvent>({
+      prefix: EVENT_KEY_PREFIX,
+    });
+    let log: StoredEvent[] = [...stored].map(([key, event]) => ({
+      key,
+      event,
+    }));
+
+    // One-time move off the legacy single-array key. Guarded on the log being
+    // empty: if any per-event key already exists it is newer than anything in
+    // the array, and prepending would be the only ordering that is correct —
+    // so simply do not migrate in that case rather than interleave wrongly.
+    if (log.length === 0) {
+      const legacy = await this.state.storage.get<RealtimeEvent[]>(
         EVENT_HISTORY_STORAGE_KEY,
-      )) ?? [];
-    return this.eventHistory;
-  }
-
-  private async addToEventHistory(event: RealtimeEvent): Promise<void> {
-    const eventHistory = await this.loadEventHistory();
-    eventHistory.push(event);
-
-    // 1. 基於大小的清理：保持歷史記錄在限制範圍內
-    while (eventHistory.length > this.MAX_EVENT_HISTORY) {
-      eventHistory.shift(); // 移除最舊的事件
+      );
+      if (legacy?.length) {
+        log = legacy
+          .slice(-this.MAX_EVENT_HISTORY)
+          .map((event, i) => ({ key: eventKey(i), event }));
+        await this.state.storage.put(
+          Object.fromEntries(log.map((e) => [e.key, e.event])),
+        );
+        await this.state.storage.delete(EVENT_HISTORY_STORAGE_KEY);
+      }
     }
 
-    // 2. 基於時間的清理：移除超過 24 小時的舊事件
-    const now = Date.now();
-    const cutoffTime = now - this.MAX_EVENT_AGE_MS;
-    this.eventHistory = eventHistory.filter((e) => e.timestamp > cutoffTime);
+    this.nextEventSeq = log.length ? eventSeq(log[log.length - 1].key) + 1 : 0;
+    this.eventLog = log;
+    return log;
+  }
 
-    await this.state.storage.put(EVENT_HISTORY_STORAGE_KEY, this.eventHistory);
+  private async loadEventHistory(): Promise<RealtimeEvent[]> {
+    return (await this.loadEventLog()).map((e) => e.event);
+  }
+
+  /**
+   * Appends one event and evicts whatever the size and age caps push out.
+   *
+   * The whole point of one key per event: this costs a single write request
+   * unit plus one delete request per evicted event, where rewriting the entire
+   * ~100-event array cost ceil(arrayBytes / 4 KB) write units on every
+   * broadcast. Both caps are applied here because nothing schedules the alarm
+   * that would otherwise trim in the background.
+   */
+  private async addToEventHistory(event: RealtimeEvent): Promise<void> {
+    const log = await this.loadEventLog();
+    const key = eventKey(this.nextEventSeq++);
+    const appended = [...log, { key, event }];
+
+    // Size cap first, then age — the order the array implementation used. It
+    // lets an already-expired arrival consume a slot before being discarded,
+    // which costs one retained event in the worst case; kept as-is so this
+    // change is only about where the events are stored.
+    const cutoffTime = Date.now() - this.MAX_EVENT_AGE_MS;
+    const kept = appended
+      .slice(-this.MAX_EVENT_HISTORY)
+      .filter((e) => e.event.timestamp > cutoffTime);
+    this.eventLog = kept;
+
+    const keptKeys = new Set(kept.map((e) => e.key));
+    if (keptKeys.has(key)) {
+      await this.state.storage.put(key, event);
+    }
+    // An event that arrives already expired is never written, so it must not
+    // be handed to the delete pass either — that would spend a delete request
+    // on a key that does not exist.
+    await this.deleteEventKeys(keptKeys.has(key) ? appended : log, keptKeys);
+  }
+
+  /**
+   * Deletes the keys in `from` that `keptKeys` no longer covers.
+   *
+   * ponytail: capped at one storage.delete() call. In steady state at most one
+   * event is evicted per append, and anything over the cap is picked up by the
+   * next append because the eviction rule is recomputed from scratch each time.
+   */
+  private async deleteEventKeys(
+    from: StoredEvent[],
+    keptKeys: Set<string>,
+  ): Promise<void> {
+    const dropped = from
+      .filter((e) => !keptKeys.has(e.key))
+      .map((e) => e.key)
+      .slice(0, MAX_KEYS_PER_DELETE);
+    if (dropped.length) await this.state.storage.delete(dropped);
   }
 
   private async loadRoomInfo(): Promise<{ type: string; id: string } | null> {
@@ -889,11 +974,12 @@ export class RealtimeSession implements DurableObject {
 
     // 2. 清理過期的事件歷史記錄
     const cutoffTime = now - this.MAX_EVENT_AGE_MS;
-    const eventHistory = await this.loadEventHistory();
-    const beforeCount = eventHistory.length;
-    this.eventHistory = eventHistory.filter((e) => e.timestamp > cutoffTime);
-    await this.state.storage.put(EVENT_HISTORY_STORAGE_KEY, this.eventHistory);
-    const afterCount = this.eventHistory.length;
+    const log = await this.loadEventLog();
+    const beforeCount = log.length;
+    const kept = log.filter((e) => e.event.timestamp > cutoffTime);
+    this.eventLog = kept;
+    await this.deleteEventKeys(log, new Set(kept.map((e) => e.key)));
+    const afterCount = kept.length;
 
     // 記錄清理情況（僅在有清理時）
     if (beforeCount > afterCount) {

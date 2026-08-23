@@ -98,7 +98,9 @@ Rejected alternatives, so they do not get re-proposed:
 - Wait for Cloudflare's promised key-value → SQLite migration path (announced as future work in the 2026-07-09 changelog). Zero effort, unknown date.
 - Delete and re-provision the namespace under a new class name. That discards every object's stored state. `RealtimeSession` keeps only an event-history ring buffer and hibernating WebSocket attachments, so the loss is bounded — but every live socket drops. Only worth doing inside a planned maintenance window.
 
-**Reachable now, without touching the backend:** `addToEventHistory` rewrites the whole array on every broadcast. Writing one key per event with a monotonic suffix and deleting the tail would cut the write units per broadcast to ~1 on the current backend. That is the actual lever while the backend is frozen.
+**Done 2026-08-23 — the reachable half.** `addToEventHistory` used to rewrite the whole ~100-event array through one `storage.put` on every broadcast, costing `ceil(arrayBytes / 4 KB)` write request units. It now writes one key per event (`evt:` plus a zero-padded sequence, so `storage.list()`'s lexicographic order is insertion order) and deletes only what the caps evict: **1 write request unit + 1 delete request per broadcast, independent of history size**. Legacy `eventHistory` arrays are migrated to per-event keys on first load, so a client reconnecting across the deploy still gets its delta. Only the storage layout changed — retention rules, ordering and the `/history` cursor behave exactly as before.
+
+**Still blocked:** the remaining gap is the backend itself. Reads are unchanged (one `list()` per object lifetime, same bytes as the old single `get`), and the delete request is inherent — every event written must eventually be removed. On SQLite that same delete is a row written against a free tier 50x larger.
 
 ## payments / provider integrations
 
