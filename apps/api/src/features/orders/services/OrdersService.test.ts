@@ -28,7 +28,11 @@ vi.mock("@makanmasak/database", () => ({
   // Must mirror the real export: the service matches base-service errors
   // against this prefix, so a missing one turns every mapping test red.
   INVALID_CUSTOMIZATION_PREFIX: "Invalid customization:",
-  isWebPushEnabled: () => true,
+  // Same reason: RestaurantOrderPushService imports this, and
+  // notifyNewOrderPush swallows the "not defined on the mock" throw, so
+  // omitting it surfaces only as a push that silently never fires.
+  isWebPushEnabled: (env: { WEB_PUSH_ENABLED?: string }) =>
+    env.WEB_PUSH_ENABLED !== "false",
   OrderService: function OrderService() {
     return {
       createOrder: createBaseOrder,
@@ -658,6 +662,9 @@ describe("OrdersService workflows", () => {
           ? "guest_active:restaurant-1:token:guest-token"
           : null,
     });
+    // Claimed by the same crew member that completes it below: only the
+    // claimant may transition an order to delivered (success criterion 4 of
+    // docs/specs/2026-08-server-backed-delivery-claims.md).
     const previous = createOrder({
       status: "ready",
       version: 7,
