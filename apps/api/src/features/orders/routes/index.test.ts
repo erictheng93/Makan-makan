@@ -21,10 +21,13 @@ const gateMocks = vi.hoisted(() => ({
     () => async (_c: unknown, next: () => Promise<void>) => next(),
   ),
   meterEmit: vi.fn(),
-  moduleGate: vi.fn(
-    (_module: string) => async (_c: unknown, next: () => Promise<void>) =>
-      next(),
-  ),
+  moduleGate: vi.fn((moduleKey: string) => {
+    const middleware = async (_c: unknown, next: () => Promise<void>) => next();
+    // Tagged at registration so a test can prove which route carries which
+    // gate. Hono keeps every middleware in the chain as its own app.routes
+    // entry, so the tag survives and stays attributable to one route.
+    return Object.assign(middleware, { moduleKey });
+  }),
   assertShopOrderingEnabled: vi.fn(),
 }));
 const authState = vi.hoisted(
@@ -80,12 +83,16 @@ vi.mock("../services/shop-mode-gate", () => ({
   assertShopOrderingEnabled: gateMocks.assertShopOrderingEnabled,
 }));
 
-// moduleGate(...) is called once per route at registration (module import
-// time), not per-request — capture the keys now, before any
-// vi.clearAllMocks()-equivalent reset in beforeEach loses the call history.
-const moduleGateRegistrationKeys = gateMocks.moduleGate.mock.calls.map(
-  (call) => call[0],
-);
+// moduleGate(...) runs once per route at registration (module import time),
+// not per-request, so this reads the registered app rather than the mock call
+// history — the latter loses its route association and any beforeEach reset
+// would clear it anyway.
+function moduleGatesFor(method: string, path: string): string[] {
+  return routes.routes
+    .filter((route) => route.method === method && route.path === path)
+    .map((route) => (route.handler as { moduleKey?: string }).moduleKey)
+    .filter((key): key is string => key !== undefined);
+}
 
 function createEnv() {
   const kv = new Map<string, string>();
@@ -203,17 +210,12 @@ describe("orders routes", () => {
     // online_ordering) for offline-capable clients; gate it the same way so
     // a deactivated/kill-switched subscription can't keep writing sync data
     // through this side door (see module-gate.test.ts for the real-gate
-    // proof). online_ordering already appears on 10 other routes in this
-    // file, so this checks the exact total (11 = 10 + /batch-sync) rather
-    // than a bare "array contains online_ordering somewhere" — a plain
-    // .toContain() would stay green even if this route's gate were removed,
-    // since the other 10 registrations still satisfy it. Adding any further
-    // online_ordering route in this file means bumping this number; confirm
-    // /batch-sync still carries the gate before you do.
-    expect(
-      moduleGateRegistrationKeys.filter((key) => key === "online_ordering")
-        .length,
-    ).toBe(11);
+    // proof). Asserted against this route's own middleware chain, not a count
+    // of online_ordering registrations across the file: a count cannot tell
+    // this gate from any other, so it went red when an unrelated route was
+    // added (POST /:id/delivery-claim, eb858802) and would have stayed green
+    // had this gate been dropped in the same change that added one.
+    expect(moduleGatesFor("POST", "/batch-sync")).toContain("online_ordering");
   });
 
   it("stores batch sync payloads with global scope and timestamp ids", async () => {
