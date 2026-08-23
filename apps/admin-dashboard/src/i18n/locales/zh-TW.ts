@@ -1819,6 +1819,7 @@ const zhTWCore = {
     restaurantManagement: "店鋪管理",
     accountManagement: "帳號管理",
     feedback: "意見反饋",
+    printAgents: "列印代理",
   },
 
   // 頁面標題

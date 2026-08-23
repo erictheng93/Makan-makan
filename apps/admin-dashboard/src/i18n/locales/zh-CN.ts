@@ -1641,6 +1641,7 @@ const zhCN: Messages = {
     restaurantContextHint: "选择店铺后可管理订单、菜单、POS 与员工。",
     restaurantManagement: "店铺管理",
     feedback: "意见反馈",
+    printAgents: "打印代理",
     accountManagement: "帐号管理",
   },
   pages: {

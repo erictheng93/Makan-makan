@@ -204,14 +204,14 @@ describe("orders routes", () => {
     // a deactivated/kill-switched subscription can't keep writing sync data
     // through this side door (see module-gate.test.ts for the real-gate
     // proof). online_ordering already appears on 9 other routes in this
-    // file, so this checks the exact total (10 = 9 + /batch-sync) rather
+    // file, so this checks the exact total (11 = 10 + /batch-sync) rather
     // than a bare "array contains online_ordering somewhere" — a plain
     // .toContain() would stay green even if this route's gate were removed,
     // since the other 9 registrations still satisfy it.
     expect(
       moduleGateRegistrationKeys.filter((key) => key === "online_ordering")
         .length,
-    ).toBe(10);
+    ).toBe(11);
   });
 
   it("stores batch sync payloads with global scope and timestamp ids", async () => {

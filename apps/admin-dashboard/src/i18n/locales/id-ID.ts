@@ -1771,6 +1771,7 @@ const idID: Messages = {
       "Pilih toko untuk mengelola pesanan, menu, POS, dan staf.",
     restaurantManagement: "Manajemen Toko",
     feedback: "Umpan Balik",
+    printAgents: "Agen cetak",
     accountManagement: "Akun",
     waitingTabs: {
       list: "Daftar tunggu",

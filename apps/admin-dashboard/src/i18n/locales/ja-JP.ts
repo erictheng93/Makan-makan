@@ -1659,6 +1659,7 @@ const jaJP: Messages = {
       "店舗を選択すると、注文、メニュー、POS、スタッフを管理できます。",
     restaurantManagement: "店舗管理",
     feedback: "フィードバック",
+    printAgents: "プリントエージェント",
     waitingTabs: {
       dashboard: "ライブダッシュボード",
       list: "待機リスト",

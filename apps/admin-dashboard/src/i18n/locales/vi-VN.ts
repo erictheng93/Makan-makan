@@ -1662,6 +1662,7 @@ const viVN: Messages = {
       "Chọn cửa hàng để quản lý đơn hàng, thực đơn, POS và nhân viên.",
     restaurantManagement: "Quản lý cửa hàng",
     feedback: "Phản hồi",
+    printAgents: "Tác nhân in",
     accountManagement: "Tài khoản",
     waitingManagement: "Quản lý chờ đợi",
     waitingTabs: {
