@@ -641,6 +641,134 @@ describe("group orders routes", () => {
     expect(splitBill).not.toHaveBeenCalled();
   });
 
+  it("returns not found when splitting a group order that does not exist", async () => {
+    getGroupOrderStatus.mockResolvedValue(null);
+    isHostSession.mockResolvedValue(true);
+
+    const response = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/split`, {
+        method: "POST",
+        body: JSON.stringify({
+          splitType: "equal",
+          memberToken: "host-session",
+        }),
+      }),
+      createEnv() as never,
+    );
+
+    // A missing group is 404, not the 409 an inactive one gets — otherwise a
+    // typo in the id reads as "someone else is mid-checkout".
+    expect(response.status).toBe(404);
+    expect(splitBill).not.toHaveBeenCalled();
+  });
+
+  it("surfaces a split failure from an active group as a bad request", async () => {
+    getGroupOrderStatus.mockResolvedValue("active");
+    isHostSession.mockResolvedValue(true);
+    splitBill.mockResolvedValue({
+      success: false,
+      error: "No active members found",
+    });
+
+    const response = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/split`, {
+        method: "POST",
+        body: JSON.stringify({
+          splitType: "equal",
+          memberToken: "host-session",
+        }),
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { message: "No active members found" },
+    });
+  });
+
+  it("names the conflict even when recovery reports no message", async () => {
+    getGroupOrder.mockResolvedValue({
+      groupOrder: { id: groupOrderId, restaurantId: "restaurant-1" },
+    });
+    recoverFinalization.mockResolvedValue({
+      success: false,
+      errorCode: "GROUP_ORDER_FINALIZATION_RECOVERY_IN_PROGRESS",
+    });
+
+    const response = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/finalize/recover`, {
+        method: "POST",
+      }),
+      createEnv() as never,
+    );
+
+    // The code is what the admin panel branches on, so a missing message must
+    // not turn the response body into `undefined`.
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      error: {
+        code: "GROUP_ORDER_FINALIZATION_RECOVERY_IN_PROGRESS",
+        message: "Finalization recovery cannot be completed",
+      },
+    });
+  });
+
+  it("falls back to a generic message when the split fails without one", async () => {
+    getGroupOrderStatus.mockResolvedValue("active");
+    isHostSession.mockResolvedValue(true);
+    splitBill.mockResolvedValue({ success: false });
+
+    const response = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/split`, {
+        method: "POST",
+        body: JSON.stringify({
+          splitType: "equal",
+          memberToken: "host-session",
+        }),
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { message: "Failed to split bill" },
+    });
+  });
+
+  it("returns not found when recovering a group order that does not exist", async () => {
+    getGroupOrder.mockResolvedValue(null);
+
+    const response = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/finalize/recover`, {
+        method: "POST",
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(404);
+    expect(recoverFinalization).not.toHaveBeenCalled();
+  });
+
+  it("falls back to a generic message when recovery fails without one", async () => {
+    getGroupOrder.mockResolvedValue({
+      groupOrder: { id: groupOrderId, restaurantId: "restaurant-1" },
+    });
+    recoverFinalization.mockResolvedValue({ success: false });
+
+    const response = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/finalize/recover`, {
+        method: "POST",
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { message: "Failed to recover finalization" },
+    });
+  });
+
   it("rejects a split using fresh status when the cached summary is stale", async () => {
     getGroupOrder.mockResolvedValue({
       groupOrder: {

@@ -433,6 +433,17 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     expect(kv.get).not.toHaveBeenCalled();
   });
 
+  it("returns null for a group order that does not exist", async () => {
+    const { kv } = createKV();
+    const service = new GroupOrdersService({} as D1Database, kv);
+    useDb(service, createDb({ groupOrders: [[]] }));
+
+    // The split guard turns this into a 404; a bare `null` status must not be
+    // mistaken for "not active" and reported as a conflict.
+    await expect(service.getGroupOrderStatus("missing")).resolves.toBeNull();
+    expect(kv.get).not.toHaveBeenCalled();
+  });
+
   it("fails closed when D1 contains an unknown group-order status", async () => {
     const { kv } = createKV();
     const service = new GroupOrdersService({} as D1Database, kv);
@@ -3127,6 +3138,110 @@ describe("GroupOrdersService formatting and cache behavior", () => {
                   expect.objectContaining({
                     code: "NO_ACTIVE_MEMBERS",
                     splitError: "No active members found",
+                  }),
+                ],
+              }),
+            }),
+          }),
+        ]),
+      );
+    });
+
+    it("reports a missing group order without claiming anything", async () => {
+      const service = createService();
+      service.splitBill = vi.fn();
+      const db = createDb({ groupOrders: [[]] });
+      useDb(service, db);
+
+      await expect(service.recoverFinalization("missing")).resolves.toEqual({
+        success: false,
+        error: "Group order not found",
+      });
+      expect(service.splitBill).not.toHaveBeenCalled();
+      expect(db.updates).toHaveLength(0);
+    });
+
+    it("refuses a group that is not awaiting finalization recovery", async () => {
+      const service = createService();
+      service.splitBill = vi.fn();
+      const db = createDb({
+        groupOrders: [
+          [{ ...baseGroupOrder, status: "active", masterOrderId: null }],
+        ],
+      });
+      useDb(service, db);
+
+      await expect(service.recoverFinalization("group-1")).resolves.toEqual({
+        success: false,
+        error: "Group order is not awaiting finalization recovery",
+      });
+      expect(service.splitBill).not.toHaveBeenCalled();
+      expect(db.updates).toHaveLength(0);
+    });
+
+    it("refuses to guess the amounts when the failure diagnostics are gone", async () => {
+      const service = createService();
+      service.splitBill = vi.fn();
+      const db = createDb({
+        groupOrders: [
+          [
+            {
+              ...baseGroupOrder,
+              status: "finalizing_failed",
+              masterOrderId: "order-1",
+              settings: null,
+            },
+          ],
+        ],
+      });
+      useDb(service, db);
+
+      // The stored amounts are the only record of what the real order charged.
+      // Without them a retry would invent a split, so it must not run at all.
+      await expect(service.recoverFinalization("group-1")).resolves.toEqual({
+        success: false,
+        error: "Missing finalization failure diagnostics",
+      });
+      expect(service.splitBill).not.toHaveBeenCalled();
+      expect(db.updates).toHaveLength(0);
+    });
+
+    it("still records a retry attempt when the split reports no details", async () => {
+      const service = createService();
+      service.splitBill = vi.fn(async () => ({ success: false }));
+      const db = createDb(
+        {
+          groupOrders: [
+            [
+              {
+                ...baseGroupOrder,
+                status: "finalizing_failed",
+                masterOrderId: "order-1",
+                settings: { finalizeFailure: failure },
+              },
+            ],
+          ],
+        },
+        { groupOrders: { update: [[{ id: "group-1" }]] } },
+      );
+      useDb(service, db);
+
+      await expect(service.recoverFinalization("group-1")).resolves.toEqual({
+        success: false,
+        error: "Failed to split bill",
+      });
+      expect(db.updates.map((update) => update.payload)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            status: "finalizing_failed",
+            settings: expect.objectContaining({
+              finalizeFailure: expect.objectContaining({
+                failedAt: failure.failedAt,
+                recoveryErrorDetails: [
+                  expect.objectContaining({
+                    code: "SPLIT_BILL_FAILED",
+                    splitError: "Failed to split bill",
+                    attemptedAt: expect.any(String),
                   }),
                 ],
               }),
