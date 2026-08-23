@@ -1,0 +1,30 @@
+{
+  // tests/ is not a workspace package, so turbo cannot schedule it. This
+  // config is invoked directly by the root package.json typecheck:tests script.
+  // The root Vitest project uses the same escape hatch in scripts/verify.sh.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "composite": false,
+    "noEmit": true,
+    "types": ["node", "@playwright/test", "vitest/globals"],
+    "baseUrl": "..",
+    "paths": {
+      "@makanmasak/shared-types": ["packages/shared-types/src"],
+      "@makanmasak/shared-types/*": ["packages/shared-types/src/*"],
+      "@makanmasak/database": ["packages/database/src"],
+      "@makanmasak/database/*": ["packages/database/src/*"],
+      "@makanmasak/utils": ["packages/utils/src"],
+      "@makanmasak/utils/*": ["packages/utils/src/*"]
+    }
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
+}
