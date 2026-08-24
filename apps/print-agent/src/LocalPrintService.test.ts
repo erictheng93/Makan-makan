@@ -8,6 +8,7 @@ import { WebSocket } from "ws";
 import type { PrintJob } from "@makanmasak/shared-types";
 import {
   LocalPrintService,
+  MAX_ACKNOWLEDGEMENT_ATTEMPTS,
   MAX_CLOUD_JOBS_PER_DRAIN,
   PRINT_COMPLETION_TIMEOUT_MS,
 } from "./LocalPrintService";
@@ -598,6 +599,69 @@ describe("LocalPrintService cloud job dispatch", () => {
         name.startsWith("pending-acks.json.corrupt-"),
       ),
     ).toHaveLength(1);
+  });
+
+  it("abandons an acknowledgement the cloud keeps rejecting so the queue can move", async () => {
+    const stateDirectory = await mkdtemp(join(tmpdir(), "makan-print-agent-"));
+    stateDirectories.push(stateDirectory);
+    const acknowledgementStorePath = join(stateDirectory, "pending-acks.json");
+    service = new LocalPrintService(createConfig({ acknowledgementStorePath }));
+    const createPrintJob = printsCompletedJobs(service);
+
+    const queued = ["receipt-1", "receipt-2"];
+    cloudHandler = (url) => {
+      if (url.includes("/ack")) {
+        // 400 is not the 404 that means "already settled", so this one is
+        // rejected for good rather than being terminal-and-safe to forget.
+        return url.includes("receipt-1")
+          ? new Response("rejected", { status: 400 })
+          : Response.json({ success: true });
+      }
+      const receiptId = queued.shift();
+      return Response.json(
+        receiptId ? pendingJob(receiptId) : { success: true, data: null },
+      );
+    };
+
+    for (let poll = 0; poll < MAX_ACKNOWLEDGEMENT_ATTEMPTS; poll += 1) {
+      await pollCloudJobs(service);
+    }
+
+    // The first poll printed receipt-1 and made its first ack attempt; the
+    // polls after it only retried that ack, claiming nothing. The last one
+    // spent the final attempt, dropped the entry, and went on to receipt-2.
+    expect(
+      ackedReceipts().filter((receiptId) => receiptId === "receipt-1"),
+    ).toHaveLength(MAX_ACKNOWLEDGEMENT_ATTEMPTS);
+    expect(createPrintJob).toHaveBeenCalledTimes(2);
+    expect(ackedReceipts()).toContain("receipt-2");
+  });
+
+  it("counts attempts from zero for a store written before the cap existed", async () => {
+    const stateDirectory = await mkdtemp(join(tmpdir(), "makan-print-agent-"));
+    stateDirectories.push(stateDirectory);
+    const acknowledgementStorePath = join(stateDirectory, "pending-acks.json");
+    // The exact shape 5b512bd6 wrote: no `attempts` field at all. Reading it
+    // as invalid would quarantine the file and reprint the receipt.
+    await writeFile(
+      acknowledgementStorePath,
+      JSON.stringify([
+        { receiptId: "receipt-9", acknowledgement: { status: "printed" } },
+      ]),
+      "utf8",
+    );
+    service = new LocalPrintService(createConfig({ acknowledgementStorePath }));
+    printsCompletedJobs(service);
+    serveOneJob();
+
+    await expect(pollCloudJobs(service)).resolves.toBeUndefined();
+
+    expect(ackedReceipts()).toEqual(["receipt-9", "receipt-1"]);
+    expect(
+      (await readdir(stateDirectory)).filter((name) =>
+        name.startsWith("pending-acks.json.corrupt-"),
+      ),
+    ).toEqual([]);
   });
 
   it("forgets an acknowledgement the cloud reports as already settled", async () => {

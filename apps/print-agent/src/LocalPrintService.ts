@@ -73,6 +73,17 @@ export const MAX_CLOUD_JOBS_PER_DRAIN = 20;
 export const PRINT_COMPLETION_TIMEOUT_MS = 30_000;
 
 /**
+ * How many times one pending acknowledgement may be rejected before the agent
+ * gives up on it. 404 does not count: that is the cloud saying the receipt has
+ * already left `printing`, which is a success from here.
+ *
+ * At the default 60s heartbeat this is roughly ten minutes of trying, well
+ * past a transient outage, and it exists because the drain blocks all new
+ * claims until the head of the queue clears.
+ */
+export const MAX_ACKNOWLEDGEMENT_ATTEMPTS = 10;
+
+/**
  * What the agent tells the cloud about a receipt it claimed.
  *
  * `indeterminate` is not a third flavour of failure — it is the absence of an
@@ -89,6 +100,12 @@ type CloudAcknowledgement = {
 type PendingCloudAcknowledgement = {
   receiptId: string;
   acknowledgement: CloudAcknowledgement;
+  /**
+   * Failed deliveries so far. Absent in stores written before the cap existed,
+   * and read as 0 — an upgrade must not judge its own queue invalid, because
+   * that path now quarantines the file and reprints those receipts.
+   */
+  attempts?: number;
 };
 
 const isCloudAcknowledgement = (
@@ -114,7 +131,11 @@ const isPendingCloudAcknowledgement = (
   const pending = value as Record<string, unknown>;
   return (
     typeof pending.receiptId === "string" &&
-    isCloudAcknowledgement(pending.acknowledgement)
+    isCloudAcknowledgement(pending.acknowledgement) &&
+    (pending.attempts === undefined ||
+      (typeof pending.attempts === "number" &&
+        Number.isInteger(pending.attempts) &&
+        pending.attempts >= 0))
   );
 };
 
@@ -1216,18 +1237,48 @@ export class LocalPrintService {
     ]);
   }
 
+  /**
+   * Sends every pending acknowledgement, oldest first, and reports whether the
+   * queue is now empty. A `false` stops the caller claiming new work, which is
+   * what keeps an acknowledgement ahead of the cloud's five-minute re-claim.
+   *
+   * That same property is why one undeliverable entry cannot be allowed to sit
+   * at the head forever: it would hold the whole register hostage. An entry the
+   * cloud has rejected `MAX_ACKNOWLEDGEMENT_ATTEMPTS` times is dropped so the
+   * rest of the queue can move. Its receipt then reprints once the cloud's
+   * claim times out — the same trade the quarantine path makes, and the same
+   * reason: a duplicate beats a register that never prints again.
+   */
   private async drainPendingAcknowledgements(
     cloudKey: string,
   ): Promise<boolean> {
     const pending = await this.readPendingAcknowledgements();
     for (let index = 0; index < pending.length; index += 1) {
+      const entry = pending[index];
+      const remaining = pending.slice(index + 1);
       try {
-        await this.acknowledgeCloudJob(cloudKey, pending[index]);
+        await this.acknowledgeCloudJob(cloudKey, entry);
       } catch (error) {
-        console.error("Cloud acknowledgement retry failed:", error);
+        const attempts = (entry.attempts ?? 0) + 1;
+        if (attempts >= MAX_ACKNOWLEDGEMENT_ATTEMPTS) {
+          console.error(
+            `Cloud acknowledgement for ${entry.receiptId} abandoned after ${attempts} attempts; that receipt will be re-issued and printed again:`,
+            error,
+          );
+          await this.writePendingAcknowledgements(remaining);
+          continue;
+        }
+        console.error(
+          `Cloud acknowledgement retry failed (attempt ${attempts}/${MAX_ACKNOWLEDGEMENT_ATTEMPTS}):`,
+          error,
+        );
+        await this.writePendingAcknowledgements([
+          { ...entry, attempts },
+          ...remaining,
+        ]);
         return false;
       }
-      await this.writePendingAcknowledgements(pending.slice(index + 1));
+      await this.writePendingAcknowledgements(remaining);
     }
     return true;
   }
