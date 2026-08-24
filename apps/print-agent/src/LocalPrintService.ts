@@ -1050,10 +1050,31 @@ export class LocalPrintService {
       result.success && result.jobId
         ? await this.waitForPrintCompletion(result.jobId)
         : { status: "failed" as const, response: result.error?.message };
-    await this.persistPendingAcknowledgement({
-      receiptId: payload.data.receiptId,
-      acknowledgement,
-    });
+    const pending = { receiptId: payload.data.receiptId, acknowledgement };
+    try {
+      await this.persistPendingAcknowledgement(pending);
+    } catch (error) {
+      // The store is the only thing between a lost acknowledgement and a
+      // reprint, so a store we cannot write puts this receipt back where it
+      // was before it existed. Spend the one network attempt still available
+      // rather than dropping the acknowledgement on the floor.
+      console.error(
+        "Could not persist a pending acknowledgement; sending it inline instead:",
+        error,
+      );
+      try {
+        await this.acknowledgeCloudJob(cloudKey, pending);
+      } catch (acknowledgeError) {
+        console.error(
+          "Inline acknowledgement also failed; the cloud will re-issue this receipt and it will print again:",
+          acknowledgeError,
+        );
+      }
+      // Stop the drain either way. A store that cannot be written cannot
+      // protect the next receipt either, and this is the fault that has to
+      // reach a human — claiming more work would only bury it.
+      throw error;
+    }
     return (await this.drainPendingAcknowledgements(cloudKey)) &&
       acknowledgement.status === "printed"
       ? "printed"

@@ -664,6 +664,29 @@ describe("LocalPrintService cloud job dispatch", () => {
     ).toEqual([]);
   });
 
+  it("still acknowledges inline when the pending store cannot be written", async () => {
+    service = new LocalPrintService(createConfig());
+    const createPrintJob = printsCompletedJobs(service);
+    serveOneJob();
+    const writeFailure = new Error("ENOSPC: no space left on device");
+    vi.spyOn(
+      service as unknown as {
+        writePendingAcknowledgements(entries: unknown[]): Promise<void>;
+      },
+      "writePendingAcknowledgements",
+    ).mockRejectedValue(writeFailure);
+
+    // The drain stops: a store that cannot be written cannot protect the next
+    // receipt either, and the heartbeat's catch is what surfaces that.
+    await expect(pollCloudJobs(service)).rejects.toThrow(writeFailure);
+
+    expect(createPrintJob).toHaveBeenCalledOnce();
+    // Without the inline send this receipt would carry no acknowledgement at
+    // all, and the cloud would reprint it after CLAIM_TIMEOUT_MS.
+    expect(ackedReceipts()).toEqual(["receipt-1"]);
+    expect(acknowledgement()).toMatchObject({ status: "printed" });
+  });
+
   it("forgets an acknowledgement the cloud reports as already settled", async () => {
     const stateDirectory = await mkdtemp(join(tmpdir(), "makan-print-agent-"));
     stateDirectories.push(stateDirectory);
