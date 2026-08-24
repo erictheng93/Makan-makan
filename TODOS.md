@@ -343,7 +343,22 @@ The step does pass `CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}`, 
 
 **Consequence:** every production deploy to date has been run by hand from a workstation. There is no deployment record in the repository, no post-deploy smoke test, and no way to tell from here which commit any given worker is serving.
 
-**Scope:** set the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets on the `production` environment (the account is `bdddc08c066a9abc285d75fe5947a468`, not the one a local `wrangler login` resolves to by default), re-dispatch, and confirm the smoke-test step actually runs. `PRODUCTION_URL` and `PRODUCTION_KITCHEN_URL` are read by that step and should be verified at the same time.
+**Nothing is set.** `gh secret list` returns only `CLAUDE_CODE_OAUTH_TOKEN` and `CLOUDFLARE_ANALYTICS_READ_TOKEN` at the repository level, and `gh secret list --env production` is empty — while the workflow references five secrets. GitHub expands a missing secret to an empty string rather than failing, which is why the error surfaced inside wrangler instead of at the workflow level.
+
+**Scope — set all five on the `production` environment**, not at repository level: the deploy job declares `environment: production`, so environment secrets resolve for it and for nothing else, whereas a repository secret is readable by every job in every workflow.
+
+| Secret | Value | Actually secret? |
+| --- | --- | --- |
+| `CLOUDFLARE_API_TOKEN` | account-owned token, see permissions below | yes |
+| `SLACK_WEBHOOK_URL` | deploy notification webhook | yes |
+| `CLOUDFLARE_ACCOUNT_ID` | `bdddc08c066a9abc285d75fe5947a468` | no — already committed in `apps/api/wrangler.toml` |
+| `PRODUCTION_URL` | `https://api.makanmasak.com` — the **API** origin | no |
+| `PRODUCTION_CUSTOMER_URL` | `https://makanmasak.com` | no |
+| `PRODUCTION_KITCHEN_URL` | `https://kitchen.makanmasak.com` | no |
+
+The account is `bdddc08c066a9abc285d75fe5947a468`, which is not the one a local `wrangler login` resolves to by default — see the account-split note.
+
+**Token permissions**, derived from the bindings actually declared across the ten `wrangler.toml` files. Account: Workers Scripts Edit, Workers KV Storage Edit, Workers R2 Storage Edit, D1 Edit, Queues Edit, Vectorize Edit, Workers AI Edit, **Cloudflare Pages Edit**, Account Settings Read. Zone (`makanmasak.com`): Workers Routes Edit, DNS Edit for the four `custom_domain` entries. Pages Edit is the one most easily missed — the five frontends deploy with `wrangler pages deploy`, which Workers Scripts Edit does not cover, and `pnpm -r run deploy:prod` reaches them. Do not add a client-IP restriction: GitHub-hosted runner addresses are not stable.
 
 ## Completed
 

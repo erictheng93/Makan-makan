@@ -92,30 +92,56 @@ jobs:
 
       - name: 🧪 部署後煙霧測試
         run: |
-          # Public liveness probe — /info is the only unauthenticated 200 route
-          # (CLAUDE.md "Debug Tools"). /api/v1/health does NOT exist; the older
-          # /health route 302-redirects to /api/v1/monitoring/health which is
-          # auth-gated, so it cannot be used for an unauthenticated curl probe.
-          curl --fail --retry 3 --retry-delay 5 \
-            "$PRODUCTION_URL/info" \
-            -o /dev/null -w "API liveness (/info): HTTP %{http_code} in %{time_total}s\n"
+          set -u
 
-          # Verify customer app is serving HTML
-          curl --fail --retry 3 --retry-delay 5 \
-            "$PRODUCTION_URL" \
-            -o /dev/null -w "Customer app: HTTP %{http_code} in %{time_total}s\n"
+          # Every probe asserts on the response body, never on the status code
+          # alone. The Pages apps answer 200 with their index.html for *any*
+          # path, so a status-only check against /info passes even when the API
+          # is down. That is not hypothetical: PRODUCTION_URL used to be shared
+          # by the API probe and the customer-app probe, and no single value can
+          # be both — one of those two checks was always meaningless.
+          #
+          # Public unauthenticated routes only (CLAUDE.md "Debug Tools"):
+          # /api/v1/health does NOT exist, and /health 302-redirects to
+          # /api/v1/monitoring/health which is auth-gated.
+          failed=0
+          probe() {
+            name="$1"; url="$2"; expect="$3"
+            if [ -z "$url" ]; then
+              echo "FAIL $name: URL is empty — check the production environment secrets"
+              failed=1
+              return
+            fi
+            if ! body=$(curl --fail --silent --show-error --location --retry 3 --retry-delay 5 --max-time 20 "$url" 2>&1); then
+              echo "FAIL $name: $url — $body"
+              failed=1
+            elif ! printf '%s' "$body" | grep -qF -- "$expect"; then
+              echo "FAIL $name: $url answered, but without '$expect'"
+              failed=1
+            else
+              echo "OK   $name: $url"
+            fi
+          }
 
-          # Verify kitchen display app is serving HTML
-          curl --fail --retry 3 --retry-delay 5 \
-            "$PRODUCTION_KITCHEN_URL" \
-            -o /dev/null -w "Kitchen display app: HTTP %{http_code} in %{time_total}s\n"
+          # JSON markers — an HTML fallback cannot satisfy these, and
+          # "environment":"production" additionally proves the production
+          # environment was deployed rather than a preview.
+          probe "API" "${PRODUCTION_URL}/info" '"environment":"production"'
+          probe "Image processor" "https://images.makanmasak.com/info" '"service":"MakanMasak Image Processor"'
 
-          # Image-processor liveness — /info is public (no auth) on the Worker
-          curl --fail --retry 3 --retry-delay 5 \
-            "https://images.makanmasak.com/info" \
-            -o /dev/null -w "Image processor (/info): HTTP %{http_code} in %{time_total}s\n"
+          # Mount-point marker rather than <title>: the title is user-facing
+          # copy, and failing a deploy over a wording change would only teach
+          # people to ignore this step.
+          probe "Customer app" "${PRODUCTION_CUSTOMER_URL}" '<div id="app"'
+          probe "Kitchen display" "${PRODUCTION_KITCHEN_URL}" '<div id="app"'
+
+          exit "$failed"
         env:
+          # Three distinct hosts. PRODUCTION_URL is the API origin
+          # (https://api.makanmasak.com); pointing it at the customer app makes
+          # the API probe pass on an HTML page.
           PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+          PRODUCTION_CUSTOMER_URL: ${{ secrets.PRODUCTION_CUSTOMER_URL }}
           PRODUCTION_KITCHEN_URL: ${{ secrets.PRODUCTION_KITCHEN_URL }}
 
       - name: 📊 部署摘要
