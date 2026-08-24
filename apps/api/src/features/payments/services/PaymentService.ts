@@ -76,15 +76,6 @@ export class PaymentService {
     input: PaymentRequestInput,
     options: ProcessPaymentOptions = {},
   ): Promise<ProcessPaymentResult> {
-    if (options.idempotencyKey) {
-      const recorded = await this.findPaymentByIdempotencyKey(
-        options.idempotencyKey,
-      );
-      if (recorded) {
-        return processPaymentResultFromRow(recorded);
-      }
-    }
-
     const [existing] = await this.db
       .select()
       .from(orders)
@@ -105,6 +96,32 @@ export class PaymentService {
 
     if (options.user && !canProcessPayment(options.user.role)) {
       throw new ApiError("INSUFFICIENT_ROLE", "Insufficient permissions", 403);
+    }
+
+    // Read-side replay, deliberately placed after the caller has been
+    // authorised for *this* order and before `isAlreadyFinalized` — a replayed
+    // payment always finds its order already paid, which is the point.
+    //
+    // `payment_transactions.idempotency_key` outlives the middleware record
+    // that guards a key against body reuse: `releaseOnServerError` releases
+    // that record on a 5xx, and a takeover past its TTL rewrites `request_hash`
+    // for whatever request arrived next, while this column is kept forever. So
+    // the key alone cannot identify a replay — a row belonging to a different
+    // order means the key was reused, not that this request already happened.
+    if (options.idempotencyKey) {
+      const recorded = await this.findPaymentByIdempotencyKey(
+        options.idempotencyKey,
+      );
+      if (recorded) {
+        if (recorded.orderId !== input.orderId) {
+          throw new ApiError(
+            "IDEMPOTENCY_ORDER_MISMATCH",
+            "Idempotency key was already used for a different order",
+            422,
+          );
+        }
+        return processPaymentResultFromRow(recorded, existing);
+      }
     }
 
     if (isAlreadyFinalized(existing.status, existing.paymentStatus)) {
@@ -403,18 +420,23 @@ export class PaymentService {
 
 function processPaymentResultFromRow(
   payment: typeof paymentTransactions.$inferSelect,
+  order: { status: string },
 ): ProcessPaymentResult {
   const metadata = payment.metadata as { closeOrder?: unknown } | null;
   const paymentStatus = payment.status;
-  const isPaid = paymentStatus === "paid";
+  const closedOrder = metadata?.closeOrder !== false;
 
   return {
     status: paymentStatus === "pending" ? 202 : 200,
     data: {
       paymentId: payment.transactionId,
       orderId: payment.orderId,
+      // Mirrors the live path's `shouldCloseOrder ? "paid" : existing.status`.
+      // A payment that did not close its order left the order's own status
+      // untouched, so that status is what the first response reported — not
+      // the constant "pending", which was never one of its possible answers.
       orderStatus:
-        isPaid && metadata?.closeOrder !== false ? "paid" : "pending",
+        closedOrder && paymentStatus === "paid" ? "paid" : order.status,
       paymentStatus,
       authorizedTotal: amountFromCents(payment.amountCents) ?? 0,
     },

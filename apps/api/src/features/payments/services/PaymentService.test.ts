@@ -47,12 +47,14 @@ function queueOrderRows(rows: unknown[][]) {
   );
 }
 
-function queuePaymentTransactionRows(rows: unknown[][]) {
+// The replay path reads the order first (to authorise the caller) and the
+// recorded transaction second, so both queues have to be declared together.
+function queueReplayRows(orderRows: unknown[][], paymentRows: unknown[][]) {
   Object.assign(
     mocks.db,
     createSelectFixtureDb(
-      { paymentTransactions },
-      { paymentTransactions: rows },
+      { orders, paymentTransactions },
+      { orders: orderRows, paymentTransactions: paymentRows },
     ),
   );
 }
@@ -343,7 +345,7 @@ describe("PaymentService", () => {
 
   it("replays a recorded payment for the same idempotency key without new writes", async () => {
     const { db, committed, statements } = createD1();
-    queuePaymentTransactionRows([[paymentTransaction()]]);
+    queueReplayRows([[order()]], [[paymentTransaction()]]);
 
     await expect(
       new PaymentService(env(db)).processPayment(
@@ -370,6 +372,112 @@ describe("PaymentService", () => {
     expect(committed).toEqual([]);
     expect(statements).toEqual([]);
     expect(mocks.db.batch).not.toHaveBeenCalled();
+  });
+
+  it("reports the order's own status when the replayed payment did not close it", async () => {
+    const { db } = createD1();
+    queueReplayRows(
+      [[order({ status: "preparing" })]],
+      [[paymentTransaction({ metadata: { closeOrder: false } })]],
+    );
+
+    await expect(
+      new PaymentService(env(db)).processPayment(
+        {
+          orderId: "order-101",
+          paymentMode: "full",
+          amount: 120,
+          expectedTotal: 120,
+          method: "cash",
+          closeOrder: false,
+        },
+        { idempotencyKey: "idem-1" },
+      ),
+    ).resolves.toMatchObject({
+      status: 200,
+      data: { orderStatus: "preparing", paymentStatus: "paid" },
+    });
+  });
+
+  it("rejects an idempotency key already recorded against a different order", async () => {
+    const { db, committed, statements } = createD1();
+    queueReplayRows(
+      [[order({ id: "order-mine" })]],
+      [[paymentTransaction({ orderId: "order-other" })]],
+    );
+
+    await expect(
+      new PaymentService(env(db)).processPayment(
+        {
+          orderId: "order-mine",
+          paymentMode: "full",
+          amount: 120,
+          expectedTotal: 120,
+          method: "cash",
+        },
+        { idempotencyKey: "idem-1" },
+      ),
+    ).rejects.toMatchObject({
+      code: "IDEMPOTENCY_ORDER_MISMATCH",
+      status: 422,
+    });
+
+    expect(committed).toEqual([]);
+    expect(statements).toEqual([]);
+    expect(mocks.db.batch).not.toHaveBeenCalled();
+  });
+
+  it("authorises the caller for the order before replaying a recorded payment", async () => {
+    const { db } = createD1();
+    queueReplayRows(
+      [[order({ restaurantId: "restaurant-1" })], [order()]],
+      [[paymentTransaction()], [paymentTransaction()]],
+    );
+    const service = new PaymentService(env(db));
+
+    await expect(
+      service.processPayment(
+        {
+          orderId: "order-101",
+          paymentMode: "full",
+          amount: 120,
+        },
+        {
+          idempotencyKey: "idem-1",
+          user: {
+            id: "user-42",
+            username: "owner",
+            role: 1,
+            restaurantId: "restaurant-2",
+          },
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      status: 403,
+    });
+
+    await expect(
+      service.processPayment(
+        {
+          orderId: "order-101",
+          paymentMode: "full",
+          amount: 120,
+        },
+        {
+          idempotencyKey: "idem-1",
+          user: {
+            id: "user-2",
+            username: "chef",
+            role: 2,
+            restaurantId: "restaurant-1",
+          },
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "INSUFFICIENT_ROLE",
+      status: 403,
+    });
   });
 
   it("does not commit payment ledger writes when a middle write fails", async () => {
