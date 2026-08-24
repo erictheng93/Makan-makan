@@ -209,6 +209,34 @@ every package, but only re-executes the ones whose inputs moved. Cache
 correctness rests on `$TURBO_DEFAULT$` inputs plus `dependsOn: ["^build"]` —
 a change in `packages/database` invalidates every dependent app's test task.
 
+**`pnpm verify` checks nothing once the work is committed to `main`.** The
+affected set is the diff against the merge-base with `main`, so committing on
+`main` moves that merge-base along with `HEAD` and the set goes empty. Turbo
+then prints
+
+```
+• Running typecheck, lint, test in 0 packages
+WARNING  No tasks were executed as part of this run.
+✓ typecheck + lint + test (affected)   All checks passed (3s total)
+```
+
+That green says "nothing was checked", not "everything passed" — and three
+seconds is the only thing distinguishing the two. It bites exactly one
+workflow, commit-straight-to-`main`-then-verify: **un**committed changes on
+`main` are still seen, and so is committed work on a branch, whose merge-base
+is the branch point rather than `HEAD`.
+
+Name the scope explicitly instead. Both of these resolve correctly (verified
+against a three-commit `apps/print-agent` change):
+
+```bash
+TURBO_SCM_BASE=HEAD~3 pnpm verify          # reuses verify.sh, keeps its concurrency cap
+pnpm exec turbo run typecheck lint test --filter=./apps/print-agent
+```
+
+`TURBO_SCM_BASE` needs no `globalPassThroughEnv` entry — turbo reads it for
+itself rather than forwarding it to the tasks.
+
 Never narrow a task's `inputs` in `turbo.json` to an explicit allow-list like
 `src/**`. `packages/shared` keeps tests in `utils/`, and a missed input means a
 stale cache HIT reported as a pass. Subtract from `$TURBO_DEFAULT$` instead.
