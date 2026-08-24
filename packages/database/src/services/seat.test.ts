@@ -1,4 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { asc, eq } from "drizzle-orm";
 import { orders, restaurants, seats, tables } from "../schema";
 import {
@@ -122,10 +130,15 @@ describe("SeatService.createSeatsForTable", () => {
   });
 
   it("reports seat-mode table creation as successful when post-insert seat creation fails", async () => {
-    const service = new TableService(testDb.bindings.DB, {
-      JWT_SECRET: "test",
-      CLIENT_BASE_URL: "https://example.test",
-    });
+    const service = createTableService(testDb);
+    // Omitting QR_SIGNING_KEY used to be the trigger, but createTable now
+    // rejects an invalid key before the INSERT (covered in
+    // qr-signing-v2.test.ts). The path under test is a seat insert that fails
+    // *after* the table row has committed, so fail that directly instead of
+    // relying on a config error that no longer reaches it.
+    const createSeats = vi
+      .spyOn(SeatService.prototype, "createSeatsForTable")
+      .mockRejectedValueOnce(new Error("seat insert failed"));
 
     const createdTable = await service.createTable({
       restaurantId,
@@ -150,11 +163,13 @@ describe("SeatService.createSeatsForTable", () => {
       .from(seats)
       .where(eq(seats.tableId, createdTable.id));
 
+    expect(createSeats).toHaveBeenCalledOnce();
+    createSeats.mockRestore();
+
     expect(createdTable).toMatchObject({
       id: persistedTable?.id,
       qrMode: "seat",
       seatCount: 4,
-      qrCode: expect.stringMatching(/^pending:/),
       warnings: [
         {
           code: "SEATS_NOT_CREATED",
@@ -163,10 +178,13 @@ describe("SeatService.createSeatsForTable", () => {
         },
       ],
     });
+    // Only the seats failed: the table row is complete, and what it returns
+    // must be what it stored or callers print a QR the DB will not verify.
+    expect(createdTable.qrCode).not.toMatch(/^pending:/);
     expect(persistedTable).toMatchObject({
       qrMode: "seat",
       seatCount: 4,
-      qrCode: expect.stringMatching(/^pending:/),
+      qrCode: createdTable.qrCode,
     });
     expect(createdSeats).toHaveLength(0);
   });
