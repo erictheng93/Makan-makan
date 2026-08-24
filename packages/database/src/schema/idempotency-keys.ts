@@ -17,6 +17,7 @@ export const idempotencyKeys = sqliteTable(
     responseStatus: integer("response_status"),
     responseBody: text("response_body"),
     effectId: text("effect_id"),
+    ownerToken: text("owner_token"),
     createdAt: integer("created_at").notNull(),
     expiresAt: integer("expires_at").notNull(),
   },

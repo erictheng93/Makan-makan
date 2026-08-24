@@ -12,6 +12,7 @@ interface StoredRecord {
   response_status: number | null;
   response_body: string | null;
   effect_id: string | null;
+  owner_token: string | null;
   created_at: number;
   expires_at: number;
 }
@@ -24,26 +25,42 @@ interface StoredRecord {
  */
 function createIdempotencyDb() {
   const table = new Map<string, StoredRecord>();
+  let blockedReads: {
+    remaining: number;
+    release: () => void;
+    reached: () => void;
+    gate: Promise<void>;
+    reachedPromise: Promise<void>;
+  } | null = null;
 
   const prepare = vi.fn((sql: string) => ({
     bind: (...args: unknown[]) => ({
-      first: async () => table.get(args[0] as string) ?? null,
+      first: async () => {
+        // A D1 SELECT returns the row it observed, not a mutable reference to
+        // whichever owner wins a later CAS while this test has it paused.
+        const record = table.get(args[0] as string);
+        const snapshot = record ? { ...record } : null;
+        if (blockedReads?.remaining) {
+          blockedReads.remaining -= 1;
+          if (blockedReads.remaining === 0) blockedReads.reached();
+          await blockedReads.gate;
+        }
+        return snapshot;
+      },
       run: async () => {
         const verb = sql.trim().split(/\s+/)[0].toUpperCase();
 
         if (verb === "DELETE") {
-          const removed = table.delete(args[0] as string);
+          const [key, ownerToken] = args as [string, string];
+          const existing = table.get(key);
+          const removed =
+            existing?.owner_token === ownerToken && table.delete(key);
           return { meta: { changes: removed ? 1 : 0 } };
         }
 
         if (verb === "INSERT") {
-          const [key, scope, requestHash, createdAt, expiresAt] = args as [
-            string,
-            string,
-            string,
-            number,
-            number,
-          ];
+          const [key, scope, requestHash, ownerToken, createdAt, expiresAt] =
+            args as [string, string, string, string, number, number];
           // INSERT OR IGNORE: an existing reservation wins and reports no change.
           if (table.has(key)) return { meta: { changes: 0 } };
           table.set(key, {
@@ -53,6 +70,7 @@ function createIdempotencyDb() {
             response_status: null,
             response_body: null,
             effect_id: null,
+            owner_token: ownerToken,
             created_at: createdAt,
             expires_at: expiresAt,
           });
@@ -60,14 +78,80 @@ function createIdempotencyDb() {
         }
 
         if (verb === "UPDATE") {
-          const [status, body, effectId, key] = args as [
+          if (sql.includes("SET scope = ?")) {
+            const [
+              scope,
+              requestHash,
+              ownerToken,
+              createdAt,
+              expiresAt,
+              key,
+              observedScope,
+              observedRequestHash,
+              observedStatus,
+              observedBody,
+              observedEffectId,
+              observedOwnerToken,
+              observedCreatedAt,
+              observedExpiresAt,
+            ] = args as [
+              string,
+              string,
+              string,
+              number,
+              number,
+              string,
+              string,
+              string,
+              number | null,
+              string | null,
+              string | null,
+              string | null,
+              number,
+              number,
+            ];
+            const existing = table.get(key);
+            if (
+              !existing ||
+              existing.scope !== observedScope ||
+              existing.request_hash !== observedRequestHash ||
+              existing.response_status !== observedStatus ||
+              existing.response_body !== observedBody ||
+              existing.effect_id !== observedEffectId ||
+              existing.owner_token !== observedOwnerToken ||
+              existing.created_at !== observedCreatedAt ||
+              existing.expires_at !== observedExpiresAt
+            ) {
+              return { meta: { changes: 0 } };
+            }
+            table.set(key, {
+              key,
+              scope,
+              request_hash: requestHash,
+              response_status: null,
+              response_body: null,
+              effect_id: null,
+              owner_token: ownerToken,
+              created_at: createdAt,
+              expires_at: expiresAt,
+            });
+            return { meta: { changes: 1 } };
+          }
+
+          const [status, body, effectId, key, ownerToken] = args as [
             number,
             string,
             string | null,
             string,
+            string,
           ];
           const existing = table.get(key);
-          if (!existing) return { meta: { changes: 0 } };
+          if (
+            !existing ||
+            existing.owner_token !== ownerToken ||
+            existing.response_status !== null
+          )
+            return { meta: { changes: 0 } };
           existing.response_status = status;
           existing.response_body = body;
           existing.effect_id = effectId;
@@ -79,7 +163,28 @@ function createIdempotencyDb() {
     }),
   }));
 
-  return { table, prepare };
+  return {
+    table,
+    prepare,
+    blockReads(count: number) {
+      let release!: () => void;
+      let reached!: () => void;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const reachedPromise = new Promise<void>((resolve) => {
+        reached = resolve;
+      });
+      blockedReads = {
+        remaining: count,
+        release,
+        reached,
+        gate,
+        reachedPromise,
+      };
+      return { release, reached: reachedPromise };
+    },
+  };
 }
 
 type Handler = (c: Context<{ Bindings: Env }>) => Response | Promise<Response>;
@@ -122,6 +227,14 @@ function strandReservation(
 }
 
 const KEY = "event-1";
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
 
 function post(app: Hono<{ Bindings: Env }>, db: { prepare: unknown }) {
   return app.fetch(
@@ -302,6 +415,103 @@ describe("idempotencyMiddleware", () => {
       expect(db.table.get(KEY)).toMatchObject({ response_status: 200 });
     });
 
+    it("allows only one handler through when two retries observe the same stale lease", async () => {
+      const db = createIdempotencyDb();
+      const handler = vi.fn<Handler>((c) =>
+        c.json({ success: true, data: { orderId: 101 } }, 200),
+      );
+      const app = createApp({}, handler);
+
+      await post(app, db);
+      strandReservation(db, 61_000);
+
+      const reads = db.blockReads(2);
+      const firstRetry = post(app, db);
+      const secondRetry = post(app, db);
+      await reads.reached;
+      reads.release();
+
+      const [first, second] = await Promise.all([firstRetry, secondRetry]);
+
+      // One initial request established the stranded row; precisely one of
+      // the concurrent retries may own its replacement reservation.
+      expect(handler).toHaveBeenCalledTimes(2);
+      expect([first.status, second.status]).toContain(200);
+      expect(db.table.get(KEY)).toMatchObject({ response_status: 200 });
+    });
+
+    it("cannot let the displaced owner overwrite its replacement response", async () => {
+      const db = createIdempotencyDb();
+      const oldResponse = deferred<Response>();
+      const oldStarted = deferred<void>();
+      const handler = vi
+        .fn<Handler>()
+        .mockImplementationOnce(async () => {
+          oldStarted.resolve();
+          return await oldResponse.promise;
+        })
+        .mockImplementationOnce((c) =>
+          c.json({ success: true, data: { orderId: 202 } }, 200),
+        );
+      const app = createApp({}, handler);
+
+      const oldRequest = post(app, db);
+      await oldStarted.promise;
+      const oldLease = db.table.get(KEY);
+      if (!oldLease) throw new Error("old owner did not reserve a key");
+      oldLease.created_at = Date.now() - 61_000;
+
+      const replacement = await post(app, db);
+      expect(replacement.status).toBe(200);
+
+      oldResponse.resolve(
+        new Response(
+          JSON.stringify({ success: true, data: { orderId: 101 } }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+      );
+      await oldRequest;
+
+      expect(db.table.get(KEY)).toMatchObject({
+        response_status: 200,
+        response_body: expect.stringContaining("202"),
+      });
+    });
+
+    it("cannot let the displaced owner release its replacement lease", async () => {
+      const db = createIdempotencyDb();
+      const oldResponse = deferred<Response>();
+      const oldStarted = deferred<void>();
+      const handler = vi
+        .fn<Handler>()
+        .mockImplementationOnce(async () => {
+          oldStarted.resolve();
+          return await oldResponse.promise;
+        })
+        .mockImplementationOnce((c) =>
+          c.json({ success: true, data: { orderId: 202 } }, 200),
+        );
+      const app = createApp({ releaseOnServerError: true }, handler);
+
+      const oldRequest = post(app, db);
+      await oldStarted.promise;
+      const oldLease = db.table.get(KEY);
+      if (!oldLease) throw new Error("old owner did not reserve a key");
+      oldLease.created_at = Date.now() - 61_000;
+
+      await post(app, db);
+      oldResponse.resolve(new Response("old failure", { status: 500 }));
+      await oldRequest;
+
+      expect(db.table.get(KEY)).toMatchObject({
+        response_status: 200,
+        response_body: expect.stringContaining("202"),
+      });
+    });
+
     it("still refuses a reservation that is genuinely in flight", async () => {
       // The lease must not become a licence to run two copies of a handler
       // that is simply taking its time.
@@ -345,6 +555,32 @@ describe("idempotencyMiddleware", () => {
       expect(handler).toHaveBeenCalledTimes(1);
       expect(second.status).toBe(200);
       expect(second.headers.get("X-Idempotent-Replay")).toBe("true");
+    });
+
+    it("replaces an expired cached response instead of replaying it", async () => {
+      const db = createIdempotencyDb();
+      const handler = vi
+        .fn<Handler>()
+        .mockImplementationOnce((c) =>
+          c.json({ success: true, data: { orderId: 101 } }, 200),
+        )
+        .mockImplementationOnce((c) =>
+          c.json({ success: true, data: { orderId: 202 } }, 200),
+        );
+      const app = createApp({}, handler);
+
+      await post(app, db);
+      const answered = db.table.get(KEY);
+      if (!answered) throw new Error("nothing stored to expire");
+      answered.expires_at = Date.now() - 1;
+
+      const second = await post(app, db);
+
+      expect(handler).toHaveBeenCalledTimes(2);
+      expect(second.headers.get("X-Idempotent-Replay")).toBeNull();
+      await expect(second.json()).resolves.toMatchObject({
+        data: { orderId: 202 },
+      });
     });
   });
 });

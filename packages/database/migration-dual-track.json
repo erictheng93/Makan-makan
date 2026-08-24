@@ -34,6 +34,10 @@
     {
       "fresh": "0007_order_delivery_claims.sql",
       "reason": "Delivery claims are part of the platform API service-crew workflow; the management API has no order-delivery execution surface."
+    },
+    {
+      "fresh": "0008_idempotency_owner_token.sql",
+      "reason": "The platform API idempotency middleware owns request reservations; management API has no corresponding idempotency_keys table."
     }
   ],
   "legacyOnly": [

@@ -10,6 +10,7 @@ interface IdempotencyRecord {
   response_status: number | null;
   response_body: string | null;
   effect_id: string | null;
+  owner_token: string | null;
   created_at: number;
   expires_at: number;
 }
@@ -96,7 +97,7 @@ async function readExisting(
 ): Promise<IdempotencyRecord | null> {
   return await c.env.DB.prepare(
     `SELECT key, scope, request_hash, response_status, response_body, effect_id,
-            created_at, expires_at
+            owner_token, created_at, expires_at
        FROM idempotency_keys
       WHERE key = ?`,
   )
@@ -118,12 +119,15 @@ function isReclaimable(record: IdempotencyRecord, now: number): boolean {
   );
 }
 
-// Serves three callers: dropping a record whose TTL has run out, taking over a
-// reservation nobody answered, and releasing a reservation whose handler
-// answered 5xx (see `releaseOnServerError`).
-async function deleteKey(c: Context<{ Bindings: Env }>, key: string) {
-  await c.env.DB.prepare("DELETE FROM idempotency_keys WHERE key = ?")
-    .bind(key)
+async function releaseKey(
+  c: Context<{ Bindings: Env }>,
+  key: string,
+  ownerToken: string,
+) {
+  await c.env.DB.prepare(
+    "DELETE FROM idempotency_keys WHERE key = ? AND owner_token = ?",
+  )
+    .bind(key, ownerToken)
     .run();
 }
 
@@ -132,21 +136,64 @@ async function reserveKey(
   key: string,
   scope: string,
   requestHash: string,
+  ownerToken: string,
   now: number,
   expiresAt: number,
 ) {
   return await c.env.DB.prepare(
     `INSERT OR IGNORE INTO idempotency_keys
-       (key, scope, request_hash, created_at, expires_at)
-     VALUES (?, ?, ?, ?, ?)`,
+       (key, scope, request_hash, owner_token, created_at, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
   )
-    .bind(key, scope, requestHash, now, expiresAt)
+    .bind(key, scope, requestHash, ownerToken, now, expiresAt)
+    .run();
+}
+
+async function takeOverKey(
+  c: Context<{ Bindings: Env }>,
+  existing: IdempotencyRecord,
+  scope: string,
+  requestHash: string,
+  ownerToken: string,
+  now: number,
+  expiresAt: number,
+) {
+  // The complete observed reservation identity is part of the CAS. In
+  // particular, owner_token prevents two retries that observed the same stale
+  // row from successively taking over each other's newly-created leases.
+  return await c.env.DB.prepare(
+    `UPDATE idempotency_keys
+        SET scope = ?, request_hash = ?, response_status = NULL,
+            response_body = NULL, effect_id = NULL, owner_token = ?,
+            created_at = ?, expires_at = ?
+      WHERE key = ? AND scope = ? AND request_hash = ?
+        AND response_status IS ? AND response_body IS ? AND effect_id IS ?
+        AND owner_token IS ?
+        AND created_at = ? AND expires_at = ?`,
+  )
+    .bind(
+      scope,
+      requestHash,
+      ownerToken,
+      now,
+      expiresAt,
+      existing.key,
+      existing.scope,
+      existing.request_hash,
+      existing.response_status,
+      existing.response_body,
+      existing.effect_id,
+      existing.owner_token,
+      existing.created_at,
+      existing.expires_at,
+    )
     .run();
 }
 
 async function storeResponse(
   c: Context<{ Bindings: Env }>,
   key: string,
+  ownerToken: string,
   status: number,
   body: string,
   effectId: string | null,
@@ -154,9 +201,9 @@ async function storeResponse(
   await c.env.DB.prepare(
     `UPDATE idempotency_keys
         SET response_status = ?, response_body = ?, effect_id = ?
-      WHERE key = ?`,
+      WHERE key = ? AND owner_token = ? AND response_status IS NULL`,
   )
-    .bind(status, body, effectId, key)
+    .bind(status, body, effectId, key, ownerToken)
     .run();
 }
 
@@ -220,9 +267,19 @@ export function idempotencyMiddleware(
     const requestHash = await sha256Hex(rawBody);
     const now = Date.now();
     const existing = await readExisting(c, key);
+    const ownerToken = crypto.randomUUID();
 
+    let reservation;
     if (existing && isReclaimable(existing, now)) {
-      await deleteKey(c, key);
+      reservation = await takeOverKey(
+        c,
+        existing,
+        options.scope,
+        requestHash,
+        ownerToken,
+        now,
+        now + ttlSeconds * 1000,
+      );
     } else if (existing) {
       if (existing.scope !== options.scope) {
         throw jsonError(
@@ -255,16 +312,17 @@ export function idempotencyMiddleware(
         "IDEMPOTENCY_IN_PROGRESS",
         409,
       );
+    } else {
+      reservation = await reserveKey(
+        c,
+        key,
+        options.scope,
+        requestHash,
+        ownerToken,
+        now,
+        now + ttlSeconds * 1000,
+      );
     }
-
-    const reservation = await reserveKey(
-      c,
-      key,
-      options.scope,
-      requestHash,
-      now,
-      now + ttlSeconds * 1000,
-    );
     if ((reservation as { meta?: { changes?: number } }).meta?.changes === 0) {
       const racedRecord = await readExisting(c, key);
       if (racedRecord && racedRecord.scope !== options.scope) {
@@ -302,7 +360,7 @@ export function idempotencyMiddleware(
     // Nothing was decided, so nothing is worth remembering: drop the
     // reservation and let the next delivery of this key run the handler again.
     if (options.releaseOnServerError && c.res.status >= 500) {
-      await deleteKey(c, key);
+      await releaseKey(c, key, ownerToken);
       return;
     }
 
@@ -310,6 +368,13 @@ export function idempotencyMiddleware(
     const responseBody = await response.text();
     const effectId = (await options.effectId?.(c, c.res.clone())) ?? null;
 
-    await storeResponse(c, key, c.res.status, responseBody, effectId);
+    await storeResponse(
+      c,
+      key,
+      ownerToken,
+      c.res.status,
+      responseBody,
+      effectId,
+    );
   };
 }
