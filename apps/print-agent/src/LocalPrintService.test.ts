@@ -1,6 +1,6 @@
 import { createServer } from "node:net";
 import type { AddressInfo, Server as NetServer } from "node:net";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -547,6 +547,57 @@ describe("LocalPrintService cloud job dispatch", () => {
     expect(createPrintJob).toHaveBeenCalledOnce();
     expect(ackedReceipts()).toEqual(["receipt-1", "receipt-1"]);
     expect(cloudStatus).toBe("printed");
+  });
+
+  it("quarantines an unreadable acknowledgement store instead of stalling", async () => {
+    const stateDirectory = await mkdtemp(join(tmpdir(), "makan-print-agent-"));
+    stateDirectories.push(stateDirectory);
+    const acknowledgementStorePath = join(stateDirectory, "pending-acks.json");
+    await writeFile(acknowledgementStorePath, "{ not json", "utf8");
+    service = new LocalPrintService(createConfig({ acknowledgementStorePath }));
+    const createPrintJob = printsCompletedJobs(service);
+    serveOneJob();
+
+    // Every drain reads the store before anything is claimed, so a throw here
+    // would mean this poll never reaches the printer at all.
+    await expect(pollCloudJobs(service)).resolves.toBeUndefined();
+
+    expect(createPrintJob).toHaveBeenCalledOnce();
+    expect(ackedReceipts()).toEqual(["receipt-1"]);
+
+    const quarantined = (await readdir(stateDirectory)).filter((name) =>
+      name.startsWith("pending-acks.json.corrupt-"),
+    );
+    expect(quarantined).toHaveLength(1);
+    await expect(
+      readFile(join(stateDirectory, quarantined[0]), "utf8"),
+    ).resolves.toBe("{ not json");
+  });
+
+  it("rejects a store whose entries are the wrong shape", async () => {
+    const stateDirectory = await mkdtemp(join(tmpdir(), "makan-print-agent-"));
+    stateDirectories.push(stateDirectory);
+    const acknowledgementStorePath = join(stateDirectory, "pending-acks.json");
+    // Valid JSON, but `status` is not one of the three the cloud accepts.
+    await writeFile(
+      acknowledgementStorePath,
+      JSON.stringify([
+        { receiptId: "receipt-9", acknowledgement: { status: "queued" } },
+      ]),
+      "utf8",
+    );
+    service = new LocalPrintService(createConfig({ acknowledgementStorePath }));
+    printsCompletedJobs(service);
+    serveOneJob();
+
+    await expect(pollCloudJobs(service)).resolves.toBeUndefined();
+
+    expect(ackedReceipts()).toEqual(["receipt-1"]);
+    expect(
+      (await readdir(stateDirectory)).filter((name) =>
+        name.startsWith("pending-acks.json.corrupt-"),
+      ),
+    ).toHaveLength(1);
   });
 
   it("forgets an acknowledgement the cloud reports as already settled", async () => {

@@ -1142,8 +1142,45 @@ export class LocalPrintService {
       return parsed;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
-      throw error;
+      return this.quarantineAcknowledgementStore(error);
     }
+  }
+
+  /**
+   * A store we cannot read must not be able to stop the agent printing.
+   * Every drain begins by reading it and no claim happens until that drain
+   * succeeds, so a throw here silences cloud printing for good — and reaches
+   * nothing louder than the heartbeat's `console.error`. Move the file aside
+   * and carry on from empty instead.
+   *
+   * The cost is real but bounded: the acknowledgements in that file are lost,
+   * so the cloud re-issues those receipts and they print a second time. That
+   * is one duplicate per stranded receipt, against a register that otherwise
+   * never prints again. The quarantined copy is left on disk for whoever
+   * investigates.
+   */
+  private quarantineAcknowledgementStore(
+    cause: unknown,
+  ): PendingCloudAcknowledgement[] {
+    const storePath = this.acknowledgementStorePath();
+    const quarantinePath = `${storePath}.corrupt-${Date.now()}`;
+    try {
+      renameSync(storePath, quarantinePath);
+    } catch (renameError) {
+      // We cannot move it aside, so the next read fails the same way and
+      // carrying on from empty would just lose the acknowledgements without
+      // buying the recovery. Report the original fault.
+      console.error(
+        "Pending acknowledgement store is unreadable and could not be quarantined:",
+        renameError,
+      );
+      throw cause;
+    }
+    console.error(
+      `Pending acknowledgement store quarantined to ${quarantinePath}; its acknowledgements are lost and those receipts will print again:`,
+      cause,
+    );
+    return [];
   }
 
   private async writePendingAcknowledgements(
