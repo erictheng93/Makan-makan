@@ -1738,6 +1738,9 @@ const jaJP: Messages = {
     login: "ログイン",
     loggingIn: "ログイン中...",
     loginFailed: "ログインに失敗しました",
+    invalidCredentials: "ユーザー名またはパスワードが正しくありません",
+    accountLocked:
+      "アカウントがロックされています。しばらくしてから再試行するか、管理者にお問い合わせください",
     loginError: "ログイン中にエラーが発生しました",
     usernameRequired: "ユーザー名を入力してください",
     passwordRequired: "パスワードを入力してください",
