@@ -418,6 +418,8 @@ const idID: Messages = {
     },
     confirms: {
       cancelOrder: "Apakah Anda yakin ingin membatalkan pesanan {number}?",
+      cancelOrderTitle: "Batalkan pesanan",
+      cancelOrderConfirm: "Ya, batalkan pesanan",
     },
     defaultCustomer: "Pelanggan Anonim",
     updateFailed: "Gagal memperbarui status pesanan",

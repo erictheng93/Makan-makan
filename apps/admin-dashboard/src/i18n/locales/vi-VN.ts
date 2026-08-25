@@ -414,6 +414,8 @@ const viVN: Messages = {
     },
     confirms: {
       cancelOrder: "Bạn có chắc muốn hủy đơn hàng {number} không?",
+      cancelOrderTitle: "Huỷ đơn hàng",
+      cancelOrderConfirm: "Xác nhận huỷ đơn",
     },
     defaultCustomer: "Khách ẩn danh",
     updateFailed: "Cập nhật trạng thái đơn hàng thất bại",

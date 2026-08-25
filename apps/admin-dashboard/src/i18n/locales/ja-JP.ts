@@ -414,6 +414,8 @@ const jaJP: Messages = {
     },
     confirms: {
       cancelOrder: "注文 {number} をキャンセルしてもよろしいですか？",
+      cancelOrderTitle: "注文をキャンセル",
+      cancelOrderConfirm: "キャンセルする",
     },
     defaultCustomer: "匿名のお客様",
     updateFailed: "注文ステータスの更新に失敗しました",

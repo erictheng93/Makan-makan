@@ -416,6 +416,8 @@ const enUS: Messages = {
     },
     confirms: {
       cancelOrder: "Are you sure you want to cancel order {number}?",
+      cancelOrderTitle: "Cancel order",
+      cancelOrderConfirm: "Yes, cancel order",
     },
     defaultCustomer: "Anonymous",
     updateFailed: "Failed to update order status",

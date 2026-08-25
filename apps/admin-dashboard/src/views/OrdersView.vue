@@ -776,11 +776,15 @@ const updateOrderStatus = async (order: Order) => {
 const cancelOrder = async (order: Order) => {
   const confirmed = await confirmModal({
     type: "danger",
-    title: t("orders.actions.cancel"),
+    // The dismiss button is labelled 取消 by the modal itself, so titling the
+    // dialog and its confirm button with orders.actions.cancel ("取消") too put
+    // three identical labels on screen -- nothing but colour told the owner
+    // which 取消 aborted the dialog and which cancelled the order.
+    title: t("orders.confirms.cancelOrderTitle"),
     message: t("orders.confirms.cancelOrder", {
       number: getOrderNumber(order),
     }),
-    confirmLabel: t("orders.actions.cancel"),
+    confirmLabel: t("orders.confirms.cancelOrderConfirm"),
   });
   if (!confirmed) return;
   await orderStore.cancelOrder(order.id);

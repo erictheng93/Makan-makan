@@ -411,6 +411,8 @@ const zhTWCore = {
     },
     confirms: {
       cancelOrder: "確定要取消訂單 {number} 嗎？",
+      cancelOrderTitle: "取消訂單",
+      cancelOrderConfirm: "確定取消訂單",
     },
     defaultCustomer: "匿名客戶",
     updateFailed: "訂單狀態更新失敗",

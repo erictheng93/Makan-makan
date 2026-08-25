@@ -408,6 +408,8 @@ const zhCN: Messages = {
     },
     confirms: {
       cancelOrder: "确定要取消订单 {number} 吗？",
+      cancelOrderTitle: "取消订单",
+      cancelOrderConfirm: "确定取消订单",
     },
     defaultCustomer: "匿名客户",
     updateFailed: "订单状态更新失败",
