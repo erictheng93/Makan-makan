@@ -1271,8 +1271,19 @@ const submitCreateGroupOrder = async () => {
   }
 };
 
-const buildShareUrl = (shareCode: string) =>
-  `${window.location.origin}/order/group/${shareCode}`;
+/**
+ * The share link is handed to diners, so it has to point at the customer app,
+ * not at wherever the owner happens to be standing. `window.location.origin`
+ * here is the admin dashboard (https://admin.makanmasak.com), which has no
+ * group route at all -- and the path was wrong too: the customer app joins a
+ * group at `/group/:shareCode` (apps/customer-app/src/router/index.ts), not
+ * `/order/group/:shareCode`. Both halves had to change for the link to resolve.
+ */
+const buildShareUrl = (shareCode: string) => {
+  const customerAppUrl =
+    import.meta.env.VITE_CUSTOMER_APP_URL || "http://localhost:3000";
+  return `${customerAppUrl.replace(/\/+$/, "")}/group/${shareCode}`;
+};
 
 const shareGroupOrder = (groupOrder: GroupOrder) => {
   shareData.value = {
