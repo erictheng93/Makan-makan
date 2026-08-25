@@ -411,6 +411,8 @@ const zhTWCore = {
     },
     confirms: {
       cancelOrder: "確定要取消訂單 {number} 嗎？",
+      cancelOrderTitle: "取消訂單",
+      cancelOrderConfirm: "確定取消訂單",
     },
     defaultCustomer: "匿名客戶",
     updateFailed: "訂單狀態更新失敗",
@@ -1897,6 +1899,8 @@ const zhTWCore = {
     login: "登入",
     loggingIn: "登入中...",
     loginFailed: "登入失敗",
+    invalidCredentials: "帳號或密碼不正確",
+    accountLocked: "帳號已鎖定，請稍後再試或聯絡管理員",
     loginError: "登入過程中發生錯誤",
     usernameRequired: "請輸入帳號",
     passwordRequired: "請輸入密碼",

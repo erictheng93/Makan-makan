@@ -416,6 +416,8 @@ const enUS: Messages = {
     },
     confirms: {
       cancelOrder: "Are you sure you want to cancel order {number}?",
+      cancelOrderTitle: "Cancel order",
+      cancelOrderConfirm: "Yes, cancel order",
     },
     defaultCustomer: "Anonymous",
     updateFailed: "Failed to update order status",
@@ -1833,6 +1835,9 @@ const enUS: Messages = {
     login: "Login",
     loggingIn: "Logging in...",
     loginFailed: "Login failed",
+    invalidCredentials: "Incorrect username or password",
+    accountLocked:
+      "Account locked. Try again later or contact an administrator",
     loginError: "An error occurred during login",
     usernameRequired: "Please enter username",
     passwordRequired: "Please enter password",

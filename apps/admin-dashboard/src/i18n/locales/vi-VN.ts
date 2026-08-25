@@ -414,6 +414,8 @@ const viVN: Messages = {
     },
     confirms: {
       cancelOrder: "Bạn có chắc muốn hủy đơn hàng {number} không?",
+      cancelOrderTitle: "Huỷ đơn hàng",
+      cancelOrderConfirm: "Xác nhận huỷ đơn",
     },
     defaultCustomer: "Khách ẩn danh",
     updateFailed: "Cập nhật trạng thái đơn hàng thất bại",
@@ -1741,6 +1743,9 @@ const viVN: Messages = {
     login: "Đăng nhập",
     loggingIn: "Đang đăng nhập...",
     loginFailed: "Đăng nhập thất bại",
+    invalidCredentials: "Tên đăng nhập hoặc mật khẩu không đúng",
+    accountLocked:
+      "Tài khoản đã bị khoá. Vui lòng thử lại sau hoặc liên hệ quản trị viên",
     loginError: "Đã xảy ra lỗi trong quá trình đăng nhập",
     usernameRequired: "Vui lòng nhập tên đăng nhập",
     passwordRequired: "Vui lòng nhập mật khẩu",

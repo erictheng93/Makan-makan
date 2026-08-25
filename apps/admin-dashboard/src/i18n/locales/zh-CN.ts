@@ -408,6 +408,8 @@ const zhCN: Messages = {
     },
     confirms: {
       cancelOrder: "确定要取消订单 {number} 吗？",
+      cancelOrderTitle: "取消订单",
+      cancelOrderConfirm: "确定取消订单",
     },
     defaultCustomer: "匿名客户",
     updateFailed: "订单状态更新失败",
@@ -1714,6 +1716,8 @@ const zhCN: Messages = {
     login: "登录",
     loggingIn: "登录中...",
     loginFailed: "登录失败",
+    invalidCredentials: "账号或密码不正确",
+    accountLocked: "账号已锁定，请稍后再试或联系管理员",
     loginError: "登录过程中发生错误",
     usernameRequired: "请输入账号",
     passwordRequired: "请输入密码",
