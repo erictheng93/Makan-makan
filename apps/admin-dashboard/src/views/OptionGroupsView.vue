@@ -213,7 +213,7 @@
               data-testid="group-public-id-input"
               type="text"
               required
-              pattern="[A-Za-z0-9_-]{1,50}"
+              pattern="[A-Za-z0-9_\-]{1,50}"
               class="mt-1.5 w-full rounded-xl bg-[#F2F2F7] px-4 py-2.5 font-mono text-[13px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
             />
             <span class="mt-1 block text-[11px] font-normal text-[#8E8E93]">{{
@@ -332,7 +332,7 @@
               data-testid="choice-public-id-input"
               type="text"
               required
-              pattern="[A-Za-z0-9_-]{1,50}"
+              pattern="[A-Za-z0-9_\-]{1,50}"
               class="mt-1.5 w-full rounded-xl bg-[#F2F2F7] px-4 py-2.5 font-mono text-[13px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
             />
           </label>
