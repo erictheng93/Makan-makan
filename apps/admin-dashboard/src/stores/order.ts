@@ -129,6 +129,29 @@ export const useOrderStore = defineStore("order", () => {
     }
   };
 
+  /**
+   * Merge a realtime order event into the list.
+   *
+   * Realtime payloads are event summaries, not `Order`s: every order event in
+   * packages/shared-types/src/realtime-events.ts keys on `orderId` and carries
+   * no `id`, `table`, `customerInfo`, `totalAmount` or `createdAt`. Passing one
+   * to `updateOrder` therefore missed on `id` and took its `unshift` branch,
+   * growing a ghost row that rendered 外帶 / 匿名客戶 / NT$非數值 / Invalid Date
+   * beside the real order. Assigning on a match would be just as wrong -- it
+   * would overwrite a complete row with the summary -- so merge the one field
+   * the event actually carries and report a miss instead of inventing a row.
+   */
+  const applyOrderStatusEvent = (orderId: string, status?: OrderStatus) => {
+    const index = orders.value.findIndex((order) => order.id === orderId);
+    if (index === -1) return false;
+
+    if (status) {
+      orders.value[index].status = status;
+      orders.value[index].updatedAt = Date.now();
+    }
+    return true;
+  };
+
   const removeOrder = (orderId: string) => {
     const index = orders.value.findIndex((order) => order.id === orderId);
     if (index > -1) {
@@ -224,6 +247,7 @@ export const useOrderStore = defineStore("order", () => {
     fetchOrders,
     updateOrderStatus,
     updateOrder,
+    applyOrderStatusEvent,
     removeOrder,
     getOrderById,
     getOrdersByTable,

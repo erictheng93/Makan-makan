@@ -1,6 +1,8 @@
 import { computed, readonly, ref } from "vue";
 import {
+  ORDER_STATUSES,
   RealtimeEventType,
+  type OrderStatus,
   type RealtimeEvent,
 } from "@makanmasak/shared-types";
 import { isTokenExpired } from "@makanmasak/utils";
@@ -130,10 +132,33 @@ export function useRealtimeConnection() {
         ? (data.order as Record<string, unknown>)
         : data;
 
-    if (order && (order.id || order.orderId)) {
-      orderStore.updateOrder(
-        order as unknown as Parameters<typeof orderStore.updateOrder>[0],
-      );
+    const orderId =
+      typeof order.id === "string"
+        ? order.id
+        : typeof order.orderId === "string"
+          ? order.orderId
+          : undefined;
+
+    // ORDER_ITEM_STATUS_UPDATE carries an *item* status (OrderItemStatus); it
+    // says nothing about the order's own status, so it must not be merged as
+    // one.
+    if (orderId && event.type !== RealtimeEventType.ORDER_ITEM_STATUS_UPDATE) {
+      const status =
+        event.type === RealtimeEventType.ORDER_CANCELLED
+          ? ("cancelled" as OrderStatus)
+          : (ORDER_STATUSES as readonly string[]).includes(
+                order.status as string,
+              )
+            ? (order.status as OrderStatus)
+            : undefined;
+
+      const merged = orderStore.applyOrderStatusEvent(orderId, status);
+      // Only a NEW_ORDER is legitimately absent from the loaded list. Anything
+      // else that misses is an order outside the current page -- leave it be
+      // rather than refetching on every event the shop isn't looking at.
+      if (!merged && event.type === RealtimeEventType.NEW_ORDER) {
+        void orderStore.fetchOrders();
+      }
     }
 
     if (event.type === RealtimeEventType.NEW_ORDER) {
