@@ -152,6 +152,8 @@ import {
   MessageSquare,
   CalendarCheck,
   Printer,
+  Carrot,
+  TrendingUp,
 } from "lucide-vue-next";
 
 interface Props {
@@ -321,6 +323,29 @@ const navigationItems = computed(() => {
       label: t("nav.employees"),
       icon: Users,
       visible: authStore.canAccessAdminFeatures,
+      section: "restaurant",
+    },
+    {
+      // /ingredients/* is gated on "inventory" in app-factory; matching the
+      // gate here keeps the entry from advertising a page that 403s.
+      name: "ingredients",
+      path: "/dashboard/ingredients",
+      label: t("nav.ingredients"),
+      icon: Carrot,
+      visible: authStore.canAccessAdminFeatures,
+      module: "inventory",
+      section: "restaurant",
+    },
+    {
+      // The forecast page itself is gated per route -- demand is "analytics",
+      // the ingredient tab is "inventory" -- so gate the entry on the one the
+      // page needs to render at all.
+      name: "forecast",
+      path: "/dashboard/forecast",
+      label: t("nav.forecast"),
+      icon: TrendingUp,
+      visible: authStore.canAccessAdminFeatures,
+      module: "analytics",
       section: "restaurant",
     },
     {

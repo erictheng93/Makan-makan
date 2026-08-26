@@ -76,4 +76,10 @@ export const ingredientListQuerySchema = z.object({
     .string()
     .optional()
     .transform((v) => v === "true"),
+  // Server-side because the list is paginated: filtering the loaded page
+  // client-side would report "no low stock" while page 2 is full of it.
+  lowStock: z
+    .string()
+    .optional()
+    .transform((v) => v === "true"),
 });

@@ -129,6 +129,7 @@ import { useI18n } from "@/i18n";
 import type {
   IngredientDefinitionResponse,
   CreateIngredientRequest,
+  IngredientFormPayload,
 } from "@makanmasak/shared-types";
 
 const { t } = useI18n();
@@ -139,26 +140,52 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: [];
-  save: [data: CreateIngredientRequest];
+  save: [data: IngredientFormPayload];
 }>();
 
 const isEdit = !!props.ingredient;
 const submitting = ref(false);
 
+// `|| undefined` treated a stored 0 as absent, so an ingredient at zero stock
+// opened with a blank field -- precisely the case the owner is looking at.
+// `?? undefined` keeps 0 and still maps null to "not set".
 const form = reactive<CreateIngredientRequest>({
   name: props.ingredient?.name || "",
   unit: props.ingredient?.unit || "",
-  category: props.ingredient?.category || undefined,
-  costPerUnit: props.ingredient?.costPerUnit || undefined,
-  supplier: props.ingredient?.supplier || undefined,
-  minStockLevel: props.ingredient?.minStockLevel || undefined,
-  currentStock: props.ingredient?.currentStock || undefined,
+  category: props.ingredient?.category ?? undefined,
+  costPerUnit: props.ingredient?.costPerUnit ?? undefined,
+  supplier: props.ingredient?.supplier ?? undefined,
+  minStockLevel: props.ingredient?.minStockLevel ?? undefined,
+  currentStock: props.ingredient?.currentStock ?? undefined,
 });
+
+/**
+ * Vue's `.number` modifier returns the raw string when the input is cleared,
+ * so a blanked optional field went out as "" and the API rejected it. The
+ * owner got "Validation failed" and no way to remove a cost or a minimum.
+ *
+ * The two schemas differ and the difference matters: updateIngredientSchema
+ * is `.nullable().optional()` -- omitted leaves the column alone, explicit
+ * null clears it -- while createIngredientSchema is only `.optional()` and
+ * rejects null outright. So clearing maps to null when editing and to
+ * undefined when creating.
+ */
+function optionalNumber(value: number | string | undefined) {
+  if (value === "" || value === undefined || value === null) {
+    return isEdit ? null : undefined;
+  }
+  return typeof value === "number" ? value : Number(value);
+}
 
 async function handleSubmit() {
   submitting.value = true;
   try {
-    emit("save", { ...form });
+    emit("save", {
+      ...form,
+      costPerUnit: optionalNumber(form.costPerUnit),
+      minStockLevel: optionalNumber(form.minStockLevel),
+      currentStock: optionalNumber(form.currentStock),
+    });
   } finally {
     submitting.value = false;
   }

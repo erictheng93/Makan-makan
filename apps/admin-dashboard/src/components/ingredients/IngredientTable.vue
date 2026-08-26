@@ -61,9 +61,10 @@
           <td
             class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500"
           >
-            {{
-              item.costPerUnit != null ? `$${item.costPerUnit.toFixed(2)}` : "-"
-            }}
+            <!-- Hardcoded "$" with two decimals rendered a NT$60 cost as
+                 $60.00. TWD is a zero-decimal NT$ currency; formatPrice knows
+                 that and every other configured currency. -->
+            {{ item.costPerUnit != null ? formatPrice(item.costPerUnit) : "-" }}
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
             {{ item.supplier || "-" }}
@@ -71,8 +72,23 @@
           <td
             class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium"
             :class="stockColor(item)"
+            :data-stock-state="
+              item.currentStock == null
+                ? 'unknown'
+                : isLowStock(item)
+                  ? 'low'
+                  : 'ok'
+            "
           >
             {{ item.currentStock != null ? item.currentStock : "-" }}
+            <!-- Red text was the only signal, which a colour-blind owner
+                 cannot read and a screen reader never announces. -->
+            <span
+              v-if="isLowStock(item)"
+              class="ml-2 inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-700"
+            >
+              {{ t("ingredients.lowStock") }}
+            </span>
           </td>
           <td
             class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500"
@@ -106,6 +122,7 @@
 
 <script setup lang="ts">
 import { useI18n } from "@/i18n";
+import { useCurrency } from "@/composables/useCurrency";
 import type { IngredientDefinitionResponse } from "@makanmasak/shared-types";
 
 const { t } = useI18n();
@@ -114,16 +131,28 @@ defineProps<{
   items: IngredientDefinitionResponse[];
 }>();
 
+const { formatPrice } = useCurrency();
+
 defineEmits<{
   edit: [item: IngredientDefinitionResponse];
   delete: [item: IngredientDefinitionResponse];
 }>();
 
+/**
+ * At or below the threshold counts as low. The old strict `<` rendered an
+ * ingredient sitting exactly on its minimum in green, which reads as healthy
+ * at the moment it stops being so.
+ */
+function isLowStock(item: IngredientDefinitionResponse): boolean {
+  return (
+    item.currentStock != null &&
+    item.minStockLevel != null &&
+    item.currentStock <= item.minStockLevel
+  );
+}
+
 function stockColor(item: IngredientDefinitionResponse): string {
   if (item.currentStock == null) return "text-gray-500";
-  if (item.minStockLevel != null && item.currentStock < item.minStockLevel) {
-    return "text-red-600";
-  }
-  return "text-green-600";
+  return isLowStock(item) ? "text-red-600" : "text-green-600";
 }
 </script>
