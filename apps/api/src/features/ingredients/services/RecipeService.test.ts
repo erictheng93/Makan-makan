@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { menuItemIngredients, menuItems } from "@makanmasak/database";
+import {
+  ingredientDefinitions,
+  menuItemIngredients,
+  menuItems,
+} from "@makanmasak/database";
 import {
   createSelectFixtureDb,
   type SelectFixtures,
@@ -20,7 +24,8 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
 
-const fixtureTables = { menuItemIngredients, menuItems };
+const RESTAURANT = "restaurant-1";
+const fixtureTables = { ingredientDefinitions, menuItemIngredients, menuItems };
 type SelectFixtureName = keyof typeof fixtureTables;
 
 function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
@@ -58,6 +63,7 @@ describe("RecipeService", () => {
 
   it("maps recipe rows with default ingredient names", async () => {
     mockSelectResults({
+      menuItems: [[{ id: 51 }]],
       menuItemIngredients: [
         [
           {
@@ -78,7 +84,7 @@ describe("RecipeService", () => {
       ],
     });
 
-    await expect(createService().getRecipe(51)).resolves.toEqual([
+    await expect(createService().getRecipe(RESTAURANT, 51)).resolves.toEqual([
       {
         ingredientId: 2,
         ingredientName: "Rice",
@@ -99,9 +105,13 @@ describe("RecipeService", () => {
   it("replaces recipe entries in a transaction and defaults optional flags", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    mockSelectResults({
+      menuItems: [[{ id: 51 }]],
+      ingredientDefinitions: [[{ id: 2 }, { id: 3 }]],
+    });
     const mutations = mockBatch();
 
-    await createService().setRecipe(51, [
+    await createService().setRecipe(RESTAURANT, 51, [
       {
         ingredientId: 2,
         quantityPerServing: 120,
@@ -147,9 +157,10 @@ describe("RecipeService", () => {
   });
 
   it("deletes existing recipe rows without inserting when replacement is empty", async () => {
+    mockSelectResults({ menuItems: [[{ id: 51 }]] });
     const mutations = mockBatch();
 
-    await createService().setRecipe(51, []);
+    await createService().setRecipe(RESTAURANT, 51, []);
 
     expect(mocks.db.delete).toHaveBeenCalledTimes(1);
     expect(mocks.db.insert).not.toHaveBeenCalled();
@@ -159,6 +170,7 @@ describe("RecipeService", () => {
 
   it("validates missing, deleted, inactive, and valid recipe entries", async () => {
     mockSelectResults({
+      menuItems: [[{ id: 51 }], [{ id: 52 }], [{ id: 53 }]],
       menuItemIngredients: [
         [],
         [
@@ -180,11 +192,15 @@ describe("RecipeService", () => {
       ],
     });
 
-    await expect(createService().validateRecipe(51)).resolves.toEqual({
+    await expect(
+      createService().validateRecipe(RESTAURANT, 51),
+    ).resolves.toEqual({
       valid: false,
       errors: ["No recipe entries found for this menu item"],
     });
-    await expect(createService().validateRecipe(52)).resolves.toEqual({
+    await expect(
+      createService().validateRecipe(RESTAURANT, 52),
+    ).resolves.toEqual({
       valid: false,
       errors: [
         "Ingredient #2 does not exist",
@@ -192,10 +208,57 @@ describe("RecipeService", () => {
         'Ingredient "Sambal" is inactive',
       ],
     });
-    await expect(createService().validateRecipe(53)).resolves.toEqual({
+    await expect(
+      createService().validateRecipe(RESTAURANT, 53),
+    ).resolves.toEqual({
       valid: true,
       errors: [],
     });
+  });
+
+  it("refuses a menu item that belongs to another restaurant", async () => {
+    // The ownership lookup finds nothing, which is what a foreign menuItemId
+    // produces once the query is scoped by restaurant.
+    mockSelectResults({ menuItems: [[], [], []] });
+    const service = createService();
+
+    await expect(service.getRecipe(RESTAURANT, 999)).rejects.toMatchObject({
+      code: "MENU_ITEM_NOT_FOUND",
+    });
+    await expect(service.validateRecipe(RESTAURANT, 999)).rejects.toMatchObject(
+      { code: "MENU_ITEM_NOT_FOUND" },
+    );
+
+    const mutations = mockBatch();
+    await expect(
+      service.setRecipe(RESTAURANT, 999, [
+        { ingredientId: 2, quantityPerServing: 1, unit: "g" },
+      ]),
+    ).rejects.toMatchObject({ code: "MENU_ITEM_NOT_FOUND" });
+
+    // The point of the guard: nothing was written on the way to the error.
+    expect(mocks.db.batch).not.toHaveBeenCalled();
+    expect(mutations.deleted).toHaveLength(0);
+  });
+
+  it("refuses ingredients that belong to another restaurant", async () => {
+    mockSelectResults({
+      menuItems: [[{ id: 51 }]],
+      // Two ids requested, one owned: explodeForecast would otherwise fold a
+      // foreign ingredient into this restaurant's purchasing.
+      ingredientDefinitions: [[{ id: 2 }]],
+    });
+    const mutations = mockBatch();
+
+    await expect(
+      createService().setRecipe(RESTAURANT, 51, [
+        { ingredientId: 2, quantityPerServing: 1, unit: "g" },
+        { ingredientId: 3, quantityPerServing: 1, unit: "g" },
+      ]),
+    ).rejects.toMatchObject({ code: "INGREDIENT_NOT_IN_RESTAURANT" });
+
+    expect(mocks.db.batch).not.toHaveBeenCalled();
+    expect(mutations.deleted).toHaveLength(0);
   });
 
   it("lists menu items missing recipes and ingredient usage", async () => {
@@ -227,7 +290,9 @@ describe("RecipeService", () => {
       mocks.db.selectDistinct.mock.results[0]?.value.from,
     ).toHaveBeenCalled();
 
-    await expect(createService().getIngredientUsage(2)).resolves.toEqual([
+    await expect(
+      createService().getIngredientUsage(RESTAURANT, 2),
+    ).resolves.toEqual([
       { menuItemId: 51, menuItemName: "Laksa" },
       { menuItemId: 52, menuItemName: "Nasi Lemak" },
     ]);

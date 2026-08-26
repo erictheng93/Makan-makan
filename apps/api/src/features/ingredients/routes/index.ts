@@ -194,7 +194,7 @@ routes.delete(
 
     // Check if ingredient is used in any recipe
     const recipeService = new RecipeService(c.env.DB);
-    const usage = await recipeService.getIngredientUsage(id);
+    const usage = await recipeService.getIngredientUsage(restaurantId, id);
     if (usage.length > 0) {
       const names = usage.map((u) => u.menuItemName).join(", ");
       throw conflict(
@@ -221,10 +221,10 @@ routes.get(
   requireRestaurantAccess("restaurantId"),
   validateParams(menuItemIdParamSchema),
   async (c) => {
-    const { menuItemId } = c.get("validatedParams");
+    const { restaurantId, menuItemId } = c.get("validatedParams");
     const service = new RecipeService(c.env.DB);
 
-    const recipe = await service.getRecipe(menuItemId);
+    const recipe = await service.getRecipe(restaurantId, menuItemId);
 
     return c.json({ success: true, data: { recipe } });
   },
@@ -239,11 +239,11 @@ routes.put(
   validateParams(menuItemIdParamSchema),
   validateBody(setRecipeSchema),
   async (c) => {
-    const { menuItemId } = c.get("validatedParams");
+    const { restaurantId, menuItemId } = c.get("validatedParams");
     const { ingredients } = c.get("validatedBody");
     const service = new RecipeService(c.env.DB);
 
-    await service.setRecipe(menuItemId, ingredients);
+    await service.setRecipe(restaurantId, menuItemId, ingredients);
 
     return c.json({ success: true, data: { updated: true } });
   },
@@ -257,10 +257,10 @@ routes.post(
   requireRestaurantAccess("restaurantId"),
   validateParams(menuItemIdParamSchema),
   async (c) => {
-    const { menuItemId } = c.get("validatedParams");
+    const { restaurantId, menuItemId } = c.get("validatedParams");
     const service = new RecipeService(c.env.DB);
 
-    const result = await service.validateRecipe(menuItemId);
+    const result = await service.validateRecipe(restaurantId, menuItemId);
 
     return c.json({ success: true, data: result });
   },

@@ -342,7 +342,7 @@ describe("ingredients routes", () => {
     let response = await request("/rest-1/11", "DELETE");
 
     expect(response.status).toBe(200);
-    expect(recipeFns.getIngredientUsage).toHaveBeenCalledWith(11);
+    expect(recipeFns.getIngredientUsage).toHaveBeenCalledWith("rest-1", 11);
     expect(ingredientFns.delete).toHaveBeenCalledWith("rest-1", 11);
 
     recipeFns.getIngredientUsage.mockResolvedValueOnce([
@@ -374,7 +374,7 @@ describe("ingredients routes", () => {
     let response = await request("/rest-1/recipes/51");
 
     expect(response.status).toBe(200);
-    expect(recipeFns.getRecipe).toHaveBeenCalledWith(51);
+    expect(recipeFns.getRecipe).toHaveBeenCalledWith("rest-1", 51);
     await expect(response.json()).resolves.toMatchObject({
       success: true,
       data: {
@@ -405,6 +405,7 @@ describe("ingredients routes", () => {
 
     expect(response.status).toBe(200);
     expect(recipeFns.setRecipe).toHaveBeenCalledWith(
+      "rest-1",
       51,
       recipeBody.ingredients,
     );
@@ -412,7 +413,7 @@ describe("ingredients routes", () => {
     response = await request("/rest-1/recipes/51/validate", "POST");
 
     expect(response.status).toBe(200);
-    expect(recipeFns.validateRecipe).toHaveBeenCalledWith(51);
+    expect(recipeFns.validateRecipe).toHaveBeenCalledWith("rest-1", 51);
     await expect(response.json()).resolves.toMatchObject({
       success: true,
       data: { valid: true, errors: [] },
