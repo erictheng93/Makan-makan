@@ -1177,6 +1177,38 @@ export class MenuService extends BaseService {
   async createOptionGroup(
     data: typeof optionGroups.$inferInsert,
   ): Promise<typeof optionGroups.$inferSelect> {
+    // Two live shared groups in one restaurant must not share a publicId --
+    // the assembled `options` JSON emits it as the group's `id`, so a
+    // duplicate makes the customer cart ambiguous.
+    //
+    // This is checked here rather than with a unique index on
+    // (restaurant_id, public_id) because the legacy backfill deliberately
+    // emits one group per menu item with the fixed publicIds `sizes` and
+    // `addOns` (backfillMenuItemOptions in menu-options.ts). Those strings
+    // are exactly what existing carts and order snapshots already reference,
+    // so they cannot be made unique per item -- a DB-level constraint makes
+    // the whole backfill path impossible, which is what migration
+    // 0009_option_groups_public_id_unique did before it was withdrawn.
+    //
+    // The backfill writes through db.batch() and never calls this method, so
+    // guarding here catches the case the owner can actually cause (creating
+    // the same 識別碼 twice in 共用選項組) without blocking that migration.
+    const [existing] = await this.db
+      .select({ id: optionGroups.id })
+      .from(optionGroups)
+      .where(
+        and(
+          eq(optionGroups.restaurantId, data.restaurantId),
+          eq(optionGroups.publicId, data.publicId),
+          isNull(optionGroups.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    if (existing) {
+      throw new Error("Option group public id already exists for restaurant");
+    }
+
     try {
       const [group] = await this.db
         .insert(optionGroups)
@@ -1185,9 +1217,6 @@ export class MenuService extends BaseService {
       await this.invalidateRestaurantMenuCache(group.restaurantId);
       return group;
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        throw new Error("Option group public id already exists for restaurant");
-      }
       this.handleError(error, "createOptionGroup");
     }
   }
@@ -1516,6 +1545,19 @@ export class MenuService extends BaseService {
             priceAdjustmentCents: override.priceAdjustmentCents,
           });
         }
+      }
+
+      // Same hazard as softDeleteOptionGroup: an item on shared groups keeps
+      // its legacy `options` JSON, and loadAssembledMenuItemOptions falls back
+      // to that JSON the moment the item has no group links left. Removing the
+      // last group from the item editor would otherwise republish the
+      // pre-migration options and prices to the customer menu, silently.
+      if (groups.length === 0) {
+        await this.db
+          .update(menuItems)
+          .set({ options: null, updatedAt: new Date() })
+          .where(eq(menuItems.id, menuItemId));
+        await this.invalidateRestaurantMenuCache(restaurantId);
       }
     } catch (error) {
       this.handleError(error, "replaceMenuItemOptionGroups");

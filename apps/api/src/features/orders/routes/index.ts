@@ -420,7 +420,12 @@ app.get(
   "/stats",
   customerAuthMiddleware,
   requireRole([0, 1]), // Admin and Owner only
-  moduleGate("analytics"),
+  // These are the order counts on the order-management screen, not the
+  // analytics add-on: the same orders are already listed by `GET /orders`
+  // under `online_ordering`. Gating the counts behind `analytics` left every
+  // basic-plan owner with four cards stuck at 0 and a rejected request on
+  // each filter change, on the very screen the counts belong to.
+  moduleGate("online_ordering"),
   validateQuery(orderSchemas.stats),
   async (c) => {
     const query: StatsQueryInput = c.get("validatedQuery");

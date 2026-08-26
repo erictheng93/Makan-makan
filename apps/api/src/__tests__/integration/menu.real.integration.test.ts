@@ -517,10 +517,25 @@ describe("Menu API — real integration", () => {
       },
     ]);
 
-    const [firstDuplicate, secondDuplicate] = [
-      await createGroup("same_public", "Same Public A"),
-      await createGroup("same_public", "Same Public B"),
-    ];
+    // Two live groups sharing a publicId can no longer be created through the
+    // API -- MenuService.createOptionGroup rejects the second. They still
+    // occur legitimately: backfillMenuItemOptions writes straight through
+    // db.batch() and gives every item's group the fixed publicId `sizes` /
+    // `addOns`. So seed the duplicate the way the backfill does, which is the
+    // only way this restaurant can actually reach the per-item guard below.
+    const firstDuplicate = await createGroup("same_public", "Same Public A");
+    const [backfilledDuplicate] = await testApp.testDb.drizzle
+      .insert(optionGroups)
+      .values({
+        id: "backfilled-same-public",
+        restaurantId: String(restaurant.id),
+        publicId: "same_public",
+        kind: "choice",
+        name: "Same Public B",
+        type: "single",
+      })
+      .returning();
+    const secondDuplicate = { group: backfilledDuplicate };
     const conflictRes = await testApp.app.fetch(
       new Request(`https://test/api/v1/menu/items/${item.id}/option-groups`, {
         method: "PUT",

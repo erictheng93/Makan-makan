@@ -85,9 +85,56 @@ describe("option group writes", () => {
     });
   }
 
-  it("enforces a live public id only once per restaurant", async () => {
+  /**
+   * The publicId invariant is enforced in MenuService.createOptionGroup, NOT
+   * by a unique index on (restaurant_id, public_id).
+   *
+   * A DB-level constraint would be stricter than the data model allows: the
+   * legacy backfill (backfillMenuItemOptions) emits one group per menu item
+   * with the fixed publicIds `sizes` and `addOns`, because those are the
+   * strings existing carts and order snapshots already reference. Two items
+   * with different sizes therefore legitimately hold two live groups both
+   * called `sizes`. Migration 0009 added that index and was withdrawn once it
+   * broke the backfill.
+   *
+   * So a raw insert must still succeed — that is the backfill's path — while
+   * the owner-facing create path rejects the duplicate. The next test pins
+   * that half.
+   */
+  it("leaves raw inserts unconstrained so the per-item backfill stays possible", async () => {
     await seedGroup("group-1", "spice");
-    await expect(seedGroup("group-2", "spice")).rejects.toThrow();
+    await expect(seedGroup("group-2", "spice")).resolves.not.toThrow();
+
+    const live = await testDb.drizzle
+      .select({ id: optionGroups.id })
+      .from(optionGroups)
+      .where(eq(optionGroups.publicId, "spice"));
+    expect(live).toHaveLength(2);
+  });
+
+  it("frees a public id once the group holding it is soft deleted", async () => {
+    const service = menuService();
+    const created = await service.createOptionGroup({
+      id: "group-1",
+      restaurantId,
+      publicId: "spice",
+      kind: "choice",
+      name: "Spice",
+      type: "single",
+    });
+
+    await service.softDeleteOptionGroup(created.id);
+
+    await expect(
+      service.createOptionGroup({
+        id: "group-2",
+        restaurantId,
+        publicId: "spice",
+        kind: "choice",
+        name: "Spice again",
+        type: "single",
+      }),
+    ).resolves.toMatchObject({ publicId: "spice" });
   });
 
   it("returns a semantic conflict when creating a duplicate group", async () => {

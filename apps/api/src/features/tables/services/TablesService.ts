@@ -127,6 +127,23 @@ export class TablesService {
           409,
         );
       }
+      // Lowering a seat-mode table's capacity below its seat count reaches
+      // the same guard, because the client now omits seatCount for an
+      // unchanged mode and the service falls back to the stored value.
+      // Without this it surfaced as a 500 and a generic "save failed" toast,
+      // leaving the owner no way to learn what to change.
+      if (
+        error instanceof Error &&
+        error.message.includes(
+          "Seat count must be positive and cannot exceed table capacity",
+        )
+      ) {
+        throw new ApiError(
+          "SEAT_COUNT_EXCEEDS_CAPACITY",
+          "Seat count must be positive and cannot exceed table capacity",
+          409,
+        );
+      }
       throw new Error(
         this.formatOperationError("Failed to update table", error),
       );

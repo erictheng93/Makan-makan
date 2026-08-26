@@ -40,10 +40,6 @@
       "reason": "The platform API idempotency middleware owns request reservations; management API has no corresponding idempotency_keys table."
     },
     {
-      "fresh": "0009_option_groups_public_id_unique.sql",
-      "reason": "Option groups are owned by the platform API menu database; the management API has no corresponding option_groups table."
-    },
-    {
       "fresh": "0010_seats_active_number_unique.sql",
       "reason": "Seat soft deletion and table QR seat management are owned by the platform API; the management API has no corresponding seats table."
     }
