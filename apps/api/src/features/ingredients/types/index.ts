@@ -66,9 +66,19 @@ export interface IIngredientService {
   ): Promise<boolean>;
 }
 
+/**
+ * Every method takes `restaurantId` first. `menuItemId` and `ingredientId` are
+ * global autoincrement keys, so they identify a row without identifying a
+ * tenant — the route guard only proves the caller owns the restaurantId in the
+ * path, and cannot vouch for a second id supplied alongside it (#265).
+ */
 export interface IRecipeService {
-  getRecipe(menuItemId: number): Promise<RecipeEntryResponse[]>;
+  getRecipe(
+    restaurantId: string,
+    menuItemId: number,
+  ): Promise<RecipeEntryResponse[]>;
   setRecipe(
+    restaurantId: string,
     menuItemId: number,
     entries: {
       ingredientId: number;
@@ -78,12 +88,14 @@ export interface IRecipeService {
     }[],
   ): Promise<void>;
   validateRecipe(
+    restaurantId: string,
     menuItemId: number,
   ): Promise<{ valid: boolean; errors: string[] }>;
   getMenuItemsWithoutRecipes(
     restaurantId: string,
   ): Promise<{ id: number; name: string }[]>;
   getIngredientUsage(
+    restaurantId: string,
     ingredientId: number,
   ): Promise<{ menuItemId: number; menuItemName: string }[]>;
 }
