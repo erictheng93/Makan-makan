@@ -1,6 +1,19 @@
 import { drizzle } from "drizzle-orm/d1";
-import { eq, and, like, isNull, isNotNull, lte, sql, count } from "drizzle-orm";
-import { ingredientDefinitions } from "@makanmasak/database";
+import {
+  eq,
+  and,
+  desc,
+  like,
+  isNull,
+  isNotNull,
+  lte,
+  sql,
+  count,
+} from "drizzle-orm";
+import {
+  ingredientDefinitions,
+  ingredientStockMovements,
+} from "@makanmasak/database";
 import type {
   IngredientDefinitionResponse,
   CreateIngredientRequest,
@@ -137,6 +150,7 @@ export class IngredientService {
     restaurantId: string,
     id: number,
     data: UpdateIngredientRequest,
+    userId?: string,
   ): Promise<IngredientDefinitionResponse | null> {
     const existing = await this.get(restaurantId, id);
     if (!existing) return null;
@@ -168,6 +182,25 @@ export class IngredientService {
           eq(ingredientDefinitions.restaurantId, restaurantId),
         ),
       );
+
+    // The edit form can still set stock directly, and that is the right home
+    // for a stocktake correction. Recording it keeps the ledger complete --
+    // otherwise the figure could still jump with nothing to explain it, which
+    // is the defect this table exists to close.
+    const movedTo = updates.currentStock as number | null | undefined;
+    if (movedTo !== undefined && movedTo !== null) {
+      const from = existing.currentStock ?? 0;
+      if (movedTo !== from) {
+        await this.recordMovement({
+          restaurantId,
+          ingredientId: id,
+          delta: movedTo - from,
+          balanceAfter: movedTo,
+          reason: "correction",
+          userId,
+        });
+      }
+    }
 
     return this.get(restaurantId, id);
   }
@@ -226,6 +259,121 @@ export class IngredientService {
       .orderBy(ingredientDefinitions.category);
 
     return rows.map((r) => r.category!);
+  }
+
+  /**
+   * Write one ledger row. Callers that also move `current_stock` must pass the
+   * resulting balance so the two stay in step; this is deliberately private so
+   * a movement can never be recorded without a matching balance.
+   */
+  private async recordMovement(entry: {
+    restaurantId: string;
+    ingredientId: number;
+    delta: number;
+    balanceAfter: number;
+    reason: string;
+    note?: string | null;
+    userId?: string;
+  }): Promise<void> {
+    await this.db.insert(ingredientStockMovements).values({
+      restaurantId: entry.restaurantId,
+      ingredientId: entry.ingredientId,
+      delta: entry.delta,
+      balanceAfter: entry.balanceAfter,
+      reason: entry.reason,
+      note: entry.note ?? null,
+      createdBy: entry.userId ?? null,
+      createdAt: new Date(),
+    });
+  }
+
+  /**
+   * Receive or consume stock by a signed delta -- the operation the owner
+   * actually performs ("took in 10 kg", "threw away 2 kg"). The pre-existing
+   * updateStock sets an absolute value, which is the same thing the edit form
+   * does and carries no reason or history.
+   *
+   * The UPDATE is conditional on the row still holding the balance we read, so
+   * two concurrent adjustments cannot both apply to the same starting figure
+   * and lose one of the deltas. D1 has no transaction spanning this sequence;
+   * this is the same optimistic shape the order path uses for menu inventory.
+   */
+  async adjustStock(
+    restaurantId: string,
+    id: number,
+    input: { delta: number; reason: string; note?: string | null },
+    userId?: string,
+  ): Promise<IngredientDefinitionResponse | null> {
+    const existing = await this.get(restaurantId, id);
+    if (!existing) return null;
+
+    const before = existing.currentStock ?? 0;
+    const after = before + input.delta;
+
+    const result = await this.db
+      .update(ingredientDefinitions)
+      .set({ currentStock: after, updatedAt: new Date() })
+      .where(
+        and(
+          eq(ingredientDefinitions.id, id),
+          eq(ingredientDefinitions.restaurantId, restaurantId),
+          isNull(ingredientDefinitions.deletedAt),
+          existing.currentStock === null
+            ? isNull(ingredientDefinitions.currentStock)
+            : eq(ingredientDefinitions.currentStock, before),
+        ),
+      );
+
+    if ((result.meta?.changes ?? 0) === 0) return null;
+
+    await this.recordMovement({
+      restaurantId,
+      ingredientId: id,
+      delta: input.delta,
+      balanceAfter: after,
+      reason: input.reason,
+      note: input.note,
+      userId,
+    });
+
+    return this.get(restaurantId, id);
+  }
+
+  async listMovements(
+    restaurantId: string,
+    id: number,
+    limit = 50,
+  ): Promise<
+    {
+      id: number;
+      delta: number;
+      balanceAfter: number;
+      reason: string;
+      note: string | null;
+      createdAt: Date;
+    }[]
+  > {
+    return this.db
+      .select({
+        id: ingredientStockMovements.id,
+        delta: ingredientStockMovements.delta,
+        balanceAfter: ingredientStockMovements.balanceAfter,
+        reason: ingredientStockMovements.reason,
+        note: ingredientStockMovements.note,
+        createdAt: ingredientStockMovements.createdAt,
+      })
+      .from(ingredientStockMovements)
+      .where(
+        and(
+          eq(ingredientStockMovements.ingredientId, id),
+          // Scoped by restaurant as well as ingredient: ingredient ids are a
+          // global autoincrement, so the id alone does not identify a tenant
+          // (#265).
+          eq(ingredientStockMovements.restaurantId, restaurantId),
+        ),
+      )
+      .orderBy(desc(ingredientStockMovements.createdAt))
+      .limit(limit);
   }
 
   async updateStock(

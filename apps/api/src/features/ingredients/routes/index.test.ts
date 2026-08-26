@@ -316,10 +316,14 @@ describe("ingredients routes", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(ingredientFns.update).toHaveBeenCalledWith("rest-1", 11, {
-      name: "Brown rice",
-      currentStock: 18,
-    });
+    // The acting user is forwarded so a stock change made through the edit
+    // form can be attributed on its `correction` ledger row (#277).
+    expect(ingredientFns.update).toHaveBeenCalledWith(
+      "rest-1",
+      11,
+      { name: "Brown rice", currentStock: 18 },
+      "user-1",
+    );
 
     ingredientFns.update.mockResolvedValueOnce(null);
 

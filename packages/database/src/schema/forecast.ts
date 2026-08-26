@@ -82,6 +82,56 @@ export const ingredientDefinitions = sqliteTable(
   }),
 );
 
+/**
+ * Ledger behind `ingredientDefinitions.currentStock` (#277).
+ *
+ * The scalar is kept as a read cache — BOM explosion, the procurement list and
+ * the low-stock filter all read it — and every change to it writes a row here
+ * in the same batch, so a stock figure can always be explained.
+ *
+ * `reason` is a free-ish tag rather than an enum so a later consumer (order
+ * deduction, #278) can add its own without a migration; the UI offers the
+ * known set.
+ */
+export const ingredientStockMovements = sqliteTable(
+  "ingredient_stock_movements",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    restaurantId: text("restaurant_id").notNull(),
+    ingredientId: integer("ingredient_id").notNull(),
+    /** Signed: positive receives, negative consumes or writes off. */
+    delta: real("delta").notNull(),
+    /** Stock after this movement, so history reads without re-summing. */
+    balanceAfter: real("balance_after").notNull(),
+    reason: text("reason").notNull(),
+    note: text("note"),
+    createdBy: text("created_by"),
+    createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    ingredientIdx: index("ingredient_stock_movements_ingredient_idx").on(
+      table.ingredientId,
+      table.createdAt,
+    ),
+    restaurantIdx: index("ingredient_stock_movements_restaurant_idx").on(
+      table.restaurantId,
+      table.createdAt,
+    ),
+  }),
+);
+
+export const ingredientStockMovementsRelations = relations(
+  ingredientStockMovements,
+  ({ one }) => ({
+    ingredient: one(ingredientDefinitions, {
+      fields: [ingredientStockMovements.ingredientId],
+      references: [ingredientDefinitions.id],
+    }),
+  }),
+);
+
 export const ingredientDefinitionsRelations = relations(
   ingredientDefinitions,
   ({ one, many }) => ({

@@ -1,5 +1,7 @@
 import { api } from "./api";
 import type {
+  StockMovement,
+  StockMovementReason,
   IngredientDefinitionResponse,
   CreateIngredientRequest,
   UpdateIngredientRequest,
@@ -76,6 +78,32 @@ export const ingredientApi = {
     quantity: number,
   ): Promise<void> {
     await api.patch(`/ingredients/${restaurantId}/${id}/stock`, { quantity });
+  },
+
+  /**
+   * Signed delta, not an absolute value — `updateStock` sets the figure and so
+   * carries no reason or history, which is what #277 was about.
+   */
+  async adjustStock(
+    restaurantId: string,
+    id: number,
+    input: { delta: number; reason: StockMovementReason; note?: string | null },
+  ): Promise<IngredientDefinitionResponse> {
+    const res = await api.post<IngredientDefinitionResponse>(
+      `/ingredients/${restaurantId}/${id}/movements`,
+      input,
+    );
+    return res.data.data!;
+  },
+
+  async listMovements(
+    restaurantId: string,
+    id: number,
+  ): Promise<StockMovement[]> {
+    const res = await api.get<{ movements: StockMovement[] }>(
+      `/ingredients/${restaurantId}/${id}/movements`,
+    );
+    return res.data.data!.movements;
   },
 
   async remove(restaurantId: string, id: number): Promise<void> {

@@ -108,3 +108,30 @@ export interface IngredientForecastResult {
     generatedAt: string;
   };
 }
+
+// --- Stock movements (#277) ---
+
+/**
+ * Open in the database so a later writer (order consumption, #278) can add its
+ * own tag without a migration; closed at the API boundary so nothing an owner
+ * types lands in the column.
+ */
+export const STOCK_MOVEMENT_REASONS = [
+  "purchase",
+  "waste",
+  "correction",
+  "transfer",
+] as const;
+
+export type StockMovementReason = (typeof STOCK_MOVEMENT_REASONS)[number];
+
+export interface StockMovement {
+  id: number;
+  /** Signed: positive receives, negative consumes or writes off. */
+  delta: number;
+  /** Stock after this movement, so history reads without re-summing. */
+  balanceAfter: number;
+  reason: string;
+  note: string | null;
+  createdAt: string | number | Date;
+}
