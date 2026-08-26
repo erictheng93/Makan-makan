@@ -28,14 +28,19 @@ const currentUser = vi.hoisted(() => {
   return { value };
 });
 
-vi.mock("../../../middleware/auth", () => ({
+/**
+ * Spread the real module rather than listing exports: these routes also carry
+ * `requireRestaurantAccess` (#275), and a hand-written mock silently drops any
+ * middleware it forgets — which is how the missing tenancy guard survived this
+ * suite in the first place. Only `authMiddleware` is replaced, so the real
+ * guard runs and `currentUser.restaurantId` has to match the path.
+ */
+vi.mock("../../../middleware/auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../middleware/auth")>()),
   authMiddleware: vi.fn(async (c: Context, next: Next) => {
     c.set("user", currentUser.value);
     await next();
   }),
-  requireRole: vi.fn(
-    () => async (_c: unknown, next: () => Promise<void>) => next(),
-  ),
 }));
 
 const generateForecast = vi.hoisted(() => vi.fn());

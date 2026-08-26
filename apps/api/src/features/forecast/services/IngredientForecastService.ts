@@ -201,6 +201,14 @@ export class IngredientForecastService {
       .where(
         and(
           eq(menuItems.restaurantId, restaurantId),
+          // Read-side twin of the ownership check RecipeService.setRecipe
+          // gained in #274. Scoping only the dish side would let a BOM row
+          // that names a foreign ingredient pull that ingredient's name and
+          // currentStock into this restaurant's forecast. setRecipe is the
+          // only writer and is now scoped, so this is defence in depth rather
+          // than a live hole — but it stops the guarantee resting on "the
+          // write path must always have been correct".
+          eq(ingredientDefinitions.restaurantId, restaurantId),
           eq(ingredientDefinitions.isActive, true),
           isNull(ingredientDefinitions.deletedAt),
           isNull(menuItems.deletedAt),
