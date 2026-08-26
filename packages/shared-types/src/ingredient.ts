@@ -30,6 +30,22 @@ export interface CreateIngredientRequest {
  * falling back to `?? null`, and `ingredient_definitions` stores these columns
  * nullable, so the request type has to admit null for clearing to be reachable.
  */
+/**
+ * What the admin ingredient form emits: name and unit are always present
+ * (both are required inputs), while the optional numerics carry `null` to mean
+ * "the owner cleared this". The create endpoint rejects null and the update
+ * endpoint uses it to clear, so the form picks per mode and the caller narrows
+ * to the matching request type.
+ */
+export type IngredientFormPayload = Omit<
+  CreateIngredientRequest,
+  "category" | "costPerUnit" | "supplier" | "minStockLevel" | "currentStock"
+> &
+  Pick<
+    UpdateIngredientRequest,
+    "category" | "costPerUnit" | "supplier" | "minStockLevel" | "currentStock"
+  >;
+
 export type UpdateIngredientRequest = {
   name?: string;
   unit?: string;

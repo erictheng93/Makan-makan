@@ -67,6 +67,14 @@ describe("ingredient validation schemas", () => {
       page: 1,
       limit: 50,
       includeInactive: true,
+      lowStock: false,
     });
+
+    // Both flags are "true"-or-nothing strings on the wire; parsing has to
+    // turn an absent one into false rather than undefined, or the service
+    // would treat it as unset and skip the condition entirely.
+    expect(ingredientListQuerySchema.parse({ lowStock: "true" })).toMatchObject(
+      { lowStock: true, includeInactive: false },
+    );
   });
 });

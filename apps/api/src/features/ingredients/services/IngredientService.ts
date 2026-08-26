@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/d1";
-import { eq, and, like, isNull, sql, count } from "drizzle-orm";
+import { eq, and, like, isNull, isNotNull, lte, sql, count } from "drizzle-orm";
 import { ingredientDefinitions } from "@makanmasak/database";
 import type {
   IngredientDefinitionResponse,
@@ -22,10 +22,18 @@ export class IngredientService {
       limit?: number;
       category?: string;
       search?: string;
+      lowStock?: boolean;
       includeInactive?: boolean;
     } = {},
   ): Promise<{ items: IngredientDefinitionResponse[]; total: number }> {
-    const { page = 1, limit = 50, category, search, includeInactive } = options;
+    const {
+      page = 1,
+      limit = 50,
+      category,
+      search,
+      lowStock,
+      includeInactive,
+    } = options;
     const offset = (page - 1) * limit;
 
     const conditions = [
@@ -39,6 +47,22 @@ export class IngredientService {
     if (category) {
       conditions.push(eq(ingredientDefinitions.category, category));
     }
+    if (lowStock) {
+      // At or below the threshold, matching the table's badge. Rows without a
+      // threshold have nothing to be below and are excluded rather than
+      // silently counted as healthy.
+      conditions.push(
+        and(
+          isNotNull(ingredientDefinitions.minStockLevel),
+          isNotNull(ingredientDefinitions.currentStock),
+          lte(
+            ingredientDefinitions.currentStock,
+            ingredientDefinitions.minStockLevel,
+          ),
+        )!,
+      );
+    }
+
     if (search) {
       conditions.push(like(ingredientDefinitions.name, `%${search}%`));
     }

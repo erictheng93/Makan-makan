@@ -10,6 +10,13 @@
       <div class="flex items-center gap-3">
         <button
           class="flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+          data-testid="open-recipes"
+          @click="openRecipes"
+        >
+          {{ t("ingredients.recipes") }}
+        </button>
+        <button
+          class="flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
           @click="showBulkImport = true"
         >
           {{ t("common.import") }}
@@ -24,7 +31,22 @@
     </div>
 
     <!-- Search & Filter -->
-    <div class="flex gap-4 mb-6">
+    <div class="flex gap-4 mb-6 items-center">
+      <label
+        class="flex items-center gap-2 text-sm text-gray-700 whitespace-nowrap"
+      >
+        <input
+          v-model="lowStockOnly"
+          type="checkbox"
+          data-testid="low-stock-filter"
+          class="rounded border-gray-300"
+          @change="
+            page = 1;
+            loadIngredients();
+          "
+        />
+        {{ t("ingredients.lowStockOnly") }}
+      </label>
       <input
         v-model="searchQuery"
         type="text"
@@ -98,7 +120,69 @@
     <BulkImportDialog
       v-if="showBulkImport"
       @close="showBulkImport = false"
+      :submitting="bulkImporting"
+      :error="importError"
       @import="handleBulkImport"
+    />
+
+    <!-- Dish picker for recipe editing. RecipeEditor was a complete component
+         that nothing imported, so menu_item_ingredients had no writer at all
+         and every ingredient forecast came back empty. -->
+    <div
+      v-if="showRecipes"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
+      @click.self="showRecipes = false"
+    >
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">
+            {{ t("ingredients.recipes") }}
+          </h3>
+          <button
+            class="text-gray-400 hover:text-gray-600"
+            @click="showRecipes = false"
+          >
+            ✕
+          </button>
+        </div>
+
+        <p v-if="recipesLoading" class="text-sm text-gray-500 py-6 text-center">
+          {{ t("common.loading") }}
+        </p>
+        <p
+          v-else-if="menuItems.length === 0"
+          class="text-sm text-gray-500 py-6 text-center"
+        >
+          {{ t("ingredients.noMenuItems") }}
+        </p>
+        <ul v-else class="max-h-80 overflow-y-auto divide-y divide-gray-100">
+          <li v-for="item in menuItems" :key="item.id">
+            <button
+              class="w-full flex items-center justify-between px-2 py-3 text-left hover:bg-gray-50"
+              :data-testid="`edit-recipe-${item.id}`"
+              @click="editRecipe(item)"
+            >
+              <span class="text-sm text-gray-900">{{ item.name }}</span>
+              <span
+                v-if="missingRecipeIds.has(item.id)"
+                class="ml-2 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700"
+              >
+                {{ t("ingredients.noRecipe") }}
+              </span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <RecipeEditor
+      v-if="editingRecipeFor"
+      :menu-item-id="editingRecipeFor.id"
+      :menu-item-name="editingRecipeFor.name"
+      :initial-entries="recipeEntries"
+      :available-ingredients="ingredients"
+      @close="editingRecipeFor = undefined"
+      @save="handleSaveRecipe"
     />
   </div>
 </template>
@@ -108,10 +192,16 @@ import { ref, onMounted, computed } from "vue";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { ingredientApi } from "@/services/ingredientApi";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import IngredientTable from "@/components/ingredients/IngredientTable.vue";
 import IngredientForm from "@/components/ingredients/IngredientForm.vue";
 import BulkImportDialog from "@/components/ingredients/BulkImportDialog.vue";
+import RecipeEditor from "@/components/ingredients/RecipeEditor.vue";
+import type {
+  IngredientFormPayload,
+  RecipeEntryResponse,
+} from "@makanmasak/shared-types";
 import type {
   IngredientDefinitionResponse,
   CreateIngredientRequest,
@@ -130,8 +220,79 @@ const page = ref(1);
 const limit = 50;
 const searchQuery = ref("");
 const categoryFilter = ref("");
+const lowStockOnly = ref(false);
 const showForm = ref(false);
 const showBulkImport = ref(false);
+const bulkImporting = ref(false);
+const importError = ref("");
+
+const showRecipes = ref(false);
+const recipesLoading = ref(false);
+const menuItems = ref<{ id: number; name: string }[]>([]);
+const missingRecipeIds = ref<Set<number>>(new Set());
+const editingRecipeFor = ref<{ id: number; name: string } | undefined>();
+const recipeEntries = ref<RecipeEntryResponse[]>([]);
+
+async function openRecipes() {
+  if (!restaurantId.value) return;
+  showRecipes.value = true;
+  recipesLoading.value = true;
+  try {
+    // The ingredient list feeds RecipeEditor's picker, so make sure it is
+    // loaded even if the owner opened this before scrolling the table.
+    const [items, missing] = await Promise.all([
+      ingredientApi.listMenuItems(restaurantId.value),
+      ingredientApi.getMissingRecipes(restaurantId.value),
+    ]);
+    menuItems.value = items;
+    missingRecipeIds.value = new Set(missing.map((m) => m.id));
+  } catch (error) {
+    console.error("Failed to load menu items for recipes:", error);
+    menuItems.value = [];
+  } finally {
+    recipesLoading.value = false;
+  }
+}
+
+async function editRecipe(item: { id: number; name: string }) {
+  if (!restaurantId.value) return;
+  try {
+    recipeEntries.value = await ingredientApi.getRecipe(
+      restaurantId.value,
+      item.id,
+    );
+  } catch (error) {
+    console.error("Failed to load recipe:", error);
+    recipeEntries.value = [];
+  }
+  editingRecipeFor.value = item;
+}
+
+async function handleSaveRecipe(
+  entries: {
+    ingredientId: number;
+    quantityPerServing: number;
+    unit: string;
+    isOptional: boolean;
+  }[],
+) {
+  if (!restaurantId.value || !editingRecipeFor.value) return;
+  const menuItemId = editingRecipeFor.value.id;
+  try {
+    await ingredientApi.setRecipe(restaurantId.value, menuItemId, {
+      ingredients: entries,
+    });
+    editingRecipeFor.value = undefined;
+    // An empty save removes the recipe, so the badge has to be able to come
+    // back as well as go away.
+    const next = new Set(missingRecipeIds.value);
+    if (entries.length > 0) next.delete(menuItemId);
+    else next.add(menuItemId);
+    missingRecipeIds.value = next;
+  } catch (error) {
+    console.error("Failed to save recipe:", error);
+  }
+}
 const editingIngredient = ref<IngredientDefinitionResponse | undefined>();
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -153,6 +314,7 @@ async function loadIngredients() {
       limit,
       search: searchQuery.value || undefined,
       category: categoryFilter.value || undefined,
+      lowStock: lowStockOnly.value || undefined,
     });
     ingredients.value = result.items;
     total.value = result.total;
@@ -182,17 +344,24 @@ function closeForm() {
   editingIngredient.value = undefined;
 }
 
-async function handleSave(data: CreateIngredientRequest) {
+async function handleSave(data: IngredientFormPayload) {
   if (!restaurantId.value) return;
   try {
     if (editingIngredient.value) {
+      // Editing: null is meaningful here, it clears the column.
       await ingredientApi.update(
         restaurantId.value,
         editingIngredient.value.id,
         data,
       );
     } else {
-      await ingredientApi.create(restaurantId.value, data);
+      // Creating: the form emits undefined rather than null for blank optional
+      // fields precisely because createIngredientSchema rejects null, so the
+      // payload satisfies CreateIngredientRequest on this branch.
+      await ingredientApi.create(
+        restaurantId.value,
+        data as CreateIngredientRequest,
+      );
     }
     closeForm();
     await loadIngredients();
@@ -220,6 +389,8 @@ async function confirmDelete(item: IngredientDefinitionResponse) {
 
 async function handleBulkImport(items: CreateIngredientRequest[]) {
   if (!restaurantId.value) return;
+  bulkImporting.value = true;
+  importError.value = "";
   try {
     await ingredientApi.bulkImport(restaurantId.value, items);
     showBulkImport.value = false;
@@ -227,6 +398,13 @@ async function handleBulkImport(items: CreateIngredientRequest[]) {
     await loadCategories();
   } catch (error) {
     console.error("Failed to bulk import:", error);
+    importError.value = resolveUserFacingError(error, t, {
+      fallbackKey: "ingredients.bulkImportFailed",
+    }).message;
+  } finally {
+    // Always clears, so a rejected import leaves the dialog usable instead of
+    // stuck on "submitting...".
+    bulkImporting.value = false;
   }
 }
 

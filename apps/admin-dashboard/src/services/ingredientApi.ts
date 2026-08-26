@@ -13,6 +13,7 @@ export const ingredientApi = {
   async list(
     restaurantId: string,
     params?: {
+      lowStock?: boolean;
       page?: number;
       limit?: number;
       category?: string;
@@ -29,6 +30,7 @@ export const ingredientApi = {
     if (params?.category) queryParams.category = params.category;
     if (params?.search) queryParams.search = params.search;
     if (params?.includeInactive) queryParams.includeInactive = "true";
+    if (params?.lowStock) queryParams.lowStock = "true";
 
     const res = await api.get<{
       items: IngredientDefinitionResponse[];
@@ -126,6 +128,27 @@ export const ingredientApi = {
       `/ingredients/${restaurantId}/recipes/${menuItemId}/validate`,
     );
     return res.data.data!;
+  },
+
+  /**
+   * Dishes to choose from when editing a recipe.
+   *
+   * getMissingRecipes only returns the ones WITHOUT a recipe, so on its own it
+   * makes a recipe editable exactly once — set it, and the dish drops off the
+   * list forever. The menu read returns every item (an authenticated owner
+   * sees unavailable ones too), and the two are diffed to mark which still
+   * need a recipe.
+   */
+  async listMenuItems(
+    restaurantId: string,
+  ): Promise<{ id: number; name: string }[]> {
+    const res = await api.get<{
+      menuItems: { id: number; name: string }[];
+    }>(`/menu/${restaurantId}`);
+    return (res.data.data?.menuItems ?? []).map((item) => ({
+      id: item.id,
+      name: item.name,
+    }));
   },
 
   async getMissingRecipes(

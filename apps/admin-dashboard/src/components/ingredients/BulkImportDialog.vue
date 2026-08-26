@@ -25,10 +25,11 @@
       </div>
 
       <div
-        v-if="parseError"
+        v-if="parseError || error"
         class="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg"
+        role="alert"
       >
-        {{ parseError }}
+        {{ parseError || error }}
       </div>
 
       <div
@@ -59,11 +60,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import { useI18n } from "@/i18n";
 import type { CreateIngredientRequest } from "@makanmasak/shared-types";
 
 const { t } = useI18n();
+
+/**
+ * `submitting` is owned by the parent because the parent is what learns the
+ * outcome. Held locally it was set true on click and never reset, so a
+ * rejected import (a CSV pasted with its header row is enough) left the button
+ * disabled on "submitting..." forever, recoverable only by closing the dialog.
+ */
+const props = withDefaults(
+  defineProps<{ submitting?: boolean; error?: string }>(),
+  { submitting: false, error: "" },
+);
 
 const emit = defineEmits<{
   close: [];
@@ -73,7 +85,7 @@ const emit = defineEmits<{
 const csvContent = ref("");
 const parseError = ref("");
 const parsed = ref<CreateIngredientRequest[]>([]);
-const importing = ref(false);
+const importing = computed(() => props.submitting);
 
 watch(csvContent, (val) => {
   parseError.value = "";
@@ -111,7 +123,6 @@ watch(csvContent, (val) => {
 });
 
 function handleImport() {
-  importing.value = true;
   emit("import", parsed.value);
 }
 </script>

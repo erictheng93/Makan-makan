@@ -245,6 +245,7 @@ describe("ingredients routes", () => {
       category: "dry",
       search: "ri",
       includeInactive: true,
+      lowStock: false,
     });
     await expect(response.json()).resolves.toMatchObject({
       success: true,
