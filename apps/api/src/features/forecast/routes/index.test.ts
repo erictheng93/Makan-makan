@@ -14,7 +14,16 @@ const serviceFns = vi.hoisted(() => ({
   getIngredientForecast: vi.fn(),
 }));
 
-vi.mock("../../../middleware/auth", () => ({
+/**
+ * Spread the real module rather than listing exports: these routes also carry
+ * `requireRestaurantAccess` (#275), and a hand-written mock silently drops any
+ * middleware it forgets — which is how the missing tenancy guard survived this
+ * suite in the first place. Only `authMiddleware` is replaced, so the real
+ * guard runs; the seeded user's restaurantId matches the `/restaurant-1` paths
+ * these tests request.
+ */
+vi.mock("../../../middleware/auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../middleware/auth")>()),
   authMiddleware: vi.fn(async (c: Context, next: Next) => {
     c.set("user", {
       id: "user-7",
@@ -24,9 +33,6 @@ vi.mock("../../../middleware/auth", () => ({
     } satisfies AuthUser);
     await next();
   }),
-  requireRole: vi.fn(
-    () => async (_c: unknown, next: () => Promise<void>) => next(),
-  ),
 }));
 
 // This file exercises handler/service wiring with a bare env that has no

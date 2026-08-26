@@ -1,6 +1,10 @@
 import { Hono } from "hono";
 import type { Context, Next } from "hono";
-import { authMiddleware, requireRole } from "../../../middleware/auth";
+import {
+  authMiddleware,
+  requireRestaurantAccess,
+  requireRole,
+} from "../../../middleware/auth";
 import { moduleGate } from "../../../middleware/moduleGate";
 import {
   validateBody,
@@ -47,6 +51,7 @@ routes.post(
   "/:restaurantId/generate",
   authMiddleware,
   requireRole([0, 1]),
+  requireRestaurantAccess("restaurantId"),
   validateParams(restaurantIdParamSchema),
   validateBody(generateForecastSchema),
   // Must run after validateBody so the gate can read the requested type.
@@ -87,6 +92,7 @@ routes.post(
 routes.get(
   "/:restaurantId",
   authMiddleware,
+  requireRestaurantAccess("restaurantId"),
   moduleGate("analytics"),
   requireRole([0, 1]),
   validateParams(restaurantIdParamSchema),
@@ -114,6 +120,7 @@ routes.get(
 routes.get(
   "/:restaurantId/accuracy",
   authMiddleware,
+  requireRestaurantAccess("restaurantId"),
   moduleGate("analytics"),
   requireRole([0, 1]),
   validateParams(restaurantIdParamSchema),
@@ -137,6 +144,7 @@ routes.get(
 routes.get(
   "/:restaurantId/ingredient-forecast",
   authMiddleware,
+  requireRestaurantAccess("restaurantId"),
   moduleGate("inventory"),
   requireRole([0, 1]),
   validateParams(restaurantIdParamSchema),
@@ -166,6 +174,7 @@ routes.get(
 routes.get(
   "/:restaurantId/alerts",
   authMiddleware,
+  requireRestaurantAccess("restaurantId"),
   moduleGate("analytics"),
   requireRole([0, 1]),
   validateParams(restaurantIdParamSchema),
