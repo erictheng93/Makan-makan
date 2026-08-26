@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ingredientDefinitions } from "@makanmasak/database";
+import {
+  ingredientDefinitions,
+  ingredientStockMovements,
+} from "@makanmasak/database";
 import {
   createMutationFixtureDb,
   createSelectFixtureDb,
@@ -21,7 +24,7 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
 
-const fixtureTables = { ingredientDefinitions };
+const fixtureTables = { ingredientDefinitions, ingredientStockMovements };
 type FixtureName = keyof typeof fixtureTables;
 
 function mockSelectResults(fixtures: SelectFixtures<FixtureName>) {
@@ -338,5 +341,171 @@ describe("IngredientService", () => {
     ]);
     vi.clearAllTimers();
     vi.useRealTimers();
+  });
+
+  it("adjusts stock by a signed delta and records the movement", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    const mutations = mockMutationResults({
+      ingredientDefinitions: { update: [{ changes: 1 }] },
+      ingredientStockMovements: { insert: [{ changes: 1 }] },
+    });
+    mockSelectResults({
+      // get() before the write, then get() again for the response.
+      ingredientDefinitions: [
+        [ingredientRow({ currentStock: 20 })],
+        [ingredientRow({ currentStock: 12 })],
+      ],
+    });
+
+    await expect(
+      createService().adjustStock(
+        "restaurant-1",
+        101,
+        { delta: -8, reason: "waste", note: "spoiled" },
+        "user-7",
+      ),
+    ).resolves.toMatchObject({ id: 101, currentStock: 12 });
+
+    expect(mutations.updated).toEqual([
+      { currentStock: 12, updatedAt: new Date("2026-06-07T00:00:00.000Z") },
+    ]);
+    expect(mutations.inserted).toEqual([
+      {
+        restaurantId: "restaurant-1",
+        ingredientId: 101,
+        delta: -8,
+        balanceAfter: 12,
+        reason: "waste",
+        note: "spoiled",
+        createdBy: "user-7",
+        createdAt: new Date("2026-06-07T00:00:00.000Z"),
+      },
+    ]);
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+
+  it("treats a null stock as zero and defaults the movement's note and author", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    const mutations = mockMutationResults({
+      ingredientDefinitions: { update: [{ changes: 1 }] },
+      ingredientStockMovements: { insert: [{ changes: 1 }] },
+    });
+    mockSelectResults({
+      ingredientDefinitions: [
+        [ingredientRow({ currentStock: null })],
+        [ingredientRow({ currentStock: 5 })],
+      ],
+    });
+
+    await expect(
+      createService().adjustStock("restaurant-1", 101, {
+        delta: 5,
+        reason: "purchase",
+      }),
+    ).resolves.toMatchObject({ currentStock: 5 });
+
+    expect(mutations.inserted).toEqual([
+      expect.objectContaining({
+        delta: 5,
+        balanceAfter: 5,
+        note: null,
+        createdBy: null,
+      }),
+    ]);
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+
+  it("loses the race rather than the delta when the balance moved under it", async () => {
+    // The UPDATE is conditional on the balance we read. A concurrent
+    // adjustment makes it match zero rows, and the caller must see that as a
+    // failure -- not as a success whose movement row never got written.
+    const mutations = mockMutationResults({
+      ingredientDefinitions: { update: [{ changes: 0 }] },
+    });
+    mockSelectResults({
+      ingredientDefinitions: [[ingredientRow({ currentStock: 20 })]],
+    });
+
+    await expect(
+      createService().adjustStock("restaurant-1", 101, {
+        delta: -8,
+        reason: "waste",
+      }),
+    ).resolves.toBeNull();
+    expect(mutations.inserted).toHaveLength(0);
+  });
+
+  it("returns null without writing when adjusting a missing ingredient", async () => {
+    const mutations = mockMutationResults();
+    mockSelectResults({ ingredientDefinitions: [[]] });
+
+    await expect(
+      createService().adjustStock("restaurant-1", 404, {
+        delta: 1,
+        reason: "purchase",
+      }),
+    ).resolves.toBeNull();
+    expect(mutations.updated).toHaveLength(0);
+    expect(mutations.inserted).toHaveLength(0);
+  });
+
+  it("records a correction when the edit form moves stock, and nothing when it does not", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
+    const mutations = mockMutationResults({
+      ingredientDefinitions: { update: [{ changes: 1 }, { changes: 1 }] },
+      ingredientStockMovements: { insert: [{ changes: 1 }] },
+    });
+    mockSelectResults({
+      ingredientDefinitions: [
+        [ingredientRow({ currentStock: 20 })],
+        [ingredientRow({ currentStock: 30 })],
+        [ingredientRow({ currentStock: 30 })],
+        [ingredientRow({ currentStock: 30 })],
+      ],
+    });
+
+    const service = createService();
+    await service.update("restaurant-1", 101, { currentStock: 30 }, "user-7");
+    // Re-stating the same figure is not a movement.
+    await service.update("restaurant-1", 101, { currentStock: 30 }, "user-7");
+
+    expect(mutations.inserted).toEqual([
+      expect.objectContaining({
+        delta: 10,
+        balanceAfter: 30,
+        reason: "correction",
+        createdBy: "user-7",
+      }),
+    ]);
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+
+  it("scopes the movement history to the restaurant as well as the ingredient", async () => {
+    mockSelectResults({
+      ingredientStockMovements: [
+        [
+          {
+            id: 2,
+            delta: -8,
+            balanceAfter: 12,
+            reason: "waste",
+            note: null,
+            createdAt: new Date("2026-06-07T00:00:00.000Z"),
+          },
+        ],
+      ],
+    });
+
+    await expect(
+      createService().listMovements("restaurant-1", 101),
+    ).resolves.toEqual([
+      expect.objectContaining({ id: 2, delta: -8, balanceAfter: 12 }),
+    ]);
   });
 });
