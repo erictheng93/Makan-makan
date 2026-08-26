@@ -407,7 +407,7 @@
               class="rounded border px-3 py-1 disabled:opacity-50"
               @click="goToPage(orderStore.pagination.page - 1)"
             >
-              {{ t("common.previous") }}
+              {{ t("common.previousPage") }}
             </button>
             <button
               :disabled="
@@ -417,7 +417,7 @@
               class="rounded border px-3 py-1 disabled:opacity-50"
               @click="goToPage(orderStore.pagination.page + 1)"
             >
-              {{ t("common.next") }}
+              {{ t("common.nextPage") }}
             </button>
           </div>
         </nav>
@@ -644,6 +644,7 @@ import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { ROLE_STATUS_PERMISSIONS } from "@makanmasak/shared-types";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 import { useAuthStore } from "@/stores/auth";
 import { useCurrency } from "@/composables/useCurrency";
 import { useDateFormatter } from "@/composables/useDateFormatter";
@@ -765,6 +766,32 @@ const {
   containerHeight: CONTAINER_HEIGHT,
 });
 
+const STATS_ROLES = [0, 1];
+
+const refreshOrderStats = async () => {
+  const role = authStore.user?.role;
+  if (role === undefined || !STATS_ROLES.includes(role)) return;
+
+  try {
+    const response = await api.get<{
+      pendingOrders: number;
+      preparingOrders: number;
+      completedOrders: number;
+      cancelledOrders: number;
+    }>("/orders/stats");
+    const data = response.data.data;
+    if (!data) return;
+    stats.value = {
+      pending: data.pendingOrders ?? 0,
+      preparing: data.preparingOrders ?? 0,
+      completed: data.completedOrders ?? 0,
+      cancelled: data.cancelledOrders ?? 0,
+    };
+  } catch (error) {
+    console.error("Failed to load order statistics:", error);
+  }
+};
+
 // 方法
 const refreshOrders = async () => {
   isLoading.value = true;
@@ -779,24 +806,12 @@ const refreshOrders = async () => {
       orderSource: sourceFilter.value || undefined,
       search: searchQuery.value.trim() || undefined,
     });
-    const response = await api.get<{
-      pendingOrders: number;
-      preparingOrders: number;
-      completedOrders: number;
-      cancelledOrders: number;
-    }>("/orders/stats");
-    const data = response.data.data ?? {
-      pendingOrders: 0,
-      preparingOrders: 0,
-      completedOrders: 0,
-      cancelledOrders: 0,
-    };
-    stats.value = {
-      pending: data.pendingOrders ?? 0,
-      preparing: data.preparingOrders ?? 0,
-      completed: data.completedOrders ?? 0,
-      cancelled: data.cancelledOrders ?? 0,
-    };
+    // The stat cards are a supplement to the list, so a failure here must not
+    // take the page down with it. GET /orders/stats is requireRole([0, 1])
+    // while this screen is also routed for roles 2-4, so a 403 is expected
+    // rather than exceptional -- leave the cards at zero and keep the orders
+    // visible instead of rejecting out of refreshOrders().
+    await refreshOrderStats();
   } finally {
     isLoading.value = false;
   }
@@ -815,11 +830,38 @@ const goToPage = async (page: number) => {
   });
 };
 
-const canRefund = (order: Order) =>
-  order.status === "paid" && Boolean(order.paymentTransactionId);
+// POST /payments/refund is requireRole([0, 1, 4]), but /dashboard/orders is
+// also routed for role 3 (送菜員). Without the role check the button rendered
+// for them and every click was a guaranteed 403 -- the same defect class this
+// screen was just fixed for on the 更新 button.
+const REFUND_ROLES = [0, 1, 4];
+
+const canRefund = (order: Order) => {
+  const role = authStore.user?.role;
+  return (
+    order.status === "paid" &&
+    Boolean(order.paymentTransactionId) &&
+    role !== undefined &&
+    REFUND_ROLES.includes(role)
+  );
+};
 
 const refundOrder = async (order: Order) => {
   if (!order.paymentTransactionId) return;
+
+  // A refund is terminal -- RefundService.processRefund completes it
+  // synchronously and nothing in this UI can reverse it. Every other
+  // money-adjacent action here confirms first.
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("orders.actions.refund"),
+    message: t("orders.confirms.refundOrder", {
+      number: getOrderNumber(order),
+    }),
+    confirmLabel: t("orders.confirms.refundOrderConfirm"),
+  });
+  if (!confirmed) return;
+
   try {
     await api.post("/payments/refund", {
       transactionId: order.paymentTransactionId,
@@ -827,8 +869,13 @@ const refundOrder = async (order: Order) => {
     });
     await refreshOrders();
   } catch (error) {
+    // `error` is the raw AxiosError, whose .message is "Request failed with
+    // status code 404" -- useless to a shop owner. Resolve the server's code
+    // to a translated sentence instead.
     toast.error(
-      error instanceof Error ? error.message : t("orders.refundFailed"),
+      resolveUserFacingError(error, t, {
+        fallbackKey: "orders.refundFailed",
+      }).message,
     );
   }
 };
@@ -850,7 +897,13 @@ const updateOrderStatus = async (order: Order) => {
     );
     if (!success) {
       toast.error(orderStore.error || t("orders.updateFailed"));
+      return;
     }
+    // The stat cards are a restaurant-wide aggregate from the server, so
+    // advancing an order changes them. The store only patches the row it
+    // holds, which would leave 待處理 showing the pre-confirm count until the
+    // next filter change.
+    await refreshOrderStats();
   }
 };
 

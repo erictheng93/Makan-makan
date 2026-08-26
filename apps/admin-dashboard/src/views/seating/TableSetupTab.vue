@@ -69,7 +69,6 @@
           <option value="">{{ t("tables.filter.allStatus") }}</option>
           <option value="available">{{ t("tables.status.available") }}</option>
           <option value="occupied">{{ t("tables.status.occupied") }}</option>
-          <option value="reserved">{{ t("tables.status.reserved") }}</option>
           <option value="maintenance">
             {{ t("tables.status.maintenance") }}
           </option>
@@ -569,6 +568,7 @@ import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { api, unwrapApiList } from "@/services/api";
+import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 import { useAuthStore } from "@/stores/auth";
 import {
   Plus,
@@ -806,24 +806,25 @@ const printSelectedTableQRCodes = async () => {
   );
 };
 
+// mapTable derives status from isActive/isOccupied only, so the reachable
+// set is exactly available | occupied | maintenance. `tables` has no
+// reserved column -- reservations live in their own table -- so offering
+// a 已預約 filter here only ever rendered the "no tables" empty state.
 const STATUS_COLORS: Record<string, string> = {
   available: "bg-[#34C759]",
   occupied: "bg-[#FF3B30]",
-  reserved: "bg-[#FF9500]",
   maintenance: "bg-[#8E8E93]",
 };
 
 const STATUS_BADGE_CLASSES: Record<string, string> = {
   available: "bg-emerald-50 text-emerald-700",
   occupied: "bg-red-50 text-red-700",
-  reserved: "bg-amber-50 text-amber-700",
   maintenance: "bg-slate-100 text-slate-700",
 };
 
 const STATUS_BUTTON_CLASSES: Record<string, string> = {
   available: "bg-[#FF3B30] text-white hover:bg-[#E0352B]",
   occupied: "bg-[#34C759] text-white hover:bg-[#2DB84D]",
-  reserved: "bg-[#007AFF] text-white hover:bg-[#0066D6]",
   maintenance: "bg-[#FF9500] text-white hover:bg-[#E08600]",
 };
 
@@ -1143,7 +1144,18 @@ const saveTable = async () => {
     );
   } catch (error) {
     console.error("Failed to save table:", error);
-    toast.error(t("tables.alert.saveFailed"));
+    // The API answers these two with a 409 and a specific code. Showing only
+    // "儲存失敗" left the owner retrying forever with no idea that the seat
+    // count is managed elsewhere, or that capacity cannot drop below it.
+    toast.error(
+      resolveUserFacingError(error, t, {
+        codeKeys: {
+          SEAT_COUNT_VIA_SEAT_MANAGEMENT: "qrMode.seatCountManaged",
+          SEAT_COUNT_EXCEEDS_CAPACITY: "qrMode.seatCountExceedsCapacity",
+        },
+        fallbackKey: "tables.alert.saveFailed",
+      }).message,
+    );
   }
 };
 

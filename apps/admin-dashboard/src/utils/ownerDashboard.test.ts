@@ -20,4 +20,33 @@ describe("hasRequestFailure", () => {
       ]),
     ).toBe(false);
   });
+
+  it.each(["MODULE_NOT_ENABLED", "SUBSCRIPTION_NOT_FOUND"])(
+    "treats a %s rejection as a plan restriction, not a failure",
+    (code) => {
+      expect(
+        hasRequestFailure([
+          { status: "fulfilled", value: {} },
+          {
+            status: "rejected",
+            reason: { response: { data: { error: { code } } } },
+          },
+        ]),
+      ).toBe(false);
+    },
+  );
+
+  it("still reports a plan-restricted rejection alongside a real one", () => {
+    expect(
+      hasRequestFailure([
+        {
+          status: "rejected",
+          reason: {
+            response: { data: { error: { code: "MODULE_NOT_ENABLED" } } },
+          },
+        },
+        { status: "rejected", reason: new Error("orders unavailable") },
+      ]),
+    ).toBe(true);
+  });
 });

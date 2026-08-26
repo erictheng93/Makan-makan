@@ -567,16 +567,19 @@ const saveChoice = async () => {
     name: form.name,
     priceAdjustment: numberOrZero(form.priceAdjustment),
     isDefault: form.isDefault,
-    isAvailable: true,
     maxQuantity:
       choiceGroupKind.value === "addon"
         ? nullableCount(form.maxQuantity)
         : null,
   };
+  // Availability belongs to the 標記售完 toggle on the row, not to this form.
+  // Sending `isAvailable: true` on the update path silently put a sold-out
+  // choice back on sale whenever the owner edited its name or price.
   const ok = editingChoice.value
     ? await updateChoice(editingChoice.value, input)
     : await createChoice(choiceGroupId.value, {
         publicId: form.publicId,
+        isAvailable: true,
         ...input,
       });
   if (ok) showChoiceModal.value = false;

@@ -23,6 +23,8 @@ const idID: Messages = {
     back: "Kembali",
     next: "Selanjutnya",
     previous: "Sebelumnya",
+    previousPage: "Halaman sebelumnya",
+    nextPage: "Halaman berikutnya",
     close: "Tutup",
     view: "Lihat",
     download: "Unduh",
@@ -422,6 +424,9 @@ const idID: Messages = {
       cancelOrder: "Apakah Anda yakin ingin membatalkan pesanan {number}?",
       cancelOrderTitle: "Batalkan pesanan",
       cancelOrderConfirm: "Ya, batalkan pesanan",
+      refundOrder:
+        "Refund pesanan {number}? Tindakan ini tidak dapat dibatalkan.",
+      refundOrderConfirm: "Ya, refund",
     },
     defaultCustomer: "Pelanggan Anonim",
     updateFailed: "Gagal memperbarui status pesanan",
@@ -3645,6 +3650,8 @@ const idID: Messages = {
     seatConfig: "Konfigurasi Kursi",
     seatCount: "Jumlah Kursi",
     seatCountManaged: "Gunakan pengelolaan kursi untuk mengubah jumlah kursi.",
+    seatCountExceedsCapacity:
+      "Jumlah kursi melebihi kapasitas meja. Sesuaikan kursi atau naikkan kapasitas dahulu.",
     willCreate: "Akan membuat {count} kursi",
     numberingStyle: "Gaya Penomoran",
     numeric: "Numerik (01, 02, 03...)",
