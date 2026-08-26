@@ -79,6 +79,7 @@
       :items="ingredients"
       @edit="editIngredient"
       @delete="confirmDelete"
+      @adjust="openAdjust"
     />
 
     <!-- Pagination -->
@@ -175,6 +176,15 @@
       </div>
     </div>
 
+    <StockAdjustDialog
+      v-if="adjustingIngredient"
+      :ingredient="adjustingIngredient"
+      :submitting="adjusting"
+      :error="adjustError"
+      @close="adjustingIngredient = undefined"
+      @submit="handleAdjust"
+    />
+
     <RecipeEditor
       v-if="editingRecipeFor"
       :menu-item-id="editingRecipeFor.id"
@@ -198,9 +208,11 @@ import IngredientTable from "@/components/ingredients/IngredientTable.vue";
 import IngredientForm from "@/components/ingredients/IngredientForm.vue";
 import BulkImportDialog from "@/components/ingredients/BulkImportDialog.vue";
 import RecipeEditor from "@/components/ingredients/RecipeEditor.vue";
+import StockAdjustDialog from "@/components/ingredients/StockAdjustDialog.vue";
 import type {
   IngredientFormPayload,
   RecipeEntryResponse,
+  StockMovementReason,
 } from "@makanmasak/shared-types";
 import type {
   IngredientDefinitionResponse,
@@ -225,6 +237,47 @@ const showForm = ref(false);
 const showBulkImport = ref(false);
 const bulkImporting = ref(false);
 const importError = ref("");
+
+const adjustingIngredient = ref<IngredientDefinitionResponse | undefined>();
+const adjusting = ref(false);
+const adjustError = ref("");
+
+function openAdjust(item: IngredientDefinitionResponse) {
+  adjustError.value = "";
+  adjustingIngredient.value = item;
+}
+
+async function handleAdjust(input: {
+  delta: number;
+  reason: StockMovementReason;
+  note: string | null;
+}) {
+  if (!restaurantId.value || !adjustingIngredient.value) return;
+  adjusting.value = true;
+  adjustError.value = "";
+  try {
+    await ingredientApi.adjustStock(
+      restaurantId.value,
+      adjustingIngredient.value.id,
+      input,
+    );
+    adjustingIngredient.value = undefined;
+    await loadIngredients();
+  } catch (error) {
+    console.error("Failed to adjust stock:", error);
+    // INGREDIENT_STOCK_CONFLICT means someone else moved the stock between
+    // this dialog opening and submitting; nothing was written, and the owner
+    // needs to re-read the figure rather than retry blindly.
+    adjustError.value = resolveUserFacingError(error, t, {
+      codeKeys: {
+        INGREDIENT_STOCK_CONFLICT: "ingredients.stockConflict",
+      },
+      fallbackKey: "ingredients.adjustFailed",
+    }).message;
+  } finally {
+    adjusting.value = false;
+  }
+}
 
 const showRecipes = ref(false);
 const recipesLoading = ref(false);

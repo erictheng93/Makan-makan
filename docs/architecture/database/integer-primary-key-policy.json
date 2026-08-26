@@ -144,9 +144,17 @@
     "rationale": "Ingredients are catalog entities referenced by recipes and planning."
   },
   {
+    "tableName": "ingredient_stock_movements",
+    "schemaFile": "packages/database/src/schema/forecast.ts",
+    "line": 99,
+    "category": "audit_log",
+    "migrationPlan": "retain",
+    "rationale": "Append-only stock ledger; nothing addresses a movement by id and the monotonic integer is what orders two movements recorded in the same millisecond."
+  },
+  {
     "tableName": "menu_item_ingredients",
     "schemaFile": "packages/database/src/schema/forecast.ts",
-    "line": 100,
+    "line": 150,
     "category": "join_edge",
     "migrationPlan": "retain",
     "rationale": "Recipe ingredient rows are edges between menu items and ingredient definitions."

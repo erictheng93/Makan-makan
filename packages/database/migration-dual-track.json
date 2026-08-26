@@ -42,6 +42,10 @@
     {
       "fresh": "0010_seats_active_number_unique.sql",
       "reason": "Seat soft deletion and table QR seat management are owned by the platform API; the management API has no corresponding seats table."
+    },
+    {
+      "fresh": "0011_ingredient_stock_movements.sql",
+      "reason": "Ingredient stock is owned by the platform API inventory module; the management API has no ingredient_definitions table to hang movements off."
     }
   ],
   "legacyOnly": [

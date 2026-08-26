@@ -54,6 +54,24 @@ export const updateStockSchema = z.object({
   quantity: z.number().min(0, "Quantity must be non-negative"),
 });
 
+/**
+ * A signed delta, because "took in 10 kg" and "threw away 2 kg" are what the
+ * owner actually does. Zero is rejected: it would write a ledger row that
+ * explains nothing.
+ *
+ * `reason` is a closed set here even though the column is free text — the
+ * column stays open so order consumption (#278) can add its own tag without a
+ * migration, but nothing an owner types should land in it.
+ */
+export const adjustStockSchema = z.object({
+  delta: z
+    .number()
+    .refine((v) => v !== 0, "Delta must not be zero")
+    .refine(Number.isFinite, "Delta must be a finite number"),
+  reason: z.enum(["purchase", "waste", "correction", "transfer"]),
+  note: z.string().max(500).nullable().optional(),
+});
+
 export const setRecipeSchema = z.object({
   ingredients: z
     .array(

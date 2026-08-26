@@ -98,6 +98,13 @@
           <td class="px-6 py-4 whitespace-nowrap text-center">
             <button
               class="text-blue-600 hover:text-blue-800 text-sm mr-3"
+              :data-testid="`adjust-stock-${item.id}`"
+              @click="$emit('adjust', item)"
+            >
+              {{ t("ingredients.adjustStock") }}
+            </button>
+            <button
+              class="text-blue-600 hover:text-blue-800 text-sm mr-3"
               @click="$emit('edit', item)"
             >
               {{ t("common.edit") }}
@@ -136,6 +143,7 @@ const { formatPrice } = useCurrency();
 defineEmits<{
   edit: [item: IngredientDefinitionResponse];
   delete: [item: IngredientDefinitionResponse];
+  adjust: [item: IngredientDefinitionResponse];
 }>();
 
 /**

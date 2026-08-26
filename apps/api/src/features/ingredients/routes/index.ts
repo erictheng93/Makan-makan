@@ -19,10 +19,12 @@ import {
   updateIngredientSchema,
   bulkImportSchema,
   updateStockSchema,
+  adjustStockSchema,
   setRecipeSchema,
   ingredientListQuerySchema,
 } from "../schemas/validation";
 import { notFound, conflict } from "../../../shared/utils/api-error";
+import type { AuthUser } from "../../../middleware/auth";
 import type { Env } from "../../../shared/types";
 
 const routes = new Hono<{ Bindings: Env }>();
@@ -151,7 +153,8 @@ routes.put(
     const body = c.get("validatedBody");
     const service = new IngredientService(c.env.DB);
 
-    const ingredient = await service.update(restaurantId, id, body);
+    const user: AuthUser = c.get("user");
+    const ingredient = await service.update(restaurantId, id, body, user.id);
     if (!ingredient) {
       throw notFound("Ingredient not found", "INGREDIENT_NOT_FOUND");
     }
@@ -179,6 +182,52 @@ routes.patch(
     }
 
     return c.json({ success: true, data: { updated: true } });
+  },
+);
+
+// POST /api/v1/ingredients/:restaurantId/:id/movements
+routes.post(
+  "/:restaurantId/:id/movements",
+  authMiddleware,
+  requireRole([0, 1]),
+  requireRestaurantAccess("restaurantId"),
+  validateParams(ingredientIdParamSchema),
+  validateBody(adjustStockSchema),
+  async (c) => {
+    const { restaurantId, id } = c.get("validatedParams");
+    const body = c.get("validatedBody");
+    const user: AuthUser = c.get("user");
+    const service = new IngredientService(c.env.DB);
+
+    const updated = await service.adjustStock(restaurantId, id, body, user.id);
+    if (!updated) {
+      // Either the ingredient is gone, or another adjustment landed between
+      // the read and the conditional update. Both are "try again from the
+      // current figure", and neither wrote anything.
+      throw notFound(
+        "Ingredient not found or stock changed concurrently",
+        "INGREDIENT_STOCK_CONFLICT",
+      );
+    }
+
+    return c.json({ success: true, data: updated });
+  },
+);
+
+// GET /api/v1/ingredients/:restaurantId/:id/movements
+routes.get(
+  "/:restaurantId/:id/movements",
+  authMiddleware,
+  requireRole([0, 1]),
+  requireRestaurantAccess("restaurantId"),
+  validateParams(ingredientIdParamSchema),
+  async (c) => {
+    const { restaurantId, id } = c.get("validatedParams");
+    const service = new IngredientService(c.env.DB);
+
+    const movements = await service.listMovements(restaurantId, id);
+
+    return c.json({ success: true, data: { movements } });
   },
 );
 
