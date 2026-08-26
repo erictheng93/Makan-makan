@@ -85,6 +85,7 @@ export interface Order extends Omit<BaseEntity, "id"> {
   version?: number;
   paymentStatus: OrderPaymentStatus;
   paymentMethod?: OrderPaymentMethod;
+  paymentTransactionId?: string;
   notes?: string;
   internalNotes?: string;
   estimatedPrepTime?: number; // minutes
@@ -131,6 +132,24 @@ export const ORDER_STATUSES = [
 ] as const;
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+/** Statuses each staff role may set. Owners retain full control of their own
+ * restaurant; route-level restaurant access remains the tenancy boundary. */
+export const ROLE_STATUS_PERMISSIONS: Record<number, readonly OrderStatus[]> = {
+  0: [
+    "pending",
+    "confirmed",
+    "preparing",
+    "ready",
+    "delivered",
+    "paid",
+    "cancelled",
+  ],
+  1: ["confirmed", "preparing", "ready", "delivered", "paid", "cancelled"],
+  2: ["preparing", "ready"],
+  3: ["delivered"],
+  4: ["confirmed", "paid"],
+} as const;
 
 /**
  * Canonical OrderPaymentStatus — matches the TEXT `orders.payment_status`

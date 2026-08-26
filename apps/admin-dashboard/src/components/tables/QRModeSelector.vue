@@ -165,10 +165,21 @@
             type="number"
             min="1"
             :max="maxSeatCount"
+            :readonly="seatCountReadOnly"
+            :aria-describedby="
+              seatCountReadOnly ? 'seat-count-read-only-help' : undefined
+            "
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             @input="updateSeatCount"
           />
-          <p class="text-xs text-gray-500 mt-1">
+          <p
+            v-if="seatCountReadOnly"
+            id="seat-count-read-only-help"
+            class="text-xs text-amber-700 mt-1"
+          >
+            {{ t("qrMode.seatCountManaged") }}
+          </p>
+          <p v-else class="text-xs text-gray-500 mt-1">
             {{ t("qrMode.willCreate", { count: seatConfig.count }) }}
           </p>
         </div>
@@ -254,6 +265,7 @@ interface Props {
   modelValue: "table" | "seat";
   seatConfig: SeatConfig;
   maxSeatCount?: number;
+  seatCountReadOnly?: boolean;
 }
 
 interface Emits {
@@ -263,6 +275,7 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   maxSeatCount: 100,
+  seatCountReadOnly: false,
 });
 const emit = defineEmits<Emits>();
 
@@ -273,6 +286,7 @@ const selectMode = (mode: "table" | "seat") => {
 
 // 更新座位數量
 const updateSeatCount = (event: Event) => {
+  if (props.seatCountReadOnly) return;
   const target = event.target as HTMLInputElement;
   const count = Math.min(parseInt(target.value) || 1, props.maxSeatCount);
   emit("update:seatConfig", {

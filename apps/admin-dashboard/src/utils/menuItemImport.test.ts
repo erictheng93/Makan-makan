@@ -14,8 +14,8 @@ describe("menu item import parsing", () => {
     const result = parseMenuItemImport(
       [
         "name,category,price,description,imageUrl,isFeatured,isAvailable,sortOrder,catalogType,tags,keywords",
-        '"蚵仔煎","主食",7000,"招牌小吃",,true,true,1,menu_item,"小吃;招牌","蚵仔煎 夜市"',
-        '"手機殼","2",2500,"現貨配件",https://example.com/case.jpg,false,true,2,product,"配件",""',
+        '"蚵仔煎","主食",70,"招牌小吃",,true,true,1,menu_item,"小吃;招牌","蚵仔煎 夜市"',
+        '"手機殼","2",25,"現貨配件",https://example.com/case.jpg,false,true,2,product,"配件",""',
       ].join("\n"),
       categories,
     );
@@ -25,7 +25,7 @@ describe("menu item import parsing", () => {
       {
         name: "蚵仔煎",
         categoryId: 1,
-        price: 7000,
+        price: 70,
         description: "招牌小吃",
         isFeatured: true,
         isAvailable: true,
@@ -37,7 +37,7 @@ describe("menu item import parsing", () => {
       {
         name: "手機殼",
         categoryId: 2,
-        price: 2500,
+        price: 25,
         description: "現貨配件",
         imageUrl: "https://example.com/case.jpg",
         isFeatured: false,
@@ -63,7 +63,7 @@ describe("menu item import parsing", () => {
     expect(result.errors).toEqual([
       "第 2 列：name 必填。",
       "第 2 列：category 找不到對應分類。",
-      "第 2 列：price 必須是 0 以上整數分。",
+      "第 2 列：price 必須是 0 以上整數元。",
       "第 2 列：imageUrl 必須是有效 URL。",
       "第 2 列：sortOrder 必須是 0 以上整數。",
     ]);
@@ -91,6 +91,8 @@ describe("menu item import parsing", () => {
     );
     expect(template).toContain("蚵仔煎");
     expect(template).toContain("主食");
+    expect(template).toContain("蚵仔煎,主食,70,");
+    expect(template).toContain("紅茶,主食,25,");
   });
 
   it("adds market keywords to the spreadsheet template when provided", () => {

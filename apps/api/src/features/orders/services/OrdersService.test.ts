@@ -11,6 +11,7 @@ const addBaseOrderItems = vi.hoisted(() => vi.fn());
 const cancelBaseOrder = vi.hoisted(() => vi.fn());
 const updateBaseOrderItemStatus = vi.hoisted(() => vi.fn());
 const getDailyOrderStats = vi.hoisted(() => vi.fn());
+const getBaseOrderStatistics = vi.hoisted(() => vi.fn());
 const validateBaseCoupon = vi.hoisted(() => vi.fn());
 const broadcastNewOrder = vi.hoisted(() => vi.fn());
 const broadcastOrderStatusUpdate = vi.hoisted(() => vi.fn());
@@ -43,6 +44,7 @@ vi.mock("@makanmasak/database", () => ({
       cancelOrder: cancelBaseOrder,
       updateOrderItemStatus: updateBaseOrderItemStatus,
       getDailyOrderStats,
+      getOrderStatistics: getBaseOrderStatistics,
     };
   },
   CouponService: function CouponService() {
@@ -118,6 +120,7 @@ describe("OrdersService realtime broadcasts", () => {
     cancelBaseOrder.mockReset();
     updateBaseOrderItemStatus.mockReset();
     getDailyOrderStats.mockReset();
+    getBaseOrderStatistics.mockReset();
     validateBaseCoupon.mockReset();
     broadcastNewOrder.mockReset();
     broadcastOrderStatusUpdate.mockReset();
@@ -360,6 +363,7 @@ describe("OrdersService workflows", () => {
     cancelBaseOrder.mockReset();
     updateBaseOrderItemStatus.mockReset();
     getDailyOrderStats.mockReset();
+    getBaseOrderStatistics.mockReset();
     validateBaseCoupon.mockReset();
     broadcastNewOrder.mockReset();
     broadcastOrderStatusUpdate.mockReset();
@@ -744,7 +748,7 @@ describe("OrdersService workflows", () => {
         "42",
         { status: "ready" },
         "30",
-        1,
+        4,
         undefined,
         createOrder({ status: "preparing" }) as never,
       ),
@@ -926,10 +930,13 @@ describe("OrdersService workflows", () => {
     });
   });
 
-  it("rejects bulk paid status updates requested by a shop owner", async () => {
+  it("allows a shop owner to mark a delivered order paid", async () => {
     const service = new OrdersService(createEnv() as never);
     getBaseOrder.mockResolvedValue(
       createOrder({ id: "20", status: "delivered" }),
+    );
+    updateBaseOrderStatus.mockResolvedValue(
+      createOrder({ id: "20", status: "paid" }),
     );
 
     const result = await service.bulkUpdateOrders(
@@ -944,27 +951,31 @@ describe("OrdersService workflows", () => {
     );
 
     expect(result).toMatchObject({
-      successCount: 0,
-      failedCount: 1,
-      errors: [
-        {
-          orderId: "20",
-          error: "Insufficient permissions for status transition to paid",
-        },
-      ],
+      successCount: 1,
+      failedCount: 0,
+      errors: [],
       results: [
         {
           orderId: "20",
-          success: false,
-          error: "Insufficient permissions for status transition to paid",
+          success: true,
         },
       ],
     });
-    expect(updateBaseOrderStatus).not.toHaveBeenCalled();
+    expect(updateBaseOrderStatus).toHaveBeenCalledWith(
+      "20",
+      expect.objectContaining({ status: "paid" }),
+    );
   });
 
   it("builds analytics and popular item cache entries from base stats", async () => {
     const env = createEnv();
+    getBaseOrderStatistics.mockResolvedValue({
+      totalOrders: 12,
+      totalRevenue: 2400,
+      avgOrderValue: 200,
+      pendingOrders: 1,
+      completedOrders: 9,
+    });
     getDailyOrderStats.mockResolvedValue({
       totalOrders: 12,
       totalRevenue: 2400,
@@ -1005,6 +1016,28 @@ describe("OrdersService workflows", () => {
       "[]",
       { expirationTtl: 1800 },
     );
+  });
+
+  it("gets all-time order statistics instead of reusing today's statistics", async () => {
+    getBaseOrderStatistics.mockResolvedValue({
+      totalOrders: 42,
+      totalRevenue: 8400,
+      avgOrderValue: 200,
+      pendingOrders: 2,
+      preparingOrders: 3,
+      completedOrders: 35,
+      cancelledOrders: 2,
+    });
+    const service = new OrdersService(createEnv() as never);
+
+    await expect(
+      service.getOrderStatistics("restaurant-1"),
+    ).resolves.toMatchObject({
+      totalOrders: 42,
+      preparingOrders: 3,
+      completedOrders: 35,
+    });
+    expect(getDailyOrderStats).not.toHaveBeenCalled();
   });
 
   it("uses cached analytics and rejects analytics without a restaurant", async () => {
@@ -1391,10 +1424,14 @@ describe("OrdersService workflows", () => {
       orders: [createOrder({ id: "1" })],
       pagination: { page: 1, limit: 100, total: 1, totalPages: 1 },
     });
-    getDailyOrderStats.mockResolvedValue({
+    getBaseOrderStatistics.mockResolvedValue({
       totalOrders: 3,
       totalRevenue: 600,
       avgOrderValue: 200,
+      pendingOrders: 1,
+      preparingOrders: 1,
+      completedOrders: 1,
+      cancelledOrders: 0,
     });
 
     await expect(

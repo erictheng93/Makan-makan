@@ -12,7 +12,9 @@ const orderStore = vi.hoisted(() => ({
   fetchOrders: vi.fn().mockResolvedValue(undefined),
   updateOrderStatus: vi.fn().mockResolvedValue(true),
   cancelOrder: vi.fn().mockResolvedValue(true),
+  pagination: { page: 1, limit: 20, total: 0, totalPages: 1 },
 }));
+const authStore = vi.hoisted(() => ({ user: { role: 1 } }));
 
 // locale is not decoration here: the view formats timestamps through
 // useDateFormatter, which reads locale.value to pick a date format. A mock
@@ -48,6 +50,17 @@ vi.mock("@/stores/order", () => ({
   useOrderStore: () => orderStore,
 }));
 
+vi.mock("@/stores/auth", () => ({
+  useAuthStore: () => authStore,
+}));
+
+vi.mock("@/services/api", () => ({
+  api: {
+    get: vi.fn().mockResolvedValue({ data: { data: {} } }),
+    post: vi.fn(),
+  },
+}));
+
 const makeOrder = (overrides: Partial<Order> = {}): Order => ({
   id: "019fc320-c159-700c-a66c-39c9b98ed964",
   restaurantId: "019f9373-397c-7202-99d6-24c61976f3ff",
@@ -69,6 +82,7 @@ describe("OrdersView", () => {
     vi.clearAllMocks();
     orderStore.orders = [];
     orderStore.error = null;
+    authStore.user.role = 1;
   });
 
   it("renders API order numbers", () => {
@@ -109,18 +123,65 @@ describe("OrdersView", () => {
     );
   });
 
-  it("hides orders that do not match the search query", async () => {
-    const order = makeOrder();
-    orderStore.orders = [order];
+  it("requests server-side search and renders pagination", async () => {
+    orderStore.pagination = { page: 1, limit: 20, total: 21, totalPages: 2 };
+    const wrapper = mount(OrdersView);
+    await wrapper
+      .get('[data-testid="admin-orders-search"]')
+      .setValue("MSBYTLO8");
 
+    expect(orderStore.fetchOrders).toHaveBeenLastCalledWith(
+      expect.objectContaining({ search: "MSBYTLO8", page: 1, limit: 20 }),
+    );
+    await wrapper
+      .get('[data-testid="admin-orders-next-page"]')
+      .trigger("click");
+    expect(orderStore.fetchOrders).toHaveBeenLastCalledWith(
+      expect.objectContaining({ page: 2, limit: 20 }),
+    );
+  });
+
+  it("sends the selected delivery type to the server", async () => {
     const wrapper = mount(OrdersView);
 
     await wrapper
-      .get('[data-testid="admin-orders-search"]')
-      .setValue("NO-SUCH-ORDER");
+      .get('[data-testid="admin-orders-type-filter"]')
+      .setValue("delivery");
+
+    expect(orderStore.fetchOrders).toHaveBeenLastCalledWith(
+      expect.objectContaining({ fulfillmentType: "delivery", page: 1 }),
+    );
+  });
+
+  it("offers a refund action for a paid order with a payment transaction", () => {
+    const order = makeOrder({
+      status: "paid",
+      paymentTransactionId: "txn-1",
+    });
+    orderStore.orders = [order];
+    const wrapper = mount(OrdersView);
 
     expect(
-      wrapper.findAll(`[data-testid="admin-order-table-${order.id}"]`),
-    ).toHaveLength(0);
+      wrapper.find(`[data-testid="admin-order-refund-${order.id}"]`).exists(),
+    ).toBe(true);
+  });
+
+  it("uses the shared role permissions when rendering status actions", () => {
+    const order = makeOrder({ status: "confirmed" });
+    orderStore.orders = [order];
+
+    const ownerView = mount(OrdersView);
+    expect(
+      ownerView.find(`[data-testid="admin-order-update-${order.id}"]`).exists(),
+    ).toBe(true);
+    ownerView.unmount();
+
+    authStore.user.role = 3;
+    const serviceCrewView = mount(OrdersView);
+    expect(
+      serviceCrewView
+        .find(`[data-testid="admin-order-update-${order.id}"]`)
+        .exists(),
+    ).toBe(false);
   });
 });

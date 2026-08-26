@@ -49,6 +49,9 @@ export const optionGroups = sqliteTable(
   },
   (table) => ({
     restaurantIdx: index("option_groups_restaurant_idx").on(table.restaurantId),
+    publicIdUnique: uniqueIndex("option_groups_restaurant_public_id_unique")
+      .on(table.restaurantId, table.publicId)
+      .where(sql`${table.deletedAt} IS NULL`),
   }),
 );
 

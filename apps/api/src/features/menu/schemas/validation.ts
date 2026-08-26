@@ -122,7 +122,7 @@ const menuItemAddOnSchema = z
   .object({
     id: z.string(),
     name: nonEmptyString.max(100),
-    price: priceSchema,
+    price: z.number().nonnegative(),
     available: z.boolean().optional(),
     description: z.string().max(200).optional(),
     maxQuantity: positiveInteger.optional(),

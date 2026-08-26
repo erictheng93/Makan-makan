@@ -9,6 +9,7 @@ export const useOrderStore = defineStore("order", () => {
   const orders = ref<Order[]>([]);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
+  const pagination = ref({ page: 1, limit: 20, total: 0, totalPages: 1 });
 
   // Computed properties
   const pendingOrders = computed(() =>
@@ -49,6 +50,10 @@ export const useOrderStore = defineStore("order", () => {
     page?: number;
     limit?: number;
     date?: string;
+    orderType?: "shop" | "table" | "seat";
+    fulfillmentType?: "dine_in" | "takeaway" | "delivery";
+    orderSource?: string;
+    search?: string;
   }) => {
     isLoading.value = true;
     error.value = null;
@@ -68,6 +73,12 @@ export const useOrderStore = defineStore("order", () => {
       if (params?.date) {
         queryParams.append("date", params.date);
       }
+      if (params?.orderType) queryParams.append("orderType", params.orderType);
+      if (params?.fulfillmentType)
+        queryParams.append("fulfillmentType", params.fulfillmentType);
+      if (params?.orderSource)
+        queryParams.append("orderSource", params.orderSource);
+      if (params?.search) queryParams.append("search", params.search);
 
       const response = await api.get<Order[]>(
         `/orders?${queryParams.toString()}`,
@@ -78,6 +89,12 @@ export const useOrderStore = defineStore("order", () => {
         // response.data.data may be {success, data: Order[], ...} instead of Order[]
         const payload = response.data.data;
         orders.value = unwrapApiList<Order>(payload);
+        pagination.value = response.data.pagination ?? {
+          page: params?.page ?? 1,
+          limit: params?.limit ?? 20,
+          total: orders.value.length,
+          totalPages: 1,
+        };
       }
     } catch (err: unknown) {
       // The resolver deliberately drops the server's sentence; keep it here,
@@ -237,6 +254,7 @@ export const useOrderStore = defineStore("order", () => {
     orders: readonly(orders),
     isLoading: readonly(isLoading),
     error: readonly(error),
+    pagination: readonly(pagination),
     pendingOrders,
     confirmedOrders,
     preparingOrders,

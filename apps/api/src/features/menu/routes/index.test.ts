@@ -585,6 +585,26 @@ describe("menu routes", () => {
       expect(serviceFns.deleteOptionChoice).toHaveBeenCalledWith("choice-1");
     });
 
+    it("maps duplicate option choice publicId conflicts to 409", async () => {
+      auth.user = buildUser(ROLE.OWNER);
+      serviceFns.createOptionChoice.mockRejectedValueOnce(
+        new Error("Option choice public id already exists in group"),
+      );
+
+      const response = await request("/option-groups/group-1/choices", "POST", {
+        publicId: "hot",
+        name: "Hot",
+      });
+
+      expect(response.status).toBe(409);
+      await expect(response.json()).resolves.toMatchObject({
+        success: false,
+        error: expect.objectContaining({
+          code: "OPTION_CHOICE_PUBLIC_ID_CONFLICT",
+        }),
+      });
+    });
+
     it("replaces an item's option groups and maps override prices to cents", async () => {
       auth.user = buildUser(ROLE.OWNER);
 

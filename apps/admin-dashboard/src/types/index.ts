@@ -121,6 +121,7 @@ export interface Order {
     | "uber_eats"
     | "foodpanda"
     | "grabfood";
+  paymentTransactionId?: string;
   totalAmount: number;
   items: OrderItem[];
   notes?: string;
@@ -212,6 +213,12 @@ export interface ApiResponse<T> {
     total?: number;
     page?: number;
     limit?: number;
+  };
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
   };
 }
 

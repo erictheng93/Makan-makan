@@ -69,7 +69,7 @@ function createRefundService(env: Env): RefundService {
 app.post(
   "/create",
   authMiddleware,
-  requireRole([0, 1]), // Admin or Owner only
+  requireRole([0, 1, 4]), // Admin, Owner, or Cashier
   validateBody(processRefundRouteSchema),
   async (c) => {
     const data = c.get("validatedBody");

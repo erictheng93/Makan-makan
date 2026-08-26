@@ -23,6 +23,11 @@ vi.mock("@/stores/auth", () => ({
   useAuthStore: () => ({ restaurantId: RESTAURANT_ID }),
 }));
 
+vi.mock("vue-router", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  useRoute: () => ({ query: {} }),
+}));
+
 vi.mock("@/i18n", () => ({
   useI18n: () => ({ t: (key: string) => key, locale: ref("zh-TW") }),
 }));
@@ -198,6 +203,55 @@ describe("TableSetupTab", () => {
       count: 3,
       numberingStyle: "alphabetic",
     });
+  });
+
+  it("requests up to 100 tables and retains pagination metadata", async () => {
+    const wrapper = await mountTab();
+    vi.mocked(api.get).mockResolvedValue({
+      data: {
+        success: true,
+        data: [buildTable()],
+        pagination: { page: 1, limit: 100, total: 101, totalPages: 2 },
+      },
+    } as never);
+
+    await (
+      wrapper.vm as unknown as { fetchTables: () => Promise<void> }
+    ).fetchTables();
+    await flushPromises();
+
+    expect(api.get).toHaveBeenLastCalledWith("/tables", {
+      restaurantId: RESTAURANT_ID,
+      limit: 100,
+    });
+    expect(
+      (wrapper.vm as unknown as { tablePagination: { total: number } })
+        .tablePagination.total,
+    ).toBe(101);
+    expect(wrapper.text()).toContain("tables.listTruncated");
+  });
+
+  it("does not send seatCount when editing an existing seat-mode table", async () => {
+    const wrapper = await mountTab([
+      buildTable({ qrMode: "seat", seatCount: 4, capacity: 4 }),
+    ]);
+    vi.mocked(api.put).mockResolvedValue({ data: { success: true } } as never);
+
+    const vm = wrapper.vm as unknown as {
+      tables: Array<Record<string, unknown>>;
+      tableForm: { capacity: number };
+      editTable: (table: Record<string, unknown>) => void;
+      saveTable: () => Promise<void>;
+    };
+    vm.editTable(vm.tables[0]);
+    vm.tableForm.capacity = 5;
+    await vm.saveTable();
+
+    const payload = vi.mocked(api.put).mock.calls[0][1] as Record<
+      string,
+      unknown
+    >;
+    expect(payload).not.toHaveProperty("seatCount");
   });
 
   it("sends restaurantId as a string when bulk-generating QR codes", async () => {

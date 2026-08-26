@@ -161,6 +161,21 @@ describe("TablesService", () => {
     );
   });
 
+  it("returns a conflict that tells callers to use seat management", async () => {
+    tableServiceMethods.updateTable.mockRejectedValue(
+      new Error("Change the seat count through seat management"),
+    );
+
+    await expect(
+      withSilencedErrors(() =>
+        createService().updateTable(11, { seatCount: 3 }),
+      ),
+    ).rejects.toMatchObject({
+      code: "SEAT_COUNT_VIA_SEAT_MANAGEMENT",
+      status: 409,
+    });
+  });
+
   it("wraps delegated operation failures with stable service errors", async () => {
     tableServiceMethods.getTableById.mockRejectedValue(new Error("db down"));
     await expect(

@@ -85,50 +85,52 @@ describe("option group writes", () => {
     });
   }
 
-  // public_id repeating across a restaurant is legitimate; repeating within one
-  // item is what breaks the order validator's per-group counting.
-  it("refuses to offer two groups with the same public id on one item", async () => {
+  it("enforces a live public id only once per restaurant", async () => {
     await seedGroup("group-1", "spice");
-    await seedGroup("group-2", "spice");
-    await menuService().linkMenuItemOptionGroup({
-      menuItemId,
-      groupId: "group-1",
-    });
-
-    await expect(
-      menuService().linkMenuItemOptionGroup({
-        menuItemId,
-        groupId: "group-2",
-      }),
-    ).rejects.toThrow(/already offers an option group with public id spice/);
+    await expect(seedGroup("group-2", "spice")).rejects.toThrow();
   });
 
-  it("allows the same public id on a different item", async () => {
-    await seedGroup("group-1", "spice");
-    await seedGroup("group-2", "spice");
-    const [other] = await testDb.drizzle
-      .insert(menuItems)
-      .values({
-        restaurantId,
-        categoryId,
-        name: "Green Tea",
-        priceCents: 5000,
-        isAvailable: true,
-        options: null,
-      })
-      .returning({ id: menuItems.id });
-
-    await menuService().linkMenuItemOptionGroup({
-      menuItemId,
-      groupId: "group-1",
+  it("returns a semantic conflict when creating a duplicate group", async () => {
+    const service = menuService();
+    await service.createOptionGroup({
+      id: "group-1",
+      restaurantId,
+      publicId: "spice",
+      kind: "choice",
+      name: "Spice",
+      type: "single",
     });
 
     await expect(
-      menuService().linkMenuItemOptionGroup({
-        menuItemId: other.id,
-        groupId: "group-2",
+      service.createOptionGroup({
+        id: "group-2",
+        restaurantId,
+        publicId: "spice",
+        kind: "choice",
+        name: "Other spice",
+        type: "single",
       }),
-    ).resolves.toMatchObject({ groupId: "group-2" });
+    ).rejects.toThrow("Option group public id already exists for restaurant");
+  });
+
+  it("returns a semantic conflict when creating a duplicate choice", async () => {
+    const service = menuService();
+    await seedGroup("group-1", "spice");
+    await service.createOptionChoice({
+      id: "choice-hot-1",
+      groupId: "group-1",
+      publicId: "hot",
+      name: "Hot",
+    });
+
+    await expect(
+      service.createOptionChoice({
+        id: "choice-hot-2",
+        groupId: "group-1",
+        publicId: "hot",
+        name: "Also hot",
+      }),
+    ).rejects.toThrow("Option choice public id already exists in group");
   });
 
   it("counts how many menu items use each option group", async () => {
@@ -221,6 +223,24 @@ describe("option group writes", () => {
   });
 
   it("takes a soft-deleted group out of the assembled options", async () => {
+    await testDb.drizzle
+      .update(menuItems)
+      .set({
+        options: {
+          customizations: [
+            {
+              id: "legacy-spice",
+              name: "Legacy spice",
+              type: "single",
+              required: false,
+              choices: [
+                { id: "legacy-hot", name: "Legacy hot", priceAdjustment: 9 },
+              ],
+            },
+          ],
+        },
+      })
+      .where(eq(menuItems.id, menuItemId));
     await seedGroup("group-1", "spice");
     await testDb.drizzle.insert(optionChoices).values({
       id: "choice-hot",
@@ -246,6 +266,11 @@ describe("option group writes", () => {
     expect((await assembled())?.customizations).toHaveLength(1);
     expect(await menuService().softDeleteOptionGroup("group-1")).toBe(true);
     expect((await assembled())?.customizations).toBeUndefined();
+    const [storedItem] = await testDb.drizzle
+      .select({ options: menuItems.options })
+      .from(menuItems)
+      .where(eq(menuItems.id, menuItemId));
+    expect(storedItem.options).toBeNull();
     // The link survives, so the delete is reversible.
     expect(
       await testDb.drizzle.select().from(menuItemOptionGroups),

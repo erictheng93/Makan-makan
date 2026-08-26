@@ -33,6 +33,46 @@ type ProductAnalyticsPayload =
   | { popularItems?: ProductAnalyticsPoint[] }
   | ProductAnalyticsPoint[];
 
+export type AnalyticsDashboardPayload = {
+  summary: {
+    todayRevenue: number;
+    todayOrders: number;
+    monthRevenue: number;
+    monthOrders: number;
+    growthRates: { revenueGrowth: number; orderGrowth: number };
+  };
+  recentOrders: unknown[];
+  topSellingItems: Array<{
+    itemId: number;
+    itemName: string;
+    quantity: number;
+    revenue: number;
+  }>;
+  tableStatus: { occupied: number; available: number; total: number };
+};
+
+export function mapDashboardPayload(
+  payload: AnalyticsDashboardPayload,
+): DashboardStats {
+  const { summary } = payload;
+
+  return {
+    todayOrders: summary.todayOrders,
+    todayRevenue: summary.todayRevenue,
+    averageOrderValue:
+      summary.todayOrders > 0 ? summary.todayRevenue / summary.todayOrders : 0,
+    completionRate: 0,
+    topMenuItems: payload.topSellingItems.map((item) => ({
+      id: item.itemId,
+      name: item.itemName,
+      quantity: item.quantity,
+      revenue: item.revenue,
+    })),
+    revenueChart: [],
+    ordersChart: [],
+  };
+}
+
 const periodGroupBy: Record<AnalyticsPeriod, AnalyticsGroupBy> = {
   daily: "day",
   weekly: "week",
@@ -104,12 +144,12 @@ export const useDashboardStore = defineStore("dashboard", () => {
         ...(dateRange && { from: dateRange.from, to: dateRange.to }),
       };
 
-      const response = await api.get<DashboardStats>(
+      const response = await api.get<AnalyticsDashboardPayload>(
         buildAnalyticsUrl("dashboard", params),
       );
 
       if (response.data.success && response.data.data) {
-        stats.value = response.data.data;
+        stats.value = mapDashboardPayload(response.data.data);
         lastUpdated.value = new Date();
       } else {
         error.value =

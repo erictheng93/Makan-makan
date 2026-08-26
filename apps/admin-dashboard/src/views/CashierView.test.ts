@@ -79,4 +79,34 @@ describe("CashierView", () => {
     await wrapper.find(".cursor-pointer").trigger("click");
     expect(wrapper.text()).toContain("Ada");
   });
+
+  it("submits a string order number for a refund and displays a failure", async () => {
+    vi.mocked(api.post).mockRejectedValueOnce(new Error("Refund rejected"));
+    const wrapper = mount(CashierView);
+    await flushPromises();
+
+    await wrapper.get('[data-testid="cashier-open-refund"]').trigger("click");
+    await wrapper
+      .get('[data-testid="cashier-refund-order-number"]')
+      .setValue("019FA136-CFE3-709F-A2AB-F8A3EBCD31A1-MSBYTLO8-DCV5");
+    await wrapper.get('[data-testid="cashier-refund-amount"]').setValue("10");
+    await wrapper
+      .get('[data-testid="cashier-refund-reason"]')
+      .setValue("wrong_order");
+    await wrapper
+      .get('[data-testid="cashier-confirm-refund"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(api.post).toHaveBeenCalledWith(
+      "/pos/refunds/create",
+      expect.objectContaining({
+        originalOrderId: "019FA136-CFE3-709F-A2AB-F8A3EBCD31A1-MSBYTLO8-DCV5",
+      }),
+      expect.any(Object),
+    );
+    expect(wrapper.get('[data-testid="refund-error"]').text()).toContain(
+      "Refund rejected",
+    );
+  });
 });

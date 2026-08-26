@@ -94,6 +94,7 @@ const zhTWCore = {
   optionGroups: {
     usedByItems: "{count} 道菜使用中",
     deleteAffects: "刪除會影響 {count} 道菜",
+    deleteChoiceConfirm: "確定要刪除此選項嗎？此操作無法復原。",
     title: "共用選項組",
     description:
       "在這裡建立一次，套用到多道菜品。改一次，所有引用的菜品一起變。",
@@ -129,7 +130,7 @@ const zhTWCore = {
       fetchFailed: "無法載入選項組",
       saveFailed: "儲存失敗",
       deleteFailed: "刪除失敗",
-      publicIdConflict: "這道菜已經有相同識別碼的選項組",
+      publicIdConflict: "此識別碼已被使用",
     },
   },
   menu: {
@@ -191,6 +192,7 @@ const zhTWCore = {
       sharedOptionGroups: "共用選項組",
       pickOptionGroup: "選擇要加入的群組…",
       noSharedGroupsHint: "這道菜還沒有掛任何共用選項組。",
+      createSharedOptionGroup: "建立第一個選項組",
       hideForThisItem: "本菜不供應",
       inherit: "繼承",
       inheritNoCap: "繼承（不限）",
@@ -249,7 +251,7 @@ const zhTWCore = {
       sourceImagesAlt: "上傳的菜單來源圖片",
       emptySource: "上傳圖片後，在右側輸入校對結果。",
       row: "第 {number} 列",
-      priceCents: "價格（分）",
+      priceCents: "價格（元）",
       publishing: "發布中…",
       publish: "發布結構化菜單",
       fixFields: "請修正標示的欄位後再發布。",
@@ -258,7 +260,7 @@ const zhTWCore = {
       validation: {
         nameRequired: "名稱必填。",
         priceRequired: "價格必填。",
-        priceInvalid: "價格必須是 0 以上整數分。",
+        priceInvalid: "價格必須是 0 以上整數元。",
         categoryRequired: "請選擇分類。",
         sortOrderRequired: "排序必填。",
         sortOrderInvalid: "排序必須是 0 以上整數。",
@@ -408,6 +410,7 @@ const zhTWCore = {
       view: "查看",
       update: "更新",
       cancel: "取消",
+      refund: "退款",
     },
     confirms: {
       cancelOrder: "確定要取消訂單 {number} 嗎？",
@@ -416,12 +419,16 @@ const zhTWCore = {
     },
     defaultCustomer: "匿名客戶",
     updateFailed: "訂單狀態更新失敗",
+    refundFailed: "退款失敗",
   },
 
   // 桌台管理
   tables: {
     title: "桌台管理",
     subtitle: "管理餐廳桌台與 QR 碼",
+    totalCount: "共 {count} 張桌台",
+    listTruncated: "目前顯示前 {limit} 張桌台，請縮小篩選範圍以管理其餘桌台。",
+    modeSwitchWarning: "切換模式會刪除現有座位，並使已印製的座位 QR 貼紙失效。",
     addTable: "新增桌台",
     editTable: "編輯桌台",
     batchGenerateQR: "批量生成 QR 碼",
@@ -1791,6 +1798,7 @@ const zhTWCore = {
     ownerOverview: "店主總覽",
     orders: "訂單管理",
     menu: "菜單管理",
+    menuOptionGroups: "共用選項組",
     tables: "桌台管理",
     reservations: "訂位管理",
     waitingList: "候位列表",
@@ -3674,6 +3682,7 @@ const zhTWCore = {
     seatAdvantage3: "精確座位管理",
     seatConfig: "座位配置",
     seatCount: "座位數量",
+    seatCountManaged: "請透過座位管理調整座位數。",
     willCreate: "將創建 {count} 個座位",
     numberingStyle: "編號風格",
     numeric: "數字 (01, 02, 03...)",

@@ -412,6 +412,7 @@ import { useCurrency } from "@/composables/useCurrency";
 import { api, unwrapApiList } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
 import { ownerService } from "@/services/ownerService";
+import { hasRequestFailure } from "@/utils/ownerDashboard";
 import {
   resolveOwnerSystemHealth,
   type OwnerHealthStatusPayload,
@@ -779,15 +780,14 @@ async function fetchAllData() {
       ) as typeof healthData.value;
     }
 
-    // Check if all requests failed
-    const allFailed = [
+    const requestFailed = hasRequestFailure([
       dashboardRes,
       activeOrdersRes,
       userStatsRes,
       usersRes,
       healthRes,
-    ].every((r) => r.status === "rejected");
-    if (allFailed) {
+    ]);
+    if (requestFailed) {
       error.value = t("owner.fetchError");
     }
   } catch (err) {

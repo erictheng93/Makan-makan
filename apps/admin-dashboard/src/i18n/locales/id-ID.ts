@@ -95,6 +95,7 @@ const idID: Messages = {
   optionGroups: {
     usedByItems: "dipakai {count} menu",
     deleteAffects: "Menghapus memengaruhi {count} menu",
+    deleteChoiceConfirm: "Hapus opsi ini? Tindakan ini tidak dapat dibatalkan.",
     title: "Grup Opsi Bersama",
     description:
       "Buat sekali di sini dan terapkan ke banyak menu. Satu perubahan berlaku untuk semua menu yang memakainya.",
@@ -132,7 +133,7 @@ const idID: Messages = {
       fetchFailed: "Gagal memuat grup opsi",
       saveFailed: "Gagal menyimpan",
       deleteFailed: "Gagal menghapus",
-      publicIdConflict: "Menu ini sudah punya grup dengan identitas tersebut",
+      publicIdConflict: "Pengenal tersebut sudah digunakan",
     },
   },
   menu: {
@@ -194,6 +195,7 @@ const idID: Messages = {
       sharedOptionGroups: "Grup Opsi Bersama",
       pickOptionGroup: "Pilih grup untuk ditambahkan…",
       noSharedGroupsHint: "Menu ini belum memakai grup opsi bersama.",
+      createSharedOptionGroup: "Buat grup opsi pertama",
       hideForThisItem: "Sembunyikan di sini",
       inherit: "Warisi",
       inheritNoCap: "Warisi (tanpa batas)",
@@ -254,7 +256,7 @@ const idID: Messages = {
       emptySource:
         "Unggah gambar lalu masukkan hasil koreksi di sebelah kanan.",
       row: "Baris {number}",
-      priceCents: "Harga (sen)",
+      priceCents: "Harga",
       publishing: "Menerbitkan…",
       publish: "Terbitkan menu terstruktur",
       fixFields: "Perbaiki bidang yang ditandai sebelum menerbitkan.",
@@ -263,8 +265,7 @@ const idID: Messages = {
       validation: {
         nameRequired: "Nama wajib diisi.",
         priceRequired: "Harga wajib diisi.",
-        priceInvalid:
-          "Harga harus berupa bilangan bulat tidak negatif dalam sen.",
+        priceInvalid: "Harga harus berupa bilangan bulat tidak negatif.",
         categoryRequired: "Pilih kategori.",
         sortOrderRequired: "Urutan wajib diisi.",
         sortOrderInvalid: "Urutan harus berupa bilangan bulat tidak negatif.",
@@ -415,6 +416,7 @@ const idID: Messages = {
       view: "Lihat",
       update: "Perbarui",
       cancel: "Batalkan",
+      refund: "Pengembalian dana",
     },
     confirms: {
       cancelOrder: "Apakah Anda yakin ingin membatalkan pesanan {number}?",
@@ -423,10 +425,16 @@ const idID: Messages = {
     },
     defaultCustomer: "Pelanggan Anonim",
     updateFailed: "Gagal memperbarui status pesanan",
+    refundFailed: "Pengembalian dana gagal",
   },
   tables: {
     title: "Manajemen Meja",
     subtitle: "Kelola meja restoran dan kode QR",
+    totalCount: "Total {count} meja",
+    listTruncated:
+      "Menampilkan {limit} meja pertama; persempit daftar untuk mengelola sisanya.",
+    modeSwitchWarning:
+      "Mengganti mode akan menghapus kursi yang ada dan membatalkan label QR kursi yang telah dicetak.",
     addTable: "Tambah Meja",
     editTable: "Edit Meja",
     batchGenerateQR: "Buat QR Massal",
@@ -1748,6 +1756,7 @@ const idID: Messages = {
     ownerOverview: "Ringkasan Pemilik",
     orders: "Manajemen Pesanan",
     menu: "Manajemen Menu",
+    menuOptionGroups: "Grup Opsi Bersama",
     tables: "Manajemen Meja",
     reservations: "Manajemen Reservasi",
     waitingList: "Daftar Tunggu",
@@ -3635,6 +3644,7 @@ const idID: Messages = {
     seatAdvantage3: "Manajemen kursi presisi",
     seatConfig: "Konfigurasi Kursi",
     seatCount: "Jumlah Kursi",
+    seatCountManaged: "Gunakan pengelolaan kursi untuk mengubah jumlah kursi.",
     willCreate: "Akan membuat {count} kursi",
     numberingStyle: "Gaya Penomoran",
     numeric: "Numerik (01, 02, 03...)",

@@ -136,6 +136,13 @@ export interface OrderQueryFilters {
   status?: OrderStatus[];
   paymentStatus?: OrderPaymentStatus[];
   orderType?: "shop" | "table" | "seat";
+  orderSource?:
+    | "direct"
+    | "market_checkout"
+    | "uber_eats"
+    | "foodpanda"
+    | "grabfood";
+  search?: string;
   fulfillmentType?: "dine_in" | "takeaway" | "delivery";
   tableId?: number;
   customerId?: string;
@@ -513,25 +520,7 @@ export const ORDER_STATUS_TRANSITIONS: Record<string, readonly string[]> = {
  * Role-based permissions for which statuses each role can set an order to.
  * Single source of truth — used by both route-layer guards and service-layer validation.
  */
-export const ROLE_STATUS_PERMISSIONS: Record<number, readonly string[]> = {
-  0: [
-    "pending",
-    "confirmed",
-    "preparing",
-    "ready",
-    "delivered",
-    "paid",
-    "cancelled",
-  ], // Admin
-  1: ["confirmed", "cancelled"], // Owner
-  2: ["preparing", "ready"], // Chef
-  3: ["delivered"], // Service Crew
-  // Cashier: `confirmed` for taking new orders; `paid` for closing orders
-  // at the counter. Without `paid` the K6 release gate cannot drive an
-  // order through the closed-ledger refund flow, and real cashier UX
-  // cannot mark orders paid via PUT /orders/:id/status.
-  4: ["confirmed", "paid"], // Cashier
-} as const;
+export { ROLE_STATUS_PERMISSIONS } from "@makanmasak/shared-types";
 
 // Configuration
 export interface OrdersConfig {

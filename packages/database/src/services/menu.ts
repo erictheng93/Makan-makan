@@ -32,6 +32,16 @@ import { loadAssembledMenuItemOptions } from "./menu-options";
 
 const D1_IN_CLAUSE_LIMIT = 100;
 
+function isUniqueConstraintError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  if (error.message.includes("UNIQUE constraint failed")) return true;
+
+  const cause = (error as Error & { cause?: unknown }).cause;
+  return (
+    cause instanceof Error && cause.message.includes("UNIQUE constraint failed")
+  );
+}
+
 export interface CreateMenuItemData {
   restaurantId: string;
   categoryId: number;
@@ -1175,6 +1185,9 @@ export class MenuService extends BaseService {
       await this.invalidateRestaurantMenuCache(group.restaurantId);
       return group;
     } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new Error("Option group public id already exists for restaurant");
+      }
       this.handleError(error, "createOptionGroup");
     }
   }
@@ -1212,6 +1225,9 @@ export class MenuService extends BaseService {
       );
       return choice;
     } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new Error("Option choice public id already exists in group");
+      }
       this.handleError(error, "createOptionChoice");
     }
   }
@@ -1337,12 +1353,42 @@ export class MenuService extends BaseService {
    */
   async softDeleteOptionGroup(id: string): Promise<boolean> {
     try {
+      const linkedItems = await this.db
+        .select({ menuItemId: menuItemOptionGroups.menuItemId })
+        .from(menuItemOptionGroups)
+        .where(eq(menuItemOptionGroups.groupId, id));
       const [group] = await this.db
         .update(optionGroups)
         .set({ deletedAt: new Date(), updatedAt: new Date() })
         .where(and(eq(optionGroups.id, id), isNull(optionGroups.deletedAt)))
         .returning({ restaurantId: optionGroups.restaurantId });
       if (!group) return false;
+      // A menu item that was migrated to shared groups deliberately retains
+      // its legacy JSON during the migration. Once this deletion leaves it
+      // with no active group, retaining that JSON would resurrect stale
+      // options and prices in the customer menu.
+      for (const linkedItem of linkedItems) {
+        const [remainingGroup] = await this.db
+          .select({ id: menuItemOptionGroups.groupId })
+          .from(menuItemOptionGroups)
+          .innerJoin(
+            optionGroups,
+            eq(menuItemOptionGroups.groupId, optionGroups.id),
+          )
+          .where(
+            and(
+              eq(menuItemOptionGroups.menuItemId, linkedItem.menuItemId),
+              isNull(optionGroups.deletedAt),
+            ),
+          )
+          .limit(1);
+        if (!remainingGroup) {
+          await this.db
+            .update(menuItems)
+            .set({ options: null, updatedAt: new Date() })
+            .where(eq(menuItems.id, linkedItem.menuItemId));
+        }
+      }
       await this.invalidateRestaurantMenuCache(group.restaurantId);
       return true;
     } catch (error) {

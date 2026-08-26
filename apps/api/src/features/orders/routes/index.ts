@@ -313,9 +313,12 @@ app.post(
       customerId: customer?.id,
       waitingListId: data.waitingListId,
       waitingListCustomerPhone: data.customerPhone,
-      customerName: data.customerName,
-      customerPhone: data.customerPhone,
-      customerEmail: data.customerEmail,
+      customerInfo: {
+        ...data.customerInfo,
+        name: data.customerName ?? data.customerInfo?.name,
+        phone: data.customerPhone ?? data.customerInfo?.phone,
+        email: data.customerEmail ?? data.customerInfo?.email,
+      },
       items: data.items.map((item) => ({
         menuItemId: item.menuItemId,
         quantity: item.quantity,

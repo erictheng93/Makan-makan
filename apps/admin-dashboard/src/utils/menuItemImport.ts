@@ -47,7 +47,7 @@ export function buildMenuItemImportTemplate(
     [
       "蚵仔煎",
       categoryName,
-      "7000",
+      "70",
       "招牌小吃",
       "",
       "true",
@@ -60,7 +60,7 @@ export function buildMenuItemImportTemplate(
     [
       "紅茶",
       categoryName,
-      "2500",
+      "25",
       "古早味紅茶",
       "",
       "false",
@@ -216,7 +216,7 @@ function validateMenuItemImportRow(
   }
 
   if (!isOptionalIntegerInRange(parseOptionalInteger(row.price), 0)) {
-    errors.push(`第 ${line} 列：price 必須是 0 以上整數分。`);
+    errors.push(`第 ${line} 列：price 必須是 0 以上整數元。`);
   }
 
   const imageUrl = normalizeCell(row.imageUrl);

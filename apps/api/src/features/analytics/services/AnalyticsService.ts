@@ -16,6 +16,7 @@ import { CACHE_TTL } from "../../../shared/constants";
 import type { Env } from "../../../shared/types";
 import type {
   AnalyticsFilters,
+  DashboardData,
   DashboardSummary,
   RevenueData,
   ProductAnalytics,
@@ -147,13 +148,13 @@ export class AnalyticsService implements IAnalyticsService {
   async getDashboardData(
     restaurantId?: string,
     period: string = "today",
-  ): Promise<DashboardSummary> {
+  ): Promise<DashboardData> {
     try {
       this.logger.debug("Getting dashboard data", { restaurantId, period });
 
       // Try cache first
-      const cacheKey = `analytics:dashboard:${restaurantId || "all"}:${period}`;
-      const cached = await this.cache.get<DashboardSummary>(cacheKey);
+      const cacheKey = `analytics:dashboard:v2:${restaurantId || "all"}:${period}`;
+      const cached = await this.cache.get<DashboardData>(cacheKey);
       if (cached) {
         this.logger.debug("Returning cached dashboard data");
         return cached;
@@ -168,11 +169,10 @@ export class AnalyticsService implements IAnalyticsService {
         throw notFound("Dashboard data not found", "DASHBOARD_DATA_NOT_FOUND");
       }
 
-      // Extract summary from dashboard data
       const summary: DashboardSummary = dashboardData.summary;
 
       // Cache the result
-      await this.cache.set(cacheKey, summary, CACHE_TTL.SHORT);
+      await this.cache.set(cacheKey, dashboardData, CACHE_TTL.SHORT);
 
       this.logger.info("Dashboard data retrieved successfully", {
         restaurantId,
@@ -181,7 +181,7 @@ export class AnalyticsService implements IAnalyticsService {
         todayOrders: summary.todayOrders,
       });
 
-      return summary;
+      return dashboardData;
     } catch (error) {
       this.logger.error("Failed to get dashboard data", error as Error, {
         restaurantId,

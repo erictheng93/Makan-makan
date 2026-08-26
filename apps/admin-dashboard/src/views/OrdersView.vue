@@ -89,6 +89,7 @@
           <div class="flex flex-wrap gap-2">
             <select
               v-model="statusFilter"
+              data-testid="admin-orders-status-filter"
               class="flex-1 min-w-[120px] px-3 py-2 bg-white border-0 rounded-xl shadow-ios-sm text-sm focus:ring-2 focus:ring-[#007AFF] focus:ring-opacity-30 transition-colors"
             >
               <option value="">{{ t("orders.filter.allStatus") }}</option>
@@ -114,6 +115,7 @@
 
             <select
               v-model="typeFilter"
+              data-testid="admin-orders-type-filter"
               class="flex-1 min-w-[120px] px-3 py-2 bg-white border-0 rounded-xl shadow-ios-sm text-sm focus:ring-2 focus:ring-[#007AFF] focus:ring-opacity-30 transition-colors"
             >
               <option value="">{{ t("orders.filter.allTypes") }}</option>
@@ -124,6 +126,7 @@
 
             <select
               v-model="sourceFilter"
+              data-testid="admin-orders-source-filter"
               class="flex-1 min-w-[120px] px-3 py-2 bg-white border-0 rounded-xl shadow-ios-sm text-sm focus:ring-2 focus:ring-[#007AFF] focus:ring-opacity-30 transition-colors"
             >
               <option value="">{{ t("orders.filter.allSources") }}</option>
@@ -133,6 +136,7 @@
               </option>
               <option value="uber_eats">Uber Eats</option>
               <option value="foodpanda">Foodpanda</option>
+              <option value="grabfood">GrabFood</option>
             </select>
 
             <button
@@ -269,6 +273,15 @@
                     >
                       <XCircleIcon class="h-4 w-4" />
                     </button>
+                    <button
+                      v-if="canRefund(order)"
+                      class="p-1.5 text-orange-600 hover:bg-orange-50 rounded-md transition-colors"
+                      :data-testid="`admin-order-refund-${order.id}`"
+                      :title="t('orders.actions.refund')"
+                      @click="refundOrder(order)"
+                    >
+                      {{ t("orders.actions.refund") }}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -369,10 +382,45 @@
                   <XCircleIcon class="h-4 w-4" />
                   {{ t("orders.actions.cancel") }}
                 </button>
+                <button
+                  v-if="canRefund(order)"
+                  class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors"
+                  :data-testid="`admin-order-refund-${order.id}`"
+                  @click="refundOrder(order)"
+                >
+                  {{ t("orders.actions.refund") }}
+                </button>
               </div>
             </div>
           </div>
         </div>
+        <nav
+          v-if="orderStore.pagination.totalPages > 1"
+          class="flex items-center justify-between border-t px-4 py-3 text-sm"
+          aria-label="Order pagination"
+        >
+          <span>{{ orderStore.pagination.total }}</span>
+          <div class="flex gap-2">
+            <button
+              :disabled="orderStore.pagination.page <= 1"
+              data-testid="admin-orders-previous-page"
+              class="rounded border px-3 py-1 disabled:opacity-50"
+              @click="goToPage(orderStore.pagination.page - 1)"
+            >
+              {{ t("common.previous") }}
+            </button>
+            <button
+              :disabled="
+                orderStore.pagination.page >= orderStore.pagination.totalPages
+              "
+              data-testid="admin-orders-next-page"
+              class="rounded border px-3 py-1 disabled:opacity-50"
+              @click="goToPage(orderStore.pagination.page + 1)"
+            >
+              {{ t("common.next") }}
+            </button>
+          </div>
+        </nav>
 
         <!-- 載入指示器 -->
         <div v-if="isLoading" class="p-4 text-center">
@@ -590,10 +638,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
+import { api } from "@/services/api";
 import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
+import { ROLE_STATUS_PERMISSIONS } from "@makanmasak/shared-types";
+import { useAuthStore } from "@/stores/auth";
 import { useCurrency } from "@/composables/useCurrency";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import { useOrderStore } from "@/stores/order";
@@ -617,6 +668,7 @@ const toast = useToast();
 const { formatPrice } = useCurrency();
 const { formatDateTime } = useDateFormatter();
 const router = useRouter();
+const authStore = useAuthStore();
 const { confirm: confirmModal } = useConfirmModal();
 const orderStore = useOrderStore();
 
@@ -684,48 +736,15 @@ const navigateToMenuItem = (item: OrderItem) => {
 };
 
 // 計算屬性
-const stats = computed(() => ({
-  pending: orderStore.orders.filter((o) =>
-    (["pending", "confirmed"] as OrderStatus[]).includes(o.status),
-  ).length,
-  preparing: orderStore.orders.filter((o) =>
-    (["preparing", "ready", "delivered"] as OrderStatus[]).includes(o.status),
-  ).length,
-  completed: orderStore.orders.filter((o) =>
-    (["delivered", "paid"] as OrderStatus[]).includes(o.status),
-  ).length,
-  cancelled: orderStore.orders.filter((o) => o.status === "cancelled").length,
-}));
+const stats = ref({ pending: 0, preparing: 0, completed: 0, cancelled: 0 });
+
+const selectedFulfillmentType = () =>
+  typeFilter.value
+    ? (typeFilter.value as "dine_in" | "takeaway" | "delivery")
+    : undefined;
 
 const filteredOrders = computed(() => {
-  let filtered = [...orderStore.orders] as Order[];
-
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(
-      (order) =>
-        getOrderNumber(order).toLowerCase().includes(query) ||
-        getCustomerName(order).toLowerCase().includes(query),
-    );
-  }
-
-  if (statusFilter.value) {
-    filtered = filtered.filter((order) => order.status === statusFilter.value);
-  }
-
-  if (typeFilter.value) {
-    filtered = filtered.filter(
-      (order) => getOrderType(order) === typeFilter.value,
-    );
-  }
-
-  if (sourceFilter.value) {
-    filtered = filtered.filter(
-      (order) => (order.orderSource || "direct") === sourceFilter.value,
-    );
-  }
-
-  return filtered.sort(
+  return ([...orderStore.orders] as Order[]).sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 });
@@ -750,11 +769,73 @@ const {
 const refreshOrders = async () => {
   isLoading.value = true;
   try {
-    await orderStore.fetchOrders();
+    await orderStore.fetchOrders({
+      page: 1,
+      limit: 20,
+      status: statusFilter.value
+        ? [statusFilter.value as OrderStatus]
+        : undefined,
+      fulfillmentType: selectedFulfillmentType(),
+      orderSource: sourceFilter.value || undefined,
+      search: searchQuery.value.trim() || undefined,
+    });
+    const response = await api.get<{
+      pendingOrders: number;
+      preparingOrders: number;
+      completedOrders: number;
+      cancelledOrders: number;
+    }>("/orders/stats");
+    const data = response.data.data ?? {
+      pendingOrders: 0,
+      preparingOrders: 0,
+      completedOrders: 0,
+      cancelledOrders: 0,
+    };
+    stats.value = {
+      pending: data.pendingOrders ?? 0,
+      preparing: data.preparingOrders ?? 0,
+      completed: data.completedOrders ?? 0,
+      cancelled: data.cancelledOrders ?? 0,
+    };
   } finally {
     isLoading.value = false;
   }
 };
+
+const goToPage = async (page: number) => {
+  await orderStore.fetchOrders({
+    page,
+    limit: orderStore.pagination.limit,
+    status: statusFilter.value
+      ? [statusFilter.value as OrderStatus]
+      : undefined,
+    fulfillmentType: selectedFulfillmentType(),
+    orderSource: sourceFilter.value || undefined,
+    search: searchQuery.value.trim() || undefined,
+  });
+};
+
+const canRefund = (order: Order) =>
+  order.status === "paid" && Boolean(order.paymentTransactionId);
+
+const refundOrder = async (order: Order) => {
+  if (!order.paymentTransactionId) return;
+  try {
+    await api.post("/payments/refund", {
+      transactionId: order.paymentTransactionId,
+      reason: `Refund requested from order ${getOrderNumber(order)}`,
+    });
+    await refreshOrders();
+  } catch (error) {
+    toast.error(
+      error instanceof Error ? error.message : t("orders.refundFailed"),
+    );
+  }
+};
+
+watch([searchQuery, statusFilter, typeFilter, sourceFilter], () => {
+  void refreshOrders();
+});
 
 const viewOrderDetails = (order: Order) => {
   selectedOrder.value = order;
@@ -792,7 +873,13 @@ const cancelOrder = async (order: Order) => {
 };
 
 const canUpdateStatus = (status: string) => {
-  return !["delivered", "cancelled", "paid", "refunded"].includes(status);
+  const nextStatus = getNextStatus(status) as OrderStatus | null;
+  const role = authStore.user?.role;
+  return (
+    nextStatus !== null &&
+    role !== undefined &&
+    Boolean(ROLE_STATUS_PERMISSIONS[role]?.includes(nextStatus))
+  );
 };
 
 const canCancel = (status: string) => {

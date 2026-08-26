@@ -40,7 +40,7 @@
         <div class="flex space-x-2">
           <button
             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            @click="showEditModal = true"
+            @click="editTable"
           >
             {{ t("tableDetail.editTable") }}
           </button>
@@ -112,25 +112,19 @@
       <div class="flex flex-col items-center">
         <div class="p-6 bg-gray-50 rounded-lg">
           <div
-            class="w-64 h-64 bg-white border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center"
+            class="w-64 h-64 bg-white rounded-lg flex items-center justify-center"
           >
-            <div class="text-center">
-              <QRCodeIcon class="mx-auto h-24 w-24 text-gray-400 mb-2" />
+            <div v-if="isTableQrReady" class="text-center">
+              <QRCodeRenderer
+                :content="printableTableQrCode"
+                :size="240"
+                :padding="8"
+              />
               <p class="text-sm text-gray-500">
-                {{
-                  isTableQrReady
-                    ? t("tableDetail.qrCode.preview")
-                    : t("qrReadiness.notReady")
-                }}
+                {{ t("tableDetail.qrCode.preview") }}
               </p>
-              <p
-                v-if="isTableQrReady"
-                class="text-xs text-gray-400 mt-2 break-all px-4"
-              >
+              <p class="text-xs text-gray-400 mt-2 break-all px-4">
                 {{ printableTableQrCode }}
-              </p>
-              <p v-else class="text-xs text-red-600 mt-2 px-4">
-                {{ t("qrReadiness.notReadyDescription") }}
               </p>
               <p
                 v-if="table.pendingQrCode"
@@ -138,6 +132,9 @@
               >
                 {{ t("qrRotation.pending") }}
               </p>
+            </div>
+            <div v-else class="text-center text-red-600">
+              {{ t("qrReadiness.notReadyDescription") }}
             </div>
           </div>
         </div>
@@ -239,10 +236,14 @@ import { useRouter, useRoute } from "vue-router";
 import { api, unwrapApiList, unwrapApiPayload } from "@/services/api";
 import type { Seat } from "@makanmasak/shared-types";
 import { ArrowLeftIcon, XMarkIcon } from "@heroicons/vue/24/outline";
-import QRCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
 import SeatManagement from "../components/tables/SeatManagement.vue";
 import QRModeSelector from "../components/tables/QRModeSelector.vue";
+import QRCodeRenderer from "../components/tables/QRCodeRenderer.vue";
 import { getPrintableQrCode, isQrReady } from "@/utils/qrReadiness";
+import {
+  printQRCodeSheetInWindow,
+  toPrintableDataUrl,
+} from "@/utils/qrPrintSheet";
 
 const { t } = useI18n();
 const toast = useToast();
@@ -269,7 +270,6 @@ const table = ref({
 });
 
 const seats = ref<Seat[]>([]);
-const showEditModal = ref(false);
 const showModeSwitchModal = ref(false);
 
 const newQRMode = ref<"table" | "seat">("table");
@@ -281,6 +281,13 @@ const newSeatConfig = ref({
 // 方法
 const goBack = () => {
   router.push({ name: "SeatingTableSetup" });
+};
+
+const editTable = () => {
+  router.push({
+    name: "SeatingTableSetup",
+    query: { editTable: String(table.value.id) },
+  });
 };
 
 const getStatusBadgeClass = (status: string) => {
@@ -355,45 +362,30 @@ const switchQRMode = async () => {
   }
 };
 
-const downloadQRCode = () => {
+const downloadQRCode = async () => {
   if (!isTableQrReady.value) {
     toast.warning(t("qrReadiness.notReadyDescription"));
     return;
   }
-  // Create a simple text download of the QR code value (the QR image rendering
-  // is handled by the QRCodeRenderer component in the parent list view)
   const link = document.createElement("a");
-  link.download = `QR-${table.value.tableNumber || "table"}.txt`;
-  link.href = `data:text/plain;charset=utf-8,${encodeURIComponent(printableTableQrCode.value)}`;
+  link.download = `QR-${table.value.tableNumber || "table"}.png`;
+  link.href = await toPrintableDataUrl(printableTableQrCode.value);
   link.click();
 };
 
-const printQRCode = () => {
+const printQRCode = async () => {
   if (!isTableQrReady.value) {
     toast.warning(t("qrReadiness.notReadyDescription"));
     return;
   }
 
-  const tableNum = table.value.tableNumber || "";
   const printWindow = window.open("", "_blank");
   if (!printWindow) return;
-
-  const doc = printWindow.document;
-  const style = doc.createElement("style");
-  style.textContent =
-    "body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:system-ui}" +
-    "h2{margin-bottom:16px;font-size:24px}p{font-size:14px;color:#666}";
-  doc.head.appendChild(style);
-
-  const heading = doc.createElement("h2");
-  heading.textContent = t("tableDetail.qrCode.title") + " - " + tableNum;
-  doc.body.appendChild(heading);
-
-  const code = doc.createElement("p");
-  code.textContent = printableTableQrCode.value;
-  doc.body.appendChild(code);
-
-  setTimeout(() => printWindow.print(), 300);
+  const label = `${t("tableDetail.qrCode.title")} - ${table.value.tableNumber}`;
+  const dataUrl = await toPrintableDataUrl(printableTableQrCode.value);
+  if (!printQRCodeSheetInWindow(printWindow, label, [{ label, dataUrl }])) {
+    toast.error(t("tables.alert.printFailed"));
+  }
 };
 
 const regenerateQRCode = async () => {

@@ -39,6 +39,30 @@ export interface DashboardSummary {
   };
 }
 
+export interface DashboardData {
+  summary: DashboardSummary;
+  recentOrders: Array<{
+    id: string;
+    orderNumber: string;
+    status: string;
+    totalAmount: number;
+    customerInfo: unknown;
+    tableNumber: string | null;
+    createdAt: Date | string | number;
+  }>;
+  topSellingItems: Array<{
+    itemId: number;
+    itemName: string;
+    quantity: number;
+    revenue: number;
+  }>;
+  tableStatus: {
+    occupied: number;
+    available: number;
+    total: number;
+  };
+}
+
 export interface DashboardResponse {
   success: boolean;
   data: {
@@ -215,7 +239,7 @@ export interface IAnalyticsService {
   getDashboardData(
     restaurantId?: string,
     period?: string,
-  ): Promise<DashboardSummary>;
+  ): Promise<DashboardData>;
   getRevenueAnalytics(filters: AnalyticsFilters): Promise<RevenueData[]>;
   getProductAnalytics(filters: AnalyticsFilters): Promise<ProductAnalytics>;
   getCustomerAnalytics(filters: AnalyticsFilters): Promise<CustomerAnalytics>;

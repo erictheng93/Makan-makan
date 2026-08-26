@@ -34,12 +34,12 @@
         <span
           :class="[
             'px-2.5 py-1 rounded-full text-[11px] font-semibold backdrop-blur-sm',
-            item.isAvailable
+            isAvailable
               ? 'bg-ios-success/90 text-white'
               : 'bg-ios-error/85 text-white',
           ]"
         >
-          {{ item.isAvailable ? t("menu.available") : t("menu.soldOut") }}
+          {{ isAvailable ? t("menu.available") : t("menu.soldOut") }}
         </span>
       </div>
     </div>
@@ -59,6 +59,13 @@
 
       <p class="text-xs text-[#8E8E93] leading-relaxed line-clamp-2 mb-2.5">
         {{ item.description }}
+      </p>
+      <p
+        v-if="item.inventoryCount != null"
+        data-testid="inventory-count"
+        class="mb-2.5 text-[11px] text-[#8E8E93]"
+      >
+        {{ t("menu.form.inventoryCount") }}: {{ item.inventoryCount }}
       </p>
 
       <!-- Order metrics -->
@@ -133,6 +140,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
 import OptimizedImage from "@/components/OptimizedImage.vue";
@@ -149,11 +157,17 @@ import type { MenuItemData } from "@/composables/useMenuManagement";
 const { t } = useI18n();
 const { formatPrice } = useCurrency();
 
-defineProps<{
+const props = defineProps<{
   item: MenuItemData;
   categoryName?: string;
   highlighted?: boolean;
 }>();
+
+const isAvailable = computed(
+  () =>
+    props.item.isAvailable &&
+    (props.item.inventoryCount == null || props.item.inventoryCount > 0),
+);
 
 defineEmits<{
   edit: [item: MenuItemData];

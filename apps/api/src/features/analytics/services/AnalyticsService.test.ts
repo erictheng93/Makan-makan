@@ -78,6 +78,30 @@ const dashboardSummary = {
   },
 };
 
+const dashboardData = {
+  summary: dashboardSummary,
+  recentOrders: [
+    {
+      id: "order-1",
+      orderNumber: "A-001",
+      status: "paid",
+      totalAmount: 1250,
+      customerInfo: null,
+      tableNumber: "A1",
+      createdAt: new Date("2026-06-07T11:00:00.000Z"),
+    },
+  ],
+  topSellingItems: [
+    {
+      itemId: 7,
+      itemName: "Nasi Lemak",
+      quantity: 4,
+      revenue: 800,
+    },
+  ],
+  tableStatus: { occupied: 2, available: 3, total: 5 },
+};
+
 describe("AnalyticsService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -115,7 +139,7 @@ describe("AnalyticsService", () => {
     };
 
     mocks.cache.get
-      .mockResolvedValueOnce(dashboardSummary)
+      .mockResolvedValueOnce(dashboardData)
       .mockResolvedValueOnce([{ date: "2026-06-07", revenue: 100 }])
       .mockResolvedValueOnce(cachedProduct)
       .mockResolvedValueOnce(cachedCustomer)
@@ -124,7 +148,7 @@ describe("AnalyticsService", () => {
     const service = createService();
 
     await expect(service.getDashboardData("7", "today")).resolves.toEqual(
-      dashboardSummary,
+      dashboardData,
     );
     await expect(
       service.getRevenueAnalytics({ restaurantId: "7" }),
@@ -195,9 +219,7 @@ describe("AnalyticsService", () => {
       popularTimeSlots: [{ hour: 12, orderCount: 3 }],
     };
     mocks.cache.get.mockResolvedValue(null);
-    mocks.databaseService.getDashboardData.mockResolvedValue({
-      summary: dashboardSummary,
-    });
+    mocks.databaseService.getDashboardData.mockResolvedValue(dashboardData);
     mocks.databaseService.getRevenueAnalytics.mockResolvedValue(revenue);
     mocks.databaseService.getMenuAnalytics.mockResolvedValue(product);
     mocks.databaseService.getCustomerAnalytics.mockResolvedValue(customer);
@@ -212,7 +234,7 @@ describe("AnalyticsService", () => {
     };
 
     await expect(service.getDashboardData("7", "week")).resolves.toEqual(
-      dashboardSummary,
+      dashboardData,
     );
     await expect(service.getRevenueAnalytics(filters)).resolves.toEqual(
       revenue,
@@ -235,8 +257,8 @@ describe("AnalyticsService", () => {
       expect.objectContaining({ restaurantId: "7", groupBy: "day" }),
     );
     expect(mocks.cache.set).toHaveBeenCalledWith(
-      "analytics:dashboard:7:week",
-      dashboardSummary,
+      "analytics:dashboard:v2:7:week",
+      dashboardData,
       expect.any(Number),
     );
   });
@@ -263,7 +285,7 @@ describe("AnalyticsService", () => {
 
   it("generates json and csv exports with encoded payload metadata", async () => {
     const service = createService();
-    vi.spyOn(service, "getDashboardData").mockResolvedValue(dashboardSummary);
+    vi.spyOn(service, "getDashboardData").mockResolvedValue(dashboardData);
     vi.spyOn(service, "getRevenueAnalytics").mockResolvedValue([
       {
         // RevenueData has no free-text column, so the quoting case rides on
@@ -306,7 +328,13 @@ describe("AnalyticsService", () => {
         restaurantId: "7",
         generatedAt: "2026-06-07T12:00:00.000Z",
       },
-      data: dashboardSummary,
+      data: {
+        ...dashboardData,
+        recentOrders: dashboardData.recentOrders.map((order) => ({
+          ...order,
+          createdAt: order.createdAt.toISOString(),
+        })),
+      },
     });
     expect(csvExport.data.content_type).toBe("text/csv");
     expect(csvPayload).toContain("date,revenue,orderCount");

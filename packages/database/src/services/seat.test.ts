@@ -74,6 +74,19 @@ describe("SeatService.createSeatsForTable", () => {
     );
   });
 
+  it("allows a replacement batch after every prior seat is soft-deleted", async () => {
+    const service = createService(testDb);
+    await service.createSeatsForTable(tableId, 2);
+    await testDb.drizzle
+      .update(seats)
+      .set({ deletedAt: new Date(), isActive: false })
+      .where(eq(seats.tableId, tableId));
+
+    await expect(service.createSeatsForTable(tableId, 2)).resolves.toHaveLength(
+      2,
+    );
+  });
+
   it("requires one unique custom number per requested seat", async () => {
     const service = createService(testDb);
 

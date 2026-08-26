@@ -33,6 +33,7 @@
           {{ t("cashier.shiftReport") }}
         </button>
         <button
+          data-testid="cashier-open-refund"
           class="px-3 py-2 bg-[#FF9500] text-white rounded-full hover:bg-orange-600 transition-colors text-sm"
           @click="openRefundDialog"
         >
@@ -564,12 +565,21 @@
           </div>
 
           <div class="space-y-4">
+            <div
+              v-if="refundError"
+              data-testid="refund-error"
+              role="alert"
+              class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
+            >
+              {{ refundError }}
+            </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">{{
                 t("cashier.orderNumber")
               }}</label>
               <input
                 v-model="refundData.orderNumber"
+                data-testid="cashier-refund-order-number"
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 :placeholder="t('cashier.enterOrderNumber')"
@@ -586,6 +596,7 @@
                 }}</span>
                 <input
                   v-model.number="refundData.amount"
+                  data-testid="cashier-refund-amount"
                   type="number"
                   step="0.01"
                   min="0"
@@ -647,6 +658,7 @@
               }}</label>
               <select
                 v-model="refundData.reason"
+                data-testid="cashier-refund-reason"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">{{ t("cashier.selectReason") }}</option>
@@ -688,6 +700,7 @@
             </button>
             <button
               :disabled="!canProcessRefund"
+              data-testid="cashier-confirm-refund"
               class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               @click="processRefund"
             >
@@ -1010,6 +1023,7 @@ const refundData = ref({
   refundType: "partial" as "full" | "partial" | "item" | "service",
   refundMethod: "cash",
 });
+const refundError = ref<string | null>(null);
 
 // 付款方式
 const paymentMethods = computed(() => [
@@ -1417,6 +1431,7 @@ const confirmEndShift = async () => {
 
 // 退款相關方法
 const openRefundDialog = () => {
+  refundError.value = null;
   showRefundDialog.value = true;
   refundData.value = {
     orderNumber: "",
@@ -1440,7 +1455,7 @@ const processRefund = async () => {
     await api.post(
       "/pos/refunds/create",
       {
-        originalOrderId: parseInt(refundData.value.orderNumber) || 0,
+        originalOrderId: refundData.value.orderNumber.trim(),
         refundType: refundData.value.refundType,
         refundAmount: refundData.value.amount,
         refundMethod: refundData.value.refundMethod,
@@ -1463,6 +1478,8 @@ const processRefund = async () => {
     closeRefundDialog();
   } catch (error) {
     console.error("Refund processing error:", error);
+    refundError.value =
+      error instanceof Error ? error.message : t("cashier.alerts.refundFailed");
   } finally {
     isProcessing.value = false;
   }

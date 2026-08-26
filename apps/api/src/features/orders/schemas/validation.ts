@@ -212,6 +212,10 @@ export const orderFilterSchema = z.object({
     ])
     .optional(),
   orderType: orderTypeSchema.optional(),
+  orderSource: z
+    .enum(["direct", "market_checkout", "uber_eats", "foodpanda", "grabfood"])
+    .optional(),
+  search: z.string().trim().min(1).max(100).optional(),
   fulfillmentType: fulfillmentTypeSchema.optional(),
   tableId: z.string().regex(/^\d+$/).transform(Number).optional(),
   customerId: z.string().min(1).optional(),

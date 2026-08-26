@@ -94,6 +94,7 @@ const viVN: Messages = {
   optionGroups: {
     usedByItems: "{count} món đang dùng",
     deleteAffects: "Xóa sẽ ảnh hưởng {count} món",
+    deleteChoiceConfirm: "Xóa tùy chọn này? Không thể hoàn tác.",
     title: "Nhóm tùy chọn dùng chung",
     description:
       "Tạo một lần ở đây và áp dụng cho nhiều món. Sửa một lần, mọi món đang dùng đều đổi theo.",
@@ -131,7 +132,7 @@ const viVN: Messages = {
       fetchFailed: "Không tải được nhóm tùy chọn",
       saveFailed: "Lưu thất bại",
       deleteFailed: "Xóa thất bại",
-      publicIdConflict: "Món này đã có nhóm với mã định danh đó",
+      publicIdConflict: "Mã định danh này đã được sử dụng",
     },
   },
   menu: {
@@ -193,6 +194,7 @@ const viVN: Messages = {
       sharedOptionGroups: "Nhóm tùy chọn dùng chung",
       pickOptionGroup: "Chọn nhóm để thêm…",
       noSharedGroupsHint: "Món này chưa dùng nhóm tùy chọn dùng chung nào.",
+      createSharedOptionGroup: "Tạo nhóm tùy chọn đầu tiên",
       hideForThisItem: "Ẩn ở món này",
       inherit: "Kế thừa",
       inheritNoCap: "Kế thừa (không giới hạn)",
@@ -251,7 +253,7 @@ const viVN: Messages = {
       sourceImagesAlt: "Ảnh nguồn thực đơn đã tải lên",
       emptySource: "Tải ảnh lên rồi nhập kết quả hiệu đính ở bên phải.",
       row: "Hàng {number}",
-      priceCents: "Giá (xu)",
+      priceCents: "Giá (đồng)",
       publishing: "Đang xuất bản…",
       publish: "Xuất bản thực đơn có cấu trúc",
       fixFields: "Hãy sửa các trường được đánh dấu trước khi xuất bản.",
@@ -260,7 +262,7 @@ const viVN: Messages = {
       validation: {
         nameRequired: "Tên là bắt buộc.",
         priceRequired: "Giá là bắt buộc.",
-        priceInvalid: "Giá phải là số nguyên không âm tính theo xu.",
+        priceInvalid: "Giá phải là số nguyên không âm tính theo đồng.",
         categoryRequired: "Chọn danh mục.",
         sortOrderRequired: "Thứ tự là bắt buộc.",
         sortOrderInvalid: "Thứ tự phải là số nguyên không âm.",
@@ -411,6 +413,7 @@ const viVN: Messages = {
       view: "Xem",
       update: "Cập nhật",
       cancel: "Hủy",
+      refund: "Hoàn tiền",
     },
     confirms: {
       cancelOrder: "Bạn có chắc muốn hủy đơn hàng {number} không?",
@@ -419,6 +422,7 @@ const viVN: Messages = {
     },
     defaultCustomer: "Khách ẩn danh",
     updateFailed: "Cập nhật trạng thái đơn hàng thất bại",
+    refundFailed: "Hoàn tiền thất bại",
   },
   scheduling: {
     title: "Lịch Làm Việc Nhân Viên",
@@ -1639,6 +1643,7 @@ const viVN: Messages = {
     ownerOverview: "Tổng quan chủ cửa hàng",
     orders: "Quản lý đơn hàng",
     menu: "Quản lý thực đơn",
+    menuOptionGroups: "Nhóm tùy chọn dùng chung",
     tables: "Quản lý bàn",
     reservations: "Quản lý đặt bàn",
     waitingList: "Danh sách chờ",
@@ -2224,6 +2229,11 @@ const viVN: Messages = {
   tables: {
     title: "Quản lý bàn",
     subtitle: "Quản lý bàn và mã QR nhà hàng",
+    totalCount: "Tổng cộng {count} bàn",
+    listTruncated:
+      "Đang hiển thị {limit} bàn đầu tiên; hãy lọc danh sách để quản lý phần còn lại.",
+    modeSwitchWarning:
+      "Chuyển chế độ sẽ xóa các chỗ ngồi hiện có và làm mất hiệu lực nhãn QR đã in.",
     addTable: "Thêm bàn",
     editTable: "Chỉnh sửa bàn",
     batchGenerateQR: "Tạo QR hàng loạt",
@@ -3617,6 +3627,7 @@ const viVN: Messages = {
     seatAdvantage3: "Quản lý ghế chính xác",
     seatConfig: "Cấu hình ghế",
     seatCount: "Số ghế",
+    seatCountManaged: "Dùng quản lý chỗ ngồi để thay đổi số lượng chỗ.",
     willCreate: "Sẽ tạo {count} ghế",
     numberingStyle: "Kiểu đánh số",
     numeric: "Số (01, 02, 03...)",

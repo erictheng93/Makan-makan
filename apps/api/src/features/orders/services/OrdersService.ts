@@ -489,6 +489,7 @@ export class OrdersService implements IOrdersService {
 
       if (
         statusData.status === "delivered" &&
+        userRole !== 1 &&
         order.deliveryAssignedTo !== userId
       ) {
         throw forbidden(
@@ -746,7 +747,14 @@ export class OrdersService implements IOrdersService {
     restaurantId: string,
     _filters?: OrderQueryFilters,
   ): Promise<OrderStats> {
-    return this.getDailyStats(restaurantId, new Date());
+    const baseStats =
+      await this.baseOrderService.getOrderStatistics(restaurantId);
+    return {
+      ...baseStats,
+      readyOrders: 0,
+      averageOrderValue: baseStats.avgOrderValue,
+      averagePreparationTime: 0,
+    };
   }
 
   async getActiveOrders(restaurantId: string): Promise<Order[]> {
@@ -1368,6 +1376,10 @@ export class OrdersService implements IOrdersService {
       customerId: filters.customerId,
       status: filters.status,
       paymentStatus: filters.paymentStatus,
+      orderType: filters.orderType,
+      fulfillmentType: filters.fulfillmentType,
+      orderSource: filters.orderSource,
+      search: filters.search,
       tableId: filters.tableId,
       dateRange:
         filters.dateFrom && filters.dateTo

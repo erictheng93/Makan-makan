@@ -31,13 +31,20 @@
       </div>
     </div>
 
-    <p
+    <div
       v-if="links.length === 0"
       data-testid="no-groups-hint"
       class="rounded-xl bg-white p-4 text-[12px] text-[#8E8E93]"
     >
       {{ t("menu.form.noSharedGroupsHint") }}
-    </p>
+      <RouterLink
+        to="/dashboard/menu/option-groups"
+        data-testid="create-option-group-link"
+        class="ml-1 font-semibold text-ios-primary underline"
+      >
+        {{ t("menu.form.createSharedOptionGroup") }}
+      </RouterLink>
+    </div>
 
     <section
       v-for="(link, index) in links"
@@ -162,6 +169,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { RouterLink } from "vue-router";
 import { useI18n } from "@/i18n";
 import type {
   MenuItemOptionGroupLink,

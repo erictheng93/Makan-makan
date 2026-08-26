@@ -151,9 +151,17 @@
               </button>
               <button
                 type="button"
+                :data-testid="`edit-choice-${choice.id}`"
+                class="rounded-full bg-[#F2F2F7] px-3 py-1.5 text-[12px] font-semibold text-[#1C1C1E]"
+                @click="openEditChoice(group, choice)"
+              >
+                {{ t("common.edit") }}
+              </button>
+              <button
+                type="button"
                 :data-testid="`delete-choice-${choice.id}`"
                 class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
-                @click="deleteChoice(choice.id)"
+                @click="confirmDeleteChoice(choice.id)"
               >
                 {{ t("common.delete") }}
               </button>
@@ -301,7 +309,7 @@
       </form>
     </div>
 
-    <!-- Choice create -->
+    <!-- Choice create / edit -->
     <div
       v-if="showChoiceModal"
       data-testid="choice-modal"
@@ -312,7 +320,7 @@
         @submit.prevent="saveChoice"
       >
         <h3 class="mb-4 text-[17px] font-bold text-[#1C1C1E]">
-          {{ t("menu.form.addChoice") }}
+          {{ editingChoice ? t("common.edit") : t("menu.form.addChoice") }}
         </h3>
         <div class="space-y-3">
           <label class="block text-[13px] font-semibold text-[#1C1C1E]">
@@ -325,7 +333,10 @@
               class="mt-1.5 w-full rounded-xl bg-[#F2F2F7] px-4 py-2.5 text-[14px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
             />
           </label>
-          <label class="block text-[13px] font-semibold text-[#1C1C1E]">
+          <label
+            v-if="!editingChoice"
+            class="block text-[13px] font-semibold text-[#1C1C1E]"
+          >
             {{ t("optionGroups.publicId") }}
             <input
               v-model="choiceForm.publicId"
@@ -395,6 +406,7 @@
 import { onMounted, ref } from "vue";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
+import { useConfirmModal } from "@/composables/useConfirmModal";
 import {
   useOptionGroups,
   type OptionGroupData,
@@ -410,9 +422,11 @@ const {
   updateGroup,
   deleteGroup,
   createChoice,
+  updateChoice,
   deleteChoice,
   setChoiceAvailability,
 } = useOptionGroups();
+const { confirm: confirmModal } = useConfirmModal();
 
 type NumericFormValue = number | "" | null;
 
@@ -430,6 +444,7 @@ const groupForm = ref({
 const showChoiceModal = ref(false);
 const choiceGroupId = ref<string>("");
 const choiceGroupKind = ref<OptionGroupData["kind"]>("choice");
+const editingChoice = ref<string | null>(null);
 const choiceForm = ref({
   name: "",
   publicId: "",
@@ -503,10 +518,20 @@ const saveGroup = async () => {
 };
 
 const confirmDeleteGroup = async (group: OptionGroupData) => {
-  await deleteGroup(group.id);
+  if (
+    await confirmModal({
+      type: "danger",
+      title: t("common.delete"),
+      message: t("optionGroups.deleteAffects", { count: group.usageCount }),
+      confirmLabel: t("common.delete"),
+    })
+  ) {
+    await deleteGroup(group.id);
+  }
 };
 
 const openCreateChoice = (group: OptionGroupData) => {
+  editingChoice.value = null;
   choiceGroupId.value = group.id;
   choiceGroupKind.value = group.kind;
   choiceForm.value = {
@@ -519,10 +544,26 @@ const openCreateChoice = (group: OptionGroupData) => {
   showChoiceModal.value = true;
 };
 
+const openEditChoice = (
+  group: OptionGroupData,
+  choice: OptionGroupData["choices"][number],
+) => {
+  editingChoice.value = choice.id;
+  choiceGroupId.value = group.id;
+  choiceGroupKind.value = group.kind;
+  choiceForm.value = {
+    name: choice.name,
+    publicId: choice.publicId,
+    priceAdjustment: choice.priceAdjustment,
+    maxQuantity: choice.maxQuantity,
+    isDefault: choice.isDefault,
+  };
+  showChoiceModal.value = true;
+};
+
 const saveChoice = async () => {
   const form = choiceForm.value;
-  const ok = await createChoice(choiceGroupId.value, {
-    publicId: form.publicId,
+  const input = {
     name: form.name,
     priceAdjustment: numberOrZero(form.priceAdjustment),
     isDefault: form.isDefault,
@@ -531,8 +572,27 @@ const saveChoice = async () => {
       choiceGroupKind.value === "addon"
         ? nullableCount(form.maxQuantity)
         : null,
-  });
+  };
+  const ok = editingChoice.value
+    ? await updateChoice(editingChoice.value, input)
+    : await createChoice(choiceGroupId.value, {
+        publicId: form.publicId,
+        ...input,
+      });
   if (ok) showChoiceModal.value = false;
+};
+
+const confirmDeleteChoice = async (choiceId: string) => {
+  if (
+    await confirmModal({
+      type: "danger",
+      title: t("common.delete"),
+      message: t("optionGroups.deleteChoiceConfirm"),
+      confirmLabel: t("common.delete"),
+    })
+  ) {
+    await deleteChoice(choiceId);
+  }
 };
 
 onMounted(fetchGroups);

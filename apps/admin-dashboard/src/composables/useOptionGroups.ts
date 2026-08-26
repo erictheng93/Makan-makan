@@ -150,7 +150,8 @@ export function useOptionGroups() {
       console.error(failureKey, error);
       const code = getApiErrorCode(error);
       toast.error(
-        code === "OPTION_GROUP_PUBLIC_ID_CONFLICT"
+        code === "OPTION_GROUP_PUBLIC_ID_CONFLICT" ||
+          code === "OPTION_CHOICE_PUBLIC_ID_CONFLICT"
           ? t("optionGroups.errors.publicIdConflict")
           : t(failureKey),
       );
@@ -297,7 +298,8 @@ export function useOptionGroups() {
       console.error("Failed to save item option groups:", error);
       const code = getApiErrorCode(error);
       toast.error(
-        code === "OPTION_GROUP_PUBLIC_ID_CONFLICT"
+        code === "OPTION_GROUP_PUBLIC_ID_CONFLICT" ||
+          code === "OPTION_CHOICE_PUBLIC_ID_CONFLICT"
           ? t("optionGroups.errors.publicIdConflict")
           : t("optionGroups.errors.saveFailed"),
       );

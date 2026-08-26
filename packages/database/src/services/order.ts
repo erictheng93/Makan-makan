@@ -10,6 +10,8 @@ import {
   lte,
   inArray,
   isNull,
+  like,
+  or,
 } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { BaseService } from "./base";
@@ -103,6 +105,15 @@ export interface OrderFilters {
   customerId?: string;
   status?: string | string[];
   paymentStatus?: string | string[];
+  orderType?: "shop" | "table" | "seat";
+  fulfillmentType?: "dine_in" | "takeaway" | "delivery";
+  orderSource?:
+    | "direct"
+    | "market_checkout"
+    | "uber_eats"
+    | "foodpanda"
+    | "grabfood";
+  search?: string;
   dateRange?: [Date, Date];
   minAmount?: number;
   maxAmount?: number;
@@ -1180,6 +1191,45 @@ export class OrderService extends BaseService {
         conditions.push(eq(orders.customerId, filters.customerId));
       }
 
+      if (filters.orderType) {
+        conditions.push(eq(orders.orderType, filters.orderType));
+      }
+
+      if (filters.fulfillmentType === "delivery") {
+        conditions.push(
+          sql`json_extract(${orders.deliveryInfo}, '$.type') = 'delivery'`,
+        );
+      } else if (filters.fulfillmentType === "takeaway") {
+        conditions.push(
+          or(
+            sql`json_extract(${orders.deliveryInfo}, '$.type') = 'takeaway'`,
+            eq(orders.orderType, "shop"),
+          ),
+        );
+      } else if (filters.fulfillmentType === "dine_in") {
+        conditions.push(
+          or(
+            sql`json_extract(${orders.deliveryInfo}, '$.type') = 'dine_in'`,
+            inArray(orders.orderType, ["table", "seat"]),
+          ),
+        );
+      }
+
+      if (filters.orderSource) {
+        conditions.push(eq(orders.orderSource, filters.orderSource));
+      }
+
+      if (filters.search) {
+        const pattern = `%${filters.search}%`;
+        conditions.push(
+          or(
+            like(orders.orderNumber, pattern),
+            like(orders.notes, pattern),
+            sql`json_extract(${orders.customerInfo}, '$.name') LIKE ${pattern}`,
+          ),
+        );
+      }
+
       if (filters.status !== undefined && filters.status !== null) {
         if (Array.isArray(filters.status)) {
           // Handle status array with inArray
@@ -1436,6 +1486,37 @@ export class OrderService extends BaseService {
   }
 
   // 獲取餐廳當日訂單統計
+  async getOrderStatistics(restaurantId: string) {
+    try {
+      const stats = await this.db
+        .select({
+          totalOrders: count(),
+          totalRevenue: sql<number>`COALESCE(SUM(COALESCE(${orders.totalAmountCents}, 0)) / 100.0, 0)`,
+          avgOrderValue: sql<number>`COALESCE(AVG(COALESCE(${orders.totalAmountCents}, 0)) / 100.0, 0)`,
+          pendingOrders: sql<number>`SUM(CASE WHEN ${orders.status} = 'pending' THEN 1 ELSE 0 END)`,
+          preparingOrders: sql<number>`SUM(CASE WHEN ${orders.status} IN ('confirmed', 'preparing', 'ready') THEN 1 ELSE 0 END)`,
+          completedOrders: sql<number>`SUM(CASE WHEN ${orders.status} IN ('delivered', 'paid') THEN 1 ELSE 0 END)`,
+          cancelledOrders: sql<number>`SUM(CASE WHEN ${orders.status} = 'cancelled' THEN 1 ELSE 0 END)`,
+        })
+        .from(orders)
+        .where(eq(orders.restaurantId, restaurantId));
+
+      return (
+        stats[0] ?? {
+          totalOrders: 0,
+          totalRevenue: 0,
+          avgOrderValue: 0,
+          pendingOrders: 0,
+          preparingOrders: 0,
+          completedOrders: 0,
+          cancelledOrders: 0,
+        }
+      );
+    } catch (error) {
+      this.handleError(error, "getOrderStatistics");
+    }
+  }
+
   async getDailyOrderStats(restaurantId: string, date: Date = new Date()) {
     try {
       const startOfDay = new Date(date);
@@ -1700,6 +1781,7 @@ export class OrderService extends BaseService {
       cancelledAt: toMillis(order.cancelledAt),
       paymentMethod: toOrderPaymentMethod(order.paymentMethod),
       paymentStatus: toOrderPaymentStatus(order.paymentStatus),
+      paymentTransactionId: order.paymentTransactionId ?? undefined,
       rating: order.rating ?? undefined,
       reviewComment: order.reviewComment ?? undefined,
       notes: order.notes ?? undefined,

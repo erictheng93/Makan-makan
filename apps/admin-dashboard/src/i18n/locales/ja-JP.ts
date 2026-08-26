@@ -94,6 +94,7 @@ const jaJP: Messages = {
   optionGroups: {
     usedByItems: "{count} 件の商品で使用中",
     deleteAffects: "削除すると {count} 件の商品に影響します",
+    deleteChoiceConfirm: "この選択肢を削除しますか？元に戻せません。",
     title: "共有オプショングループ",
     description:
       "ここで一度作成し、複数の商品に適用します。編集すると使用中の商品すべてに反映されます。",
@@ -130,7 +131,7 @@ const jaJP: Messages = {
       fetchFailed: "オプショングループを読み込めません",
       saveFailed: "保存に失敗しました",
       deleteFailed: "削除に失敗しました",
-      publicIdConflict: "この商品には同じ識別子のグループが既にあります",
+      publicIdConflict: "この識別子は既に使用されています",
     },
   },
   menu: {
@@ -193,6 +194,7 @@ const jaJP: Messages = {
       pickOptionGroup: "追加するグループを選択…",
       noSharedGroupsHint:
         "この商品にはまだ共有オプショングループがありません。",
+      createSharedOptionGroup: "最初のオプショングループを作成",
       hideForThisItem: "この商品では非表示",
       inherit: "継承",
       inheritNoCap: "継承（無制限）",
@@ -251,7 +253,7 @@ const jaJP: Messages = {
       sourceImagesAlt: "アップロードしたメニュー画像",
       emptySource: "画像をアップロードしてから右側で内容を入力します。",
       row: "{number} 行目",
-      priceCents: "価格（セント）",
+      priceCents: "価格（元）",
       publishing: "公開中…",
       publish: "構造化メニューを公開",
       fixFields: "強調表示された項目を修正してください。",
@@ -260,7 +262,7 @@ const jaJP: Messages = {
       validation: {
         nameRequired: "名前は必須です。",
         priceRequired: "価格は必須です。",
-        priceInvalid: "価格は 0 以上の整数で指定してください。",
+        priceInvalid: "価格は 0 以上の整数（元）で指定してください。",
         categoryRequired: "カテゴリを選択してください。",
         sortOrderRequired: "表示順は必須です。",
         sortOrderInvalid: "表示順は 0 以上の整数で指定してください。",
@@ -411,6 +413,7 @@ const jaJP: Messages = {
       view: "表示",
       update: "更新",
       cancel: "キャンセル",
+      refund: "返金",
     },
     confirms: {
       cancelOrder: "注文 {number} をキャンセルしてもよろしいですか？",
@@ -419,6 +422,7 @@ const jaJP: Messages = {
     },
     defaultCustomer: "匿名のお客様",
     updateFailed: "注文ステータスの更新に失敗しました",
+    refundFailed: "返金に失敗しました",
   },
   scheduling: {
     title: "従業員シフト",
@@ -1636,6 +1640,7 @@ const jaJP: Messages = {
     ownerOverview: "オーナー概要",
     orders: "注文管理",
     menu: "メニュー管理",
+    menuOptionGroups: "共有オプショングループ",
     tables: "テーブル管理",
     reservations: "予約管理",
     waitingList: "ウェイティングリスト",
@@ -2221,6 +2226,11 @@ const jaJP: Messages = {
   tables: {
     title: "テーブル管理",
     subtitle: "レストランのテーブルとQRコードを管理",
+    totalCount: "全{count}卓",
+    listTruncated:
+      "先頭の{limit}卓を表示しています。残りを管理するには絞り込んでください。",
+    modeSwitchWarning:
+      "モードを切り替えると既存の座席が削除され、印刷済みの座席QRラベルは無効になります。",
     addTable: "テーブル追加",
     editTable: "テーブル編集",
     batchGenerateQR: "QR一括生成",
@@ -3621,6 +3631,7 @@ const jaJP: Messages = {
     seatAdvantage3: "正確な座席管理",
     seatConfig: "座席設定",
     seatCount: "座席数",
+    seatCountManaged: "座席数の変更は座席管理から行ってください。",
     willCreate: "{count}席を作成します",
     numberingStyle: "番号方式",
     numeric: "数字 (01, 02, 03...)",

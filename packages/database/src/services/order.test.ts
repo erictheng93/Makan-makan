@@ -628,6 +628,27 @@ describe("OrderService order pricing", () => {
     expect(result.orders.map((order) => order.id)).toEqual([pendingOrder.id]);
     expect(result.pagination.total).toBe(1);
   });
+
+  it("searches the complete order set by customer name", async () => {
+    const service = new OrderService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const adaOrder = await service.createOrder({
+      restaurantId,
+      customerInfo: { name: "Ada Lovelace" },
+      items: [{ menuItemId, quantity: 1 }],
+    });
+    await service.createOrder({
+      restaurantId,
+      customerInfo: { name: "Grace Hopper" },
+      items: [{ menuItemId, quantity: 1 }],
+    });
+
+    const result = await service.getOrders({ restaurantId, search: "Ada" });
+
+    expect(result.orders.map((order) => order.id)).toEqual([adaOrder.id]);
+    expect(result.pagination.total).toBe(1);
+  });
 });
 
 const INJECTED_FAILURE = "injected D1 failure";

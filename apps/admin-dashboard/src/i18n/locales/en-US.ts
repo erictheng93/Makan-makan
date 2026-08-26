@@ -95,6 +95,7 @@ const enUS: Messages = {
   optionGroups: {
     usedByItems: "used by {count} dishes",
     deleteAffects: "Deleting affects {count} dishes",
+    deleteChoiceConfirm: "Delete this option? This cannot be undone.",
     title: "Shared option groups",
     description:
       "Build once here and apply to many dishes. Editing one updates every dish that uses it.",
@@ -131,7 +132,7 @@ const enUS: Messages = {
       fetchFailed: "Could not load option groups",
       saveFailed: "Save failed",
       deleteFailed: "Delete failed",
-      publicIdConflict: "This dish already offers a group with that identifier",
+      publicIdConflict: "That identifier is already in use",
     },
   },
   menu: {
@@ -202,6 +203,7 @@ const enUS: Messages = {
       pickOptionGroup: "Pick a group to add…",
       noSharedGroupsHint:
         "This dish does not offer any shared option group yet.",
+      createSharedOptionGroup: "Create your first option group",
       hideForThisItem: "Hide here",
       inherit: "Inherit",
       inheritNoCap: "Inherit (no cap)",
@@ -253,7 +255,7 @@ const enUS: Messages = {
       sourceImagesAlt: "Uploaded menu source image",
       emptySource: "Upload images, then enter the corrected menu on the right.",
       row: "Row {number}",
-      priceCents: "Price (cents)",
+      priceCents: "Price",
       publishing: "Publishing…",
       publish: "Publish structured menu",
       fixFields: "Correct the highlighted fields before publishing.",
@@ -262,7 +264,7 @@ const enUS: Messages = {
       validation: {
         nameRequired: "Name is required.",
         priceRequired: "Price is required.",
-        priceInvalid: "Price must be a non-negative integer in cents.",
+        priceInvalid: "Price must be a non-negative whole amount.",
         categoryRequired: "Select a category.",
         sortOrderRequired: "Sort order is required.",
         sortOrderInvalid: "Sort order must be a non-negative integer.",
@@ -413,6 +415,7 @@ const enUS: Messages = {
       view: "View",
       update: "Update",
       cancel: "Cancel",
+      refund: "Refund",
     },
     confirms: {
       cancelOrder: "Are you sure you want to cancel order {number}?",
@@ -421,10 +424,16 @@ const enUS: Messages = {
     },
     defaultCustomer: "Anonymous",
     updateFailed: "Failed to update order status",
+    refundFailed: "Refund failed",
   },
   tables: {
     title: "Table Management",
     subtitle: "Manage restaurant tables and QR codes",
+    totalCount: "{count} tables total",
+    listTruncated:
+      "Showing the first {limit} tables; narrow the list to manage the rest.",
+    modeSwitchWarning:
+      "Switching modes deletes existing seats and invalidates printed seat QR labels.",
     addTable: "Add Table",
     editTable: "Edit Table",
     batchGenerateQR: "Batch Generate QR",
@@ -1731,6 +1740,7 @@ const enUS: Messages = {
     ownerOverview: "Owner Overview",
     orders: "Orders",
     menu: "Menu",
+    menuOptionGroups: "Shared Option Groups",
     tables: "Tables",
     reservations: "Reservations",
     waitingList: "Waiting List",
@@ -3615,6 +3625,7 @@ const enUS: Messages = {
     seatAdvantage3: "Precise seat management",
     seatConfig: "Seat Configuration",
     seatCount: "Seat Count",
+    seatCountManaged: "Use seat management to change the seat count.",
     willCreate: "Will create {count} seats",
     numberingStyle: "Numbering Style",
     numeric: "Numeric (01, 02, 03...)",

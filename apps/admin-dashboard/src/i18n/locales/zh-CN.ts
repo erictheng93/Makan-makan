@@ -92,6 +92,7 @@ const zhCN: Messages = {
   optionGroups: {
     usedByItems: "{count} 个菜品使用中",
     deleteAffects: "删除会影响 {count} 个菜品",
+    deleteChoiceConfirm: "确定要删除此选项吗？此操作无法恢复。",
     title: "共用选项组",
     description:
       "在这里建立一次，套用到多个菜品。改一次，所有引用的菜品一起变。",
@@ -127,7 +128,7 @@ const zhCN: Messages = {
       fetchFailed: "无法载入选项组",
       saveFailed: "储存失败",
       deleteFailed: "删除失败",
-      publicIdConflict: "这个菜品已经有相同识别码的选项组",
+      publicIdConflict: "此识别码已被使用",
     },
   },
   menu: {
@@ -189,6 +190,7 @@ const zhCN: Messages = {
       sharedOptionGroups: "共用选项组",
       pickOptionGroup: "选择要加入的分组…",
       noSharedGroupsHint: "这个菜品还没有挂任何共用选项组。",
+      createSharedOptionGroup: "创建第一个选项组",
       hideForThisItem: "本菜不供应",
       inherit: "继承",
       inheritNoCap: "继承（不限）",
@@ -247,7 +249,7 @@ const zhCN: Messages = {
       sourceImagesAlt: "上传的菜单来源图片",
       emptySource: "上传图片后，在右侧输入校对结果。",
       row: "第 {number} 行",
-      priceCents: "价格（分）",
+      priceCents: "价格（元）",
       publishing: "发布中…",
       publish: "发布结构化菜单",
       fixFields: "请修正标示的字段后再发布。",
@@ -256,7 +258,7 @@ const zhCN: Messages = {
       validation: {
         nameRequired: "名称必填。",
         priceRequired: "价格必填。",
-        priceInvalid: "价格必须是 0 以上整数分。",
+        priceInvalid: "价格必须是 0 以上整数元。",
         categoryRequired: "请选择分类。",
         sortOrderRequired: "排序必填。",
         sortOrderInvalid: "排序必须是 0 以上整数。",
@@ -405,6 +407,7 @@ const zhCN: Messages = {
       view: "查看",
       update: "更新",
       cancel: "取消",
+      refund: "退款",
     },
     confirms: {
       cancelOrder: "确定要取消订单 {number} 吗？",
@@ -413,6 +416,7 @@ const zhCN: Messages = {
     },
     defaultCustomer: "匿名客户",
     updateFailed: "订单状态更新失败",
+    refundFailed: "退款失败",
   },
   scheduling: {
     title: "员工排班",
@@ -1614,6 +1618,7 @@ const zhCN: Messages = {
     ownerOverview: "店主总览",
     orders: "订单管理",
     menu: "菜单管理",
+    menuOptionGroups: "共用选项组",
     tables: "桌台管理",
     reservations: "预订管理",
     waitingList: "候位列表",
@@ -2189,6 +2194,9 @@ const zhCN: Messages = {
   tables: {
     title: "桌台管理",
     subtitle: "管理餐厅桌台与 QR 码",
+    totalCount: "共 {count} 张桌台",
+    listTruncated: "目前显示前 {limit} 张桌台，请缩小筛选范围以管理其余桌台。",
+    modeSwitchWarning: "切换模式会删除现有座位，并使已打印的座位 QR 标签失效。",
     addTable: "新增桌台",
     editTable: "编辑桌台",
     batchGenerateQR: "批量生成 QR 码",
@@ -3555,6 +3563,7 @@ const zhCN: Messages = {
     seatAdvantage3: "精确座位管理",
     seatConfig: "座位配置",
     seatCount: "座位数量",
+    seatCountManaged: "请通过座位管理调整座位数。",
     willCreate: "将创建 {count} 个座位",
     numberingStyle: "编号风格",
     numeric: "数字 (01, 02, 03...)",

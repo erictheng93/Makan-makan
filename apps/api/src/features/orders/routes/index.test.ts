@@ -290,6 +290,10 @@ describe("orders routes", () => {
         restaurantId: "restaurant-1",
         tableId: 3,
         customerId: "customer-42",
+        customerInfo: expect.objectContaining({
+          name: "Dana",
+          phone: "0912345678",
+        }),
         items: [
           expect.objectContaining({
             menuItemId: 7,
@@ -502,6 +506,57 @@ describe("orders routes", () => {
       "restaurant-2",
     );
   });
+
+  it("forwards list pagination, search, and filters to the orders service", async () => {
+    serviceMocks.getOrders.mockResolvedValue({
+      orders: [],
+      pagination: { page: 2, limit: 20, total: 21, totalPages: 2 },
+    });
+
+    const response = await routes.fetch(
+      new Request(
+        "https://orders.test/?page=2&limit=20&search=ORD-21&status=paid&orderType=shop&orderSource=direct",
+      ),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(serviceMocks.getOrders).toHaveBeenCalledWith(
+      expect.objectContaining({
+        page: 2,
+        limit: 20,
+        search: "ORD-21",
+        status: ["paid"],
+        orderType: "shop",
+        orderSource: "direct",
+      }),
+      "user-42",
+      1,
+      expect.any(Object),
+    );
+  });
+
+  it.each(["confirmed", "preparing", "ready", "delivered"])(
+    "lets an owner advance an order to %s in their own restaurant",
+    async (status) => {
+      serviceMocks.getOrder.mockResolvedValue({
+        id: "order-1",
+        restaurantId: "restaurant-1",
+      });
+      serviceMocks.updateOrderStatus.mockResolvedValue({
+        id: "order-1",
+        restaurantId: "restaurant-1",
+        status,
+      });
+
+      const response = await routes.fetch(
+        jsonRequest("/order-1/status", { status }, "PUT"),
+        createEnv() as never,
+      );
+
+      expect(response.status).toBe(200);
+    },
+  );
 
   it("requires a restaurant scope for admin statistics and active orders", async () => {
     authState.user = { id: "user-1", role: 0, restaurantId: null };

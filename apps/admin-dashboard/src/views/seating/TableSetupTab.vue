@@ -97,6 +97,15 @@
           <option value="8">{{ t("tables.filter.seats8plus") }}</option>
         </select>
       </div>
+      <p class="mt-3 text-sm text-[#1C1C1E]/60" role="status">
+        {{ t("tables.totalCount", { count: tablePagination.total }) }}
+        <span
+          v-if="tablePagination.total > TABLE_FETCH_LIMIT"
+          class="ml-2 text-[#D70015]"
+        >
+          {{ t("tables.listTruncated", { limit: TABLE_FETCH_LIMIT }) }}
+        </span>
+      </p>
     </div>
 
     <!-- Tables Grid -->
@@ -426,9 +435,6 @@
                     <option value="occupied">
                       {{ t("tables.status.occupied") }}
                     </option>
-                    <option value="reserved">
-                      {{ t("tables.status.reserved") }}
-                    </option>
                     <option value="maintenance">
                       {{ t("tables.status.maintenance") }}
                     </option>
@@ -442,6 +448,13 @@
                   v-model="tableForm.qrMode"
                   v-model:seat-config="tableForm.seatConfig"
                   :max-seat-count="tableForm.capacity"
+                  :seat-count-read-only="
+                    Boolean(
+                      editingTable &&
+                      editingTable.qrMode === 'seat' &&
+                      tableForm.qrMode === 'seat',
+                    )
+                  "
                 />
               </div>
 
@@ -551,7 +564,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
@@ -589,6 +602,7 @@ const toast = useToast();
 const { confirm: confirmModal } = useConfirmModal();
 const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 const qrModalRef = ref<InstanceType<typeof QRCodeRenderer> | null>(null);
 
 const searchQuery = ref("");
@@ -597,7 +611,7 @@ const capacityFilter = ref("");
 const showTableModal = ref(false);
 const showQRModal = ref(false);
 
-type TableStatus = "available" | "occupied" | "reserved" | "maintenance";
+type TableStatus = "available" | "occupied" | "maintenance";
 type QRMode = "table" | "seat";
 type SeatNumberingStyle = "numeric" | "alphabetic";
 
@@ -661,6 +675,14 @@ const mapTable = (t: ApiTable): TableViewModel => ({
 });
 
 const tables = ref<TableViewModel[]>([]);
+const TABLE_FETCH_LIMIT = 100;
+const tablePagination = ref({
+  page: 1,
+  limit: TABLE_FETCH_LIMIT,
+  total: 0,
+  totalPages: 0,
+});
+const handledRouteEditId = ref<number | null>(null);
 
 const defaultTableForm = () => ({
   tableNumber: "",
@@ -680,7 +702,13 @@ const tableForm = ref(defaultTableForm());
 watch(
   () => tableForm.value.capacity,
   (capacity) => {
-    if (tableForm.value.seatConfig.count > capacity) {
+    if (
+      !(
+        editingTable.value?.qrMode === "seat" &&
+        tableForm.value.qrMode === "seat"
+      ) &&
+      tableForm.value.seatConfig.count > capacity
+    ) {
       tableForm.value.seatConfig.count = capacity;
     }
   },
@@ -1037,10 +1065,6 @@ const changeTableStatus = async (table: TableViewModel) => {
       await api.post(`/tables/${table.id}/occupy`, { occupiedBy: "manual" });
     } else if (table.status === "maintenance") {
       await api.put(`/tables/${table.id}`, { isActive: true });
-    } else if (table.status === "reserved") {
-      await api.post(`/tables/${table.id}/occupy`, {
-        occupiedBy: "reservation",
-      });
     }
     await fetchTables();
   } catch (error) {
@@ -1063,20 +1087,38 @@ const saveTable = async () => {
   const isEdit = Boolean(editingTable.value);
 
   try {
+    const isExistingSeatMode =
+      editingTable.value?.qrMode === "seat" &&
+      tableForm.value.qrMode === "seat";
+    const isModeSwitch =
+      editingTable.value &&
+      editingTable.value.qrMode !== tableForm.value.qrMode;
+    if (isModeSwitch) {
+      const confirmed = await confirmModal({
+        type: "warning",
+        title: t("tableDetail.confirm.switchModeTitle"),
+        message: t("tables.modeSwitchWarning"),
+        confirmLabel: t("tableDetail.confirm.switchModeAction"),
+      });
+      if (!confirmed) return;
+    }
     if (editingTable.value) {
-      await api.put(`/tables/${editingTable.value.id}`, {
+      const payload = {
         number: tableForm.value.tableNumber,
         name: tableForm.value.tableName || undefined,
         capacity: tableForm.value.capacity,
         location: tableForm.value.location || undefined,
         isActive: tableForm.value.status !== "maintenance",
         qrMode: tableForm.value.qrMode,
-        seatCount:
+        seatNumberingStyle: tableForm.value.seatConfig.numberingStyle,
+      } as Record<string, unknown>;
+      if (!isExistingSeatMode) {
+        payload.seatCount =
           tableForm.value.qrMode === "seat"
             ? tableForm.value.seatConfig.count
-            : 0,
-        seatNumberingStyle: tableForm.value.seatConfig.numberingStyle,
-      });
+            : 0;
+      }
+      await api.put(`/tables/${editingTable.value.id}`, payload);
     } else {
       await api.post("/tables", {
         restaurantId,
@@ -1194,15 +1236,36 @@ const fetchTables = async () => {
   if (!restaurantId) return;
 
   try {
-    const response = await api.get("/tables", { restaurantId });
+    const response = await api.get("/tables", {
+      restaurantId,
+      limit: TABLE_FETCH_LIMIT,
+    });
     if (response.data.success && response.data.data) {
       tables.value = unwrapApiList<ApiTable>(response.data.data).map(mapTable);
+      tablePagination.value = response.data.pagination ?? {
+        page: 1,
+        limit: TABLE_FETCH_LIMIT,
+        total: tables.value.length,
+        totalPages: 1,
+      };
       // A selected id whose table has since been deleted would print a QR that
       // no longer resolves, so drop anything the server no longer returns.
       const liveIds = new Set(tables.value.map((table) => table.id));
       selectedTableIds.value = selectedTableIds.value.filter((id) =>
         liveIds.has(id),
       );
+      const editId = Number(route.query.editTable);
+      if (
+        editId &&
+        handledRouteEditId.value !== editId &&
+        !showTableModal.value
+      ) {
+        const tableToEdit = tables.value.find((table) => table.id === editId);
+        if (tableToEdit) {
+          handledRouteEditId.value = editId;
+          editTable(tableToEdit);
+        }
+      }
     }
   } catch (error) {
     console.error("Failed to fetch tables:", error);

@@ -180,6 +180,32 @@ describe("POS refund routes", () => {
     });
   });
 
+  it("allows a cashier to create a refund for their restaurant", async () => {
+    mocks.user = {
+      id: "cashier-10",
+      username: "cashier",
+      role: 4,
+      restaurantId: "restaurant-1",
+    };
+
+    const response = await request("/create", {
+      method: "POST",
+      body: JSON.stringify(refundPayload()),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Register-Id": registerId,
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(mocks.refundService.processRefund).toHaveBeenCalledWith(
+      expect.any(Object),
+      registerId,
+      "cashier-10",
+      undefined,
+    );
+  });
+
   it("creates refunds for public order ids after route-level resolution", async () => {
     const response = await request("/create", {
       method: "POST",

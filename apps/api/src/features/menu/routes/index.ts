@@ -106,9 +106,21 @@ function assertUserCanAccessRestaurantResource(
 function mapOptionGroupMutationError(error: unknown): never {
   if (error instanceof Error) {
     if (
-      error.message.includes("already offers an option group with public id")
+      error.message.includes("already offers an option group with public id") ||
+      error.message.includes("Option group public id already exists") ||
+      error.message.includes(
+        "option_groups.restaurant_id, option_groups.public_id",
+      )
     ) {
       throw conflict(error.message, "OPTION_GROUP_PUBLIC_ID_CONFLICT");
+    }
+    if (
+      error.message.includes("Option choice public id already exists") ||
+      error.message.includes(
+        "option_choices.group_id, option_choices.public_id",
+      )
+    ) {
+      throw conflict(error.message, "OPTION_CHOICE_PUBLIC_ID_CONFLICT");
     }
     if (
       error.message.includes("Option group not found") ||
@@ -331,17 +343,22 @@ app.post(
     const data = c.get("validatedBody");
     const service = new MenuService(c.env);
 
-    const group = await service.createOptionGroup({
-      id: generateUUID(),
-      restaurantId,
-      publicId: data.publicId,
-      kind: data.kind,
-      name: data.name,
-      type: data.type,
-      required: data.required ?? false,
-      maxSelections: data.maxSelections,
-      sortOrder: data.sortOrder ?? 0,
-    });
+    let group;
+    try {
+      group = await service.createOptionGroup({
+        id: generateUUID(),
+        restaurantId,
+        publicId: data.publicId,
+        kind: data.kind,
+        name: data.name,
+        type: data.type,
+        required: data.required ?? false,
+        maxSelections: data.maxSelections,
+        sortOrder: data.sortOrder ?? 0,
+      });
+    } catch (error) {
+      mapOptionGroupMutationError(error);
+    }
 
     return c.json(
       createSuccessResponse(group, "Option group created successfully"),
@@ -429,20 +446,25 @@ app.post(
     }
     assertUserCanAccessRestaurantResource(user, existingGroup.restaurantId);
 
-    const choice = await service.createOptionChoice({
-      id: generateUUID(),
-      groupId,
-      publicId: data.publicId,
-      name: data.name,
-      priceAdjustmentCents:
-        data.priceAdjustment === undefined
-          ? 0
-          : toRequiredCents(data.priceAdjustment),
-      isDefault: data.isDefault ?? false,
-      isAvailable: data.isAvailable ?? true,
-      maxQuantity: data.maxQuantity,
-      sortOrder: data.sortOrder ?? 0,
-    });
+    let choice;
+    try {
+      choice = await service.createOptionChoice({
+        id: generateUUID(),
+        groupId,
+        publicId: data.publicId,
+        name: data.name,
+        priceAdjustmentCents:
+          data.priceAdjustment === undefined
+            ? 0
+            : toRequiredCents(data.priceAdjustment),
+        isDefault: data.isDefault ?? false,
+        isAvailable: data.isAvailable ?? true,
+        maxQuantity: data.maxQuantity,
+        sortOrder: data.sortOrder ?? 0,
+      });
+    } catch (error) {
+      mapOptionGroupMutationError(error);
+    }
 
     return c.json(
       createSuccessResponse(choice, "Option choice created successfully"),

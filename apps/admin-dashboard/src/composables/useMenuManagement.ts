@@ -179,8 +179,8 @@ export function useMenuManagement() {
       isVisible?: boolean;
     },
     editingId?: number,
-  ) => {
-    if (!authStore.restaurantId) return;
+  ): Promise<boolean> => {
+    if (!authStore.restaurantId) return false;
     try {
       if (editingId) {
         // isVisible is update-only in the API contract (createCategorySchema
@@ -197,6 +197,7 @@ export function useMenuManagement() {
         toast.success(t("menu.toast.categoryCreated"));
       }
       await fetchMenu();
+      return true;
     } catch (error: unknown) {
       console.error("Failed to save category:", error);
       toast.error(
@@ -204,6 +205,7 @@ export function useMenuManagement() {
           fallbackKey: "menu.errors.saveFailed",
         }).message,
       );
+      return false;
     }
   };
 

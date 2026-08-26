@@ -5,6 +5,7 @@
  */
 
 import { TableService } from "@makanmasak/database";
+import { ApiError } from "../../../shared/utils/api-error";
 import type { D1Database } from "@cloudflare/workers-types";
 import type { Env } from "../../../types/env";
 import type {
@@ -116,6 +117,16 @@ export class TablesService {
       return updatedTable;
     } catch (error) {
       this.logError("updateTable", error);
+      if (
+        error instanceof Error &&
+        error.message.includes("Change the seat count through seat management")
+      ) {
+        throw new ApiError(
+          "SEAT_COUNT_VIA_SEAT_MANAGEMENT",
+          "Change the seat count through seat management",
+          409,
+        );
+      }
       throw new Error(
         this.formatOperationError("Failed to update table", error),
       );

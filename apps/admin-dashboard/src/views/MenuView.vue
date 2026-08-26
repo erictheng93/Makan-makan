@@ -551,7 +551,7 @@
                     data-testid="menu-item-price-input"
                     type="number"
                     step="0.01"
-                    min="0"
+                    min="1"
                     required
                     class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
                   />
@@ -1680,16 +1680,28 @@ const filteredItems = computed(() => {
   }
 
   if (statusFilter.value === "available") {
-    items = items.filter((item) => item.isAvailable);
+    items = items.filter(
+      (item) =>
+        item.isAvailable &&
+        (item.inventoryCount == null || item.inventoryCount > 0),
+    );
   } else if (statusFilter.value === "unavailable") {
-    items = items.filter((item) => !item.isAvailable);
+    items = items.filter(
+      (item) =>
+        !item.isAvailable ||
+        (item.inventoryCount != null && item.inventoryCount <= 0),
+    );
   }
 
   return [...items].sort((a, b) => a.sortOrder - b.sortOrder);
 });
 
 const availableCount = computed(
-  () => menuItems.value.filter((i) => i.isAvailable).length,
+  () =>
+    menuItems.value.filter(
+      (i) =>
+        i.isAvailable && (i.inventoryCount == null || i.inventoryCount > 0),
+    ).length,
 );
 const isMarketProductGapContext = computed(
   () => route.query.source === "market-gap" && route.query.gap === "products",
@@ -1740,9 +1752,10 @@ const handleSaveCategory = async (
   },
   editingId?: number,
 ) => {
-  await saveCategory(form, editingId);
-  showCategoryEditForm.value = false;
-  editingCategory.value = null;
+  if (await saveCategory(form, editingId)) {
+    showCategoryEditForm.value = false;
+    editingCategory.value = null;
+  }
 };
 
 const cancelCategoryEdit = () => {

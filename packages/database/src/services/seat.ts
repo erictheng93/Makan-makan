@@ -80,7 +80,7 @@ export class SeatService extends BaseService {
       const existingSeat = await this.db
         .select({ id: seats.id })
         .from(seats)
-        .where(eq(seats.tableId, tableId))
+        .where(and(eq(seats.tableId, tableId), isNull(seats.deletedAt)))
         .get();
 
       if (existingSeat) {

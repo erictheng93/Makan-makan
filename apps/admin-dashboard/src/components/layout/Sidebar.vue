@@ -295,6 +295,14 @@ const navigationItems = computed(() => {
       section: "restaurant",
     },
     {
+      name: "menu-option-groups",
+      path: "/dashboard/menu/option-groups",
+      label: t("nav.menuOptionGroups"),
+      icon: Menu,
+      visible: authStore.canManageMenu,
+      section: "restaurant",
+    },
+    {
       name: "seating",
       path: "/dashboard/seating",
       label: t("nav.seatingManagement"),

@@ -61,7 +61,10 @@ function mountPicker(
   modelValue: MenuItemOptionGroupLink[],
   library: OptionGroupData[] = [libraryGroup()],
 ) {
-  return mount(MenuItemOptionGroups, { props: { modelValue, library } });
+  return mount(MenuItemOptionGroups, {
+    props: { modelValue, library },
+    global: { stubs: { RouterLink: true } },
+  });
 }
 
 const lastEmit = (wrapper: ReturnType<typeof mountPicker>) =>
