@@ -4738,6 +4738,8 @@ const zhTWCore = {
       waste: "報廢",
       correction: "盤點修正",
       transfer: "調撥",
+      order_consumption: "訂單耗用",
+      order_cancellation: "訂單取消回補",
     },
     recipes: "配方管理",
     noRecipe: "尚未設定配方",

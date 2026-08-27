@@ -4661,6 +4661,8 @@ const enUS: Messages = {
       waste: "Waste",
       correction: "Stocktake",
       transfer: "Transfer",
+      order_consumption: "Consumed by order",
+      order_cancellation: "Returned on cancellation",
     },
     recipes: "Recipes",
     noRecipe: "No recipe",

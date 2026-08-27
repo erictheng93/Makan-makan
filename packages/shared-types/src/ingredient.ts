@@ -116,13 +116,32 @@ export interface IngredientForecastResult {
  * own tag without a migration; closed at the API boundary so nothing an owner
  * types lands in the column.
  */
-export const STOCK_MOVEMENT_REASONS = [
+/** Reasons an owner picks by hand in the adjust dialog. */
+export const MANUAL_STOCK_MOVEMENT_REASONS = [
   "purchase",
   "waste",
   "correction",
   "transfer",
 ] as const;
 
+/**
+ * Reasons the system writes for itself when an order consumes or releases
+ * stock (#278). Never offered as a choice -- an owner picking
+ * "order_consumption" would be claiming an order that does not exist.
+ */
+export const SYSTEM_STOCK_MOVEMENT_REASONS = [
+  "order_consumption",
+  "order_cancellation",
+] as const;
+
+/** Everything the ledger can hold, from either source. */
+export const STOCK_MOVEMENT_REASONS = [
+  ...MANUAL_STOCK_MOVEMENT_REASONS,
+  ...SYSTEM_STOCK_MOVEMENT_REASONS,
+] as const;
+
+export type ManualStockMovementReason =
+  (typeof MANUAL_STOCK_MOVEMENT_REASONS)[number];
 export type StockMovementReason = (typeof STOCK_MOVEMENT_REASONS)[number];
 
 export interface StockMovement {

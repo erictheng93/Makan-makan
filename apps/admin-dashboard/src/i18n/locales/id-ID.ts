@@ -4613,6 +4613,8 @@ const idID: Messages = {
       waste: "Rusak",
       correction: "Koreksi stok",
       transfer: "Transfer",
+      order_consumption: "Terpakai oleh pesanan",
+      order_cancellation: "Dikembalikan saat dibatalkan",
     },
     recipes: "Resep",
     noRecipe: "Belum ada resep",

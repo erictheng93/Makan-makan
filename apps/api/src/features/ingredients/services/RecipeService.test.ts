@@ -107,7 +107,12 @@ describe("RecipeService", () => {
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     mockSelectResults({
       menuItems: [[{ id: 51 }]],
-      ingredientDefinitions: [[{ id: 2 }, { id: 3 }]],
+      ingredientDefinitions: [
+        [
+          { id: 2, name: "Flour", unit: "g" },
+          { id: 3, name: "Milk", unit: "ml" },
+        ],
+      ],
     });
     const mutations = mockBatch();
 
@@ -296,5 +301,24 @@ describe("RecipeService", () => {
       { menuItemId: 51, menuItemName: "Laksa" },
       { menuItemId: 52, menuItemName: "Nasi Lemak" },
     ]);
+  });
+
+  it("rejects a recipe unit that disagrees with the ingredient's stock unit", async () => {
+    mockSelectResults({
+      menuItems: [[{ id: 51 }]],
+      ingredientDefinitions: [[{ id: 2, name: "Flour", unit: "kg" }]],
+    });
+    mockBatch();
+
+    // Order consumption skips a mismatched row rather than subtract grams
+    // from kilograms, so saving one would be a dish that silently never
+    // consumes anything.
+    await expect(
+      createService().setRecipe(RESTAURANT, 51, [
+        { ingredientId: 2, quantityPerServing: 120, unit: "g" },
+      ]),
+    ).rejects.toMatchObject({ code: "RECIPE_UNIT_MISMATCH" });
+
+    expect(mocks.db.batch).not.toHaveBeenCalled();
   });
 });

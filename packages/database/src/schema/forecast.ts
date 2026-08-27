@@ -105,6 +105,12 @@ export const ingredientStockMovements = sqliteTable(
     balanceAfter: real("balance_after").notNull(),
     reason: text("reason").notNull(),
     note: text("note"),
+    /**
+     * The order this movement settles, when a movement came from one. A
+     * cancellation reverses the recorded rows rather than re-deriving the
+     * amount from a recipe that may have changed since (#278).
+     */
+    orderId: text("order_id"),
     createdBy: text("created_by"),
     createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
       .notNull()
@@ -119,6 +125,7 @@ export const ingredientStockMovements = sqliteTable(
       table.restaurantId,
       table.createdAt,
     ),
+    orderIdx: index("ingredient_stock_movements_order_idx").on(table.orderId),
   }),
 );
 

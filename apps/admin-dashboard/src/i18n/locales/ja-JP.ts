@@ -4592,6 +4592,8 @@ const jaJP: Messages = {
       waste: "廃棄",
       correction: "棚卸調整",
       transfer: "移動",
+      order_consumption: "注文による消費",
+      order_cancellation: "注文キャンセルによる戻し",
     },
     recipes: "レシピ管理",
     noRecipe: "レシピ未設定",
