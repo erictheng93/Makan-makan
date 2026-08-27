@@ -6,7 +6,7 @@
 
 ## 1. 定位
 
-菜單以外的日常營運：食材與配方、優惠券、顧客回饋、需求預測，以及店家視角的揪團訂單。
+菜單以外的日常營運：食材與配方、優惠券、店家向平台的支援工單、需求預測，以及店家視角的揪團訂單。
 這五塊彼此獨立，共同點是都掛在店家後台、都受模組管制。
 
 ## 2. 食材與配方
@@ -41,13 +41,16 @@
 
 平台級券（`coupons.restaurant_id IS NULL`）另有市集跨攤的核銷路徑，見 [04](./04-customer-group-and-market.md) §4。
 
-## 4. 顧客回饋
+## 4. 店家支援工單
+
+`/dashboard/feedback` 是店家向平台提交問題、功能建議與支援請求的工單中心，
+不是顧客評價或評論功能。店長只能查看自己的工單與統計；平台管理員可查看全部工單。
 
 | 動作 | 端點 |
 | --- | --- |
-| 顧客送出 | `POST /api/v1/feedback` |
+| 店長送出支援工單 | `POST /api/v1/feedback` |
 | 離線批次同步 | `POST /feedback/batch-sync` |
-| 店家列表／統計 | `GET /feedback`、`GET /feedback/stats` |
+| 工單列表／統計 | `GET /feedback`、`GET /feedback/stats` |
 | 更新處理狀態 | `PUT /feedback/:id/status` |
 | 回覆 | `POST /feedback/:id/responses`、`PUT/DELETE .../responses/:responseId` |
 

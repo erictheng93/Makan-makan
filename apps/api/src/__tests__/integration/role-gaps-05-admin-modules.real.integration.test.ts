@@ -14,7 +14,7 @@ interface ErrorStats {
 // envelope, so its body is read whole.
 interface FeedbackListBody {
   success: boolean;
-  feedback: Array<{ user: { id: string } }>;
+  feedback: Array<{ user: { id: string }; subject: string }>;
 }
 
 describe("Role gap coverage: admin-only modules boundary", () => {
@@ -296,7 +296,7 @@ describe("Role gap coverage: admin-only modules boundary", () => {
     expect(adminStats.summary.total_errors_24h).toBe(2);
   });
 
-  it("allows owners to read own feedback and blocks owner on feedback stats", async () => {
+  it("keeps owner feedback lists and stats isolated to the submitting user", async () => {
     const restaurantA = await seed.restaurant({ name: "Ticket 05 Feedback A" });
     const restaurantB = await seed.restaurant({ name: "Ticket 05 Feedback B" });
 
@@ -380,13 +380,22 @@ describe("Role gap coverage: admin-only modules boundary", () => {
     expect(Array.isArray(ownerAJson.feedback)).toBe(true);
     expect(ownerAJson.feedback).toHaveLength(1);
     expect(ownerAJson.feedback[0].user.id).toBe(ownerA.id);
+    expect(ownerAJson.feedback[0].subject).toBe(feedbackPayloadA.subject);
 
     const ownerAStats = await testApp.app.fetch(
       new Request("https://test/api/v1/feedback/stats", {
         headers: { authorization: `Bearer ${ownerAToken}` },
       }),
     );
-    expect(ownerAStats.status).toBe(403);
+    expect(ownerAStats.status).toBe(200);
+    const ownerAStatsJson = await readEnvelope<{
+      total: number;
+      byStatus: Record<string, number>;
+    }>(ownerAStats);
+    expect(ownerAStatsJson.data).toMatchObject({
+      total: 1,
+      byStatus: { open: 1 },
+    });
 
     const adminStats = await testApp.app.fetch(
       new Request("https://test/api/v1/feedback/stats", {
@@ -396,5 +405,6 @@ describe("Role gap coverage: admin-only modules boundary", () => {
     expect(adminStats.status).toBe(200);
     const adminStatsJson = await readEnvelope(adminStats);
     expect(adminStatsJson.success).toBe(true);
+    expect(adminStatsJson.data).toMatchObject({ total: 2 });
   });
 });
