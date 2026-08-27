@@ -236,6 +236,36 @@ describe("OrdersService realtime broadcasts", () => {
       }),
     });
   });
+
+  it("carries the table number into the new-order event so the admin badge can render", async () => {
+    createBaseOrder.mockResolvedValue({
+      id: 1002,
+      restaurantId: "restaurant-1",
+      tableId: 7,
+      table: { id: 7, number: "A7" },
+      orderNumber: "A002",
+      orderType: "table",
+      status: "pending",
+      totalAmount: 60,
+      items: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+    const service = new OrdersService(createEnv() as never);
+
+    await service.createOrder({
+      restaurantId: "restaurant-1",
+      tableId: 7,
+      orderType: "table",
+      items: [{ menuItemId: 101, quantity: 1 }],
+    });
+
+    expect(broadcastNewOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ tableId: "7", tableName: "A7" }),
+      }),
+    );
+  });
 });
 
 function buildOrderItem(overrides: Partial<OrderItem> = {}): OrderItem {

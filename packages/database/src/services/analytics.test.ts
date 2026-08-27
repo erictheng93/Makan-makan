@@ -76,6 +76,25 @@ describe("AnalyticsService revenue analytics", () => {
     ]);
   });
 
+  it("buckets a UTC evening order into the following Taipei business day", async () => {
+    await testDb.drizzle
+      .insert(orders)
+      .values([
+        order("taipei-midnight", "TZ-001", "2026-01-08T17:00:00.000Z", 15000),
+      ]);
+
+    const service = new AnalyticsService(testDb.bindings.DB, {} as never);
+
+    await expect(
+      service.getRevenueAnalytics({
+        restaurantId: "analytics-restaurant",
+        groupBy: "day",
+      }),
+    ).resolves.toContainEqual(
+      expect.objectContaining({ date: "2026-01-09", revenue: 150 }),
+    );
+  });
+
   it("excludes current-period boundary orders from the prior period", async () => {
     await testDb.drizzle
       .insert(orders)

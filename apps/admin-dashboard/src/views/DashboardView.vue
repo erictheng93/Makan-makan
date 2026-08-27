@@ -29,6 +29,14 @@
       </div>
     </div>
 
+    <div
+      v-if="dashboardStore.error"
+      class="rounded-2xl bg-ios-error/10 px-4 py-3 text-sm text-ios-error shadow-ios-sm"
+      role="alert"
+    >
+      {{ dashboardStore.error }}
+    </div>
+
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <StatsCard
@@ -171,6 +179,7 @@
           </router-link>
         </div>
         <RecentOrders
+          :orders="recentOrders"
           :loading="orderStore.isLoading"
           @order-click="navigateToOrder"
         />
@@ -265,7 +274,6 @@ import { useAuthStore } from "@/stores/auth";
 import { useDashboardStore } from "@/stores/dashboard";
 import { useOrderStore } from "@/stores/order";
 import type { ChartData, OrderStatus, TopMenuItem } from "@/types";
-import { useDashboardPolling } from "@/composables/usePolling";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import {
   RefreshCw,
@@ -324,9 +332,6 @@ interface DashboardTopMenuItem {
 const revenueChartPeriod = ref<DashboardChartPeriod>("daily");
 const ordersChartPeriod = ref<DashboardChartPeriod>("daily");
 
-// Start auto-refresh for dashboard data
-const { start: startPolling, stop: stopPolling } = useDashboardPolling(30000);
-
 const user = computed(() => authStore.user);
 const isLoading = computed(() => dashboardStore.isLoading);
 const canAccessAdminFeatures = computed(() => authStore.canAccessAdminFeatures);
@@ -372,6 +377,19 @@ const ordersChart = computed<OrdersChartPoint[]>(() =>
   }),
 );
 
+const recentOrders = computed(() =>
+  orderStore.orders.map((order) => ({
+    id: order.id,
+    orderNumber: order.orderNumber,
+    tableNumber: order.table?.number ?? "",
+    status: order.status,
+    total: order.totalAmount,
+    itemCount: order.items.reduce((count, item) => count + item.quantity, 0),
+    createdAt: new Date(order.createdAt).toISOString(),
+    updatedAt: new Date(order.updatedAt).toISOString(),
+  })),
+);
+
 const lastUpdatedText = computed(() => {
   if (!dashboardStore.lastUpdated) return t("dashboard.neverUpdated");
   return formatRelativeTime(dashboardStore.lastUpdated);
@@ -386,11 +404,17 @@ const formatPercentage = (value: number) => {
 };
 
 const refreshData = async () => {
+  // The two charts read their own state, filled only by these calls. Without
+  // them here they stay empty until someone picks a *different* period from a
+  // dropdown that already defaults to "daily" -- so the common path is a
+  // dashboard with two blank charts that the refresh button does not fix.
   await Promise.all([
     dashboardStore.fetchDashboardStats(),
     orderStore.fetchOrders({
       status: ["pending", "confirmed", "preparing", "ready"] as OrderStatus[],
     }),
+    updateRevenueChart(),
+    updateOrdersChart(),
   ]);
 };
 
@@ -417,11 +441,10 @@ onMounted(async () => {
   // Initial data load
   await refreshData();
 
-  // Start auto-refresh (use only useDashboardPolling, not both)
-  startPolling();
+  dashboardStore.startAutoRefresh(30000);
 });
 
 onUnmounted(() => {
-  stopPolling();
+  dashboardStore.stopAutoRefresh();
 });
 </script>
