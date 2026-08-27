@@ -69,7 +69,7 @@
               }}</span>
             </div>
             <div class="item-meta">
-              <span class="amount">${{ order.totalAmount.toFixed(2) }}</span>
+              <span class="amount">{{ formatPrice(order.totalAmount) }}</span>
               <span class="time">{{ formatTime(order.timestamp) }}</span>
             </div>
           </div>
@@ -223,6 +223,7 @@
 import { ref, computed } from "vue";
 import { useI18n } from "@/i18n";
 import { useDateFormatter } from "@/composables/useDateFormatter";
+import { useCurrency } from "@/composables/useCurrency";
 import { useAdminRealtime } from "@/composables/useAdminRealtime";
 import type {
   OrderNotification,
@@ -256,6 +257,7 @@ const {
 
 const { t } = useI18n();
 const { formatShortDateTime } = useDateFormatter();
+const { formatPrice } = useCurrency();
 
 // ========================================
 // 本地狀態

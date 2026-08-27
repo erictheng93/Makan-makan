@@ -1100,6 +1100,11 @@ export class OrdersService implements IOrdersService {
           orderId: order.id,
           orderNumber: order.orderNumber || `#${order.id}`,
           tableId: order.tableId ? String(order.tableId) : undefined,
+          // The admin notification panel renders a table badge off this field
+          // and nothing else supplied it, so the badge never appeared. The
+          // order arrives fully loaded, table relation included, so the number
+          // is already here -- it was only never copied across.
+          tableName: order.table?.number,
           items: (order.items || []).map((item) => ({
             orderItemId: item.id,
             menuItemId: item.menuItemId,

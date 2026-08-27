@@ -2,7 +2,6 @@ import {
   and,
   asc,
   avg,
-  between,
   count,
   desc,
   eq,
@@ -28,7 +27,12 @@ import {
   moneyAmountExpression,
   sumMoneyAmount,
 } from "../utils/money-sql";
-import { unixMsDiffMinutes } from "../utils/sql-time";
+import {
+  businessDateNow,
+  dateFromUnixMs,
+  strftimeFromUnixMs,
+  unixMsDiffMinutes,
+} from "../utils/sql-time";
 import { BaseService } from "./base";
 
 /**
@@ -643,21 +647,10 @@ export class AnalyticsService extends BaseService {
         };
       }
 
-      const today = new Date();
-      const todayStart = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate(),
-      );
-
-      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-
-      const lastMonthStart = new Date(
-        today.getFullYear(),
-        today.getMonth() - 1,
-        1,
-      );
-      const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+      const orderBusinessDate = dateFromUnixMs(orders.createdAt);
+      const orderBusinessMonth = strftimeFromUnixMs("%Y-%m", orders.createdAt);
+      const currentBusinessMonth = sql<string>`strftime('%Y-%m', 'now', '+8 hours')`;
+      const previousBusinessMonth = sql<string>`strftime('%Y-%m', 'now', '+8 hours', 'start of month', '-1 month')`;
 
       // 訂單數計非取消訂單；營收計已結帳訂單 (paid / delivered / served)
       // 先前用 eq(status, "completed") 一直過不了，因為 orders 表實際
@@ -674,7 +667,7 @@ export class AnalyticsService extends BaseService {
         .where(
           and(
             eq(orders.restaurantId, restaurantId),
-            gte(orders.createdAt, todayStart),
+            eq(orderBusinessDate, businessDateNow()),
             ne(orders.status, "cancelled"),
           ),
         );
@@ -687,7 +680,7 @@ export class AnalyticsService extends BaseService {
         .where(
           and(
             eq(orders.restaurantId, restaurantId),
-            gte(orders.createdAt, todayStart),
+            eq(orderBusinessDate, businessDateNow()),
             inArray(orders.status, FULFILLED_ORDER_STATUSES),
           ),
         );
@@ -702,7 +695,7 @@ export class AnalyticsService extends BaseService {
         .where(
           and(
             eq(orders.restaurantId, restaurantId),
-            gte(orders.createdAt, monthStart),
+            eq(orderBusinessMonth, currentBusinessMonth),
             ne(orders.status, "cancelled"),
           ),
         );
@@ -715,7 +708,7 @@ export class AnalyticsService extends BaseService {
         .where(
           and(
             eq(orders.restaurantId, restaurantId),
-            gte(orders.createdAt, monthStart),
+            eq(orderBusinessMonth, currentBusinessMonth),
             inArray(orders.status, FULFILLED_ORDER_STATUSES),
           ),
         );
@@ -730,7 +723,7 @@ export class AnalyticsService extends BaseService {
         .where(
           and(
             eq(orders.restaurantId, restaurantId),
-            between(orders.createdAt, lastMonthStart, lastMonthEnd),
+            eq(orderBusinessMonth, previousBusinessMonth),
             ne(orders.status, "cancelled"),
           ),
         );
@@ -743,7 +736,7 @@ export class AnalyticsService extends BaseService {
         .where(
           and(
             eq(orders.restaurantId, restaurantId),
-            between(orders.createdAt, lastMonthStart, lastMonthEnd),
+            eq(orderBusinessMonth, previousBusinessMonth),
             inArray(orders.status, FULFILLED_ORDER_STATUSES),
           ),
         );
@@ -789,7 +782,7 @@ export class AnalyticsService extends BaseService {
         .where(
           and(
             eq(orders.restaurantId, restaurantId),
-            gte(orders.createdAt, monthStart),
+            eq(orderBusinessMonth, currentBusinessMonth),
             ne(orders.status, "cancelled"),
           ),
         )
@@ -850,18 +843,17 @@ export class AnalyticsService extends BaseService {
 
   // 輔助函數：生成日期分組 SQL
   private getDateGroupSQL(groupBy: string) {
-    // orders.createdAt is stored as Unix ms (timestamp_ms mode), so divide by 1000 for SQLite date functions
     switch (groupBy) {
       case "day":
-        return sql`DATE(${orders.createdAt} / 1000, 'unixepoch')`;
+        return dateFromUnixMs(orders.createdAt);
       case "week":
-        return sql`strftime('%Y-W%W', ${orders.createdAt} / 1000, 'unixepoch')`;
+        return strftimeFromUnixMs("%Y-W%W", orders.createdAt);
       case "month":
-        return sql`strftime('%Y-%m', ${orders.createdAt} / 1000, 'unixepoch')`;
+        return strftimeFromUnixMs("%Y-%m", orders.createdAt);
       case "year":
-        return sql`strftime('%Y', ${orders.createdAt} / 1000, 'unixepoch')`;
+        return strftimeFromUnixMs("%Y", orders.createdAt);
       default:
-        return sql`DATE(${orders.createdAt} / 1000, 'unixepoch')`;
+        return dateFromUnixMs(orders.createdAt);
     }
   }
 

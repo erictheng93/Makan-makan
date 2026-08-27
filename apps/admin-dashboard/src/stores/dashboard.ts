@@ -110,6 +110,8 @@ const mapRevenuePoints = (
 
 export const useDashboardStore = defineStore("dashboard", () => {
   const stats = ref<DashboardStats | null>(null);
+  const revenueChartData = ref<ChartData[]>([]);
+  const ordersChartData = ref<ChartData[]>([]);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
   const lastUpdated = ref<Date | null>(null);
@@ -122,8 +124,8 @@ export const useDashboardStore = defineStore("dashboard", () => {
   const averageOrderValue = computed(() => stats.value?.averageOrderValue || 0);
   const completionRate = computed(() => stats.value?.completionRate || 0);
   const topMenuItems = computed(() => stats.value?.topMenuItems || []);
-  const revenueChart = computed(() => stats.value?.revenueChart || []);
-  const ordersChart = computed(() => stats.value?.ordersChart || []);
+  const revenueChart = computed(() => revenueChartData.value);
+  const ordersChart = computed(() => ordersChartData.value);
 
   // Actions
   const fetchDashboardStats = async (dateRange?: {
@@ -158,6 +160,12 @@ export const useDashboardStore = defineStore("dashboard", () => {
     } catch (err: unknown) {
       error.value = resolveUserFacingError(err, t, {
         fallbackKey: "dashboardStore.fetchDashboardFailed",
+        codeKeys: {
+          MODULE_NOT_ENABLED: "errors.subscription.moduleNotEnabled",
+          TRIAL_EXPIRED: "errors.subscription.trialExpired",
+          SUBSCRIPTION_NOT_FOUND: "errors.subscription.subscriptionNotFound",
+          NO_RESTAURANT: "errors.subscription.noRestaurant",
+        },
       }).message;
       console.error("Dashboard fetch error:", err);
     } finally {
@@ -178,7 +186,9 @@ export const useDashboardStore = defineStore("dashboard", () => {
 
       if (response.data.success) {
         const data = response.data.data as RevenueAnalyticsPoint[];
-        return mapRevenuePoints(data, (point) => point.revenue);
+        const points = mapRevenuePoints(data, (point) => point.revenue);
+        revenueChartData.value = points;
+        return points;
       }
       return [];
     } catch (err) {
@@ -192,6 +202,9 @@ export const useDashboardStore = defineStore("dashboard", () => {
 
     try {
       const response = await api.get(
+        // The revenue endpoint is the time-series analytics contract. Its
+        // `orderCount` field supplies the matching orders series; /performance
+        // is a single aggregate and cannot drive a period chart.
         buildAnalyticsUrl("revenue", {
           restaurantId: authStore.restaurantId,
           groupBy: periodGroupBy[period],
@@ -200,10 +213,12 @@ export const useDashboardStore = defineStore("dashboard", () => {
 
       if (response.data.success) {
         const data = response.data.data as RevenueAnalyticsPoint[];
-        return mapRevenuePoints(
+        const points = mapRevenuePoints(
           data,
           (point) => point.orderCount ?? point.orders,
         );
+        ordersChartData.value = points;
+        return points;
       }
       return [];
     } catch (err) {
@@ -249,6 +264,8 @@ export const useDashboardStore = defineStore("dashboard", () => {
 
   const clearStats = () => {
     stats.value = null;
+    revenueChartData.value = [];
+    ordersChartData.value = [];
     error.value = null;
     lastUpdated.value = null;
   };
