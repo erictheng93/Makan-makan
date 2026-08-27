@@ -154,7 +154,7 @@
   {
     "tableName": "menu_item_ingredients",
     "schemaFile": "packages/database/src/schema/forecast.ts",
-    "line": 150,
+    "line": 157,
     "category": "join_edge",
     "migrationPlan": "retain",
     "rationale": "Recipe ingredient rows are edges between menu items and ingredient definitions."

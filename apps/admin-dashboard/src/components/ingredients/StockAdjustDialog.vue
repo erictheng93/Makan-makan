@@ -140,7 +140,7 @@ import { computed, ref, watch } from "vue";
 import { useI18n } from "@/i18n";
 import type {
   IngredientDefinitionResponse,
-  StockMovementReason,
+  ManualStockMovementReason,
 } from "@makanmasak/shared-types";
 
 const { t } = useI18n();
@@ -154,7 +154,11 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: [];
   submit: [
-    input: { delta: number; reason: StockMovementReason; note: string | null },
+    input: {
+      delta: number;
+      reason: ManualStockMovementReason;
+      note: string | null;
+    },
   ];
 }>();
 
@@ -173,13 +177,13 @@ const quantity = ref<number | undefined>();
 const note = ref("");
 
 /** Receiving stock is never waste; writing it off is never a purchase. */
-const reasonsForDirection = computed<StockMovementReason[]>(() =>
+const reasonsForDirection = computed<ManualStockMovementReason[]>(() =>
   direction.value === "in"
     ? ["purchase", "correction", "transfer"]
     : ["waste", "correction", "transfer"],
 );
 
-const reason = ref<StockMovementReason>("purchase");
+const reason = ref<ManualStockMovementReason>("purchase");
 
 // Flipping direction changes the offered reasons, so a stale selection would
 // leave the select showing nothing that matches. Snap it to a valid one the

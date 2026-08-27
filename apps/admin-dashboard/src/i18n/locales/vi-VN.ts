@@ -4591,6 +4591,8 @@ const viVN: Messages = {
       waste: "Hủy bỏ",
       correction: "Kiểm kê",
       transfer: "Điều chuyển",
+      order_consumption: "Tiêu hao theo đơn",
+      order_cancellation: "Hoàn lại khi huỷ đơn",
     },
     recipes: "Công thức",
     noRecipe: "Chưa có công thức",

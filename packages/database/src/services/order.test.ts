@@ -12,6 +12,10 @@ import type { D1Database } from "@cloudflare/workers-types";
 import {
   categories,
   coupons,
+  waitingList,
+  ingredientDefinitions,
+  ingredientStockMovements,
+  menuItemIngredients,
   couponUsage,
   menuItems,
   menuItemOptionGroups,
@@ -1105,6 +1109,367 @@ async function seedCoupon(testDb: TestDatabase) {
     isVisible: true,
   });
 }
+
+/**
+ * #278. The acceptance criteria are lifecycle properties, so they are checked
+ * through OrderService rather than against the consumption service directly --
+ * the wiring (claim before the batch, ledger rows inside it, restore on
+ * cancel) is the part that can regress without the unit tests noticing.
+ */
+describe("OrderService ingredient consumption", () => {
+  let testDb: TestDatabase;
+
+  beforeAll(async () => {
+    testDb = await createTestDatabase();
+  }, REAL_D1_SETUP_TIMEOUT_MS);
+
+  afterAll(async () => {
+    await testDb?.dispose();
+  });
+
+  beforeEach(async () => {
+    await testDb.truncateAll();
+    await seedMenuItem(testDb);
+  });
+
+  const service = () =>
+    new OrderService(
+      testDb.bindings.DB as unknown as D1Database,
+      {
+        JWT_SECRET: "test-secret",
+      } as never,
+    );
+
+  async function seedIngredientWithRecipe(
+    quantityPerServing: number,
+    overrides: Record<string, unknown> = {},
+  ) {
+    const [ingredient] = await testDb.drizzle
+      .insert(ingredientDefinitions)
+      .values({
+        restaurantId,
+        name: "Rice",
+        unit: "kg",
+        currentStock: 20,
+        isActive: true,
+        ...overrides,
+      } as never)
+      .returning({ id: ingredientDefinitions.id });
+
+    await testDb.drizzle.insert(menuItemIngredients).values({
+      menuItemId,
+      ingredientId: ingredient.id,
+      quantityPerServing,
+      unit: "kg",
+      isOptional: false,
+    } as never);
+
+    return ingredient.id;
+  }
+
+  async function stockOf(ingredientId: number) {
+    const [row] = await testDb.drizzle
+      .select({ currentStock: ingredientDefinitions.currentStock })
+      .from(ingredientDefinitions)
+      .where(eq(ingredientDefinitions.id, ingredientId));
+    return row?.currentStock ?? null;
+  }
+
+  async function ledgerFor(orderId: string) {
+    return testDb.drizzle
+      .select({
+        delta: ingredientStockMovements.delta,
+        reason: ingredientStockMovements.reason,
+      })
+      .from(ingredientStockMovements)
+      .where(eq(ingredientStockMovements.orderId, orderId));
+  }
+
+  it("deducts ingredient stock when the order is placed", async () => {
+    const rice = await seedIngredientWithRecipe(0.25);
+
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 2 }],
+    });
+
+    expect(await stockOf(rice)).toBeCloseTo(19.5);
+    // The ledger row carries the order, which is what makes the cancellation
+    // reversible without consulting the recipe again.
+    expect(await ledgerFor(order.id)).toEqual([
+      expect.objectContaining({ delta: -0.5, reason: "order_consumption" }),
+    ]);
+  });
+
+  it("leaves a dish with no recipe alone", async () => {
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 2 }],
+    });
+
+    expect(order.id).toBeTruthy();
+    expect(await ledgerFor(order.id)).toEqual([]);
+  });
+
+  it("restores ingredient stock when the order is cancelled", async () => {
+    const rice = await seedIngredientWithRecipe(0.5);
+
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 3 }],
+    });
+    expect(await stockOf(rice)).toBeCloseTo(18.5);
+
+    await service().cancelOrder(order.id, "Customer changed their mind");
+
+    expect(await stockOf(rice)).toBe(20);
+    expect(await ledgerFor(order.id)).toEqual([
+      expect.objectContaining({ reason: "order_consumption" }),
+      expect.objectContaining({ delta: 1.5, reason: "order_cancellation" }),
+    ]);
+  });
+
+  it("does not restore a second time when the order was already cancelled", async () => {
+    const rice = await seedIngredientWithRecipe(0.5);
+
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 2 }],
+    });
+    await service().cancelOrder(order.id, "First cancel");
+    expect(await stockOf(rice)).toBe(20);
+
+    // The restore runs only after the cancel row is confirmed changed. A
+    // conditional UPDATE matching zero rows is not a batch failure, so if the
+    // order were restored first its ledger row would already be durable and
+    // undoing the stock would leave a movement nothing can reconcile.
+    await expect(
+      service().cancelOrder(order.id, "Second cancel"),
+    ).rejects.toThrow(/cannot be cancelled/i);
+
+    expect(await stockOf(rice)).toBe(20);
+    expect(await ledgerFor(order.id)).toHaveLength(2);
+  });
+
+  it("restores exactly once when two cancellations race", async () => {
+    const rice = await seedIngredientWithRecipe(0.5);
+
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 2 }],
+    });
+    expect(await stockOf(rice)).toBeCloseTo(19);
+
+    // Both calls read the order while it is still cancellable, so both get
+    // past the status guard at the top of cancelOrder. Only one of their
+    // conditional UPDATEs can match a row -- and the loser must not restore,
+    // because a zero-match UPDATE is not a batch failure and its ledger row
+    // would already be durable.
+    const results = await Promise.allSettled([
+      service().cancelOrder(order.id, "A"),
+      service().cancelOrder(order.id, "B"),
+    ]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+
+    expect(await stockOf(rice)).toBe(20);
+    expect(await ledgerFor(order.id)).toEqual([
+      expect.objectContaining({ reason: "order_consumption" }),
+      expect.objectContaining({ delta: 1, reason: "order_cancellation" }),
+    ]);
+  });
+
+  it("keeps the customer's note and puts the cancellation reason in internalNotes", async () => {
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+      notes: "不要香菜",
+    });
+
+    await service().cancelOrder(order.id, "Waiting list entry cancelled");
+
+    const [row] = await testDb.drizzle
+      .select({ notes: orders.notes, internalNotes: orders.internalNotes })
+      .from(orders)
+      .where(eq(orders.id, order.id));
+    expect(row.notes).toBe("不要香菜");
+    expect(row.internalNotes).toBe("Waiting list entry cancelled");
+  });
+
+  it("deducts again when items are added to an existing order", async () => {
+    const rice = await seedIngredientWithRecipe(0.5);
+
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+    });
+    await service().addItemsToOrder(order.id, [{ menuItemId, quantity: 2 }]);
+
+    expect(await stockOf(rice)).toBeCloseTo(18.5);
+    expect(await ledgerFor(order.id)).toHaveLength(2);
+  });
+
+  it("stamps cancelledAt so the projected field is not always null", async () => {
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+    });
+
+    await service().cancelOrder(order.id, "Changed their mind");
+
+    const [row] = await testDb.drizzle
+      .select({ cancelledAt: orders.cancelledAt })
+      .from(orders)
+      .where(eq(orders.id, order.id));
+    expect(row.cancelledAt).toBeInstanceOf(Date);
+  });
+
+  it("restores both inventories when a waiting list entry is cancelled", async () => {
+    const rice = await seedIngredientWithRecipe(0.5);
+    const [entry] = await testDb.drizzle
+      .insert(waitingList)
+      .values({
+        id: "018f0000-0000-7000-8000-000000000901",
+        restaurantId,
+        customerName: "Pre-order customer",
+        customerPhone: "0912345678",
+        partySize: 2,
+        queueNumber: 1,
+        status: "waiting",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      } as never)
+      .returning({ id: waitingList.id });
+
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 2 }],
+      waitingListId: entry.id,
+      waitingListCustomerPhone: "0912345678",
+    });
+    expect(await stockOf(rice)).toBeCloseTo(19);
+
+    await service().cancelWaitingListPreOrders(entry.id);
+
+    // The bare UPDATE this replaced restored neither of these.
+    expect(await stockOf(rice)).toBe(20);
+    const [item] = await testDb.drizzle
+      .select({ inventoryCount: menuItems.inventoryCount })
+      .from(menuItems)
+      .where(eq(menuItems.id, menuItemId));
+    expect(item.inventoryCount).toBe(10);
+    expect(await ledgerFor(order.id)).toEqual([
+      expect.objectContaining({ reason: "order_consumption" }),
+      expect.objectContaining({ delta: 1, reason: "order_cancellation" }),
+    ]);
+  });
+
+  it("restores inventory when cancelled through the status endpoint's path", async () => {
+    const rice = await seedIngredientWithRecipe(0.5);
+
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 2 }],
+    });
+    expect(await stockOf(rice)).toBeCloseTo(19);
+
+    // PUT /orders/:id/status reaches updateOrderStatus, which used to flip the
+    // status with a bare UPDATE and restore nothing (#282).
+    await service().updateOrderStatus(order.id, {
+      status: "cancelled",
+      notes: "Cancelled from the status endpoint",
+    });
+
+    expect(await stockOf(rice)).toBe(20);
+    const [item] = await testDb.drizzle
+      .select({ inventoryCount: menuItems.inventoryCount })
+      .from(menuItems)
+      .where(eq(menuItems.id, menuItemId));
+    expect(item.inventoryCount).toBe(10);
+    expect(await ledgerFor(order.id)).toEqual([
+      expect.objectContaining({ reason: "order_consumption" }),
+      expect.objectContaining({ delta: 1, reason: "order_cancellation" }),
+    ]);
+  });
+
+  it("cancels an order that is already being prepared", async () => {
+    const rice = await seedIngredientWithRecipe(0.5);
+
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 2 }],
+    });
+    await service().updateOrderStatus(order.id, { status: "confirmed" });
+    const preparing = await service().updateOrderStatus(order.id, {
+      status: "preparing",
+    });
+
+    // ORDER_STATUS_TRANSITIONS allows preparing -> cancelled, and
+    // cancellableOrderStatuses is now aligned with it.
+    await service().cancelOrder(order.id, "Kitchen ran out");
+
+    expect(await stockOf(rice)).toBe(20);
+    expect(preparing.status).toBe("preparing");
+  });
+
+  it("reports a version conflict as a version conflict, not as uncancellable", async () => {
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+    });
+
+    // The API maps these two to different codes, so the delegation must not
+    // collapse them.
+    await expect(
+      service().cancelOrder(order.id, "Stale", order.version + 99),
+    ).rejects.toThrow(/version conflict/i);
+  });
+
+  it("puts the ingredients back when the order's own batch fails", async () => {
+    const rice = await seedIngredientWithRecipe(0.5);
+
+    await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 2 }],
+      clientMutationId: "duplicate-mutation",
+    });
+    expect(await stockOf(rice)).toBeCloseTo(19);
+
+    // (restaurant_id, client_mutation_id) is uniquely indexed, so this insert
+    // fails inside the batch -- after the ingredients were already deducted in
+    // a batch of their own. That is the compensation path; without it the
+    // stock would stay down with no order and no ledger row to explain it.
+    await expect(
+      service().createOrder({
+        restaurantId,
+        items: [{ menuItemId, quantity: 2 }],
+        clientMutationId: "duplicate-mutation",
+      }),
+    ).rejects.toThrow();
+
+    expect(await stockOf(rice)).toBeCloseTo(19);
+    // The failed order's ledger rows died with its batch, and the revert
+    // deliberately writes none of its own.
+    const allRows = await testDb.drizzle
+      .select({ delta: ingredientStockMovements.delta })
+      .from(ingredientStockMovements);
+    expect(allRows).toHaveLength(1);
+  });
+
+  it("does not deduct twice when the order fails to be created", async () => {
+    const rice = await seedIngredientWithRecipe(0.5);
+
+    // inventoryCount is 10, so this is refused by the menu-item claim that
+    // runs before ingredients are touched at all.
+    await expect(
+      service().createOrder({
+        restaurantId,
+        items: [{ menuItemId, quantity: 99 }],
+      }),
+    ).rejects.toThrow(/Insufficient inventory/);
+
+    expect(await stockOf(rice)).toBe(20);
+  });
+});
 
 async function seedMenuItem(testDb: TestDatabase) {
   await testDb.drizzle.insert(restaurants).values({

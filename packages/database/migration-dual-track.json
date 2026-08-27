@@ -46,6 +46,10 @@
     {
       "fresh": "0011_ingredient_stock_movements.sql",
       "reason": "Ingredient stock is owned by the platform API inventory module; the management API has no ingredient_definitions table to hang movements off."
+    },
+    {
+      "fresh": "0012_stock_movement_order_id.sql",
+      "reason": "Extends the platform-only ingredient stock ledger added in 0011; the management API has no such table."
     }
   ],
   "legacyOnly": [

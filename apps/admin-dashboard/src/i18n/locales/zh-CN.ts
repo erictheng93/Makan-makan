@@ -4496,6 +4496,8 @@ const zhCN: Messages = {
       waste: "报废",
       correction: "盘点修正",
       transfer: "调拨",
+      order_consumption: "订单耗用",
+      order_cancellation: "订单取消回补",
     },
     recipes: "配方管理",
     noRecipe: "尚未设定配方",

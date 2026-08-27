@@ -105,7 +105,11 @@ export class RecipeService {
     const ingredientIds = [...new Set(entries.map((e) => e.ingredientId))];
     if (ingredientIds.length > 0) {
       const owned = await this.db
-        .select({ id: ingredientDefinitions.id })
+        .select({
+          id: ingredientDefinitions.id,
+          name: ingredientDefinitions.name,
+          unit: ingredientDefinitions.unit,
+        })
         .from(ingredientDefinitions)
         .where(
           and(
@@ -119,6 +123,26 @@ export class RecipeService {
           "Recipe references an ingredient that does not belong to this restaurant",
           "INGREDIENT_NOT_IN_RESTAURANT",
         );
+      }
+
+      // The recipe unit and the stock unit are two independent free-text
+      // fields with no conversion layer between them. Order consumption (#278)
+      // skips a row whose units disagree rather than subtract grams from
+      // kilograms -- which means a mismatch saved here is a dish that silently
+      // never consumes anything. Reject it at the point someone can still fix
+      // it.
+      const stockUnits = new Map(owned.map((row) => [row.id, row]));
+      for (const entry of entries) {
+        const stock = stockUnits.get(entry.ingredientId);
+        const sameUnit =
+          stock !== undefined &&
+          stock.unit.trim().toLowerCase() === entry.unit.trim().toLowerCase();
+        if (stock && !sameUnit) {
+          throw badRequest(
+            `Recipe unit "${entry.unit}" does not match the stock unit "${stock.unit}" for ${stock.name}`,
+            "RECIPE_UNIT_MISMATCH",
+          );
+        }
       }
     }
 

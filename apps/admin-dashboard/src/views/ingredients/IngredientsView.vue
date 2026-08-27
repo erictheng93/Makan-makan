@@ -212,7 +212,7 @@ import StockAdjustDialog from "@/components/ingredients/StockAdjustDialog.vue";
 import type {
   IngredientFormPayload,
   RecipeEntryResponse,
-  StockMovementReason,
+  ManualStockMovementReason,
 } from "@makanmasak/shared-types";
 import type {
   IngredientDefinitionResponse,
@@ -249,7 +249,7 @@ function openAdjust(item: IngredientDefinitionResponse) {
 
 async function handleAdjust(input: {
   delta: number;
-  reason: StockMovementReason;
+  reason: ManualStockMovementReason;
   note: string | null;
 }) {
   if (!restaurantId.value || !adjustingIngredient.value) return;

@@ -43,11 +43,23 @@ import type {
   SelectedCustomizations,
 } from "@makanmasak/shared-types";
 import { amountFromCents, fromCents, toRequiredCents } from "../utils/money";
+import {
+  IngredientConsumptionService,
+  type IngredientClaim,
+} from "./ingredient-consumption";
 import { loadAssembledMenuItemOptions } from "./menu-options";
 
+// Kept deliberately in step with ORDER_STATUS_TRANSITIONS in
+// apps/api/src/features/orders/types/index.ts, which lets pending, confirmed,
+// preparing and ready all move to cancelled. The two lists used to disagree,
+// and the gap was not academic: PUT /orders/:id/status honoured the wider list
+// while restoring no inventory at all, so cancelling a `preparing` order left
+// its stock deducted with no way back (#282).
 const cancellableOrderStatuses: readonly string[] = [
   ORDER_STATUS.PENDING,
   ORDER_STATUS.CONFIRMED,
+  ORDER_STATUS.PREPARING,
+  ORDER_STATUS.READY,
 ];
 
 export const orderMenuItemSummaryColumns = {
@@ -729,6 +741,23 @@ export class OrderService extends BaseService {
           }
         }
       };
+      // 食材扣料（#278）：與菜品庫存同一個時點，兩者不一致會更難解釋。
+      // 帳本列不在這裡寫入，而是併進訂單那一批 —— 批次失敗時帳本從未存在，
+      // 只需把庫存加回去。
+      const ingredientConsumption = new IngredientConsumptionService(this.db);
+      let claimedIngredients: IngredientClaim[] = [];
+      const revertIngredientClaim = async () => {
+        if (claimedIngredients.length === 0) return;
+        try {
+          await ingredientConsumption.revertUncommitted(
+            data.restaurantId,
+            claimedIngredients,
+          );
+        } catch (revertError) {
+          console.error("Ingredient claim revert failed:", revertError);
+        }
+        claimedIngredients = [];
+      };
       if (validatedCoupon && discountAmount > 0 && couponService) {
         await couponService.claimUsageSlot(validatedCoupon.id);
         claimedCouponId = validatedCoupon.id;
@@ -781,6 +810,22 @@ export class OrderService extends BaseService {
         throw error;
       }
 
+      // 沒有配方的菜扣不到東西，也不會報錯；食材不足不擋單 —— 食材庫存是
+      // 人工盤點的數字，擋單的職責在菜品 inventoryCount。
+      try {
+        const consumed = await ingredientConsumption.claim(
+          data.restaurantId,
+          data.items,
+          { orderId: orderIdRef },
+        );
+        claimedIngredients = consumed.claims;
+        writeStatements.push(...consumed.movementWrites);
+      } catch (error) {
+        await restoreClaimedInventory();
+        await releaseClaimedCoupon();
+        throw error;
+      }
+
       for (const { menuItemId, quantity } of data.items) {
         writeStatements.push(
           this.db
@@ -806,6 +851,7 @@ export class OrderService extends BaseService {
           writeStatements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
         );
       } catch (error) {
+        await revertIngredientClaim();
         await restoreClaimedInventory();
         await releaseClaimedCoupon();
         throw error;
@@ -922,20 +968,35 @@ export class OrderService extends BaseService {
   }
 
   async cancelWaitingListPreOrders(waitingListId: string): Promise<void> {
-    const now = new Date();
-    await this.db
-      .update(orders)
-      .set({
-        status: ORDER_STATUS.CANCELLED,
-        cancelledAt: now,
-        updatedAt: now,
-      })
+    // This used to flip the status with a bare UPDATE, which put back nothing
+    // -- not the menu-item inventory the pre-order held, and (once #278 landed)
+    // not the ingredients it consumed either. Cancelling is not a status
+    // change; it is a status change plus two restores, and cancelOrder is the
+    // one place that knows that. Duplicating it here is how the halves drift
+    // apart.
+    const pending = await this.db
+      .select({ id: orders.id })
+      .from(orders)
       .where(
         and(
           eq(orders.waitingListId, waitingListId),
           eq(orders.status, ORDER_STATUS.PENDING),
         ),
       );
+
+    for (const { id } of pending) {
+      try {
+        await this.cancelOrder(id, "Waiting list entry cancelled");
+      } catch (error) {
+        // A pre-order that moved out of pending between the read and the
+        // cancel is somebody else's business now. Losing one must not leave
+        // the rest of the list uncancelled.
+        console.error(
+          `Waiting list pre-order ${id} could not be cancelled:`,
+          error,
+        );
+      }
+    }
   }
 
   // 獲取訂單詳情
@@ -1089,6 +1150,35 @@ export class OrderService extends BaseService {
         throw error;
       }
 
+      // 加點也是耗用，扣料與建單同一個形狀（#278）。
+      const ingredientConsumption = new IngredientConsumptionService(this.db);
+      let claimedIngredients: IngredientClaim[] = [];
+      const revertIngredientClaim = async () => {
+        if (claimedIngredients.length === 0) return;
+        try {
+          await ingredientConsumption.revertUncommitted(
+            existingOrder.restaurantId,
+            claimedIngredients,
+          );
+        } catch (revertError) {
+          console.error("Ingredient claim revert failed:", revertError);
+        }
+        claimedIngredients = [];
+      };
+      let ingredientMovementWrites: BatchItem<"sqlite">[] = [];
+      try {
+        const consumed = await ingredientConsumption.claim(
+          existingOrder.restaurantId,
+          items,
+          { orderId: id },
+        );
+        claimedIngredients = consumed.claims;
+        ingredientMovementWrites = consumed.movementWrites;
+      } catch (error) {
+        await restoreClaimedInventory();
+        throw error;
+      }
+
       const writeStatements: BatchItem<"sqlite">[] = [
         this.db
           .insert(orderItems)
@@ -1127,11 +1217,14 @@ export class OrderService extends BaseService {
         );
       }
 
+      writeStatements.push(...ingredientMovementWrites);
+
       try {
         await this.db.batch(
           writeStatements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
         );
       } catch (error) {
+        await revertIngredientClaim();
         await restoreClaimedInventory();
         throw error;
       }
@@ -1325,6 +1418,18 @@ export class OrderService extends BaseService {
     id: string,
     data: UpdateOrderStatusData,
   ): Promise<Order> {
+    // Cancelling is not a status change -- it is a status change plus two
+    // inventory restores plus a ledger entry. Doing it here with a bare UPDATE
+    // left menu-item stock and ingredient stock deducted forever, with no way
+    // back once the status was no longer cancellable (#282). Delegate rather
+    // than reimplement: cancelWaitingListPreOrders proved that two copies of
+    // "cancel" drift apart.
+    //
+    // Outside the try so cancelOrder's own handleError is not wrapped twice.
+    if (data.status === ORDER_STATUS.CANCELLED) {
+      return this.cancelOrder(id, data.notes, data.expectedVersion);
+    }
+
     try {
       const statusField = `${data.status}At`;
       const updateData: Record<string, unknown> = {
@@ -1415,7 +1520,11 @@ export class OrderService extends BaseService {
   }
 
   // 取消訂單
-  async cancelOrder(id: string, reason?: string): Promise<Order> {
+  async cancelOrder(
+    id: string,
+    reason?: string,
+    expectedVersion?: number,
+  ): Promise<Order> {
     try {
       const order = await this.getOrder(id);
       if (!order) {
@@ -1427,6 +1536,7 @@ export class OrderService extends BaseService {
       }
 
       const now = new Date();
+
       const writeStatements: BatchItem<"sqlite">[] = (order.items || []).map(
         (item) =>
           this.db
@@ -1454,7 +1564,11 @@ export class OrderService extends BaseService {
           .update(orders)
           .set({
             status: ORDER_STATUS.CANCELLED,
-            notes: reason,
+            // 內部備註，不是顧客備註 —— 後者存的是「不要香菜」這類顧客自己
+            // 寫的內容，被取消原因蓋掉就永遠找不回來了。updateOrderStatus
+            // 一直都是寫 internalNotes。
+            internalNotes: reason,
+            cancelledAt: now,
             updatedAt: now,
             version: sql`${orders.version} + 1`,
           })
@@ -1462,6 +1576,11 @@ export class OrderService extends BaseService {
             and(
               eq(orders.id, id),
               inArray(orders.status, [...cancellableOrderStatuses]),
+              // updateOrderStatus delegates here and always supplies a version,
+              // so the optimistic check has to survive the delegation.
+              ...(expectedVersion == null
+                ? []
+                : [eq(orders.version, expectedVersion)]),
             ),
           )
           .returning({ id: orders.id }),
@@ -1472,7 +1591,56 @@ export class OrderService extends BaseService {
       );
       const cancelledRows = batchResults.at(-1) as Array<{ id: string }>;
       if (cancelledRows.length === 0) {
+        // Two different conflicts land here and the API maps them to two
+        // different codes (ORDER_VERSION_CONFLICT vs ORDER_NOT_CANCELLABLE),
+        // so tell them apart rather than collapsing both into "not
+        // cancellable". Re-reading after the fact is only for the message; the
+        // authoritative decision was the conditional UPDATE above.
+        if (expectedVersion != null) {
+          const current = await this.getOrder(id);
+          if (
+            current &&
+            cancellableOrderStatuses.includes(current.status) &&
+            current.version !== expectedVersion
+          ) {
+            throw new Error("Order version conflict");
+          }
+        }
         throw new Error("Order cannot be cancelled");
+      }
+
+      // 食材回補（#278）只在取消確定成立之後才做。
+      //
+      // 先回補再送批次是行不通的：條件式 UPDATE 匹配到零列**不是**批次失敗，
+      // 所以那一批仍然 commit，帳本列跟著落地；此時再把庫存扣回去就留下一列
+      // 沒有對應沖銷的回補紀錄，帳本從此解釋不了庫存數字。反過來排就沒有這
+      // 個縫：走到這裡代表狀態已經翻成 cancelled，而且是這個請求翻的。
+      //
+      // 金額取自帳本、不從配方重算 —— 下單後配方被改過的話重算會回補錯的量，
+      // 而「取消後回補到原值」正是要守住的性質。restoreForOrder 以淨額判斷，
+      // 重複取消自然是 no-op。
+      const ingredientConsumption = new IngredientConsumptionService(this.db);
+      try {
+        const restored = await ingredientConsumption.restoreForOrder(
+          order.restaurantId,
+          id,
+        );
+        if (restored.movementWrites.length > 0) {
+          await this.db.batch(
+            restored.movementWrites as [
+              BatchItem<"sqlite">,
+              ...BatchItem<"sqlite">[],
+            ],
+          );
+        }
+      } catch (restoreError) {
+        // 回補失敗不擋下取消本身 —— 訂單狀態是顧客看得到的那一半，而且此時
+        // 已經 commit 了。漂移是找得回來的：一張已取消的訂單，其帳本
+        // SUM(delta) != 0 就正好是漏回補的集合。
+        console.error(
+          `Ingredient restore failed for cancelled order ${id}:`,
+          restoreError,
+        );
       }
 
       const cancelledOrder = await this.getOrder(id);

@@ -1,7 +1,7 @@
 import { api } from "./api";
 import type {
   StockMovement,
-  StockMovementReason,
+  ManualStockMovementReason,
   IngredientDefinitionResponse,
   CreateIngredientRequest,
   UpdateIngredientRequest,
@@ -87,7 +87,11 @@ export const ingredientApi = {
   async adjustStock(
     restaurantId: string,
     id: number,
-    input: { delta: number; reason: StockMovementReason; note?: string | null },
+    input: {
+      delta: number;
+      reason: ManualStockMovementReason;
+      note?: string | null;
+    },
   ): Promise<IngredientDefinitionResponse> {
     const res = await api.post<IngredientDefinitionResponse>(
       `/ingredients/${restaurantId}/${id}/movements`,
