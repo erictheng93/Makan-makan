@@ -301,7 +301,7 @@ describe("feedback routes", () => {
     );
   });
 
-  it("returns stats and lists feedback with admin or owner filters", async () => {
+  it("returns global stats for admins and submitter-scoped stats for owners", async () => {
     mocks.currentUser.role = 0;
     mocks.getFeedbackStats.mockResolvedValue({ total: 7, open: 3 });
     mocks.listFeedback.mockResolvedValue({
@@ -318,6 +318,7 @@ describe("feedback routes", () => {
     await expect(statsResponse.json()).resolves.toMatchObject({
       data: { total: 7, open: 3 },
     });
+    expect(mocks.getFeedbackStats).toHaveBeenCalledWith({});
 
     const adminListResponse = await routes.fetch(
       new Request(
@@ -337,6 +338,16 @@ describe("feedback routes", () => {
     );
 
     mocks.currentUser.role = 1;
+    mocks.getFeedbackStats.mockResolvedValue({ total: 1, open: 1 });
+    const ownerStatsResponse = await routes.fetch(
+      new Request("https://test/stats"),
+      env as never,
+    );
+    expect(ownerStatsResponse.status).toBe(200);
+    expect(mocks.getFeedbackStats).toHaveBeenLastCalledWith({
+      userId: "user-10",
+    });
+
     const ownerListResponse = await routes.fetch(
       new Request(
         "https://test/?restaurantId=restaurant-2&status=open&search=freeze",

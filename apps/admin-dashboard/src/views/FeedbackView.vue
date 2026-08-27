@@ -31,11 +31,11 @@
       />
     </Transition>
 
-    <!-- Admin stats -->
-    <FeedbackStats v-if="isAdmin && stats" :stats="stats" />
+    <!-- Scoped stats: platform-wide for admins, own support tickets for owners -->
+    <FeedbackStats v-if="stats" :stats="stats" />
 
-    <!-- Filters (admin only) -->
-    <div v-if="isAdmin" class="bg-white rounded-2xl p-4 shadow-sm">
+    <!-- Filters -->
+    <div class="bg-white rounded-2xl p-4 shadow-sm">
       <div class="flex flex-wrap gap-3">
         <input
           v-model="filters.search"
@@ -282,7 +282,6 @@ async function loadFeedback() {
 }
 
 async function loadStats() {
-  if (!isAdmin.value) return;
   stats.value = await fetchStats();
 }
 
@@ -298,6 +297,7 @@ async function openDetail(item: FeedbackItem) {
 function onSubmitted(feedback: FeedbackItem) {
   showForm.value = false;
   feedbackList.value.unshift(feedback);
+  loadStats();
 }
 
 function onStatusChanged(status: string) {

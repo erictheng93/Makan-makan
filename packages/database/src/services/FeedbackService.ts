@@ -416,14 +416,11 @@ export class FeedbackService extends BaseService {
     }
   }
 
-  async getFeedbackStats(restaurantId?: string): Promise<FeedbackStats> {
+  async getFeedbackStats(
+    filters: Pick<FeedbackFilters, "restaurantId" | "userId"> = {},
+  ): Promise<FeedbackStats> {
     try {
-      const conditions: SQL[] = [];
-      if (restaurantId) {
-        conditions.push(eq(shopFeedback.restaurantId, restaurantId));
-      }
-      const whereClause =
-        conditions.length > 0 ? and(...conditions) : undefined;
+      const whereClause = this.buildWhereClause(filters);
 
       const [totals] = await this.db
         .select({ total: count() })

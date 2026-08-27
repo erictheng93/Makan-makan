@@ -141,9 +141,12 @@ routes.post(
 );
 
 // Must be registered before /:id to avoid route conflict
-routes.get("/stats", authMiddleware, requireRole([0]), async (c) => {
+routes.get("/stats", authMiddleware, requireRole([0, 1]), async (c) => {
+  const user = c.get("user");
   const service = createFeedbackService(c.env);
-  const stats = await service.getFeedbackStats();
+  const stats = await service.getFeedbackStats(
+    user.role === 1 ? { userId: user.id } : {},
+  );
   return c.json({ success: true, data: stats });
 });
 

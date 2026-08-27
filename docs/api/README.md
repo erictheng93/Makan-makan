@@ -854,10 +854,10 @@ so a token can never be replayed against a different room.
 
 | Method | Path | Description | Auth |
 | ------ | ---- | ----------- | ---- |
-| POST | `/feedback/` | 建立回饋 | Owner |
+| POST | `/feedback/` | 建立店家向平台的支援工單 | Owner |
 | POST | `/feedback/batch-sync` | 批次同步回饋 | Protected |
-| GET | `/feedback/stats` | 回饋統計 | Admin |
-| GET | `/feedback/` | 回饋列表（含篩選） | Admin/Owner |
+| GET | `/feedback/stats` | 工單統計（Owner 僅自己的工單；Admin 為全部） | Admin/Owner |
+| GET | `/feedback/` | 工單列表（Owner 僅自己的工單；含篩選） | Admin/Owner |
 | GET | `/feedback/:id` | 回饋詳情 | Admin/Owner |
 | PUT | `/feedback/:id/status` | 更新回饋狀態 | Admin |
 | PATCH | `/feedback/:id` | 更新回饋 | Admin/Owner |
