@@ -1308,6 +1308,46 @@ describe("OrderService ingredient consumption", () => {
     expect(await ledgerFor(order.id)).toHaveLength(2);
   });
 
+  it("reverts an ingredient claim when adding items fails in its batch", async () => {
+    const rice = await seedIngredientWithRecipe(0.5);
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+    });
+
+    // Claiming ingredients commits their stock update before addItemsToOrder
+    // batches the new order item and ledger write. Make that ledger write fail
+    // after the claim, then restore the schema before inspecting persisted data.
+    await testDb.bindings.DB.exec(
+      "ALTER TABLE ingredient_stock_movements RENAME TO ingredient_stock_movements_unavailable",
+    );
+    try {
+      await expect(
+        service().addItemsToOrder(order.id, [{ menuItemId, quantity: 2 }]),
+      ).rejects.toThrow();
+    } finally {
+      await testDb.bindings.DB.exec(
+        "ALTER TABLE ingredient_stock_movements_unavailable RENAME TO ingredient_stock_movements",
+      );
+    }
+
+    // The failed add must leave neither the menu nor ingredient inventory
+    // changed, and must not create an order item or ledger entry.
+    expect(await stockOf(rice)).toBeCloseTo(19.5);
+    const [item] = await testDb.drizzle
+      .select({ inventoryCount: menuItems.inventoryCount })
+      .from(menuItems)
+      .where(eq(menuItems.id, menuItemId));
+    expect(item.inventoryCount).toBe(9);
+    expect(
+      await testDb.drizzle
+        .select({ id: orderItems.id })
+        .from(orderItems)
+        .where(eq(orderItems.orderId, order.id)),
+    ).toHaveLength(1);
+    expect(await ledgerFor(order.id)).toHaveLength(1);
+  });
+
   it("stamps cancelledAt so the projected field is not always null", async () => {
     const order = await service().createOrder({
       restaurantId,
