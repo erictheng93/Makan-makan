@@ -47,7 +47,7 @@
         <select
           v-model="filters.status"
           class="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
-          @change="loadFeedback"
+          @change="applyFilters"
         >
           <option value="">{{ t("feedback.allStatuses") }}</option>
           <option v-for="s in statuses" :key="s" :value="s">
@@ -57,7 +57,7 @@
         <select
           v-model="filters.category"
           class="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
-          @change="loadFeedback"
+          @change="applyFilters"
         >
           <option value="">{{ t("feedback.allCategories") }}</option>
           <option v-for="c in categories" :key="c" :value="c">
@@ -67,7 +67,7 @@
         <select
           v-model="filters.priority"
           class="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
-          @change="loadFeedback"
+          @change="applyFilters"
         >
           <option value="">{{ t("feedback.allPriorities") }}</option>
           <option v-for="p in priorities" :key="p" :value="p">
@@ -266,7 +266,13 @@ const priorities = ["low", "medium", "high", "urgent"];
 let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 function debouncedFetch() {
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+  filters.page = 1;
   searchDebounceTimer = setTimeout(() => loadFeedback(), 400);
+}
+
+function applyFilters() {
+  filters.page = 1;
+  loadFeedback();
 }
 
 async function loadFeedback() {
@@ -294,10 +300,9 @@ async function openDetail(item: FeedbackItem) {
   selectedFeedback.value = await fetchFeedbackById(item.id);
 }
 
-function onSubmitted(feedback: FeedbackItem) {
+async function onSubmitted() {
   showForm.value = false;
-  feedbackList.value.unshift(feedback);
-  loadStats();
+  await Promise.all([loadFeedback(), loadStats()]);
 }
 
 function onStatusChanged(status: string) {
