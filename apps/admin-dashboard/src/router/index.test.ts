@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { adminRestaurantOptionalRoutes, router } from "./index";
+import { UserRole } from "@/types";
 
 describe("admin dashboard router", () => {
   it("allows platform market checkouts without a selected restaurant", () => {
@@ -22,5 +23,19 @@ describe("admin dashboard router", () => {
       expect.anything(),
       expect.anything(),
     ]);
+  });
+
+  it("keeps OwnerOverview, Orders, and GroupOrders role boundaries distinct", () => {
+    const rolesFor = (name: string) =>
+      router.getRoutes().find((route) => route.name === name)?.meta.roles;
+
+    expect(rolesFor("OwnerOverview")).toEqual([UserRole.ADMIN, UserRole.OWNER]);
+    expect(rolesFor("Orders")).toEqual([
+      UserRole.ADMIN,
+      UserRole.OWNER,
+      UserRole.SERVICE,
+      UserRole.CASHIER,
+    ]);
+    expect(rolesFor("GroupOrders")).toEqual([UserRole.ADMIN, UserRole.OWNER]);
   });
 });

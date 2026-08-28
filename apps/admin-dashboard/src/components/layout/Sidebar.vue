@@ -380,12 +380,7 @@ const navigationItems = computed(() => {
       path: "/dashboard/group-orders",
       label: t("nav.groupOrders"),
       icon: Users,
-      visible: authStore.hasPermission([
-        UserRole.ADMIN,
-        UserRole.OWNER,
-        UserRole.SERVICE,
-        UserRole.CASHIER,
-      ]),
+      visible: authStore.hasPermission([UserRole.ADMIN, UserRole.OWNER]),
       section: "restaurant",
     },
     {

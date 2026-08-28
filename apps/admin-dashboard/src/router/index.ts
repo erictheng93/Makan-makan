@@ -307,12 +307,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/GroupOrdersView.vue"),
         meta: {
           titleKey: "pages.groupOrders",
-          roles: [
-            UserRole.ADMIN,
-            UserRole.OWNER,
-            UserRole.SERVICE,
-            UserRole.CASHIER,
-          ],
+          roles: [UserRole.ADMIN, UserRole.OWNER],
         },
       },
       {
