@@ -28,6 +28,8 @@ const mocks = vi.hoisted(() => ({
   bulkDeleteCoupons: vi.fn(),
   useCoupon: vi.fn(),
   useCouponForOrder: vi.fn(),
+  distributeCouponToAudience: vi.fn(),
+  getCouponDistributions: vi.fn(),
   getCouponUsageTrends: vi.fn(),
   formatCouponMoneyFields: vi.fn((coupon: unknown) => coupon),
 }));
@@ -66,6 +68,8 @@ vi.mock("../services/CouponsService", () => ({
       bulkDeleteCoupons: mocks.bulkDeleteCoupons,
       useCoupon: mocks.useCoupon,
       useCouponForOrder: mocks.useCouponForOrder,
+      distributeCouponToAudience: mocks.distributeCouponToAudience,
+      getCouponDistributions: mocks.getCouponDistributions,
       getCouponUsageTrends: mocks.getCouponUsageTrends,
       formatCouponMoneyFields: mocks.formatCouponMoneyFields,
     };
@@ -186,6 +190,74 @@ describe("coupons routes", () => {
       success: false,
       error: { code: "COUPON_CODE_EXISTS" },
     });
+  });
+
+  it("keeps an owner off another restaurant's distribution endpoints", async () => {
+    // Same guard shape as the rest of this router: String(null) never equals a
+    // restaurant id, so platform coupons stay admin-only too.
+    mocks.currentUser.role = 1;
+    mocks.currentUser.restaurantId = "restaurant-1";
+    mocks.getCoupon.mockResolvedValue(coupon({ restaurantId: "restaurant-2" }));
+
+    const distributeResponse = await withSilencedRouteError(() =>
+      app.fetch(
+        jsonRequest("https://test/10/distribute", "POST", {
+          distributionType: "manual",
+          targetType: "all",
+        }),
+        createEnv() as never,
+      ),
+    );
+    expect(distributeResponse.status).toBe(500);
+    expect(mocks.distributeCouponToAudience).not.toHaveBeenCalled();
+
+    const historyResponse = await withSilencedRouteError(() =>
+      app.fetch(
+        new Request("https://test/10/distributions"),
+        createEnv() as never,
+      ),
+    );
+    expect(historyResponse.status).toBe(500);
+    expect(mocks.getCouponDistributions).not.toHaveBeenCalled();
+  });
+
+  it("distributes and reads history for the owner's own coupon", async () => {
+    mocks.currentUser.role = 1;
+    mocks.currentUser.restaurantId = "restaurant-1";
+    mocks.getCoupon.mockResolvedValue(coupon({ restaurantId: "restaurant-1" }));
+    mocks.distributeCouponToAudience.mockResolvedValue({
+      distributionId: 3,
+      targeted: 5,
+      issued: 4,
+      skipped: 1,
+    });
+    mocks.getCouponDistributions.mockResolvedValue([{ id: 3 }]);
+    const env = createEnv();
+
+    const distributeResponse = await app.fetch(
+      jsonRequest("https://test/10/distribute", "POST", {
+        distributionType: "manual",
+        targetType: "vip",
+        targetCriteria: { minOrders: 3 },
+      }),
+      env as never,
+    );
+    expect(distributeResponse.status).toBe(201);
+    expect(mocks.distributeCouponToAudience).toHaveBeenCalledWith(
+      expect.objectContaining({
+        couponId: 10,
+        targetType: "vip",
+        targetCriteria: { minOrders: 3 },
+        createdBy: "user-42",
+      }),
+    );
+
+    const historyResponse = await app.fetch(
+      new Request("https://test/10/distributions"),
+      env as never,
+    );
+    expect(historyResponse.status).toBe(200);
+    expect(mocks.getCouponDistributions).toHaveBeenCalledWith(10);
   });
 
   it("validates coupon codes and lists public available coupons", async () => {

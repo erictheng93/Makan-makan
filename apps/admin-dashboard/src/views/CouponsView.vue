@@ -303,6 +303,13 @@
                     {{ t("coupons.actions.edit") }}
                   </button>
                   <button
+                    class="text-purple-600 hover:text-purple-900 text-sm"
+                    :data-testid="`distribute-coupon-${coupon.id}`"
+                    @click="distributeCoupon(coupon)"
+                  >
+                    {{ t("coupons.actions.distribute") }}
+                  </button>
+                  <button
                     v-if="coupon.isActive"
                     class="text-yellow-600 hover:text-yellow-900 text-sm"
                     @click="deactivateCoupon(coupon)"
@@ -421,6 +428,27 @@
             <div class="h-4 bg-gray-200 rounded w-1/2 mb-6"></div>
             <div class="h-32 bg-gray-100 rounded mb-4"></div>
             <div class="h-10 bg-gray-200 rounded w-24"></div>
+          </div>
+        </div>
+      </template>
+    </Suspense>
+
+    <!-- 發放 Modal with Suspense -->
+    <Suspense v-if="showDistributeModal && distributingCoupon">
+      <template #default>
+        <CouponDistributeModal
+          :coupon="distributingCoupon"
+          @close="closeDistributeModal"
+          @distributed="fetchStats"
+        />
+      </template>
+      <template #fallback>
+        <div
+          class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        >
+          <div class="bg-white rounded-lg p-8 max-w-2xl w-full animate-pulse">
+            <div class="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
+            <div class="h-40 bg-gray-100 rounded"></div>
           </div>
         </div>
       </template>
@@ -548,7 +576,8 @@ const hasCouponsModule = computed(
 );
 
 // 異步加載 Modal 組件
-const { CouponFormModal, CouponStatsModal } = useAsyncModals();
+const { CouponFormModal, CouponStatsModal, CouponDistributeModal } =
+  useAsyncModals();
 
 // Types
 import type {
@@ -560,6 +589,8 @@ import type {
 // Reactive state
 const showCreateModal = ref(false);
 const showStatsModal = ref(false);
+const showDistributeModal = ref(false);
+const distributingCoupon = ref<Coupon | null>(null);
 const editingCoupon = ref<Coupon | null>(null);
 const selectedCoupon = ref<Coupon | null>(null);
 const couponStats = ref<CouponDetailStats | null>(null);
@@ -697,6 +728,16 @@ const handleSaveCoupon = async (couponData: Record<string, unknown>) => {
       );
     }
   }
+};
+
+const distributeCoupon = (coupon: Coupon) => {
+  distributingCoupon.value = coupon;
+  showDistributeModal.value = true;
+};
+
+const closeDistributeModal = () => {
+  showDistributeModal.value = false;
+  distributingCoupon.value = null;
 };
 
 const viewCouponStats = async (coupon: Coupon) => {

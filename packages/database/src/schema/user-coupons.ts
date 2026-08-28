@@ -14,7 +14,13 @@
 
 import { sql } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  index,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { coupons, couponUsage } from "./coupons";
 import { customers } from "./customers";
@@ -83,6 +89,15 @@ export const userCoupons = sqliteTable(
       table.state,
       table.expiresAtMs,
     ),
+
+    // Distribution is a retryable write: re-running a batch, or two admins
+    // pressing distribute at once, must not leave one customer holding the
+    // same coupon twice. Only live instances are constrained -- a redeemed or
+    // expired one has been consumed, so the customer may legitimately be
+    // issued the coupon again by a later campaign.
+    holderLiveUniqueIdx: uniqueIndex("user_coupons_holder_live_unique")
+      .on(table.couponId, table.ownerCustomerId)
+      .where(sql`${table.state} IN ('issued', 'reserved')`),
   }),
 );
 

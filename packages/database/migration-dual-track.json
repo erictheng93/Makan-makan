@@ -54,6 +54,10 @@
     {
       "fresh": "0013_coupons_tenant_scoped_code.sql",
       "reason": "Coupon codes are a platform-API concern; the management API database has no coupons table to pair the tenant-scoped unique indexes against."
+    },
+    {
+      "fresh": "0014_user_coupons_holder_unique.sql",
+      "reason": "user_coupons is a platform-API table for per-customer coupon instances; the management API database has no such table to pair against."
     }
   ],
   "legacyOnly": [

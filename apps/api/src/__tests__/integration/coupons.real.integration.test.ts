@@ -37,8 +37,11 @@ import { readData, readEnvelope, type ServiceData } from "../helpers/read-json";
 import type { CouponsService } from "../../features/coupons/services/CouponsService";
 import {
   CouponService as DatabaseCouponService,
+  couponDistributions,
   couponUsage,
   coupons,
+  customers,
+  userCoupons,
 } from "@makanmasak/database";
 import { and, eq } from "drizzle-orm";
 
@@ -324,6 +327,162 @@ describe("Coupons API — real integration", () => {
     expect(body.data?.valid).toBe(true);
     // 7 from the shop's own coupon, not 1 from the platform one.
     expect(body.data?.discountAmount).toBe(7);
+  });
+
+  // ── POST /coupons/:id/distribute ─────────────────────────────────────────
+
+  async function seedCustomerWithOrders(
+    restaurant: string,
+    orderCount: number,
+  ): Promise<string> {
+    const [customer] = await testApp.testDb.drizzle
+      .insert(customers)
+      .values({
+        displayName: `Diner ${Math.random().toString(36).slice(2, 8)}`,
+        status: "active",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning({ id: customers.id });
+    for (let i = 0; i < orderCount; i += 1) {
+      await seed.order(restaurant, { customerId: customer!.id });
+    }
+    return customer!.id;
+  }
+
+  it("issues one holdable instance per customer who has ordered here", async () => {
+    // coupon_distributions and user_coupons existed with no route and no UI, so
+    // the documented "建立 · 發放" flow only ever did the first half (#269 §5).
+    const regular = await seedCustomerWithOrders(restaurantId, 3);
+    const firstTimer = await seedCustomerWithOrders(restaurantId, 1);
+    const coupon = await seed.coupon(restaurantId, { code: "GIVEAWAY" });
+
+    const res = await testApp.app.fetch(
+      new Request(`https://test/api/v1/coupons/${coupon.id}/distribute`, {
+        method: "POST",
+        headers: csrfHeaders(adminToken),
+        body: JSON.stringify({ distributionType: "manual", targetType: "all" }),
+      }),
+    );
+
+    expect(res.status).toBe(201);
+    const body = await readEnvelope<{
+      issued: number;
+      skipped: number;
+      targeted: number;
+    }>(res);
+    expect(body.data?.issued).toBe(2);
+    expect(body.data?.skipped).toBe(0);
+
+    const held = await testApp.testDb.drizzle
+      .select({ ownerCustomerId: userCoupons.ownerCustomerId })
+      .from(userCoupons)
+      .where(eq(userCoupons.couponId, coupon.id));
+    expect(new Set(held.map((row) => row.ownerCustomerId))).toEqual(
+      new Set([regular, firstTimer]),
+    );
+
+    const batches = await testApp.testDb.drizzle
+      .select({ total: couponDistributions.totalDistributed })
+      .from(couponDistributions)
+      .where(eq(couponDistributions.couponId, coupon.id));
+    expect(batches).toHaveLength(1);
+    expect(batches[0]?.total).toBe(2);
+  });
+
+  it("skips customers already holding the coupon when a batch is re-run", async () => {
+    await seedCustomerWithOrders(restaurantId, 2);
+    const coupon = await seed.coupon(restaurantId, { code: "RERUN" });
+
+    const distribute = () =>
+      testApp.app.fetch(
+        new Request(`https://test/api/v1/coupons/${coupon.id}/distribute`, {
+          method: "POST",
+          headers: csrfHeaders(adminToken),
+          body: JSON.stringify({
+            distributionType: "manual",
+            targetType: "all",
+          }),
+        }),
+      );
+
+    const first = await readEnvelope<{ issued: number }>(await distribute());
+    expect(first.data?.issued).toBe(1);
+
+    const second = await readEnvelope<{ issued: number; skipped: number }>(
+      await distribute(),
+    );
+    expect(second.data?.issued).toBe(0);
+    expect(second.data?.skipped).toBe(1);
+
+    const held = await testApp.testDb.drizzle
+      .select({ id: userCoupons.id })
+      .from(userCoupons)
+      .where(eq(userCoupons.couponId, coupon.id));
+    expect(held).toHaveLength(1);
+  });
+
+  it("targets new customers and regulars by their order count here", async () => {
+    const regular = await seedCustomerWithOrders(restaurantId, 5);
+    const firstTimer = await seedCustomerWithOrders(restaurantId, 1);
+    const newOnly = await seed.coupon(restaurantId, { code: "NEW-ONLY" });
+    const vipOnly = await seed.coupon(restaurantId, { code: "VIP-ONLY" });
+
+    const post = (id: number, payload: Record<string, unknown>) =>
+      testApp.app.fetch(
+        new Request(`https://test/api/v1/coupons/${id}/distribute`, {
+          method: "POST",
+          headers: csrfHeaders(adminToken),
+          body: JSON.stringify(payload),
+        }),
+      );
+
+    await post(newOnly.id, {
+      distributionType: "manual",
+      targetType: "new_user",
+    });
+    await post(vipOnly.id, {
+      distributionType: "manual",
+      targetType: "vip",
+      targetCriteria: { minOrders: 3 },
+    });
+
+    const newHolders = await testApp.testDb.drizzle
+      .select({ owner: userCoupons.ownerCustomerId })
+      .from(userCoupons)
+      .where(eq(userCoupons.couponId, newOnly.id));
+    expect(newHolders.map((row) => row.owner)).toEqual([firstTimer]);
+
+    const vipHolders = await testApp.testDb.drizzle
+      .select({ owner: userCoupons.ownerCustomerId })
+      .from(userCoupons)
+      .where(eq(userCoupons.couponId, vipOnly.id));
+    expect(vipHolders.map((row) => row.owner)).toEqual([regular]);
+  });
+
+  it("refuses a target the schema has no audience for instead of issuing to nobody", async () => {
+    const coupon = await seed.coupon(restaurantId, { code: "NO-GROUPS" });
+
+    const res = await testApp.app.fetch(
+      new Request(`https://test/api/v1/coupons/${coupon.id}/distribute`, {
+        method: "POST",
+        headers: csrfHeaders(adminToken),
+        body: JSON.stringify({
+          distributionType: "manual",
+          targetType: "group",
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(400);
+    const body = await readEnvelope(res);
+    expect(body.error?.code).toBe("COUPON_DISTRIBUTION_TARGET_UNSUPPORTED");
+
+    const held = await testApp.testDb.drizzle
+      .select({ id: userCoupons.id })
+      .from(userCoupons)
+      .where(eq(userCoupons.couponId, coupon.id));
+    expect(held).toHaveLength(0);
   });
 
   // ── GET /coupons (list) ───────────────────────────────────────────────────

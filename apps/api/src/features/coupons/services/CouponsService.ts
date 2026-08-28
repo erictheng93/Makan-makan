@@ -87,6 +87,7 @@ interface CouponUsageTrendPoint {
 // 讓路由層不需要再做字串比對的錯誤映射。
 const CouponEligibilityError = BaseCouponService.EligibilityError;
 const CouponDuplicateCodeError = BaseCouponService.DuplicateCodeError;
+const CouponDistributionTargetError = BaseCouponService.DistributionTargetError;
 
 function toCouponApiError(error: unknown): unknown {
   if (error instanceof CouponDuplicateCodeError) {
@@ -244,6 +245,26 @@ export class CouponsService extends BaseCouponService {
       return await super.updateCoupon(id, updates);
     } catch (error) {
       throw toCouponApiError(error);
+    }
+  }
+
+  /**
+   * Issue a coupon to an audience, mapping an unsupported target to a 400.
+   *
+   * "group" names a concept the schema has no table for; the data layer refuses
+   * it rather than resolving to an empty audience and reporting a successful
+   * distribution to nobody.
+   */
+  async distributeCouponToAudience(
+    input: Parameters<BaseCouponService["distributeCoupon"]>[0],
+  ): ReturnType<BaseCouponService["distributeCoupon"]> {
+    try {
+      return await this.distributeCoupon(input);
+    } catch (error) {
+      if (error instanceof CouponDistributionTargetError) {
+        throw badRequest(error.message, error.code);
+      }
+      throw error;
     }
   }
 

@@ -75,12 +75,27 @@ export const useCouponSchema = z.object({
   finalAmount: z.number().min(0),
 });
 
+/**
+ * `targetCriteria` was `z.any()`, which meant a typo in the payload reached the
+ * service as an empty audience and silently issued to nobody. Each supported
+ * target reads exactly one key, so both are spelled out.
+ *
+ * `totalDistributed` is deliberately absent: the count is whatever the audience
+ * resolves to, and letting a client assert it invites the stored total to
+ * disagree with the rows actually written.
+ */
+export const distributeTargetCriteriaSchema = z.object({
+  customerIds: z.array(z.string().min(1)).min(1).max(5000).optional(),
+  minOrders: z.number().int().positive().max(1000).optional(),
+});
+
 export const distributeCouponSchema = z.object({
-  couponId: z.number().int().positive(),
   distributionType: z.enum(["manual", "auto", "bulk", "promotion"]),
-  targetType: z.enum(["all", "user", "group", "new_user", "vip"]).optional(),
-  targetCriteria: z.any().optional(),
-  totalDistributed: z.number().int().positive().optional(),
+  targetType: z
+    .enum(["all", "user", "group", "new_user", "vip"])
+    .optional()
+    .default("all"),
+  targetCriteria: distributeTargetCriteriaSchema.optional(),
   expiresAt: z.iso.datetime().optional(),
   notes: z.string().max(500).optional(),
 });
@@ -150,3 +165,4 @@ export type IdParamInput = z.infer<typeof idParamSchema>;
 export type RestaurantIdParamInput = z.infer<typeof restaurantIdParamSchema>;
 export type BulkActionInput = z.infer<typeof bulkActionSchema>;
 export type UseCouponInput = z.infer<typeof useCouponSchema>;
+export type DistributeCouponInput = z.infer<typeof distributeCouponSchema>;

@@ -3276,6 +3276,7 @@ const zhTWCore = {
     },
     actions: {
       stats: "統計",
+      distribute: "發放",
       edit: "編輯",
       deactivate: "停用",
       activate: "啟用",
@@ -3781,6 +3782,37 @@ const zhTWCore = {
   },
 
   // 優惠券統計
+  couponDistribute: {
+    title: "發放優惠券",
+    targetType: "發放對象",
+    minOrders: "最少訂單數",
+    customerIds: "顧客 ID（以逗號或換行分隔）",
+    notes: "備註",
+    submit: "發放",
+    submitting: "發放中…",
+    history: "發放紀錄",
+    historyEmpty: "尚未發放過。",
+    historyFailed: "無法載入發放紀錄。",
+    colTarget: "對象",
+    colIssued: "已發放",
+    colUsed: "已使用",
+    colWhen: "時間",
+    done: "已發放 {issued} 張，略過 {skipped} 位已持有的顧客。",
+    failed: "發放失敗，請重試。",
+    targetUnsupported: "目前不支援這個發放對象。",
+    targets: {
+      all: "所有顧客",
+      newUser: "新顧客",
+      vip: "常客",
+      user: "指定顧客",
+    },
+    hints: {
+      all: "曾在本店下過單的所有顧客。",
+      newUser: "在本店只下過一次單的顧客。",
+      vip: "在本店下單次數達門檻的顧客。",
+      user: "只發給你列出的顧客 ID。",
+    },
+  },
   couponStats: {
     title: "優惠券統計",
     couponInfo: "優惠券資訊",

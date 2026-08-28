@@ -11,8 +11,16 @@ import {
   or,
   sql,
 } from "drizzle-orm";
-import type { DiscountType } from "../schema";
-import { coupons, couponUsage, menuItems as menuItemsTable } from "../schema";
+import type { DiscountType, DistributionType, TargetType } from "../schema";
+import {
+  couponDistributions,
+  coupons,
+  couponUsage,
+  customers,
+  menuItems as menuItemsTable,
+  orders,
+  userCoupons,
+} from "../schema";
 import {
   amountFromCents,
   fromCents,
@@ -80,6 +88,50 @@ export class CouponEligibilityError extends Error {
     super(message);
     this.name = "CouponEligibilityError";
   }
+}
+
+/** Raised when a target type has no defined audience yet. */
+export class CouponDistributionTargetError extends Error {
+  readonly code = "COUPON_DISTRIBUTION_TARGET_UNSUPPORTED";
+
+  constructor(targetType: string) {
+    super(`不支援的發放對象：${targetType}`);
+    this.name = "CouponDistributionTargetError";
+  }
+}
+
+/**
+ * Audience selectors for a distribution batch.
+ *
+ * `customers` is a platform-level table with no restaurant column, so a
+ * restaurant's audience is derived from who has ordered there. A platform
+ * coupon (restaurant_id IS NULL) addresses every active customer instead.
+ */
+export interface DistributionTargetCriteria {
+  /** targetType "user": the exact customers to issue to. */
+  customerIds?: string[];
+  /** targetType "vip": minimum completed orders at this restaurant. */
+  minOrders?: number;
+}
+
+export interface DistributeCouponInput {
+  couponId: number;
+  distributionType: DistributionType;
+  targetType?: TargetType;
+  targetCriteria?: DistributionTargetCriteria;
+  expiresAt?: Date | null;
+  notes?: string | null;
+  createdBy?: string | null;
+}
+
+export interface DistributeCouponResult {
+  distributionId: number;
+  /** Customers the audience resolved to. */
+  targeted: number;
+  /** New user_coupons rows written. */
+  issued: number;
+  /** Already holding a live instance, so left alone. */
+  skipped: number;
 }
 
 /** Stable duplicate-code signal for API transports to map to a 409. */
@@ -171,6 +223,7 @@ export class CouponService extends BaseService {
    */
   static readonly EligibilityError = CouponEligibilityError;
   static readonly DuplicateCodeError = CouponDuplicateCodeError;
+  static readonly DistributionTargetError = CouponDistributionTargetError;
 
   private mapCouponMoneyFields<T extends CouponMoneyColumns>(
     coupon: T,
@@ -1024,5 +1077,177 @@ export class CouponService extends BaseService {
     });
 
     return couponList.map((coupon) => this.mapCouponMoneyFields(coupon));
+  }
+
+  /**
+   * Resolve a distribution audience to customer ids.
+   *
+   * `customers` carries no restaurant column, so a restaurant's audience comes
+   * from who has ordered there. A platform coupon addresses every active
+   * customer instead.
+   */
+  private async resolveDistributionAudience(
+    restaurantId: string | null,
+    targetType: TargetType,
+    criteria: DistributionTargetCriteria,
+  ): Promise<string[]> {
+    if (targetType === "user") {
+      return [...new Set((criteria.customerIds ?? []).filter(Boolean))];
+    }
+
+    // "group" names a concept the schema has no table for. Fail loudly rather
+    // than silently issuing to nobody.
+    if (targetType === "group") {
+      throw new CouponDistributionTargetError(targetType);
+    }
+
+    if (restaurantId === null) {
+      if (targetType !== "all") {
+        throw new CouponDistributionTargetError(targetType);
+      }
+      const rows = await this.db
+        .select({ id: customers.id })
+        .from(customers)
+        .where(
+          and(eq(customers.status, "active"), isNull(customers.deletedAt)),
+        );
+      return rows.map((row) => row.id);
+    }
+
+    const orderCounts = await this.db
+      .select({
+        customerId: orders.customerId,
+        orderCount: sql<number>`count(*)`,
+      })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.restaurantId, restaurantId),
+          sql`${orders.customerId} IS NOT NULL`,
+          sql`${orders.status} != 'cancelled'`,
+        ),
+      )
+      .groupBy(orders.customerId);
+
+    const minOrders = Math.max(1, criteria.minOrders ?? 5);
+    return orderCounts
+      .filter((row) => {
+        if (targetType === "all") return true;
+        if (targetType === "new_user") return row.orderCount <= 1;
+        return row.orderCount >= minOrders;
+      })
+      .map((row) => row.customerId)
+      .filter((id): id is string => typeof id === "string" && id !== "");
+  }
+
+  /**
+   * Issue a coupon to an audience, recording the batch and one holdable
+   * instance per customer.
+   *
+   * Customers already holding a live instance are skipped rather than issued a
+   * second one; `user_coupons_holder_live_unique` (0014) is the authority under
+   * concurrency, since that read is not atomic against a parallel batch.
+   */
+  async distributeCoupon(
+    input: DistributeCouponInput,
+  ): Promise<DistributeCouponResult> {
+    const coupon = await this.db.query.coupons.findFirst({
+      where: and(eq(coupons.id, input.couponId), isNull(coupons.deletedAt)),
+    });
+
+    if (!coupon) {
+      throw new Error("優惠券不存在");
+    }
+
+    const targetType = input.targetType ?? "all";
+    const audience = await this.resolveDistributionAudience(
+      coupon.restaurantId ?? null,
+      targetType,
+      input.targetCriteria ?? {},
+    );
+
+    // Chunked because both of these run through D1's bound-parameter limit,
+    // and an audience is unbounded in principle.
+    const CHUNK = 100;
+    const alreadyHolding = new Set<string>();
+    for (let i = 0; i < audience.length; i += CHUNK) {
+      const slice = audience.slice(i, i + CHUNK);
+      const held = await this.db
+        .select({ ownerCustomerId: userCoupons.ownerCustomerId })
+        .from(userCoupons)
+        .where(
+          and(
+            eq(userCoupons.couponId, input.couponId),
+            inArray(userCoupons.ownerCustomerId, slice),
+            inArray(userCoupons.state, ["issued", "reserved"]),
+          ),
+        );
+      for (const row of held) alreadyHolding.add(row.ownerCustomerId);
+    }
+
+    const recipients = audience.filter((id) => !alreadyHolding.has(id));
+    const now = new Date();
+
+    const [distribution] = await this.db
+      .insert(couponDistributions)
+      .values({
+        couponId: input.couponId,
+        distributionType: input.distributionType,
+        targetType,
+        targetCriteria: input.targetCriteria ?? null,
+        totalDistributed: recipients.length,
+        totalUsed: 0,
+        distributedAt: now,
+        expiresAt: input.expiresAt ?? null,
+        createdAt: now,
+        createdBy: input.createdBy ?? null,
+        notes: input.notes ?? null,
+      })
+      .returning({ id: couponDistributions.id });
+
+    for (let i = 0; i < recipients.length; i += CHUNK) {
+      await this.db
+        .insert(userCoupons)
+        .values(
+          recipients.slice(i, i + CHUNK).map((customerId) => ({
+            couponId: input.couponId,
+            ownerCustomerId: customerId,
+            state: "issued" as const,
+            expiresAtMs: input.expiresAt ?? null,
+            createdAt: now,
+            updatedAt: now,
+          })),
+        )
+        // A parallel batch may have issued to the same customer between the
+        // read above and this write; the partial unique index catches it and
+        // the row is simply not duplicated.
+        .onConflictDoNothing();
+    }
+
+    return {
+      distributionId: distribution!.id,
+      targeted: audience.length,
+      issued: recipients.length,
+      skipped: audience.length - recipients.length,
+    };
+  }
+
+  /** Distribution batches for one coupon, newest first. */
+  async getCouponDistributions(couponId: number) {
+    return await this.db
+      .select({
+        id: couponDistributions.id,
+        distributionType: couponDistributions.distributionType,
+        targetType: couponDistributions.targetType,
+        targetCriteria: couponDistributions.targetCriteria,
+        totalDistributed: couponDistributions.totalDistributed,
+        totalUsed: couponDistributions.totalUsed,
+        distributedAt: couponDistributions.distributedAt,
+        expiresAt: couponDistributions.expiresAt,
+        notes: couponDistributions.notes,
+      })
+      .from(couponDistributions)
+      .where(eq(couponDistributions.couponId, couponId))
+      .orderBy(desc(couponDistributions.distributedAt));
   }
 }

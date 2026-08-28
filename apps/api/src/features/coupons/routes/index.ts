@@ -22,7 +22,9 @@ import {
   restaurantIdParamSchema,
   bulkActionSchema,
   useCouponSchema,
+  distributeCouponSchema,
   type BulkActionInput,
+  type DistributeCouponInput,
   type CouponFiltersInput,
   type CreateCouponInput,
   type IdParamInput,
@@ -531,6 +533,86 @@ routes.get(
       success: true,
       data: trends,
     });
+  },
+);
+
+/**
+ * Issue a coupon to an audience.
+ * POST /api/v1/coupons/:id/distribute
+ *
+ * The tables for this (coupon_distributions, user_coupons) existed with no
+ * route and no UI, so the documented "建立 · 發放" flow only ever did the first
+ * half (#269).
+ */
+routes.post(
+  "/:id/distribute",
+  authMiddleware,
+  moduleGate("coupons"),
+  requireRole([0, 1]),
+  validateParams(idParamSchema),
+  validateBody(distributeCouponSchema),
+  async (c) => {
+    const { id } = c.get("validatedParams") as IdParamInput;
+    const body = c.get("validatedBody") as DistributeCouponInput;
+    const user = c.get("user");
+    const couponsService = createCouponsService(c.env);
+
+    const coupon = await couponsService.getCoupon(id);
+    if (!coupon) {
+      throw notFound("Coupon not found");
+    }
+    // Same shape as every other single-coupon guard here: an owner may only
+    // reach their own restaurant's coupons, and String(null) never matches, so
+    // platform coupons stay admin-only.
+    if (
+      user.role === 1 &&
+      String(coupon.restaurantId) !== userRestaurantId(user)
+    ) {
+      throw forbidden("Access denied");
+    }
+
+    const result = await couponsService.distributeCouponToAudience({
+      couponId: id,
+      distributionType: body.distributionType,
+      targetType: body.targetType,
+      targetCriteria: body.targetCriteria,
+      expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
+      notes: body.notes ?? null,
+      createdBy: String(user.id),
+    });
+
+    return c.json({ success: true, data: result }, 201);
+  },
+);
+
+/**
+ * Distribution history for one coupon.
+ * GET /api/v1/coupons/:id/distributions
+ */
+routes.get(
+  "/:id/distributions",
+  authMiddleware,
+  moduleGate("coupons"),
+  requireRole([0, 1]),
+  validateParams(idParamSchema),
+  async (c) => {
+    const { id } = c.get("validatedParams") as IdParamInput;
+    const user = c.get("user");
+    const couponsService = createCouponsService(c.env);
+
+    const coupon = await couponsService.getCoupon(id);
+    if (!coupon) {
+      throw notFound("Coupon not found");
+    }
+    if (
+      user.role === 1 &&
+      String(coupon.restaurantId) !== userRestaurantId(user)
+    ) {
+      throw forbidden("Access denied");
+    }
+
+    const distributions = await couponsService.getCouponDistributions(id);
+    return c.json({ success: true, data: distributions });
   },
 );
 

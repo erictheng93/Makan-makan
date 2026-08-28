@@ -31,6 +31,7 @@ interface AsyncModalComponents {
   // Coupon Modals
   CouponFormModal: Component;
   CouponStatsModal: Component;
+  CouponDistributeModal: Component;
 
   // Backup Modals
   CreateBackupModal: Component;
@@ -93,6 +94,9 @@ export function useAsyncModals(): AsyncModalComponents {
     ),
     CouponStatsModal: createAsyncModal(
       () => import("@/components/coupons/CouponStatsModal.vue"),
+    ),
+    CouponDistributeModal: createAsyncModal(
+      () => import("@/components/coupons/CouponDistributeModal.vue"),
     ),
 
     // Backup Modals
