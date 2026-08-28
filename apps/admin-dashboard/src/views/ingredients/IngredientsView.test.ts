@@ -25,8 +25,15 @@ vi.mock("@/stores/auth", () => ({
 vi.mock("@/composables/useConfirmModal", () => ({
   useConfirmModal: () => ({ confirm: vi.fn() }),
 }));
+// Echo the fallback key so each test records which one its path uses — a key
+// that does not exist in the locale files would otherwise render as the raw
+// key at runtime while a fixed-string mock stayed green.
 vi.mock("@makanmasak/shared/utils/user-facing-error", () => ({
-  resolveUserFacingError: () => ({ message: "recipe load failed" }),
+  resolveUserFacingError: (
+    _error: unknown,
+    _t: unknown,
+    options: { fallbackKey: string },
+  ) => ({ message: options.fallbackKey }),
 }));
 
 function ingredient(id: number, name: string): IngredientDefinitionResponse {
@@ -58,8 +65,12 @@ function mountView() {
             "menuItemName",
             "initialEntries",
             "availableIngredients",
+            "submitting",
+            "error",
           ],
-          template: '<div data-testid="recipe-editor" />',
+          emits: ["save", "close"],
+          template:
+            '<div data-testid="recipe-editor"><button data-testid="stub-save" @click="$emit(\'save\', [])" /></div>',
         },
       },
     },
@@ -101,9 +112,48 @@ describe("IngredientsView recipe editing", () => {
 
     expect(wrapper.find('[data-testid="recipe-editor"]').exists()).toBe(false);
     expect(wrapper.get('[data-testid="recipe-error"]').text()).toBe(
-      "recipe load failed",
+      "common.loadFailed",
     );
     expect(wrapper.find('[data-testid="edit-recipe-10"]').exists()).toBe(true);
+  });
+
+  it("keeps the editor open and surfaces the reason when saving fails", async () => {
+    // Both rejections a user reaches here are fixable in the dialog — a
+    // quantity still at its default 0, or a unit edited away from the stock
+    // unit — so closing the editor would throw the edits away.
+    ingredientApi.setRecipe.mockRejectedValueOnce(new Error("400"));
+    const wrapper = mountView();
+    await flushPromises();
+    await openDish(wrapper);
+
+    await wrapper.get('[data-testid="stub-save"]').trigger("click");
+    await flushPromises();
+
+    const editor = wrapper.getComponent({ name: "RecipeEditor" });
+    expect(editor.props()).toMatchObject({
+      error: "ingredients.recipeSaveFailed",
+      submitting: false,
+    });
+  });
+
+  it("marks the editor as submitting while the save is in flight", async () => {
+    let release!: () => void;
+    ingredientApi.setRecipe.mockImplementationOnce(
+      () => new Promise<void>((resolve) => (release = resolve)),
+    );
+    const wrapper = mountView();
+    await flushPromises();
+    await openDish(wrapper);
+
+    await wrapper.get('[data-testid="stub-save"]').trigger("click");
+    await flushPromises();
+    expect(
+      wrapper.getComponent({ name: "RecipeEditor" }).props("submitting"),
+    ).toBe(true);
+
+    release();
+    await flushPromises();
+    expect(wrapper.find('[data-testid="recipe-editor"]').exists()).toBe(false);
   });
 
   it("uses the complete unfiltered ingredient list in the recipe editor", async () => {

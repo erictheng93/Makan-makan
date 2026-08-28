@@ -4659,6 +4659,7 @@ const viVN: Messages = {
     bulkImportParsed: "Đã phân tích {count} nguyên liệu, sẵn sàng nhập",
     bulkImportParseError: "Không thể phân tích dữ liệu CSV",
     bulkImportFailed: "Nhập nguyên liệu thất bại",
+    recipeSaveFailed: "Lưu công thức thất bại",
     editRecipe: "Sửa công thức",
     addIngredientToRecipe: "Thêm nguyên liệu",
     searchIngredient: "Tìm nguyên liệu...",

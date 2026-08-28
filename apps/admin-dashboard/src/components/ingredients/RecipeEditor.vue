@@ -91,6 +91,15 @@
         {{ t("ingredients.noRecipeEntries") }}
       </div>
 
+      <p
+        v-if="error"
+        data-testid="recipe-save-error"
+        role="alert"
+        class="mt-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg"
+      >
+        {{ error }}
+      </p>
+
       <div class="flex justify-end gap-3 pt-4 mt-4 border-t">
         <button
           type="button"
@@ -112,7 +121,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { useI18n } from "@/i18n";
 import type {
   IngredientDefinitionResponse,
@@ -121,12 +130,28 @@ import type {
 
 const { t } = useI18n();
 
-const props = defineProps<{
-  menuItemId: number;
-  menuItemName: string;
-  initialEntries: RecipeEntryResponse[];
-  availableIngredients: IngredientDefinitionResponse[];
-}>();
+/**
+ * `submitting` and `error` are owned by the parent, matching BulkImportDialog:
+ * the parent is what learns the outcome of the PUT. Held locally, `saving` was
+ * reset in a `finally` that ran the moment the synchronous `emit` returned, so
+ * the button never reflected the in-flight request (double-click sent two PUTs)
+ * and a rejection showed nothing at all. The API rejects two things a user
+ * reaches through this dialog — a quantity left at its default 0
+ * (`quantityPerServing` must be positive) and a hand-edited unit that no longer
+ * matches the stock unit (RECIPE_UNIT_MISMATCH) — and both used to fail with no
+ * signal but the dialog not closing.
+ */
+const props = withDefaults(
+  defineProps<{
+    menuItemId: number;
+    menuItemName: string;
+    initialEntries: RecipeEntryResponse[];
+    availableIngredients: IngredientDefinitionResponse[];
+    submitting?: boolean;
+    error?: string;
+  }>(),
+  { submitting: false, error: "" },
+);
 
 const emit = defineEmits<{
   close: [];
@@ -140,7 +165,7 @@ const emit = defineEmits<{
   ];
 }>();
 
-const saving = ref(false);
+const saving = computed(() => props.submitting);
 const searchQuery = ref("");
 const searchResults = ref<IngredientDefinitionResponse[]>([]);
 
@@ -187,20 +212,15 @@ function removeEntry(index: number) {
   entries.value.splice(index, 1);
 }
 
-async function handleSave() {
-  saving.value = true;
-  try {
-    emit(
-      "save",
-      entries.value.map((e) => ({
-        ingredientId: e.ingredientId,
-        quantityPerServing: e.quantityPerServing,
-        unit: e.unit,
-        isOptional: e.isOptional,
-      })),
-    );
-  } finally {
-    saving.value = false;
-  }
+function handleSave() {
+  emit(
+    "save",
+    entries.value.map((e) => ({
+      ingredientId: e.ingredientId,
+      quantityPerServing: e.quantityPerServing,
+      unit: e.unit,
+      isOptional: e.isOptional,
+    })),
+  );
 }
 </script>

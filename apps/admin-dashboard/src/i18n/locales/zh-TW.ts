@@ -4805,6 +4805,7 @@ const zhTWCore = {
     bulkImportParsed: "已解析 {count} 項食材，準備匯入",
     bulkImportParseError: "CSV 資料解析失敗",
     bulkImportFailed: "食材匯入失敗",
+    recipeSaveFailed: "配方儲存失敗",
     editRecipe: "編輯配方",
     addIngredientToRecipe: "新增食材",
     searchIngredient: "搜尋食材...",

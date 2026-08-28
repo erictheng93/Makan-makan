@@ -4661,6 +4661,7 @@ const jaJP: Messages = {
     bulkImportParsed: "{count}件の食材を解析済み、インポート準備完了",
     bulkImportParseError: "CSVデータの解析に失敗しました",
     bulkImportFailed: "食材のインポートに失敗しました",
+    recipeSaveFailed: "レシピの保存に失敗しました",
     editRecipe: "レシピを編集",
     addIngredientToRecipe: "食材を追加",
     searchIngredient: "食材を検索...",

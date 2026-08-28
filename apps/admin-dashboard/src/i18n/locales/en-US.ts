@@ -4729,6 +4729,7 @@ const enUS: Messages = {
     bulkImportParsed: "Parsed {count} ingredients ready to import",
     bulkImportParseError: "Failed to parse CSV data",
     bulkImportFailed: "Ingredient import failed",
+    recipeSaveFailed: "Failed to save recipe",
     editRecipe: "Edit Recipe",
     addIngredientToRecipe: "Add Ingredient",
     searchIngredient: "Search ingredients...",

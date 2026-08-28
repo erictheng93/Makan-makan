@@ -4563,6 +4563,7 @@ const zhCN: Messages = {
     bulkImportParsed: "已解析 {count} 项食材，准备导入",
     bulkImportParseError: "CSV 数据解析失败",
     bulkImportFailed: "食材导入失败",
+    recipeSaveFailed: "配方保存失败",
     editRecipe: "编辑配方",
     addIngredientToRecipe: "新增食材",
     searchIngredient: "搜索食材...",

@@ -202,6 +202,8 @@
       :menu-item-name="editingRecipeFor.name"
       :initial-entries="recipeEntries"
       :available-ingredients="recipeIngredients"
+      :submitting="savingRecipe"
+      :error="recipeSaveError"
       @close="editingRecipeFor = undefined"
       @save="handleSaveRecipe"
     />
@@ -298,6 +300,8 @@ const editingRecipeFor = ref<{ id: number; name: string } | undefined>();
 const recipeEntries = ref<RecipeEntryResponse[]>([]);
 const recipeIngredients = ref<IngredientDefinitionResponse[]>([]);
 const recipeError = ref("");
+const recipeSaveError = ref("");
+const savingRecipe = ref(false);
 
 async function openRecipes() {
   if (!restaurantId.value) return;
@@ -329,6 +333,7 @@ async function editRecipe(item: { id: number; name: string }) {
   if (!restaurantId.value) return;
   editingRecipeFor.value = undefined;
   recipeError.value = "";
+  recipeSaveError.value = "";
   try {
     recipeEntries.value = await ingredientApi.getRecipe(
       restaurantId.value,
@@ -353,6 +358,8 @@ async function handleSaveRecipe(
 ) {
   if (!restaurantId.value || !editingRecipeFor.value) return;
   const menuItemId = editingRecipeFor.value.id;
+  savingRecipe.value = true;
+  recipeSaveError.value = "";
   try {
     await ingredientApi.setRecipe(restaurantId.value, menuItemId, {
       ingredients: entries,
@@ -366,6 +373,15 @@ async function handleSaveRecipe(
     missingRecipeIds.value = next;
   } catch (error) {
     console.error("Failed to save recipe:", error);
+    // The editor stays open on failure, so the message has to render inside it
+    // — the panel's own error sits behind the modal. Both rejections a user can
+    // reach here are fixable in place: a quantity still at 0, or a unit edited
+    // away from the stock unit.
+    recipeSaveError.value = resolveUserFacingError(error, t, {
+      fallbackKey: "ingredients.recipeSaveFailed",
+    }).message;
+  } finally {
+    savingRecipe.value = false;
   }
 }
 const editingIngredient = ref<IngredientDefinitionResponse | undefined>();

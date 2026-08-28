@@ -4682,6 +4682,7 @@ const idID: Messages = {
     bulkImportParsed: "Berhasil mengurai {count} bahan, siap diimpor",
     bulkImportParseError: "Gagal mengurai data CSV",
     bulkImportFailed: "Impor bahan baku gagal",
+    recipeSaveFailed: "Gagal menyimpan resep",
     editRecipe: "Edit Resep",
     addIngredientToRecipe: "Tambah Bahan",
     searchIngredient: "Cari bahan...",
