@@ -77,4 +77,20 @@ describe("ingredient validation schemas", () => {
       { lowStock: true, includeInactive: false },
     );
   });
+
+  it("accepts an empty recipe, which is the only way to clear one", () => {
+    // PUT is the sole writer — there is no DELETE route for a recipe — so a
+    // `.min(1)` here left the owner unable to remove the last row, and unable
+    // to delete the ingredient it referenced either (#287). setRecipe is
+    // DELETE-then-conditionally-INSERT, so the empty array is a real clear.
+    expect(setRecipeSchema.parse({ ingredients: [] })).toEqual({
+      ingredients: [],
+    });
+
+    // bulkImportSchema keeps its own `.min(1)` on purpose: an import of nothing
+    // is a malformed request, not an instruction to empty anything.
+    expect(() => bulkImportSchema.parse({ ingredients: [] })).toThrow(
+      "At least one ingredient is required",
+    );
+  });
 });
