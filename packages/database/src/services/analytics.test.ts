@@ -471,10 +471,12 @@ describe("AnalyticsService table analytics", () => {
         expect.objectContaining({ tableId: 3 }),
       ]),
     );
-    expect(tableAnalytics.peakHours).toContainEqual({
-      hour: 12,
-      occupancyRate: 100,
-    });
+    // What #272 is about: both the numerator (COUNT DISTINCT table_id) and the
+    // denominator (the subquery over `tables`) must exclude soft-deleted tables.
+    // The `hour` bucket itself is still UTC (#290) — deliberately not pinned
+    // here, or fixing the timezone would read as breaking this test.
+    expect(tableAnalytics.peakHours).toHaveLength(1);
+    expect(tableAnalytics.peakHours[0].occupancyRate).toBe(100);
     expect(tableAnalytics.averageTurnoverTime).toBe(30);
     expect(performance.tableUtilization).toBeCloseTo(8.333333, 5);
   });
