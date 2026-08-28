@@ -6,13 +6,15 @@
  * existing `coupon_usage` table only on verified payment success.
  *
  * Locked decisions (docs/superpowers/specs/2026-06-03-market-checkout-voucher-redemption.md):
- * - platform-wide coupons only (`coupons.restaurant_id IS NULL`),
+ * - platform coupons apply to every child order; a shop's own coupon applies
+ *   only to that shop's child orders and takes precedence over a platform
+ *   coupon sharing the code (codes are unique per tenant since 0013),
  * - anonymous (no `user_coupons`, no owner),
  * - `used_count` increments once per checkout, idempotent on replay.
  */
 
 import { drizzle } from "drizzle-orm/d1";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import {
   coupons,
   couponUsage,
@@ -166,13 +168,47 @@ export class MarketCheckoutVoucherService {
       throw badRequest("Voucher code is required", "VOUCHER_CODE_REQUIRED");
     }
 
-    const coupon = await this.db
+    // Codes are unique per tenant since 0013, so one code can match several
+    // rows at once: the platform's, plus one for each shop in this checkout.
+    // Resolve only against rows that could legitimately apply here, and filter
+    // soft-deleted rows in the query rather than after it -- picking one and
+    // then rejecting it would 404 a live voucher that a deleted row shadowed.
+    const childRestaurantIds = [
+      ...new Set(
+        input.childOrders
+          .map((child) => child.restaurantId)
+          .filter((id): id is string => typeof id === "string" && id !== ""),
+      ),
+    ];
+
+    const candidates = await this.db
       .select()
       .from(coupons)
-      .where(eq(coupons.code, code))
-      .get();
+      .where(
+        and(
+          eq(coupons.code, code),
+          isNull(coupons.deletedAt),
+          childRestaurantIds.length > 0
+            ? or(
+                isNull(coupons.restaurantId),
+                inArray(coupons.restaurantId, childRestaurantIds),
+              )
+            : isNull(coupons.restaurantId),
+        ),
+      )
+      .all();
 
-    if (!coupon || coupon.deletedAt) {
+    // A shop's own voucher beats the platform's. Ordering by id after that
+    // keeps the choice deterministic when two shops in one checkout each own
+    // the same code.
+    const [coupon] = candidates.sort((a, b) => {
+      const aPlatform = a.restaurantId == null;
+      const bPlatform = b.restaurantId == null;
+      if (aPlatform !== bPlatform) return aPlatform ? 1 : -1;
+      return a.id - b.id;
+    });
+
+    if (!coupon) {
       throw notFound("Voucher not found", "VOUCHER_NOT_FOUND");
     }
 

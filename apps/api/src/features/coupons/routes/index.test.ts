@@ -154,10 +154,7 @@ beforeEach(() => {
 describe("coupons routes", () => {
   it("returns a typed 409 for duplicate coupon codes", async () => {
     mocks.createCouponWithValidation.mockRejectedValue(
-      conflict(
-        "優惠券代碼已被使用（代碼在全平台唯一），請換一個",
-        "COUPON_CODE_EXISTS",
-      ),
+      conflict("此優惠券代碼在本店已存在，請換一個", "COUPON_CODE_EXISTS"),
     );
 
     const response = await createAppWithErrorEnvelope().fetch(
@@ -176,10 +173,7 @@ describe("coupons routes", () => {
     mocks.currentUser.role = 0;
     mocks.getCoupon.mockResolvedValue(coupon());
     mocks.updateCoupon.mockRejectedValue(
-      conflict(
-        "優惠券代碼已被使用（代碼在全平台唯一），請換一個",
-        "COUPON_CODE_EXISTS",
-      ),
+      conflict("此優惠券代碼在本店已存在，請換一個", "COUPON_CODE_EXISTS"),
     );
 
     const response = await createAppWithErrorEnvelope().fetch(

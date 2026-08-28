@@ -1,4 +1,16 @@
-import { and, asc, desc, eq, gte, inArray, lt, lte, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  lt,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import type { DiscountType } from "../schema";
 import { coupons, couponUsage, menuItems as menuItemsTable } from "../schema";
 import {
@@ -75,12 +87,7 @@ export class CouponDuplicateCodeError extends Error {
   readonly code = "COUPON_CODE_EXISTS";
 
   constructor() {
-    // Codes are unique platform-wide (coupons_code_unique is on `code` alone),
-    // so a collision can come from another restaurant entirely. Saying only
-    // "already exists" sends owners hunting through their own list for a code
-    // that is not there. Whether the index should become
-    // (restaurant_id, code) is still open -- see issue #269.
-    super("優惠券代碼已被使用（代碼在全平台唯一），請換一個");
+    super("此優惠券代碼在本店已存在，請換一個");
     this.name = "CouponDuplicateCodeError";
   }
 }
@@ -229,9 +236,22 @@ export class CouponService extends BaseService {
     menuItems?: Array<{ menuItemId: number; quantity: number }>,
   ): Promise<CouponValidationResult> {
     try {
-      // 查找優惠券（code 具唯一約束；所有資格規則統一交給 assertCouponRedeemable）
+      // Codes are unique per tenant (0013), so a bare `code` lookup is no
+      // longer unambiguous: this restaurant and the platform can both own
+      // WELCOME10. Restrict the search to the two that may legitimately apply
+      // and prefer the restaurant's own over the platform one. Soft-deleted
+      // rows are excluded here rather than only inside assertCouponRedeemable,
+      // so a deleted row can never shadow a live one with the same code.
       const coupon = await this.db.query.coupons.findFirst({
-        where: eq(coupons.code, code.toUpperCase()),
+        where: and(
+          eq(coupons.code, code.toUpperCase()),
+          isNull(coupons.deletedAt),
+          or(
+            eq(coupons.restaurantId, restaurantId),
+            isNull(coupons.restaurantId),
+          ),
+        ),
+        orderBy: [asc(sql`${coupons.restaurantId} IS NULL`)],
       });
 
       if (!coupon) {
@@ -533,9 +553,18 @@ export class CouponService extends BaseService {
    * 創建優惠券
    */
   async createCoupon(data: CreateCouponData) {
-    // 檢查代碼是否已存在
+    // Scoped to match the unique indexes from 0013. A platform-wide lookup here
+    // would reject a code purely because a different restaurant already uses
+    // it, which is exactly what that migration removed. Soft-deleted rows are
+    // excluded so a deleted coupon releases its code.
     const existingCoupon = await this.db.query.coupons.findFirst({
-      where: eq(coupons.code, data.code.toUpperCase()),
+      where: and(
+        eq(coupons.code, data.code.toUpperCase()),
+        isNull(coupons.deletedAt),
+        data.restaurantId
+          ? eq(coupons.restaurantId, data.restaurantId)
+          : isNull(coupons.restaurantId),
+      ),
     });
 
     if (existingCoupon) {
@@ -978,6 +1007,10 @@ export class CouponService extends BaseService {
       where: and(
         eq(coupons.isActive, true),
         eq(coupons.isVisible, true),
+        // deleteCoupon also clears isActive, so this is belt-and-braces -- but
+        // the delete marker is the canonical signal and reading it here keeps
+        // the invariant explicit instead of incidental.
+        isNull(coupons.deletedAt),
         sql`(${coupons.restaurantId} = ${restaurantId} OR ${coupons.restaurantId} IS NULL)`,
         lte(coupons.validFrom, now),
         gte(coupons.validTo, now),

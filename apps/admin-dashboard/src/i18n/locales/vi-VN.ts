@@ -3239,7 +3239,7 @@ const viVN: Messages = {
     messages: {
       fetchFailed: "Tải phiếu giảm giá thất bại",
       codeExists:
-        "Mã này đã được dùng. Mã là duy nhất trên toàn nền tảng nên có thể một cửa hàng khác đang dùng — vui lòng chọn mã khác.",
+        "Cửa hàng này đã có phiếu giảm giá dùng mã đó. Vui lòng chọn mã khác.",
       updateSuccess: "Cập nhật phiếu giảm giá thành công",
       createSuccess: "Tạo phiếu giảm giá thành công",
       operationFailed: "Thao tác thất bại: {message}",

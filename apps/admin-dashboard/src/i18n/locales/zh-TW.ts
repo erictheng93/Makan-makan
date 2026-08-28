@@ -3294,8 +3294,7 @@ const zhTWCore = {
     },
     messages: {
       fetchFailed: "獲取優惠券列表失敗",
-      codeExists:
-        "此優惠券代碼已被使用（代碼在全平台唯一，可能已由其他商家取用），請換一個。",
+      codeExists: "此優惠券代碼在本店已存在，請換一個。",
       updateSuccess: "優惠券更新成功",
       createSuccess: "優惠券創建成功",
       operationFailed: "操作失敗：{message}",

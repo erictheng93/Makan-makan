@@ -3177,8 +3177,7 @@ const zhCN: Messages = {
     },
     messages: {
       fetchFailed: "获取优惠券列表失败",
-      codeExists:
-        "此优惠券代码已被使用（代码在全平台唯一，可能已由其他商家取用），请换一个。",
+      codeExists: "此优惠券代码在本店已存在，请换一个。",
       updateSuccess: "优惠券更新成功",
       createSuccess: "优惠券创建成功",
       operationFailed: "操作失败：{message}",

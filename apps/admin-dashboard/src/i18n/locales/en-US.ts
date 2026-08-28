@@ -3232,7 +3232,7 @@ const enUS: Messages = {
     messages: {
       fetchFailed: "Failed to fetch coupons",
       codeExists:
-        "That coupon code is taken. Codes are unique across the whole platform, so another merchant may already use it — please pick a different one.",
+        "This restaurant already has a coupon with that code. Please pick a different one.",
       updateSuccess: "Coupon updated successfully",
       createSuccess: "Coupon created successfully",
       operationFailed: "Operation failed: {message}",

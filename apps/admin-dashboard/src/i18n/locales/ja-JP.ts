@@ -3240,7 +3240,7 @@ const jaJP: Messages = {
     messages: {
       fetchFailed: "クーポンの取得に失敗しました",
       codeExists:
-        "このクーポンコードは使用済みです。コードはプラットフォーム全体で一意のため、他店が使用している可能性があります。別のコードをご指定ください。",
+        "この店舗には同じコードのクーポンが既にあります。別のコードをご指定ください。",
       updateSuccess: "クーポンが更新されました",
       createSuccess: "クーポンが作成されました",
       operationFailed: "操作に失敗しました: {message}",

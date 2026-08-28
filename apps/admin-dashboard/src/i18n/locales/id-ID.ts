@@ -3253,7 +3253,7 @@ const idID: Messages = {
     messages: {
       fetchFailed: "Gagal mengambil kupon",
       codeExists:
-        "Kode kupon itu sudah dipakai. Kode bersifat unik di seluruh platform, jadi merchant lain mungkin sudah memakainya — silakan pilih kode lain.",
+        "Restoran ini sudah punya kupon dengan kode tersebut. Silakan pilih kode lain.",
       updateSuccess: "Kupon berhasil diperbarui",
       createSuccess: "Kupon berhasil dibuat",
       operationFailed: "Operasi gagal: {message}",

@@ -58,7 +58,7 @@ export const coupons = sqliteTable(
     restaurantId: text("restaurant_id"), // 引用 restaurants.public_id (TEXT)
 
     // 優惠券基本資訊
-    code: text("code").notNull().unique(), // 優惠券代碼
+    code: text("code").notNull(), // 優惠券代碼（唯一性見下方 partial unique index）
     name: text("name").notNull(), // 優惠券名稱
     description: text("description"), // 優惠券描述
 
@@ -113,6 +113,24 @@ export const coupons = sqliteTable(
     ),
     statusIdx: index("idx_coupons_status").on(table.isActive, table.isVisible),
     discountTypeIdx: index("idx_coupons_discount_type").on(table.discountType),
+
+    // Codes are unique per tenant, not platform-wide. The old single-column
+    // `coupons_code_unique` let the first restaurant to claim WELCOME10 lock
+    // every other restaurant out of it. SQLite treats NULLs as distinct in a
+    // unique index, so platform coupons (restaurant_id IS NULL) need their own
+    // partial index rather than riding along on the composite one.
+    //
+    // Both exclude soft-deleted rows: deleteCoupon sets deleted_at_ms rather
+    // than removing the row, and without this a deleted coupon would hold its
+    // code hostage forever.
+    restaurantCodeUniqueIdx: uniqueIndex("coupons_restaurant_code_unique")
+      .on(table.restaurantId, table.code)
+      .where(
+        sql`${table.restaurantId} IS NOT NULL AND ${table.deletedAt} IS NULL`,
+      ),
+    platformCodeUniqueIdx: uniqueIndex("coupons_platform_code_unique")
+      .on(table.code)
+      .where(sql`${table.restaurantId} IS NULL AND ${table.deletedAt} IS NULL`),
   }),
 );
 

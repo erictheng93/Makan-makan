@@ -50,6 +50,10 @@
     {
       "fresh": "0012_stock_movement_order_id.sql",
       "reason": "Extends the platform-only ingredient stock ledger added in 0011; the management API has no such table."
+    },
+    {
+      "fresh": "0013_coupons_tenant_scoped_code.sql",
+      "reason": "Coupon codes are a platform-API concern; the management API database has no coupons table to pair the tenant-scoped unique indexes against."
     }
   ],
   "legacyOnly": [

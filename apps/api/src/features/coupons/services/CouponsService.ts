@@ -97,17 +97,20 @@ function toCouponApiError(error: unknown): unknown {
   // database constraint remains authoritative under concurrent creates.
   const uniqueCodeViolation = (value: unknown): boolean => {
     if (!(value instanceof Error)) return false;
-    if (/unique constraint failed:\s*coupons\.code/i.test(value.message)) {
+    // 0013 replaced the single-column index with two partial ones, so SQLite
+    // now reports "coupons.restaurant_id, coupons.code" for a tenant collision
+    // and "coupons.code" for a platform one. Anchoring on the column rather
+    // than the whole list catches both.
+    if (
+      /unique constraint failed:[^\n]*\bcoupons\.code\b/i.test(value.message)
+    ) {
       return true;
     }
     return uniqueCodeViolation((value as Error & { cause?: unknown }).cause);
   };
 
   if (uniqueCodeViolation(error)) {
-    return conflict(
-      "優惠券代碼已被使用（代碼在全平台唯一），請換一個",
-      "COUPON_CODE_EXISTS",
-    );
+    return conflict("此優惠券代碼在本店已存在，請換一個", "COUPON_CODE_EXISTS");
   }
 
   if (!(error instanceof CouponEligibilityError)) {

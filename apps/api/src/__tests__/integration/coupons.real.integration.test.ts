@@ -218,6 +218,114 @@ describe("Coupons API — real integration", () => {
     expect(body.error?.code).toBe("COUPON_CODE_EXISTS");
   });
 
+  it("lets two restaurants each own the same coupon code", async () => {
+    // The old coupons_code_unique was on `code` alone, so whichever shop
+    // claimed WELCOME10 first locked the whole platform out of it (#269).
+    const shopA = await seed.restaurant({ name: "Shared Code A" });
+    const shopB = await seed.restaurant({ name: "Shared Code B" });
+
+    const a = await seed.coupon(String(shopA.id), { code: "SHARED-CODE" });
+    const b = await seed.coupon(String(shopB.id), { code: "SHARED-CODE" });
+
+    expect(a.id).not.toBe(b.id);
+
+    const rows = await testApp.testDb.drizzle
+      .select({ id: coupons.id, restaurantId: coupons.restaurantId })
+      .from(coupons)
+      .where(eq(coupons.code, "SHARED-CODE"));
+    expect(rows).toHaveLength(2);
+    expect(new Set(rows.map((row) => row.restaurantId))).toEqual(
+      new Set([String(shopA.id), String(shopB.id)]),
+    );
+  });
+
+  it("frees a soft-deleted coupon's code for reuse in the same restaurant", async () => {
+    // deleteCoupon only sets deleted_at_ms, so without the predicate on the
+    // unique index a deleted coupon would hold its code forever.
+    const created = await seed.coupon(restaurantId, { code: "REUSE-ME" });
+
+    const deleted = await testApp.app.fetch(
+      new Request(`https://test/api/v1/coupons/${created.id}`, {
+        method: "DELETE",
+        headers: csrfHeaders(adminToken),
+      }),
+    );
+    expect(deleted.status).toBe(200);
+
+    const res = await testApp.app.fetch(
+      new Request("https://test/api/v1/coupons", {
+        method: "POST",
+        headers: csrfHeaders(adminToken),
+        body: JSON.stringify({
+          code: "REUSE-ME",
+          name: "Reused",
+          discountType: "fixed",
+          discountValue: 10,
+          validFrom: offsetIso(0),
+          validTo: offsetIso(30),
+          restaurantId,
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(201);
+  });
+
+  it("resolves a shared code to the restaurant's own coupon, not the platform one", async () => {
+    // A bare `code` lookup is ambiguous now. The restaurant's own coupon has
+    // to win, or its customers would be priced off a platform coupon that
+    // merely shares the code.
+    await testApp.testDb.drizzle.insert(coupons).values({
+      restaurantId: null,
+      code: "OVERLAP",
+      name: "Platform overlap",
+      discountType: "fixed",
+      discountValueCents: 100,
+      minOrderAmountCents: 0,
+      validFrom: offsetIso(-1),
+      validTo: offsetIso(30),
+      isActive: true,
+      isVisible: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    // Inserted directly rather than through seed.coupon(): the seeder passes a
+    // legacy `discountValue` key that the schema no longer has, so the amount
+    // would land as NULL and the assertion below could not tell the two apart.
+    await testApp.testDb.drizzle.insert(coupons).values({
+      restaurantId,
+      code: "OVERLAP",
+      name: "Shop overlap",
+      discountType: "fixed",
+      discountValueCents: 700,
+      minOrderAmountCents: 0,
+      validFrom: offsetIso(-1),
+      validTo: offsetIso(30),
+      isActive: true,
+      isVisible: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const res = await testApp.app.fetch(
+      new Request("https://test/api/v1/coupons/validate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          code: "OVERLAP",
+          restaurantId,
+          orderAmount: 500,
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const body = await readEnvelope<CouponValidation>(res);
+    expect(body.data?.valid).toBe(true);
+    // 7 from the shop's own coupon, not 1 from the platform one.
+    expect(body.data?.discountAmount).toBe(7);
+  });
+
   // ── GET /coupons (list) ───────────────────────────────────────────────────
 
   it("GET /coupons lists seeded coupons for the admin", async () => {
