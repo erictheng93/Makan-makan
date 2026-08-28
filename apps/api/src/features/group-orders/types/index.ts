@@ -52,6 +52,10 @@ export interface GroupOrderMember extends Omit<BaseEntity, "id"> {
   totalAmount: number;
   paidAmount: number;
   paymentStatus: PaymentStatus;
+  /** True only when restaurant staff or a payment provider confirmed payment. */
+  revenueRecognised?: boolean;
+  /** Settlement source; `self` remains paid but is not restaurant revenue. */
+  settledBy?: SettledBy | null;
 }
 
 export interface GroupOrderCartItem extends Omit<BaseEntity, "id"> {

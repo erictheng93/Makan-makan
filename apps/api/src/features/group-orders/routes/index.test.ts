@@ -264,6 +264,7 @@ describe("group orders routes", () => {
           groupOrderId,
           shareCode: "ABC123",
           expiresAt: "2026-06-08T01:00:00.000Z",
+          recoveryCode: "recovery-abc",
         },
       })
       .mockResolvedValueOnce({
@@ -289,6 +290,10 @@ describe("group orders routes", () => {
       data: {
         shareCode: "ABC123",
         shareUrl: "/group/ABC123",
+        // Same authenticated staff audience as POST /create. Dropping it here
+        // left a staff-generated group with no way to hand host control to a
+        // diner, and submitting is host-only.
+        recoveryCode: "recovery-abc",
       },
     });
     expect(meterEmit).toHaveBeenCalledWith(
@@ -516,6 +521,45 @@ describe("group orders routes", () => {
 
     expect(forbiddenResponse.status).toBe(403);
     expect(finalizeGroupOrder).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets an owner finalize an own-restaurant group without a diner token", async () => {
+    getGroupOrder.mockResolvedValue({
+      groupOrder: { id: groupOrderId, restaurantId: "restaurant-1" },
+    });
+    finalizeGroupOrder.mockResolvedValue({
+      success: true,
+      data: { masterOrderId: "order-1", status: "completed" },
+    });
+
+    const response = await routes.fetch(
+      new Request(`https://test/${groupOrderId}/finalize/staff`, {
+        method: "POST",
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(finalizeGroupOrder).toHaveBeenCalledWith(groupOrderId);
+    expect(isHostSession).not.toHaveBeenCalled();
+  });
+
+  it("blocks an owner from staff-finalizing another restaurant's group", async () => {
+    getGroupOrder.mockResolvedValue({
+      groupOrder: { id: groupOrderId, restaurantId: "restaurant-2" },
+    });
+
+    const response = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request(`https://test/${groupOrderId}/finalize/staff`, {
+          method: "POST",
+        }),
+        createEnv() as never,
+      ),
+    );
+
+    expect(response.status).toBe(403);
+    expect(finalizeGroupOrder).not.toHaveBeenCalled();
   });
 
   it("lets admins and the owning restaurant recover but blocks other roles and restaurants", async () => {

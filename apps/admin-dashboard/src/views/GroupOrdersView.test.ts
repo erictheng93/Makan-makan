@@ -8,6 +8,8 @@ import {
   type GroupOrder,
 } from "@/services/groupOrdersService";
 
+const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+
 vi.mock("@/i18n", () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }));
@@ -30,13 +32,17 @@ vi.mock("@/composables/useDateFormatter", () => ({
   }),
 }));
 
+vi.mock("vue-toastification", () => ({
+  useToast: () => toast,
+}));
+
 vi.mock("@/services/groupOrdersService", () => ({
   groupOrdersService: {
     getGroupOrders: vi.fn(),
     getGroupOrderStats: vi.fn(),
     recoverFinalization: vi.fn(),
+    finalizeAsStaff: vi.fn(),
     createGroupOrder: vi.fn(),
-    joinGroupOrder: vi.fn(),
     generateShareCode: vi.fn(),
     exportGroupOrders: vi.fn(),
   },
@@ -180,6 +186,126 @@ describe("GroupOrdersView finalization recovery", () => {
     );
   });
 
+  it("finalizes active groups through the authenticated staff route", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.mocked(groupOrdersService.getGroupOrders).mockResolvedValue([
+      failedGroupOrder({ status: "active", finalizeFailure: undefined }),
+    ]);
+    vi.mocked(groupOrdersService.finalizeAsStaff).mockResolvedValue({
+      masterOrderId: "order-1",
+      status: "completed",
+    });
+    const wrapper = await mountSelectedOrder(
+      failedGroupOrder({ status: "active", finalizeFailure: undefined }),
+    );
+
+    await wrapper
+      .get('[data-testid="staff-finalize-group-1"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(groupOrdersService.finalizeAsStaff).toHaveBeenCalledWith("group-1");
+  });
+
+  it("does not finalize when staff declines confirmation", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    const wrapper = await mountSelectedOrder(
+      failedGroupOrder({ status: "active", finalizeFailure: undefined }),
+    );
+
+    await wrapper
+      .get('[data-testid="staff-finalize-group-1"]')
+      .trigger("click");
+
+    expect(groupOrdersService.finalizeAsStaff).not.toHaveBeenCalled();
+  });
+
+  it("prevents double staff-finalize submissions while the first is pending", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    let resolveFinalize: (() => void) | undefined;
+    vi.mocked(groupOrdersService.finalizeAsStaff).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFinalize = () =>
+            resolve({ masterOrderId: "order-1", status: "completed" });
+        }),
+    );
+    const wrapper = await mountSelectedOrder(
+      failedGroupOrder({ status: "active", finalizeFailure: undefined }),
+    );
+    const button = wrapper.get('[data-testid="staff-finalize-group-1"]');
+    await button.trigger("click");
+    await button.trigger("click");
+
+    expect(groupOrdersService.finalizeAsStaff).toHaveBeenCalledTimes(1);
+    expect(button.attributes("disabled")).toBeDefined();
+    resolveFinalize?.();
+    await flushPromises();
+  });
+
+  it("shows a toast when loading group orders fails", async () => {
+    vi.mocked(groupOrdersService.getGroupOrders).mockRejectedValueOnce(
+      new Error("offline"),
+    );
+    mount(GroupOrdersView);
+    await flushPromises();
+
+    expect(toast.error).toHaveBeenCalledWith("groupOrders.alerts.loadFailed");
+  });
+
+  it("shows a toast when staff finalization fails", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.mocked(groupOrdersService.finalizeAsStaff).mockRejectedValueOnce(
+      new Error("offline"),
+    );
+    const wrapper = await mountSelectedOrder(
+      failedGroupOrder({ status: "active", finalizeFailure: undefined }),
+    );
+    await wrapper
+      .get('[data-testid="staff-finalize-group-1"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(toast.error).toHaveBeenCalledWith(
+      "groupOrders.alerts.finalizeFailed",
+    );
+  });
+
+  it("distinguishes self-settled members from provider-confirmed revenue", async () => {
+    const order = failedGroupOrder({
+      memberCount: 2,
+      members: [
+        {
+          id: "self-member",
+          groupOrderId: "group-1",
+          name: "Self payer",
+          itemCount: 1,
+          totalAmount: 60,
+          paymentStatus: "paid",
+          settledBy: "self",
+          revenueRecognised: false,
+          joinedAt: "2026-08-22T09:00:00.000Z",
+        },
+        {
+          id: "provider-member",
+          groupOrderId: "group-1",
+          name: "Provider payer",
+          itemCount: 1,
+          totalAmount: 60,
+          paymentStatus: "paid",
+          settledBy: "provider",
+          revenueRecognised: true,
+          joinedAt: "2026-08-22T09:00:00.000Z",
+        },
+      ],
+    });
+    const wrapper = await mountSelectedOrder(order);
+
+    expect(wrapper.text()).toContain("groupOrders.paymentStatus.selfSettled");
+    expect(wrapper.text()).toContain("groupOrders.paymentStatus.paid");
+    expect(wrapper.text()).toContain("1/2");
+  });
+
   it("sends the selected member as the full-payment bearer", async () => {
     const wrapper = await mountSelectedOrder();
     vi.clearAllMocks();
@@ -262,4 +388,35 @@ describe("GroupOrdersView finalization recovery", () => {
       );
     },
   );
+
+  it("keeps the host recovery code the create response returns", async () => {
+    // The response keys the group as `groupOrderId` and carries the two host
+    // credentials; the view read `created.id` and dropped both, leaving a
+    // staff-created group with no reachable host.
+    const created = failedGroupOrder({ id: "group-1", status: "active" });
+    vi.mocked(groupOrdersService.getGroupOrders).mockResolvedValue([created]);
+    vi.mocked(groupOrdersService.createGroupOrder).mockResolvedValue({
+      groupOrderId: "group-1",
+      shareCode: "ABC123",
+      expiresAt: "2026-06-08T01:00:00.000Z",
+      host: created.members[0],
+      memberToken: "member-token",
+      recoveryCode: "recovery-abc",
+    } as Awaited<ReturnType<typeof groupOrdersService.createGroupOrder>>);
+
+    const wrapper = mount(GroupOrdersView);
+    await flushPromises();
+
+    await wrapper
+      .get('[data-testid="open-create-group-order"]')
+      .trigger("click");
+    await wrapper.get('[data-testid="create-host-name"]').setValue("Host");
+    await wrapper
+      .get('[data-testid="submit-create-group-order"]')
+      .trigger("click");
+    await flushPromises();
+
+    const field = wrapper.get('[data-testid="host-recovery-code"]');
+    expect((field.element as HTMLInputElement).value).toBe("recovery-abc");
+  });
 });

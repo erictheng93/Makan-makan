@@ -8,7 +8,16 @@ export interface GroupOrderMember {
   name: string;
   itemCount: number;
   totalAmount: number;
-  paymentStatus: "unpaid" | "pending" | "paid";
+  paymentStatus:
+    | "unpaid"
+    | "pending"
+    | "paid"
+    | "processing"
+    | "failed"
+    | "refunded";
+  paidAmount?: number;
+  settledBy?: "self" | "staff" | "provider" | null;
+  revenueRecognised?: boolean;
   joinedAt: string;
 }
 
@@ -59,6 +68,26 @@ export interface GroupOrder {
   expiresAt: string;
 }
 
+/**
+ * What POST /orders/group/create actually answers. This was declared as
+ * `GroupOrder`, which is a different shape entirely: the key is `groupOrderId`,
+ * not `id`, and the two host credentials were absent from the type even though
+ * the server returns them.
+ *
+ * `recoveryCode` is the only way to hand host control to a diner
+ * (POST /orders/group/:groupOrderId/recover). A staff-created group whose
+ * recovery code is discarded has no reachable host, so nobody can press submit
+ * or choose what happens at expiry -- both are host-only decisions by design.
+ */
+export interface CreateGroupOrderResult {
+  groupOrderId: string;
+  shareCode: string;
+  expiresAt: string;
+  host: GroupOrderMember;
+  memberToken: string;
+  recoveryCode: string;
+}
+
 // 團體訂單服務
 export const groupOrdersService = {
   // 團體訂單管理
@@ -78,36 +107,14 @@ export const groupOrdersService = {
     expectedMembers: number;
     restaurantId: string;
     notes?: string;
-  }): Promise<GroupOrder> {
+  }): Promise<CreateGroupOrderResult> {
     const response = await apiClient.post("/orders/group/create", data);
-    return unwrapApiData<GroupOrder>(response);
+    return unwrapApiData<CreateGroupOrderResult>(response);
   },
 
   async getGroupOrder(shareCode: string): Promise<GroupOrder> {
     const response = await apiClient.get(`/orders/group/${shareCode}`);
     return unwrapApiData<GroupOrder>(response);
-  },
-
-  async joinGroupOrder(
-    shareCode: string,
-    data: {
-      memberName: string;
-      phoneNumber?: string;
-    },
-  ): Promise<{
-    success: boolean;
-    memberId: string;
-    groupOrder: GroupOrder;
-  }> {
-    const response = await apiClient.post(
-      `/orders/group/join/${shareCode}`,
-      data,
-    );
-    return unwrapApiData<{
-      success: boolean;
-      memberId: string;
-      groupOrder: GroupOrder;
-    }>(response);
   },
 
   async updateGroupOrder(
@@ -133,11 +140,24 @@ export const groupOrdersService = {
     return unwrapApiData<RecoverFinalizationResponse>(response);
   },
 
+  async finalizeAsStaff(groupOrderId: string): Promise<{
+    masterOrderId: string;
+    status: "completed";
+  }> {
+    const response = await apiClient.post(
+      `/orders/group/${groupOrderId}/finalize/staff`,
+    );
+    return unwrapApiData<{ masterOrderId: string; status: "completed" }>(
+      response,
+    );
+  },
+
   // 分享功能
   async generateShareCode(restaurantId: string): Promise<{
     shareCode: string;
     shareUrl: string;
     expiresAt: string;
+    recoveryCode: string;
   }> {
     const response = await apiClient.post("/orders/group/generate-code", {
       restaurantId,
@@ -146,6 +166,7 @@ export const groupOrdersService = {
       shareCode: string;
       shareUrl: string;
       expiresAt: string;
+      recoveryCode: string;
     }>(response);
   },
 

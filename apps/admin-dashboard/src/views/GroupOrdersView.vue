@@ -26,6 +26,7 @@
         <!-- 功能按鈕 -->
         <button
           class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm whitespace-nowrap"
+          data-testid="open-create-group-order"
           @click="createGroupOrder"
         >
           {{ t("groupOrders.createOrder") }}
@@ -144,7 +145,7 @@
 
                 <button
                   class="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex-shrink-0"
-                  @click="refreshGroupOrders"
+                  @click="refreshGroupOrders()"
                 >
                   <ArrowPathIcon class="h-5 w-5" />
                 </button>
@@ -350,10 +351,10 @@
                     </button>
                     <button
                       class="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors"
-                      :title="t('groupOrders.generateQR')"
+                      :title="t('groupOrders.share')"
                       @click="shareGroupOrder(selectedGroupOrder!)"
                     >
-                      <QrCodeIcon class="w-4 h-4" />
+                      {{ t("groupOrders.share") }}
                     </button>
                   </div>
                 </div>
@@ -395,6 +396,20 @@
                   </div>
                 </div>
               </div>
+
+              <button
+                v-if="selectedGroupOrder.status === 'active'"
+                :data-testid="`staff-finalize-${selectedGroupOrder.id}`"
+                :disabled="isFinalizingAsStaff"
+                class="mb-6 w-full rounded-lg bg-green-700 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60"
+                @click="finalizeAsStaff(selectedGroupOrder.id)"
+              >
+                {{
+                  isFinalizingAsStaff
+                    ? t("groupOrders.alerts.finalizing")
+                    : t("groupOrders.alerts.finalize")
+                }}
+              </button>
 
               <!-- 最終結帳失敗診斷與復原 -->
               <div
@@ -580,14 +595,16 @@
                       <span
                         :class="[
                           'px-2 py-1 text-xs font-medium rounded-full',
-                          member.paymentStatus === 'paid'
+                          member.revenueRecognised
                             ? 'bg-green-100 text-green-800'
-                            : member.paymentStatus === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800',
+                            : member.paymentStatus === 'paid'
+                              ? 'bg-gray-100 text-gray-700'
+                              : member.paymentStatus === 'pending'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-red-100 text-red-800',
                         ]"
                       >
-                        {{ getPaymentStatusText(member.paymentStatus) }}
+                        {{ getMemberPaymentStatusText(member) }}
                       </span>
                     </div>
                   </div>
@@ -653,13 +670,6 @@
                 @click="createGroupOrder"
               >
                 {{ t("groupOrders.createOrder") }}
-              </button>
-
-              <button
-                class="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                @click="joinGroupOrder"
-              >
-                {{ t("groupOrders.joinOrder") }}
               </button>
 
               <button
@@ -769,6 +779,7 @@
               <input
                 v-model="newGroupOrder.hostName"
                 type="text"
+                data-testid="create-host-name"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 :placeholder="t('groupOrders.hostNamePlaceholder')"
               />
@@ -811,62 +822,10 @@
             <button
               :disabled="!canCreateGroupOrder"
               class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="submit-create-group-order"
               @click="submitCreateGroupOrder"
             >
               {{ t("groupOrders.createOrderBtn") }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 加入訂單模態框 -->
-    <div v-if="showJoinDialog" class="fixed inset-0 z-50 overflow-y-auto">
-      <div class="flex items-center justify-center min-h-screen px-4">
-        <div
-          class="fixed inset-0 bg-black opacity-30"
-          @click="showJoinDialog = false"
-        />
-        <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold text-gray-900">
-              {{ t("groupOrders.joinOrder") }}
-            </h3>
-            <button
-              class="text-gray-400 hover:text-gray-600"
-              @click="showJoinDialog = false"
-            >
-              <XMarkIcon class="w-6 h-6" />
-            </button>
-          </div>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{
-                t("groupOrders.shareCode")
-              }}</label>
-              <input
-                v-model="joinShareCode"
-                type="text"
-                :placeholder="t('groupOrders.prompts.enterShareCode')"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                @keyup.enter="submitJoinGroupOrder"
-              />
-            </div>
-          </div>
-          <div class="flex justify-end space-x-3 mt-6">
-            <button
-              class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              @click="showJoinDialog = false"
-            >
-              {{ t("groupOrders.cancel") }}
-            </button>
-            <button
-              data-testid="join-order-btn"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-              :disabled="!joinShareCode.trim()"
-              @click="submitJoinGroupOrder"
-            >
-              {{ t("groupOrders.joinOrder") }}
             </button>
           </div>
         </div>
@@ -894,16 +853,6 @@
           </div>
 
           <div class="text-center space-y-6">
-            <!-- QR 碼區域 -->
-            <div class="bg-gray-100 p-8 rounded-lg">
-              <div
-                class="w-48 h-48 mx-auto bg-white rounded-lg flex items-center justify-center"
-              >
-                <!-- QR 碼會在這裡顯示 -->
-                <QrCodeIcon class="w-24 h-24 text-gray-400" />
-              </div>
-            </div>
-
             <!-- 分享資訊 -->
             <div>
               <p class="text-sm text-gray-600 mb-2">
@@ -918,6 +867,30 @@
                 <button
                   class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   @click="copyShareCode(shareData.shareCode)"
+                >
+                  {{ t("groupOrders.copy") }}
+                </button>
+              </div>
+            </div>
+
+            <!-- 團主接手碼：僅建立當下回傳一次 -->
+            <div v-if="shareData.recoveryCode">
+              <p class="text-sm text-gray-600 mb-1">
+                {{ t("groupOrders.hostRecoveryCode") }}
+              </p>
+              <p class="text-xs text-gray-500 mb-2">
+                {{ t("groupOrders.hostRecoveryHint") }}
+              </p>
+              <div class="flex items-center space-x-2">
+                <input
+                  :value="shareData.recoveryCode"
+                  readonly
+                  data-testid="host-recovery-code"
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-xs"
+                />
+                <button
+                  class="px-3 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                  @click="copyRecoveryCode"
                 >
                   {{ t("groupOrders.copy") }}
                 </button>
@@ -980,8 +953,8 @@ import {
   CursorArrowRaysIcon,
   XMarkIcon,
 } from "@heroicons/vue/24/outline";
-import QrCodeIcon from "@heroicons/vue/24/outline/QrCodeIcon";
 import { useI18n } from "@/i18n";
+import { useToast } from "vue-toastification";
 import { useCurrency } from "@/composables/useCurrency";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import { useAuthStore } from "@/stores/auth";
@@ -996,6 +969,7 @@ const { t } = useI18n();
 const { formatPrice } = useCurrency();
 const { formatDateTime, formatTime } = useDateFormatter();
 const authStore = useAuthStore();
+const toast = useToast();
 
 // 類別定義
 type ApiGroupOrderMemberPayload = Omit<ApiGroupOrderMember, "name"> & {
@@ -1023,9 +997,8 @@ const statusFilter = ref("");
 const selectedGroupOrder = ref<GroupOrder | null>(null);
 const showCreateDialog = ref(false);
 const showShareDialog = ref(false);
-const showJoinDialog = ref(false);
-const joinShareCode = ref("");
 const isRecoveringFinalization = ref(false);
+const isFinalizingAsStaff = ref(false);
 const finalizationRecoveryError = ref<string | null>(null);
 const finalizationBearerMemberId = ref("");
 
@@ -1046,6 +1019,9 @@ const newGroupOrder = ref({
 const shareData = ref({
   shareCode: "",
   shareUrl: "",
+  // Only set right after a create -- the server returns the recovery code once
+  // and never again, so an existing group cannot reproduce it.
+  recoveryCode: "",
 });
 
 // 團體訂單數據 - fetched from API
@@ -1118,6 +1094,13 @@ const getPaymentStatusText = (status: string) => {
   return texts[status] || status;
 };
 
+const getMemberPaymentStatusText = (member: GroupOrderMember) => {
+  if (member.paymentStatus === "paid" && !member.revenueRecognised) {
+    return t("groupOrders.paymentStatus.selfSettled");
+  }
+  return getPaymentStatusText(member.paymentStatus);
+};
+
 const getMemberColor = (index: number) => {
   const colors = [
     "bg-blue-500 text-white",
@@ -1138,7 +1121,7 @@ const normalizeGroupOrderMember = (
 });
 
 const countPaidMembers = (members: GroupOrderMember[]) =>
-  members.filter((member) => member.paymentStatus === "paid").length;
+  members.filter((member) => member.revenueRecognised === true).length;
 
 const normalizeGroupOrder = (order: ApiGroupOrderPayload): GroupOrder => {
   const members = (order.members ?? []).map(normalizeGroupOrderMember);
@@ -1157,7 +1140,7 @@ const selectGroupOrder = (groupOrder: GroupOrder) => {
   finalizationBearerMemberId.value = "";
 };
 
-const refreshGroupOrders = async () => {
+const refreshGroupOrders = async ({ silent = false } = {}) => {
   try {
     const restaurantId = authStore.restaurantId ?? undefined;
     const [ordersData, statsData] = await Promise.all([
@@ -1182,7 +1165,13 @@ const refreshGroupOrders = async () => {
       }
     }
   } catch (err) {
-    console.error("Failed to refresh group orders:", err);
+    if (!silent) {
+      toast.error(
+        resolveUserFacingError(err, t, {
+          fallbackKey: "groupOrders.alerts.loadFailed",
+        }).message,
+      );
+    }
   }
 };
 
@@ -1221,6 +1210,26 @@ const recoverFinalization = async (
   }
 };
 
+const finalizeAsStaff = async (groupOrderId: string) => {
+  if (isFinalizingAsStaff.value) return;
+  if (!window.confirm(t("groupOrders.alerts.finalizeConfirm"))) return;
+
+  isFinalizingAsStaff.value = true;
+  try {
+    await groupOrdersService.finalizeAsStaff(groupOrderId);
+    toast.success(t("groupOrders.alerts.finalized"));
+    await refreshGroupOrders({ silent: true });
+  } catch (error) {
+    toast.error(
+      resolveUserFacingError(error, t, {
+        fallbackKey: "groupOrders.alerts.finalizeFailed",
+      }).message,
+    );
+  } finally {
+    isFinalizingAsStaff.value = false;
+  }
+};
+
 const createGroupOrder = () => {
   showCreateDialog.value = true;
   newGroupOrder.value = {
@@ -1253,21 +1262,29 @@ const submitCreateGroupOrder = async () => {
     closeCreateDialog();
 
     // Refresh list from API
-    await refreshGroupOrders();
+    await refreshGroupOrders({ silent: true });
 
-    // Auto-share the newly created order
-    const newGroup =
-      groupOrders.value.find((o) => o.id === created.id) ||
-      normalizeGroupOrder(created);
+    // The response keys the group as `groupOrderId`; matching on `created.id`
+    // compared against undefined and never found the row.
+    const newGroup = groupOrders.value.find(
+      (o) => o.id === created.groupOrderId,
+    );
     if (newGroup) {
-      shareGroupOrder(newGroup);
+      // Pass the recovery code straight into the share dialog. It is shown once
+      // so staff can hand host control to a diner, who can then submit the
+      // group or decide what happens when it expires.
+      shareGroupOrder(newGroup, created.recoveryCode);
     }
 
-    console.log(
+    toast.success(
       t("groupOrders.alerts.orderCreated", { shareCode: created.shareCode }),
     );
-  } catch (_error) {
-    console.error("Failed to create group order:", _error);
+  } catch (error) {
+    toast.error(
+      resolveUserFacingError(error, t, {
+        fallbackKey: "groupOrders.alerts.createFailed",
+      }).message,
+    );
   }
 };
 
@@ -1285,10 +1302,11 @@ const buildShareUrl = (shareCode: string) => {
   return `${customerAppUrl.replace(/\/+$/, "")}/group/${shareCode}`;
 };
 
-const shareGroupOrder = (groupOrder: GroupOrder) => {
+const shareGroupOrder = (groupOrder: GroupOrder, recoveryCode = "") => {
   shareData.value = {
     shareCode: groupOrder.shareCode,
     shareUrl: buildShareUrl(groupOrder.shareCode),
+    recoveryCode,
   };
   showShareDialog.value = true;
 };
@@ -1300,18 +1318,39 @@ const closeShareDialog = () => {
 const copyShareCode = async (shareCode: string) => {
   try {
     await navigator.clipboard.writeText(shareCode);
-    console.log(t("groupOrders.alerts.shareCodeCopied"));
-  } catch (_error) {
-    console.error("Failed to copy share code:", _error);
+    toast.success(t("groupOrders.alerts.shareCodeCopied"));
+  } catch (error) {
+    toast.error(
+      resolveUserFacingError(error, t, {
+        fallbackKey: "groupOrders.alerts.copyFailed",
+      }).message,
+    );
+  }
+};
+
+const copyRecoveryCode = async () => {
+  try {
+    await navigator.clipboard.writeText(shareData.value.recoveryCode);
+    toast.success(t("groupOrders.alerts.recoveryCodeCopied"));
+  } catch (error) {
+    toast.error(
+      resolveUserFacingError(error, t, {
+        fallbackKey: "groupOrders.alerts.copyFailed",
+      }).message,
+    );
   }
 };
 
 const copyShareUrl = async () => {
   try {
     await navigator.clipboard.writeText(shareData.value.shareUrl);
-    console.log(t("groupOrders.alerts.shareLinkCopied"));
-  } catch (_error) {
-    console.error("Failed to copy share URL:", _error);
+    toast.success(t("groupOrders.alerts.shareLinkCopied"));
+  } catch (error) {
+    toast.error(
+      resolveUserFacingError(error, t, {
+        fallbackKey: "groupOrders.alerts.copyFailed",
+      }).message,
+    );
   }
 };
 
@@ -1321,27 +1360,25 @@ const shareToWhatsApp = () => {
     shareUrl: shareData.value.shareUrl,
   });
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+  toast.success(t("groupOrders.alerts.shareLinkCopied"));
 };
 
-const shareToWechat = () => {
-  console.log("WeChat sharing is under development");
-};
-
-const joinGroupOrder = () => {
-  joinShareCode.value = "";
-  showJoinDialog.value = true;
-};
-
-const submitJoinGroupOrder = async () => {
-  if (!joinShareCode.value.trim()) return;
+const shareToWechat = async () => {
+  const text = t("groupOrders.whatsappMessage", {
+    shareCode: shareData.value.shareCode,
+    shareUrl: shareData.value.shareUrl,
+  });
   try {
-    await groupOrdersService.joinGroupOrder(joinShareCode.value.trim(), {
-      memberName: authStore.user?.username || "Staff",
-    });
-    showJoinDialog.value = false;
-    await refreshGroupOrders();
-  } catch (_error) {
-    console.error("Failed to join group order:", _error);
+    if (navigator.share) {
+      await navigator.share({ text, url: shareData.value.shareUrl });
+      return;
+    }
+    await navigator.clipboard.writeText(shareData.value.shareUrl);
+    toast.success(t("groupOrders.alerts.shareLinkCopied"));
+  } catch (error) {
+    if ((error as DOMException).name !== "AbortError") {
+      toast.error(t("groupOrders.alerts.shareFailed"));
+    }
   }
 };
 
@@ -1354,12 +1391,22 @@ const generateShareCode = async () => {
     shareData.value = {
       shareCode: result.shareCode,
       shareUrl: buildShareUrl(result.shareCode),
+      recoveryCode: result.recoveryCode ?? "",
     };
     showShareDialog.value = true;
     // Refresh list since generate-code creates a new group order
-    await refreshGroupOrders();
-  } catch (_error) {
-    console.error("Failed to generate share code:", _error);
+    await refreshGroupOrders({ silent: true });
+    toast.success(
+      t("groupOrders.alerts.shareCodeGenerated", {
+        shareCode: result.shareCode,
+      }),
+    );
+  } catch (error) {
+    toast.error(
+      resolveUserFacingError(error, t, {
+        fallbackKey: "groupOrders.alerts.createFailed",
+      }).message,
+    );
   }
 };
 
@@ -1383,8 +1430,13 @@ const exportGroupOrderReport = async () => {
     a.download = `group-orders-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  } catch (_error) {
-    console.error("Failed to export group orders:", _error);
+    toast.success(t("groupOrders.exportReport"));
+  } catch (error) {
+    toast.error(
+      resolveUserFacingError(error, t, {
+        fallbackKey: "groupOrders.alerts.exportFailed",
+      }).message,
+    );
   }
 };
 

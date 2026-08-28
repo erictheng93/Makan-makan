@@ -593,6 +593,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         groupOrders: [[{ ...baseGroupOrder, totalAmountCents: 12345 }]],
         groupMembers: [[hostMember]],
         groupCartItems: [[]],
+        splitBills: [[]],
       }),
     );
 
@@ -604,6 +605,43 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         totalAmount: 123.45,
         subtotal: 123.45,
       }),
+    ]);
+  });
+
+  it("preserves an explicit zero final total and marks members without bills unpaid", async () => {
+    const service = createService();
+    useDb(
+      service,
+      createDb({
+        groupOrders: [
+          [
+            {
+              ...baseGroupOrder,
+              totalAmountCents: 1200,
+              serviceChargeCents: 100,
+              taxAmountCents: 100,
+              finalAmountCents: 0,
+            },
+          ],
+        ],
+        groupMembers: [[hostMember]],
+        groupCartItems: [[]],
+        splitBills: [[]],
+      }),
+    );
+
+    await expect(
+      service.listGroupOrders("restaurant-1"),
+    ).resolves.toMatchObject([
+      {
+        totalAmount: 0,
+        members: [
+          expect.objectContaining({
+            paymentStatus: "unpaid",
+            revenueRecognised: false,
+          }),
+        ],
+      },
     ]);
   });
 
@@ -738,7 +776,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
     ).toMatchObject({ totalAmount: 123.45 });
   });
 
-  it("lists group orders with batched member and item counts", async () => {
+  it("lists group orders with truthful batched bill and quantity data", async () => {
     const service = createService();
     const db = createDb({
       groupOrders: [
@@ -757,8 +795,36 @@ describe("GroupOrdersService formatting and cache behavior", () => {
       ],
       groupCartItems: [
         [
-          { id: "cart-1", groupOrderId: "group-1" },
-          { id: "cart-2", groupOrderId: "group-1" },
+          {
+            id: "cart-1",
+            groupOrderId: "group-1",
+            memberId: "member-1",
+            quantity: 2,
+          },
+          {
+            id: "cart-2",
+            groupOrderId: "group-1",
+            memberId: "member-2",
+            quantity: 3,
+          },
+        ],
+      ],
+      splitBills: [
+        [
+          {
+            groupOrderId: "group-1",
+            memberId: "member-1",
+            totalAmountCents: 3000,
+            paymentStatus: "paid",
+            settledBy: "self",
+          },
+          {
+            groupOrderId: "group-1",
+            memberId: "member-2",
+            totalAmountCents: 2000,
+            paymentStatus: "paid",
+            settledBy: "provider",
+          },
         ],
       ],
     });
@@ -772,11 +838,30 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         tableNumber: "A5",
         hostName: "Host",
         memberCount: 2,
-        itemCount: 2,
+        itemCount: 5,
         totalAmount: 45,
+        members: [
+          expect.objectContaining({
+            memberName: "Host",
+            itemCount: 2,
+            totalAmount: 30,
+            paidAmount: 0,
+            paymentStatus: "paid",
+            settledBy: "self",
+            revenueRecognised: false,
+          }),
+          expect.objectContaining({
+            itemCount: 3,
+            totalAmount: 20,
+            paidAmount: 20,
+            paymentStatus: "paid",
+            settledBy: "provider",
+            revenueRecognised: true,
+          }),
+        ],
       },
     ]);
-    expect(db.select).toHaveBeenCalledTimes(3);
+    expect(db.select).toHaveBeenCalledTimes(4);
   });
 
   it("only includes published cart items in group summaries and list counts", async () => {
@@ -1171,6 +1256,7 @@ describe("GroupOrdersService formatting and cache behavior", () => {
         groupOrders: [[{ ...baseGroupOrder, status: "ordering" }]],
         groupMembers: [[hostMember]],
         groupCartItems: [[]],
+        splitBills: [[]],
       }),
     );
 

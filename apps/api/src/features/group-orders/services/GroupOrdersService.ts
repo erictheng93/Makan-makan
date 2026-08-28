@@ -21,6 +21,7 @@ import {
 } from "@makanmasak/database";
 import { menuItems } from "@makanmasak/database";
 import type { SettledBy } from "@makanmasak/database";
+import { isRevenueRecognisedSettlement } from "@makanmasak/database";
 import type {
   CartItemCustomizations,
   GroupActivityMetadata,
@@ -290,9 +291,9 @@ export class GroupOrdersService implements IGroupOrderService {
 
       if (rows.length === 0) return [];
 
-      // Batch-fetch members and cart items (3 queries total instead of 2N+1)
+      // Batch-fetch relation data (4 queries total, never N+1).
       const orderIds = rows.map((r) => r.id);
-      const [allMembers, allCartItems] = await Promise.all([
+      const [allMembers, allCartItems, allSplitBills] = await Promise.all([
         this.db
           .select()
           .from(groupMembers)
@@ -306,6 +307,10 @@ export class GroupOrdersService implements IGroupOrderService {
               eq(groupCartItems.status, "active"),
             ),
           ),
+        this.db
+          .select()
+          .from(splitBills)
+          .where(inArray(splitBills.groupOrderId, orderIds)),
       ]);
 
       // Group by order ID before returning the response.
@@ -315,18 +320,34 @@ export class GroupOrdersService implements IGroupOrderService {
         list.push(m);
         membersByOrder.set(m.groupOrderId, list);
       }
-      const cartItemsByOrder = new Map<string, typeof allCartItems>();
-      for (const c of allCartItems) {
-        const list = cartItemsByOrder.get(c.groupOrderId) || [];
-        list.push(c);
-        cartItemsByOrder.set(c.groupOrderId, list);
+      const billsByMember = new Map<string, (typeof allSplitBills)[number]>();
+      for (const bill of allSplitBills) {
+        billsByMember.set(bill.memberId, bill);
+      }
+      const itemQuantitiesByMember = new Map<string, number>();
+      const itemQuantitiesByOrder = new Map<string, number>();
+      for (const item of allCartItems) {
+        const quantity = item.quantity ?? 0;
+        itemQuantitiesByMember.set(
+          item.memberId,
+          (itemQuantitiesByMember.get(item.memberId) ?? 0) + quantity,
+        );
+        itemQuantitiesByOrder.set(
+          item.groupOrderId,
+          (itemQuantitiesByOrder.get(item.groupOrderId) ?? 0) + quantity,
+        );
       }
 
       return rows.map((row) => {
         const memberRows = membersByOrder.get(row.id) || [];
-        const cartItemRows = cartItemsByOrder.get(row.id) || [];
         const settings = (row.settings || {}) as GroupOrderSettings;
-        const totalAmount = moneyAmount(row.totalAmountCents);
+        const subtotal = moneyAmount(row.totalAmountCents);
+        const serviceCharge = moneyAmount(row.serviceChargeCents);
+        const taxAmount = moneyAmount(row.taxAmountCents);
+        const totalAmount =
+          row.finalAmountCents != null
+            ? moneyAmount(row.finalAmountCents)
+            : subtotal + serviceCharge + taxAmount;
         return {
           id: row.id,
           shareCode: row.shareCode,
@@ -339,11 +360,26 @@ export class GroupOrdersService implements IGroupOrderService {
             memberRows.find((m) => m.role === "creator")?.name || "Host",
           memberCount: memberRows.length,
           totalAmount,
-          subtotal: totalAmount,
-          serviceCharge: 0,
-          taxAmount: 0,
-          itemCount: cartItemRows.length,
-          members: memberRows.map((m) => this.formatMember(m)),
+          subtotal,
+          serviceCharge,
+          taxAmount,
+          itemCount: itemQuantitiesByOrder.get(row.id) ?? 0,
+          members: memberRows.map((m) => {
+            const bill = billsByMember.get(m.id);
+            const formatted = this.formatMember(m);
+            const recognised = bill
+              ? isRevenueRecognisedSettlement(bill)
+              : false;
+            return {
+              ...formatted,
+              itemCount: itemQuantitiesByMember.get(m.id) ?? 0,
+              totalAmount: moneyAmount(bill?.totalAmountCents),
+              paidAmount: recognised ? moneyAmount(bill?.totalAmountCents) : 0,
+              paymentStatus: (bill?.paymentStatus ?? "unpaid") as PaymentStatus,
+              settledBy: bill?.settledBy ?? null,
+              revenueRecognised: recognised,
+            };
+          }),
           createdAt: row.createdAt?.toISOString() || null,
           completedAt: null,
           expiresAt: row.expiresAt?.toISOString() || null,

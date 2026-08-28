@@ -284,6 +284,10 @@ app.post(
         shareCode: result.data.shareCode,
         shareUrl: `/group/${result.data.shareCode}`,
         expiresAt: result.data.expiresAt,
+        // Same authenticated staff audience as POST /create, which does return
+        // this. Filtering it out here left the group with no reachable host:
+        // submitting and choosing the expiry behaviour are both host-only.
+        recoveryCode: result.data.recoveryCode,
       },
     });
   },
@@ -624,6 +628,43 @@ app.post(
       success: true,
       data: result.data,
     });
+  },
+);
+
+/**
+ * Finalize a group order from the authenticated back office.
+ *
+ * This intentionally does not accept a diner member token: staff-created
+ * groups do not have a browser-held host credential. The usual public host
+ * route above remains the only route available to diners.
+ */
+app.post(
+  "/:groupOrderId/finalize/staff",
+  authMiddleware,
+  requireRole([0, 1]),
+  moduleGate("online_ordering"),
+  validateParams(groupOrderSchemas.groupOrderIdParam),
+  async (c) => {
+    const { groupOrderId } = c.get("validatedParams");
+    const user = c.get("user");
+    const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
+    const summary = await groupOrderService.getGroupOrder(groupOrderId);
+
+    if (!summary) {
+      throw notFound("Group order not found");
+    }
+    if (
+      user.role === 1 &&
+      String(summary.groupOrder.restaurantId) !== String(user.restaurantId)
+    ) {
+      throw forbidden("Access denied: can only finalize own restaurant orders");
+    }
+
+    const result = await groupOrderService.finalizeGroupOrder(groupOrderId);
+    if (!result.success) {
+      throw badRequest(result.error ?? "Failed to finalize group order");
+    }
+    return c.json({ success: true, data: result.data });
   },
 );
 
