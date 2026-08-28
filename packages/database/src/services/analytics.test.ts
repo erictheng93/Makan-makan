@@ -95,6 +95,36 @@ describe("AnalyticsService revenue analytics", () => {
     );
   });
 
+  it("uses Taipei buckets for shifted explicit-range comparisons", async () => {
+    await testDb.drizzle
+      .insert(orders)
+      .values([
+        order("current-taipei", "TZ-101", "2026-01-09T17:00:00.000Z", 15000),
+        order("previous-taipei", "TZ-100", "2026-01-08T17:00:00.000Z", 10000),
+      ]);
+
+    const service = new AnalyticsService(testDb.bindings.DB, {} as never);
+
+    await expect(
+      service.getRevenueAnalytics({
+        restaurantId: "analytics-restaurant",
+        dateFrom: "2026-01-09T16:00:00.000Z",
+        dateTo: "2026-01-10T16:00:00.000Z",
+        groupBy: "day",
+        includeComparison: true,
+      }),
+    ).resolves.toContainEqual(
+      expect.objectContaining({
+        date: "2026-01-10",
+        revenue: 150,
+        comparison: {
+          previousRevenue: 100,
+          growthRate: 50,
+        },
+      }),
+    );
+  });
+
   it("excludes current-period boundary orders from the prior period", async () => {
     await testDb.drizzle
       .insert(orders)

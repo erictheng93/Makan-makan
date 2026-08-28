@@ -129,7 +129,6 @@ interface RecentOrder {
   total: number;
   itemCount?: number;
   createdAt: string;
-  updatedAt: string;
 }
 
 interface RecentOrdersProps {

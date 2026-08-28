@@ -1032,17 +1032,17 @@ export class AnalyticsService extends BaseService {
     groupBy: NonNullable<AnalyticsFilters["groupBy"]>,
     shiftMs: number,
   ): SQL {
-    const shiftedDateSql = sql`((${orders.createdAt} + ${shiftMs}) / 1000)`;
+    const shiftedDateSql = sql`(${orders.createdAt} + ${shiftMs})`;
 
     switch (groupBy) {
       case "day":
-        return sql`DATE(${shiftedDateSql}, 'unixepoch')`;
+        return dateFromUnixMs(shiftedDateSql);
       case "week":
-        return sql`strftime('%Y-W%W', ${shiftedDateSql}, 'unixepoch')`;
+        return strftimeFromUnixMs("%Y-W%W", shiftedDateSql);
       case "month":
-        return sql`strftime('%Y-%m', ${shiftedDateSql}, 'unixepoch')`;
+        return strftimeFromUnixMs("%Y-%m", shiftedDateSql);
       case "year":
-        return sql`strftime('%Y', ${shiftedDateSql}, 'unixepoch')`;
+        return strftimeFromUnixMs("%Y", shiftedDateSql);
     }
   }
 

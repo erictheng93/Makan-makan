@@ -180,7 +180,7 @@
         </div>
         <RecentOrders
           :orders="recentOrders"
-          :loading="orderStore.isLoading"
+          :loading="isLoading"
           @order-click="navigateToOrder"
         />
       </div>
@@ -272,8 +272,7 @@ import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useDashboardStore } from "@/stores/dashboard";
-import { useOrderStore } from "@/stores/order";
-import type { ChartData, OrderStatus, TopMenuItem } from "@/types";
+import type { ChartData, TopMenuItem } from "@/types";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import {
   RefreshCw,
@@ -301,7 +300,6 @@ const { formatRelativeTime } = useDateFormatter();
 const router = useRouter();
 const authStore = useAuthStore();
 const dashboardStore = useDashboardStore();
-const orderStore = useOrderStore();
 
 type DashboardChartPeriod = "daily" | "weekly" | "monthly";
 
@@ -314,9 +312,6 @@ interface RevenueChartPoint {
 interface OrdersChartPoint {
   label: string;
   total: number;
-  completed: number;
-  pending: number;
-  cancelled: number;
   date: string;
 }
 
@@ -364,31 +359,14 @@ const revenueChart = computed<RevenueChartPoint[]>(() =>
 );
 
 const ordersChart = computed<OrdersChartPoint[]>(() =>
-  dashboardStore.ordersChart.map((point) => {
-    const total = point.value;
-    return {
-      label: point.label,
-      total,
-      completed: total,
-      pending: 0,
-      cancelled: 0,
-      date: getChartDate(point),
-    };
-  }),
-);
-
-const recentOrders = computed(() =>
-  orderStore.orders.map((order) => ({
-    id: order.id,
-    orderNumber: order.orderNumber,
-    tableNumber: order.table?.number ?? "",
-    status: order.status,
-    total: order.totalAmount,
-    itemCount: order.items.reduce((count, item) => count + item.quantity, 0),
-    createdAt: new Date(order.createdAt).toISOString(),
-    updatedAt: new Date(order.updatedAt).toISOString(),
+  dashboardStore.ordersChart.map((point) => ({
+    label: point.label,
+    total: point.value,
+    date: getChartDate(point),
   })),
 );
+
+const recentOrders = computed(() => dashboardStore.recentOrders);
 
 const lastUpdatedText = computed(() => {
   if (!dashboardStore.lastUpdated) return t("dashboard.neverUpdated");
@@ -410,9 +388,6 @@ const refreshData = async () => {
   // dashboard with two blank charts that the refresh button does not fix.
   await Promise.all([
     dashboardStore.fetchDashboardStats(),
-    orderStore.fetchOrders({
-      status: ["pending", "confirmed", "preparing", "ready"] as OrderStatus[],
-    }),
     updateRevenueChart(),
     updateOrdersChart(),
   ]);

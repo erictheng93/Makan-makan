@@ -55,9 +55,6 @@ ChartJS.register(
 interface OrderDataPoint {
   label: string;
   total: number;
-  completed: number;
-  pending: number;
-  cancelled: number;
   date: string;
 }
 
@@ -88,9 +85,7 @@ const createChart = async () => {
   }
 
   const labels = props.data.map((item) => item.label);
-  const completedData = props.data.map((item) => item.completed);
-  const pendingData = props.data.map((item) => item.pending);
-  const cancelledData = props.data.map((item) => item.cancelled);
+  const totalData = props.data.map((item) => item.total);
 
   const maxValue = Math.max(...props.data.map((item) => item.total));
   const suggestedMax = Math.ceil(maxValue * 1.1);
@@ -101,28 +96,10 @@ const createChart = async () => {
       labels,
       datasets: [
         {
-          label: t("charts.ordersChart.completed"),
-          data: completedData,
-          backgroundColor: "rgba(34, 197, 94, 0.8)",
-          borderColor: "rgb(34, 197, 94)",
-          borderWidth: 1,
-          borderRadius: 4,
-          borderSkipped: false,
-        },
-        {
-          label: t("charts.ordersChart.pending"),
-          data: pendingData,
-          backgroundColor: "rgba(251, 191, 36, 0.8)",
-          borderColor: "rgb(251, 191, 36)",
-          borderWidth: 1,
-          borderRadius: 4,
-          borderSkipped: false,
-        },
-        {
-          label: t("charts.ordersChart.cancelled"),
-          data: cancelledData,
-          backgroundColor: "rgba(239, 68, 68, 0.8)",
-          borderColor: "rgb(239, 68, 68)",
+          label: t("charts.ordersChart.orderCount"),
+          data: totalData,
+          backgroundColor: "rgba(59, 130, 246, 0.8)",
+          borderColor: "rgb(59, 130, 246)",
           borderWidth: 1,
           borderRadius: 4,
           borderSkipped: false,
@@ -155,7 +132,6 @@ const createChart = async () => {
               size: 11,
             },
           },
-          stacked: true,
         },
         y: {
           display: true,
@@ -181,7 +157,6 @@ const createChart = async () => {
               return Math.floor(value as number).toString();
             },
           },
-          stacked: true,
         },
       },
       plugins: {

@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed, readonly } from "vue";
-import type { DashboardStats, ChartData } from "@/types";
+import type { DashboardStats, ChartData, OrderStatus } from "@/types";
 import { api } from "@/services/api";
 import { useAuthStore } from "./auth";
 import { useCurrency } from "@/composables/useCurrency";
@@ -41,7 +41,14 @@ export type AnalyticsDashboardPayload = {
     monthOrders: number;
     growthRates: { revenueGrowth: number; orderGrowth: number };
   };
-  recentOrders: unknown[];
+  recentOrders: Array<{
+    id: string;
+    orderNumber: string;
+    status: OrderStatus;
+    totalAmount: number;
+    tableNumber: string | null;
+    createdAt: string;
+  }>;
   topSellingItems: Array<{
     itemId: number;
     itemName: string;
@@ -49,6 +56,15 @@ export type AnalyticsDashboardPayload = {
     revenue: number;
   }>;
   tableStatus: { occupied: number; available: number; total: number };
+};
+
+export type DashboardRecentOrder = {
+  id: string;
+  orderNumber: string;
+  status: OrderStatus;
+  total: number;
+  tableNumber: string;
+  createdAt: string;
 };
 
 export function mapDashboardPayload(
@@ -77,6 +93,28 @@ const periodGroupBy: Record<AnalyticsPeriod, AnalyticsGroupBy> = {
   daily: "day",
   weekly: "week",
   monthly: "month",
+};
+
+const TAIPEI_OFFSET_MS = 8 * 60 * 60 * 1000;
+
+const getAnalyticsDateRange = (
+  period: AnalyticsPeriod,
+  now: Date = new Date(),
+) => {
+  const taipeiNow = new Date(now.getTime() + TAIPEI_OFFSET_MS);
+  const year = taipeiNow.getUTCFullYear();
+  const month = taipeiNow.getUTCMonth();
+  let date = taipeiNow.getUTCDate();
+
+  if (period === "weekly") {
+    const daysSinceMonday = (taipeiNow.getUTCDay() + 6) % 7;
+    date -= daysSinceMonday;
+  } else if (period === "monthly") {
+    date = 1;
+  }
+
+  const from = new Date(Date.UTC(year, month, date) - TAIPEI_OFFSET_MS);
+  return { dateFrom: from.toISOString(), dateTo: now.toISOString() };
 };
 
 const topMenuItemsGroupBy: Record<TopMenuItemsPeriod, AnalyticsGroupBy> = {
@@ -112,6 +150,7 @@ export const useDashboardStore = defineStore("dashboard", () => {
   const stats = ref<DashboardStats | null>(null);
   const revenueChartData = ref<ChartData[]>([]);
   const ordersChartData = ref<ChartData[]>([]);
+  const recentOrdersData = ref<DashboardRecentOrder[]>([]);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
   const lastUpdated = ref<Date | null>(null);
@@ -126,6 +165,7 @@ export const useDashboardStore = defineStore("dashboard", () => {
   const topMenuItems = computed(() => stats.value?.topMenuItems || []);
   const revenueChart = computed(() => revenueChartData.value);
   const ordersChart = computed(() => ordersChartData.value);
+  const recentOrders = computed(() => recentOrdersData.value);
 
   // Actions
   const fetchDashboardStats = async (dateRange?: {
@@ -151,7 +191,16 @@ export const useDashboardStore = defineStore("dashboard", () => {
       );
 
       if (response.data.success && response.data.data) {
-        stats.value = mapDashboardPayload(response.data.data);
+        const payload = response.data.data;
+        stats.value = mapDashboardPayload(payload);
+        recentOrdersData.value = payload.recentOrders.map((order) => ({
+          id: order.id,
+          orderNumber: order.orderNumber,
+          status: order.status,
+          total: order.totalAmount,
+          tableNumber: order.tableNumber ?? "",
+          createdAt: new Date(order.createdAt).toISOString(),
+        }));
         lastUpdated.value = new Date();
       } else {
         error.value =
@@ -177,10 +226,12 @@ export const useDashboardStore = defineStore("dashboard", () => {
     if (!authStore.restaurantId) return [];
 
     try {
+      const dateRange = getAnalyticsDateRange(period);
       const response = await api.get(
         buildAnalyticsUrl("revenue", {
           restaurantId: authStore.restaurantId,
           groupBy: periodGroupBy[period],
+          ...dateRange,
         }),
       );
 
@@ -201,6 +252,7 @@ export const useDashboardStore = defineStore("dashboard", () => {
     if (!authStore.restaurantId) return [];
 
     try {
+      const dateRange = getAnalyticsDateRange(period);
       const response = await api.get(
         // The revenue endpoint is the time-series analytics contract. Its
         // `orderCount` field supplies the matching orders series; /performance
@@ -208,6 +260,7 @@ export const useDashboardStore = defineStore("dashboard", () => {
         buildAnalyticsUrl("revenue", {
           restaurantId: authStore.restaurantId,
           groupBy: periodGroupBy[period],
+          ...dateRange,
         }),
       );
 
@@ -266,6 +319,7 @@ export const useDashboardStore = defineStore("dashboard", () => {
     stats.value = null;
     revenueChartData.value = [];
     ordersChartData.value = [];
+    recentOrdersData.value = [];
     error.value = null;
     lastUpdated.value = null;
   };
@@ -323,6 +377,7 @@ export const useDashboardStore = defineStore("dashboard", () => {
     topMenuItems,
     revenueChart,
     ordersChart,
+    recentOrders,
     fetchDashboardStats,
     fetchRevenueAnalytics,
     fetchOrderAnalytics,
