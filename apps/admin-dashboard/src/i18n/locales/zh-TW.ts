@@ -3274,8 +3274,15 @@ const zhTWCore = {
       showing: "顯示第 {start} 到 {end} 項，共 {total} 項結果",
       label: "分頁",
     },
+    moduleUnavailable: {
+      title: "優惠券功能不在目前方案內",
+      description:
+        "你的方案沒有包含優惠券模組。升級方案後即可建立與管理優惠券。",
+    },
     messages: {
       fetchFailed: "獲取優惠券列表失敗",
+      codeExists:
+        "此優惠券代碼已被使用（代碼在全平台唯一，可能已由其他商家取用），請換一個。",
       updateSuccess: "優惠券更新成功",
       createSuccess: "優惠券創建成功",
       operationFailed: "操作失敗：{message}",

@@ -3218,8 +3218,15 @@ const jaJP: Messages = {
       showing: "{total}件中{start}〜{end}件を表示",
       label: "ページネーション",
     },
+    moduleUnavailable: {
+      title: "クーポン機能は現在のプランに含まれていません",
+      description:
+        "ご利用中のプランにはクーポンモジュールが含まれていません。アップグレードするとクーポンを作成・管理できます。",
+    },
     messages: {
       fetchFailed: "クーポンの取得に失敗しました",
+      codeExists:
+        "このクーポンコードは使用済みです。コードはプラットフォーム全体で一意のため、他店が使用している可能性があります。別のコードをご指定ください。",
       updateSuccess: "クーポンが更新されました",
       createSuccess: "クーポンが作成されました",
       operationFailed: "操作に失敗しました: {message}",

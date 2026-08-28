@@ -86,8 +86,30 @@ interface CouponUsageTrendPoint {
 // 帶穩定 code 的 CouponEligibilityError；在此統一轉譯成 ApiError，
 // 讓路由層不需要再做字串比對的錯誤映射。
 const CouponEligibilityError = BaseCouponService.EligibilityError;
+const CouponDuplicateCodeError = BaseCouponService.DuplicateCodeError;
 
 function toCouponApiError(error: unknown): unknown {
+  if (error instanceof CouponDuplicateCodeError) {
+    return conflict(error.message, "COUPON_CODE_EXISTS");
+  }
+
+  // The preflight lookup gives a friendly answer in the usual case, while the
+  // database constraint remains authoritative under concurrent creates.
+  const uniqueCodeViolation = (value: unknown): boolean => {
+    if (!(value instanceof Error)) return false;
+    if (/unique constraint failed:\s*coupons\.code/i.test(value.message)) {
+      return true;
+    }
+    return uniqueCodeViolation((value as Error & { cause?: unknown }).cause);
+  };
+
+  if (uniqueCodeViolation(error)) {
+    return conflict(
+      "優惠券代碼已被使用（代碼在全平台唯一），請換一個",
+      "COUPON_CODE_EXISTS",
+    );
+  }
+
   if (!(error instanceof CouponEligibilityError)) {
     return error;
   }
@@ -199,7 +221,27 @@ export class CouponsService extends BaseCouponService {
       throw badRequest("百分比折扣不能超過 100%", "INVALID_DISCOUNT_VALUE");
     }
 
-    return await this.createCoupon(data);
+    try {
+      return await this.createCoupon(data);
+    } catch (error) {
+      throw toCouponApiError(error);
+    }
+  }
+
+  /**
+   * `code` is updatable (updateCouponSchema is createCouponSchema.partial()),
+   * so an edit can collide with an existing code just as a create can. The
+   * base method has no preflight lookup, which leaves the unique constraint
+   * as the only signal -- and untranslated it sanitises to GENERIC_ERROR, so
+   * the client sees a 500 plus a HIGH-severity Slack page instead of the 409
+   * the dashboard already branches on.
+   */
+  override async updateCoupon(id: number, updates: Partial<CreateCouponData>) {
+    try {
+      return await super.updateCoupon(id, updates);
+    } catch (error) {
+      throw toCouponApiError(error);
+    }
   }
 
   /**

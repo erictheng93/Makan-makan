@@ -3157,8 +3157,15 @@ const zhCN: Messages = {
       showing: "显示第 {start} 到 {end} 项，共 {total} 项结果",
       label: "分页",
     },
+    moduleUnavailable: {
+      title: "优惠券功能不在当前方案内",
+      description:
+        "你的方案没有包含优惠券模块。升级方案后即可创建与管理优惠券。",
+    },
     messages: {
       fetchFailed: "获取优惠券列表失败",
+      codeExists:
+        "此优惠券代码已被使用（代码在全平台唯一，可能已由其他商家取用），请换一个。",
       updateSuccess: "优惠券更新成功",
       createSuccess: "优惠券创建成功",
       operationFailed: "操作失败：{message}",

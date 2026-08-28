@@ -328,10 +328,11 @@ const performanceScore = computed(() => {
   else if (usage >= 5) score += 10;
 
   // Average discount score (0-30)
-  if (avgDiscount >= 2000) score += 30;
-  else if (avgDiscount >= 1000) score += 25;
-  else if (avgDiscount >= 500) score += 20;
-  else if (avgDiscount >= 200) score += 15;
+  // avgDiscount is already a display-currency amount, not cents.
+  if (avgDiscount >= 20) score += 30;
+  else if (avgDiscount >= 10) score += 25;
+  else if (avgDiscount >= 5) score += 20;
+  else if (avgDiscount >= 2) score += 15;
 
   // Usage rate score (0-30)
   if (props.coupon.usageLimit) {
@@ -397,7 +398,7 @@ const recommendations = computed(() => {
     result.push(t("couponStats.recommend.highRate"));
   }
 
-  if (props.stats.avgDiscount < 500) {
+  if (props.stats.avgDiscount < 5) {
     result.push(t("couponStats.recommend.lowDiscount"));
   }
 

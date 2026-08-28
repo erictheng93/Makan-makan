@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lt, lte, sql } from "drizzle-orm";
 import type { DiscountType } from "../schema";
 import { coupons, couponUsage, menuItems as menuItemsTable } from "../schema";
 import {
@@ -70,6 +70,21 @@ export class CouponEligibilityError extends Error {
   }
 }
 
+/** Stable duplicate-code signal for API transports to map to a 409. */
+export class CouponDuplicateCodeError extends Error {
+  readonly code = "COUPON_CODE_EXISTS";
+
+  constructor() {
+    // Codes are unique platform-wide (coupons_code_unique is on `code` alone),
+    // so a collision can come from another restaurant entirely. Saying only
+    // "already exists" sends owners hunting through their own list for a code
+    // that is not there. Whether the index should become
+    // (restaurant_id, code) is still open -- see issue #269.
+    super("優惠券代碼已被使用（代碼在全平台唯一），請換一個");
+    this.name = "CouponDuplicateCodeError";
+  }
+}
+
 // assertCouponRedeemable 所需的優惠券欄位子集
 export interface RedeemableCouponRow {
   id: number;
@@ -108,12 +123,12 @@ export interface CreateCouponData {
   description?: string;
   discountType: DiscountType;
   discountValue: number;
-  maxDiscountAmount?: number;
+  maxDiscountAmount?: number | null;
   minOrderAmount?: number;
   applicableMenuItems?: number[];
   applicableCategories?: number[];
-  usageLimit?: number;
-  usageLimitPerUser?: number;
+  usageLimit?: number | null;
+  usageLimitPerUser?: number | null;
   validFrom: string;
   validTo: string;
   isActive?: boolean;
@@ -137,6 +152,7 @@ export interface CouponFilters {
   isActive?: boolean;
   isVisible?: boolean;
   discountType?: DiscountType;
+  status?: "active" | "expired" | "exhausted" | "inactive";
   validOnly?: boolean;
   search?: string;
 }
@@ -147,6 +163,7 @@ export class CouponService extends BaseService {
    * （services/index.ts 未逐一再匯出 coupon.ts 的所有符號）。
    */
   static readonly EligibilityError = CouponEligibilityError;
+  static readonly DuplicateCodeError = CouponDuplicateCodeError;
 
   private mapCouponMoneyFields<T extends CouponMoneyColumns>(
     coupon: T,
@@ -522,7 +539,7 @@ export class CouponService extends BaseService {
     });
 
     if (existingCoupon) {
-      throw new Error("優惠券代碼已存在");
+      throw new CouponDuplicateCodeError();
     }
 
     const coupon = await this.db
@@ -565,9 +582,9 @@ export class CouponService extends BaseService {
     const whereConditions = [];
 
     if (filters.restaurantId) {
-      whereConditions.push(
-        sql`(${coupons.restaurantId} = ${filters.restaurantId} OR ${coupons.restaurantId} IS NULL)`,
-      );
+      // Management is tenant-scoped. Platform coupons remain available to
+      // customers but are not silently mixed into an owner's administration.
+      whereConditions.push(eq(coupons.restaurantId, filters.restaurantId));
     }
 
     if (filters.isActive !== undefined) {
@@ -581,6 +598,45 @@ export class CouponService extends BaseService {
     if (filters.discountType) {
       whereConditions.push(eq(coupons.discountType, filters.discountType));
     }
+
+    // This mirrors the dashboard status helper, so filtering happens before
+    // pagination rather than only on the records already loaded in the UI.
+    if (filters.status) {
+      const now = new Date().toISOString();
+      switch (filters.status) {
+        case "inactive":
+          whereConditions.push(eq(coupons.isActive, false));
+          break;
+        case "expired":
+          whereConditions.push(
+            and(eq(coupons.isActive, true), lt(coupons.validTo, now)),
+          );
+          break;
+        case "exhausted":
+          whereConditions.push(
+            and(
+              eq(coupons.isActive, true),
+              gte(coupons.validTo, now),
+              sql`${coupons.usageLimit} IS NOT NULL AND coalesce(${coupons.usedCount}, 0) >= ${coupons.usageLimit}`,
+            ),
+          );
+          break;
+        case "active":
+          whereConditions.push(
+            and(
+              eq(coupons.isActive, true),
+              lte(coupons.validFrom, now),
+              gte(coupons.validTo, now),
+              sql`(${coupons.usageLimit} IS NULL OR coalesce(${coupons.usedCount}, 0) < ${coupons.usageLimit})`,
+            ),
+          );
+          break;
+      }
+    }
+
+    // Soft-deleted rows stay available to an administrator by direct id for
+    // history/statistics, but never appear in an active management list.
+    whereConditions.push(sql`${coupons.deletedAt} IS NULL`);
 
     if (filters.validOnly) {
       const now = new Date().toISOString();
@@ -765,7 +821,70 @@ export class CouponService extends BaseService {
    * 刪除優惠券
    */
   async deleteCoupon(id: number): Promise<void> {
-    await this.db.delete(coupons).where(eq(coupons.id, id));
+    await this.db
+      .update(coupons)
+      .set({ deletedAt: new Date(), isActive: false, updatedAt: new Date() })
+      .where(and(eq(coupons.id, id), sql`${coupons.deletedAt} IS NULL`));
+  }
+
+  /**
+   * Cancelling an order releases only an active usage row once. The existing
+   * refund release marker is also the idempotency marker for this path.
+   */
+  async releaseUsageForCancelledOrder(orderId: string): Promise<void> {
+    const candidates = await this.db
+      .select({ id: couponUsage.id, couponId: couponUsage.couponId })
+      .from(couponUsage)
+      .where(
+        and(
+          eq(couponUsage.orderId, orderId),
+          eq(couponUsage.status, "active"),
+          sql`${couponUsage.refundCountReleasedAt} IS NULL`,
+        ),
+      );
+
+    if (candidates.length === 0) return;
+
+    const now = new Date();
+    const writes = candidates.flatMap((usage) => [
+      // Run this before marking the usage row. The conditional re-check makes
+      // stale reads and concurrent/repeated cancellations harmless; D1 batch
+      // applies every statement atomically.
+      this.db
+        .update(coupons)
+        .set({
+          usedCount: sql`CASE WHEN EXISTS (
+            SELECT 1 FROM coupon_usage
+            WHERE id = ${usage.id}
+              AND status = 'active'
+              AND refund_count_released_at_ms IS NULL
+          ) AND coalesce(${coupons.usedCount}, 0) > 0
+            THEN coalesce(${coupons.usedCount}, 0) - 1
+            ELSE coalesce(${coupons.usedCount}, 0)
+          END`,
+          updatedAt: now,
+        })
+        .where(eq(coupons.id, usage.couponId)),
+      this.db
+        .update(couponUsage)
+        .set({
+          status: "cancelled",
+          refundCountReleasedAt: now,
+          updatedAt: now,
+        })
+        .where(
+          and(
+            eq(couponUsage.id, usage.id),
+            eq(couponUsage.status, "active"),
+            sql`${couponUsage.refundCountReleasedAt} IS NULL`,
+          ),
+        ),
+    ]);
+
+    // candidates is non-empty above, so the write list has at least the two
+    // statements produced for its first usage. D1's typed batch API requires
+    // that non-empty tuple shape in addition to the runtime guarantee.
+    await this.db.batch([writes[0]!, ...writes.slice(1)]);
   }
 
   /**
@@ -800,7 +919,7 @@ export class CouponService extends BaseService {
     totalSavings: number;
   }> {
     const restaurantFilter = restaurantId
-      ? sql`(${coupons.restaurantId} = ${restaurantId} OR ${coupons.restaurantId} IS NULL)`
+      ? eq(coupons.restaurantId, restaurantId)
       : undefined;
 
     const now = new Date().toISOString();
@@ -831,7 +950,7 @@ export class CouponService extends BaseService {
           .where(
             and(
               eq(couponUsage.status, "active"),
-              sql`(${coupons.restaurantId} = ${restaurantId} OR ${coupons.restaurantId} IS NULL)`,
+              eq(coupons.restaurantId, restaurantId),
             ),
           )
       : await this.db

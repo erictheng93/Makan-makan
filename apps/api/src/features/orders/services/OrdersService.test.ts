@@ -13,6 +13,7 @@ const updateBaseOrderItemStatus = vi.hoisted(() => vi.fn());
 const getDailyOrderStats = vi.hoisted(() => vi.fn());
 const getBaseOrderStatistics = vi.hoisted(() => vi.fn());
 const validateBaseCoupon = vi.hoisted(() => vi.fn());
+const releaseCouponUsageForCancelledOrder = vi.hoisted(() => vi.fn());
 const broadcastNewOrder = vi.hoisted(() => vi.fn());
 const broadcastOrderStatusUpdate = vi.hoisted(() => vi.fn());
 const broadcastOrderCancelled = vi.hoisted(() => vi.fn());
@@ -50,6 +51,7 @@ vi.mock("@makanmasak/database", () => ({
   CouponService: function CouponService() {
     return {
       validateCoupon: validateBaseCoupon,
+      releaseUsageForCancelledOrder: releaseCouponUsageForCancelledOrder,
     };
   },
   RealtimeBroadcastService: function RealtimeBroadcastService() {
@@ -122,6 +124,8 @@ describe("OrdersService realtime broadcasts", () => {
     getDailyOrderStats.mockReset();
     getBaseOrderStatistics.mockReset();
     validateBaseCoupon.mockReset();
+    releaseCouponUsageForCancelledOrder.mockReset();
+    releaseCouponUsageForCancelledOrder.mockResolvedValue(undefined);
     broadcastNewOrder.mockReset();
     broadcastOrderStatusUpdate.mockReset();
     broadcastOrderCancelled.mockReset();
@@ -740,6 +744,7 @@ describe("OrdersService workflows", () => {
       "42",
       "Customer requested cancellation",
     );
+    expect(releaseCouponUsageForCancelledOrder).toHaveBeenCalledWith("42");
     expect(env.CACHE_KV.get).toHaveBeenCalledWith("guest_active_lookup:42");
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith(
       "guest_active:restaurant-1:token:guest-token",

@@ -1,5 +1,5 @@
 <template>
-  <div class="coupons-view">
+  <div v-if="hasCouponsModule" class="coupons-view">
     <!-- 標題和操作按鈕 -->
     <div class="flex justify-between items-center mb-8">
       <div>
@@ -170,7 +170,30 @@
               </th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
+          <tbody v-if="isLoading" class="bg-white divide-y divide-gray-200">
+            <tr>
+              <td
+                colspan="6"
+                class="px-6 py-12 text-center text-sm text-gray-500"
+              >
+                {{ t("common.loading") }}
+              </td>
+            </tr>
+          </tbody>
+          <tbody
+            v-else-if="filteredCoupons.length === 0"
+            class="bg-white divide-y divide-gray-200"
+          >
+            <tr>
+              <td
+                colspan="6"
+                class="px-6 py-12 text-center text-sm text-gray-500"
+              >
+                {{ t("common.noData") }}
+              </td>
+            </tr>
+          </tbody>
+          <tbody v-else class="bg-white divide-y divide-gray-200">
             <tr
               v-for="coupon in filteredCoupons"
               :key="coupon.id"
@@ -469,6 +492,20 @@
       </div>
     </div>
   </div>
+  <div v-else-if="!moduleAccess.isLoaded" class="coupons-view">
+    <div class="h-32 animate-pulse rounded-2xl bg-gray-100" />
+  </div>
+
+  <div v-else class="coupons-view">
+    <div class="rounded-2xl bg-white p-6 shadow-sm">
+      <h1 class="text-xl font-semibold text-gray-900">
+        {{ t("coupons.moduleUnavailable.title") }}
+      </h1>
+      <p class="mt-2 text-sm text-gray-600">
+        {{ t("coupons.moduleUnavailable.description") }}
+      </p>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -492,12 +529,23 @@ import {
 // Components
 import { useAsyncModals } from "@/composables/useAsyncModals";
 import { useAuthStore } from "@/stores/auth";
+import { useModuleAccessStore } from "@makanmasak/shared/stores/moduleAccess";
+import { extractApiErrorCode } from "@/utils/errorHandler";
 
 const { t } = useI18n();
 const { formatPrice } = useCurrency();
 const { formatDate } = useDateFormatter();
 const authStore = useAuthStore();
 const isAdmin = computed(() => authStore.user?.role === 0);
+
+// The sidebar entry is behind <ModuleGate module="coupons">, but the route only
+// declared `roles`. A bookmarked /dashboard/coupons therefore rendered the full
+// shell on a plan without the module and answered with a generic
+// "failed to fetch coupons" toast, which explains nothing.
+const moduleAccess = useModuleAccessStore();
+const hasCouponsModule = computed(
+  () => moduleAccess.effectiveModules?.coupons === true,
+);
 
 // 異步加載 Modal 組件
 const { CouponFormModal, CouponStatsModal } = useAsyncModals();
@@ -639,11 +687,15 @@ const handleSaveCoupon = async (couponData: Record<string, unknown>) => {
     await Promise.all([fetchCoupons(), fetchStats()]);
     closeModal();
   } catch (error) {
-    toast.error(
-      t("coupons.messages.operationFailed", {
-        message: (error as Error).message,
-      }),
-    );
+    if (extractApiErrorCode(error) === "COUPON_CODE_EXISTS") {
+      toast.error(t("coupons.messages.codeExists"));
+    } else {
+      toast.error(
+        t("coupons.messages.operationFailed", {
+          message: (error as Error).message,
+        }),
+      );
+    }
   }
 };
 
@@ -699,17 +751,37 @@ const confirmDeleteCoupon = async () => {
   }
 };
 
-// Initialize data and watchers
+// Initialize data and watchers.
+// main.ts kicks the module fetch off, so `isLoaded` is usually still false at
+// mount; requesting the list before it answers is what produced the misleading
+// "failed to fetch coupons" toast on a plan without the module. The watcher
+// lives inside onMounted because an immediate one would run during setup,
+// before these fetchers are initialised.
+let initialFetchStarted = false;
 onMounted(() => {
-  fetchCoupons();
-  fetchStats();
+  watch(
+    () => moduleAccess.isLoaded && hasCouponsModule.value,
+    (ready) => {
+      if (!ready || initialFetchStarted) return;
+      initialFetchStarted = true;
+      fetchCoupons();
+      fetchStats();
+    },
+    { immediate: true },
+  );
 });
 
 // Instant fetch for page changes and dropdown filter changes
 watch(
   [currentPage, () => filters.value.status, () => filters.value.discountType],
-  () => {
-    fetchCoupons();
+  ([, status, discountType], [, previousStatus, previousDiscountType]) => {
+    if (status !== previousStatus || discountType !== previousDiscountType) {
+      if (currentPage.value !== 1) {
+        currentPage.value = 1;
+        return;
+      }
+    }
+    void fetchCoupons();
   },
 );
 
@@ -720,8 +792,11 @@ watch(
   () => {
     if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
     searchDebounceTimer = setTimeout(() => {
-      currentPage.value = 1;
-      fetchCoupons();
+      if (currentPage.value !== 1) {
+        currentPage.value = 1;
+      } else {
+        void fetchCoupons();
+      }
     }, 300);
   },
 );

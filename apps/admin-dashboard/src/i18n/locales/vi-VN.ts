@@ -3218,8 +3218,15 @@ const viVN: Messages = {
       showing: "Hiển thị {start} đến {end} trong tổng {total} kết quả",
       label: "Phân trang",
     },
+    moduleUnavailable: {
+      title: "Gói hiện tại không bao gồm phiếu giảm giá",
+      description:
+        "Gói của bạn không bao gồm mô-đun phiếu giảm giá. Hãy nâng cấp để tạo và quản lý phiếu giảm giá.",
+    },
     messages: {
       fetchFailed: "Tải phiếu giảm giá thất bại",
+      codeExists:
+        "Mã này đã được dùng. Mã là duy nhất trên toàn nền tảng nên có thể một cửa hàng khác đang dùng — vui lòng chọn mã khác.",
       updateSuccess: "Cập nhật phiếu giảm giá thành công",
       createSuccess: "Tạo phiếu giảm giá thành công",
       operationFailed: "Thao tác thất bại: {message}",

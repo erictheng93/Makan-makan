@@ -28,12 +28,12 @@ export interface CreateCouponData {
   description?: string;
   discountType: DiscountType;
   discountValue: number;
-  maxDiscountAmount?: number;
+  maxDiscountAmount?: number | null;
   minOrderAmount?: number;
   applicableMenuItems?: number[];
   applicableCategories?: number[];
-  usageLimit?: number;
-  usageLimitPerUser?: number;
+  usageLimit?: number | null;
+  usageLimitPerUser?: number | null;
   validFrom: string;
   validTo: string;
   isActive?: boolean;
@@ -57,6 +57,7 @@ export interface CouponFilters {
   isActive?: boolean;
   isVisible?: boolean;
   discountType?: DiscountType;
+  status?: "active" | "expired" | "exhausted" | "inactive";
   validOnly?: boolean;
   search?: string;
 }

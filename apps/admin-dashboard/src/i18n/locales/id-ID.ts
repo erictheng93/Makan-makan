@@ -3231,8 +3231,15 @@ const idID: Messages = {
       showing: "Menampilkan {start} sampai {end} dari {total} hasil",
       label: "Paginasi",
     },
+    moduleUnavailable: {
+      title: "Kupon tidak termasuk dalam paket Anda",
+      description:
+        "Paket Anda saat ini tidak menyertakan modul kupon. Tingkatkan paket untuk membuat dan mengelola kupon.",
+    },
     messages: {
       fetchFailed: "Gagal mengambil kupon",
+      codeExists:
+        "Kode kupon itu sudah dipakai. Kode bersifat unik di seluruh platform, jadi merchant lain mungkin sudah memakainya — silakan pilih kode lain.",
       updateSuccess: "Kupon berhasil diperbarui",
       createSuccess: "Kupon berhasil dibuat",
       operationFailed: "Operasi gagal: {message}",

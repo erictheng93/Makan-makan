@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { orderItems } from "@makanmasak/database";
+import {
+  CouponService as BaseCouponService,
+  orderItems,
+} from "@makanmasak/database";
 import { CouponsService } from "./CouponsService";
 
 function createService() {
@@ -327,6 +330,108 @@ describe("CouponsService", () => {
         validTo: "2026-07-01T00:00:00.000Z",
       }),
     ).rejects.toThrow();
+  });
+
+  it("maps duplicate coupon codes to a typed conflict", async () => {
+    const service = createService();
+    vi.spyOn(service, "createCoupon").mockRejectedValue(
+      new BaseCouponService.DuplicateCodeError(),
+    );
+
+    await expect(
+      service.createCouponWithValidation({
+        code: "SAVE10",
+        name: "Save 10",
+        restaurantId: "restaurant-1",
+        discountType: "percentage",
+        discountValue: 10,
+        validFrom: "2026-06-01T00:00:00.000Z",
+        validTo: "2026-07-01T00:00:00.000Z",
+      }),
+    ).rejects.toMatchObject({ code: "COUPON_CODE_EXISTS", status: 409 });
+  });
+
+  it("maps a wrapped D1 unique-constraint race to the same conflict", async () => {
+    const service = createService();
+    const error = new Error("D1 execute failed", {
+      cause: new Error("UNIQUE constraint failed: coupons.code"),
+    });
+    vi.spyOn(service, "createCoupon").mockRejectedValue(error);
+
+    await expect(
+      service.createCouponWithValidation({
+        code: "SAVE10",
+        name: "Save 10",
+        restaurantId: "restaurant-1",
+        discountType: "percentage",
+        discountValue: 10,
+        validFrom: "2026-06-01T00:00:00.000Z",
+        validTo: "2026-07-01T00:00:00.000Z",
+      }),
+    ).rejects.toMatchObject({ code: "COUPON_CODE_EXISTS", status: 409 });
+  });
+
+  it("maps a duplicate code on the edit path to the same conflict", async () => {
+    // `code` is updatable, and the base updateCoupon has no preflight lookup,
+    // so the unique constraint is the only signal an edit collision produces.
+    // Untranslated it sanitises to GENERIC_ERROR -> 500 plus a HIGH-severity
+    // page, while the dashboard branches on COUPON_CODE_EXISTS.
+    const service = createService();
+    const base = vi
+      .spyOn(BaseCouponService.prototype, "updateCoupon")
+      .mockRejectedValue(
+        new Error("D1 execute failed", {
+          cause: new Error("UNIQUE constraint failed: coupons.code"),
+        }),
+      );
+
+    try {
+      await expect(
+        service.updateCoupon(10, { code: "SAVE10" }),
+      ).rejects.toMatchObject({ code: "COUPON_CODE_EXISTS", status: 409 });
+      expect(base).toHaveBeenCalledWith(10, { code: "SAVE10" });
+    } finally {
+      base.mockRestore();
+    }
+  });
+
+  it("releases a cancelled order coupon exactly once after claiming its marker", async () => {
+    const service = createService();
+    const selectWhere = vi.fn().mockResolvedValue([{ id: 7, couponId: 10 }]);
+    const selectFrom = vi.fn(() => ({ where: selectWhere }));
+    const updateWhere = vi.fn(() => ({}));
+    const updateSet = vi.fn(() => ({ where: updateWhere }));
+    const update = vi.fn(() => ({ set: updateSet }));
+    const batch = vi.fn().mockResolvedValue([]);
+    Object.assign(service as unknown as { db: unknown }, {
+      db: { select: vi.fn(() => ({ from: selectFrom })), update, batch },
+    });
+
+    await service.releaseUsageForCancelledOrder("order-1");
+
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(batch).toHaveBeenCalledOnce();
+    expect(batch.mock.calls[0]?.[0]).toHaveLength(2);
+  });
+
+  it.each([
+    ["no coupon usage", []],
+    ["a usage already released by a refund", []],
+  ])("does not decrement coupon usage for %s", async (_scenario, released) => {
+    const service = createService();
+    const batch = vi.fn();
+    Object.assign(service as unknown as { db: unknown }, {
+      db: {
+        select: vi.fn(() => ({
+          from: vi.fn(() => ({ where: vi.fn().mockResolvedValue(released) })),
+        })),
+        batch,
+      },
+    });
+
+    await service.releaseUsageForCancelledOrder("order-1");
+
+    expect(batch).not.toHaveBeenCalled();
   });
 
   it("reports zeros for a coupon nobody has redeemed", async () => {

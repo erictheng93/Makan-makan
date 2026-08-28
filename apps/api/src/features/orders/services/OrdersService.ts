@@ -576,6 +576,10 @@ export class OrdersService implements IOrdersService {
 
       if (cancelledOrder) {
         await Promise.all([
+          // The database service claims the usage row with its existing
+          // refund-release marker, making retries a no-op before decrementing
+          // the coupon counter.
+          this.couponService.releaseUsageForCancelledOrder(id),
           this.invalidateOrderCache(id),
           clearGuestActiveOrderLock(this.cacheKV, id),
           this.logOrderActivity(id, "ORDER_CANCELLED", userId, { reason }),

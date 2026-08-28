@@ -55,6 +55,7 @@ export function isSubscriptionErrorCode(
  * generic toast on top of that dedicated UI.
  */
 export const DEDICATED_UI_ERROR_CODES = [
+  "COUPON_CODE_EXISTS",
   "MENU_ITEM_MODIFIED",
   "GROUP_ORDER_FINALIZATION_RECOVERY_IN_PROGRESS",
   "GROUP_ORDER_FINALIZATION_RECOVERY_RECLAIMED",

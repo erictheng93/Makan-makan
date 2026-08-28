@@ -438,10 +438,10 @@ interface CouponSavePayload {
   description: string;
   discountType: "percentage" | "fixed" | "";
   discountValue: number;
-  maxDiscountAmount?: number;
+  maxDiscountAmount?: number | null;
   minOrderAmount: number;
-  usageLimit?: number;
-  usageLimitPerUser?: number;
+  usageLimit?: number | null;
+  usageLimitPerUser?: number | null;
   validFrom: string;
   validTo: string;
   isActive: boolean;
@@ -508,10 +508,10 @@ const resetForm = () => {
       description: props.coupon.description || "",
       discountType: props.coupon.discountType,
       discountValue: props.coupon.discountValue,
-      maxDiscountAmount: props.coupon.maxDiscountAmount || null,
+      maxDiscountAmount: props.coupon.maxDiscountAmount ?? null,
       minOrderAmount: props.coupon.minOrderAmount || 0,
-      usageLimit: props.coupon.usageLimit || null,
-      usageLimitPerUser: props.coupon.usageLimitPerUser || null,
+      usageLimit: props.coupon.usageLimit ?? null,
+      usageLimitPerUser: props.coupon.usageLimitPerUser ?? null,
       validFrom: toLocalDatetimeString(new Date(props.coupon.validFrom)),
       validTo: toLocalDatetimeString(new Date(props.coupon.validTo)),
       isActive: props.coupon.isActive,
@@ -520,7 +520,6 @@ const resetForm = () => {
   } else {
     // 新建模式：設定預設值
     const now = new Date();
-    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     const nextMonth = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     form.value = {
@@ -533,7 +532,7 @@ const resetForm = () => {
       minOrderAmount: 0,
       usageLimit: null,
       usageLimitPerUser: null,
-      validFrom: toLocalDatetimeString(tomorrow),
+      validFrom: toLocalDatetimeString(now),
       validTo: toLocalDatetimeString(nextMonth),
       isActive: true,
       isVisible: true,
@@ -551,10 +550,19 @@ const handleSubmit = async () => {
       ...form.value,
       validFrom: new Date(form.value.validFrom).toISOString(), // Full ISO 8601 with Z
       validTo: new Date(form.value.validTo).toISOString(),
-      // 清理空值
-      maxDiscountAmount: form.value.maxDiscountAmount || undefined,
-      usageLimit: form.value.usageLimit || undefined,
-      usageLimitPerUser: form.value.usageLimitPerUser || undefined,
+      // Null is intentional: it clears a previously configured cap.
+      maxDiscountAmount:
+        typeof form.value.maxDiscountAmount === "number"
+          ? form.value.maxDiscountAmount
+          : null,
+      usageLimit:
+        typeof form.value.usageLimit === "number"
+          ? form.value.usageLimit
+          : null,
+      usageLimitPerUser:
+        typeof form.value.usageLimitPerUser === "number"
+          ? form.value.usageLimitPerUser
+          : null,
     };
 
     emit("save", submitData);

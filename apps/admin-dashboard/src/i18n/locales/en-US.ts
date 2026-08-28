@@ -3211,8 +3211,15 @@ const enUS: Messages = {
       showing: "Showing {start} to {end} of {total} results",
       label: "Pagination",
     },
+    moduleUnavailable: {
+      title: "Coupons are not included in your plan",
+      description:
+        "Your current plan does not include the coupons module. Upgrade to create and manage coupons.",
+    },
     messages: {
       fetchFailed: "Failed to fetch coupons",
+      codeExists:
+        "That coupon code is taken. Codes are unique across the whole platform, so another merchant may already use it — please pick a different one.",
       updateSuccess: "Coupon updated successfully",
       createSuccess: "Coupon created successfully",
       operationFailed: "Operation failed: {message}",

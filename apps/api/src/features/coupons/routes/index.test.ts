@@ -152,6 +152,48 @@ beforeEach(() => {
 });
 
 describe("coupons routes", () => {
+  it("returns a typed 409 for duplicate coupon codes", async () => {
+    mocks.createCouponWithValidation.mockRejectedValue(
+      conflict(
+        "優惠券代碼已被使用（代碼在全平台唯一），請換一個",
+        "COUPON_CODE_EXISTS",
+      ),
+    );
+
+    const response = await createAppWithErrorEnvelope().fetch(
+      jsonRequest("https://test/", "POST", createCouponBody()),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: { code: "COUPON_CODE_EXISTS" },
+    });
+  });
+
+  it("returns the same typed 409 when an edit collides", async () => {
+    mocks.currentUser.role = 0;
+    mocks.getCoupon.mockResolvedValue(coupon());
+    mocks.updateCoupon.mockRejectedValue(
+      conflict(
+        "優惠券代碼已被使用（代碼在全平台唯一），請換一個",
+        "COUPON_CODE_EXISTS",
+      ),
+    );
+
+    const response = await createAppWithErrorEnvelope().fetch(
+      jsonRequest("https://test/10", "PUT", { code: "SAVE10" }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: { code: "COUPON_CODE_EXISTS" },
+    });
+  });
+
   it("validates coupon codes and lists public available coupons", async () => {
     mocks.validateCouponWithBusinessRules.mockResolvedValue({
       valid: true,
@@ -222,7 +264,7 @@ describe("coupons routes", () => {
 
     const listResponse = await app.fetch(
       new Request(
-        "https://test/?restaurantId=restaurant-2&page=2&limit=5&discountType=fixed",
+        "https://test/?restaurantId=restaurant-2&page=2&limit=5&discountType=fixed&status=exhausted",
       ),
       env as never,
     );
@@ -234,6 +276,7 @@ describe("coupons routes", () => {
       {
         restaurantId: "restaurant-1",
         discountType: "fixed",
+        status: "exhausted",
       },
       2,
       5,
@@ -263,11 +306,21 @@ describe("coupons routes", () => {
     expect(detailResponse.status).toBe(200);
 
     const updateResponse = await app.fetch(
-      jsonRequest("https://test/10", "PUT", { name: "Updated" }),
+      jsonRequest("https://test/10", "PUT", {
+        name: "Updated",
+        maxDiscountAmount: null,
+        usageLimit: null,
+        usageLimitPerUser: null,
+      }),
       env as never,
     );
     expect(updateResponse.status).toBe(200);
-    expect(mocks.updateCoupon).toHaveBeenCalledWith(10, { name: "Updated" });
+    expect(mocks.updateCoupon).toHaveBeenCalledWith(10, {
+      name: "Updated",
+      maxDiscountAmount: null,
+      usageLimit: null,
+      usageLimitPerUser: null,
+    });
 
     const deactivateResponse = await app.fetch(
       new Request("https://test/10/deactivate", { method: "POST" }),

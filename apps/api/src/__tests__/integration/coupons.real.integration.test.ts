@@ -27,6 +27,7 @@
  */
 
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
+import { vi } from "vitest";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
@@ -34,6 +35,12 @@ import {
 import { buildSeedHelpers } from "./helpers/seed-helper";
 import { readData, readEnvelope, type ServiceData } from "../helpers/read-json";
 import type { CouponsService } from "../../features/coupons/services/CouponsService";
+import {
+  CouponService as DatabaseCouponService,
+  couponUsage,
+  coupons,
+} from "@makanmasak/database";
+import { and, eq } from "drizzle-orm";
 
 /**
  * CouponsService.createCouponWithValidation is declared `Promise<unknown>` and
@@ -185,6 +192,30 @@ describe("Coupons API — real integration", () => {
     expect(body.data?.code).toBe("FLAT50");
     expect(body.data?.discountType).toBe("fixed");
     expect(body.data?.discountValue).toBe(50);
+  });
+
+  it("POST /coupons returns COUPON_CODE_EXISTS for a duplicate preflight", async () => {
+    await seed.coupon(restaurantId, { code: "DUPLICATE-CODE" });
+
+    const res = await testApp.app.fetch(
+      new Request("https://test/api/v1/coupons", {
+        method: "POST",
+        headers: csrfHeaders(adminToken),
+        body: JSON.stringify({
+          code: "DUPLICATE-CODE",
+          name: "Duplicate",
+          discountType: "fixed",
+          discountValue: 10,
+          validFrom: offsetIso(0),
+          validTo: offsetIso(30),
+          restaurantId,
+        }),
+      }),
+    );
+
+    expect(res.status).toBe(409);
+    const body = await readEnvelope(res);
+    expect(body.error?.code).toBe("COUPON_CODE_EXISTS");
   });
 
   // ── GET /coupons (list) ───────────────────────────────────────────────────
@@ -604,5 +635,193 @@ describe("Coupons API — real integration", () => {
       }),
     );
     expect(unauthedRes.status).toBe(403);
+  });
+
+  it("clears nullable limits and soft-deletes without deleting usage history", async () => {
+    const coupon = await seed.coupon(restaurantId, {
+      code: "CLEAR-LIMITS",
+      usageLimit: 5,
+      usageLimitPerUser: 2,
+      maxDiscountAmountCents: 1000,
+    });
+    const order = await seed.order(restaurantId);
+    await testApp.testDb.drizzle.insert(couponUsage).values({
+      couponId: coupon.id,
+      orderId: order.id,
+      status: "active",
+      discountAmountCents: 100,
+      originalAmountCents: 1000,
+      finalAmountCents: 900,
+    });
+
+    const update = await testApp.app.fetch(
+      new Request(`https://test/api/v1/coupons/${coupon.id}`, {
+        method: "PUT",
+        headers: csrfHeaders(adminToken),
+        body: JSON.stringify({
+          usageLimit: null,
+          usageLimitPerUser: null,
+          maxDiscountAmount: null,
+        }),
+      }),
+    );
+    expect(update.status).toBe(200);
+    const [updated] = await testApp.testDb.drizzle
+      .select()
+      .from(coupons)
+      .where(eq(coupons.id, coupon.id));
+    expect(updated).toMatchObject({
+      usageLimit: null,
+      usageLimitPerUser: null,
+      maxDiscountAmountCents: null,
+    });
+
+    const deleted = await testApp.app.fetch(
+      new Request(`https://test/api/v1/coupons/${coupon.id}`, {
+        method: "DELETE",
+        headers: csrfHeaders(adminToken),
+      }),
+    );
+    expect(deleted.status).toBe(200);
+    const [softDeleted] = await testApp.testDb.drizzle
+      .select()
+      .from(coupons)
+      .where(eq(coupons.id, coupon.id));
+    expect(softDeleted?.deletedAt).toBeInstanceOf(Date);
+    const usageRows = await testApp.testDb.drizzle
+      .select()
+      .from(couponUsage)
+      .where(eq(couponUsage.couponId, coupon.id));
+    expect(usageRows).toHaveLength(1);
+
+    const list = await testApp.app.fetch(
+      new Request("https://test/api/v1/coupons?page=1&limit=20", {
+        headers: { authorization: `Bearer ${adminToken}` },
+      }),
+    );
+    const body = await readEnvelope<CouponResponse[]>(list);
+    expect((body.data ?? []).map((row) => row.id)).not.toContain(coupon.id);
+  });
+
+  it("releases a cancelled usage in one atomic D1 batch and retries without a second decrement", async () => {
+    const coupon = await seed.coupon(restaurantId, {
+      code: "CANCEL-ONCE",
+      usedCount: 1,
+    });
+    const order = await seed.order(restaurantId);
+    await testApp.testDb.drizzle.insert(couponUsage).values({
+      couponId: coupon.id,
+      orderId: order.id,
+      status: "active",
+    });
+    const service = new DatabaseCouponService(testApp.env.DB, {
+      JWT_SECRET: "test",
+    });
+
+    await Promise.all([
+      service.releaseUsageForCancelledOrder(order.id),
+      service.releaseUsageForCancelledOrder(order.id),
+    ]);
+
+    const [storedCoupon] = await testApp.testDb.drizzle
+      .select()
+      .from(coupons)
+      .where(eq(coupons.id, coupon.id));
+    const [usage] = await testApp.testDb.drizzle
+      .select()
+      .from(couponUsage)
+      .where(
+        and(
+          eq(couponUsage.couponId, coupon.id),
+          eq(couponUsage.orderId, order.id),
+        ),
+      );
+    expect(storedCoupon?.usedCount).toBe(0);
+    expect(usage).toMatchObject({ status: "cancelled" });
+    expect(usage?.refundCountReleasedAt).toBeInstanceOf(Date);
+  });
+
+  it("rolls back all D1 batch writes when a later statement fails", async () => {
+    const coupon = await seed.coupon(restaurantId, {
+      code: "BATCH-ROLLBACK",
+      usedCount: 1,
+    });
+
+    await expect(
+      testApp.env.DB.batch([
+        testApp.env.DB.prepare(
+          "UPDATE coupons SET used_count = 0 WHERE id = ?",
+        ).bind(coupon.id),
+        testApp.env.DB.prepare(
+          "UPDATE coupon_table_that_does_not_exist SET x = 1",
+        ),
+      ]),
+    ).rejects.toThrow();
+
+    const [storedCoupon] = await testApp.testDb.drizzle
+      .select()
+      .from(coupons)
+      .where(eq(coupons.id, coupon.id));
+    expect(storedCoupon?.usedCount).toBe(1);
+  });
+
+  it("filters active, expired, exhausted, and inactive statuses at their exact time boundaries", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-28T12:00:00.000Z"));
+    try {
+      // The auth helper signs JWT expiry from Date.now(), so mint after
+      // freezing the clock used by the service and this boundary test.
+      const frozenAdminToken =
+        await testApp.authHelper.adminToken(restaurantId);
+      const now = new Date().toISOString();
+      await seed.coupon(restaurantId, {
+        code: "ACTIVE-AT-END",
+        validFrom: "2026-08-28T11:00:00.000Z",
+        validTo: now,
+      });
+      await seed.coupon(restaurantId, {
+        code: "EXPIRED",
+        validFrom: "2026-08-28T10:00:00.000Z",
+        validTo: "2026-08-28T11:59:59.999Z",
+      });
+      await seed.coupon(restaurantId, {
+        code: "EXHAUSTED",
+        validFrom: "2026-08-28T11:00:00.000Z",
+        validTo: "2026-08-28T13:00:00.000Z",
+        usageLimit: 2,
+        usedCount: 2,
+      });
+      await seed.coupon(restaurantId, {
+        code: "INACTIVE",
+        isActive: false,
+        validFrom: "2026-08-28T11:00:00.000Z",
+        validTo: "2026-08-28T13:00:00.000Z",
+      });
+      await seed.coupon(restaurantId, {
+        code: "SCHEDULED",
+        validFrom: "2026-08-28T13:00:00.000Z",
+        validTo: "2026-08-29T13:00:00.000Z",
+      });
+
+      for (const [status, expectedCode] of [
+        ["active", "ACTIVE-AT-END"],
+        ["expired", "EXPIRED"],
+        ["exhausted", "EXHAUSTED"],
+        ["inactive", "INACTIVE"],
+      ] as const) {
+        const response = await testApp.app.fetch(
+          new Request(`https://test/api/v1/coupons?status=${status}`, {
+            headers: { authorization: `Bearer ${frozenAdminToken}` },
+          }),
+        );
+        expect(response.status).toBe(200);
+        const body = await readEnvelope<CouponResponse[]>(response);
+        const codes = (body.data ?? []).map((row) => row.code);
+        expect(codes).toContain(expectedCode);
+        expect(codes).not.toContain("SCHEDULED");
+      }
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
