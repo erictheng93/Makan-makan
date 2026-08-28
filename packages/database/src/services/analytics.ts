@@ -799,19 +799,31 @@ export class AnalyticsService extends BaseService {
         .limit(5);
 
       // 桌子狀態
+      // The owner overview renders this as `occupied/total` with an "N 可用"
+      // subtitle, so the three numbers have to satisfy total = occupied +
+      // available. That only holds if every one of them counts the same
+      // population: tables that exist (not soft-deleted) *and* can actually be
+      // seated (is_active). A table parked in 維護中 sets is_active = 0 without
+      // being deleted (TableSetupTab writes `isActive: status !== "maintenance"`),
+      // and leaving it in `total` alone reproduces the very symptom #272 was
+      // filed about — "0/4" for a shop with one usable table.
       const [tableStatus] = await this.db
         .select({
           total: count(),
           occupied: sum(
-            sql<number>`CASE WHEN ${tables.isOccupied} AND ${tables.isActive} THEN 1 ELSE 0 END`,
+            sql<number>`CASE WHEN ${tables.isOccupied} THEN 1 ELSE 0 END`,
           ),
           available: sum(
-            sql<number>`CASE WHEN NOT ${tables.isOccupied} AND ${tables.isActive} THEN 1 ELSE 0 END`,
+            sql<number>`CASE WHEN NOT ${tables.isOccupied} THEN 1 ELSE 0 END`,
           ),
         })
         .from(tables)
         .where(
-          and(eq(tables.restaurantId, restaurantId), isNull(tables.deletedAt)),
+          and(
+            eq(tables.restaurantId, restaurantId),
+            isNull(tables.deletedAt),
+            eq(tables.isActive, true),
+          ),
         );
 
       return {

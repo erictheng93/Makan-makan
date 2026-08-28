@@ -444,11 +444,18 @@ describe("AnalyticsService table analytics", () => {
       service.getPerformanceReport("analytics-restaurant", {}),
     ]);
 
+    // Only table 1 is both alive and active: table 2/3 are soft-deleted and
+    // table 4 is parked in maintenance. The card renders `occupied/total` plus
+    // "N 可用", so the invariant that matters is total === occupied + available.
     expect(dashboard.tableStatus).toEqual({
-      total: 2,
+      total: 1,
       occupied: 0,
       available: 1,
     });
+    expect(dashboard.tableStatus.total).toBe(
+      Number(dashboard.tableStatus.occupied) +
+        Number(dashboard.tableStatus.available),
+    );
     expect(tableAnalytics.tableUtilization).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ tableId: 1, tableNumber: "Live" }),
