@@ -13,7 +13,10 @@ import {
   menuItems,
   restaurants,
 } from "../schema";
-import { IngredientConsumptionService } from "./ingredient-consumption";
+import {
+  IngredientConsumptionService,
+  type OrderedItem,
+} from "./ingredient-consumption";
 
 /**
  * Run against real D1 rather than a mocked drizzle: every property under test
@@ -166,10 +169,37 @@ describe("IngredientConsumptionService", () => {
       );
   }
 
-  /** claim() hands its ledger rows back; the caller commits them. */
   async function commit(writes: unknown[]) {
     if (writes.length === 0) return;
     await testDb.drizzle.batch(writes as never);
+  }
+
+  async function consume(
+    restaurantId: string,
+    items: OrderedItem[],
+    context: { orderId?: string; userId?: string } = {},
+  ) {
+    const writes = await service.buildConsumptionWrites(
+      restaurantId,
+      items,
+      context,
+    );
+    await commit(writes);
+    return writes;
+  }
+
+  async function restore(
+    restaurantId: string,
+    orderId: string,
+    context: { userId?: string } = {},
+  ) {
+    const writes = await service.buildRestoreWritesForOrder(
+      restaurantId,
+      orderId,
+      context,
+    );
+    await commit(writes);
+    return writes;
   }
 
   it("deducts each ingredient by quantity per serving times the order quantity", async () => {
@@ -178,12 +208,9 @@ describe("IngredientConsumptionService", () => {
     const rice = await seedIngredient(restaurantId, { currentStock: 20 });
     await seedRecipe(dish, rice, 0.25);
 
-    const claimed = await service.claim(
-      restaurantId,
-      [{ menuItemId: dish, quantity: 3 }],
-      { orderId: "order-1" },
-    );
-    await commit(claimed.movementWrites);
+    await consume(restaurantId, [{ menuItemId: dish, quantity: 3 }], {
+      orderId: "order-1",
+    });
 
     expect(await stockOf(rice)).toBeCloseTo(19.25);
     expect(await ledgerOf(restaurantId, rice)).toEqual([
@@ -204,11 +231,10 @@ describe("IngredientConsumptionService", () => {
     await seedRecipe(curry, rice, 0.2);
     await seedRecipe(fried, rice, 0.3);
 
-    const claimed = await service.claim(restaurantId, [
+    await consume(restaurantId, [
       { menuItemId: curry, quantity: 2 },
       { menuItemId: fried, quantity: 1 },
     ]);
-    await commit(claimed.movementWrites);
 
     // 0.2*2 + 0.3*1 = 0.7, written once rather than as two movements.
     expect(await stockOf(rice)).toBeCloseTo(19.3);
@@ -219,12 +245,11 @@ describe("IngredientConsumptionService", () => {
     const restaurantId = await seedRestaurant();
     const dish = await seedMenuItem(restaurantId);
 
-    const claimed = await service.claim(restaurantId, [
+    const writes = await consume(restaurantId, [
       { menuItemId: dish, quantity: 5 },
     ]);
 
-    expect(claimed.claims).toEqual([]);
-    expect(claimed.movementWrites).toEqual([]);
+    expect(writes).toEqual([]);
   });
 
   it("leaves an untracked ingredient untracked instead of driving it negative", async () => {
@@ -235,13 +260,12 @@ describe("IngredientConsumptionService", () => {
     });
     await seedRecipe(dish, uncounted, 2);
 
-    const claimed = await service.claim(restaurantId, [
+    const writes = await consume(restaurantId, [
       { menuItemId: dish, quantity: 3 },
     ]);
-    await commit(claimed.movementWrites);
 
     expect(await stockOf(uncounted)).toBeNull();
-    expect(claimed.claims).toEqual([]);
+    expect(writes).toEqual([]);
     // A movement with no balance would be a number nobody can reconcile.
     expect(await ledgerOf(restaurantId, uncounted)).toEqual([]);
   });
@@ -255,13 +279,13 @@ describe("IngredientConsumptionService", () => {
     });
     await seedRecipe(dish, rice, 200, "g");
 
-    const claimed = await service.claim(restaurantId, [
+    const writes = await consume(restaurantId, [
       { menuItemId: dish, quantity: 1 },
     ]);
 
     // Subtracting 200 g from 20 kg would read as a 180 kg deficit.
     expect(await stockOf(rice)).toBe(20);
-    expect(claimed.claims).toEqual([]);
+    expect(writes).toEqual([]);
   });
 
   it("does not consume an ingredient the owner has retired", async () => {
@@ -273,7 +297,7 @@ describe("IngredientConsumptionService", () => {
     });
     await seedRecipe(dish, retired, 1);
 
-    const claimed = await service.claim(restaurantId, [
+    const writes = await consume(restaurantId, [
       { menuItemId: dish, quantity: 1 },
     ]);
 
@@ -281,7 +305,7 @@ describe("IngredientConsumptionService", () => {
     // pins that filter on its own -- and it matches loadBOM, which leaves a
     // retired ingredient out of the forecast too.
     expect(await stockOf(retired)).toBe(20);
-    expect(claimed.claims).toEqual([]);
+    expect(writes).toEqual([]);
   });
 
   it("never touches another restaurant's ingredient", async () => {
@@ -293,16 +317,14 @@ describe("IngredientConsumptionService", () => {
     // what rows written before it did still look like.
     await seedRecipe(dish, theirIngredient, 1);
 
-    const claimed = await service.claim(mine, [
-      { menuItemId: dish, quantity: 1 },
-    ]);
+    const writes = await consume(mine, [{ menuItemId: dish, quantity: 1 }]);
 
     // Two guards stand behind this: the BOM read is scoped by restaurant and
     // so is the UPDATE. They mask each other -- removing either one alone
     // keeps this test green -- so treat a pass as evidence for the property,
     // not for either layer individually.
     expect(await stockOf(theirIngredient)).toBe(20);
-    expect(claimed.claims).toEqual([]);
+    expect(writes).toEqual([]);
   });
 
   it("lets stock go negative rather than blocking the order", async () => {
@@ -311,13 +333,10 @@ describe("IngredientConsumptionService", () => {
     const rice = await seedIngredient(restaurantId, { currentStock: 1 });
     await seedRecipe(dish, rice, 0.5);
 
-    const claimed = await service.claim(restaurantId, [
-      { menuItemId: dish, quantity: 4 },
-    ]);
-    await commit(claimed.movementWrites);
+    await consume(restaurantId, [{ menuItemId: dish, quantity: 4 }]);
 
     expect(await stockOf(rice)).toBeCloseTo(-1);
-    expect(claimed.claims).toHaveLength(1);
+    expect(await ledgerOf(restaurantId, rice)).toHaveLength(1);
   });
 
   it("loses no delta when two orders claim the same ingredient at once", async () => {
@@ -329,16 +348,14 @@ describe("IngredientConsumptionService", () => {
     // `current_stock = current_stock - X` is a read-modify-write inside one
     // SQL statement, so neither claim can be computed from a balance the
     // other has already moved -- no optimistic retry needed.
-    const [first, second] = await Promise.all([
-      service.claim(restaurantId, [{ menuItemId: dish, quantity: 2 }], {
+    await Promise.all([
+      consume(restaurantId, [{ menuItemId: dish, quantity: 2 }], {
         orderId: "order-a",
       }),
-      service.claim(restaurantId, [{ menuItemId: dish, quantity: 3 }], {
+      consume(restaurantId, [{ menuItemId: dish, quantity: 3 }], {
         orderId: "order-b",
       }),
     ]);
-    await commit(first.movementWrites);
-    await commit(second.movementWrites);
 
     // 20 - 1.0 - 1.5, not 20 - 1.5.
     expect(await stockOf(rice)).toBeCloseTo(17.5);
@@ -351,12 +368,9 @@ describe("IngredientConsumptionService", () => {
     const rice = await seedIngredient(restaurantId, { currentStock: 20 });
     await seedRecipe(dish, rice, 0.5);
 
-    const claimed = await service.claim(
-      restaurantId,
-      [{ menuItemId: dish, quantity: 2 }],
-      { orderId: "order-9" },
-    );
-    await commit(claimed.movementWrites);
+    await consume(restaurantId, [{ menuItemId: dish, quantity: 2 }], {
+      orderId: "order-9",
+    });
     expect(await stockOf(rice)).toBeCloseTo(19);
 
     // The owner triples the recipe after the order was placed. Re-deriving the
@@ -366,8 +380,7 @@ describe("IngredientConsumptionService", () => {
       .set({ quantityPerServing: 1.5 })
       .where(eq(menuItemIngredients.menuItemId, dish));
 
-    const restored = await service.restoreForOrder(restaurantId, "order-9");
-    await commit(restored.movementWrites);
+    await restore(restaurantId, "order-9");
 
     expect(await stockOf(rice)).toBeCloseTo(20);
     expect(await ledgerOf(restaurantId, rice)).toEqual([
@@ -386,36 +399,15 @@ describe("IngredientConsumptionService", () => {
     const rice = await seedIngredient(restaurantId, { currentStock: 20 });
     await seedRecipe(dish, rice, 0.5);
 
-    const claimed = await service.claim(
-      restaurantId,
-      [{ menuItemId: dish, quantity: 2 }],
-      { orderId: "order-dup" },
-    );
-    await commit(claimed.movementWrites);
+    await consume(restaurantId, [{ menuItemId: dish, quantity: 2 }], {
+      orderId: "order-dup",
+    });
 
-    const first = await service.restoreForOrder(restaurantId, "order-dup");
-    await commit(first.movementWrites);
-    const second = await service.restoreForOrder(restaurantId, "order-dup");
-    await commit(second.movementWrites);
+    await restore(restaurantId, "order-dup");
+    const second = await restore(restaurantId, "order-dup");
 
-    expect(second.claims).toEqual([]);
+    expect(second).toEqual([]);
     expect(await stockOf(rice)).toBeCloseTo(20);
     expect(await ledgerOf(restaurantId, rice)).toHaveLength(2);
-  });
-
-  it("reverts an uncommitted claim without leaving a ledger trace", async () => {
-    const restaurantId = await seedRestaurant();
-    const dish = await seedMenuItem(restaurantId);
-    const rice = await seedIngredient(restaurantId, { currentStock: 20 });
-    await seedRecipe(dish, rice, 0.5);
-
-    // The order's batch failed, so its movement rows were never committed.
-    const claimed = await service.claim(restaurantId, [
-      { menuItemId: dish, quantity: 2 },
-    ]);
-    await service.revertUncommitted(restaurantId, claimed.claims);
-
-    expect(await stockOf(rice)).toBeCloseTo(20);
-    expect(await ledgerOf(restaurantId, rice)).toEqual([]);
   });
 });

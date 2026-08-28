@@ -9,10 +9,7 @@ export {
   loadAssembledMenuItemOptions,
 } from "./menu-options";
 export { OrderService, INVALID_CUSTOMIZATION_PREFIX } from "./order";
-export {
-  IngredientConsumptionService,
-  type IngredientClaim,
-} from "./ingredient-consumption";
+export { IngredientConsumptionService } from "./ingredient-consumption";
 export { AuthService } from "./auth";
 export { UserService } from "./user";
 export { SessionService } from "./session";

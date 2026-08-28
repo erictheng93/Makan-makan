@@ -43,10 +43,7 @@ import type {
   SelectedCustomizations,
 } from "@makanmasak/shared-types";
 import { amountFromCents, fromCents, toRequiredCents } from "../utils/money";
-import {
-  IngredientConsumptionService,
-  type IngredientClaim,
-} from "./ingredient-consumption";
+import { IngredientConsumptionService } from "./ingredient-consumption";
 import { loadAssembledMenuItemOptions } from "./menu-options";
 
 // Kept deliberately in step with ORDER_STATUS_TRANSITIONS in
@@ -604,8 +601,9 @@ export class OrderService extends BaseService {
         );
       }
 
-      const { subtotalCents, orderItemsData, menuItemMap } =
-        await this.prepareOrderItems(data.items);
+      const { subtotalCents, orderItemsData } = await this.prepareOrderItems(
+        data.items,
+      );
 
       const subtotal = fromCents(subtotalCents);
 
@@ -711,13 +709,9 @@ export class OrderService extends BaseService {
           .returning(),
       ];
 
-      // 優惠券：先以條件式 UPDATE 佔用名額（內含上限檢查），
-      // 使用記錄則跟訂單同批寫入；批次失敗時於下方歸還名額。
+      // 優惠券名額仍須先佔用；其餘庫存與帳本寫入一律留在下面同一個
+      // D1 batch，不能靠補償交易修復。
       let claimedCouponId: number | null = null;
-      const claimedInventory: Array<{
-        menuItemId: number;
-        quantity: number;
-      }> = [];
       const releaseClaimedCoupon = async () => {
         if (claimedCouponId !== null && couponService) {
           try {
@@ -727,37 +721,7 @@ export class OrderService extends BaseService {
           }
         }
       };
-      const restoreClaimedInventory = async () => {
-        for (const claim of [...claimedInventory].reverse()) {
-          try {
-            await this.db
-              .update(menuItems)
-              .set({
-                inventoryCount: sql`CASE WHEN ${menuItems.inventoryCount} IS NULL THEN NULL ELSE ${menuItems.inventoryCount} + ${claim.quantity} END`,
-              })
-              .where(eq(menuItems.id, claim.menuItemId));
-          } catch (restoreError) {
-            console.error("Inventory claim restore failed:", restoreError);
-          }
-        }
-      };
-      // 食材扣料（#278）：與菜品庫存同一個時點，兩者不一致會更難解釋。
-      // 帳本列不在這裡寫入，而是併進訂單那一批 —— 批次失敗時帳本從未存在，
-      // 只需把庫存加回去。
       const ingredientConsumption = new IngredientConsumptionService(this.db);
-      let claimedIngredients: IngredientClaim[] = [];
-      const revertIngredientClaim = async () => {
-        if (claimedIngredients.length === 0) return;
-        try {
-          await ingredientConsumption.revertUncommitted(
-            data.restaurantId,
-            claimedIngredients,
-          );
-        } catch (revertError) {
-          console.error("Ingredient claim revert failed:", revertError);
-        }
-        claimedIngredients = [];
-      };
       if (validatedCoupon && discountAmount > 0 && couponService) {
         await couponService.claimUsageSlot(validatedCoupon.id);
         claimedCouponId = validatedCoupon.id;
@@ -774,11 +738,12 @@ export class OrderService extends BaseService {
         );
       }
 
-      // 更新菜品訂購次數/庫存與餐廳訂單數（與訂單同批原子提交）
-      try {
-        for (const { menuItemId, quantity } of data.items) {
-          const menuItem = menuItemMap.get(menuItemId);
-          const [claim] = await this.db
+      // `prepareOrderItems` already rejects insufficient menu inventory.
+      // These writes share the order/items/ledger batch, so an injected D1
+      // failure rolls every one back together.
+      for (const { menuItemId, quantity } of data.items) {
+        writeStatements.push(
+          this.db
             .update(menuItems)
             .set({
               inventoryCount: sql`CASE WHEN ${menuItems.inventoryCount} IS NULL THEN NULL ELSE ${menuItems.inventoryCount} - ${quantity} END`,
@@ -788,43 +753,24 @@ export class OrderService extends BaseService {
                 eq(menuItems.id, menuItemId),
                 sql`(${menuItems.inventoryCount} IS NULL OR ${menuItems.inventoryCount} >= ${quantity})`,
               ),
-            )
-            .returning({
-              id: menuItems.id,
-              inventoryCount: menuItems.inventoryCount,
-            });
-
-          if (!claim) {
-            throw new Error(
-              `Insufficient inventory for ${menuItem?.name ?? menuItemId}`,
-            );
-          }
-
-          if (claim.inventoryCount !== null) {
-            claimedInventory.push({ menuItemId, quantity });
-          }
-        }
-      } catch (error) {
-        await restoreClaimedInventory();
-        await releaseClaimedCoupon();
-        throw error;
+            ),
+          this.db
+            .update(restaurants)
+            .set({
+              id: sql<string>`CASE WHEN changes() = 0 THEN NULL ELSE ${restaurants.id} END`,
+            })
+            .where(
+              eq(restaurants.id, data.restaurantId),
+            ) as BatchItem<"sqlite">,
+        );
       }
-
-      // 沒有配方的菜扣不到東西，也不會報錯；食材不足不擋單 —— 食材庫存是
-      // 人工盤點的數字，擋單的職責在菜品 inventoryCount。
-      try {
-        const consumed = await ingredientConsumption.claim(
+      writeStatements.push(
+        ...(await ingredientConsumption.buildConsumptionWrites(
           data.restaurantId,
           data.items,
           { orderId: orderIdRef },
-        );
-        claimedIngredients = consumed.claims;
-        writeStatements.push(...consumed.movementWrites);
-      } catch (error) {
-        await restoreClaimedInventory();
-        await releaseClaimedCoupon();
-        throw error;
-      }
+        )),
+      );
 
       for (const { menuItemId, quantity } of data.items) {
         writeStatements.push(
@@ -851,9 +797,13 @@ export class OrderService extends BaseService {
           writeStatements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
         );
       } catch (error) {
-        await revertIngredientClaim();
-        await restoreClaimedInventory();
         await releaseClaimedCoupon();
+        if (
+          error instanceof Error &&
+          /NOT NULL constraint failed: restaurants\.id/i.test(error.message)
+        ) {
+          throw new Error("Insufficient inventory");
+        }
         throw error;
       }
 
@@ -1100,95 +1050,13 @@ export class OrderService extends BaseService {
         fromCents(currentDiscountCents),
       );
 
-      const claimedInventory: Array<{
-        menuItemId: number;
-        quantity: number;
-      }> = [];
-      const restoreClaimedInventory = async () => {
-        for (const claim of [...claimedInventory].reverse()) {
-          try {
-            await this.db
-              .update(menuItems)
-              .set({
-                inventoryCount: sql`CASE WHEN ${menuItems.inventoryCount} IS NULL THEN NULL ELSE ${menuItems.inventoryCount} + ${claim.quantity} END`,
-              })
-              .where(eq(menuItems.id, claim.menuItemId));
-          } catch (restoreError) {
-            console.error("Inventory claim restore failed:", restoreError);
-          }
-        }
-      };
-
-      try {
-        for (const { menuItemId, quantity } of items) {
-          const [claim] = await this.db
-            .update(menuItems)
-            .set({
-              inventoryCount: sql`CASE WHEN ${menuItems.inventoryCount} IS NULL THEN NULL ELSE ${menuItems.inventoryCount} - ${quantity} END`,
-            })
-            .where(
-              and(
-                eq(menuItems.id, menuItemId),
-                sql`(${menuItems.inventoryCount} IS NULL OR ${menuItems.inventoryCount} >= ${quantity})`,
-              ),
-            )
-            .returning({
-              id: menuItems.id,
-              inventoryCount: menuItems.inventoryCount,
-            });
-
-          if (!claim) {
-            throw new Error(`Insufficient inventory for ${menuItemId}`);
-          }
-
-          if (claim.inventoryCount !== null) {
-            claimedInventory.push({ menuItemId, quantity });
-          }
-        }
-      } catch (error) {
-        await restoreClaimedInventory();
-        throw error;
-      }
-
-      // 加點也是耗用，扣料與建單同一個形狀（#278）。
+      // A version is not an attempt identity: a later writer can legitimately
+      // reach the same version. The immediate assertion below converts a
+      // zero-row state UPDATE into a SQLite constraint error, which aborts the
+      // D1 batch before any dependent write can execute.
+      const expectedVersion = existingOrder.version;
       const ingredientConsumption = new IngredientConsumptionService(this.db);
-      let claimedIngredients: IngredientClaim[] = [];
-      const revertIngredientClaim = async () => {
-        if (claimedIngredients.length === 0) return;
-        try {
-          await ingredientConsumption.revertUncommitted(
-            existingOrder.restaurantId,
-            claimedIngredients,
-          );
-        } catch (revertError) {
-          console.error("Ingredient claim revert failed:", revertError);
-        }
-        claimedIngredients = [];
-      };
-      let ingredientMovementWrites: BatchItem<"sqlite">[] = [];
-      try {
-        const consumed = await ingredientConsumption.claim(
-          existingOrder.restaurantId,
-          items,
-          { orderId: id },
-        );
-        claimedIngredients = consumed.claims;
-        ingredientMovementWrites = consumed.movementWrites;
-      } catch (error) {
-        await restoreClaimedInventory();
-        throw error;
-      }
-
       const writeStatements: BatchItem<"sqlite">[] = [
-        this.db
-          .insert(orderItems)
-          .values(
-            orderItemsData.map((item) => ({
-              ...this.toOrderItemInsert(item),
-              orderId: id,
-            })),
-          )
-          .returning(),
         this.db
           .update(orders)
           .set({
@@ -1203,29 +1071,86 @@ export class OrderService extends BaseService {
             ),
             updatedAt: new Date(),
           })
-          .where(eq(orders.id, id)),
+          .where(
+            and(
+              eq(orders.id, id),
+              eq(orders.version, expectedVersion),
+              inArray(orders.status, [
+                ORDER_STATUS.PENDING,
+                ORDER_STATUS.CONFIRMED,
+              ]),
+            ),
+          )
+          .returning({ id: orders.id }),
+        // This must immediately follow the CAS above: SQLite's changes()
+        // reports its preceding statement. The parent id is NOT NULL/PK, so a
+        // stale add attempts to set it NULL and aborts the entire batch;
+        // success writes the same id and is a harmless no-op.
+        this.db
+          .update(restaurants)
+          .set({
+            id: sql<string>`CASE WHEN changes() = 0 THEN NULL ELSE ${restaurants.id} END`,
+          })
+          .where(
+            eq(restaurants.id, existingOrder.restaurantId),
+          ) as BatchItem<"sqlite">,
       ];
+
+      for (const item of orderItemsData) {
+        writeStatements.push(
+          this.db.insert(orderItems).values({
+            ...this.toOrderItemInsert(item),
+            orderId: id,
+          }) as BatchItem<"sqlite">,
+        );
+      }
 
       for (const { menuItemId, quantity } of items) {
         writeStatements.push(
           this.db
             .update(menuItems)
             .set({
+              inventoryCount: sql`CASE WHEN ${menuItems.inventoryCount} IS NULL THEN NULL ELSE ${menuItems.inventoryCount} - ${quantity} END`,
               orderCount: sql`${menuItems.orderCount} + ${quantity}`,
             })
-            .where(eq(menuItems.id, menuItemId)),
+            .where(
+              and(
+                eq(menuItems.id, menuItemId),
+                sql`(${menuItems.inventoryCount} IS NULL OR ${menuItems.inventoryCount} >= ${quantity})`,
+              ),
+            ),
+          this.db
+            .update(restaurants)
+            .set({
+              id: sql<string>`CASE WHEN changes() = 0 THEN NULL ELSE ${restaurants.id} END`,
+            })
+            .where(
+              eq(restaurants.id, existingOrder.restaurantId),
+            ) as BatchItem<"sqlite">,
         );
       }
 
-      writeStatements.push(...ingredientMovementWrites);
+      writeStatements.push(
+        ...(await ingredientConsumption.buildConsumptionWrites(
+          existingOrder.restaurantId,
+          items,
+          { orderId: id },
+        )),
+      );
 
       try {
-        await this.db.batch(
+        const batchResults = await this.db.batch(
           writeStatements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
         );
+        const advanced = batchResults[0] as Array<{ id: string }>;
+        if (advanced.length === 0) throw new Error("Order cannot accept items");
       } catch (error) {
-        await revertIngredientClaim();
-        await restoreClaimedInventory();
+        if (
+          error instanceof Error &&
+          /NOT NULL constraint failed: restaurants\.id/i.test(error.message)
+        ) {
+          throw new Error("Order cannot accept items");
+        }
         throw error;
       }
 
@@ -1537,6 +1462,17 @@ export class OrderService extends BaseService {
 
       const now = new Date();
 
+      // Build the inverse ingredient writes before the CAS, but execute them
+      // only after the CAS and its immediate assertion in the same D1 batch.
+      // The ledger (not the live recipe) is the source of truth for restores.
+      const ingredientConsumption = new IngredientConsumptionService(this.db);
+      const ingredientRestoreWrites =
+        await ingredientConsumption.buildRestoreWritesForOrder(
+          order.restaurantId,
+          id,
+        );
+      const observedVersion = order.version ?? 0;
+
       const writeStatements: BatchItem<"sqlite">[] = (order.items || []).map(
         (item) =>
           this.db
@@ -1547,26 +1483,20 @@ export class OrderService extends BaseService {
             .where(
               and(
                 eq(menuItems.id, item.menuItemId),
-                sql`EXISTS (
-                  SELECT 1 FROM ${orders}
-                  WHERE ${orders.id} = ${id}
-                    AND ${orders.status} IN (${sql.join(
-                      cancellableOrderStatuses.map((status) => sql`${status}`),
-                      sql`, `,
-                    )})
-                )`,
+                // The CAS/sentinel below is first in the batch. Its success
+                // is the authorization for every dependent restore.
+                sql`1 = 1`,
               ),
             ),
       );
 
-      writeStatements.push(
+      writeStatements.unshift(
         this.db
           .update(orders)
           .set({
             status: ORDER_STATUS.CANCELLED,
             // 內部備註，不是顧客備註 —— 後者存的是「不要香菜」這類顧客自己
-            // 寫的內容，被取消原因蓋掉就永遠找不回來了。updateOrderStatus
-            // 一直都是寫 internalNotes。
+            // 寫的內容，被取消原因蓋掉就永遠找不回來了。
             internalNotes: reason,
             cancelledAt: now,
             updatedAt: now,
@@ -1575,21 +1505,51 @@ export class OrderService extends BaseService {
           .where(
             and(
               eq(orders.id, id),
+              eq(orders.version, observedVersion),
               inArray(orders.status, [...cancellableOrderStatuses]),
-              // updateOrderStatus delegates here and always supplies a version,
-              // so the optimistic check has to survive the delegation.
-              ...(expectedVersion == null
-                ? []
-                : [eq(orders.version, expectedVersion)]),
+              expectedVersion == null
+                ? undefined
+                : eq(orders.version, expectedVersion),
             ),
           )
           .returning({ id: orders.id }),
+        // Keep this immediately after the CAS. `changes()` observes that
+        // statement only; stale requests set the parent PK to NULL and force
+        // SQLite/D1 to roll back the entire batch before any restore runs.
+        this.db
+          .update(restaurants)
+          .set({
+            id: sql<string>`CASE WHEN changes() = 0 THEN NULL ELSE ${restaurants.id} END`,
+          })
+          .where(eq(restaurants.id, order.restaurantId)) as BatchItem<"sqlite">,
       );
+      writeStatements.push(...ingredientRestoreWrites);
 
-      const batchResults = await this.db.batch(
-        writeStatements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
-      );
-      const cancelledRows = batchResults.at(-1) as Array<{ id: string }>;
+      let batchResults: unknown[];
+      try {
+        batchResults = await this.db.batch(
+          writeStatements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
+        );
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          /NOT NULL constraint failed: restaurants\.id/i.test(error.message)
+        ) {
+          if (expectedVersion != null) {
+            const current = await this.getOrder(id);
+            if (
+              current &&
+              cancellableOrderStatuses.includes(current.status) &&
+              current.version !== expectedVersion
+            ) {
+              throw new Error("Order version conflict");
+            }
+          }
+          throw new Error("Order cannot be cancelled");
+        }
+        throw error;
+      }
+      const cancelledRows = batchResults[0] as Array<{ id: string }>;
       if (cancelledRows.length === 0) {
         // Two different conflicts land here and the API maps them to two
         // different codes (ORDER_VERSION_CONFLICT vs ORDER_NOT_CANCELLABLE),
@@ -1607,40 +1567,6 @@ export class OrderService extends BaseService {
           }
         }
         throw new Error("Order cannot be cancelled");
-      }
-
-      // 食材回補（#278）只在取消確定成立之後才做。
-      //
-      // 先回補再送批次是行不通的：條件式 UPDATE 匹配到零列**不是**批次失敗，
-      // 所以那一批仍然 commit，帳本列跟著落地；此時再把庫存扣回去就留下一列
-      // 沒有對應沖銷的回補紀錄，帳本從此解釋不了庫存數字。反過來排就沒有這
-      // 個縫：走到這裡代表狀態已經翻成 cancelled，而且是這個請求翻的。
-      //
-      // 金額取自帳本、不從配方重算 —— 下單後配方被改過的話重算會回補錯的量，
-      // 而「取消後回補到原值」正是要守住的性質。restoreForOrder 以淨額判斷，
-      // 重複取消自然是 no-op。
-      const ingredientConsumption = new IngredientConsumptionService(this.db);
-      try {
-        const restored = await ingredientConsumption.restoreForOrder(
-          order.restaurantId,
-          id,
-        );
-        if (restored.movementWrites.length > 0) {
-          await this.db.batch(
-            restored.movementWrites as [
-              BatchItem<"sqlite">,
-              ...BatchItem<"sqlite">[],
-            ],
-          );
-        }
-      } catch (restoreError) {
-        // 回補失敗不擋下取消本身 —— 訂單狀態是顧客看得到的那一半，而且此時
-        // 已經 commit 了。漂移是找得回來的：一張已取消的訂單，其帳本
-        // SUM(delta) != 0 就正好是漏回補的集合。
-        console.error(
-          `Ingredient restore failed for cancelled order ${id}:`,
-          restoreError,
-        );
       }
 
       const cancelledOrder = await this.getOrder(id);

@@ -1,4 +1,12 @@
-import { and, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { drizzle } from "drizzle-orm/d1";
 import * as schema from "../schema";
@@ -16,27 +24,8 @@ export interface OrderedItem {
   quantity: number;
 }
 
-/**
- * One ingredient's share of an order, already aggregated across every dish
- * that names it. `delta` is the signed amount actually written -- negative
- * for consumption, positive for a restore -- which is what makes undoing one
- * a matter of negating it rather than knowing which way it went.
- */
-export interface IngredientClaim {
-  ingredientId: number;
-  delta: number;
-  balanceAfter: number;
-}
-
 /** Rows the caller appends to its own batch so they commit with the order. */
 export type MovementInsert = BatchItem<"sqlite">;
-
-export interface ClaimResult {
-  claims: IngredientClaim[];
-  movementWrites: MovementInsert[];
-}
-
-const EMPTY: ClaimResult = { claims: [], movementWrites: [] };
 
 /**
  * Units are free text on both sides with no conversion layer, so the most this
@@ -71,21 +60,18 @@ export class IngredientConsumptionService {
   /**
    * Deduct every ingredient the ordered dishes consume.
    *
-   * The UPDATEs run in one `db.batch`, so the whole deduction is atomic and
-   * costs a single round trip. The ledger rows are handed back rather than
-   * written, so the caller can commit them in the same batch as the order --
-   * if that batch fails, the movement rows never exist and only the stock
-   * needs restoring.
+   * Returns UPDATE and ledger statements for the owning order mutation to
+   * commit together in one D1 batch. This service never writes stock alone.
    */
-  async claim(
+  async buildConsumptionWrites(
     restaurantId: string,
     items: OrderedItem[],
     context: { orderId?: string | SQL<string>; userId?: string } = {},
-  ): Promise<ClaimResult> {
+  ): Promise<MovementInsert[]> {
     const required = await this.resolveRequirements(restaurantId, items);
-    if (required.size === 0) return EMPTY;
+    if (required.size === 0) return [];
 
-    return this.applyDeltas(
+    return this.buildDeltaWrites(
       restaurantId,
       [...required].map(([ingredientId, quantity]) => ({
         ingredientId,
@@ -108,11 +94,11 @@ export class IngredientConsumptionService {
    * second cancellation sees consumption and reversal summing to zero and
    * writes nothing.
    */
-  async restoreForOrder(
+  async buildRestoreWritesForOrder(
     restaurantId: string,
     orderId: string,
     context: { userId?: string } = {},
-  ): Promise<ClaimResult> {
+  ): Promise<MovementInsert[]> {
     const outstanding = await this.db
       .select({
         ingredientId: ingredientStockMovements.ingredientId,
@@ -128,9 +114,9 @@ export class IngredientConsumptionService {
       .groupBy(ingredientStockMovements.ingredientId)
       .having(sql`SUM(${ingredientStockMovements.delta}) != 0`);
 
-    if (outstanding.length === 0) return EMPTY;
+    if (outstanding.length === 0) return [];
 
-    return this.applyDeltas(
+    return this.buildDeltaWrites(
       restaurantId,
       outstanding.map((row) => ({
         ingredientId: row.ingredientId,
@@ -138,29 +124,6 @@ export class IngredientConsumptionService {
       })),
       "order_cancellation",
       { orderId, userId: context.userId },
-    );
-  }
-
-  /**
-   * Undo a stock change whose batch never committed -- in either direction.
-   * The ledger rows that went with it died in the same batch, so this writes
-   * none of its own and the ledger simply never saw the attempt.
-   */
-  async revertUncommitted(
-    restaurantId: string,
-    claims: IngredientClaim[],
-  ): Promise<void> {
-    if (claims.length === 0) return;
-
-    await this.applyDeltas(
-      restaurantId,
-      claims.map((claim) => ({
-        ingredientId: claim.ingredientId,
-        delta: -claim.delta,
-      })),
-      "order_cancellation",
-      {},
-      { recordMovements: false },
     );
   }
 
@@ -186,6 +149,7 @@ export class IngredientConsumptionService {
         quantityPerServing: menuItemIngredients.quantityPerServing,
         recipeUnit: menuItemIngredients.unit,
         stockUnit: ingredientDefinitions.unit,
+        currentStock: ingredientDefinitions.currentStock,
       })
       .from(menuItemIngredients)
       .innerJoin(
@@ -215,6 +179,7 @@ export class IngredientConsumptionService {
 
     for (const item of items) {
       for (const row of perDish.get(item.menuItemId) ?? []) {
+        if (row.currentStock === null) continue;
         // The recipe and the stock figure are two free-text units. Subtracting
         // 200 (g) from 20 (kg) would read as a 180 kg deficit and poison the
         // forecast that consumes this number, so a mismatch is skipped rather
@@ -239,79 +204,60 @@ export class IngredientConsumptionService {
     return required;
   }
 
-  private async applyDeltas(
+  private async buildDeltaWrites(
     restaurantId: string,
     deltas: { ingredientId: number; delta: number }[],
     reason: "order_consumption" | "order_cancellation",
     context: { orderId?: string | SQL<string>; userId?: string },
-    options: { recordMovements?: boolean } = {},
-  ): Promise<ClaimResult> {
-    const statements = deltas.map(
-      ({ ingredientId, delta }) =>
+  ): Promise<MovementInsert[]> {
+    const now = new Date();
+    return deltas.flatMap(({ ingredientId, delta }) => [
+      this.db
+        .update(ingredientDefinitions)
+        .set({
+          // NULL means untracked, and it stays untracked.
+          currentStock: sql`CASE WHEN ${ingredientDefinitions.currentStock} IS NULL THEN NULL ELSE ${ingredientDefinitions.currentStock} + ${delta} END`,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(ingredientDefinitions.id, ingredientId),
+            eq(ingredientDefinitions.restaurantId, restaurantId),
+            isNull(ingredientDefinitions.deletedAt),
+            isNotNull(ingredientDefinitions.currentStock),
+          ),
+        ) as BatchItem<"sqlite">,
+      // INSERT ... SELECT shares the same live-row predicate as the UPDATE.
+      // A deleted or newly-untracked ingredient therefore produces neither a
+      // ledger row nor a nullable balance_after constraint failure.
+      this.db.insert(ingredientStockMovements).select(
         this.db
-          .update(ingredientDefinitions)
-          .set({
-            // NULL means untracked, and it stays untracked.
-            currentStock: sql`CASE WHEN ${ingredientDefinitions.currentStock} IS NULL THEN NULL ELSE ${ingredientDefinitions.currentStock} + ${delta} END`,
-            updatedAt: new Date(),
+          .select({
+            id: sql<number>`NULL`.as("id"),
+            restaurantId: sql<string>`${restaurantId}`.as("restaurant_id"),
+            ingredientId: sql<number>`${ingredientId}`.as("ingredient_id"),
+            delta: sql<number>`${delta}`.as("delta"),
+            balanceAfter: ingredientDefinitions.currentStock,
+            reason: sql<string>`${reason}`.as("reason"),
+            note: sql<string | null>`NULL`.as("note"),
+            orderId: sql<string | null>`${context.orderId ?? null}`.as(
+              "order_id",
+            ),
+            createdBy: sql<string | null>`${context.userId ?? null}`.as(
+              "created_by",
+            ),
+            createdAt: sql<Date>`${now.getTime()}`.as("created_at_ms"),
           })
+          .from(ingredientDefinitions)
           .where(
             and(
               eq(ingredientDefinitions.id, ingredientId),
               eq(ingredientDefinitions.restaurantId, restaurantId),
               isNull(ingredientDefinitions.deletedAt),
+              isNotNull(ingredientDefinitions.currentStock),
             ),
-          )
-          .returning({
-            id: ingredientDefinitions.id,
-            currentStock: ingredientDefinitions.currentStock,
-          }) as BatchItem<"sqlite">,
-    );
-
-    const results = (await this.db.batch(
-      statements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
-    )) as Array<Array<{ id: number; currentStock: number | null }>>;
-
-    const claims: IngredientClaim[] = [];
-    const movements: (typeof ingredientStockMovements.$inferInsert)[] = [];
-    const now = new Date();
-
-    results.forEach((rows, index) => {
-      const updated = rows?.[0];
-      // No row means the ingredient was deleted between the read and the
-      // write; a NULL balance means it is untracked. Neither is a claim, and
-      // neither gets a ledger row -- a movement with no balance would be a
-      // number nobody can reconcile.
-      if (!updated || updated.currentStock === null) return;
-
-      const { ingredientId, delta } = deltas[index];
-      claims.push({
-        ingredientId,
-        delta,
-        balanceAfter: updated.currentStock,
-      });
-      if (options.recordMovements === false) return;
-      movements.push({
-        restaurantId,
-        ingredientId,
-        delta,
-        balanceAfter: updated.currentStock,
-        reason,
-        orderId: (context.orderId ?? null) as string | null,
-        createdBy: context.userId ?? null,
-        createdAt: now,
-      });
-    });
-
-    const movementWrites: MovementInsert[] =
-      movements.length > 0
-        ? [
-            this.db
-              .insert(ingredientStockMovements)
-              .values(movements) as BatchItem<"sqlite">,
-          ]
-        : [];
-
-    return { claims, movementWrites };
+          ),
+      ) as BatchItem<"sqlite">,
+    ]);
   }
 }

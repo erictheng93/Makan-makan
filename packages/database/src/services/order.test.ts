@@ -7,7 +7,7 @@ import {
   it,
   vi,
 } from "vitest";
-import { eq, getTableColumns } from "drizzle-orm";
+import { eq, getTableColumns, sql } from "drizzle-orm";
 import type { D1Database } from "@cloudflare/workers-types";
 import {
   categories,
@@ -722,6 +722,25 @@ function withFailureInjection(
   } as unknown as D1Database;
 }
 
+function withBeforeBatch(
+  db: D1Database,
+  beforeBatch: () => Promise<void>,
+): D1Database {
+  let pending = true;
+  return {
+    prepare: (query: string) => db.prepare(query),
+    batch: async (statements: D1PreparedStatement[]) => {
+      if (pending) {
+        pending = false;
+        await beforeBatch();
+      }
+      return db.batch(statements);
+    },
+    exec: (query: string) => db.exec(query),
+    dump: () => db.dump(),
+  } as unknown as D1Database;
+}
+
 describe("OrderService createOrder atomicity", () => {
   let testDb: TestDatabase;
 
@@ -1278,6 +1297,103 @@ describe("OrderService ingredient consumption", () => {
     ]);
   });
 
+  it("leaves no partial add effects when add-items races cancellation", async () => {
+    const rice = await seedIngredientWithRecipe(0.5);
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+    });
+
+    await Promise.allSettled([
+      service().addItemsToOrder(order.id, [{ menuItemId, quantity: 1 }]),
+      service().cancelOrder(order.id, "Concurrent cancellation"),
+    ]);
+
+    const [persisted] = await testDb.drizzle
+      .select({ status: orders.status })
+      .from(orders)
+      .where(eq(orders.id, order.id));
+    const items = await testDb.drizzle
+      .select({ quantity: orderItems.quantity })
+      .from(orderItems)
+      .where(eq(orderItems.orderId, order.id));
+
+    if (persisted.status === "cancelled") {
+      const [net] = await testDb.drizzle
+        .select({
+          net: sql<number>`COALESCE(SUM(${ingredientStockMovements.delta}), 0)`,
+        })
+        .from(ingredientStockMovements)
+        .where(eq(ingredientStockMovements.orderId, order.id));
+      expect(net.net).toBeCloseTo(0);
+      expect(await stockOf(rice)).toBe(20);
+    } else {
+      // Cancellation lost its CAS, so only a complete add (never an orphan
+      // item/inventory movement) may be visible.
+      expect(items).toHaveLength(2);
+      expect(await stockOf(rice)).toBeCloseTo(19);
+    }
+  });
+
+  it("aborts a stale add batch before any dependent write", async () => {
+    const rice = await seedIngredientWithRecipe(0.5);
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+    });
+    const [before] = await testDb.drizzle
+      .select({
+        subtotalCents: orders.subtotalCents,
+        totalAmountCents: orders.totalAmountCents,
+        version: orders.version,
+      })
+      .from(orders)
+      .where(eq(orders.id, order.id));
+
+    const staleService = new OrderService(
+      withBeforeBatch(testDb.bindings.DB as unknown as D1Database, async () => {
+        await testDb.drizzle
+          .update(orders)
+          .set({ version: sql`${orders.version} + 1` })
+          .where(eq(orders.id, order.id));
+      }),
+      { JWT_SECRET: "test-secret" } as never,
+    );
+
+    await expect(
+      staleService.addItemsToOrder(order.id, [{ menuItemId, quantity: 1 }]),
+    ).rejects.toThrow("Order cannot accept items");
+
+    const [persisted] = await testDb.drizzle
+      .select({
+        subtotalCents: orders.subtotalCents,
+        totalAmountCents: orders.totalAmountCents,
+        version: orders.version,
+      })
+      .from(orders)
+      .where(eq(orders.id, order.id));
+    expect(persisted).toEqual({
+      ...before,
+      version: before.version + 1,
+    });
+    expect(
+      await testDb.drizzle
+        .select({ id: orderItems.id })
+        .from(orderItems)
+        .where(eq(orderItems.orderId, order.id)),
+    ).toHaveLength(1);
+    const [menuStock] = await testDb.drizzle
+      .select({
+        inventoryCount: menuItems.inventoryCount,
+        orderCount: menuItems.orderCount,
+      })
+      .from(menuItems)
+      .where(eq(menuItems.id, menuItemId));
+    expect(menuStock).toMatchObject({ inventoryCount: 9, orderCount: 1 });
+    expect(await stockOf(rice)).toBeCloseTo(19.5);
+    expect(await ledgerFor(order.id)).toHaveLength(1);
+  });
+
   it("keeps the customer's note and puts the cancellation reason in internalNotes", async () => {
     const order = await service().createOrder({
       restaurantId,
@@ -1308,43 +1424,85 @@ describe("OrderService ingredient consumption", () => {
     expect(await ledgerFor(order.id)).toHaveLength(2);
   });
 
-  it("reverts an ingredient claim when adding items fails in its batch", async () => {
+  it("rolls back create, add, and cancel together when an ingredient ledger write fails", async () => {
     const rice = await seedIngredientWithRecipe(0.5);
+    const rejectsLedgerWrite = async (operation: () => Promise<unknown>) => {
+      await testDb.bindings.DB.exec(
+        "CREATE TRIGGER fail_order_ledger BEFORE INSERT ON ingredient_stock_movements BEGIN SELECT RAISE(ABORT, 'forced ledger failure'); END",
+      );
+      try {
+        await expect(operation()).rejects.toThrow("forced ledger failure");
+      } finally {
+        await testDb.bindings.DB.exec("DROP TRIGGER fail_order_ledger");
+      }
+    };
+
+    await rejectsLedgerWrite(() =>
+      service().createOrder({
+        restaurantId,
+        items: [{ menuItemId, quantity: 1 }],
+      }),
+    );
+    expect(await testDb.drizzle.select().from(orders)).toEqual([]);
+    expect(await stockOf(rice)).toBe(20);
+    let [menuStock] = await testDb.drizzle
+      .select({
+        inventoryCount: menuItems.inventoryCount,
+        orderCount: menuItems.orderCount,
+      })
+      .from(menuItems)
+      .where(eq(menuItems.id, menuItemId));
+    expect(menuStock).toMatchObject({ inventoryCount: 10, orderCount: 0 });
+
     const order = await service().createOrder({
       restaurantId,
       items: [{ menuItemId, quantity: 1 }],
     });
-
-    // Claiming ingredients commits their stock update before addItemsToOrder
-    // batches the new order item and ledger write. Make that ledger write fail
-    // after the claim, then restore the schema before inspecting persisted data.
-    await testDb.bindings.DB.exec(
-      "ALTER TABLE ingredient_stock_movements RENAME TO ingredient_stock_movements_unavailable",
+    const [beforeFailedMutations] = await testDb.drizzle
+      .select({
+        status: orders.status,
+        version: orders.version,
+        subtotalCents: orders.subtotalCents,
+        totalAmountCents: orders.totalAmountCents,
+      })
+      .from(orders)
+      .where(eq(orders.id, order.id));
+    await rejectsLedgerWrite(() =>
+      service().addItemsToOrder(order.id, [{ menuItemId, quantity: 1 }]),
     );
-    try {
-      await expect(
-        service().addItemsToOrder(order.id, [{ menuItemId, quantity: 2 }]),
-      ).rejects.toThrow();
-    } finally {
-      await testDb.bindings.DB.exec(
-        "ALTER TABLE ingredient_stock_movements_unavailable RENAME TO ingredient_stock_movements",
-      );
-    }
-
-    // The failed add must leave neither the menu nor ingredient inventory
-    // changed, and must not create an order item or ledger entry.
+    expect(await testDb.drizzle.select().from(orderItems)).toHaveLength(1);
     expect(await stockOf(rice)).toBeCloseTo(19.5);
-    const [item] = await testDb.drizzle
-      .select({ inventoryCount: menuItems.inventoryCount })
+    [menuStock] = await testDb.drizzle
+      .select({
+        inventoryCount: menuItems.inventoryCount,
+        orderCount: menuItems.orderCount,
+      })
       .from(menuItems)
       .where(eq(menuItems.id, menuItemId));
-    expect(item.inventoryCount).toBe(9);
-    expect(
-      await testDb.drizzle
-        .select({ id: orderItems.id })
-        .from(orderItems)
-        .where(eq(orderItems.orderId, order.id)),
-    ).toHaveLength(1);
+    expect(menuStock).toMatchObject({ inventoryCount: 9, orderCount: 1 });
+
+    await rejectsLedgerWrite(() =>
+      service().cancelOrder(order.id, "Failure injection"),
+    );
+    const [persisted] = await testDb.drizzle
+      .select({
+        status: orders.status,
+        version: orders.version,
+        subtotalCents: orders.subtotalCents,
+        totalAmountCents: orders.totalAmountCents,
+      })
+      .from(orders)
+      .where(eq(orders.id, order.id));
+    expect(persisted).toEqual(beforeFailedMutations);
+    expect(await stockOf(rice)).toBeCloseTo(19.5);
+    [menuStock] = await testDb.drizzle
+      .select({
+        inventoryCount: menuItems.inventoryCount,
+        orderCount: menuItems.orderCount,
+      })
+      .from(menuItems)
+      .where(eq(menuItems.id, menuItemId));
+    expect(menuStock).toMatchObject({ inventoryCount: 9, orderCount: 1 });
     expect(await ledgerFor(order.id)).toHaveLength(1);
   });
 
