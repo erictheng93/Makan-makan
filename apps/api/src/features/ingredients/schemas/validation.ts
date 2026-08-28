@@ -73,16 +73,14 @@ export const adjustStockSchema = z.object({
 });
 
 export const setRecipeSchema = z.object({
-  ingredients: z
-    .array(
-      z.object({
-        ingredientId: z.number().int().positive(),
-        quantityPerServing: z.number().positive(),
-        unit: z.string().min(1).max(50),
-        isOptional: z.boolean().optional().default(false),
-      }),
-    )
-    .min(1, "At least one ingredient is required"),
+  ingredients: z.array(
+    z.object({
+      ingredientId: z.number().int().positive(),
+      quantityPerServing: z.number().positive(),
+      unit: z.string().min(1).max(50),
+      isOptional: z.boolean().optional().default(false),
+    }),
+  ),
 });
 
 export const ingredientListQuerySchema = z.object({

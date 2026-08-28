@@ -425,6 +425,19 @@ describe("ingredients routes", () => {
     });
   });
 
+  it("clears a recipe with an empty ingredient list", async () => {
+    const response = await request("/rest-1/recipes/51", "PUT", {
+      ingredients: [],
+    });
+
+    expect(response.status).toBe(200);
+    expect(recipeFns.setRecipe).toHaveBeenCalledWith("rest-1", 51, []);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: { updated: true },
+    });
+  });
+
   it("rejects invalid path parameters and request bodies", async () => {
     let response = await request("/rest-1/not-numeric");
 
