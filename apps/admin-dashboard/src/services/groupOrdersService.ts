@@ -117,18 +117,6 @@ export const groupOrdersService = {
     return unwrapApiData<GroupOrder>(response);
   },
 
-  async updateGroupOrder(
-    id: string,
-    data: Partial<GroupOrder>,
-  ): Promise<GroupOrder> {
-    const response = await apiClient.put(`/orders/group/${id}`, data);
-    return unwrapApiData<GroupOrder>(response);
-  },
-
-  async cancelGroupOrder(id: string, reason?: string): Promise<void> {
-    await apiClient.post(`/orders/group/${id}/cancel`, { reason });
-  },
-
   async recoverFinalization(
     groupOrderId: string,
     options: RecoverFinalizationOptions = {},
@@ -170,51 +158,6 @@ export const groupOrdersService = {
     }>(response);
   },
 
-  async getShareInfo(shareCode: string): Promise<{
-    shareCode: string;
-    shareUrl: string;
-    groupOrder?: GroupOrder;
-    isValid: boolean;
-    expiresAt: string;
-  }> {
-    const response = await apiClient.get(`/orders/group/share/${shareCode}`);
-    return unwrapApiData<{
-      shareCode: string;
-      shareUrl: string;
-      groupOrder?: GroupOrder;
-      isValid: boolean;
-      expiresAt: string;
-    }>(response);
-  },
-
-  // 訂單轉換
-  async convertToOrder(groupOrderId: string): Promise<{
-    success: boolean;
-    orderId: string;
-    orderNumber: string;
-  }> {
-    const response = await apiClient.post(
-      `/orders/group/${groupOrderId}/convert`,
-    );
-    return unwrapApiData<{
-      success: boolean;
-      orderId: string;
-      orderNumber: string;
-    }>(response);
-  },
-
-  // 通知功能
-  async sendNotification(
-    groupOrderId: string,
-    data: {
-      type: "join_reminder" | "payment_reminder" | "order_ready";
-      memberIds?: string[];
-      message?: string;
-    },
-  ): Promise<void> {
-    await apiClient.post(`/orders/group/${groupOrderId}/notify`, data);
-  },
-
   // 統計和報表
   async getGroupOrderStats(params?: {
     restaurantId?: string;
@@ -241,27 +184,6 @@ export const groupOrdersService = {
     }>(response);
   },
 
-  async getMemberStats(groupOrderId: string): Promise<
-    Array<{
-      member: GroupOrderMember;
-      orderValue: number;
-      itemCount: number;
-      paymentStatus: string;
-    }>
-  > {
-    const response = await apiClient.get(
-      `/orders/group/${groupOrderId}/member-stats`,
-    );
-    return unwrapApiData<
-      Array<{
-        member: GroupOrderMember;
-        orderValue: number;
-        itemCount: number;
-        paymentStatus: string;
-      }>
-    >(response);
-  },
-
   // 匯出功能
   async exportGroupOrders(params: {
     restaurantId?: string;
@@ -278,18 +200,6 @@ export const groupOrdersService = {
       },
     );
     return response.data;
-  },
-
-  // QR碼生成
-  async generateQRCode(shareCode: string): Promise<{
-    qrCodeUrl: string;
-    shareUrl: string;
-  }> {
-    const response = await apiClient.post(`/orders/group/qr/${shareCode}`);
-    return unwrapApiData<{
-      qrCodeUrl: string;
-      shareUrl: string;
-    }>(response);
   },
 };
 
