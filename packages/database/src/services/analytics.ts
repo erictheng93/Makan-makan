@@ -7,6 +7,7 @@ import {
   eq,
   gte,
   inArray,
+  isNull,
   lte,
   lt,
   ne,
@@ -547,6 +548,14 @@ export class AnalyticsService extends BaseService {
         conditions.push(lte(orders.createdAt, new Date(dateTo)));
       }
 
+      const tableConditions = [isNull(tables.deletedAt)];
+      if (restaurantId) {
+        tableConditions.push(eq(tables.restaurantId, restaurantId));
+      }
+      const tableCountCondition = restaurantId
+        ? sql`restaurant_id = ${restaurantId} AND deleted_at_ms IS NULL`
+        : sql`deleted_at_ms IS NULL`;
+
       // 桌子使用率
       const tableUtilization = await this.db
         .select({
@@ -564,7 +573,7 @@ export class AnalyticsService extends BaseService {
         })
         .from(tables)
         .leftJoin(orders, eq(tables.id, orders.tableId))
-        .where(restaurantId ? eq(tables.restaurantId, restaurantId) : undefined)
+        .where(and(...tableConditions))
         .groupBy(
           tables.id,
           tables.number,
@@ -580,13 +589,14 @@ export class AnalyticsService extends BaseService {
           occupancyRate: sql<number>`
             ROUND(
               COUNT(DISTINCT ${orders.tableId}) * 100.0 /
-              (SELECT COUNT(*) FROM tables WHERE restaurant_id = ${restaurantId}),
+              (SELECT COUNT(*) FROM tables WHERE ${tableCountCondition}),
               2
             )
           `,
         })
         .from(orders)
-        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .innerJoin(tables, eq(orders.tableId, tables.id))
+        .where(and(...conditions, isNull(tables.deletedAt)))
         .groupBy(sql`strftime('%H', ${orders.createdAt} / 1000, 'unixepoch')`)
         .orderBy(
           sql`CAST(strftime('%H', ${orders.createdAt} / 1000, 'unixepoch') AS INTEGER)`,
@@ -598,9 +608,7 @@ export class AnalyticsService extends BaseService {
           averageTurnoverTime: avg(tables.averageOccupancyMinutes),
         })
         .from(tables)
-        .where(
-          restaurantId ? eq(tables.restaurantId, restaurantId) : undefined,
-        );
+        .where(and(...tableConditions));
 
       return {
         tableUtilization: tableUtilization.map((table) => ({
@@ -795,14 +803,16 @@ export class AnalyticsService extends BaseService {
         .select({
           total: count(),
           occupied: sum(
-            sql<number>`CASE WHEN ${tables.isOccupied} THEN 1 ELSE 0 END`,
+            sql<number>`CASE WHEN ${tables.isOccupied} AND ${tables.isActive} THEN 1 ELSE 0 END`,
           ),
           available: sum(
             sql<number>`CASE WHEN NOT ${tables.isOccupied} AND ${tables.isActive} THEN 1 ELSE 0 END`,
           ),
         })
         .from(tables)
-        .where(eq(tables.restaurantId, restaurantId));
+        .where(
+          and(eq(tables.restaurantId, restaurantId), isNull(tables.deletedAt)),
+        );
 
       return {
         summary: {
@@ -1609,7 +1619,9 @@ export class AnalyticsService extends BaseService {
           ),
         })
         .from(tables)
-        .where(eq(tables.restaurantId, restaurantId));
+        .where(
+          and(eq(tables.restaurantId, restaurantId), isNull(tables.deletedAt)),
+        );
 
       // 顧客滿意度（基於評分）
       const [{ customerSatisfaction }] = await this.db

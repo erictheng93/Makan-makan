@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { orders, restaurants } from "../schema";
+import { orders, restaurants, tables } from "../schema";
 import {
   createTestDatabase,
   REAL_D1_SETUP_TIMEOUT_MS,
@@ -351,6 +351,128 @@ describe("AnalyticsService financial report", () => {
   });
 });
 
+describe("AnalyticsService table analytics", () => {
+  let testDb: TestDatabase;
+
+  beforeAll(async () => {
+    testDb = await createTestDatabase();
+  }, REAL_D1_SETUP_TIMEOUT_MS);
+
+  afterAll(async () => {
+    await testDb?.dispose();
+  });
+
+  beforeEach(async () => {
+    await testDb.truncateAll();
+    await testDb.drizzle.insert(restaurants).values({
+      id: "analytics-restaurant",
+      name: "Analytics Test Restaurant",
+      type: "casual",
+      category: "testing",
+      address: "1 Test Road",
+      district: "Test District",
+      phone: "0912345678",
+    });
+
+    await testDb.drizzle.insert(tables).values([
+      table("Live", "analytics-live", {
+        id: 1,
+        isOccupied: false,
+        totalUsage: 4,
+        averageOccupancyMinutes: 30,
+      }),
+      table("Deleted occupied", "analytics-deleted-occupied", {
+        id: 2,
+        isActive: false,
+        isOccupied: true,
+        totalUsage: 100,
+        averageOccupancyMinutes: 120,
+        deletedAt: new Date("2026-01-01T00:00:00.000Z"),
+      }),
+      table("Deleted available", "analytics-deleted-available", {
+        id: 3,
+        isActive: false,
+        totalUsage: 100,
+        averageOccupancyMinutes: 120,
+        deletedAt: new Date("2026-01-01T00:00:00.000Z"),
+      }),
+      table("Inactive occupied", "analytics-inactive-occupied", {
+        id: 4,
+        isActive: false,
+        isOccupied: true,
+        totalUsage: 4,
+        averageOccupancyMinutes: 30,
+      }),
+    ]);
+    await testDb.drizzle.insert(orders).values([
+      order(
+        "table-analytics-order",
+        "TA-001",
+        "2026-01-08T12:00:00.000Z",
+        10000,
+        {
+          tableId: 1,
+        },
+      ),
+      order(
+        "deleted-table-order",
+        "TA-002",
+        "2026-01-08T12:00:00.000Z",
+        10000,
+        {
+          tableId: 2,
+        },
+      ),
+      order(
+        "inactive-table-order",
+        "TA-003",
+        "2026-01-08T12:00:00.000Z",
+        10000,
+        {
+          tableId: 4,
+        },
+      ),
+    ]);
+  });
+
+  it("excludes soft-deleted tables from dashboard status and table analytics", async () => {
+    const service = new AnalyticsService(testDb.bindings.DB, {} as never);
+
+    const [dashboard, tableAnalytics, performance] = await Promise.all([
+      service.getDashboardData("analytics-restaurant"),
+      service.getTableAnalytics({ restaurantId: "analytics-restaurant" }),
+      service.getPerformanceReport("analytics-restaurant", {}),
+    ]);
+
+    expect(dashboard.tableStatus).toEqual({
+      total: 2,
+      occupied: 0,
+      available: 1,
+    });
+    expect(tableAnalytics.tableUtilization).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ tableId: 1, tableNumber: "Live" }),
+        expect.objectContaining({
+          tableId: 4,
+          tableNumber: "Inactive occupied",
+        }),
+      ]),
+    );
+    expect(tableAnalytics.tableUtilization).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ tableId: 2 }),
+        expect.objectContaining({ tableId: 3 }),
+      ]),
+    );
+    expect(tableAnalytics.peakHours).toContainEqual({
+      hour: 12,
+      occupancyRate: 100,
+    });
+    expect(tableAnalytics.averageTurnoverTime).toBe(30);
+    expect(performance.tableUtilization).toBeCloseTo(8.333333, 5);
+  });
+});
+
 function order(
   id: string,
   orderNumber: string,
@@ -366,6 +488,19 @@ function order(
     totalAmountCents,
     createdAt: new Date(createdAt),
     updatedAt: new Date(createdAt),
+    ...overrides,
+  };
+}
+
+function table(
+  number: string,
+  qrCode: string,
+  overrides: Partial<typeof tables.$inferInsert> = {},
+): typeof tables.$inferInsert {
+  return {
+    restaurantId: "analytics-restaurant",
+    number,
+    qrCode,
     ...overrides,
   };
 }
