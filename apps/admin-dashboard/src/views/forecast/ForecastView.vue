@@ -319,22 +319,9 @@ async function loadIngredientForecast() {
     );
     ingredientForecastItems.value = forecasts.flatMap((f) => f.ingredients);
 
-    // Load ingredient details for procurement list
-    const ingredients = [] as Awaited<
-      ReturnType<typeof ingredientApi.list>
-    >["items"];
-    let page = 1;
-    let total = 0;
-    do {
-      const result = await ingredientApi.list(restaurantId.value, {
-        page,
-        limit: 100,
-      });
-      ingredients.push(...result.items);
-      total = result.total;
-      page += 1;
-      if (result.items.length === 0) break;
-    } while (ingredients.length < total);
+    // Load ingredient details for procurement list. The endpoint caps `limit`
+    // at 100, so this has to page; ingredientApi.listAll owns that loop.
+    const ingredients = await ingredientApi.listAll(restaurantId.value);
     const detailsMap = new Map<
       number,
       { supplier: string | null; costPerUnit: number | null }

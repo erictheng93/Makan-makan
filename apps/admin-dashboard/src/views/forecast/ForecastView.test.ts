@@ -18,7 +18,7 @@ const api = vi.hoisted(() => ({
   generateIngredientForecast: vi.fn(),
   getIngredientForecast: vi.fn(),
   getAccuracy: vi.fn(),
-  list: vi.fn(),
+  listAll: vi.fn(),
 }));
 const modules = vi.hoisted(() => ({ inventory: false }));
 
@@ -35,7 +35,7 @@ vi.mock("@makanmasak/shared/stores/moduleAccess", () => ({
 }));
 vi.mock("@/services/forecastApi", () => ({ forecastApi: api }));
 vi.mock("@/services/ingredientApi", () => ({
-  ingredientApi: { list: api.list },
+  ingredientApi: { listAll: api.listAll },
 }));
 import ForecastView from "./ForecastView.vue";
 
@@ -77,7 +77,7 @@ describe("ForecastView", () => {
     api.generate.mockResolvedValue([]);
     api.generateIngredientForecast.mockResolvedValue([]);
     api.getIngredientForecast.mockResolvedValue(forecast());
-    api.list.mockResolvedValue({ items: [], total: 0 });
+    api.listAll.mockResolvedValue([]);
   });
 
   it("defaults the range to the local next day before 08:00", async () => {
@@ -136,7 +136,11 @@ describe("ForecastView", () => {
     expect(wrapper.text()).toContain("forecast.loadFailed");
   });
 
-  it("paginates ingredient details at 100 and shows a visible failure", async () => {
+  // The paging itself is ingredientApi.listAll's contract and is pinned in
+  // ingredientApi.test.ts; what matters here is that this view delegates to it
+  // rather than carrying its own copy of the loop, and that a rejection is
+  // visible instead of leaving the procurement list silently costed at $0.00.
+  it("delegates ingredient details to listAll and shows a visible failure", async () => {
     modules.inventory = true;
     const wrapper = mountView();
     await flushPromises();
@@ -144,25 +148,9 @@ describe("ForecastView", () => {
       .get('[data-testid="forecast-ingredient-tab"]')
       .trigger("click");
     await flushPromises();
-    api.list
-      .mockResolvedValueOnce({
-        items: Array.from({ length: 100 }, (_, id) => ({
-          id,
-          supplier: null,
-          costPerUnit: null,
-        })),
-        total: 101,
-      })
-      .mockResolvedValueOnce({
-        items: [{ id: 100, supplier: null, costPerUnit: null }],
-        total: 101,
-      });
-    await wrapper
-      .get('[data-testid="forecast-ingredient-tab"]')
-      .trigger("click");
-    await flushPromises();
-    expect(api.list).toHaveBeenLastCalledWith("r1", { page: 2, limit: 100 });
-    api.list.mockRejectedValueOnce(new Error("offline"));
+    expect(api.listAll).toHaveBeenCalledWith("r1");
+
+    api.listAll.mockRejectedValueOnce(new Error("offline"));
     await wrapper
       .get('[data-testid="forecast-ingredient-tab"]')
       .trigger("click");
