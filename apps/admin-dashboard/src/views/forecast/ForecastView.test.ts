@@ -1,6 +1,15 @@
 // @vitest-environment jsdom
 import { flushPromises, mount } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 
 const api = vi.hoisted(() => ({
   generate: vi.fn(),
@@ -45,7 +54,21 @@ function forecast(items: unknown[] = []) {
   return [{ date: "2026-01-02", items }];
 }
 
+// The default range is built from local time, so the bug it guards against is
+// invisible at UTC+0 — and CI runs in UTC. Force a positive offset, then put it
+// back so the worker's other test files are unaffected.
+const originalTZ = process.env.TZ;
+
 describe("ForecastView", () => {
+  beforeAll(() => {
+    process.env.TZ = "Asia/Taipei";
+  });
+  afterAll(() => {
+    if (originalTZ === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTZ;
+  });
+  afterEach(() => vi.useRealTimers());
+
   beforeEach(() => {
     vi.clearAllMocks();
     modules.inventory = false;
@@ -55,6 +78,22 @@ describe("ForecastView", () => {
     api.generateIngredientForecast.mockResolvedValue([]);
     api.getIngredientForecast.mockResolvedValue(forecast());
     api.list.mockResolvedValue({ items: [], total: 0 });
+  });
+
+  it("defaults the range to the local next day before 08:00", async () => {
+    // shouldAdvanceTime keeps flushPromises (a setTimeout) resolving.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    // 2026-01-03 01:00 Taipei. Incrementing the local date and then formatting
+    // through toISOString lands on 2026-01-03 — today, labelled 明日.
+    vi.setSystemTime(new Date("2026-01-02T17:00:00.000Z"));
+
+    mountView();
+    await flushPromises();
+
+    expect(api.getForecast).toHaveBeenCalledWith("r1", {
+      startDate: "2026-01-04",
+      endDate: "2026-01-04",
+    });
   });
 
   it("uses one ingredient request for inventory and suppresses rapid duplicate generates", async () => {
