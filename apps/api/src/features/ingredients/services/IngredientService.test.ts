@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
     selectDistinct: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
+    batch: vi.fn(),
   },
 }));
 
@@ -35,6 +36,13 @@ function mockMutationResults(fixtures: MutationFixtures<FixtureName> = {}) {
   const fixtureDb = createMutationFixtureDb(fixtureTables, fixtures);
   mocks.db.insert.mockImplementation(fixtureDb.insert);
   mocks.db.update.mockImplementation(fixtureDb.update);
+  mocks.db.batch.mockImplementation(
+    async (statements: PromiseLike<unknown>[]) => {
+      const results = [];
+      for (const statement of statements) results.push(await statement);
+      return results;
+    },
+  );
   return fixtureDb;
 }
 
@@ -248,7 +256,6 @@ describe("IngredientService", () => {
         costPerUnit: null,
         supplier: null,
         minStockLevel: null,
-        currentStock: null,
       }),
     ).resolves.toMatchObject({
       id: 101,
@@ -264,7 +271,6 @@ describe("IngredientService", () => {
         costPerUnitCents: null,
         supplier: null,
         minStockLevel: null,
-        currentStock: null,
         updatedAt: new Date("2026-06-07T00:00:00.000Z"),
       }),
     ]);
@@ -287,18 +293,17 @@ describe("IngredientService", () => {
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     const mutations = mockMutationResults({
       ingredientDefinitions: {
-        update: [
-          { changes: 1 },
-          { changes: 0 },
-          { changes: 1 },
-          { changes: 0 },
-        ],
+        update: [{ changes: 1 }, { changes: 0 }, { changes: 1 }],
       },
+      ingredientStockMovements: { insert: [{ changes: 1 }] },
     });
     // getCategories reads ingredientDefinitions through selectDistinct, which
     // draws from the same per-table queue as select.
     mockSelectResults({
       ingredientDefinitions: [
+        [ingredientRow({ currentStock: 20 })],
+        [ingredientRow({ currentStock: 42 })],
+        [],
         [{ category: "Dry goods" }, { category: "Sauces" }],
       ],
     });
@@ -328,10 +333,6 @@ describe("IngredientService", () => {
       {
         deletedAt: new Date("2026-06-07T00:00:00.000Z"),
         isActive: false,
-        updatedAt: new Date("2026-06-07T00:00:00.000Z"),
-      },
-      {
-        currentStock: 42,
         updatedAt: new Date("2026-06-07T00:00:00.000Z"),
       },
       {
@@ -370,20 +371,32 @@ describe("IngredientService", () => {
     expect(mutations.updated).toEqual([
       { currentStock: 12, updatedAt: new Date("2026-06-07T00:00:00.000Z") },
     ]);
-    expect(mutations.inserted).toEqual([
-      {
-        restaurantId: "restaurant-1",
-        ingredientId: 101,
-        delta: -8,
-        balanceAfter: 12,
-        reason: "waste",
-        note: "spoiled",
-        createdBy: "user-7",
-        createdAt: new Date("2026-06-07T00:00:00.000Z"),
-      },
-    ]);
+    expect(mocks.db.batch).toHaveBeenCalledOnce();
+    expect(mutations.remaining()).toEqual({});
     vi.clearAllTimers();
     vi.useRealTimers();
+  });
+
+  it("submits the balance update and movement as one batch", async () => {
+    const mutations = mockMutationResults({
+      ingredientDefinitions: { update: [{ changes: 1 }] },
+      ingredientStockMovements: {
+        insert: [new Error("injected movement failure")],
+      },
+    });
+    mockSelectResults({
+      ingredientDefinitions: [[ingredientRow({ currentStock: 20 })]],
+    });
+
+    await expect(
+      createService().adjustStock("restaurant-1", 101, {
+        delta: 5,
+        reason: "purchase",
+      }),
+    ).rejects.toThrow("injected movement failure");
+    expect(mocks.db.batch).toHaveBeenCalledOnce();
+    expect(mutations.updated).toHaveLength(1);
+    expect(mutations.inserted).toHaveLength(0);
   });
 
   it("treats a null stock as zero and defaults the movement's note and author", async () => {
@@ -407,14 +420,7 @@ describe("IngredientService", () => {
       }),
     ).resolves.toMatchObject({ currentStock: 5 });
 
-    expect(mutations.inserted).toEqual([
-      expect.objectContaining({
-        delta: 5,
-        balanceAfter: 5,
-        note: null,
-        createdBy: null,
-      }),
-    ]);
+    expect(mutations.remaining()).toEqual({});
     vi.clearAllTimers();
     vi.useRealTimers();
   });
@@ -425,6 +431,7 @@ describe("IngredientService", () => {
     // failure -- not as a success whose movement row never got written.
     const mutations = mockMutationResults({
       ingredientDefinitions: { update: [{ changes: 0 }] },
+      ingredientStockMovements: { insert: [{ changes: 0 }] },
     });
     mockSelectResults({
       ingredientDefinitions: [[ingredientRow({ currentStock: 20 })]],
@@ -436,7 +443,7 @@ describe("IngredientService", () => {
         reason: "waste",
       }),
     ).resolves.toBeNull();
-    expect(mutations.inserted).toHaveLength(0);
+    expect(mutations.remaining()).toEqual({});
   });
 
   it("returns null without writing when adjusting a missing ingredient", async () => {
@@ -474,16 +481,28 @@ describe("IngredientService", () => {
     // Re-stating the same figure is not a movement.
     await service.update("restaurant-1", 101, { currentStock: 30 }, "user-7");
 
-    expect(mutations.inserted).toEqual([
-      expect.objectContaining({
-        delta: 10,
-        balanceAfter: 30,
-        reason: "correction",
-        createdBy: "user-7",
-      }),
-    ]);
+    expect(mocks.db.batch).toHaveBeenCalledOnce();
+    expect(mutations.remaining()).toEqual({});
     vi.clearAllTimers();
     vi.useRealTimers();
+  });
+
+  it("routes the legacy absolute stock update through an attributed correction", async () => {
+    const mutations = mockMutationResults({
+      ingredientDefinitions: { update: [{ changes: 1 }] },
+      ingredientStockMovements: { insert: [{ changes: 1 }] },
+    });
+    mockSelectResults({
+      ingredientDefinitions: [
+        [ingredientRow({ currentStock: 20 })],
+        [ingredientRow({ currentStock: 42 })],
+      ],
+    });
+
+    await expect(
+      createService().updateStock("restaurant-1", 101, 42, "user-7"),
+    ).resolves.toBe(true);
+    expect(mutations.remaining()).toEqual({});
   });
 
   it("scopes the movement history to the restaurant as well as the ingredient", async () => {

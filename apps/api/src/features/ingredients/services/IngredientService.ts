@@ -19,6 +19,7 @@ import type {
   CreateIngredientRequest,
   UpdateIngredientRequest,
 } from "../types";
+import type { BatchItem } from "drizzle-orm/batch";
 import { fromCents, toCents } from "../../../shared/utils/money";
 
 export class IngredientService {
@@ -154,6 +155,9 @@ export class IngredientService {
   ): Promise<IngredientDefinitionResponse | null> {
     const existing = await this.get(restaurantId, id);
     if (!existing) return null;
+    if (data.currentStock === null) {
+      throw new Error("Tracked stock cannot be cleared");
+    }
 
     const updates: Record<string, unknown> = {};
 
@@ -167,39 +171,41 @@ export class IngredientService {
     if (data.minStockLevel !== undefined)
       updates.minStockLevel = data.minStockLevel ?? null;
     if (data.currentStock !== undefined)
-      updates.currentStock = data.currentStock ?? null;
+      updates.currentStock = data.currentStock;
 
     if (Object.keys(updates).length === 0) return existing;
 
-    updates.updatedAt = new Date();
-
-    await this.db
-      .update(ingredientDefinitions)
-      .set(updates)
-      .where(
-        and(
-          eq(ingredientDefinitions.id, id),
-          eq(ingredientDefinitions.restaurantId, restaurantId),
-        ),
-      );
-
-    // The edit form can still set stock directly, and that is the right home
-    // for a stocktake correction. Recording it keeps the ledger complete --
-    // otherwise the figure could still jump with nothing to explain it, which
-    // is the defect this table exists to close.
-    const movedTo = updates.currentStock as number | null | undefined;
-    if (movedTo !== undefined && movedTo !== null) {
-      const from = existing.currentStock ?? 0;
-      if (movedTo !== from) {
-        await this.recordMovement({
-          restaurantId,
-          ingredientId: id,
-          delta: movedTo - from,
-          balanceAfter: movedTo,
-          reason: "correction",
-          userId,
-        });
-      }
+    const movedTo = data.currentStock;
+    const stockChanged =
+      movedTo !== undefined && movedTo !== existing.currentStock;
+    if (stockChanged) {
+      const committed = await this.commitStockMovement({
+        restaurantId,
+        ingredientId: id,
+        before: existing.currentStock,
+        after: movedTo,
+        updates,
+        delta: movedTo - (existing.currentStock ?? 0),
+        reason: "correction",
+        userId,
+      });
+      if (!committed) return null;
+    } else {
+      updates.updatedAt = new Date();
+      const result = await this.db
+        .update(ingredientDefinitions)
+        .set(updates)
+        .where(
+          and(
+            eq(ingredientDefinitions.id, id),
+            eq(ingredientDefinitions.restaurantId, restaurantId),
+            isNull(ingredientDefinitions.deletedAt),
+            data.currentStock === undefined
+              ? undefined
+              : eq(ingredientDefinitions.currentStock, data.currentStock),
+          ),
+        );
+      if ((result.meta?.changes ?? 0) === 0) return null;
     }
 
     return this.get(restaurantId, id);
@@ -261,42 +267,78 @@ export class IngredientService {
     return rows.map((r) => r.category!);
   }
 
-  /**
-   * Write one ledger row. Callers that also move `current_stock` must pass the
-   * resulting balance so the two stay in step; this is deliberately private so
-   * a movement can never be recorded without a matching balance.
-   */
-  private async recordMovement(entry: {
+  private async commitStockMovement(entry: {
     restaurantId: string;
     ingredientId: number;
+    before: number | null;
+    after: number;
+    updates?: Record<string, unknown>;
     delta: number;
-    balanceAfter: number;
     reason: string;
     note?: string | null;
     userId?: string;
-  }): Promise<void> {
-    await this.db.insert(ingredientStockMovements).values({
-      restaurantId: entry.restaurantId,
-      ingredientId: entry.ingredientId,
-      delta: entry.delta,
-      balanceAfter: entry.balanceAfter,
-      reason: entry.reason,
-      note: entry.note ?? null,
-      createdBy: entry.userId ?? null,
-      createdAt: new Date(),
-    });
+  }): Promise<boolean> {
+    const now = new Date();
+    const balanceUpdate = this.db
+      .update(ingredientDefinitions)
+      .set({
+        ...entry.updates,
+        currentStock: entry.after,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(ingredientDefinitions.id, entry.ingredientId),
+          eq(ingredientDefinitions.restaurantId, entry.restaurantId),
+          isNull(ingredientDefinitions.deletedAt),
+          entry.before === null
+            ? isNull(ingredientDefinitions.currentStock)
+            : eq(ingredientDefinitions.currentStock, entry.before),
+        ),
+      ) as BatchItem<"sqlite">;
+
+    // D1 batches are transactional. `changes()` gates this INSERT on the
+    // immediately preceding conditional UPDATE, while a failed INSERT rolls
+    // the balance change back with the rest of the batch.
+    const movementInsert = this.db.insert(ingredientStockMovements).select(
+      this.db
+        .select({
+          id: sql<number>`NULL`.as("id"),
+          restaurantId: sql<string>`${entry.restaurantId}`.as("restaurant_id"),
+          ingredientId: sql<number>`${entry.ingredientId}`.as("ingredient_id"),
+          delta: sql<number>`${entry.delta}`.as("delta"),
+          balanceAfter: ingredientDefinitions.currentStock,
+          reason: sql<string>`${entry.reason}`.as("reason"),
+          note: sql<string | null>`${entry.note ?? null}`.as("note"),
+          orderId: sql<string | null>`NULL`.as("order_id"),
+          createdBy: sql<string | null>`${entry.userId ?? null}`.as(
+            "created_by",
+          ),
+          createdAt: sql<Date>`${now.getTime()}`.as("created_at_ms"),
+        })
+        .from(ingredientDefinitions)
+        .where(
+          and(
+            eq(ingredientDefinitions.id, entry.ingredientId),
+            eq(ingredientDefinitions.restaurantId, entry.restaurantId),
+            eq(ingredientDefinitions.currentStock, entry.after),
+            sql`changes() = 1`,
+          ),
+        ),
+    ) as BatchItem<"sqlite">;
+
+    const [updateResult] = await this.db.batch([balanceUpdate, movementInsert]);
+    return (updateResult.meta?.changes ?? 0) > 0;
   }
 
   /**
    * Receive or consume stock by a signed delta -- the operation the owner
-   * actually performs ("took in 10 kg", "threw away 2 kg"). The pre-existing
-   * updateStock sets an absolute value, which is the same thing the edit form
-   * does and carries no reason or history.
+   * actually performs ("took in 10 kg", "threw away 2 kg"). Absolute updates
+   * from the edit form and legacy endpoint are attributed corrections.
    *
    * The UPDATE is conditional on the row still holding the balance we read, so
    * two concurrent adjustments cannot both apply to the same starting figure
-   * and lose one of the deltas. D1 has no transaction spanning this sequence;
-   * this is the same optimistic shape the order path uses for menu inventory.
+   * and lose one of the deltas. The balance and ledger write share one D1 batch.
    */
   async adjustStock(
     restaurantId: string,
@@ -310,31 +352,17 @@ export class IngredientService {
     const before = existing.currentStock ?? 0;
     const after = before + input.delta;
 
-    const result = await this.db
-      .update(ingredientDefinitions)
-      .set({ currentStock: after, updatedAt: new Date() })
-      .where(
-        and(
-          eq(ingredientDefinitions.id, id),
-          eq(ingredientDefinitions.restaurantId, restaurantId),
-          isNull(ingredientDefinitions.deletedAt),
-          existing.currentStock === null
-            ? isNull(ingredientDefinitions.currentStock)
-            : eq(ingredientDefinitions.currentStock, before),
-        ),
-      );
-
-    if ((result.meta?.changes ?? 0) === 0) return null;
-
-    await this.recordMovement({
+    const committed = await this.commitStockMovement({
       restaurantId,
       ingredientId: id,
+      before: existing.currentStock,
+      after,
       delta: input.delta,
-      balanceAfter: after,
       reason: input.reason,
       note: input.note,
       userId,
     });
+    if (!committed) return null;
 
     return this.get(restaurantId, id);
   }
@@ -380,19 +408,16 @@ export class IngredientService {
     restaurantId: string,
     id: number,
     quantity: number,
+    userId?: string,
   ): Promise<boolean> {
-    const result = await this.db
-      .update(ingredientDefinitions)
-      .set({ currentStock: quantity, updatedAt: new Date() })
-      .where(
-        and(
-          eq(ingredientDefinitions.id, id),
-          eq(ingredientDefinitions.restaurantId, restaurantId),
-          isNull(ingredientDefinitions.deletedAt),
-        ),
-      );
-
-    return (result.meta?.changes ?? 0) > 0;
+    return (
+      (await this.update(
+        restaurantId,
+        id,
+        { currentStock: quantity },
+        userId,
+      )) !== null
+    );
   }
 }
 

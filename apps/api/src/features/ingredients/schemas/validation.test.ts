@@ -4,6 +4,7 @@ import {
   ingredientIdParamSchema,
   ingredientListQuerySchema,
   setRecipeSchema,
+  updateIngredientSchema,
   updateStockSchema,
 } from "./validation";
 
@@ -41,6 +42,15 @@ describe("ingredient validation schemas", () => {
     expect(() => updateStockSchema.parse({ quantity: -1 })).toThrow(
       "Quantity must be non-negative",
     );
+  });
+
+  it("rejects clearing tracked stock because the ledger requires a balance", () => {
+    expect(() =>
+      updateIngredientSchema.parse({ currentStock: null }),
+    ).toThrow();
+    expect(updateIngredientSchema.parse({ currentStock: 0 })).toEqual({
+      currentStock: 0,
+    });
   });
 
   it("defaults optional recipe flags and list filters", () => {

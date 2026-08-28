@@ -25,17 +25,9 @@ export interface CreateIngredientRequest {
 }
 
 /**
- * `null` clears an optional field; omitting it leaves the stored value alone.
- * `IngredientService.update` distinguishes the two via `!== undefined` before
- * falling back to `?? null`, and `ingredient_definitions` stores these columns
- * nullable, so the request type has to admit null for clearing to be reachable.
- */
-/**
  * What the admin ingredient form emits: name and unit are always present
- * (both are required inputs), while the optional numerics carry `null` to mean
- * "the owner cleared this". The create endpoint rejects null and the update
- * endpoint uses it to clear, so the form picks per mode and the caller narrows
- * to the matching request type.
+ * (both are required inputs), while clearable optional values carry `null`.
+ * A blank stock field is omitted so the tracked balance stays unchanged.
  */
 export type IngredientFormPayload = Omit<
   CreateIngredientRequest,
@@ -46,6 +38,10 @@ export type IngredientFormPayload = Omit<
     "category" | "costPerUnit" | "supplier" | "minStockLevel" | "currentStock"
   >;
 
+/**
+ * `null` clears optional metadata; omission leaves the stored value alone.
+ * Stock is non-null here because each tracked balance needs a ledger entry.
+ */
 export type UpdateIngredientRequest = {
   name?: string;
   unit?: string;
@@ -53,7 +49,7 @@ export type UpdateIngredientRequest = {
   costPerUnit?: number | null;
   supplier?: string | null;
   minStockLevel?: number | null;
-  currentStock?: number | null;
+  currentStock?: number;
 };
 
 export interface BulkImportRequest {

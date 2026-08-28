@@ -40,7 +40,9 @@ export const updateIngredientSchema = z.object({
   costPerUnit: z.number().min(0).nullable().optional(),
   supplier: z.string().max(200).nullable().optional(),
   minStockLevel: z.number().min(0).nullable().optional(),
-  currentStock: z.number().min(0).nullable().optional(),
+  // Stock cannot be cleared once movement history is tracked because ledger
+  // balances are non-null. Omission still means "leave it unchanged".
+  currentStock: z.number().min(0).optional(),
 });
 
 export const bulkImportSchema = z.object({

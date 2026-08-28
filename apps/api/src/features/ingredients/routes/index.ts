@@ -174,9 +174,15 @@ routes.patch(
   async (c) => {
     const { restaurantId, id } = c.get("validatedParams");
     const { quantity } = c.get("validatedBody");
+    const user: AuthUser = c.get("user");
     const service = new IngredientService(c.env.DB);
 
-    const updated = await service.updateStock(restaurantId, id, quantity);
+    const updated = await service.updateStock(
+      restaurantId,
+      id,
+      quantity,
+      user.id,
+    );
     if (!updated) {
       throw notFound("Ingredient not found", "INGREDIENT_NOT_FOUND");
     }

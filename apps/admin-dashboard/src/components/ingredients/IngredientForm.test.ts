@@ -54,10 +54,8 @@ describe("IngredientForm optional numeric fields", () => {
   });
 
   /**
-   * The two API schemas differ: updateIngredientSchema is
-   * `.nullable().optional()` so an explicit null clears the column, while
-   * createIngredientSchema is only `.optional()` and rejects null outright.
-   * Clearing has to mean different things on the two paths.
+   * Clearable edit metadata accepts explicit null, while the create schema
+   * rejects it. Clearing therefore has different meanings on the two paths.
    */
   it("clears a field to null when editing", async () => {
     const payload = await submit({ ingredient: ingredient() });
@@ -74,6 +72,18 @@ describe("IngredientForm optional numeric fields", () => {
     expect(payload.costPerUnit).toBe(60);
     expect(cleared.costPerUnit).toBeNull();
     expect(cleared.minStockLevel).toBeNull();
+  });
+
+  it("leaves tracked stock unchanged when its edit field is blanked", async () => {
+    const wrapper = mount(IngredientForm, {
+      props: { ingredient: ingredient({ currentStock: 10 }) },
+    });
+    const inputs = wrapper.findAll("input[type=number]");
+    await inputs[1].setValue("");
+    await wrapper.find("form").trigger("submit");
+    const payload = wrapper.emitted("save")![0][0] as Record<string, unknown>;
+
+    expect(payload.currentStock).toBeUndefined();
   });
 
   it("omits a blank field when creating, because the create schema rejects null", async () => {

@@ -164,16 +164,19 @@ const form = reactive<CreateIngredientRequest>({
  * so a blanked optional field went out as "" and the API rejected it. The
  * owner got "Validation failed" and no way to remove a cost or a minimum.
  *
- * The two schemas differ and the difference matters: updateIngredientSchema
- * is `.nullable().optional()` -- omitted leaves the column alone, explicit
- * null clears it -- while createIngredientSchema is only `.optional()` and
- * rejects null outright. So clearing maps to null when editing and to
- * undefined when creating.
+ * Most optional edit fields map a blank to null so owners can clear them.
+ * Stock is the exception: once its non-null ledger is active, a blank means
+ * "leave unchanged" rather than creating an unauditable null balance.
  */
 function optionalNumber(value: number | string | undefined) {
   if (value === "" || value === undefined || value === null) {
     return isEdit ? null : undefined;
   }
+  return typeof value === "number" ? value : Number(value);
+}
+
+function optionalStock(value: number | string | undefined) {
+  if (value === "" || value === undefined || value === null) return undefined;
   return typeof value === "number" ? value : Number(value);
 }
 
@@ -184,7 +187,7 @@ async function handleSubmit() {
       ...form,
       costPerUnit: optionalNumber(form.costPerUnit),
       minStockLevel: optionalNumber(form.minStockLevel),
-      currentStock: optionalNumber(form.currentStock),
+      currentStock: optionalStock(form.currentStock),
     });
   } finally {
     submitting.value = false;

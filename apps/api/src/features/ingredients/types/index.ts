@@ -63,6 +63,7 @@ export interface IIngredientService {
     restaurantId: string,
     id: number,
     quantity: number,
+    userId?: string,
   ): Promise<boolean>;
 }
 

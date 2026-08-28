@@ -334,7 +334,12 @@ describe("ingredients routes", () => {
     response = await request("/rest-1/11/stock", "PATCH", { quantity: 42 });
 
     expect(response.status).toBe(200);
-    expect(ingredientFns.updateStock).toHaveBeenCalledWith("rest-1", 11, 42);
+    expect(ingredientFns.updateStock).toHaveBeenCalledWith(
+      "rest-1",
+      11,
+      42,
+      "user-1",
+    );
 
     ingredientFns.updateStock.mockResolvedValueOnce(false);
 

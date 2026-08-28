@@ -81,8 +81,8 @@ export const ingredientApi = {
   },
 
   /**
-   * Signed delta, not an absolute value — `updateStock` sets the figure and so
-   * carries no reason or history, which is what #277 was about.
+   * Signed delta for an explained purchase, write-off, correction, or transfer.
+   * The legacy absolute endpoint remains available and records a correction.
    */
   async adjustStock(
     restaurantId: string,
