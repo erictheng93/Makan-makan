@@ -67,6 +67,7 @@ Operational playbooks for production incidents and migrations.
 | [runbooks/backup-restore-runbook.md](./runbooks/backup-restore-runbook.md)     | D1 backup/restore procedure                             |
 | [runbooks/incident-triage-runbook.md](./runbooks/incident-triage-runbook.md)   | General incident triage steps                           |
 | [runbooks/rollback-runbook.md](./runbooks/rollback-runbook.md)                 | Deployment rollback procedure                            |
+| [incidents/](./incidents/)                                                     | Post-incident write-ups (INC-NNN, dated reports)         |
 
 ### Feature Documentation
 
@@ -98,6 +99,7 @@ Active feature docs for in-progress or reference-worthy features:
 | [deployment/TROUBLESHOOTING.md](./deployment/TROUBLESHOOTING.md)                           | Common issues                   |
 | [security/SECURITY.md](./security/SECURITY.md)                                             | Security policies               |
 | [security/DEPLOYMENT_SECURITY_CHECKLIST.md](./security/DEPLOYMENT_SECURITY_CHECKLIST.md)   | Security checklist              |
+| [security/2026-06-25-production-readiness-review.md](./security/2026-06-25-production-readiness-review.md) | Production readiness security review (R-001–R-008) |
 
 ### API Documentation
 
@@ -147,7 +149,7 @@ Role-based guides in 6 languages (zh-TW, en-US, ja-JP, vi-VN, id-ID, fil-PH):
 | ------------------------------------------ | ---------------------------- |
 | [superpowers/plans/](./superpowers/plans/) | Current implementation plans |
 | [superpowers/specs/](./superpowers/specs/) | Design specifications        |
-| [plans/](./plans/)                         | Database optimization plans  |
+| [plans/](./plans/)                         | Dated plan/todo pairs        |
 
 ### Archive
 

@@ -534,7 +534,7 @@ pnpm --filter @makanmasak/api test:coverage waiting-list
 - **架構決策 2**：`ticket-primitives` 不含 `sse-broadcast.ts`。primitives 限定為「純函式工具」。Broadcast 是 service，由 service 直接呼叫
 - **架構決策 3**：waiting-list 廣播 room 用 `admin:${restaurantId}`，admin-dashboard 既有的 `useRealtimeOrderStatus` WebSocket 連線立刻可收到
 - **架構決策 4**：加 `apps/api/wrangler.toml` 的 DO binding（必做，否則 `REALTIME_SESSION` 仍是 undefined，G1 也會靜默失敗）
-- **明確不做**：OrdersService 廣播 room 從 `restaurant:` 改為 `admin:` 的修復——這是獨立 bug，獨立 PR 處理（見 `tasks/incidents/INC-002-realtime-room-mismatch.md`）
+- **明確不做**：OrdersService 廣播 room 從 `restaurant:` 改為 `admin:` 的修復——這是獨立 bug，獨立 PR 處理（見 `docs/incidents/INC-002-realtime-room-mismatch.md`）
 
 ### 4.2 `broadcastTicketEvent` 不需要存在
 

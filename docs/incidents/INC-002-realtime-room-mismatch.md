@@ -3,7 +3,7 @@
 |  |  |
 | --- | --- |
 | **發現日期** | 2026-05-01 |
-| **發現於** | P1 候位系統 G1 spike (`tasks/plan.md` §4) |
+| **發現於** | P1 候位系統 G1 spike (`docs/plans/2026-05-01-queue-backend-gaps-plan.md` §4) |
 | **嚴重度** | High |
 | **狀態** | Open（P1 不修；獨立 PR 處理） |
 | **依賴** | INC-001 修好之後（加了 binding 才會「廣播到無人 room」可被驗證） |
@@ -57,7 +57,7 @@ P1 之後另開 PR 做 Option A。建議優先順序：
 
 ## 為什麼 P1 不修
 
-引用 `tasks/plan.md` 風險登記簿 R-P1-6：
+引用 `docs/plans/2026-05-01-queue-backend-gaps-plan.md` 風險登記簿 R-P1-6：
 
 > 加 binding 後，OrdersService/KitchenService 廣播從「靜默 no-op」變成「廣播到無人 room（`restaurant:`）」。對使用者**無新影響**（一樣收不到），但會多消耗 DO 調用次數（成本可忽略）。
 
@@ -65,6 +65,6 @@ P1 之後另開 PR 做 Option A。建議優先順序：
 
 ## 連結
 
-- T0 spike 完整論述：`tasks/plan.md` §4
+- T0 spike 完整論述：`docs/plans/2026-05-01-queue-backend-gaps-plan.md` §4
 - 相關 incident：INC-001（type / binding 對齊）
 - 程式碼指向：`apps/api/src/services/RealtimeBroadcastService.ts:126`

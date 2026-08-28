@@ -139,7 +139,7 @@ preview_bucket_name = "makanmasak-backups-preview"
 
 # Durable Object binding to apps/realtime — needed for RealtimeBroadcastService.
 # Without this, env.REALTIME_SESSION is undefined and broadcasts silently no-op
-# (see tasks/incidents/INC-001). Each env points at the matching realtime worker.
+# (see docs/incidents/INC-001). Each env points at the matching realtime worker.
 [[durable_objects.bindings]]
 name = "REALTIME_SESSION"
 class_name = "RealtimeSession"

@@ -1,6 +1,6 @@
 # Todo: P1 — 候位後端缺口修復
 
-對應計劃文件：`tasks/plan.md` 對應 spec：`docs/specs/queue-and-waiting-list.md`
+對應計劃文件：`docs/plans/2026-05-01-queue-backend-gaps-plan.md` 對應 spec：`docs/specs/queue-and-waiting-list.md`
 
 > 一行一動作。完成的勾起來。每完成一個任務，提交一個小 commit；T7 後合併為 P1 PR。
 
@@ -17,7 +17,7 @@
 - [x] 讀 `apps/api/src/services/RealtimeBroadcastService.ts`（**發現該 class 已存在但被 binding 缺失廢掉**）
 - [x] grep 確認 `RealtimeBroadcastService` 唯一 caller 是 OrdersService + KitchenService
 - [x] 結論：方案 A（接 realtime DO + 搬 RealtimeBroadcastService + 加 binding + 廣播 `admin:${id}` room）
-- [x] 寫進 `tasks/plan.md` §4
+- [x] 寫進 `docs/plans/2026-05-01-queue-backend-gaps-plan.md` §4
 - [x] **CP1 通過**：user 採方案 A + Q2(iii)（不修 OrdersService room）
 
 ---

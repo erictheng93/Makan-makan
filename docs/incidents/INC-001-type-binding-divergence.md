@@ -3,7 +3,7 @@
 |              |                                                           |
 | ------------ | --------------------------------------------------------- |
 | **發現日期** | 2026-05-01                                                |
-| **發現於**   | P1 候位系統 G1 spike (`tasks/plan.md` §4)                 |
+| **發現於**   | P1 候位系統 G1 spike (`docs/plans/2026-05-01-queue-backend-gaps-plan.md` §4)                 |
 | **嚴重度**   | High（已導致生產 bug）                                    |
 | **狀態**     | Open（P1 T1c 會修補單一個案；類別問題待開更上層工程議題） |
 
@@ -37,7 +37,7 @@ if (!this.env.REALTIME_SESSION) {
 
 ## 立即動作（P1 範圍內）
 
-P1 的 T1c 會處理**單一個案**：在 `apps/api/wrangler.toml` 加 `REALTIME_SESSION` binding。詳見 `tasks/plan.md` §3 T1c。
+P1 的 T1c 會處理**單一個案**：在 `apps/api/wrangler.toml` 加 `REALTIME_SESSION` binding。詳見 `docs/plans/2026-05-01-queue-backend-gaps-plan.md` §3 T1c。
 
 ## 工程議題（P1 範圍外，待討論）
 
@@ -50,5 +50,5 @@ P1 的 T1c 會處理**單一個案**：在 `apps/api/wrangler.toml` 加 `REALTIM
 
 ## 連結
 
-- T0 spike 完整論述：`tasks/plan.md` §4
+- T0 spike 完整論述：`docs/plans/2026-05-01-queue-backend-gaps-plan.md` §4
 - 相關 incident：INC-002（room name mismatch，會在 binding 修好後浮現）
