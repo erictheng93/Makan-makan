@@ -14,7 +14,7 @@
  */
 
 import { drizzle } from "drizzle-orm/d1";
-import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import {
   coupons,
   couponUsage,
@@ -169,44 +169,40 @@ export class MarketCheckoutVoucherService {
     }
 
     // Codes are unique per tenant since 0013, so one code can match several
-    // rows at once: the platform's, plus one for each shop in this checkout.
-    // Resolve only against rows that could legitimately apply here, and filter
-    // soft-deleted rows in the query rather than after it -- picking one and
-    // then rejecting it would 404 a live voucher that a deleted row shadowed.
-    const childRestaurantIds = [
-      ...new Set(
-        input.childOrders
-          .map((child) => child.restaurantId)
-          .filter((id): id is string => typeof id === "string" && id !== ""),
-      ),
-    ];
+    // rows at once: the platform's, plus one for each shop that owns it.
+    // Soft-deleted rows are filtered in the query rather than after it --
+    // picking one and then rejecting it would 404 a live voucher that a
+    // deleted row happened to shadow.
+    //
+    // The scope is deliberately NOT narrowed to this checkout's shops. A
+    // shop-scoped voucher that does not apply here still has to be found, or
+    // the diner is told the code does not exist when the truth is that it
+    // belongs to another shop -- that distinction is what VOUCHER_NOT_APPLICABLE
+    // below exists to say.
+    const childRestaurantIds = new Set(
+      input.childOrders
+        .map((child) => child.restaurantId)
+        .filter((id): id is string => typeof id === "string" && id !== ""),
+    );
 
     const candidates = await this.db
       .select()
       .from(coupons)
-      .where(
-        and(
-          eq(coupons.code, code),
-          isNull(coupons.deletedAt),
-          childRestaurantIds.length > 0
-            ? or(
-                isNull(coupons.restaurantId),
-                inArray(coupons.restaurantId, childRestaurantIds),
-              )
-            : isNull(coupons.restaurantId),
-        ),
-      )
+      .where(and(eq(coupons.code, code), isNull(coupons.deletedAt)))
       .all();
 
-    // A shop's own voucher beats the platform's. Ordering by id after that
-    // keeps the choice deterministic when two shops in one checkout each own
-    // the same code.
-    const [coupon] = candidates.sort((a, b) => {
-      const aPlatform = a.restaurantId == null;
-      const bPlatform = b.restaurantId == null;
-      if (aPlatform !== bPlatform) return aPlatform ? 1 : -1;
-      return a.id - b.id;
-    });
+    // Prefer whichever candidate actually applies here: a shop's own voucher
+    // for a shop in this checkout, then the platform's, then anything else
+    // (which falls through to the not-applicable error with an accurate
+    // message). Ordering by id within a rank keeps the choice deterministic
+    // when two shops in one checkout each own the code.
+    const rank = (row: (typeof candidates)[number]) => {
+      if (row.restaurantId == null) return 1;
+      return childRestaurantIds.has(row.restaurantId) ? 0 : 2;
+    };
+    const [coupon] = candidates.sort(
+      (a, b) => rank(a) - rank(b) || a.id - b.id,
+    );
 
     if (!coupon) {
       throw notFound("Voucher not found", "VOUCHER_NOT_FOUND");
