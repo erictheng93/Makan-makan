@@ -354,6 +354,48 @@ describe("useAuthStore", () => {
     expect(managementAuthClient.tokens.clearAll).toHaveBeenCalled();
   });
 
+  it("does not warn when an expired session is simply signed out", async () => {
+    // A returning visitor whose 7-day refresh cookie died still holds the
+    // localStorage markers, so restoreSession() spends one round trip that is
+    // meant to fail. Warning there put a yellow line in the console for a
+    // correctly handled expiry, indistinguishable from a real fault.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const debug = vi.spyOn(console, "debug").mockImplementation(() => {});
+    localStorage.setItem("auth_user", JSON.stringify(user()));
+    vi.mocked(getAuthToken).mockReturnValue(null);
+    vi.mocked(authClient.instance.post).mockRejectedValue({
+      response: { status: 401 },
+    });
+    const store = useAuthStore();
+
+    await expect(store.refreshToken()).resolves.toBe(false);
+
+    expect(warn).not.toHaveBeenCalled();
+    expect(debug).toHaveBeenCalledWith("Session refresh rejected; signing out");
+    warn.mockRestore();
+    debug.mockRestore();
+  });
+
+  it("still warns when refresh fails for a non-auth reason", async () => {
+    // Offline or a 5xx leaves the stored session intact, so the reactive 401
+    // interceptor can still recover it — that is worth saying out loud.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    localStorage.setItem("auth_user", JSON.stringify(user()));
+    vi.mocked(getAuthToken).mockReturnValue("expired-token");
+    vi.mocked(authClient.instance.post).mockRejectedValue({
+      response: { status: 503 },
+    });
+    const store = useAuthStore();
+
+    await expect(store.refreshToken()).resolves.toBe(false);
+
+    expect(warn).toHaveBeenCalledWith(
+      "Proactive refresh failed, falling back to reactive mode",
+    );
+    expect(localStorage.getItem("auth_user")).toEqual(JSON.stringify(user()));
+    warn.mockRestore();
+  });
+
   it("can leave local session state intact when a background refresh fails", async () => {
     localStorage.setItem("auth_user", JSON.stringify(user()));
     vi.mocked(getAuthToken).mockReturnValue("expired-token");

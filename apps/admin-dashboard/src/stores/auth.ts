@@ -456,7 +456,24 @@ export const useAuthStore = defineStore("auth", () => {
         if (clearOnAuthFailure && authFailure) {
           clearLocalSessionState();
         }
-        console.warn("Proactive refresh failed, falling back to reactive mode");
+        if (authFailure) {
+          // The 7-day refresh cookie expired (or was revoked) while the
+          // localStorage markers outlived it, so restoreSession() spent one
+          // doomed round trip. That is the designed path, not a fault: the
+          // state has just been cleared, the guard is about to redirect to
+          // /login, and the next load makes no request at all. Warning about it
+          // put a yellow line in every returning visitor's console for a
+          // correctly handled expiry — and "falling back to reactive mode" was
+          // untrue here, because there is no session left to recover
+          // reactively. Keep it as a debug breadcrumb instead.
+          console.debug("Session refresh rejected; signing out");
+        } else {
+          // Offline or a 5xx leaves the stored session intact, so the reactive
+          // 401 interceptor really can still recover it on the next call.
+          console.warn(
+            "Proactive refresh failed, falling back to reactive mode",
+          );
+        }
         return { refreshed: false, authFailure };
       }
 
