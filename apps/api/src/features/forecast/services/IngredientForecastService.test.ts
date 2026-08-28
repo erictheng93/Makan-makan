@@ -514,6 +514,48 @@ describe("IngredientForecastService", () => {
     });
   });
 
+  it("does not hydrate an expired database ingredient forecast into KV", async () => {
+    const db = createDb({
+      forecastCache: [
+        [
+          {
+            data: [],
+            metadata: { dataSourceDays: 14, model: "expired", generatedAt: "" },
+            generatedBy: "statistical",
+            expiresAt: new Date(Date.now() - 1),
+          },
+        ],
+      ],
+    });
+    drizzleState.db = db;
+    const { kv } = createKV();
+    const service = new IngredientForecastService(
+      {} as D1Database,
+      kv,
+      createForecastService() as never,
+    );
+    const generated = [
+      {
+        date: "2026-06-08",
+        ingredients: [],
+        generatedBy: "statistical" as const,
+        metadata: { dataSourceDays: 1, model: "generated", generatedAt: "" },
+      },
+    ];
+    vi.spyOn(service, "generateIngredientForecast").mockResolvedValue(
+      generated,
+    );
+
+    await expect(
+      service.getIngredientForecast("restaurant-1", "2026-06-08", "2026-06-08"),
+    ).resolves.toEqual(generated);
+    expect(kv.put).not.toHaveBeenCalled();
+    expect(service.generateIngredientForecast).toHaveBeenCalledWith(
+      "restaurant-1",
+      { startDate: "2026-06-08", endDate: "2026-06-08" },
+    );
+  });
+
   it("computes date ranges and direct forecast explosion edge cases", () => {
     const service = new IngredientForecastService(
       {} as D1Database,

@@ -16,7 +16,7 @@
       v-if="groupedItems.length === 0"
       class="text-center py-6 text-gray-400 text-sm"
     >
-      {{ t("forecast.noProcurementNeeded") }}
+      {{ t("forecast.noProcurementData") }}
     </div>
 
     <div
@@ -138,7 +138,9 @@ function exportCSV() {
     })
     .join("\n");
 
-  const blob = new Blob([header + rows], { type: "text/csv" });
+  const blob = new Blob(["\uFEFF" + header + rows], {
+    type: "text/csv;charset=utf-8",
+  });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

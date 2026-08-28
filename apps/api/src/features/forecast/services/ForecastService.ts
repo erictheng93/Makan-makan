@@ -6,6 +6,9 @@ import {
   menuItems,
   orders,
   orderItems,
+  dateFromUnixMs,
+  getBusinessDate,
+  strftimeFromUnixMs,
 } from "@makanmasak/database";
 import type {
   ForecastResult,
@@ -274,7 +277,7 @@ export class ForecastService implements IForecastService {
         menuItemId: orderItems.menuItemId,
         itemName: menuItems.name,
         actualQuantity: sql<number>`SUM(${orderItems.quantity})`,
-        orderDate: sql<string>`DATE(${orders.createdAt} / 1000, 'unixepoch')`,
+        orderDate: dateFromUnixMs(orders.createdAt),
       })
       .from(orderItems)
       .innerJoin(orders, eq(orderItems.orderId, orders.id))
@@ -290,14 +293,11 @@ export class ForecastService implements IForecastService {
             "paid",
           ]),
           sql`${orderItems.status} != 'cancelled'`,
-          sql`DATE(${orders.createdAt} / 1000, 'unixepoch') >= ${startDate}`,
-          sql`DATE(${orders.createdAt} / 1000, 'unixepoch') <= ${endDate}`,
+          sql`${dateFromUnixMs(orders.createdAt)} >= ${startDate}`,
+          sql`${dateFromUnixMs(orders.createdAt)} <= ${endDate}`,
         ),
       )
-      .groupBy(
-        orderItems.menuItemId,
-        sql`DATE(${orders.createdAt} / 1000, 'unixepoch')`,
-      );
+      .groupBy(orderItems.menuItemId, dateFromUnixMs(orders.createdAt));
 
     const actualMap = new Map<string, Map<number, number>>();
     for (const row of actuals) {
@@ -336,7 +336,7 @@ export class ForecastService implements IForecastService {
 
   async getAlerts(restaurantId: string): Promise<ForecastAlert[]> {
     const alerts: ForecastAlert[] = [];
-    const tomorrow = this.formatDate(new Date(Date.now() + 86400000));
+    const tomorrow = getBusinessDate(new Date(Date.now() + 86400000));
 
     const forecasts = await this.getForecast(restaurantId, tomorrow, tomorrow);
     if (!forecasts.length || !forecasts[0].items.length) return [];
@@ -368,6 +368,8 @@ export class ForecastService implements IForecastService {
           menuItemId: item.menuItemId,
           menuItemName: item.menuItemName,
           message: `明日預估高需求：${Math.ceil(item.predicted)} 份，請提前備料`,
+          messageKey: "forecast.alertHighDemandMessage",
+          messageParams: { predicted: Math.ceil(item.predicted) },
           severity: item.predicted > 50 ? "warning" : "info",
           data: { predicted: item.predicted, confidence: item.confidence },
         });
@@ -382,6 +384,11 @@ export class ForecastService implements IForecastService {
           menuItemId: item.menuItemId,
           menuItemName: item.menuItemName,
           message: `預估需要 ${Math.ceil(item.predicted)} 份，但庫存只有 ${menuItem.inventoryCount} 份`,
+          messageKey: "forecast.alertLowStockMessage",
+          messageParams: {
+            predicted: Math.ceil(item.predicted),
+            currentStock: menuItem.inventoryCount,
+          },
           severity:
             item.predicted > menuItem.inventoryCount * 2
               ? "critical"
@@ -395,6 +402,12 @@ export class ForecastService implements IForecastService {
           menuItemId: item.menuItemId,
           menuItemName: item.menuItemName,
           message: `預估量 ${Math.ceil(item.predicted)} 份，比平均 ${Math.round(item.historicalAvg)} 份高出 ${Math.round(item.trendPercent)}%`,
+          messageKey: "forecast.alertUnusualSpikeMessage",
+          messageParams: {
+            predicted: Math.ceil(item.predicted),
+            average: Math.round(item.historicalAvg),
+            percent: Math.round(item.trendPercent),
+          },
           severity:
             item.predicted > item.historicalAvg * 2 ? "warning" : "info",
         });
@@ -446,6 +459,13 @@ export class ForecastService implements IForecastService {
               ingredientId: ing.ingredientId,
               ingredientName: ing.ingredientName,
               message: `${ing.ingredientName} 需採購：預測需要 ${ing.predictedQuantity} ${ing.unit}，庫存僅 ${ing.currentStock} ${ing.unit}，缺口 ${gap} ${ing.unit}`,
+              messageKey: "forecast.alertProcurementNeededMessage",
+              messageParams: {
+                predicted: ing.predictedQuantity,
+                currentStock: ing.currentStock,
+                gap,
+                unit: ing.unit,
+              },
               severity: ratio > 2 ? "critical" : "warning",
               data: {
                 predicted: ing.predictedQuantity,
@@ -468,6 +488,12 @@ export class ForecastService implements IForecastService {
               ingredientId: ing.ingredientId,
               ingredientName: ing.ingredientName,
               message: `${ing.ingredientName} 庫存過量：庫存 ${ing.currentStock} ${ing.unit}，預測僅需 ${ing.predictedQuantity} ${ing.unit}`,
+              messageKey: "forecast.alertExcessStockMessage",
+              messageParams: {
+                predicted: ing.predictedQuantity,
+                currentStock: ing.currentStock,
+                unit: ing.unit,
+              },
               severity: "info",
               data: {
                 predicted: ing.predictedQuantity,
@@ -499,7 +525,7 @@ export class ForecastService implements IForecastService {
         menuItemId: orderItems.menuItemId,
         itemName: menuItems.name,
         quantitySum: sql<number>`SUM(${orderItems.quantity})`,
-        orderDate: sql<string>`DATE(${orders.createdAt} / 1000, 'unixepoch')`,
+        orderDate: dateFromUnixMs(orders.createdAt),
       })
       .from(orderItems)
       .innerJoin(orders, eq(orderItems.orderId, orders.id))
@@ -515,16 +541,13 @@ export class ForecastService implements IForecastService {
             "paid",
           ]),
           sql`${orderItems.status} != 'cancelled'`,
-          sql`CAST(strftime('%w', ${orders.createdAt} / 1000, 'unixepoch') AS INTEGER) = ${weekday}`,
-          sql`DATE(${orders.createdAt} / 1000, 'unixepoch') >= DATE(${targetDate}, '-' || ${HISTORICAL_WEEKS * 7} || ' days')`,
-          sql`DATE(${orders.createdAt} / 1000, 'unixepoch') < ${targetDate}`,
+          sql`CAST(${strftimeFromUnixMs("%w", orders.createdAt)} AS INTEGER) = ${weekday}`,
+          sql`${dateFromUnixMs(orders.createdAt)} >= DATE(${targetDate}, '-' || ${HISTORICAL_WEEKS * 7} || ' days')`,
+          sql`${dateFromUnixMs(orders.createdAt)} < ${targetDate}`,
         ),
       )
-      .groupBy(
-        orderItems.menuItemId,
-        sql`DATE(${orders.createdAt} / 1000, 'unixepoch')`,
-      )
-      .orderBy(sql`DATE(${orders.createdAt} / 1000, 'unixepoch') DESC`);
+      .groupBy(orderItems.menuItemId, dateFromUnixMs(orders.createdAt))
+      .orderBy(sql`${dateFromUnixMs(orders.createdAt)} DESC`);
 
     const grouped: Record<string, { name: string; weeklySales: number[] }> = {};
     for (const row of result) {

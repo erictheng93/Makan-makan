@@ -4757,6 +4757,16 @@ const enUS: Messages = {
     alertUnusualSpike: "Unusual Spike",
     alertProcurementNeeded: "Procurement Needed",
     alertExcessStock: "Excess Stock",
+    alertHighDemandMessage:
+      "Tomorrow's predicted demand is {predicted}; prepare ahead.",
+    alertLowStockMessage:
+      "Predicted need is {predicted}, but stock is only {currentStock}.",
+    alertUnusualSpikeMessage:
+      "Predicted {predicted}, {percent}% above the average of {average}.",
+    alertProcurementNeededMessage:
+      "Predicted {predicted} {unit}, stock {currentStock} {unit}, gap {gap} {unit}.",
+    alertExcessStockMessage:
+      "Stock is {currentStock} {unit}, while predicted need is {predicted} {unit}.",
     predictedQuantity: "Predicted Qty",
     gap: "Gap",
     details: "Details",
@@ -4764,6 +4774,16 @@ const enUS: Messages = {
     procurementList: "Procurement List",
     exportCSV: "Export CSV",
     noProcurementNeeded: "No procurement needed — stock levels are sufficient",
+    noProcurementData: "No forecast or procurement data available",
+    tomorrow: "Tomorrow",
+    nextSevenDays: "Next 7 days",
+    customRange: "Custom range",
+    generated: "Forecast generated successfully",
+    loadFailed: "Unable to load forecast data",
+    generateFailed: "Unable to generate forecast",
+    ingredientLoadFailed: "Unable to load ingredient forecast data",
+    emptyForecastHistory:
+      "No forecast items were generated. Complete more orders to build forecast history.",
     noSupplier: "No Supplier",
     subtotal: "Subtotal",
     totalEstimatedCost: "Total Estimated Cost",

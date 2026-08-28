@@ -140,6 +140,7 @@ export class IngredientForecastService {
           data: forecastCache.data,
           metadata: forecastCache.metadata,
           generatedBy: forecastCache.generatedBy,
+          expiresAt: forecastCache.expiresAt,
         })
         .from(forecastCache)
         .where(
@@ -151,7 +152,10 @@ export class IngredientForecastService {
         )
         .limit(1);
 
-      if (dbResult.length) {
+      if (
+        dbResult.length &&
+        (!dbResult[0].expiresAt || dbResult[0].expiresAt.getTime() > Date.now())
+      ) {
         const row = dbResult[0];
         const result: IngredientForecastResult = {
           date,

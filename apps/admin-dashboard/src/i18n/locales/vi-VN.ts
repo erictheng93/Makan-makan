@@ -4670,6 +4670,7 @@ const viVN: Messages = {
     title: "Dự báo nhu cầu",
     subtitle: "Dự báo nhu cầu món ăn và nguyên liệu bằng AI",
     generate: "Tạo dự báo",
+    nextSevenDays: "7 ngày tới",
     forecastTab: "Dự báo",
     accuracyTab: "Độ chính xác",
     ingredientTab: "Nguyên liệu",
@@ -4686,6 +4687,16 @@ const viVN: Messages = {
     alertUnusualSpike: "Tăng đột biến",
     alertProcurementNeeded: "Cần mua hàng",
     alertExcessStock: "Tồn kho dư",
+    alertHighDemandMessage:
+      "Nhu cầu ngày mai dự kiến là {predicted}; hãy chuẩn bị trước.",
+    alertLowStockMessage:
+      "Nhu cầu dự kiến {predicted}, nhưng tồn kho chỉ {currentStock}.",
+    alertUnusualSpikeMessage:
+      "Dự báo {predicted}, cao hơn trung bình {average} là {percent}%.",
+    alertProcurementNeededMessage:
+      "Dự báo {predicted} {unit}, tồn kho {currentStock} {unit}, thiếu {gap} {unit}.",
+    alertExcessStockMessage:
+      "Tồn kho {currentStock} {unit}, trong khi dự báo chỉ cần {predicted} {unit}.",
     predictedQuantity: "SL dự báo",
     gap: "Thiếu hụt",
     details: "Chi tiết",
@@ -4693,6 +4704,15 @@ const viVN: Messages = {
     procurementList: "Danh sách mua hàng",
     exportCSV: "Xuất CSV",
     noProcurementNeeded: "Không cần mua hàng — tồn kho đủ",
+    noProcurementData: "Không có dữ liệu dự báo hoặc mua hàng",
+    tomorrow: "Ngày mai",
+    customRange: "Khoảng tùy chỉnh",
+    generated: "Đã tạo dự báo",
+    loadFailed: "Không thể tải dữ liệu dự báo",
+    generateFailed: "Không thể tạo dự báo",
+    ingredientLoadFailed: "Không thể tải dữ liệu dự báo nguyên liệu",
+    emptyForecastHistory:
+      "Không có mục dự báo. Hãy hoàn thành thêm đơn hàng để tạo lịch sử dữ liệu.",
     noSupplier: "Không có NCC",
     subtotal: "Tạm tính",
     totalEstimatedCost: "Tổng chi phí ước tính",

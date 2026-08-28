@@ -4710,6 +4710,16 @@ const idID: Messages = {
     alertUnusualSpike: "Lonjakan Tak Biasa",
     alertProcurementNeeded: "Perlu Pengadaan",
     alertExcessStock: "Stok Berlebih",
+    alertHighDemandMessage:
+      "Permintaan besok diperkirakan {predicted}; siapkan lebih awal.",
+    alertLowStockMessage:
+      "Kebutuhan diperkirakan {predicted}, stok hanya {currentStock}.",
+    alertUnusualSpikeMessage:
+      "Prediksi {predicted}, {percent}% di atas rata-rata {average}.",
+    alertProcurementNeededMessage:
+      "Prediksi {predicted} {unit}, stok {currentStock} {unit}, kekurangan {gap} {unit}.",
+    alertExcessStockMessage:
+      "Stok {currentStock} {unit}, sedangkan prediksi kebutuhan {predicted} {unit}.",
     predictedQuantity: "Jml Prediksi",
     gap: "Kekurangan",
     details: "Detail",
@@ -4717,6 +4727,16 @@ const idID: Messages = {
     procurementList: "Daftar Pengadaan",
     exportCSV: "Ekspor CSV",
     noProcurementNeeded: "Tidak perlu pengadaan — stok mencukupi",
+    noProcurementData: "Tidak ada data prakiraan atau pengadaan",
+    tomorrow: "Besok",
+    nextSevenDays: "7 hari ke depan",
+    customRange: "Rentang khusus",
+    generated: "Prakiraan berhasil dibuat",
+    loadFailed: "Tidak dapat memuat data prakiraan",
+    generateFailed: "Tidak dapat membuat prakiraan",
+    ingredientLoadFailed: "Tidak dapat memuat data prakiraan bahan",
+    emptyForecastHistory:
+      "Tidak ada item prakiraan. Selesaikan lebih banyak pesanan untuk membangun riwayat.",
     noSupplier: "Tanpa Pemasok",
     subtotal: "Subtotal",
     totalEstimatedCost: "Estimasi Total Biaya",

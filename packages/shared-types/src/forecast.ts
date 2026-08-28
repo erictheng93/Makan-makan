@@ -44,6 +44,9 @@ export interface ForecastAlert {
   menuItemId: number;
   menuItemName: string;
   message: string;
+  /** Localized by clients when present; message remains for old clients. */
+  messageKey?: string;
+  messageParams?: Record<string, string | number>;
   severity: "info" | "warning" | "critical";
   data?: Record<string, unknown>;
   ingredientId?: number;

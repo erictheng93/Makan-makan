@@ -4673,6 +4673,7 @@ const jaJP: Messages = {
     title: "需要予測",
     subtitle: "AIによるメニューと食材の需要予測",
     generate: "予測を生成",
+    nextSevenDays: "今後 7 日間",
     forecastTab: "予測",
     accuracyTab: "精度",
     ingredientTab: "食材予測",
@@ -4690,6 +4691,16 @@ const jaJP: Messages = {
     alertUnusualSpike: "異常急増",
     alertProcurementNeeded: "仕入れ必要",
     alertExcessStock: "在庫過剰",
+    alertHighDemandMessage:
+      "明日の予測需要は {predicted} です。事前に準備してください。",
+    alertLowStockMessage:
+      "予測必要量は {predicted}、在庫は {currentStock} のみです。",
+    alertUnusualSpikeMessage:
+      "予測 {predicted} は平均 {average} より {percent}% 高いです。",
+    alertProcurementNeededMessage:
+      "予測 {predicted} {unit}、在庫 {currentStock} {unit}、不足 {gap} {unit}。",
+    alertExcessStockMessage:
+      "在庫 {currentStock} {unit}、予測必要量は {predicted} {unit} です。",
     predictedQuantity: "予測必要量",
     gap: "不足分",
     details: "詳細",
@@ -4697,6 +4708,15 @@ const jaJP: Messages = {
     procurementList: "仕入れリスト",
     exportCSV: "CSVエクスポート",
     noProcurementNeeded: "仕入れ不要 — 在庫は十分です",
+    noProcurementData: "予測または仕入れデータはありません",
+    tomorrow: "明日",
+    customRange: "カスタム",
+    generated: "予測を生成しました",
+    loadFailed: "予測データを読み込めません",
+    generateFailed: "予測を生成できません",
+    ingredientLoadFailed: "食材予測データを読み込めません",
+    emptyForecastHistory:
+      "予測項目がありません。履歴を作るため、完了済み注文をさらに蓄積してください。",
     noSupplier: "仕入先なし",
     subtotal: "小計",
     totalEstimatedCost: "推定総コスト",

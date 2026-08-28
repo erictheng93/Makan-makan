@@ -35,6 +35,19 @@
       ⚠️ {{ t("forecast.staleWarning") }}
     </div>
 
+    <p
+      v-if="feedback"
+      class="mb-4 rounded-lg border px-3 py-2 text-sm"
+      :class="
+        feedback.kind === 'error'
+          ? 'border-red-200 bg-red-50 text-red-800'
+          : 'border-blue-200 bg-blue-50 text-blue-800'
+      "
+      role="status"
+    >
+      {{ feedback.message }}
+    </p>
+
     <!-- Date Picker -->
     <div class="mb-6">
       <ForecastDatePicker
@@ -104,6 +117,12 @@
     <!-- Forecast Tab -->
     <template v-else-if="activeTab === 'forecast'">
       <ForecastAlerts :alerts="alerts" class="mb-6" />
+      <p
+        v-if="forecastLoaded && forecastItems.length === 0"
+        class="mb-4 text-sm text-gray-600"
+      >
+        {{ t("forecast.emptyForecastHistory") }}
+      </p>
       <ForecastTable :items="forecastItems" />
     </template>
 
@@ -120,14 +139,23 @@
         ></div>
       </div>
       <template v-else>
-        <IngredientForecastTable
-          :items="ingredientForecastItems"
-          class="mb-6"
-        />
-        <ProcurementList
-          :items="ingredientForecastItems"
-          :ingredient-details="ingredientDetailsMap"
-        />
+        <p
+          v-if="ingredientError"
+          class="mb-4 text-sm text-red-700"
+          role="alert"
+        >
+          {{ ingredientError }}
+        </p>
+        <template v-if="!ingredientError">
+          <IngredientForecastTable
+            :items="ingredientForecastItems"
+            class="mb-6"
+          />
+          <ProcurementList
+            :items="ingredientForecastItems"
+            :ingredient-details="ingredientDetailsMap"
+          />
+        </template>
       </template>
     </template>
   </div>
@@ -162,12 +190,24 @@ const generating = ref(false);
 const accuracyLoading = ref(false);
 const ingredientLoading = ref(false);
 const isStale = ref(false);
+const feedback = ref<{ kind: "success" | "error"; message: string } | null>(
+  null,
+);
+const ingredientError = ref("");
+const forecastLoaded = ref(false);
 const activeTab = ref<"forecast" | "accuracy" | "ingredients">("forecast");
+
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 const tomorrow = new Date();
 tomorrow.setDate(tomorrow.getDate() + 1);
-const startDate = ref(tomorrow.toISOString().split("T")[0]);
-const endDate = ref(tomorrow.toISOString().split("T")[0]);
+const startDate = ref(formatLocalDate(tomorrow));
+const endDate = ref(formatLocalDate(tomorrow));
 
 const forecastItems = ref<ForecastItemResult[]>([]);
 const alerts = ref<ForecastAlert[]>([]);
@@ -187,9 +227,10 @@ const hasIngredientForecast = computed(
   () => moduleAccess.effectiveModules?.inventory === true,
 );
 
-async function loadForecast() {
-  if (!restaurantId.value) return;
+async function loadForecast(): Promise<boolean> {
+  if (!restaurantId.value) return false;
   loading.value = true;
+  forecastLoaded.value = false;
   try {
     const forecasts = await forecastApi.getForecast(restaurantId.value, {
       startDate: startDate.value,
@@ -200,33 +241,44 @@ async function loadForecast() {
 
     const alertsData = await forecastApi.getAlerts(restaurantId.value);
     alerts.value = alertsData;
+    forecastLoaded.value = true;
+    if (feedback.value?.kind === "error") feedback.value = null;
+    return true;
   } catch (error) {
     console.error("Failed to load forecast:", error);
+    feedback.value = { kind: "error", message: t("forecast.loadFailed") };
+    return false;
   } finally {
     loading.value = false;
   }
 }
 
 async function generateForecast() {
-  if (!restaurantId.value) return;
+  if (!restaurantId.value || generating.value) return;
   generating.value = true;
+  feedback.value = null;
   try {
-    await forecastApi.generate(restaurantId.value, {
-      startDate: startDate.value,
-      endDate: endDate.value,
-    });
-    // Ingredient forecasting is a separate (inventory) module — only chain it
-    // when the shop actually has it, otherwise this 403s and takes the whole
-    // demand forecast down with it.
     if (hasIngredientForecast.value) {
       await forecastApi.generateIngredientForecast(restaurantId.value, {
         startDate: startDate.value,
         endDate: endDate.value,
       });
+    } else {
+      await forecastApi.generate(restaurantId.value, {
+        startDate: startDate.value,
+        endDate: endDate.value,
+      });
     }
-    await loadForecast();
+    const loaded = await loadForecast();
+    if (hasIngredientForecast.value && activeTab.value === "ingredients") {
+      await loadIngredientForecast();
+    }
+    if (loaded) {
+      feedback.value = { kind: "success", message: t("forecast.generated") };
+    }
   } catch (error) {
     console.error("Failed to generate forecast:", error);
+    feedback.value = { kind: "error", message: t("forecast.generateFailed") };
   } finally {
     generating.value = false;
   }
@@ -240,8 +292,8 @@ async function loadAccuracy() {
     const start = new Date();
     start.setDate(start.getDate() - 7);
     accuracyItems.value = await forecastApi.getAccuracy(restaurantId.value, {
-      startDate: start.toISOString().split("T")[0],
-      endDate: end.toISOString().split("T")[0],
+      startDate: formatLocalDate(start),
+      endDate: formatLocalDate(end),
     });
   } catch (error) {
     console.error("Failed to load accuracy:", error);
@@ -256,6 +308,7 @@ async function loadIngredientForecast() {
   // and the procurement list's /ingredients call require the inventory module.
   if (!hasIngredientForecast.value) return;
   ingredientLoading.value = true;
+  ingredientError.value = "";
   try {
     const forecasts = await forecastApi.getIngredientForecast(
       restaurantId.value,
@@ -267,14 +320,26 @@ async function loadIngredientForecast() {
     ingredientForecastItems.value = forecasts.flatMap((f) => f.ingredients);
 
     // Load ingredient details for procurement list
-    const result = await ingredientApi.list(restaurantId.value, {
-      limit: 500,
-    });
+    const ingredients = [] as Awaited<
+      ReturnType<typeof ingredientApi.list>
+    >["items"];
+    let page = 1;
+    let total = 0;
+    do {
+      const result = await ingredientApi.list(restaurantId.value, {
+        page,
+        limit: 100,
+      });
+      ingredients.push(...result.items);
+      total = result.total;
+      page += 1;
+      if (result.items.length === 0) break;
+    } while (ingredients.length < total);
     const detailsMap = new Map<
       number,
       { supplier: string | null; costPerUnit: number | null }
     >();
-    for (const ing of result.items) {
+    for (const ing of ingredients) {
       detailsMap.set(ing.id, {
         supplier: ing.supplier,
         costPerUnit: ing.costPerUnit,
@@ -283,6 +348,9 @@ async function loadIngredientForecast() {
     ingredientDetailsMap.value = detailsMap;
   } catch (error) {
     console.error("Failed to load ingredient forecast:", error);
+    ingredientForecastItems.value = [];
+    ingredientDetailsMap.value = new Map();
+    ingredientError.value = t("forecast.ingredientLoadFailed");
   } finally {
     ingredientLoading.value = false;
   }

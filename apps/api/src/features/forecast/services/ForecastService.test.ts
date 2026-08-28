@@ -157,6 +157,30 @@ describe("ForecastService", () => {
     vi.useRealTimers();
   });
 
+  it("uses the +08 business-date SQL helpers for historical and accuracy buckets", () => {
+    const source = ForecastService.toString();
+    // A 00:30Z order belongs to the same +08 business day as 08:30 local,
+    // not the prior UTC date. Keep both paths on the shared helper.
+    expect(source).toContain("dateFromUnixMs");
+    expect(source).toContain("strftimeFromUnixMs");
+  });
+
+  it("queries the next Taipei business day at 01:00 local time", async () => {
+    // At 01:00 Taipei, adding 24h then formatting in UTC is still 6/7;
+    // the business-day calculation must instead return local tomorrow, 6/8.
+    vi.setSystemTime(new Date("2026-06-06T17:00:00.000Z"));
+    const service = new ForecastService({} as D1Database, createKV().kv);
+    const getForecast = vi.spyOn(service, "getForecast").mockResolvedValue([]);
+
+    await service.getAlerts("restaurant-1");
+
+    expect(getForecast).toHaveBeenCalledWith(
+      "restaurant-1",
+      "2026-06-08",
+      "2026-06-08",
+    );
+  });
+
   it("routes select fixtures by table and reports missing fixtures", async () => {
     const db = createSelectDb({
       forecastCache: [[{ id: "forecast-row" }]],

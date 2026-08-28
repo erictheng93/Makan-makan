@@ -4574,6 +4574,7 @@ const zhCN: Messages = {
     title: "需求预测",
     subtitle: "AI 驱动的菜品与食材需求预测",
     generate: "生成预测",
+    nextSevenDays: "未来 7 天",
     forecastTab: "预测",
     accuracyTab: "准确度",
     ingredientTab: "食材预测",
@@ -4590,6 +4591,15 @@ const zhCN: Messages = {
     alertUnusualSpike: "异常飙升",
     alertProcurementNeeded: "需要采购",
     alertExcessStock: "库存过量",
+    alertHighDemandMessage: "明日预计高需求：{predicted} 份，请提前备料。",
+    alertLowStockMessage:
+      "预计需要 {predicted} 份，但库存只有 {currentStock} 份。",
+    alertUnusualSpikeMessage:
+      "预计 {predicted} 份，比平均 {average} 份高出 {percent}%。",
+    alertProcurementNeededMessage:
+      "预测需要 {predicted} {unit}，库存仅 {currentStock} {unit}，缺口 {gap} {unit}。",
+    alertExcessStockMessage:
+      "库存 {currentStock} {unit}，预测仅需 {predicted} {unit}。",
     predictedQuantity: "预测需求量",
     gap: "缺口",
     details: "明细",
@@ -4597,6 +4607,15 @@ const zhCN: Messages = {
     procurementList: "采购清单",
     exportCSV: "导出 CSV",
     noProcurementNeeded: "不需采购 — 库存充足",
+    noProcurementData: "暂无预测或采购数据",
+    tomorrow: "明日",
+    customRange: "自定义",
+    generated: "预测已生成",
+    loadFailed: "无法加载预测数据",
+    generateFailed: "无法生成预测",
+    ingredientLoadFailed: "无法加载食材预测数据",
+    emptyForecastHistory:
+      "尚未生成预测项目，请积累更多已完成订单以建立历史数据。",
     noSupplier: "无供应商",
     subtotal: "小计",
     totalEstimatedCost: "预估总成本",

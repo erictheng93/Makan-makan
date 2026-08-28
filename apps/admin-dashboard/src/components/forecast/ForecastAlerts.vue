@@ -29,7 +29,7 @@
             {{ alert.ingredientName || alert.menuItemName }}
           </span>
         </div>
-        <p class="mt-1 text-sm text-gray-600">{{ alert.message }}</p>
+        <p class="mt-1 text-sm text-gray-600">{{ alertMessage(alert) }}</p>
       </div>
     </div>
   </div>
@@ -52,6 +52,12 @@ const { t } = useI18n();
 defineProps<{
   alerts: ForecastAlert[];
 }>();
+
+function alertMessage(alert: ForecastAlert): string {
+  return alert.messageKey
+    ? t(alert.messageKey, alert.messageParams ?? {})
+    : alert.message;
+}
 
 const alertStyles: Record<string, string> = {
   critical: "bg-red-50 border-red-200",

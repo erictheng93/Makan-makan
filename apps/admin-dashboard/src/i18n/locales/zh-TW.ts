@@ -4818,6 +4818,7 @@ const zhTWCore = {
     title: "需求預測",
     subtitle: "AI 驅動的菜品與食材需求預測",
     generate: "產生預測",
+    nextSevenDays: "未來 7 天",
     forecastTab: "預測",
     accuracyTab: "準確度",
     ingredientTab: "食材預測",
@@ -4834,6 +4835,15 @@ const zhTWCore = {
     alertUnusualSpike: "異常飆升",
     alertProcurementNeeded: "需要採購",
     alertExcessStock: "庫存過量",
+    alertHighDemandMessage: "明日預估高需求：{predicted} 份，請提前備料。",
+    alertLowStockMessage:
+      "預估需要 {predicted} 份，但庫存只有 {currentStock} 份。",
+    alertUnusualSpikeMessage:
+      "預估 {predicted} 份，比平均 {average} 份高出 {percent}%。",
+    alertProcurementNeededMessage:
+      "預測需要 {predicted} {unit}，庫存僅 {currentStock} {unit}，缺口 {gap} {unit}。",
+    alertExcessStockMessage:
+      "庫存 {currentStock} {unit}，預測僅需 {predicted} {unit}。",
     predictedQuantity: "預測需求量",
     gap: "缺口",
     details: "明細",
@@ -4841,6 +4851,15 @@ const zhTWCore = {
     procurementList: "採購清單",
     exportCSV: "匯出 CSV",
     noProcurementNeeded: "不需採購 — 庫存充足",
+    noProcurementData: "暫無預測或採購資料",
+    tomorrow: "明日",
+    customRange: "自訂",
+    generated: "預測已產生",
+    loadFailed: "無法載入預測資料",
+    generateFailed: "無法產生預測",
+    ingredientLoadFailed: "無法載入食材預測資料",
+    emptyForecastHistory:
+      "尚未產生預測項目，請累積更多已完成訂單以建立歷史資料。",
     noSupplier: "無供應商",
     subtotal: "小計",
     totalEstimatedCost: "預估總成本",

@@ -38,7 +38,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
+import { useI18n } from "@/i18n";
 
 defineProps<{
   startDate: string;
@@ -51,15 +52,19 @@ const emit = defineEmits<{
 }>();
 
 const selectedPreset = ref("tomorrow");
+const { t } = useI18n();
 
-const presets = [
-  { key: "tomorrow", label: "明日" },
-  { key: "week", label: "本週" },
-  { key: "custom", label: "自訂" },
-];
+const presets = computed(() => [
+  { key: "tomorrow", label: t("forecast.tomorrow") },
+  { key: "week", label: t("forecast.nextSevenDays") },
+  { key: "custom", label: t("forecast.customRange") },
+]);
 
 function formatDate(date: Date): string {
-  return date.toISOString().split("T")[0];
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function selectPreset(key: string) {
@@ -73,8 +78,8 @@ function selectPreset(key: string) {
   } else if (key === "week") {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const endOfWeek = new Date(today);
-    endOfWeek.setDate(endOfWeek.getDate() + (7 - endOfWeek.getDay()));
+    const endOfWeek = new Date(tomorrow);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
     emit("update:startDate", formatDate(tomorrow));
     emit("update:endDate", formatDate(endOfWeek));
   }
