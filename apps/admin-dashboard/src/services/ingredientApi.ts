@@ -41,6 +41,26 @@ export const ingredientApi = {
     return res.data.data!;
   },
 
+  async listAll(
+    restaurantId: string,
+    pageSize = 100,
+  ): Promise<IngredientDefinitionResponse[]> {
+    const limit = Math.min(Math.max(pageSize, 1), 100);
+    const items: IngredientDefinitionResponse[] = [];
+    let page = 1;
+    let total = 0;
+
+    do {
+      const result = await this.list(restaurantId, { page, limit });
+      items.push(...result.items);
+      total = result.total;
+      page += 1;
+      if (result.items.length === 0) break;
+    } while (items.length < total);
+
+    return items;
+  },
+
   async get(
     restaurantId: string,
     id: number,
@@ -176,7 +196,7 @@ export const ingredientApi = {
   ): Promise<{ id: number; name: string }[]> {
     const res = await api.get<{
       menuItems: { id: number; name: string }[];
-    }>(`/menu/${restaurantId}`);
+    }>(`/menu/${restaurantId}`, { includeAll: "true" });
     return (res.data.data?.menuItems ?? []).map((item) => ({
       id: item.id,
       name: item.name,

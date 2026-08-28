@@ -147,16 +147,27 @@
           </button>
         </div>
 
+        <p
+          v-if="recipeError"
+          data-testid="recipe-error"
+          role="alert"
+          class="text-sm text-red-600 py-3"
+        >
+          {{ recipeError }}
+        </p>
         <p v-if="recipesLoading" class="text-sm text-gray-500 py-6 text-center">
           {{ t("common.loading") }}
         </p>
         <p
-          v-else-if="menuItems.length === 0"
+          v-else-if="menuItems.length === 0 && !recipeError"
           class="text-sm text-gray-500 py-6 text-center"
         >
           {{ t("ingredients.noMenuItems") }}
         </p>
-        <ul v-else class="max-h-80 overflow-y-auto divide-y divide-gray-100">
+        <ul
+          v-else-if="menuItems.length > 0"
+          class="max-h-80 overflow-y-auto divide-y divide-gray-100"
+        >
           <li v-for="item in menuItems" :key="item.id">
             <button
               class="w-full flex items-center justify-between px-2 py-3 text-left hover:bg-gray-50"
@@ -190,7 +201,7 @@
       :menu-item-id="editingRecipeFor.id"
       :menu-item-name="editingRecipeFor.name"
       :initial-entries="recipeEntries"
-      :available-ingredients="ingredients"
+      :available-ingredients="recipeIngredients"
       @close="editingRecipeFor = undefined"
       @save="handleSaveRecipe"
     />
@@ -285,23 +296,30 @@ const menuItems = ref<{ id: number; name: string }[]>([]);
 const missingRecipeIds = ref<Set<number>>(new Set());
 const editingRecipeFor = ref<{ id: number; name: string } | undefined>();
 const recipeEntries = ref<RecipeEntryResponse[]>([]);
+const recipeIngredients = ref<IngredientDefinitionResponse[]>([]);
+const recipeError = ref("");
 
 async function openRecipes() {
   if (!restaurantId.value) return;
   showRecipes.value = true;
   recipesLoading.value = true;
+  recipeError.value = "";
   try {
-    // The ingredient list feeds RecipeEditor's picker, so make sure it is
-    // loaded even if the owner opened this before scrolling the table.
-    const [items, missing] = await Promise.all([
+    const [items, missing, allIngredients] = await Promise.all([
       ingredientApi.listMenuItems(restaurantId.value),
       ingredientApi.getMissingRecipes(restaurantId.value),
+      ingredientApi.listAll(restaurantId.value),
     ]);
     menuItems.value = items;
     missingRecipeIds.value = new Set(missing.map((m) => m.id));
+    recipeIngredients.value = allIngredients;
   } catch (error) {
     console.error("Failed to load menu items for recipes:", error);
     menuItems.value = [];
+    recipeIngredients.value = [];
+    recipeError.value = resolveUserFacingError(error, t, {
+      fallbackKey: "common.loadFailed",
+    }).message;
   } finally {
     recipesLoading.value = false;
   }
@@ -309,16 +327,20 @@ async function openRecipes() {
 
 async function editRecipe(item: { id: number; name: string }) {
   if (!restaurantId.value) return;
+  editingRecipeFor.value = undefined;
+  recipeError.value = "";
   try {
     recipeEntries.value = await ingredientApi.getRecipe(
       restaurantId.value,
       item.id,
     );
+    editingRecipeFor.value = item;
   } catch (error) {
     console.error("Failed to load recipe:", error);
-    recipeEntries.value = [];
+    recipeError.value = resolveUserFacingError(error, t, {
+      fallbackKey: "common.loadFailed",
+    }).message;
   }
-  editingRecipeFor.value = item;
 }
 
 async function handleSaveRecipe(
