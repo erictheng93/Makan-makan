@@ -7,6 +7,7 @@ import { generateUUID, normalizeE164Phone } from "@makanmasak/utils";
 import { createSmsProvider, NotificationService } from "@makanmasak/database";
 import {
   CUSTOMER_CONSENT_TYPES,
+  CUSTOMER_PASSWORD_PROVIDER,
   isCustomerConsentVersion,
 } from "@makanmasak/shared-types";
 import type { Env } from "../../../types/env";
@@ -21,6 +22,7 @@ import {
   conflict,
   unauthorized,
 } from "../../../shared/utils/api-error";
+import oauthRoutes from "./oauth";
 import {
   CUSTOMER_ACCESS_TOKEN_SECONDS,
   CUSTOMER_REFRESH_COOKIE,
@@ -263,9 +265,17 @@ routes.post("/auth/register", validateBody(registerSchema), async (c) => {
       `INSERT INTO customer_auth_identities
         (id, customer_id, provider, provider_uid, secret_hash,
          verified_at_ms, created_at_ms, updated_at_ms)
-       VALUES (?, ?, 'password', ?, ?, NULL, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, NULL, ?, ?)`,
     )
-      .bind(identityId, customerId, identifier.value, passwordHash, now, now)
+      .bind(
+        identityId,
+        customerId,
+        CUSTOMER_PASSWORD_PROVIDER,
+        identifier.value,
+        passwordHash,
+        now,
+        now,
+      )
       .run();
   } catch (error) {
     if (isUniqueConstraintError(error)) {
@@ -410,9 +420,9 @@ routes.post(
     await c.env.DB.prepare(
       `UPDATE customer_auth_identities
           SET secret_hash = ?, updated_at_ms = ?
-        WHERE customer_id = ? AND provider = 'password'`,
+        WHERE customer_id = ? AND provider = ?`,
     )
-      .bind(passwordHash, now, token.customer_id)
+      .bind(passwordHash, now, token.customer_id, CUSTOMER_PASSWORD_PROVIDER)
       .run();
 
     await c.env.DB.prepare(
@@ -462,9 +472,15 @@ routes.post("/auth/verify-email", validateBody(tokenOnlySchema), async (c) => {
   await c.env.DB.prepare(
     `UPDATE customer_auth_identities
         SET verified_at_ms = ?, updated_at_ms = ?
-      WHERE customer_id = ? AND provider = 'password' AND provider_uid = ?`,
+      WHERE customer_id = ? AND provider = ? AND provider_uid = ?`,
   )
-    .bind(now, now, token.customer_id, token.identifier)
+    .bind(
+      now,
+      now,
+      token.customer_id,
+      CUSTOMER_PASSWORD_PROVIDER,
+      token.identifier,
+    )
     .run();
 
   await c.env.DB.prepare(
@@ -1256,12 +1272,12 @@ async function loadPasswordIdentity(
         c.updated_at_ms
        FROM customer_auth_identities cai
        JOIN customers c ON c.id = cai.customer_id
-      WHERE cai.provider = 'password'
+      WHERE cai.provider = ?
         AND cai.provider_uid = ?
         AND c.status = 'active'
       LIMIT 1`,
   )
-    .bind(providerUid)
+    .bind(CUSTOMER_PASSWORD_PROVIDER, providerUid)
     .first<PasswordIdentityRow>();
 }
 
@@ -1737,5 +1753,9 @@ function clientIp(c: Context): string {
     c.req.header("CF-Connecting-IP") ?? c.req.header("X-Forwarded-For") ?? ""
   );
 }
+
+// Federated sign-in lives in its own file; the paths stay under /customer/auth
+// so the customer app sees one auth surface rather than two.
+routes.route("/", oauthRoutes);
 
 export default routes;

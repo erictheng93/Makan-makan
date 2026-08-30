@@ -21,7 +21,12 @@ const jwt = vi.hoisted(() => ({
   verify: vi.fn(() => jwt.decoded),
 }));
 
-vi.mock("../../../middleware/auth", () => ({
+// Spread the real module rather than replacing it. A whole-module stand-in
+// silently drops every middleware it forgets to list, so a route's guard
+// disappears without any test noticing — and the missing export only surfaces
+// when some other route happens to import it.
+vi.mock("../../../middleware/auth", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../middleware/auth")>()),
   canonicalCustomerAuthMiddleware: vi.fn(async (c: Context, next: Next) => {
     c.set("customer", auth.customer);
     await next();
