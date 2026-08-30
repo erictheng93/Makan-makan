@@ -147,6 +147,14 @@ function useSelectDb(
   (service as unknown as { db: unknown }).db = db;
 }
 
+/**
+ * The +08 business-day bucketing in `getHistoricalSales` and `getAccuracy` is
+ * not covered here: every query in this file is answered by a fixture, so no
+ * SQL runs and the `DATE(... , '+8 hours')` arithmetic is never evaluated. It
+ * is pinned against a real D1 instead, in
+ * `src/__tests__/integration/forecast-business-day.real.integration.test.ts`
+ * (#291). Assert bucketing there, not with a source-text match here.
+ */
 describe("ForecastService", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -155,14 +163,6 @@ describe("ForecastService", () => {
 
   afterEach(() => {
     vi.useRealTimers();
-  });
-
-  it("uses the +08 business-date SQL helpers for historical and accuracy buckets", () => {
-    const source = ForecastService.toString();
-    // A 00:30Z order belongs to the same +08 business day as 08:30 local,
-    // not the prior UTC date. Keep both paths on the shared helper.
-    expect(source).toContain("dateFromUnixMs");
-    expect(source).toContain("strftimeFromUnixMs");
   });
 
   it("queries the next Taipei business day at 01:00 local time", async () => {
