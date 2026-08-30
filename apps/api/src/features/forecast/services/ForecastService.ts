@@ -53,7 +53,13 @@ export class ForecastService implements IForecastService {
 
     for (const date of dates) {
       try {
-        const weekday = new Date(date).getDay();
+        // `date` is a +08 business date, and `new Date("YYYY-MM-DD")` parses
+        // at UTC midnight -- so only getUTCDay() reads back the weekday that
+        // was written. getDay() re-reads that instant in the host timezone and
+        // reports the day before west of Greenwich, which would pair a Monday
+        // forecast with Sunday's history. Workers and CI both run at UTC, so
+        // this only ever showed up on a developer's machine.
+        const weekday = new Date(date).getUTCDay();
         const historicalData = await this.getHistoricalSales(
           restaurantId,
           date,
@@ -666,7 +672,10 @@ export class ForecastService implements IForecastService {
     const endDate = new Date(end);
     while (current <= endDate) {
       dates.push(this.formatDate(current));
-      current.setDate(current.getDate() + 1);
+      // Steps in UTC to match formatDate's toISOString. Stepping in local time
+      // shifts the instant by an hour across a DST boundary, which is enough
+      // to make toISOString repeat or skip a date.
+      current.setUTCDate(current.getUTCDate() + 1);
     }
     return dates;
   }
