@@ -68,9 +68,17 @@ const REQUIRED_DEPLOYMENT_SECRETS = new Map([
         // Neither guards an absent key: PBKDF2/SHA-256 over the empty string is
         // still a valid AES-256 key, so a missing secret does not fail — it
         // stores LLM and Uber Eats credentials under a key anyone can rederive.
-        // Silent, and security-relevant, hence "required" rather than a warning.
+        //
+        // "recommended" rather than "required" because production currently has
+        // nothing encrypted to lose: platform_integrations is empty and the
+        // ai-analytics config table does not exist there, measured 2026-08-30.
+        // Blocking every deploy over a key with no ciphertext behind it trains
+        // people to reach for the override. The real fix is to make the crypto
+        // helpers refuse an absent key instead of silently downgrading — #300 —
+        // at which point this becomes a loud runtime failure and does not need
+        // to gate the deploy at all.
         name: "ENCRYPTION_KEY",
-        level: "required",
+        level: "recommended",
         why: "encrypts stored third-party credentials; absent, the code derives a publicly reproducible key from the empty string instead of failing",
       },
       {

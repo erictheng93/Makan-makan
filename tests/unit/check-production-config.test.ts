@@ -123,7 +123,7 @@ describe("check-production-config", () => {
     expect(textOf(result.warnings)).not.toContain("JWT_SECRET");
   });
 
-  it("reproduces the real production state: three secrets, one blocker and two warnings", () => {
+  it("reproduces the real production state: three secrets, no blockers, three warnings", () => {
     // makanmasak-api-prod as of the incident.
     const result = checkProductionConfig({
       root: process.cwd(),
@@ -135,16 +135,17 @@ describe("check-production-config", () => {
       ]),
     });
 
-    expect(textOf(result.violations)).toContain(
+    expect(textOf(result.warnings)).toContain(
       "missing production secret: ENCRYPTION_KEY",
     );
     expect(textOf(result.warnings)).toContain(
       "missing production secret: RESEND_API_KEY",
     );
     expect(textOf(result.warnings)).toContain("SMS vendor credentials");
-    // Notification gaps warn; they must not block a deploy.
-    expect(textOf(result.violations)).not.toContain("RESEND_API_KEY");
-    expect(textOf(result.violations)).not.toContain("SMS vendor");
+    // Every gap here disables one capability while the rest of the system keeps
+    // serving, so none of them blocks a deploy. Only a secret whose absence
+    // breaks the Worker for everyone belongs in violations.
+    expect(result.violations).toEqual([]);
   });
 
   it("treats the SMS vendors as alternatives, not as additive requirements", () => {
