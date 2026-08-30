@@ -1,11 +1,14 @@
-import { drizzle } from "drizzle-orm/d1";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import {
+  createDatabase,
+  IngredientConsumptionService,
+  menuItems,
   platformOrders,
   platformMenuMappings,
   orders,
   orderItems,
+  restaurants,
 } from "@makanmasak/database";
 import { generateUUID } from "@makanmasak/utils";
 import type {
@@ -24,7 +27,7 @@ export class PlatformOrderService {
   private integrationService: PlatformIntegrationService;
 
   constructor(env: Env) {
-    this.db = drizzle(env.DB);
+    this.db = createDatabase(env.DB);
     this.env = env;
     this.integrationService = new PlatformIntegrationService(env);
   }
@@ -78,8 +81,18 @@ export class PlatformOrderService {
 
     // Map platform item IDs to internal menu item IDs
     const mappings = await this.db
-      .select()
+      .select({
+        platformItemId: platformMenuMappings.platformItemId,
+        menuItemId: platformMenuMappings.menuItemId,
+      })
       .from(platformMenuMappings)
+      .innerJoin(
+        menuItems,
+        and(
+          eq(platformMenuMappings.menuItemId, menuItems.id),
+          eq(menuItems.restaurantId, restaurantId),
+        ),
+      )
       .where(
         and(
           eq(platformMenuMappings.restaurantId, restaurantId),
@@ -100,11 +113,15 @@ export class PlatformOrderService {
     const totalAmountCents = toRequiredCents(parsedOrder.totalAmount);
 
     const orderId = generateUUID();
+    const consumedItems = parsedOrder.items.flatMap((item) => {
+      const menuItemId = platformToInternalMap.get(item.platformItemId);
+      return menuItemId == null ? [] : [{ item, menuItemId }];
+    });
     const writes: BatchItem<"sqlite">[] = [
       this.db.insert(orders).values({
         id: orderId,
         restaurantId,
-        orderNumber: `PL-${Date.now()}`,
+        orderNumber: `PL-${orderId}`,
         status: "pending",
         orderSource: platform,
         customerInfo: {
@@ -126,9 +143,7 @@ export class PlatformOrderService {
     ];
 
     // Create order items
-    for (const item of parsedOrder.items) {
-      const menuItemId = platformToInternalMap.get(item.platformItemId);
-      if (menuItemId == null) continue; // skip unmapped items — menuItemId is NOT NULL
+    for (const { item, menuItemId } of consumedItems) {
       const unitPriceCents = toRequiredCents(item.unitPrice);
       const totalPriceCents = unitPriceCents * item.quantity;
 
@@ -144,6 +159,57 @@ export class PlatformOrderService {
         }),
       );
     }
+
+    // A platform order is already paid for, so stock is a record of the sale
+    // rather than an availability gate: tracked stock may become negative.
+    // Every statement stays in the same D1 batch as the order and its ledger.
+    for (const { menuItemId, item } of consumedItems) {
+      writes.push(
+        this.db
+          .update(menuItems)
+          .set({
+            inventoryCount: sql`CASE WHEN ${menuItems.inventoryCount} IS NULL THEN NULL ELSE ${menuItems.inventoryCount} - ${item.quantity} END`,
+          })
+          .where(
+            and(
+              eq(menuItems.id, menuItemId),
+              eq(menuItems.restaurantId, restaurantId),
+            ),
+          ),
+      );
+    }
+
+    const ingredientConsumption = new IngredientConsumptionService(this.db);
+    writes.push(
+      ...(await ingredientConsumption.buildConsumptionWrites(
+        restaurantId,
+        consumedItems.map(({ menuItemId, item }) => ({
+          menuItemId,
+          quantity: item.quantity,
+        })),
+        { orderId },
+      )),
+    );
+
+    for (const { menuItemId, item } of consumedItems) {
+      writes.push(
+        this.db
+          .update(menuItems)
+          .set({ orderCount: sql`${menuItems.orderCount} + ${item.quantity}` })
+          .where(
+            and(
+              eq(menuItems.id, menuItemId),
+              eq(menuItems.restaurantId, restaurantId),
+            ),
+          ),
+      );
+    }
+    writes.push(
+      this.db
+        .update(restaurants)
+        .set({ totalOrders: sql`${restaurants.totalOrders} + 1` })
+        .where(eq(restaurants.id, restaurantId)),
+    );
 
     // Create platform order mapping. Kept last so the unique index sees a
     // complete order, but it is now inside the same transaction as the rows

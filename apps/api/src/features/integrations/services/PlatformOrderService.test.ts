@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { platformMenuMappings, platformOrders } from "@makanmasak/database";
+import {
+  IngredientConsumptionService,
+  platformMenuMappings,
+  platformOrders,
+} from "@makanmasak/database";
 import {
   createSelectFixtureDb,
   type SelectFixtures,
@@ -27,10 +31,17 @@ const mocks = vi.hoisted(() => ({
   receiptService: {
     createKitchenTicket: vi.fn(),
   },
+  ingredientConsumption: {
+    buildConsumptionWrites: vi.fn(),
+  },
 }));
 
-vi.mock("drizzle-orm/d1", () => ({
-  drizzle: vi.fn(() => mocks.db),
+vi.mock("@makanmasak/database", async (importOriginal) => ({
+  ...((await importOriginal()) as Record<string, unknown>),
+  createDatabase: vi.fn(() => mocks.db),
+  IngredientConsumptionService: vi.fn(function IngredientConsumptionService() {
+    return mocks.ingredientConsumption;
+  }),
 }));
 
 vi.mock("@makanmasak/utils", async (importOriginal) => ({
@@ -177,6 +188,9 @@ describe("PlatformOrderService", () => {
     mocks.receiptService.createKitchenTicket.mockResolvedValue({
       success: true,
     });
+    mocks.ingredientConsumption.buildConsumptionWrites.mockResolvedValue([
+      { kind: "ingredient-write" },
+    ]);
   });
 
   it("creates internal platform orders and skips unmapped items", async () => {
@@ -202,7 +216,7 @@ describe("PlatformOrderService", () => {
     expect(mutations.inserted).toHaveLength(3);
     expect(mutations.inserted[0]).toMatchObject({
       restaurantId: "restaurant-1",
-      orderNumber: "PL-1710000000000",
+      orderNumber: "PL-order-101",
       status: "pending",
       orderSource: "uber_eats",
       customerInfo: { name: "Ari", phone: "0912345678" },
@@ -230,10 +244,36 @@ describe("PlatformOrderService", () => {
       platformStatus: "received",
       rawPayload: { id: "uber-order-1" },
     });
-    // All three writes go out as one transaction, so the mapping row cannot
-    // reject after the order rows have already committed (#237).
+    // Order, inventory, ledger, counters, and mapping share one transaction,
+    // so neither a duplicate nor a failed write can leave inventory drift.
     expect(mocks.db.batch).toHaveBeenCalledOnce();
-    expect(mutations.batches[0]).toHaveLength(3);
+    expect(mutations.batches[0]).toHaveLength(7);
+  });
+
+  it("includes mapped items' inventory, ingredient, and counter writes in the order batch", async () => {
+    const mutations = mockMutations();
+    mockSelectResults({
+      platformOrders: [[]],
+      platformMenuMappings: [
+        [{ platformItemId: "platform-item-1", menuItemId: 501 }],
+      ],
+    });
+
+    await createService().processWebhook(
+      "uber_eats",
+      { id: "uber-order-1" },
+      "restaurant-1",
+    );
+
+    expect(IngredientConsumptionService).toHaveBeenCalledOnce();
+    expect(
+      mocks.ingredientConsumption.buildConsumptionWrites,
+    ).toHaveBeenCalledWith("restaurant-1", [{ menuItemId: 501, quantity: 2 }], {
+      orderId: "order-101",
+    });
+    // The order, mapped item, menu-stock guard, ingredient writes, counters,
+    // and mapping must share a single transactional D1 batch.
+    expect(mutations.batches[0]).toHaveLength(7);
   });
 
   it("resumes auto-accept processing for a mapped order that is still received", async () => {
@@ -292,7 +332,7 @@ describe("PlatformOrderService", () => {
 
     // Nothing survives a rejected batch, so there is no orphan to reclaim and
     // no auto-accept for an order this call did not create.
-    expect(mutations.updated).toHaveLength(0);
+    expect(mutations.updated).toHaveLength(3);
     expect(mocks.receiptService.createKitchenTicket).not.toHaveBeenCalled();
   });
 
@@ -339,7 +379,7 @@ describe("PlatformOrderService", () => {
     expect(mocks.adapter.acceptOrder).toHaveBeenCalledWith("uber-order-1", {
       accessToken: "token",
     });
-    expect(mutations.updated).toEqual([
+    expect(mutations.updated.slice(-2)).toEqual([
       expect.objectContaining({ platformStatus: "accepted" }),
       expect.objectContaining({ status: "confirmed" }),
     ]);
@@ -391,7 +431,7 @@ describe("PlatformOrderService", () => {
       ),
     ).resolves.toBe("order-101");
 
-    expect(mutations.updated).toEqual([
+    expect(mutations.updated.slice(-2)).toEqual([
       expect.objectContaining({ platformStatus: "accepted" }),
       expect.objectContaining({ status: "confirmed" }),
     ]);
@@ -426,7 +466,7 @@ describe("PlatformOrderService", () => {
       ),
     ).resolves.toBe("order-101");
 
-    expect(mutations.updated).toHaveLength(2);
+    expect(mutations.updated).toHaveLength(5);
     expect(console.error).toHaveBeenCalledWith(
       "Failed to queue kitchen ticket for order order-101:",
       "訂單不存在",
@@ -455,7 +495,7 @@ describe("PlatformOrderService", () => {
       ),
     ).resolves.toBe("order-101");
 
-    expect(mutations.updated).toHaveLength(0);
+    expect(mutations.updated).toHaveLength(3);
     expect(mocks.receiptService.createKitchenTicket).not.toHaveBeenCalled();
     expect(console.error).toHaveBeenCalledWith(
       "Failed to auto-accept order uber-order-1:",
