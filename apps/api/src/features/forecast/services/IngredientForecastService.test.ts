@@ -1,4 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import type { ForecastResult } from "@makanmasak/shared-types";
 import { forecastCache, menuItemIngredients } from "@makanmasak/database";
 
@@ -609,5 +618,41 @@ describe("IngredientForecastService", () => {
         ],
       },
     ]);
+  });
+
+  describe("getDateRange on a host with daylight saving", () => {
+    // The range is built by stepping a UTC-midnight date with the *local*
+    // setDate and then formatting it back with toISOString. The two disagree
+    // by an hour the moment the host crosses a DST boundary, which is enough
+    // for toISOString to fall back into the previous day and emit it twice.
+    // The June range asserted above never crosses one, and Workers and CI run
+    // at UTC where no boundary exists at all -- so this block supplies a host
+    // that has one.
+    const originalTZ = process.env.TZ;
+
+    beforeAll(() => {
+      process.env.TZ = "America/New_York";
+    });
+
+    afterAll(() => {
+      if (originalTZ === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTZ;
+    });
+
+    it("emits each date exactly once across a spring-forward boundary", () => {
+      const service = new IngredientForecastService(
+        {} as D1Database,
+        createKV().kv,
+        createForecastService() as never,
+      );
+
+      // US DST starts on 2026-03-08, inside this range.
+      expect(service["getDateRange"]("2026-03-07", "2026-03-10")).toEqual([
+        "2026-03-07",
+        "2026-03-08",
+        "2026-03-09",
+        "2026-03-10",
+      ]);
+    });
   });
 });

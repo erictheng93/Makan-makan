@@ -370,7 +370,11 @@ export class IngredientForecastService {
     const endDate = new Date(end);
     while (current <= endDate) {
       dates.push(current.toISOString().split("T")[0]);
-      current.setDate(current.getDate() + 1);
+      // Steps in UTC to match the toISOString above. Stepping with setDate
+      // keeps the local wall-clock time instead, so crossing a DST boundary
+      // moves the instant an hour and toISOString falls back into the previous
+      // day -- emitting it twice and losing one off the end of the range.
+      current.setUTCDate(current.getUTCDate() + 1);
     }
     return dates;
   }
