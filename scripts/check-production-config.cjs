@@ -2,6 +2,7 @@
 // Blocks production deploys while production Cloudflare resources or runtime
 // URLs are missing or still point at local development targets.
 
+const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -25,7 +26,71 @@ const REQUIRED_PRODUCTION_RUNTIME_VARS = new Map([
   ],
 ]);
 
-const REQUIRED_DEPLOYMENT_SECRETS = new Map();
+// Secrets that have to exist on the deployed Worker before a production deploy.
+//
+// The source of truth is the LIVE Cloudflare secret list
+// (`wrangler secret list --env production`), not `process.env`: `wrangler deploy`
+// never uploads the operator's shell environment, so a locally exported
+// JWT_SECRET was never evidence that the Worker has one. That gap is why
+// `makanmasak-api-prod` ran with three secrets and a green deploy for months
+// while customer registration was dead in production.
+//
+// Shape: wrangler.toml path -> array of requirements, each one of
+//   { name, level, why }
+//       a single secret that must be present.
+//   { anyOf: [[...names], ...], level, label, why }
+//       alternatives, not additions: at least ONE of the inner groups must be
+//       complete. Needed because the SMS vendors are mutually exclusive — a
+//       deploy with Mitake credentials must not be nagged about Twilio.
+//       `anyOf` is the minimal extension to the original `[name, ...]` form.
+// level:
+//   "required"    -> violation; blocks the deploy (exit 1). Core auth/signing:
+//                    without it the Worker is broken for everyone.
+//   "recommended" -> warning; printed loudly, exit stays 0. One feature is dead
+//                    (a delivery channel), the rest of the system still serves.
+const REQUIRED_DEPLOYMENT_SECRETS = new Map([
+  [
+    "apps/api/wrangler.toml",
+    [
+      {
+        name: "JWT_SECRET",
+        level: "required",
+        why: "signs and verifies every staff/customer session token",
+      },
+      {
+        name: "QR_SIGNING_KEY",
+        level: "required",
+        why: "HMAC key for table/seat QR URLs; SignedQrVerificationService throws without it, so QR ordering stops",
+      },
+      {
+        // Reachable today through ai-analytics (AIAnalyticsService encrypt/decrypt)
+        // and platform integrations, whose webhook route decrypts without auth.
+        // Neither guards an absent key: PBKDF2/SHA-256 over the empty string is
+        // still a valid AES-256 key, so a missing secret does not fail — it
+        // stores LLM and Uber Eats credentials under a key anyone can rederive.
+        // Silent, and security-relevant, hence "required" rather than a warning.
+        name: "ENCRYPTION_KEY",
+        level: "required",
+        why: "encrypts stored third-party credentials; absent, the code derives a publicly reproducible key from the empty string instead of failing",
+      },
+      {
+        name: "RESEND_API_KEY",
+        level: "recommended",
+        why: 'the only working email provider (USE_MAILCHANNELS="false" in production); without it customer email registration commits the account then answers 502',
+      },
+      {
+        anyOf: [
+          ["MITAKE_USERNAME", "MITAKE_PASSWORD"],
+          ["EVERY8D_UID", "EVERY8D_PWD"],
+          ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_PHONE_NUMBER"],
+        ],
+        level: "recommended",
+        label: "SMS vendor credentials",
+        why: "with no complete vendor set the provider resolves to noop and phone OTP answers 503 in production; vendors are alternatives, cost order mitake -> every8d -> twilio",
+      },
+    ],
+  ],
+]);
 
 function checkProductionConfig(options = {}) {
   const root = path.resolve(options.root || DEFAULT_ROOT);
@@ -37,7 +102,13 @@ function checkProductionConfig(options = {}) {
   const wranglerFiles = [];
   walk(appsDir, wranglerFiles);
 
+  // Injectable so the unit tests never shell out to wrangler.
+  const readDeployedSecrets =
+    options.readDeployedSecrets ||
+    ((relativeFile) => readDeployedProductionSecrets(root, relativeFile));
+
   const violations = [];
+  const warnings = [];
   for (const file of wranglerFiles) {
     const relativeFile = path.relative(root, file).split(path.sep).join("/");
     const lines = fs.readFileSync(file, "utf-8").split(/\r?\n/);
@@ -77,12 +148,17 @@ function checkProductionConfig(options = {}) {
     }
 
     validateProductionRuntimeVars(relativeFile, lines, violations);
-    if (requireDeploymentSecrets) {
-      validateDeploymentSecrets(relativeFile, lines, env, violations);
-    }
+    validateDeploymentSecrets(
+      relativeFile,
+      lines,
+      requireDeploymentSecrets,
+      readDeployedSecrets,
+      violations,
+      warnings,
+    );
   }
 
-  return { violations, checkedFiles: wranglerFiles.length };
+  return { violations, warnings, checkedFiles: wranglerFiles.length };
 }
 
 function walk(dir, hits) {
@@ -136,14 +212,23 @@ function validateProductionRuntimeVars(relativeFile, lines, violations) {
   }
 }
 
-function validateDeploymentSecrets(relativeFile, lines, env, violations) {
-  const requiredSecrets = REQUIRED_DEPLOYMENT_SECRETS.get(relativeFile);
-  if (!requiredSecrets) {
+function validateDeploymentSecrets(
+  relativeFile,
+  lines,
+  requireDeploymentSecrets,
+  readDeployedSecrets,
+  violations,
+  warnings,
+) {
+  const requirements = REQUIRED_DEPLOYMENT_SECRETS.get(relativeFile);
+  if (!requirements) {
     return;
   }
 
+  // Static half: needs no network, so it runs even in the CI pipeline where
+  // CHECK_PRODUCTION_CONFIG_REQUIRE_DEPLOYMENT_SECRETS=false.
   const productionVars = collectProductionVars(lines);
-  for (const secretName of requiredSecrets) {
+  for (const secretName of requirements.flatMap(secretNames)) {
     if (productionVars.has(secretName)) {
       violations.push({
         file: relativeFile,
@@ -151,26 +236,125 @@ function validateDeploymentSecrets(relativeFile, lines, env, violations) {
         text: `production secret must not be committed as a wrangler var: ${secretName}`,
       });
     }
+  }
 
-    const value = env[secretName];
-    if (!value) {
-      violations.push({
-        file: relativeFile,
-        line: 1,
-        text: `missing deployment secret: ${secretName}`,
-      });
+  if (!requireDeploymentSecrets) {
+    return;
+  }
+
+  const deployed = readDeployedSecrets(relativeFile);
+  if (!deployed) {
+    // Never downgrade this to a skip. A silent skip when the secret list cannot
+    // be read is the same green-on-nothing failure the empty requirement list
+    // used to produce.
+    violations.push({
+      file: relativeFile,
+      line: 1,
+      text:
+        "could not read the deployed production secret list " +
+        "(`wrangler secret list --env production`) — log in with `pnpm wrangler login`, " +
+        "or set CHECK_PRODUCTION_CONFIG_REQUIRE_DEPLOYMENT_SECRETS=false for a non-deploy run",
+    });
+    return;
+  }
+
+  for (const requirement of requirements) {
+    const missing = describeMissingSecret(requirement, deployed);
+    if (!missing) {
       continue;
     }
 
-    const invalidUrl = invalidPublicHttpsUrl(value);
-    if (invalidUrl) {
-      violations.push({
-        file: relativeFile,
-        line: 1,
-        text: `invalid deployment secret ${secretName}: ${invalidUrl}`,
-      });
+    const finding = {
+      file: relativeFile,
+      line: 1,
+      text: `${missing} — ${requirement.why}`,
+    };
+
+    if (requirement.level === "required") {
+      violations.push(finding);
+    } else {
+      warnings.push(finding);
     }
   }
+}
+
+function secretNames(requirement) {
+  return requirement.anyOf ? requirement.anyOf.flat() : [requirement.name];
+}
+
+function describeMissingSecret(requirement, deployed) {
+  if (!requirement.anyOf) {
+    return deployed.has(requirement.name)
+      ? null
+      : `missing production secret: ${requirement.name}`;
+  }
+
+  const complete = requirement.anyOf.some((group) =>
+    group.every((name) => deployed.has(name)),
+  );
+  if (complete) {
+    return null;
+  }
+
+  const options = requirement.anyOf
+    .map((group) => group.join(" + "))
+    .join(" | ");
+  return `no complete set of ${requirement.label} on the deployed Worker; need one of: ${options}`;
+}
+
+// Reads the names (never the values — the API does not expose them) of the
+// secrets actually bound to the production Worker. Read-only.
+function readDeployedProductionSecrets(root, relativeFile) {
+  const appDir = path.dirname(path.join(root, relativeFile));
+  const wrangler = resolveWranglerBin(root, appDir);
+  if (!wrangler) {
+    return null;
+  }
+
+  const run = spawnSync(wrangler, ["secret", "list", "--env", "production"], {
+    cwd: appDir,
+    encoding: "utf-8",
+    timeout: 120_000,
+    env: { ...process.env, WRANGLER_SEND_METRICS: "false" },
+  });
+
+  if (run.error || run.status !== 0 || typeof run.stdout !== "string") {
+    return null;
+  }
+
+  // wrangler prefixes the JSON array with a banner, so slice to the brackets.
+  const start = run.stdout.indexOf("[");
+  const end = run.stdout.lastIndexOf("]");
+  if (start === -1 || end < start) {
+    return null;
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(run.stdout.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+
+  if (!Array.isArray(parsed)) {
+    return null;
+  }
+
+  return new Set(
+    parsed
+      .map((entry) => (typeof entry === "string" ? entry : entry?.name))
+      .filter(Boolean),
+  );
+}
+
+function resolveWranglerBin(root, appDir) {
+  const binName = process.platform === "win32" ? "wrangler.CMD" : "wrangler";
+  const candidates = [
+    path.join(appDir, "node_modules", ".bin", binName),
+    path.join(root, "node_modules", ".bin", binName),
+  ];
+
+  return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
 }
 
 function invalidPublicHttpsUrl(value) {
@@ -339,6 +523,30 @@ function collectInlineDurableObjectBindings(
 }
 
 function printResult(result) {
+  // Printed before the blocking section so it survives even when the run fails,
+  // and printed at all so a dead delivery channel is visible on every deploy
+  // instead of being discovered by customers.
+  if (result.warnings.length > 0) {
+    console.error("");
+    console.error(
+      "[check-production-config] ⚠️  WARNING — production is missing optional secrets.",
+    );
+    console.error(
+      "These do not block the deploy, but the features below are dead in production until they are set:",
+    );
+    console.error("");
+
+    for (const warning of result.warnings) {
+      console.error(`  ${warning.file}:${warning.line} ${warning.text}`);
+    }
+
+    console.error("");
+    console.error(
+      "  Set one with: wrangler secret put <NAME> --env production",
+    );
+    console.error("");
+  }
+
   if (result.violations.length > 0) {
     console.error("[check-production-config] Production deploy blocked.");
     console.error(
@@ -376,6 +584,7 @@ if (require.main === module) {
 
 module.exports = {
   checkProductionConfig,
+  REQUIRED_DEPLOYMENT_SECRETS,
   collectBindings,
   collectProductionVars,
 };
