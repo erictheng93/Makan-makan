@@ -26,3 +26,4 @@ export * from "./forecast";
 export * from "./ingredient";
 export * from "./coupon";
 export * from "./consents";
+export * from "./auth-providers";
