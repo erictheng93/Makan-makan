@@ -465,7 +465,12 @@ export const useAuthStore = defineStore("auth", () => {
           // put a yellow line in every returning visitor's console for a
           // correctly handled expiry — and "falling back to reactive mode" was
           // untrue here, because there is no session left to recover
-          // reactively. Keep it as a debug breadcrumb instead.
+          // reactively.
+          //
+          // This is a dev-only breadcrumb: vite.config.ts lists console.debug
+          // in terser's `pure_funcs`, so the call is stripped from production
+          // builds entirely. Production logs nothing here, which is the point —
+          // do not reach for console.debug expecting to read it in the field.
           console.debug("Session refresh rejected; signing out");
         } else {
           // Offline or a 5xx leaves the stored session intact, so the reactive
