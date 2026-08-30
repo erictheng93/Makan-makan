@@ -185,6 +185,10 @@ DISCOVERY_EMBEDDING_MODEL = "@cf/baai/bge-m3"
 # Notification configuration
 NOTIFICATION_FROM_EMAIL = "dev-notifications@makanmasak.com"
 TWILIO_PHONE_NUMBER = "+1234567890"
+# Brand prefix on outbound OTP messages. Top-level [vars] is NOT inherited by
+# named environments, so this has to be repeated here or the env falls back to
+# the "MakanMasak" default hardcoded in buildOtpSmsBody().
+OTP_SMS_BRAND = "MakanMasak"
 
 [[env.development.d1_databases]]
 binding = "DB"
@@ -270,6 +274,10 @@ QUOTA_ENFORCEMENT_MODE = "enforce"
 # Notification configuration
 NOTIFICATION_FROM_EMAIL = "notifications@makanmasak.com"
 TWILIO_PHONE_NUMBER = "+1234567890"
+# Brand prefix on outbound OTP messages. Top-level [vars] is NOT inherited by
+# named environments, so this has to be repeated here or the env falls back to
+# the "MakanMasak" default hardcoded in buildOtpSmsBody().
+OTP_SMS_BRAND = "MakanMasak"
 
 # Custom domain — wrangler provisions DNS + SSL automatically on deploy
 # since the makanmasak.com zone is already on this Cloudflare account.
