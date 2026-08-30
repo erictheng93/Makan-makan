@@ -72,6 +72,13 @@ DEPLOYMENT_MODE = "saas"
 NOTIFICATION_FROM_EMAIL = "notifications@makanmasak.com"
 # RESEND_API_KEY - Set via: wrangler secret put RESEND_API_KEY
 #
+# NotificationService builds a MailChannels provider unless USE_MAILCHANNELS is
+# exactly "false" (packages/database/src/services/NotificationService.ts:857),
+# and the free MailChannels relay this code posts to is gone — the endpoint
+# answers 401, so verification email always fails and RESEND_API_KEY is never
+# even read. Keep this "false" so the Resend branch is reachable.
+USE_MAILCHANNELS = "false"
+#
 # SMS provider — switching vendors is config only, never code.
 # SMS_PROVIDER selects the vendor: "mitake" | "every8d" | "twilio" | "noop".
 # Leave it unset (or "auto") to use the first vendor whose credentials are
@@ -92,7 +99,13 @@ NOTIFICATION_FROM_EMAIL = "notifications@makanmasak.com"
 # Twilio
 #   TWILIO_ACCOUNT_SID - Set via: wrangler secret put TWILIO_ACCOUNT_SID
 #   TWILIO_AUTH_TOKEN - Set via: wrangler secret put TWILIO_AUTH_TOKEN
-TWILIO_PHONE_NUMBER = "+1234567890"  # Update with actual number
+#   TWILIO_PHONE_NUMBER - Set via: wrangler secret put TWILIO_PHONE_NUMBER
+#
+# TWILIO_PHONE_NUMBER deliberately has no placeholder value. hasTwilio() in
+# packages/database/src/services/sms.ts is `SID && TOKEN && PHONE_NUMBER`, so a
+# dummy number already counts as "configured": adding just the SID and token
+# later would make SMS_PROVIDER=auto pick Twilio and bounce every send on an
+# invalid From. Set all three together, or none.
 
 # Brand prefix on outbound OTP messages (TW carriers require an identifiable sender)
 OTP_SMS_BRAND = "MakanMasak"
@@ -184,7 +197,8 @@ REALTIME_WS_URL = "ws://localhost:8788"
 DISCOVERY_EMBEDDING_MODEL = "@cf/baai/bge-m3"
 # Notification configuration
 NOTIFICATION_FROM_EMAIL = "dev-notifications@makanmasak.com"
-TWILIO_PHONE_NUMBER = "+1234567890"
+# See the top-level [vars] notes for this one.
+USE_MAILCHANNELS = "false"
 # Brand prefix on outbound OTP messages. Top-level [vars] is NOT inherited by
 # named environments, so this has to be repeated here or the env falls back to
 # the "MakanMasak" default hardcoded in buildOtpSmsBody().
@@ -273,7 +287,8 @@ DISCOVERY_EMBEDDING_MODEL = "@cf/baai/bge-m3"
 QUOTA_ENFORCEMENT_MODE = "enforce"
 # Notification configuration
 NOTIFICATION_FROM_EMAIL = "notifications@makanmasak.com"
-TWILIO_PHONE_NUMBER = "+1234567890"
+# See the top-level [vars] notes for this one.
+USE_MAILCHANNELS = "false"
 # Brand prefix on outbound OTP messages. Top-level [vars] is NOT inherited by
 # named environments, so this has to be repeated here or the env falls back to
 # the "MakanMasak" default hardcoded in buildOtpSmsBody().
