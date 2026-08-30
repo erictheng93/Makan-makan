@@ -1362,11 +1362,17 @@ export class OrdersService implements IOrdersService {
     }
 
     if (role === 5) {
-      // Customers must only see their own orders.
-      return {
-        ...filters,
-        customerId: userId === undefined ? undefined : String(userId),
-      };
+      // Legacy users.role=5 (customer) is retired — customer identity lives in
+      // the `customers` table and orders.customer_id is a TEXT FK to
+      // customers.id, so a users row id can never scope this query. The old
+      // branch also fell open when userId was undefined: it returned filters
+      // with neither a customer nor a restaurant scope, i.e. every order in
+      // every tenant. Refuse instead. Canonical customers reach their own
+      // orders through GET /api/v1/customers/me/orders, which passes no role.
+      throw forbidden(
+        "Legacy customer role cannot list orders",
+        "LEGACY_CUSTOMER_ROLE_RETIRED",
+      );
     }
 
     // Non-admin users MUST be scoped to their restaurant

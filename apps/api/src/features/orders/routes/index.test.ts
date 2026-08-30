@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import routes from "./index";
+import { ApiError } from "../../../shared/utils/api-error";
 
 const serviceMocks = vi.hoisted(() => ({
   createOrder: vi.fn(),
@@ -54,9 +56,10 @@ vi.mock("../../../shared/middleware", async (importOriginal) => {
       c.set("customer", authState.customer);
       await next();
     }),
-    requireRole: vi.fn(
-      () => async (_c: unknown, next: () => Promise<void>) => next(),
-    ),
+    // requireRole is deliberately NOT stubbed. A passthrough stub silently
+    // swallows every route's role gate, so a test could never observe a role
+    // being rejected. The real implementation only reads c.get("user"), which
+    // the auth stub above already sets.
   };
 });
 
@@ -87,6 +90,20 @@ vi.mock("../services/shop-mode-gate", () => ({
 // not per-request, so this reads the registered app rather than the mock call
 // history — the latter loses its route association and any beforeEach reset
 // would clear it anyway.
+// Same shape as the app-factory's unified handler, minus sanitisation. Without
+// it Hono's default handler flattens every thrown ApiError to a bare 500, which
+// makes "rejected with 403 INSUFFICIENT_ROLE" and "blew up" indistinguishable.
+// Mirrors the pattern already used in ./module-gate.test.ts.
+routes.onError((err, c) => {
+  if (err instanceof ApiError) {
+    return c.json(
+      { success: false, error: { code: err.code, message: err.message } },
+      err.status as ContentfulStatusCode,
+    );
+  }
+  return c.json({ success: false, error: { message: String(err) } }, 500);
+});
+
 function moduleGatesFor(method: string, path: string): string[] {
   return routes.routes
     .filter((route) => route.method === method && route.path === path)
@@ -396,7 +413,7 @@ describe("orders routes", () => {
       ),
     );
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(403);
     expect(serviceMocks.createOrder).not.toHaveBeenCalled();
   });
 
@@ -446,25 +463,27 @@ describe("orders routes", () => {
     );
   });
 
-  it("maps customer and admin list scopes", async () => {
+  it("rejects the retired legacy customer role and maps the admin list scope", async () => {
     serviceMocks.getOrders.mockResolvedValue({
       orders: [],
       pagination: { page: 1, limit: 20, total: 0 },
     });
     const env = createEnv();
 
+    // users.role=5 is retired — customers list their orders through
+    // GET /api/v1/customers/me/orders. This staff route must refuse outright
+    // rather than build a filter from a users row id, which can never match
+    // the customers.id TEXT FK in orders.customer_id.
     authState.user = { id: "user-42", role: 5, restaurantId: null };
-    const customerResponse = await routes.fetch(
-      new Request("https://orders.test/"),
-      env as never,
+    const customerResponse = await withSilencedRouteError(() =>
+      routes.fetch(new Request("https://orders.test/"), env as never),
     );
-    expect(customerResponse.status).toBe(200);
-    expect(serviceMocks.getOrders).toHaveBeenCalledWith(
-      expect.objectContaining({ customerId: "user-42" }),
-      "user-42",
-      5,
-      expect.any(Object),
-    );
+    expect(customerResponse.status).toBe(403);
+    await expect(customerResponse.json()).resolves.toMatchObject({
+      success: false,
+      error: { code: "INSUFFICIENT_ROLE" },
+    });
+    expect(serviceMocks.getOrders).not.toHaveBeenCalled();
 
     authState.user = { id: "user-1", role: 0, restaurantId: null };
     const adminResponse = await routes.fetch(
@@ -567,7 +586,7 @@ describe("orders routes", () => {
         createEnv() as never,
       ),
     );
-    expect(statsResponse.status).toBe(500);
+    expect(statsResponse.status).toBe(400);
 
     const activeResponse = await withSilencedRouteError(() =>
       routes.fetch(
@@ -575,7 +594,7 @@ describe("orders routes", () => {
         createEnv() as never,
       ),
     );
-    expect(activeResponse.status).toBe(500);
+    expect(activeResponse.status).toBe(400);
   });
 
   it("returns analytics and active orders", async () => {
@@ -612,22 +631,17 @@ describe("orders routes", () => {
     expect(serviceMocks.getActiveOrders).toHaveBeenCalledWith("restaurant-1");
   });
 
-  it("returns order detail and enforces customer ownership", async () => {
+  it("returns order detail for staff and refuses the retired customer role", async () => {
     serviceMocks.getOrder
       .mockResolvedValueOnce({
         id: 55,
-        customerId: "user-42",
+        customerId: "customer-42",
         restaurantId: "restaurant-1",
         createdAt: "not-a-date",
       })
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        id: 56,
-        customerId: "99",
-        restaurantId: "restaurant-1",
-      });
+      .mockResolvedValueOnce(null);
 
-    authState.user = { id: "user-42", role: 5, restaurantId: null };
+    authState.user = { id: "user-42", role: 1, restaurantId: "restaurant-1" };
     const response = await routes.fetch(
       new Request("https://orders.test/55"),
       createEnv() as never,
@@ -640,12 +654,22 @@ describe("orders routes", () => {
     const missingResponse = await withSilencedRouteError(() =>
       routes.fetch(new Request("https://orders.test/56"), createEnv() as never),
     );
-    expect(missingResponse.status).toBe(500);
+    expect(missingResponse.status).toBe(404);
 
-    const forbiddenResponse = await withSilencedRouteError(() =>
+    // Legacy users.role=5 never reaches the handler: the ownership comparison
+    // it used to fall into compared a users row id against the customers.id
+    // TEXT FK, which cannot match, so the route now rejects up front.
+    serviceMocks.getOrder.mockClear();
+    authState.user = { id: "user-42", role: 5, restaurantId: null };
+    const legacyCustomerResponse = await withSilencedRouteError(() =>
       routes.fetch(new Request("https://orders.test/57"), createEnv() as never),
     );
-    expect(forbiddenResponse.status).toBe(500);
+    expect(legacyCustomerResponse.status).toBe(403);
+    await expect(legacyCustomerResponse.json()).resolves.toMatchObject({
+      success: false,
+      error: { code: "INSUFFICIENT_ROLE" },
+    });
+    expect(serviceMocks.getOrder).not.toHaveBeenCalled();
   });
 
   it("updates order status after permission checks", async () => {
@@ -715,7 +739,7 @@ describe("orders routes", () => {
         createEnv() as never,
       ),
     );
-    expect(missingResponse.status).toBe(500);
+    expect(missingResponse.status).toBe(404);
 
     const forbiddenResponse = await withSilencedRouteError(() =>
       routes.fetch(
@@ -723,7 +747,7 @@ describe("orders routes", () => {
         createEnv() as never,
       ),
     );
-    expect(forbiddenResponse.status).toBe(500);
+    expect(forbiddenResponse.status).toBe(403);
 
     serviceMocks.updateOrderStatus.mockResolvedValue(null);
     const failedResponse = await withSilencedRouteError(() =>
@@ -732,7 +756,7 @@ describe("orders routes", () => {
         createEnv() as never,
       ),
     );
-    expect(failedResponse.status).toBe(500);
+    expect(failedResponse.status).toBe(400);
   });
 
   it("cancels orders through the service", async () => {
@@ -846,7 +870,7 @@ describe("orders routes", () => {
         createEnv() as never,
       ),
     );
-    expect(missingResponse.status).toBe(500);
+    expect(missingResponse.status).toBe(404);
 
     const forbiddenResponse = await withSilencedRouteError(() =>
       routes.fetch(
@@ -854,7 +878,7 @@ describe("orders routes", () => {
         createEnv() as never,
       ),
     );
-    expect(forbiddenResponse.status).toBe(500);
+    expect(forbiddenResponse.status).toBe(403);
 
     serviceMocks.cancelOrder.mockResolvedValue(null);
     const failedResponse = await withSilencedRouteError(() =>
@@ -863,7 +887,7 @@ describe("orders routes", () => {
         createEnv() as never,
       ),
     );
-    expect(failedResponse.status).toBe(500);
+    expect(failedResponse.status).toBe(400);
   });
 
   it("executes bulk order operations", async () => {
@@ -948,12 +972,12 @@ describe("orders routes", () => {
     expect(pdfResponse.headers.get("content-type")).toBe("application/pdf");
   });
 
-  it("generates receipts after customer ownership checks", async () => {
+  it("generates receipts for staff in the order's restaurant", async () => {
     const env = createEnv();
-    authState.user = { id: "user-42", role: 5, restaurantId: null };
+    authState.user = { id: "user-42", role: 1, restaurantId: "restaurant-1" };
     serviceMocks.getOrder.mockResolvedValue({
       id: 55,
-      customerId: "user-42",
+      customerId: "customer-42",
       restaurantId: "restaurant-1",
     });
     serviceMocks.generateReceipt.mockResolvedValue({ html: "<p>receipt</p>" });
@@ -980,18 +1004,11 @@ describe("orders routes", () => {
   });
 
   it("reports receipt permission failures", async () => {
-    serviceMocks.getOrder
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        id: 55,
-        customerId: "user-99",
-        restaurantId: "restaurant-1",
-      })
-      .mockResolvedValueOnce({
-        id: 55,
-        customerId: "user-42",
-        restaurantId: "restaurant-2",
-      });
+    serviceMocks.getOrder.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      id: 55,
+      customerId: "customer-42",
+      restaurantId: "restaurant-2",
+    });
 
     const missingResponse = await withSilencedRouteError(() =>
       routes.fetch(
@@ -999,16 +1016,24 @@ describe("orders routes", () => {
         createEnv() as never,
       ),
     );
-    expect(missingResponse.status).toBe(500);
+    expect(missingResponse.status).toBe(404);
 
+    // The retired users.role=5 branch used to compare a users row id against
+    // orders.customer_id (a customers.id TEXT FK). It never matched, so it
+    // only ever produced a 403 — the role is now refused before the lookup.
     authState.user = { id: "user-42", role: 5, restaurantId: null };
-    const customerForbiddenResponse = await withSilencedRouteError(() =>
+    const legacyCustomerResponse = await withSilencedRouteError(() =>
       routes.fetch(
         new Request("https://orders.test/55/receipt"),
         createEnv() as never,
       ),
     );
-    expect(customerForbiddenResponse.status).toBe(500);
+    expect(legacyCustomerResponse.status).toBe(403);
+    await expect(legacyCustomerResponse.json()).resolves.toMatchObject({
+      success: false,
+      error: { code: "INSUFFICIENT_ROLE" },
+    });
+    expect(serviceMocks.getOrder).toHaveBeenCalledOnce();
 
     authState.user = { id: "user-42", role: 1, restaurantId: "restaurant-1" };
     const staffForbiddenResponse = await withSilencedRouteError(() =>
@@ -1017,6 +1042,7 @@ describe("orders routes", () => {
         createEnv() as never,
       ),
     );
-    expect(staffForbiddenResponse.status).toBe(500);
+    expect(staffForbiddenResponse.status).toBe(403);
+    expect(serviceMocks.generateReceipt).not.toHaveBeenCalled();
   });
 });

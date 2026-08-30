@@ -358,7 +358,11 @@ app.post(
 app.get(
   "/",
   customerAuthMiddleware,
-  requireRole([0, 1, 2, 3, 4, 5]), // All roles including customers
+  // Staff only. Legacy users.role=5 (customer) is retired: customer identity
+  // lives in `customers` and orders.customer_id is a TEXT FK to customers.id,
+  // so a users row can never scope this list correctly. Reject it outright
+  // rather than fall through to a comparison that silently matches nothing.
+  requireRole([0, 1, 2, 3, 4]),
   moduleGate("online_ordering"),
   validateQuery(orderSchemas.orderFilters),
   async (c) => {
@@ -385,10 +389,7 @@ app.get(
     };
 
     // Role-based filtering
-    if (user.role === 5) {
-      // Customers only see their own orders
-      filters.customerId = String(user.id);
-    } else if (user.role !== 0) {
+    if (user.role !== 0) {
       // Non-admin staff only sees their restaurant's orders
       filters.restaurantId =
         user.restaurantId == null ? undefined : String(user.restaurantId);
@@ -540,7 +541,9 @@ app.get(
 app.get(
   "/:id",
   customerAuthMiddleware,
-  requireRole([0, 1, 2, 3, 4, 5]), // All roles including customers
+  // Staff only — customers read their own orders via
+  // GET /api/v1/customers/me/orders (canonical customer JWT).
+  requireRole([0, 1, 2, 3, 4]),
   moduleGate("online_ordering"),
   validateParams(orderSchemas.params),
   async (c) => {
@@ -554,11 +557,6 @@ app.get(
 
     if (!order) {
       throw notFound("Order not found");
-    }
-
-    // Additional customer-specific check (customers can only see their own orders)
-    if (user.role === 5 && order.customerId !== String(user.id)) {
-      throw forbidden("Access denied");
     }
 
     return c.json({
@@ -846,7 +844,8 @@ app.post(
 app.get(
   "/:id/receipt",
   customerAuthMiddleware,
-  requireRole([0, 1, 2, 3, 4, 5]), // All roles including customers
+  // Staff only — see the note on GET / above.
+  requireRole([0, 1, 2, 3, 4]),
   moduleGate("receipt_printing"),
   quotaGate("print.jobs"),
   validateParams(orderSchemas.params),
@@ -866,14 +865,8 @@ app.get(
       throw notFound("Order not found");
     }
 
-    // Permission check
-    if (user.role === 5) {
-      // Customers can only view receipt for their own orders
-      if (order.customerId !== String(user.id)) {
-        throw forbidden("Access denied");
-      }
-    } else if (user.role !== 0 && user.restaurantId !== order.restaurantId) {
-      // Staff can only view receipts from their restaurant
+    // Permission check — staff can only view receipts from their restaurant
+    if (user.role !== 0 && user.restaurantId !== order.restaurantId) {
       throw forbidden("Access denied");
     }
 

@@ -594,26 +594,25 @@ describe("OrdersService workflows", () => {
     );
   });
 
-  it("scopes customer order lists and converts complete date ranges", async () => {
+  it("converts complete date ranges for unroled callers", async () => {
     const service = new OrdersService(createEnv() as never);
     getBaseOrders.mockResolvedValue({
       orders: [createOrder({ id: "5", restaurantId: "restaurant-1" })],
       pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
     });
 
+    // The canonical customer path (GET /api/v1/customers/me/orders) passes the
+    // customerId itself and no role at all — that must keep working.
     await expect(
-      service.getOrders(
-        {
-          dateFrom: new Date("2026-06-01T00:00:00.000Z"),
-          dateTo: new Date("2026-06-02T00:00:00.000Z"),
-        },
-        "77",
-        5,
-      ),
+      service.getOrders({
+        customerId: "customer-77",
+        dateFrom: new Date("2026-06-01T00:00:00.000Z"),
+        dateTo: new Date("2026-06-02T00:00:00.000Z"),
+      }),
     ).resolves.toMatchObject({ total: 1 });
     expect(getBaseOrders).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        customerId: "77",
+        customerId: "customer-77",
         dateRange: [
           new Date("2026-06-01T00:00:00.000Z"),
           new Date("2026-06-02T00:00:00.000Z"),
@@ -622,13 +621,34 @@ describe("OrdersService workflows", () => {
       1,
       20,
     );
+  });
 
-    await service.getOrders({}, undefined, 5);
-    expect(getBaseOrders).toHaveBeenLastCalledWith(
-      expect.objectContaining({ customerId: undefined }),
-      1,
-      20,
-    );
+  it("refuses list queries from the retired legacy customer role", async () => {
+    const service = new OrdersService(createEnv() as never);
+    getBaseOrders.mockResolvedValue({
+      orders: [],
+      pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+    });
+
+    // users.role=5 is retired: a users row id can never match the TEXT FK in
+    // orders.customer_id, and with no userId the old branch fell open to an
+    // unscoped, cross-tenant query. Both shapes must now be refused.
+    await expect(service.getOrders({}, "77", 5)).rejects.toMatchObject({
+      code: "LEGACY_CUSTOMER_ROLE_RETIRED",
+      status: 403,
+    });
+    await expect(service.getOrders({}, undefined, 5)).rejects.toMatchObject({
+      code: "LEGACY_CUSTOMER_ROLE_RETIRED",
+    });
+    await expect(
+      service.getOrders({}, "77", undefined, {
+        userId: "77",
+        userRole: 5,
+        userRestaurantId: undefined,
+      }),
+    ).rejects.toMatchObject({ code: "LEGACY_CUSTOMER_ROLE_RETIRED" });
+
+    expect(getBaseOrders).not.toHaveBeenCalled();
   });
 
   it("enforces cached order restaurant access before returning data", async () => {
