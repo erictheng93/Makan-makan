@@ -562,12 +562,20 @@ routes.post(
       throw notFound("Coupon not found");
     }
     // Same shape as every other single-coupon guard here: an owner may only
-    // reach their own restaurant's coupons, and String(null) never matches, so
-    // platform coupons stay admin-only.
+    // reach their own restaurant's coupons.
     if (
       user.role === 1 &&
       String(coupon.restaurantId) !== userRestaurantId(user)
     ) {
+      throw forbidden("Access denied");
+    }
+    // Stated positively rather than left to the comparison above. A platform
+    // coupon's audience is every customer on the platform, so this is the one
+    // route where "not my restaurant" and "everyone's restaurant" differ in
+    // consequence -- and the comparison only refuses it because
+    // `String(undefined) !== "null"`, a coincidence of how an owner without a
+    // restaurant stringifies (auth.ts normalises a null claim to undefined).
+    if (coupon.restaurantId == null && user.role !== 0) {
       throw forbidden("Access denied");
     }
 

@@ -193,8 +193,7 @@ describe("coupons routes", () => {
   });
 
   it("keeps an owner off another restaurant's distribution endpoints", async () => {
-    // Same guard shape as the rest of this router: String(null) never equals a
-    // restaurant id, so platform coupons stay admin-only too.
+    // Same guard shape as the rest of this router.
     mocks.currentUser.role = 1;
     mocks.currentUser.restaurantId = "restaurant-1";
     mocks.getCoupon.mockResolvedValue(coupon({ restaurantId: "restaurant-2" }));
@@ -219,6 +218,32 @@ describe("coupons routes", () => {
     );
     expect(historyResponse.status).toBe(500);
     expect(mocks.getCouponDistributions).not.toHaveBeenCalled();
+  });
+
+  it("keeps a non-admin off a platform coupon's distribution", async () => {
+    // A platform coupon addresses every customer on the platform, so it is
+    // admin-only. The restaurant comparison above refuses it today only because
+    // `String(undefined) !== "null"`; an owner whose restaurantId stringified to
+    // "null" would match it. auth.ts normalises a null claim to undefined, so
+    // that is not reachable now — which is the point: the guard must not rest
+    // on a normalisation two files away.
+    mocks.currentUser.role = 1;
+    mocks.currentUser.restaurantId = null as unknown as string;
+    mocks.getCoupon.mockResolvedValue(coupon({ restaurantId: null }));
+
+    const response = await withSilencedRouteError(() =>
+      app.fetch(
+        jsonRequest("https://test/10/distribute", "POST", {
+          distributionType: "manual",
+          targetType: "user",
+          targetCriteria: { customerIds: ["customer-1"] },
+        }),
+        createEnv() as never,
+      ),
+    );
+
+    expect(response.status).toBe(500);
+    expect(mocks.distributeCouponToAudience).not.toHaveBeenCalled();
   });
 
   it("distributes and reads history for the owner's own coupon", async () => {

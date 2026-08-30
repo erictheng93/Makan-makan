@@ -485,6 +485,244 @@ describe("Coupons API — real integration", () => {
     expect(held).toHaveLength(0);
   });
 
+  // ── POST /coupons/:id/distribute — audience tenancy ──────────────────────
+
+  /**
+   * `targetType: "user"` is the one branch whose audience is named by the
+   * caller rather than derived from orders, and it used to be handed back
+   * unfiltered. The route proves only that the *coupon* belongs to the caller's
+   * restaurant, so an owner could issue their own coupon to any customer id
+   * they could name — the #265/#275 shape.
+   *
+   * These have to run against real D1. The route-level unit tests mock the auth
+   * middleware and the service both, so they cannot see a middleware that never
+   * ran; a mocked drizzle cannot tell a scoped query from an unscoped one.
+   */
+  async function seedShopWithOwner(name: string, username: string) {
+    const restaurant = await seed.restaurant({ name });
+    await insertActiveSubscription(String(restaurant.id));
+    const owner = await seed.user({
+      username,
+      role: 1,
+      restaurantId: String(restaurant.id),
+    });
+    const token = await testApp.authHelper.ownerToken(
+      owner.id,
+      String(restaurant.id),
+    );
+    return { restaurantId: String(restaurant.id), token };
+  }
+
+  function distributeAs(
+    token: string,
+    couponId: number,
+    payload: Record<string, unknown>,
+  ) {
+    return testApp.app.fetch(
+      new Request(`https://test/api/v1/coupons/${couponId}/distribute`, {
+        method: "POST",
+        headers: csrfHeaders(token),
+        body: JSON.stringify(payload),
+      }),
+    );
+  }
+
+  function customerRow(customerId: string) {
+    return testApp.testDb.drizzle
+      .select()
+      .from(customers)
+      .where(eq(customers.id, customerId));
+  }
+
+  it("drops named customers who have never ordered at the coupon's restaurant", async () => {
+    const shopA = await seedShopWithOwner("Audience A", "audience-owner-a");
+    const shopB = await seedShopWithOwner("Audience B", "audience-owner-b");
+
+    const mine = await seedCustomerWithOrders(shopA.restaurantId, 2);
+    const theirs = await seedCustomerWithOrders(shopB.restaurantId, 2);
+    const victimBefore = await customerRow(theirs);
+
+    const coupon = await seed.coupon(shopA.restaurantId, { code: "POACH" });
+
+    const res = await distributeAs(shopA.token, coupon.id, {
+      distributionType: "manual",
+      targetType: "user",
+      targetCriteria: { customerIds: [mine, theirs] },
+    });
+
+    // Dropped silently rather than refused with a 400 naming the id: the
+    // audience is derived on every other branch too, and `targeted` already
+    // tells a legitimate caller that 2 ids resolved to 1 recipient.
+    expect(res.status).toBe(201);
+    const body = await readEnvelope<{
+      targeted: number;
+      issued: number;
+      skipped: number;
+    }>(res);
+    expect(body.data?.targeted).toBe(1);
+    expect(body.data?.issued).toBe(1);
+
+    const held = await testApp.testDb.drizzle
+      .select({ owner: userCoupons.ownerCustomerId })
+      .from(userCoupons)
+      .where(eq(userCoupons.couponId, coupon.id));
+    expect(held.map((row) => row.owner)).toEqual([mine]);
+
+    // The batch must not book recipients it never wrote, or the shop's own
+    // distribution history becomes the cover story for the leak.
+    const [batch] = await testApp.testDb.drizzle
+      .select({ total: couponDistributions.totalDistributed })
+      .from(couponDistributions)
+      .where(eq(couponDistributions.couponId, coupon.id));
+    expect(batch?.total).toBe(1);
+
+    expect(await customerRow(theirs)).toEqual(victimBefore);
+  });
+
+  it("drops a named customer whose only order here was cancelled", async () => {
+    const shop = await seedShopWithOwner("Audience C", "audience-owner-c");
+    const [customer] = await testApp.testDb.drizzle
+      .insert(customers)
+      .values({
+        displayName: "Cancelled Only",
+        status: "active",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning({ id: customers.id });
+    await seed.order(shop.restaurantId, {
+      customerId: customer!.id,
+      status: "cancelled",
+    });
+
+    const coupon = await seed.coupon(shop.restaurantId, { code: "CANCELLED" });
+    const res = await distributeAs(shop.token, coupon.id, {
+      distributionType: "manual",
+      targetType: "user",
+      targetCriteria: { customerIds: [customer!.id] },
+    });
+
+    expect(res.status).toBe(201);
+    const body = await readEnvelope<{ targeted: number; issued: number }>(res);
+    expect(body.data?.targeted).toBe(0);
+    expect(body.data?.issued).toBe(0);
+
+    const held = await testApp.testDb.drizzle
+      .select({ id: userCoupons.id })
+      .from(userCoupons)
+      .where(eq(userCoupons.couponId, coupon.id));
+    expect(held).toHaveLength(0);
+  });
+
+  it("issues to named customers who have ordered here", async () => {
+    // Positive control for the two drops above: the guard must narrow the
+    // audience, not close the feature.
+    const shop = await seedShopWithOwner("Audience D", "audience-owner-d");
+    const first = await seedCustomerWithOrders(shop.restaurantId, 1);
+    const second = await seedCustomerWithOrders(shop.restaurantId, 4);
+    const coupon = await seed.coupon(shop.restaurantId, { code: "NAMED-OK" });
+
+    const res = await distributeAs(shop.token, coupon.id, {
+      distributionType: "manual",
+      targetType: "user",
+      targetCriteria: { customerIds: [first, second] },
+    });
+
+    expect(res.status).toBe(201);
+    const body = await readEnvelope<{ targeted: number; issued: number }>(res);
+    expect(body.data?.targeted).toBe(2);
+    expect(body.data?.issued).toBe(2);
+
+    const held = await testApp.testDb.drizzle
+      .select({ owner: userCoupons.ownerCustomerId })
+      .from(userCoupons)
+      .where(eq(userCoupons.couponId, coupon.id));
+    expect(new Set(held.map((row) => row.owner))).toEqual(
+      new Set([first, second]),
+    );
+  });
+
+  it("lets an admin issue a platform coupon to any named customer", async () => {
+    // A platform coupon has no restaurant, so "has ordered here" does not
+    // apply; the audience is every active customer. Same shape of customer as
+    // the drop case above — a stranger to the coupon's issuer, refused for a
+    // shop's coupon and reachable for a platform one.
+    const shopB = await seedShopWithOwner("Audience E", "audience-owner-e");
+    const stranger = await seedCustomerWithOrders(shopB.restaurantId, 1);
+
+    const [platformCoupon] = await testApp.testDb.drizzle
+      .insert(coupons)
+      .values({
+        restaurantId: null,
+        code: "PLATFORM-GIFT",
+        name: "Platform gift",
+        discountType: "fixed",
+        discountValueCents: 100,
+        minOrderAmountCents: 0,
+        validFrom: offsetIso(-1),
+        validTo: offsetIso(30),
+        isActive: true,
+        isVisible: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning({ id: coupons.id });
+
+    const res = await distributeAs(adminToken, platformCoupon!.id, {
+      distributionType: "manual",
+      targetType: "user",
+      targetCriteria: { customerIds: [stranger] },
+    });
+
+    expect(res.status).toBe(201);
+    const body = await readEnvelope<{ targeted: number; issued: number }>(res);
+    expect(body.data?.targeted).toBe(1);
+    expect(body.data?.issued).toBe(1);
+
+    const held = await testApp.testDb.drizzle
+      .select({ owner: userCoupons.ownerCustomerId })
+      .from(userCoupons)
+      .where(eq(userCoupons.couponId, platformCoupon!.id));
+    expect(held.map((row) => row.owner)).toEqual([stranger]);
+  });
+
+  it("refuses an owner reaching a platform coupon's distribution", async () => {
+    const shop = await seedShopWithOwner("Audience F", "audience-owner-f");
+    const mine = await seedCustomerWithOrders(shop.restaurantId, 1);
+
+    const [platformCoupon] = await testApp.testDb.drizzle
+      .insert(coupons)
+      .values({
+        restaurantId: null,
+        code: "PLATFORM-LOCKED",
+        name: "Platform locked",
+        discountType: "fixed",
+        discountValueCents: 100,
+        minOrderAmountCents: 0,
+        validFrom: offsetIso(-1),
+        validTo: offsetIso(30),
+        isActive: true,
+        isVisible: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning({ id: coupons.id });
+
+    const res = await distributeAs(shop.token, platformCoupon!.id, {
+      distributionType: "manual",
+      targetType: "user",
+      targetCriteria: { customerIds: [mine] },
+    });
+
+    expect(res.status).toBe(403);
+
+    const held = await testApp.testDb.drizzle
+      .select({ id: userCoupons.id })
+      .from(userCoupons)
+      .where(eq(userCoupons.couponId, platformCoupon!.id));
+    expect(held).toHaveLength(0);
+  });
+
   // ── GET /coupons (list) ───────────────────────────────────────────────────
 
   it("GET /coupons lists seeded coupons for the admin", async () => {

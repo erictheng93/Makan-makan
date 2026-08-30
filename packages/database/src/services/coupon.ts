@@ -124,6 +124,13 @@ export interface DistributeCouponInput {
   createdBy?: string | null;
 }
 
+/**
+ * Batch size for the `IN (...)` lists an audience is fed through. An audience is
+ * unbounded in principle and the API accepts up to 5000 explicit ids, both of
+ * which run into D1's bound-parameter limit.
+ */
+const AUDIENCE_ID_CHUNK = 100;
+
 export interface DistributeCouponResult {
   distributionId: number;
   /** Customers the audience resolved to. */
@@ -1080,6 +1087,56 @@ export class CouponService extends BaseService {
   }
 
   /**
+   * Narrow a caller-supplied customer id list to the ids this coupon may
+   * actually address, preserving the caller's order.
+   *
+   * The audience for a restaurant coupon is "has ordered here", exactly as the
+   * derived branches below define it; for a platform coupon it is "is an active
+   * customer", exactly as the platform branch defines it. `targetType: "user"`
+   * only chooses *which* members of that audience to issue to — it may not
+   * widen it.
+   */
+  private async intersectWithAudience(
+    restaurantId: string | null,
+    requested: string[],
+  ): Promise<string[]> {
+    const allowed = new Set<string>();
+
+    for (let i = 0; i < requested.length; i += AUDIENCE_ID_CHUNK) {
+      const slice = requested.slice(i, i + AUDIENCE_ID_CHUNK);
+      const rows =
+        restaurantId === null
+          ? await this.db
+              .select({ id: customers.id })
+              .from(customers)
+              .where(
+                and(
+                  inArray(customers.id, slice),
+                  eq(customers.status, "active"),
+                  isNull(customers.deletedAt),
+                ),
+              )
+          : await this.db
+              .select({ id: orders.customerId })
+              .from(orders)
+              .where(
+                and(
+                  eq(orders.restaurantId, restaurantId),
+                  inArray(orders.customerId, slice),
+                  sql`${orders.status} != 'cancelled'`,
+                ),
+              )
+              .groupBy(orders.customerId);
+
+      for (const row of rows) {
+        if (typeof row.id === "string" && row.id !== "") allowed.add(row.id);
+      }
+    }
+
+    return requested.filter((id) => allowed.has(id));
+  }
+
+  /**
    * Resolve a distribution audience to customer ids.
    *
    * `customers` carries no restaurant column, so a restaurant's audience comes
@@ -1092,7 +1149,23 @@ export class CouponService extends BaseService {
     criteria: DistributionTargetCriteria,
   ): Promise<string[]> {
     if (targetType === "user") {
-      return [...new Set((criteria.customerIds ?? []).filter(Boolean))];
+      // `customerIds` is the only branch where the audience is asserted by the
+      // caller rather than derived, and it used to be echoed straight back. The
+      // route proves the coupon belongs to the caller's restaurant; nothing
+      // proved the same of the recipients, so an owner could issue their own
+      // coupon to any customer id they could name — including customers who
+      // have only ever ordered somewhere else (#265/#275 shape).
+      //
+      // Non-members are dropped silently rather than answered with a 400 that
+      // names them: naming an id confirms it exists, and every sibling branch
+      // here already derives the audience and reports the truth in
+      // `targeted`/`issued`, so a caller who submits 10 ids and is told
+      // `targeted: 7` can see the drop without being handed an oracle.
+      const requested = [
+        ...new Set((criteria.customerIds ?? []).filter(Boolean)),
+      ];
+      if (requested.length === 0) return [];
+      return await this.intersectWithAudience(restaurantId, requested);
     }
 
     // "group" names a concept the schema has no table for. Fail loudly rather
@@ -1168,7 +1241,7 @@ export class CouponService extends BaseService {
 
     // Chunked because both of these run through D1's bound-parameter limit,
     // and an audience is unbounded in principle.
-    const CHUNK = 100;
+    const CHUNK = AUDIENCE_ID_CHUNK;
     const alreadyHolding = new Set<string>();
     for (let i = 0; i < audience.length; i += CHUNK) {
       const slice = audience.slice(i, i + CHUNK);
