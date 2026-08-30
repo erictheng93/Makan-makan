@@ -5,6 +5,7 @@
 
 import { sql } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
+import type { CustomerAuthProvider } from "@makanmasak/shared-types";
 import {
   sqliteTable,
   text,
@@ -236,10 +237,27 @@ export const customerAuthIdentities = sqliteTable(
     customerId: text("customer_id")
       .notNull()
       .references(() => customers.id, { onDelete: "cascade" }),
-    provider: text("provider").notNull(),
+    provider: text("provider").$type<CustomerAuthProvider>().notNull(),
     providerUid: text("provider_uid").notNull(),
     secretHash: text("secret_hash"),
     encryptedPayload: text("encrypted_payload"),
+    /**
+     * The email the provider reported at link time. A snapshot for display and
+     * for offering an account link — never a credential. LINE does not
+     * guarantee it is verified, so matching on it must not merge accounts.
+     */
+    providerEmail: text("provider_email"),
+    providerEmailVerified: integer("provider_email_verified", {
+      mode: "boolean",
+    }),
+    providerDisplayName: text("provider_display_name"),
+    providerAvatarUrl: text("provider_avatar_url"),
+    /** Space-separated scope list. Not a secret. */
+    scopes: text("scopes"),
+    /** When the provider's access token expires. The token itself is not stored. */
+    tokenExpiresAt: integer("token_expires_at_ms", { mode: "timestamp_ms" }),
+    /** Set when the customer unlinks. The row is kept for the audit trail. */
+    revokedAt: integer("revoked_at_ms", { mode: "timestamp_ms" }),
     verifiedAt: integer("verified_at_ms", { mode: "timestamp_ms" }),
     lastUsedAt: integer("last_used_at_ms", { mode: "timestamp_ms" }),
     createdAt: integer("created_at_ms", { mode: "timestamp_ms" })
@@ -260,6 +278,18 @@ export const customerAuthIdentities = sqliteTable(
     onePasswordIdx: uniqueIndex("customer_auth_identities_one_password_idx")
       .on(table.customerId)
       .where(sql`${table.provider} = 'password'`),
+    // One live link per provider per customer. Unlinking sets revokedAt rather
+    // than deleting, so the customer can re-link a provider later without
+    // colliding with their own revoked history.
+    customerProviderLiveIdx: uniqueIndex(
+      "customer_auth_identities_customer_provider_live_idx",
+    )
+      .on(table.customerId, table.provider)
+      .where(sql`${table.revokedAt} IS NULL`),
+    // Every OAuth callback looks up a live identity by provider + subject.
+    liveProviderIdx: index("customer_auth_identities_live_provider_idx")
+      .on(table.provider, table.providerUid)
+      .where(sql`${table.revokedAt} IS NULL`),
   }),
 );
 
