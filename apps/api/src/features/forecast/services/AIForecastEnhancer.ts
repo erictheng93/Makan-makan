@@ -291,9 +291,14 @@ ${holidayInfo}
 
   getHolidayContext(dateStr: string): string[] {
     const date = new Date(dateStr);
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const dayOfWeek = date.getDay();
+    // `dateStr` is a business date, which `new Date` parses at UTC midnight, so
+    // only the UTC getters read back the day that was written. The local
+    // getters re-read that instant in the host timezone and slip to the
+    // previous day west of Greenwich -- dropping the holiday, the lunar-new-
+    // year window and the weekend all at once.
+    const month = date.getUTCMonth() + 1;
+    const day = date.getUTCDate();
+    const dayOfWeek = date.getUTCDay();
     const context: string[] = [];
 
     // Weekend

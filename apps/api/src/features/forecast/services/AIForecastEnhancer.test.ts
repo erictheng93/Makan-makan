@@ -1,4 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import type { IngredientForecastItem } from "@makanmasak/shared-types";
 import { AIForecastEnhancer } from "./AIForecastEnhancer";
 import { createProvider } from "@makanmasak/ai-analytics";
@@ -246,5 +254,48 @@ describe("AIForecastEnhancer", () => {
     expect(service.getHolidayContext("2026-06-13")).toHaveLength(3);
     expect(service.getHolidayContext("2026-09-15")).toHaveLength(1);
     expect(service.getHolidayContext("2026-03-10")).toEqual([]);
+  });
+
+  describe("on a host west of Greenwich", () => {
+    // `getHolidayContext` takes a business-date string, and
+    // `new Date("2026-01-01")` parses it at UTC midnight. Reading that instant
+    // back with getMonth/getDate/getDay uses the host timezone, so every field
+    // slips to the previous day at a negative offset: New Year's Day stops
+    // being a holiday, the lunar-new-year window closes, and Saturday stops
+    // being the weekend. Workers and CI both run at UTC, so the assertions
+    // above cannot see any of it -- this block supplies the hostile host.
+    const originalTZ = process.env.TZ;
+
+    beforeAll(() => {
+      process.env.TZ = "America/New_York";
+    });
+
+    afterAll(() => {
+      if (originalTZ === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTZ;
+    });
+
+    it("still reads New Year's Day as the first of January", () => {
+      const service = new AIForecastEnhancer(
+        {} as D1Database,
+        "encryption-key",
+      );
+
+      expect(service.getHolidayContext("2026-01-01")).toEqual([
+        "元旦",
+        "農曆新年期間（可能）",
+        "冬季（火鍋/熱湯需求增加）",
+      ]);
+    });
+
+    it("still reads a Saturday as the weekend", () => {
+      const service = new AIForecastEnhancer(
+        {} as D1Database,
+        "encryption-key",
+      );
+
+      // 2026-03-07 is a Saturday; a New York host reads it as Friday the 6th.
+      expect(service.getHolidayContext("2026-03-07")).toEqual(["週末"]);
+    });
   });
 });
