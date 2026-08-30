@@ -178,8 +178,14 @@ describe("provider email handling", () => {
 const ISSUER = OAUTH_PROVIDERS.google.issuers[0];
 const AUDIENCE = "test-client-id";
 
+// The Workers `JsonWebKey` surface does not carry `kid` / `alg`, and
+// `exportKey` is typed as returning either a JWK or an ArrayBuffer depending on
+// the format argument. A plain record keeps the test honest about what a JWKS
+// entry actually is without asserting a shape the runtime never checks.
+type TestJwk = Record<string, unknown>;
+
 let signingKey: CryptoKeyPair;
-let publicJwk: JsonWebKey;
+let publicJwk: TestJwk;
 
 function base64Url(input: string | Uint8Array): string {
   const bytes =
@@ -224,7 +230,7 @@ function validPayload(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function jwksFetch(keys: JsonWebKey[] = [publicJwk]): typeof fetch {
+function jwksFetch(keys: TestJwk[] = [publicJwk]): typeof fetch {
   return vi.fn(
     async () =>
       new Response(JSON.stringify({ keys }), {
@@ -261,7 +267,10 @@ describe("verifyIdToken", () => {
       ["sign", "verify"],
     )) as CryptoKeyPair;
 
-    publicJwk = await crypto.subtle.exportKey("jwk", signingKey.publicKey);
+    publicJwk = (await crypto.subtle.exportKey(
+      "jwk",
+      signingKey.publicKey,
+    )) as unknown as TestJwk;
     publicJwk.kid = "test-key";
     publicJwk.alg = "RS256";
   }, 30_000);
