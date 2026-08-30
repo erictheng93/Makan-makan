@@ -64,6 +64,7 @@ Operational playbooks for production incidents and migrations.
 | [runbooks/orderstatus-migration-deploy.md](./runbooks/orderstatus-migration-deploy.md) | Order-status unification deploy steps                  |
 | [runbooks/market-checkout-payment-readiness.md](./runbooks/market-checkout-payment-readiness.md) | Market checkout payment provider readiness checklist    |
 | [runbooks/market-checkout-provider-adapter-handoff.md](./runbooks/market-checkout-provider-adapter-handoff.md) | Market checkout provider adapter implementation handoff |
+| [runbooks/oauth-provider-credentials.md](./runbooks/oauth-provider-credentials.md) | Applying for LINE / Google / Apple sign-in credentials   |
 | [runbooks/backup-restore-runbook.md](./runbooks/backup-restore-runbook.md)     | D1 backup/restore procedure                             |
 | [runbooks/incident-triage-runbook.md](./runbooks/incident-triage-runbook.md)   | General incident triage steps                           |
 | [runbooks/rollback-runbook.md](./runbooks/rollback-runbook.md)                 | Deployment rollback procedure                            |
