@@ -10,6 +10,7 @@ export const useOrderStore = defineStore("order", () => {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
   const pagination = ref({ page: 1, limit: 20, total: 0, totalPages: 1 });
+  let latestFetchRequest = 0;
 
   // Computed properties
   const pendingOrders = computed(() =>
@@ -55,6 +56,7 @@ export const useOrderStore = defineStore("order", () => {
     orderSource?: string;
     search?: string;
   }) => {
+    const requestId = ++latestFetchRequest;
     isLoading.value = true;
     error.value = null;
 
@@ -84,6 +86,8 @@ export const useOrderStore = defineStore("order", () => {
         `/orders?${queryParams.toString()}`,
       );
 
+      if (requestId !== latestFetchRequest) return;
+
       if (response.data.success && response.data.data) {
         // Defensive: handle double-wrapped cache responses where
         // response.data.data may be {success, data: Order[], ...} instead of Order[]
@@ -97,6 +101,8 @@ export const useOrderStore = defineStore("order", () => {
         };
       }
     } catch (err: unknown) {
+      if (requestId !== latestFetchRequest) return;
+
       // The resolver deliberately drops the server's sentence; keep it here,
       // where it helps whoever is reading the console rather than the shop.
       console.error("Failed to fetch orders:", err);
@@ -104,7 +110,9 @@ export const useOrderStore = defineStore("order", () => {
         fallbackKey: "orderStore.fetchFailed",
       }).message;
     } finally {
-      isLoading.value = false;
+      if (requestId === latestFetchRequest) {
+        isLoading.value = false;
+      }
     }
   };
 

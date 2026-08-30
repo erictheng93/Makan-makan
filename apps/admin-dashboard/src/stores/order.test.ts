@@ -51,6 +51,105 @@ function buildOrder(overrides: Partial<Order> = {}): Order {
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+
+  return { promise, resolve, reject };
+}
+
+describe("admin order store — concurrent refreshes preserve the newest response", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    vi.clearAllMocks();
+  });
+
+  it("does not let an older request remove an order returned by a newer request", async () => {
+    const olderRequest = deferred<AxiosResponse<ApiResponse<Order[]>>>();
+    const newerRequest = deferred<AxiosResponse<ApiResponse<Order[]>>>();
+    vi.mocked(api.get)
+      .mockReturnValueOnce(olderRequest.promise)
+      .mockReturnValueOnce(newerRequest.promise);
+    const store = useOrderStore();
+
+    const olderRefresh = store.fetchOrders();
+    const newerRefresh = store.fetchOrders();
+
+    newerRequest.resolve(
+      axiosResponse({
+        data: {
+          success: true,
+          data: [buildOrder(), buildOrder({ id: "order-2" })],
+        },
+      }),
+    );
+    await newerRefresh;
+    olderRequest.resolve(
+      axiosResponse({
+        data: { success: true, data: [buildOrder()] },
+      }),
+    );
+    await olderRefresh;
+
+    expect(store.orders.map((order) => order.id)).toEqual([
+      "order-1",
+      "order-2",
+    ]);
+  });
+
+  it("stays loading until the newest request finishes", async () => {
+    const olderRequest = deferred<AxiosResponse<ApiResponse<Order[]>>>();
+    const newerRequest = deferred<AxiosResponse<ApiResponse<Order[]>>>();
+    vi.mocked(api.get)
+      .mockReturnValueOnce(olderRequest.promise)
+      .mockReturnValueOnce(newerRequest.promise);
+    const store = useOrderStore();
+
+    const olderRefresh = store.fetchOrders();
+    const newerRefresh = store.fetchOrders();
+
+    olderRequest.resolve(
+      axiosResponse({ data: { success: true, data: [buildOrder()] } }),
+    );
+    await olderRefresh;
+    expect(store.isLoading).toBe(true);
+
+    newerRequest.resolve(
+      axiosResponse({ data: { success: true, data: [buildOrder()] } }),
+    );
+    await newerRefresh;
+    expect(store.isLoading).toBe(false);
+  });
+
+  it("does not surface an older request failure after a newer success", async () => {
+    const olderRequest = deferred<AxiosResponse<ApiResponse<Order[]>>>();
+    const newerRequest = deferred<AxiosResponse<ApiResponse<Order[]>>>();
+    vi.mocked(api.get)
+      .mockReturnValueOnce(olderRequest.promise)
+      .mockReturnValueOnce(newerRequest.promise);
+    const store = useOrderStore();
+
+    const olderRefresh = store.fetchOrders();
+    const newerRefresh = store.fetchOrders();
+
+    newerRequest.resolve(
+      axiosResponse({
+        data: { success: true, data: [buildOrder({ id: "order-2" })] },
+      }),
+    );
+    await newerRefresh;
+    olderRequest.reject(new Error("stale network failure"));
+    await olderRefresh;
+
+    expect(store.orders.map((order) => order.id)).toEqual(["order-2"]);
+    expect(store.error).toBeNull();
+  });
+});
+
 describe("admin order store — local status updates keep the API's time format", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
