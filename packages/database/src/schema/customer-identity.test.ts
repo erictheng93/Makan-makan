@@ -113,6 +113,16 @@ describe("customer identity schema", () => {
       "provider_uid",
       "secret_hash",
       "encrypted_payload",
+      // Federated sign-in (migration 0015). All nullable, so the existing
+      // 'password' rows are untouched; `revoked_at_ms` is what makes an unlink
+      // an audit record rather than a delete.
+      "provider_email",
+      "provider_email_verified",
+      "provider_display_name",
+      "provider_avatar_url",
+      "scopes",
+      "token_expires_at_ms",
+      "revoked_at_ms",
       "verified_at_ms",
       "last_used_at_ms",
       "created_at_ms",

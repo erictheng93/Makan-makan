@@ -66,7 +66,7 @@
   {
     "tableName": "customer_favorites",
     "schemaFile": "packages/database/src/schema/customers.ts",
-    "line": 86,
+    "line": 87,
     "category": "join_edge",
     "migrationPlan": "retain",
     "rationale": "Favorite rows are unique edges from customer to target."
@@ -74,7 +74,7 @@
   {
     "tableName": "customer_phone_verification_tokens",
     "schemaFile": "packages/database/src/schema/customers.ts",
-    "line": 205,
+    "line": 206,
     "category": "leaf_local",
     "migrationPlan": "retain",
     "rationale": "Short-lived verification token rows have no public identity."
