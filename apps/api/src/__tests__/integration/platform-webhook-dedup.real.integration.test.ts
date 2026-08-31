@@ -5,6 +5,7 @@ import {
 } from "@makanmasak/database/testing";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import {
+  OrderService,
   orderItems,
   orders,
   ingredientDefinitions,
@@ -231,6 +232,75 @@ describe("platform webhook deduplication", () => {
     ]);
   });
 
+  it("restores platform-order inventory and nets the ingredient ledger on cancellation", async () => {
+    const restaurant = await seed.restaurant();
+    const menuItem = await seed.menuItem(restaurant.id, { inventoryCount: 5 });
+    const [ingredient] = await testDb.drizzle
+      .insert(ingredientDefinitions)
+      .values({
+        restaurantId: restaurant.id,
+        name: "Rice",
+        unit: "kg",
+        currentStock: 10,
+        isActive: true,
+      } as never)
+      .returning({ id: ingredientDefinitions.id });
+    await testDb.drizzle.insert(menuItemIngredients).values({
+      menuItemId: menuItem.id,
+      ingredientId: ingredient.id,
+      quantityPerServing: 0.5,
+      unit: "kg",
+      isOptional: false,
+    } as never);
+    await testDb.drizzle.insert(platformMenuMappings).values({
+      restaurantId: restaurant.id,
+      platform: "uber_eats",
+      platformItemId: "platform-item-1",
+      menuItemId: menuItem.id,
+    });
+    const env = {
+      DB: testDb.bindings.DB,
+      ENCRYPTION_KEY: "test-encryption-key",
+      JWT_SECRET: "test-jwt-secret",
+    } as Env;
+    const orderId = await new PlatformOrderService(env).processWebhook(
+      "uber_eats",
+      uberPayload("uber-order-cancel"),
+      restaurant.id,
+    );
+
+    await new OrderService(testDb.bindings.DB, env).cancelOrder(
+      orderId,
+      "Platform order cancelled by restaurant",
+    );
+
+    const [menu] = await testDb.drizzle
+      .select({ inventoryCount: menuItems.inventoryCount })
+      .from(menuItems)
+      .where(eq(menuItems.id, menuItem.id));
+    const [stock] = await testDb.drizzle
+      .select({ currentStock: ingredientDefinitions.currentStock })
+      .from(ingredientDefinitions)
+      .where(eq(ingredientDefinitions.id, ingredient.id));
+    const movements = await testDb.drizzle
+      .select({
+        delta: ingredientStockMovements.delta,
+        reason: ingredientStockMovements.reason,
+      })
+      .from(ingredientStockMovements)
+      .where(eq(ingredientStockMovements.orderId, orderId));
+
+    expect(menu.inventoryCount).toBe(5);
+    expect(stock.currentStock).toBe(10);
+    expect(movements).toEqual([
+      { delta: -1, reason: "order_consumption" },
+      { delta: 1, reason: "order_cancellation" },
+    ]);
+    expect(movements.reduce((sum, movement) => sum + movement.delta, 0)).toBe(
+      0,
+    );
+  });
+
   it("records paid platform sales below tracked inventory without a ledger recipe", async () => {
     const restaurant = await seed.restaurant();
     const menuItem = await seed.menuItem(restaurant.id, { inventoryCount: 1 });
@@ -292,6 +362,47 @@ describe("platform webhook deduplication", () => {
       .from(menuItems)
       .where(eq(menuItems.id, menuItem.id));
     expect(menu.inventoryCount).toBeNull();
+  });
+
+  it("ignores a stale mapping that points at another restaurant's menu item", async () => {
+    const sourceRestaurant = await seed.restaurant();
+    const targetRestaurant = await seed.restaurant();
+    const sourceMenuItem = await seed.menuItem(sourceRestaurant.id, {
+      inventoryCount: 5,
+    });
+    await testDb.drizzle.insert(platformMenuMappings).values({
+      restaurantId: targetRestaurant.id,
+      platform: "uber_eats",
+      platformItemId: "platform-item-1",
+      menuItemId: sourceMenuItem.id,
+    });
+    const service = new PlatformOrderService({
+      DB: testDb.bindings.DB,
+      ENCRYPTION_KEY: "test-encryption-key",
+    } as Env);
+
+    const orderId = await service.processWebhook(
+      "uber_eats",
+      uberPayload("uber-order-cross-tenant-mapping"),
+      targetRestaurant.id,
+    );
+
+    const itemRows = await testDb.drizzle
+      .select({ id: orderItems.id })
+      .from(orderItems)
+      .where(eq(orderItems.orderId, orderId));
+    const [sourceMenu] = await testDb.drizzle
+      .select({ inventoryCount: menuItems.inventoryCount })
+      .from(menuItems)
+      .where(eq(menuItems.id, sourceMenuItem.id));
+    const movements = await testDb.drizzle
+      .select({ id: ingredientStockMovements.id })
+      .from(ingredientStockMovements)
+      .where(eq(ingredientStockMovements.orderId, orderId));
+
+    expect(itemRows).toEqual([]);
+    expect(sourceMenu.inventoryCount).toBe(5);
+    expect(movements).toEqual([]);
   });
 
   it("keeps a single order when two deliveries of the same platform order race", async () => {
