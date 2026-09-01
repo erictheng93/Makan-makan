@@ -1,1 +1,0 @@
-../gstack/checkpoint/SKILL.md
