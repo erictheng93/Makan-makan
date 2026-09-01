@@ -1,7 +1,8 @@
 /**
  * Guest Orders Routes
  * Public endpoints for unauthenticated QR code ordering.
- * Completely bypasses authMiddleware; uses KV-based guest tokens instead.
+ * Guest access uses KV tokens; valid customer tokens optionally associate an
+ * order with its customer without changing anonymous ordering.
  */
 
 import { Hono } from "hono";
@@ -21,6 +22,7 @@ import {
   resolveGuestLockIdentity,
 } from "../../../middleware/guestAuth";
 import type { GuestTokenData } from "../../../middleware/guestAuth";
+import { optionalCanonicalCustomerAuthMiddleware } from "../../../middleware/auth";
 import {
   createGuestOrderSchema,
   addGuestOrderItemsSchema,
@@ -44,218 +46,231 @@ import { validateBody } from "../../../shared/middleware";
 
 const app = new Hono<{ Bindings: Env }>();
 
-// ─── POST / ─── Create guest order (no auth, rate limited) ───
-app.post("/", validateBody(createGuestOrderSchema), async (c) => {
-  const data = c.get("validatedBody");
-  await enforceQuota(c, "orders.created", {
-    restaurantId: data.restaurantId,
-  });
+// ─── POST / ─── Create guest order (optional customer auth, rate limited) ───
+app.post(
+  "/",
+  optionalCanonicalCustomerAuthMiddleware,
+  validateBody(createGuestOrderSchema),
+  async (c) => {
+    const data = c.get("validatedBody");
+    const customer = c.get("customer");
+    await enforceQuota(c, "orders.created", {
+      restaurantId: data.restaurantId,
+    });
 
-  // Before any database work: the cheapest request to serve is the one a
-  // flooder never gets to pay for.
-  await enforceGuestOrderThrottle(c, data.restaurantId);
+    // Before any database work: the cheapest request to serve is the one a
+    // flooder never gets to pay for.
+    await enforceGuestOrderThrottle(c, data.restaurantId);
 
-  const db = createDatabase(c.env.DB);
+    const db = createDatabase(c.env.DB);
 
-  // 1. Query restaurant and check allowGuestOrders
-  const restaurant = await db
-    .select()
-    .from(restaurants)
-    .where(eq(restaurants.id, data.restaurantId))
-    .get();
+    // 1. Query restaurant and check allowGuestOrders
+    const restaurant = await db
+      .select()
+      .from(restaurants)
+      .where(eq(restaurants.id, data.restaurantId))
+      .get();
 
-  if (!restaurant) {
-    throw notFound("Restaurant not found");
-  }
+    if (!restaurant) {
+      throw notFound("Restaurant not found");
+    }
 
-  if (!restaurant.isActive || !restaurant.isAvailable) {
-    throw badRequest("Restaurant is currently unavailable");
-  }
+    if (!restaurant.isActive || !restaurant.isAvailable) {
+      throw badRequest("Restaurant is currently unavailable");
+    }
 
-  const settings = restaurant.settings as Record<string, unknown> | null;
-  if (!settings || settings.allowGuestOrders !== true) {
-    throw forbidden("Guest orders are not enabled for this restaurant");
-  }
+    const settings = restaurant.settings as Record<string, unknown> | null;
+    if (!settings || settings.allowGuestOrders !== true) {
+      throw forbidden("Guest orders are not enabled for this restaurant");
+    }
 
-  // Shop orders ride the shop QR channel, which the owner can switch off.
-  // Reuses the row already loaded above rather than re-reading it.
-  if (data.orderType === "shop") {
-    assertShopModeEnabled(restaurant.enableShopMode);
-    assertShopQrCurrent(restaurant.shopQrCode, data.shopQrCode);
-  }
+    // Shop orders ride the shop QR channel, which the owner can switch off.
+    // Reuses the row already loaded above rather than re-reading it.
+    if (data.orderType === "shop") {
+      assertShopModeEnabled(restaurant.enableShopMode);
+      assertShopQrCurrent(restaurant.shopQrCode, data.shopQrCode);
+    }
 
-  // 2. Check active order limit for this device when it already carries an
-  // identity. Brand-new anonymous guests have none yet; using IP here
-  // incorrectly makes a restaurant's shared WiFi/CGNAT address the lock.
-  const requestLockIdentity = resolveGuestLockIdentity(c.req);
-  const existingActiveOrderKey = requestLockIdentity
-    ? guestActiveOrderKey(data.restaurantId, requestLockIdentity)
-    : null;
-  const existingActiveOrder = existingActiveOrderKey
-    ? await c.env.CACHE_KV.get(existingActiveOrderKey)
-    : null;
-  if (existingActiveOrder) {
-    if (data.clientMutationId) {
-      const duplicateMutation = await db
-        .select({ id: orders.id })
-        .from(orders)
-        .where(
-          and(
-            eq(orders.restaurantId, data.restaurantId),
-            eq(orders.clientMutationId, data.clientMutationId),
-          ),
-        )
+    // 2. Check active order limit for this device when it already carries an
+    // identity. Brand-new anonymous guests have none yet; using IP here
+    // incorrectly makes a restaurant's shared WiFi/CGNAT address the lock.
+    const requestLockIdentity = resolveGuestLockIdentity(c.req);
+    const existingActiveOrderKey = requestLockIdentity
+      ? guestActiveOrderKey(data.restaurantId, requestLockIdentity)
+      : null;
+    const existingActiveOrder = existingActiveOrderKey
+      ? await c.env.CACHE_KV.get(existingActiveOrderKey)
+      : null;
+    if (existingActiveOrder) {
+      if (data.clientMutationId) {
+        const duplicateMutation = await db
+          .select({ id: orders.id })
+          .from(orders)
+          .where(
+            and(
+              eq(orders.restaurantId, data.restaurantId),
+              eq(orders.clientMutationId, data.clientMutationId),
+            ),
+          )
+          .get();
+
+        if (duplicateMutation) {
+          throw conflict(
+            "Client mutation has already been processed",
+            "CLIENT_MUTATION_DUPLICATE",
+          );
+        }
+      }
+
+      throw new ApiError(
+        "ACTIVE_GUEST_ORDER_EXISTS",
+        "You already have an active order at this restaurant. Please wait for it to complete.",
+        429,
+      );
+    }
+
+    // 3. Validate table/seat if needed
+    if (data.orderType === "table" || data.orderType === "seat") {
+      const table = await db
+        .select()
+        .from(tables)
+        .where(eq(tables.id, data.tableId!))
         .get();
 
-      if (duplicateMutation) {
+      if (!table || String(table.restaurantId) !== data.restaurantId) {
+        throw badRequest(
+          "Table not found or does not belong to this restaurant",
+        );
+      }
+    }
+
+    if (data.orderType === "seat") {
+      const seat = await db
+        .select()
+        .from(seats)
+        .where(eq(seats.id, data.seatId!))
+        .get();
+
+      if (!seat || seat.tableId !== data.tableId) {
+        throw badRequest("Seat not found or does not belong to this table");
+      }
+    }
+
+    // 4. Create order via OrdersService
+    const fulfillmentType =
+      data.deliveryInfo?.type ??
+      (data.orderType === "shop" ? "takeaway" : "dine_in");
+
+    const ordersService = new OrdersService(c.env);
+    let order;
+    try {
+      order = await ordersService.createOrder({
+        restaurantId: data.restaurantId,
+        customerId: customer?.id,
+        // Only pass tableId for table/seat orders — shop orders don't need a table
+        tableId: data.orderType === "shop" ? undefined : data.tableId,
+        waitingListId: data.waitingListId,
+        waitingListCustomerPhone: data.customerPhone,
+        customerInfo: {
+          name: data.guestName,
+        },
+        items: data.items.map((item) => ({
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+          customizations: item.customizations,
+          notes: item.notes,
+        })),
+        notes: data.notes,
+        clientMutationId: data.clientMutationId,
+        orderType: data.orderType,
+        deliveryInfo: {
+          type: fulfillmentType,
+          address: data.deliveryInfo?.address,
+          phone: data.deliveryInfo?.phone,
+          instructions: data.deliveryInfo?.instructions,
+          deliveryFee: data.deliveryInfo?.deliveryFee,
+        },
+        isGuestOrder: true,
+      });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        /^Menu item \d+ is not available$/.test(error.message)
+      ) {
+        throw conflict(error.message, "MENU_ITEM_UNAVAILABLE");
+      }
+
+      if (
+        error instanceof Error &&
+        error.message === "CLIENT_MUTATION_DUPLICATE"
+      ) {
         throw conflict(
           "Client mutation has already been processed",
           "CLIENT_MUTATION_DUPLICATE",
         );
       }
+
+      throw error;
     }
 
-    throw new ApiError(
-      "ACTIVE_GUEST_ORDER_EXISTS",
-      "You already have an active order at this restaurant. Please wait for it to complete.",
-      429,
-    );
-  }
-
-  // 3. Validate table/seat if needed
-  if (data.orderType === "table" || data.orderType === "seat") {
-    const table = await db
-      .select()
-      .from(tables)
-      .where(eq(tables.id, data.tableId!))
-      .get();
-
-    if (!table || String(table.restaurantId) !== data.restaurantId) {
-      throw badRequest("Table not found or does not belong to this restaurant");
-    }
-  }
-
-  if (data.orderType === "seat") {
-    const seat = await db
-      .select()
-      .from(seats)
-      .where(eq(seats.id, data.seatId!))
-      .get();
-
-    if (!seat || seat.tableId !== data.tableId) {
-      throw badRequest("Seat not found or does not belong to this table");
-    }
-  }
-
-  // 4. Create order via OrdersService
-  const fulfillmentType =
-    data.deliveryInfo?.type ??
-    (data.orderType === "shop" ? "takeaway" : "dine_in");
-
-  const ordersService = new OrdersService(c.env);
-  let order;
-  try {
-    order = await ordersService.createOrder({
+    // 5. Generate guest token and store in KV
+    const guestToken = generateGuestToken();
+    const tokenData: GuestTokenData = {
+      orderId: String(order.id),
       restaurantId: data.restaurantId,
-      // Only pass tableId for table/seat orders — shop orders don't need a table
-      tableId: data.orderType === "shop" ? undefined : data.tableId,
-      waitingListId: data.waitingListId,
-      waitingListCustomerPhone: data.customerPhone,
-      customerInfo: {
-        name: data.guestName,
-      },
-      items: data.items.map((item) => ({
-        menuItemId: item.menuItemId,
-        quantity: item.quantity,
-        customizations: item.customizations,
-        notes: item.notes,
-      })),
-      notes: data.notes,
-      clientMutationId: data.clientMutationId,
-      orderType: data.orderType,
-      deliveryInfo: {
-        type: fulfillmentType,
-        address: data.deliveryInfo?.address,
-        phone: data.deliveryInfo?.phone,
-        instructions: data.deliveryInfo?.instructions,
-        deliveryFee: data.deliveryInfo?.deliveryFee,
-      },
-      isGuestOrder: true,
+      guestName: data.guestName,
+      createdAt: Date.now(),
+    };
+
+    const fourHoursInSeconds = 4 * 60 * 60;
+    await c.env.CACHE_KV.put(
+      `guest_token:${guestToken}`,
+      JSON.stringify(tokenData),
+      { expirationTtl: fourHoursInSeconds },
+    );
+
+    // 6. Set active order KV key (2hr TTL). A device that presented no identity
+    // gets its lock keyed on the token minted just above — the customer app
+    // stores that token, so its next order arrives holding the matching key.
+    const twoHoursInSeconds = 2 * 60 * 60;
+    const activeOrderKey = guestActiveOrderKey(
+      data.restaurantId,
+      requestLockIdentity ?? { kind: "token", value: guestToken },
+    );
+    await c.env.CACHE_KV.put(activeOrderKey, String(order.id), {
+      expirationTtl: twoHoursInSeconds,
     });
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      /^Menu item \d+ is not available$/.test(error.message)
-    ) {
-      throw conflict(error.message, "MENU_ITEM_UNAVAILABLE");
-    }
-
-    if (
-      error instanceof Error &&
-      error.message === "CLIENT_MUTATION_DUPLICATE"
-    ) {
-      throw conflict(
-        "Client mutation has already been processed",
-        "CLIENT_MUTATION_DUPLICATE",
-      );
-    }
-
-    throw error;
-  }
-
-  // 5. Generate guest token and store in KV
-  const guestToken = generateGuestToken();
-  const tokenData: GuestTokenData = {
-    orderId: String(order.id),
-    restaurantId: data.restaurantId,
-    guestName: data.guestName,
-    createdAt: Date.now(),
-  };
-
-  const fourHoursInSeconds = 4 * 60 * 60;
-  await c.env.CACHE_KV.put(
-    `guest_token:${guestToken}`,
-    JSON.stringify(tokenData),
-    { expirationTtl: fourHoursInSeconds },
-  );
-
-  // 6. Set active order KV key (2hr TTL). A device that presented no identity
-  // gets its lock keyed on the token minted just above — the customer app
-  // stores that token, so its next order arrives holding the matching key.
-  const twoHoursInSeconds = 2 * 60 * 60;
-  const activeOrderKey = guestActiveOrderKey(
-    data.restaurantId,
-    requestLockIdentity ?? { kind: "token", value: guestToken },
-  );
-  await c.env.CACHE_KV.put(activeOrderKey, String(order.id), {
-    expirationTtl: twoHoursInSeconds,
-  });
-  // Reverse mapping so any cancel path (admin DELETE, guest cancel, cleanup
-  // jobs) can locate and clear the active-order key from the order id alone.
-  await c.env.CACHE_KV.put(`guest_active_lookup:${order.id}`, activeOrderKey, {
-    expirationTtl: twoHoursInSeconds,
-  });
-  await meterEmit(c, "orders.created", {
-    restaurantId: data.restaurantId,
-    metadata: { orderId: order.id, source: "guest-orders" },
-  });
-
-  // 7. Return order + guestToken
-  const tokenExpiresAt = new Date(
-    Date.now() + fourHoursInSeconds * 1000,
-  ).toISOString();
-  return c.json(
-    {
-      success: true,
-      data: {
-        order,
-        guestToken,
-        tokenExpiresAt,
+    // Reverse mapping so any cancel path (admin DELETE, guest cancel, cleanup
+    // jobs) can locate and clear the active-order key from the order id alone.
+    await c.env.CACHE_KV.put(
+      `guest_active_lookup:${order.id}`,
+      activeOrderKey,
+      {
+        expirationTtl: twoHoursInSeconds,
       },
-    },
-    201,
-  );
-});
+    );
+    await meterEmit(c, "orders.created", {
+      restaurantId: data.restaurantId,
+      metadata: { orderId: order.id, source: "guest-orders" },
+    });
+
+    // 7. Return order + guestToken
+    const tokenExpiresAt = new Date(
+      Date.now() + fourHoursInSeconds * 1000,
+    ).toISOString();
+    return c.json(
+      {
+        success: true,
+        data: {
+          order,
+          guestToken,
+          tokenExpiresAt,
+        },
+      },
+      201,
+    );
+  },
+);
 
 // ─── GET /:id ─── View guest order (guest token required) ───
 app.get("/:id", guestTokenAuth, async (c) => {

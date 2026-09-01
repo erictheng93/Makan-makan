@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Hono } from "hono";
+import { sign } from "hono/jwt";
 import routes from "./index";
 import { ApiError } from "../../../shared/utils/api-error";
 import { GUEST_ORDER_THROTTLE } from "../services/guest-order-throttle";
@@ -137,13 +138,24 @@ function createMockDb() {
   return { select: vi.fn(() => createSelectChain()) };
 }
 
-function createEnv(options: { rateLimitKV?: Map<string, string> | null } = {}) {
+function createEnv(
+  options: {
+    customer?: Record<string, unknown> | null;
+    rateLimitKV?: Map<string, string> | null;
+  } = {},
+) {
   const kv = new Map<string, string>();
   // Absent by default so the existing cases keep exercising the ordering path
   // rather than the throttle; the throttle fails open without it.
   const rateLimitStore = options.rateLimitKV ?? null;
   return {
-    DB: {},
+    DB: {
+      prepare: vi.fn(() => ({
+        bind: vi.fn(() => ({
+          first: vi.fn(async () => options.customer ?? null),
+        })),
+      })),
+    },
     CACHE_KV: {
       get: vi.fn(async (key: string) => kv.get(key) ?? null),
       put: vi.fn(async (key: string, value: string) => {
@@ -165,6 +177,14 @@ function createEnv(options: { rateLimitKV?: Map<string, string> | null } = {}) {
         }
       : undefined,
   };
+}
+
+async function customerToken(customerId: string) {
+  const now = Math.floor(Date.now() / 1000);
+  return sign(
+    { sub: customerId, type: "customer", iat: now, exp: now + 3600 },
+    "test-jwt-secret-with-at-least-32-chars",
+  );
 }
 
 function validGuestOrderBody(overrides: Record<string, unknown> = {}) {
@@ -312,6 +332,7 @@ describe("guest order routes", () => {
       expect.objectContaining({
         restaurantId: "restaurant-1",
         tableId: undefined,
+        customerId: undefined,
         customerInfo: { name: "Guest" },
         orderType: "shop",
         deliveryInfo: { type: "takeaway" },
@@ -335,6 +356,38 @@ describe("guest order routes", () => {
         restaurantId: "restaurant-1",
         metadata: { orderId: 501, source: "guest-orders" },
       },
+    );
+  });
+
+  it("assigns a guest order to the authenticated customer", async () => {
+    setSelectFixtures({ restaurants: [[activeGuestRestaurant()]] });
+    createOrder.mockResolvedValue({ id: 502, orderNumber: "G002" });
+    const customerId = "customer-1";
+    const env = createEnv({
+      customer: {
+        id: customerId,
+        display_name: "Customer",
+        primary_phone: null,
+        primary_email: null,
+        status: "active",
+      },
+    });
+
+    const response = await routes.fetch(
+      new Request("https://test/", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${await customerToken(customerId)}` },
+        body: JSON.stringify(validGuestOrderBody()),
+      }),
+      {
+        ...env,
+        JWT_SECRET: "test-jwt-secret-with-at-least-32-chars",
+      } as never,
+    );
+
+    expect(response.status).toBe(201);
+    expect(createOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ customerId }),
     );
   });
 
