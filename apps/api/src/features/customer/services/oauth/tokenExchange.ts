@@ -122,7 +122,10 @@ export async function exchangeCodeForIdToken({
   return {
     idToken: payload.id_token,
     expiresIn:
-      typeof payload.expires_in === "number" ? payload.expires_in : undefined,
+      typeof payload.expires_in === "number" &&
+      Number.isSafeInteger(payload.expires_in)
+        ? payload.expires_in
+        : undefined,
     scope: typeof payload.scope === "string" ? payload.scope : undefined,
   };
 }

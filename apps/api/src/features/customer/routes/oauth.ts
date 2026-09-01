@@ -131,6 +131,14 @@ function appBaseUrl(env: Env): string {
   );
 }
 
+function expiryTimestampMs(
+  now: number,
+  expiresInSeconds: number,
+): number | undefined {
+  const expiresAtMs = now + expiresInSeconds * 1000;
+  return Number.isSafeInteger(expiresAtMs) ? expiresAtMs : undefined;
+}
+
 /**
  * Which providers this deployment can actually offer. The customer app asks
  * before rendering buttons, so an unconfigured provider is simply absent rather
@@ -266,7 +274,7 @@ async function handleCallback(c: Context<{ Bindings: Env }>) {
     tokenExpiresAtMs:
       exchanged.expiresIn === undefined
         ? undefined
-        : now + exchanged.expiresIn * 1000,
+        : expiryTimestampMs(now, exchanged.expiresIn),
   };
 
   const pending = await resolveIdentity({

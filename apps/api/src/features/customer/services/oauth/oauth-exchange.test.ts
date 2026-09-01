@@ -157,6 +157,26 @@ describe("authorization-code exchange", () => {
       scope: undefined,
     });
   });
+
+  it("omits a fractional expiry so it cannot be written to an INTEGER timestamp column", async () => {
+    await expect(
+      exchangeCodeForIdToken({
+        env: buildEnv(),
+        provider: "google",
+        code: "code",
+        codeVerifier: "verifier",
+        fetchImpl: (async () =>
+          new Response(
+            JSON.stringify({ id_token: "id-token", expires_in: 3600.5 }),
+            { status: 200 },
+          )) as typeof fetch,
+      }),
+    ).resolves.toEqual({
+      idToken: "id-token",
+      expiresIn: undefined,
+      scope: undefined,
+    });
+  });
 });
 
 describe("Apple client secret", () => {

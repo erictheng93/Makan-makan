@@ -89,7 +89,22 @@ MakanMasak is a modern, serverless restaurant management system built on Cloudfl
   in its recreate-table dance, which otherwise renames a non-STRICT table over a
   STRICT one and drops the constraint with no visible diff. Policy and checkpoints
   live in `packages/database/strict-table-policy.json`; `pnpm check:strict-tables`
-  enforces both rules. All 117 tables in the baseline are already STRICT.
+  enforces both rules for migrations, not the live schema. All 117 tables in the
+  baseline are already STRICT, but production was built from the legacy track and
+  is not uniformly STRICT (2026-08-30 measurement: 15 of 119 non-shadow tables).
+  Recheck production with:
+
+  ```sql
+  SELECT COUNT(*) AS total,
+         SUM(CASE WHEN sql LIKE '%STRICT%' THEN 1 ELSE 0 END) AS strict_tables
+  FROM sqlite_master
+  WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+    AND name NOT LIKE '%_fts%' AND name NOT LIKE 'd1_%';
+  ```
+
+  For raw `env.DB.prepare(...)` writes to legacy production tables, validate
+  integer timestamps and amounts in the service layer; TypeScript/Drizzle types
+  alone do not protect that database.
 - **Secret Storage**: OAuth credentials, access/refresh tokens, client secrets, and webhook secrets must be stored only in encrypted payload fields. JSON config columns are for non-secret flags and preferences.
 
 ```bash
