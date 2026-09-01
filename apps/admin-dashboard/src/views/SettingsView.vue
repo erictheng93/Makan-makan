@@ -1793,7 +1793,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, reactive, onMounted, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  ref,
+  reactive,
+  toRaw,
+  onMounted,
+  watch,
+} from "vue";
 import { useRoute } from "vue-router";
 import { CheckCircleIcon } from "@heroicons/vue/24/outline";
 import IntegrationsSettings from "@/components/settings/IntegrationsSettings.vue";
@@ -2173,7 +2181,12 @@ const selectedMarketReadinessSummary = computed(() =>
 );
 
 // 預設設定
-const defaultSettings = { ...settings };
+// A deep snapshot, taken before anything mutates `settings`. `{ ...settings }`
+// only copied the six top-level keys, so `defaultSettings.orders` stayed the
+// *same object* as `settings.orders` — editing a field edited the "default"
+// too, and resetToDefaults assigned those identical references back over
+// themselves. The reset button did nothing at all.
+const defaultSettings = structuredClone(toRaw(settings));
 
 // 方法
 const saveSettings = async () => {
@@ -2217,7 +2230,10 @@ const resetToDefaults = async () => {
   });
   if (!confirmed) return;
 
-  Object.assign(settings, defaultSettings);
+  // Clone again on every reset. Assigning the snapshot's own nested objects
+  // would hand `settings` the very references `defaultSettings` holds, and the
+  // next edit would corrupt the snapshot exactly as the shallow spread did.
+  Object.assign(settings, structuredClone(defaultSettings));
 };
 
 const loadSettings = async () => {
