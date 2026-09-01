@@ -45,6 +45,7 @@ import type {
 import { amountFromCents, fromCents, toRequiredCents } from "../utils/money";
 import { IngredientConsumptionService } from "./ingredient-consumption";
 import { loadAssembledMenuItemOptions } from "./menu-options";
+import { TenantMemberDirectoryService } from "./TenantMemberDirectoryService";
 
 // Kept deliberately in step with ORDER_STATUS_TRANSITIONS in
 // apps/api/src/features/orders/types/index.ts, which lets pending, confirmed,
@@ -810,6 +811,8 @@ export class OrderService extends BaseService {
       const [order] = batchResults[0] as (typeof orders.$inferSelect)[];
       const items = batchResults[1] as (typeof orderItems.$inferSelect)[];
 
+      await this.recomputeMemberProjection(order);
+
       // Re-fetch with full relations (menuItem name/image) so callers
       // and downstream caches get complete data. The insert().returning()
       // above only returns columns from the order_items table itself.
@@ -1416,6 +1419,8 @@ export class OrderService extends BaseService {
           .where(eq(tables.id, order.tableId));
       }
 
+      await this.recomputeMemberProjection(order);
+
       return this.mapToOrder(order);
     } catch (error) {
       this.handleError(error, "updateOrderStatus");
@@ -1573,9 +1578,33 @@ export class OrderService extends BaseService {
       if (!cancelledOrder) {
         throw new Error("Order not found");
       }
+      await this.recomputeMemberProjection(cancelledOrder);
       return cancelledOrder;
     } catch (error) {
       this.handleError(error, "cancelOrder");
+    }
+  }
+
+  /** Projection failures must not turn an already-committed order into a retry. */
+  private async recomputeMemberProjection(order: {
+    restaurantId: string;
+    customerId?: string | null;
+  }) {
+    if (!order.customerId) return;
+    try {
+      await new TenantMemberDirectoryService(
+        this.d1,
+        this.env,
+      ).recomputeForCustomer(
+        { restaurantId: order.restaurantId },
+        order.customerId,
+      );
+    } catch (error) {
+      console.error("Member projection recompute failed", {
+        restaurantId: order.restaurantId,
+        customerId: order.customerId,
+        error,
+      });
     }
   }
 

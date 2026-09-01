@@ -148,6 +148,7 @@ import {
   MapPinned,
   ReceiptText,
   UserPlus,
+  UserRound,
   Crown,
   MessageSquare,
   CalendarCheck,
@@ -355,6 +356,14 @@ const navigationItems = computed(() => {
       icon: TicketIcon,
       visible: authStore.canAccessAdminFeatures,
       module: "coupons",
+      section: "restaurant",
+    },
+    {
+      name: "members",
+      path: "/dashboard/members",
+      label: t("nav.members"),
+      icon: UserRound,
+      visible: authStore.canAccessAdminFeatures,
       section: "restaurant",
     },
     {

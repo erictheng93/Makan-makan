@@ -1673,6 +1673,7 @@ const jaJP: Messages = {
     restaurantManagement: "店舗管理",
     feedback: "フィードバック",
     printAgents: "プリントエージェント",
+    members: "会員管理",
     waitingTabs: {
       dashboard: "ライブダッシュボード",
       list: "待機リスト",
@@ -1682,6 +1683,7 @@ const jaJP: Messages = {
   },
   pages: {
     printAgents: "プリントエージェント",
+    members: "会員管理",
     optionGroups: "共有オプショングループ",
     login: "ログイン",
     forgotPassword: "パスワード忘れ",

@@ -1790,6 +1790,7 @@ const idID: Messages = {
     restaurantManagement: "Manajemen Toko",
     feedback: "Umpan Balik",
     printAgents: "Agen cetak",
+    members: "Manajemen Anggota",
     accountManagement: "Akun",
     waitingTabs: {
       list: "Daftar tunggu",
@@ -1799,6 +1800,7 @@ const idID: Messages = {
   },
   pages: {
     printAgents: "Agen cetak",
+    members: "Manajemen Anggota",
     optionGroups: "Grup Opsi Bersama",
     login: "Masuk",
     forgotPassword: "Lupa Kata Sandi",

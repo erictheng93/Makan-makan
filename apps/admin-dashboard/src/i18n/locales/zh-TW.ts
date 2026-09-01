@@ -1836,11 +1836,13 @@ const zhTWCore = {
     accountManagement: "帳號管理",
     feedback: "意見反饋",
     printAgents: "列印代理",
+    members: "會員管理",
   },
 
   // 頁面標題
   pages: {
     printAgents: "列印代理",
+    members: "會員管理",
     optionGroups: "共用選項組",
     login: "登入",
     forgotPassword: "忘記密碼",

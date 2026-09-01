@@ -1676,6 +1676,7 @@ const viVN: Messages = {
     restaurantManagement: "Quản lý cửa hàng",
     feedback: "Phản hồi",
     printAgents: "Tác nhân in",
+    members: "Quản lý thành viên",
     accountManagement: "Tài khoản",
     waitingManagement: "Quản lý chờ đợi",
     waitingTabs: {
@@ -1685,6 +1686,7 @@ const viVN: Messages = {
   },
   pages: {
     printAgents: "Tác nhân in",
+    members: "Quản lý thành viên",
     optionGroups: "Nhóm tùy chọn dùng chung",
     login: "Đăng nhập",
     forgotPassword: "Quên mật khẩu",

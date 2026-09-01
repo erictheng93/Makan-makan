@@ -1655,10 +1655,12 @@ const zhCN: Messages = {
     restaurantManagement: "店铺管理",
     feedback: "意见反馈",
     printAgents: "打印代理",
+    members: "会员管理",
     accountManagement: "帐号管理",
   },
   pages: {
     printAgents: "打印代理",
+    members: "会员管理",
     optionGroups: "共用选项组",
     login: "登录",
     forgotPassword: "忘记密码",

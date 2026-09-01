@@ -66,6 +66,13 @@ export { LeaveAnalyticsService } from "./LeaveAnalyticsService";
 export { PartnershipService } from "./PartnershipService";
 export { VerificationService } from "./VerificationService";
 export { FeedbackService } from "./FeedbackService";
+export {
+  TenantMemberDirectoryService,
+  type TenantScope,
+  type MemberListFilters,
+  type TenantMemberListItem,
+  type MemberListResult,
+} from "./TenantMemberDirectoryService";
 export { businessNumber, prefixedUuid } from "./id-generation";
 
 // Realtime broadcast: bridge to apps/realtime Durable Object

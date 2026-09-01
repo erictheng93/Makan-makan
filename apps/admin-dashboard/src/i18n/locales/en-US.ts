@@ -1779,9 +1779,11 @@ const enUS: Messages = {
     accountManagement: "Accounts",
     feedback: "Feedback",
     printAgents: "Print Agents",
+    members: "Members",
   },
   pages: {
     printAgents: "Print Agents",
+    members: "Members",
     optionGroups: "Shared Option Groups",
     login: "Login",
     forgotPassword: "Forgot Password",

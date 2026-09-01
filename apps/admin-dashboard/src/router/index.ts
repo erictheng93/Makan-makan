@@ -278,6 +278,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: "members",
+        name: "Members",
+        component: () => import("@/views/MembersView.vue"),
+        meta: {
+          titleKey: "pages.members",
+          roles: [UserRole.ADMIN, UserRole.OWNER],
+        },
+      },
+      {
         path: "pos",
         component: () => import("@/views/POSView.vue"),
         meta: {

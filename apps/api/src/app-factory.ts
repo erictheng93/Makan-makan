@@ -117,6 +117,7 @@ import feedbackFeature from "./features/feedback";
 import billingFeature from "./features/billing";
 import subscriptionsFeature from "./features/subscriptions";
 import meFeature from "./features/me";
+import membersFeature from "./features/members";
 import { ErrorSanitizer } from "./utils/errorSanitizer";
 import { ApiError, sanitizeApiErrorDetails } from "./shared/utils/api-error";
 import type { Env } from "./types/env";
@@ -668,6 +669,7 @@ export function createApp(
   apiV1.route("/guest-orders", guestOrdersRoutes); // 訪客點餐 (KV-based guest token auth)
   apiV1.route("/market-checkouts", marketCheckoutsFeature.routes); // 市場多攤位訪客結帳
   apiV1.route("/credits", creditsFeature.routes); // 代幣儲值卡 (查餘額公開限流, 管理端點 admin)
+  apiV1.route("/restaurants", membersFeature.routes);
   apiV1.route("/integrations", integrationsFeature.routes); // 外送平台串接 (webhooks 公開 HMAC 驗證, 管理端點內部驗證)
 
   apiV1.use("*", async (c, next) => {

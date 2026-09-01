@@ -62,6 +62,10 @@
     {
       "fresh": "0015_customer_oauth_identity_fields.sql",
       "reason": "customer_auth_identities is a platform-API table for consumer sign-in; the management-api database has no customer identity table to pair against."
+    },
+    {
+      "fresh": "0016_restaurant_customers.sql",
+      "reason": "The tenant-local customer directory is derived from platform API orders and customers; the management-api database has neither source table."
     }
   ],
   "legacyOnly": [

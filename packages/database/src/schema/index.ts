@@ -2,6 +2,7 @@
 export * from "./restaurants";
 export * from "./users";
 export * from "./customers";
+export * from "./restaurant-customers";
 export * from "./categories";
 export * from "./menu-items";
 export * from "./option-groups";
@@ -53,6 +54,7 @@ export * from "./credit-topup-intents";
 export { restaurantFaqRelations, restaurantRelations } from "./restaurants";
 export { userRelations } from "./users";
 export { customersRelations } from "./customers";
+export { restaurantCustomersRelations } from "./restaurant-customers";
 export { categoryRelations } from "./categories";
 export { menuItemRelations } from "./menu-items";
 export { restaurantServiceItemsRelations } from "./restaurant-service-items";
