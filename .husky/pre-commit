@@ -12,6 +12,12 @@ node scripts/audit-module-gates.cjs
 # here it fails before the commit exists.
 node scripts/check-no-automated-destructive-wrangler.cjs
 
+# The palette is the five iOS hues in DESIGN.md, defined once in
+# design-tokens.js. This rejects the hues the system does not have (purple,
+# indigo, violet, fuchsia, pink) and raw hex duplicates of a token, which is how
+# 337 off-palette classes accumulated across the five apps before 2026-09-02.
+node scripts/check-design-palette.cjs
+
 # Factory 使用快速檢查（僅針對測試文件）
 # Use --diff-filter=ACM here too, otherwise a commit that only DELETES a
 # spec file enters this branch (the outer grep matches the deletion) and
