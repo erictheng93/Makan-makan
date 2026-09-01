@@ -5,15 +5,21 @@ import {
   requireRestaurantAccess,
   requireRole,
 } from "../../../middleware/auth";
-import { validateParams, validateQuery } from "../../../middleware/validation";
-import { notFound } from "../../../shared/utils/api-error";
+import {
+  validateOptionalBody,
+  validateParams,
+  validateQuery,
+} from "../../../middleware/validation";
+import { forbidden, notFound } from "../../../shared/utils/api-error";
 import type { Env } from "../../../types/env";
 import {
   memberListQuerySchema,
   memberOrdersQuerySchema,
   memberParamSchema,
+  memberRevealContactBodySchema,
   restaurantIdParamSchema,
 } from "../schemas/validation";
+import { enforcePiiRevealThrottle } from "../services/pii-reveal-throttle";
 
 const routes = new Hono<{ Bindings: Env }>();
 
@@ -101,6 +107,60 @@ routes.get(
         page: result.page,
         limit: result.limit,
         pages: result.pages,
+      },
+    });
+  },
+);
+
+// PII disclosure. A POST rather than a GET on purpose: it is a state change —
+// it writes an audit row and spends a rate-limit budget — and must never be
+// cacheable, prefetchable, or reachable by following a link.
+routes.post(
+  "/:restaurantId/members/:memberId/reveal-contact",
+  authMiddleware,
+  requireRole([0, 1]),
+  requireRestaurantAccess("restaurantId"),
+  validateParams(memberParamSchema),
+  validateOptionalBody(memberRevealContactBodySchema),
+  async (c) => {
+    const { restaurantId, memberId } = c.get("validatedParams");
+    const { reason } = c.get("validatedBody");
+    const actor = c.get("user");
+
+    await enforcePiiRevealThrottle(c, actor.id);
+
+    // The service writes the audit row and only then returns the values; an
+    // audit failure propagates and this handler never reaches its response.
+    const result = await directory(c.env).revealContact(
+      { restaurantId },
+      memberId,
+      {
+        userId: actor.id,
+        ipAddress: c.req.header("CF-Connecting-IP") ?? null,
+        userAgent: c.req.header("User-Agent") ?? null,
+      },
+      reason,
+    );
+
+    // Same 404 as the GET, for the same reason: another tenant's member must
+    // not be distinguishable from one that does not exist.
+    if (result.outcome === "not-found") {
+      throw notFound("Member not found", "MEMBER_NOT_FOUND");
+    }
+    if (result.outcome === "deleted") {
+      throw forbidden(
+        "Contact details are not available for a deleted customer",
+        "MEMBER_DELETED",
+      );
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        memberId: result.contact.memberId,
+        phone: result.contact.phone,
+        email: result.contact.email,
+        revealedAt: Date.now(),
       },
     });
   },

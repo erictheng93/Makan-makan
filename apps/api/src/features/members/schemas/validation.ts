@@ -31,3 +31,13 @@ export const memberOrdersQuerySchema = z.object({
   page: boundedPageQuery(),
   limit: boundedLimitQuery("100"),
 });
+
+/**
+ * The reveal flow gates on a confirmation modal, not on typed justification,
+ * so `reason` is optional and a bodyless POST is valid. When a client does send
+ * one it is recorded in the audit metadata, which is why it is length-bounded
+ * rather than free-form.
+ */
+export const memberRevealContactBodySchema = z.object({
+  reason: z.string().trim().min(4).max(200).optional(),
+});

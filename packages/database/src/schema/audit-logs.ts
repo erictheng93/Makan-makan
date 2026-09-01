@@ -24,6 +24,14 @@ export const AUDIT_ACTIONS = {
   MENU_DELETE: "menu_delete",
   MENU_VIEW: "menu_view",
 
+  // 會員相關（issue #299 §9.2）
+  // 揭露顧客完整聯絡資料（PII）：resource 為 restaurant_customers，
+  // resourceId 一律是租戶端的 member id，永不寫入 customers.id 或原始 PII。
+  CUSTOMER_PII_REVEAL: "customer_pii_reveal",
+  // 匯出會員名單。與下方的 DATA_EXPORT 分開，因為那個太籠統，
+  // 會把備份匯出混進顧客資料匯出的稽核查詢裡。
+  CUSTOMER_DATA_EXPORT: "customer_data_export",
+
   // 系統相關
   SYSTEM_CONFIG: "system_config",
   DATA_EXPORT: "data_export",

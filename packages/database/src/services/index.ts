@@ -74,11 +74,23 @@ export { VerificationService } from "./VerificationService";
 export { FeedbackService } from "./FeedbackService";
 export {
   TenantMemberDirectoryService,
+  type AuditActor,
   type TenantScope,
   type MemberListFilters,
   type TenantMemberListItem,
   type MemberListResult,
+  type MemberContactRevealOutcome,
+  type TenantMemberContact,
 } from "./TenantMemberDirectoryService";
+export { maskEmail, maskPhone } from "./pii-masking";
+export {
+  backfillCandidateOrderCountStatement,
+  backfillPendingPairCountStatement,
+  buildBackfillCandidateOrderCountQuery,
+  buildBackfillPendingPairCountQuery,
+  buildRestaurantCustomerBackfillQuery,
+  restaurantCustomerBackfillStatement,
+} from "./restaurant-customer-backfill";
 export { businessNumber, prefixedUuid } from "./id-generation";
 
 // Realtime broadcast: bridge to apps/realtime Durable Object
