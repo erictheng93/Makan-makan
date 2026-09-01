@@ -3,6 +3,7 @@ import {
   asc,
   avg,
   count,
+  countDistinct,
   desc,
   eq,
   gte,
@@ -444,23 +445,47 @@ export class AnalyticsService extends BaseService {
       }
 
       // 總顧客數（有註冊的）
+      //
+      // `count()` here counted order rows, not customers, so a single customer
+      // with 3 orders reported `totalCustomers: 3` and — since `newCustomers`
+      // is correctly grouped by customer — `returningCustomers: 2` for a
+      // restaurant that has served exactly one person. Latent while every
+      // `customer_id` was NULL; #294 starts attributing orders, so it would
+      // have begun showing owners a wrong number rather than a zero.
       const [{ totalCustomers }] = await this.db
-        .select({ totalCustomers: count() })
+        .select({ totalCustomers: countDistinct(orders.customerId) })
         .from(orders)
         .where(and(...conditions, sql`${orders.customerId} IS NOT NULL`));
 
       // 新顧客數（第一次下單）
+      //
+      // The bound value must be the epoch-ms integer, not a `Date`. Drizzle
+      // encodes a `Date` for `orders.createdAt` because it knows that column is
+      // `timestamp_ms`, but `MIN(...)` here is a raw `sql` expression with no
+      // column type behind it, so the `Date` went to D1 unencoded and every
+      // request carrying `dateFrom` failed with `Failed query` — a 500 on
+      // GET /api/v1/analytics/customers for any date-filtered range, which is
+      // what the dashboard always sends.
+      //
+      // Note the clause is currently redundant: `conditions` already restricts
+      // `created_at_ms >= dateFrom`, so MIN over the surviving rows cannot be
+      // smaller. It also means "new" is measured inside the window rather than
+      // against the customer's first order ever — kept as-is here because
+      // changing that is a metric definition change, not a bug fix.
       const newCustomers = await this.db
         .select({
           customerId: orders.customerId,
-          firstOrder: sql<Date>`MIN(${orders.createdAt})`,
+          firstOrder: sql<number>`MIN(${orders.createdAt})`,
         })
         .from(orders)
         .where(and(...conditions, sql`${orders.customerId} IS NOT NULL`))
         .groupBy(orders.customerId)
         .having(
           dateFrom
-            ? gte(sql<Date>`MIN(${orders.createdAt})`, new Date(dateFrom))
+            ? gte(
+                sql<number>`MIN(${orders.createdAt})`,
+                new Date(dateFrom).getTime(),
+              )
             : undefined,
         );
 
@@ -468,34 +493,56 @@ export class AnalyticsService extends BaseService {
       const returningCustomers = totalCustomers - newCustomers.length;
 
       // 平均每客戶訂單數
+      //
+      // These two rollups used to be raw `sql` subqueries that named their
+      // columns as strings and applied no filter at all — not the restaurant,
+      // not the date range — so they averaged across every tenant on the
+      // platform while every sibling metric in the same payload was scoped.
+      // That stayed invisible only because `orders.customer_id` was always
+      // NULL in production; #294 starts attributing orders to logged-in
+      // customers, which would have turned each restaurant's analytics page
+      // into a platform-wide readout. Rebuilt as Drizzle subqueries so
+      // `conditions` actually reaches them and the columns are checked at
+      // compile time (CLAUDE.md's Layer 2 rule — raw string SQL is exactly how
+      // the filter went missing unnoticed).
+      const customerOrderCounts = this.db
+        .select({
+          customerId: orders.customerId,
+          orderCount: count().as("order_count"),
+        })
+        .from(orders)
+        .where(and(...conditions, sql`${orders.customerId} IS NOT NULL`))
+        .groupBy(orders.customerId)
+        .as("customer_order_counts");
+
       const [{ averageOrdersPerCustomer }] = await this.db
         .select({
-          averageOrdersPerCustomer: avg(
-            sql<number>`customer_order_counts.order_count`,
-          ),
+          averageOrdersPerCustomer: avg(customerOrderCounts.orderCount),
         })
-        .from(
-          sql`(
-            SELECT customer_id, COUNT(*) as order_count 
-            FROM orders 
-            WHERE customer_id IS NOT NULL 
-            GROUP BY customer_id
-          ) as customer_order_counts`,
-        );
+        .from(customerOrderCounts);
 
       // 顧客終身價值
+      const customerTotals = this.db
+        .select({
+          customerId: orders.customerId,
+          totalSpent: sumMoneyAmount(orders.totalAmountCents).as("total_spent"),
+        })
+        .from(orders)
+        .where(
+          and(
+            ...conditions,
+            sql`${orders.customerId} IS NOT NULL`,
+            inArray(orders.status, FULFILLED_ORDER_STATUSES),
+          ),
+        )
+        .groupBy(orders.customerId)
+        .as("customer_totals");
+
       const [{ customerLifetimeValue }] = await this.db
         .select({
-          customerLifetimeValue: avg(sql<number>`customer_totals.total_spent`),
+          customerLifetimeValue: avg(customerTotals.totalSpent),
         })
-        .from(
-          sql`(
-            SELECT customer_id, SUM(COALESCE(total_amount_cents, 0)) / 100.0 as total_spent
-            FROM orders 
-            WHERE customer_id IS NOT NULL AND status IN ('paid', 'delivered', 'served')
-            GROUP BY customer_id
-          ) as customer_totals`,
-        );
+        .from(customerTotals);
 
       // 頂級客戶
       const topCustomers = await this.db
