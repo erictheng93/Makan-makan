@@ -182,9 +182,13 @@ class OfflineManager {
     }
   }
 
+  // Transitions only. This used to invoke the callback once on registration
+  // "to report the current state", which meant every app boot fired the
+  // online branch and told the user their connection had been restored from
+  // an outage that never happened. Callers that want the current value read
+  // getStatus() instead — it has always been there.
   onStatusChange(callback: (isOnline: boolean) => void) {
     this.callbacks.push(callback);
-    callback(this.isOnline); // 立即回調當前狀態
   }
 
   addPendingRequest(request: () => Promise<unknown>) {
@@ -672,11 +676,14 @@ export function setupGlobalErrorHandler() {
   });
 
   // 監聽網絡狀態變化
+  // The two strings live under `exampleUsage` because that is where they were
+  // first added; they are the only translated pair for this event, so reuse
+  // them rather than growing a seventh copy across six locale files.
   errorHandler.getOfflineManager().onStatusChange((isOnline: boolean): void => {
     if (isOnline) {
-      toast.success("網絡連接已恢復", { timeout: 2000 });
+      toast.success(t("exampleUsage.networkRestored"), { timeout: 2000 });
     } else {
-      toast.warning("網絡連接已斷開，將在離線模式下運行", { timeout: false });
+      toast.warning(t("exampleUsage.networkDisconnected"), { timeout: false });
     }
   });
 }
