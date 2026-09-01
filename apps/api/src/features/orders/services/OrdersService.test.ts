@@ -919,15 +919,25 @@ describe("OrdersService workflows", () => {
       "99",
     );
 
+    // Order 11 could not be cancelled. It counts against failedCount and is
+    // reported in `errors` like any other failure — the counts have to add up
+    // to totalOrders or a caller cannot tell a skipped order from an applied one.
     expect(cancelResult).toMatchObject({
       batchId: "batch-cancel",
       totalOrders: 2,
       successCount: 1,
-      failedCount: 0,
+      failedCount: 1,
     });
     expect(cancelResult.results).toEqual([
       { orderId: "10", success: true, data: expect.any(Object) },
-      { orderId: "11", success: false, data: null },
+      {
+        orderId: "11",
+        success: false,
+        error: "Order not found or could not be actioned",
+      },
+    ]);
+    expect(cancelResult.errors).toEqual([
+      { orderId: "11", error: "Order not found or could not be actioned" },
     ]);
 
     const unsupported = await service.bulkUpdateOrders({

@@ -928,8 +928,21 @@ export class OrdersService implements IOrdersService {
               );
           }
 
-          result.results.push({ orderId, success, data });
-          if (success) result.successCount++;
+          if (success) {
+            result.results.push({ orderId, success: true, data });
+            result.successCount++;
+          } else {
+            // A falsy result that did not throw: cancelOrder returning null
+            // for an order it could not find, or an update_status call that
+            // reached the service without a status. Counting only the throwing
+            // failures left totalOrders !== successCount + failedCount and an
+            // empty `errors`, so a caller could not tell a silently skipped
+            // batch from a fully applied one.
+            const error = "Order not found or could not be actioned";
+            result.failedCount++;
+            result.errors.push({ orderId, error });
+            result.results.push({ orderId, success: false, error });
+          }
         } catch (error) {
           result.failedCount++;
           const errorMessage =

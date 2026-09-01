@@ -230,14 +230,39 @@ describe("order validation", () => {
   it("validates bulk operation uniqueness and coupon preview input", () => {
     expect(
       bulkOrderOperationSchema.parse({
-        action: "export",
+        action: "cancel",
         orderIds: [1, 2],
         data: { format: "pdf", notes: "<b>queued</b>" },
       }),
     ).toMatchObject({
-      action: "export",
+      action: "cancel",
       data: { format: "pdf", notes: "bqueued/b" },
     });
+
+    // `export` and `archive` are not implemented — the schema rejects them so
+    // the caller gets one 400 instead of 200 OK with an error per order.
+    expect(
+      bulkOrderOperationSchema.safeParse({
+        action: "export",
+        orderIds: [1, 2],
+      }).success,
+    ).toBe(false);
+
+    // update_status without a status matched no branch in the service loop and
+    // came back 200 with every order silently untouched.
+    expect(
+      bulkOrderOperationSchema.safeParse({
+        action: "update_status",
+        orderIds: [1, 2],
+      }).success,
+    ).toBe(false);
+    expect(
+      bulkOrderOperationSchema.safeParse({
+        action: "update_status",
+        orderIds: [1, 2],
+        data: { status: "preparing" },
+      }).success,
+    ).toBe(true);
 
     expect(validateBulkOrderIds.safeParse([1, 2, 1]).success).toBe(false);
     expect(

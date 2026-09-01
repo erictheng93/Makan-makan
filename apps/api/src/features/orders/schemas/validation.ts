@@ -293,19 +293,36 @@ export const previewCouponSchema = z.object({
 });
 
 // Bulk operations schema
-export const bulkOrderOperationSchema = z.object({
-  action: z.enum(["update_status", "cancel", "export", "archive"]),
-  orderIds: z.array(idStringSchema).min(1).max(100),
-  data: z
-    .object({
-      status: orderStatusSchema.optional(),
-      reason: z.string().max(200).optional(),
-      format: z.enum(["csv", "excel", "pdf"]).optional(),
-      notes: notesSchema(500).optional(),
-    })
-    .optional(),
-  batchId: z.uuid().optional(),
-});
+// `export` and `archive` were advertised here but never implemented — the
+// service rejects them per order, so a batch of 100 came back 200 OK with 100
+// identical errors. Rejecting them at the boundary gives one 400 instead. The
+// service keeps its own guard for callers that bypass this schema.
+export const bulkOrderOperationSchema = z
+  .object({
+    action: z.enum(["update_status", "cancel"]),
+    orderIds: z.array(idStringSchema).min(1).max(100),
+    data: z
+      .object({
+        status: orderStatusSchema.optional(),
+        reason: z.string().max(200).optional(),
+        format: z.enum(["csv", "excel", "pdf"]).optional(),
+        notes: notesSchema(500).optional(),
+      })
+      .optional(),
+    batchId: z.uuid().optional(),
+  })
+  .superRefine((value, ctx) => {
+    // Without this, `update_status` with no status parsed fine, matched no
+    // branch in the service loop and returned 200 with every order silently
+    // untouched.
+    if (value.action === "update_status" && !value.data?.status) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["data", "status"],
+        message: "data.status is required for the update_status action",
+      });
+    }
+  });
 
 // Analytics and statistics schemas
 export const orderStatsQuerySchema = z.object({
