@@ -3404,6 +3404,127 @@ const idID: Messages = {
       toggleFailed: "Gagal mengubah status",
     },
   },
+  members: {
+    subtitle: "Lihat pelanggan yang pernah berbelanja di toko ini",
+    deletedCustomer: "Pelanggan yang dihapus",
+    unnamedCustomer: "Tanpa nama",
+    cancelledCount: "Batal {count}",
+    empty: {
+      title: "Belum ada data anggota",
+      description:
+        "Pelanggan akan muncul di sini setelah menyelesaikan pesanan pertamanya di toko ini.",
+    },
+    search: {
+      label: "Cari anggota",
+      placeholder:
+        "Cari berdasarkan nama; nomor telepon dan email harus diisi lengkap",
+    },
+    stats: {
+      total: "Total anggota",
+      newThisMonth: "Baru bulan ini",
+      repeatRate: "Rasio pelanggan kembali",
+      avgOrderValue: "Rata-rata nilai pesanan",
+    },
+    quickFilters: {
+      all: "Semua",
+      frequent: "Pelanggan tetap (5+ pesanan)",
+      dormant: "30 hari tidak kembali",
+      blocked: "Diblokir",
+    },
+    filters: {
+      title: "Filter lanjutan",
+      sort: "Urutkan menurut",
+      minOrders: "Pesanan minimum",
+      minSpent: "Belanja minimum",
+      lastOrderFrom: "Belanja terakhir dari",
+      lastOrderTo: "Belanja terakhir sampai",
+      blocked: "Status blokir",
+      reset: "Atur ulang filter",
+      sortOptions: {
+        recent: "Belanja terbaru",
+        spent: "Total belanja",
+        orders: "Jumlah pesanan",
+        name: "Nama",
+      },
+      blockedOptions: {
+        all: "Semua",
+        blocked: "Diblokir",
+        active: "Tidak diblokir",
+      },
+    },
+    table: {
+      member: "Anggota",
+      contact: "Kontak",
+      orders: "Pesanan di toko ini",
+      spent: "Belanja di toko ini",
+      lastOrder: "Belanja terakhir",
+      firstOrder: "Belanja pertama",
+      status: "Status",
+      actions: "Tindakan",
+    },
+    status: {
+      active: "Normal",
+      blocked: "Diblokir",
+      deleted: "Dihapus",
+    },
+    badges: {
+      marketingUnreachable: "Tidak untuk pemasaran",
+    },
+    actions: {
+      detail: "Detail",
+    },
+    pagination: {
+      previous: "Sebelumnya",
+      next: "Berikutnya",
+      showing: "Menampilkan {start} sampai {end} dari {total}",
+      label: "Penomoran halaman",
+    },
+    detail: {
+      title: "Detail anggota",
+      close: "Tutup",
+      identity: "Profil anggota",
+      contact: "Kontak",
+      summary: "Ringkasan belanja di toko ini",
+      orderCount: "Jumlah pesanan",
+      cancelledOrders: "Pesanan dibatalkan",
+      totalSpent: "Total belanja",
+      avgOrderValue: "Rata-rata nilai pesanan",
+      firstOrder: "Belanja pertama",
+      lastOrder: "Belanja terakhir",
+      orders: "Riwayat pesanan di toko ini",
+      ordersEmpty: "Anggota ini belum punya pesanan di toko ini",
+      loadFailed: "Gagal memuat data anggota. Silakan coba lagi.",
+      ordersLoadFailed: "Gagal memuat riwayat pesanan. Silakan coba lagi.",
+      columns: {
+        orderNumber: "Nomor pesanan",
+        status: "Status",
+        amount: "Jumlah",
+        date: "Waktu pesan",
+      },
+    },
+    reveal: {
+      action: "Tampilkan kontak lengkap",
+      confirmTitle: "Tampilkan kontak lengkap",
+      confirmMessage:
+        "Tindakan ini dicatat di log audit. Nomor telepon dan email lengkap hanya tampil di panel ini dan otomatis disamarkan lagi setelah 5 menit.",
+      confirmLabel: "Tampilkan",
+      hide: "Samarkan sekarang",
+      revealing: "Memuat…",
+      phone: "Telepon",
+      email: "Email",
+      none: "Tidak tersedia",
+      autoMaskNotice:
+        "Data akan disamarkan lagi dalam {minutes} menit dan tidak pernah disimpan.",
+      errors: {
+        notFound: "Anggota ini tidak ditemukan; datanya mungkin sudah dihapus.",
+        rateLimited:
+          "Anda sudah mencapai batas 30 kali lihat pada jam ini. Silakan coba lagi nanti.",
+        forbidden:
+          "Pelanggan ini sudah dihapus sehingga kontak lengkapnya tidak dapat ditampilkan.",
+        failed: "Gagal menampilkan kontak. Silakan coba lagi.",
+      },
+    },
+  },
   employees: {
     title: "Manajemen Karyawan",
     subtitle: "Kelola info staf, penjadwalan, dan cuti",

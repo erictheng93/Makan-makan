@@ -25,6 +25,16 @@ describe("admin dashboard router", () => {
     ]);
   });
 
+  it("restricts the member directory to admin and owner", () => {
+    const resolved = router.resolve("/dashboard/members");
+
+    expect(resolved.name).toBe("Members");
+    expect(resolved.matched.at(-1)?.meta.roles).toEqual([
+      UserRole.ADMIN,
+      UserRole.OWNER,
+    ]);
+  });
+
   it("keeps OwnerOverview, Orders, and GroupOrders role boundaries distinct", () => {
     const rolesFor = (name: string) =>
       router.getRoutes().find((route) => route.name === name)?.meta.roles;

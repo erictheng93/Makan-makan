@@ -3383,6 +3383,127 @@ const enUS: Messages = {
       toggleFailed: "Status toggle failed",
     },
   },
+  members: {
+    subtitle: "Customers who have ordered at this restaurant",
+    deletedCustomer: "Deleted customer",
+    unnamedCustomer: "No name on file",
+    cancelledCount: "{count} cancelled",
+    empty: {
+      title: "No members yet",
+      description:
+        "A customer appears here once they complete their first order at this restaurant.",
+    },
+    search: {
+      label: "Search members",
+      placeholder: "Search by name; phone and email must be entered in full",
+    },
+    stats: {
+      total: "Total members",
+      newThisMonth: "New this month",
+      repeatRate: "Repeat rate",
+      avgOrderValue: "Average order value",
+    },
+    quickFilters: {
+      all: "All",
+      frequent: "Regulars (5+ orders)",
+      dormant: "No order in 30 days",
+      blocked: "Blocked",
+    },
+    filters: {
+      title: "Advanced filters",
+      sort: "Sort by",
+      minOrders: "Minimum orders",
+      minSpent: "Minimum spend",
+      lastOrderFrom: "Last order from",
+      lastOrderTo: "Last order to",
+      blocked: "Blocked status",
+      reset: "Reset filters",
+      sortOptions: {
+        recent: "Most recent order",
+        spent: "Total spend",
+        orders: "Order count",
+        name: "Name",
+      },
+      blockedOptions: {
+        all: "All",
+        blocked: "Blocked",
+        active: "Not blocked",
+      },
+    },
+    table: {
+      member: "Member",
+      contact: "Contact",
+      orders: "Orders here",
+      spent: "Spend here",
+      lastOrder: "Last order",
+      firstOrder: "First order",
+      status: "Status",
+      actions: "Actions",
+    },
+    status: {
+      active: "Active",
+      blocked: "Blocked",
+      deleted: "Deleted",
+    },
+    badges: {
+      marketingUnreachable: "No marketing",
+    },
+    actions: {
+      detail: "Details",
+    },
+    pagination: {
+      previous: "Previous",
+      next: "Next",
+      showing: "Showing {start} to {end} of {total}",
+      label: "Pagination",
+    },
+    detail: {
+      title: "Member details",
+      close: "Close",
+      identity: "Member profile",
+      contact: "Contact",
+      summary: "Spend at this restaurant",
+      orderCount: "Orders",
+      cancelledOrders: "Cancelled orders",
+      totalSpent: "Total spend",
+      avgOrderValue: "Average order value",
+      firstOrder: "First order",
+      lastOrder: "Last order",
+      orders: "Order history at this restaurant",
+      ordersEmpty: "This member has no orders at this restaurant yet",
+      loadFailed: "Could not load this member. Please try again.",
+      ordersLoadFailed: "Could not load the order history. Please try again.",
+      columns: {
+        orderNumber: "Order no.",
+        status: "Status",
+        amount: "Amount",
+        date: "Placed at",
+      },
+    },
+    reveal: {
+      action: "Show full contact details",
+      confirmTitle: "Show full contact details",
+      confirmMessage:
+        "This action is written to the audit log. The full phone number and email are shown only in this panel and are masked again automatically after 5 minutes.",
+      confirmLabel: "Show",
+      hide: "Mask now",
+      revealing: "Loading…",
+      phone: "Phone",
+      email: "Email",
+      none: "Not provided",
+      autoMaskNotice:
+        "These details are masked again in {minutes} minutes and are never stored.",
+      errors: {
+        notFound:
+          "This member could not be found; the record may have been removed.",
+        rateLimited:
+          "You have reached this hour's limit of 30 lookups. Please try again later.",
+        forbidden:
+          "This customer has been deleted, so their full contact details cannot be shown.",
+        failed: "Could not show the contact details. Please try again.",
+      },
+    },
+  },
   employees: {
     title: "Employee Management",
     subtitle: "Manage staff info, scheduling, and leave",

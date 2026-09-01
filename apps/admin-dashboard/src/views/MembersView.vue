@@ -2,75 +2,287 @@
   <main class="min-h-full space-y-6 bg-[#F2F2F7] p-5">
     <header class="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-[#1C1C1E]">
+        <h1 class="text-2xl font-semibold text-[#1C1C1E]">
           {{ t("pages.members") }}
         </h1>
-        <p class="mt-1 text-sm text-[#8E8E93]">查看在本店有消費紀錄的顧客</p>
+        <p class="mt-1 text-sm text-[#8E8E93]">{{ t("members.subtitle") }}</p>
       </div>
     </header>
 
+    <!-- 統計卡列 -->
     <section class="grid grid-cols-1 gap-4 md:grid-cols-4">
       <article
         v-for="card in statCards"
-        :key="card.label"
+        :key="card.key"
         class="rounded-2xl bg-white p-5 shadow-ios-card"
       >
-        <p class="text-xs text-[#8E8E93]">{{ card.label }}</p>
-        <p class="mt-2 text-2xl font-semibold tabular-nums text-[#1C1C1E]">
-          {{ card.value }}
-        </p>
+        <div class="flex items-center gap-3">
+          <span
+            class="flex h-10 w-10 items-center justify-center rounded-full"
+            :class="card.tint"
+          >
+            <component :is="card.icon" class="h-5 w-5" />
+          </span>
+          <div>
+            <p class="text-xs text-[#8E8E93]">{{ card.label }}</p>
+            <p
+              class="mt-0.5 text-2xl font-semibold tabular-nums text-[#1C1C1E]"
+            >
+              {{ card.value }}
+            </p>
+          </div>
+        </div>
       </article>
     </section>
 
-    <section class="rounded-2xl bg-white p-5 shadow-ios-card">
-      <label class="sr-only" for="member-search">搜尋會員</label>
-      <input
-        id="member-search"
-        v-model="search"
-        type="search"
-        placeholder="搜尋姓名；手機與 Email 需輸入完整值"
-        class="w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2.5 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
-        @input="debouncedLoad"
-      />
+    <!-- 快速篩選膠囊 -->
+    <section class="flex flex-wrap gap-2">
+      <button
+        v-for="pill in quickFilterPills"
+        :key="pill.key"
+        type="button"
+        :data-testid="`quick-filter-${pill.key}`"
+        :data-active="activeQuickFilter === pill.key ? 'true' : 'false'"
+        :aria-pressed="activeQuickFilter === pill.key"
+        class="rounded-full px-4 py-2 text-sm font-medium transition-all duration-200"
+        :class="
+          activeQuickFilter === pill.key
+            ? 'bg-[#007AFF] text-white'
+            : 'bg-white text-[#8E8E93] shadow-ios-sm hover:text-[#1C1C1E]'
+        "
+        @click="applyQuickFilter(pill.key)"
+      >
+        {{ pill.label }}
+      </button>
     </section>
 
+    <!-- 進階篩選 -->
+    <section class="rounded-2xl bg-white p-5 shadow-ios-card">
+      <h2 class="mb-4 text-base font-semibold text-[#1C1C1E]">
+        {{ t("members.filters.title") }}
+      </h2>
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div class="md:col-span-2">
+          <label
+            class="mb-2 block text-xs font-medium text-[#8E8E93]"
+            for="member-search"
+          >
+            {{ t("members.search.label") }}
+          </label>
+          <input
+            id="member-search"
+            v-model="filters.search"
+            type="search"
+            :placeholder="t('members.search.placeholder')"
+            class="w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2.5 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+            @input="debouncedReload"
+          />
+        </div>
+        <div>
+          <label
+            class="mb-2 block text-xs font-medium text-[#8E8E93]"
+            for="member-sort"
+          >
+            {{ t("members.filters.sort") }}
+          </label>
+          <select
+            id="member-sort"
+            v-model="filters.sort"
+            class="w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2.5 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+            @change="reload"
+          >
+            <option value="recent">
+              {{ t("members.filters.sortOptions.recent") }}
+            </option>
+            <option value="spent">
+              {{ t("members.filters.sortOptions.spent") }}
+            </option>
+            <option value="orders">
+              {{ t("members.filters.sortOptions.orders") }}
+            </option>
+            <option value="name">
+              {{ t("members.filters.sortOptions.name") }}
+            </option>
+          </select>
+        </div>
+        <div>
+          <label
+            class="mb-2 block text-xs font-medium text-[#8E8E93]"
+            for="member-blocked"
+          >
+            {{ t("members.filters.blocked") }}
+          </label>
+          <select
+            id="member-blocked"
+            v-model="filters.blocked"
+            class="w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2.5 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+            @change="reload"
+          >
+            <option value="">
+              {{ t("members.filters.blockedOptions.all") }}
+            </option>
+            <option value="true">
+              {{ t("members.filters.blockedOptions.blocked") }}
+            </option>
+            <option value="false">
+              {{ t("members.filters.blockedOptions.active") }}
+            </option>
+          </select>
+        </div>
+        <div>
+          <label
+            class="mb-2 block text-xs font-medium text-[#8E8E93]"
+            for="member-min-orders"
+          >
+            {{ t("members.filters.minOrders") }}
+          </label>
+          <input
+            id="member-min-orders"
+            v-model="filters.minOrders"
+            type="number"
+            min="0"
+            step="1"
+            class="w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2.5 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+            @change="reload"
+          />
+        </div>
+        <div>
+          <label
+            class="mb-2 block text-xs font-medium text-[#8E8E93]"
+            for="member-min-spent"
+          >
+            {{ t("members.filters.minSpent") }}
+          </label>
+          <input
+            id="member-min-spent"
+            v-model="filters.minSpent"
+            type="number"
+            min="0"
+            step="1"
+            class="w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2.5 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+            @change="reload"
+          />
+        </div>
+        <div>
+          <label
+            class="mb-2 block text-xs font-medium text-[#8E8E93]"
+            for="member-last-from"
+          >
+            {{ t("members.filters.lastOrderFrom") }}
+          </label>
+          <input
+            id="member-last-from"
+            v-model="filters.lastOrderFrom"
+            type="date"
+            class="w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2.5 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+            @change="reload"
+          />
+        </div>
+        <div class="flex items-end gap-3">
+          <div class="flex-1">
+            <label
+              class="mb-2 block text-xs font-medium text-[#8E8E93]"
+              for="member-last-to"
+            >
+              {{ t("members.filters.lastOrderTo") }}
+            </label>
+            <input
+              id="member-last-to"
+              v-model="filters.lastOrderTo"
+              type="date"
+              class="w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2.5 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+              @change="reload"
+            />
+          </div>
+          <button
+            type="button"
+            data-testid="reset-filters"
+            class="rounded-full bg-[#F2F2F7] px-4 py-2.5 text-sm font-medium text-[#1C1C1E] transition-colors duration-200 hover:bg-gray-200"
+            @click="resetFilters"
+          >
+            {{ t("members.filters.reset") }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 會員列表 -->
     <section class="overflow-hidden rounded-2xl bg-white shadow-ios-card">
-      <div
-        v-if="loading"
-        class="p-12 text-center text-sm text-[#8E8E93]"
-        aria-busy="true"
-      >
-        {{ t("common.loading") }}
-      </div>
-      <div
-        v-else-if="members.length === 0"
-        class="p-12 text-center text-sm text-[#8E8E93]"
-      >
-        尚無會員資料
-      </div>
-      <div v-else class="overflow-x-auto">
+      <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-100">
           <thead>
             <tr
               class="text-left text-xs font-medium uppercase tracking-wider text-[#8E8E93]"
             >
-              <th class="px-6 py-3">會員</th>
-              <th class="px-6 py-3">聯絡方式</th>
-              <th class="px-6 py-3">本店訂單</th>
-              <th class="px-6 py-3">本店消費</th>
-              <th class="px-6 py-3">最後消費</th>
+              <th class="px-6 py-3">{{ t("members.table.member") }}</th>
+              <th class="px-6 py-3">{{ t("members.table.contact") }}</th>
+              <th class="px-6 py-3">{{ t("members.table.orders") }}</th>
+              <th class="px-6 py-3">{{ t("members.table.spent") }}</th>
+              <th class="px-6 py-3">{{ t("members.table.lastOrder") }}</th>
+              <th class="px-6 py-3">{{ t("members.table.firstOrder") }}</th>
+              <th class="px-6 py-3">{{ t("members.table.status") }}</th>
+              <th class="px-6 py-3 text-right">
+                {{ t("members.table.actions") }}
+              </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100">
+          <tbody v-if="loading" class="divide-y divide-gray-100">
+            <tr>
+              <td
+                colspan="8"
+                class="px-6 py-12 text-center text-sm text-[#8E8E93]"
+                aria-busy="true"
+              >
+                {{ t("common.loading") }}
+              </td>
+            </tr>
+          </tbody>
+          <tbody
+            v-else-if="members.length === 0"
+            class="divide-y divide-gray-100"
+          >
+            <tr>
+              <td colspan="8" class="px-6 py-12 text-center">
+                <UsersIcon class="mx-auto h-10 w-10 text-[#AEAEB2]" />
+                <p class="mt-3 text-sm font-medium text-[#1C1C1E]">
+                  {{ t("members.empty.title") }}
+                </p>
+                <p class="mt-1 text-sm text-[#8E8E93]">
+                  {{ t("members.empty.description") }}
+                </p>
+              </td>
+            </tr>
+          </tbody>
+          <tbody v-else class="divide-y divide-gray-100">
             <tr
               v-for="member in members"
               :key="member.memberId"
               :data-testid="`member-row-${member.memberId}`"
               :data-status="member.status"
-              class="transition-colors duration-200 hover:bg-[#F2F2F7]"
+              class="cursor-pointer transition-colors duration-200 hover:bg-[#F2F2F7]"
+              @click="openMember(member)"
             >
-              <td class="px-6 py-4 text-sm font-medium text-[#1C1C1E]">
-                {{ member.displayName }}
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <span
+                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-[#007AFF]"
+                    aria-hidden="true"
+                  >
+                    {{ memberInitial(member) }}
+                  </span>
+                  <div>
+                    <p class="text-sm font-medium text-[#1C1C1E]">
+                      {{ memberName(member) }}
+                    </p>
+                    <p
+                      v-if="!member.marketingReachable"
+                      data-testid="marketing-unreachable"
+                      class="mt-1 inline-block rounded-full bg-orange-50 px-2 py-0.5 text-xs text-[#FF9500]"
+                    >
+                      {{ t("members.badges.marketingUnreachable") }}
+                    </p>
+                  </div>
+                </div>
               </td>
               <td class="px-6 py-4 text-sm text-[#8E8E93]">
                 <div>{{ member.maskedPhone ?? "—" }}</div>
@@ -78,59 +290,442 @@
               </td>
               <td class="px-6 py-4 text-sm text-[#1C1C1E]">
                 {{ member.orderCount }}
-                <span class="text-xs text-[#8E8E93]"
-                  >取消 {{ member.cancelledOrderCount }}</span
-                >
+                <span class="ml-1 text-xs text-[#8E8E93]">
+                  {{
+                    t("members.cancelledCount", {
+                      count: member.cancelledOrderCount,
+                    })
+                  }}
+                </span>
               </td>
               <td class="px-6 py-4 text-sm tabular-nums text-[#1C1C1E]">
-                {{ formatPrice(member.totalSpentCents / 100) }}
+                {{ formatCents(member.totalSpentCents) }}
               </td>
               <td class="px-6 py-4 text-sm text-[#8E8E93]">
-                {{ formatDate(member.lastOrderAt) }}
+                {{ formatRelative(member.lastOrderAt) }}
+              </td>
+              <td class="px-6 py-4 text-sm text-[#8E8E93]">
+                {{ formatDay(member.firstOrderAt) }}
+              </td>
+              <td class="px-6 py-4">
+                <span
+                  class="rounded-full px-2.5 py-0.5 text-xs font-medium"
+                  :class="statusTint(member)"
+                >
+                  {{ statusLabel(member) }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <button
+                  type="button"
+                  :data-testid="`member-detail-${member.memberId}`"
+                  class="rounded-full px-3 py-1.5 text-sm font-medium text-[#007AFF] transition-colors duration-200 hover:bg-blue-50"
+                  @click.stop="openMember(member)"
+                >
+                  {{ t("members.actions.detail") }}
+                </button>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
+
+      <!-- 分頁 -->
       <footer
-        v-if="pagination.pages > 1"
-        class="flex items-center justify-between p-4 text-sm text-[#8E8E93]"
+        v-if="pagination.total > 0"
+        class="flex items-center justify-between px-4 py-3 sm:px-6"
       >
-        <span>共 {{ pagination.total }} 筆</span>
-        <div class="flex gap-2">
+        <div class="flex flex-1 justify-between sm:hidden">
           <button
-            class="rounded-full bg-gray-100 px-4 py-2 disabled:opacity-40"
+            type="button"
             :disabled="page === 1"
+            class="rounded-full bg-[#F2F2F7] px-4 py-2 text-sm font-medium text-[#1C1C1E] disabled:opacity-40"
             @click="changePage(page - 1)"
           >
-            {{ t("common.previous") }}</button
-          ><button
-            class="rounded-full bg-gray-100 px-4 py-2 disabled:opacity-40"
-            :disabled="page === pagination.pages"
+            {{ t("members.pagination.previous") }}
+          </button>
+          <button
+            type="button"
+            :disabled="page >= pagination.pages"
+            class="rounded-full bg-[#F2F2F7] px-4 py-2 text-sm font-medium text-[#1C1C1E] disabled:opacity-40"
             @click="changePage(page + 1)"
           >
-            {{ t("common.next") }}
+            {{ t("members.pagination.next") }}
           </button>
+        </div>
+        <div
+          class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between"
+        >
+          <p
+            class="text-sm text-[#8E8E93]"
+            data-testid="members-pagination-summary"
+          >
+            {{
+              t("members.pagination.showing", {
+                start: rangeStart,
+                end: rangeEnd,
+                total: pagination.total,
+              })
+            }}
+          </p>
+          <nav
+            class="flex items-center gap-1"
+            :aria-label="t('members.pagination.label')"
+          >
+            <button
+              type="button"
+              :disabled="page === 1"
+              class="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2F2F7] text-[#1C1C1E] disabled:opacity-40"
+              :aria-label="t('members.pagination.previous')"
+              @click="changePage(page - 1)"
+            >
+              <ChevronLeftIcon class="h-4 w-4" />
+            </button>
+            <button
+              v-for="visiblePage in visiblePages"
+              :key="visiblePage"
+              type="button"
+              class="min-w-8 rounded-full px-3 py-1.5 text-sm font-medium transition-colors duration-200"
+              :class="
+                visiblePage === page
+                  ? 'bg-[#007AFF] text-white'
+                  : 'bg-[#F2F2F7] text-[#1C1C1E] hover:bg-gray-200'
+              "
+              @click="changePage(visiblePage)"
+            >
+              {{ visiblePage }}
+            </button>
+            <button
+              type="button"
+              :disabled="page >= pagination.pages"
+              class="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2F2F7] text-[#1C1C1E] disabled:opacity-40"
+              :aria-label="t('members.pagination.next')"
+              @click="changePage(page + 1)"
+            >
+              <ChevronRightIcon class="h-4 w-4" />
+            </button>
+          </nav>
         </div>
       </footer>
     </section>
+
+    <!-- 詳情抽屜 -->
+    <Teleport to="body">
+      <Transition name="sheet">
+        <div
+          v-if="selectedMember"
+          class="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
+        >
+          <div
+            class="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            @click="closeDetail"
+          />
+          <div
+            data-testid="member-detail-panel"
+            class="relative max-h-[90vh] w-full space-y-4 overflow-y-auto rounded-t-3xl bg-[#F2F2F7] p-5 sm:max-w-2xl sm:rounded-3xl"
+          >
+            <div class="flex items-center justify-between">
+              <h2 class="text-base font-semibold text-[#1C1C1E]">
+                {{ t("members.detail.title") }}
+              </h2>
+              <button
+                type="button"
+                class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-[#3C3C43] transition-colors duration-200 hover:bg-gray-300"
+                :aria-label="t('members.detail.close')"
+                @click="closeDetail"
+              >
+                <XMarkIcon class="h-4 w-4" />
+              </button>
+            </div>
+
+            <p
+              v-if="detailError"
+              data-testid="member-detail-error"
+              class="rounded-2xl bg-[#FF3B30]/10 px-4 py-3 text-sm text-[#FF3B30]"
+            >
+              {{ detailError }}
+            </p>
+
+            <!-- 身分與聯絡方式 -->
+            <article class="rounded-2xl bg-white p-4 shadow-ios-card">
+              <div class="flex items-center gap-3">
+                <span
+                  class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-base font-semibold text-[#007AFF]"
+                  aria-hidden="true"
+                >
+                  {{ memberInitial(selectedMember) }}
+                </span>
+                <div>
+                  <p
+                    data-testid="member-detail-name"
+                    class="text-base font-semibold text-[#1C1C1E]"
+                  >
+                    {{ memberName(selectedMember) }}
+                  </p>
+                  <div class="mt-1 flex flex-wrap gap-1.5">
+                    <span
+                      class="rounded-full px-2.5 py-0.5 text-xs font-medium"
+                      :class="statusTint(selectedMember)"
+                    >
+                      {{ statusLabel(selectedMember) }}
+                    </span>
+                    <span
+                      v-if="!selectedMember.marketingReachable"
+                      class="rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-[#FF9500]"
+                    >
+                      {{ t("members.badges.marketingUnreachable") }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <h3 class="mt-4 text-xs font-medium text-[#8E8E93]">
+                {{ t("members.detail.contact") }}
+              </h3>
+              <dl class="mt-2 space-y-1 text-sm">
+                <div class="flex gap-2">
+                  <dt class="w-16 shrink-0 text-[#8E8E93]">
+                    {{ t("members.reveal.phone") }}
+                  </dt>
+                  <dd data-testid="member-phone" class="text-[#1C1C1E]">
+                    {{ displayedPhone }}
+                  </dd>
+                </div>
+                <div class="flex gap-2">
+                  <dt class="w-16 shrink-0 text-[#8E8E93]">
+                    {{ t("members.reveal.email") }}
+                  </dt>
+                  <dd data-testid="member-email" class="text-[#1C1C1E]">
+                    {{ displayedEmail }}
+                  </dd>
+                </div>
+              </dl>
+
+              <div class="mt-3 flex flex-wrap items-center gap-3">
+                <button
+                  v-if="!isRevealed"
+                  type="button"
+                  data-testid="reveal-contact"
+                  :disabled="
+                    revealLoading || selectedMember.status === 'deleted'
+                  "
+                  class="inline-flex items-center gap-1.5 rounded-full bg-[#007AFF] px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-[#0068d6] disabled:opacity-40"
+                  @click="revealContact"
+                >
+                  <EyeIcon class="h-4 w-4" />
+                  {{
+                    revealLoading
+                      ? t("members.reveal.revealing")
+                      : t("members.reveal.action")
+                  }}
+                </button>
+                <button
+                  v-else
+                  type="button"
+                  data-testid="mask-contact"
+                  class="inline-flex items-center gap-1.5 rounded-full bg-[#F2F2F7] px-4 py-2 text-sm font-medium text-[#1C1C1E] transition-colors duration-200 hover:bg-gray-200"
+                  @click="clearReveal"
+                >
+                  <EyeSlashIcon class="h-4 w-4" />
+                  {{ t("members.reveal.hide") }}
+                </button>
+                <p
+                  v-if="isRevealed"
+                  data-testid="reveal-auto-mask-notice"
+                  class="text-xs text-[#8E8E93]"
+                >
+                  {{
+                    t("members.reveal.autoMaskNotice", {
+                      minutes: REVEAL_TTL_MINUTES,
+                    })
+                  }}
+                </p>
+              </div>
+
+              <p
+                v-if="revealError"
+                data-testid="reveal-error"
+                class="mt-3 rounded-xl bg-[#FF3B30]/10 px-3 py-2 text-sm text-[#FF3B30]"
+                role="alert"
+              >
+                {{ revealError }}
+              </p>
+            </article>
+
+            <!-- 本店消費摘要 -->
+            <article class="rounded-2xl bg-white p-4 shadow-ios-card">
+              <h3 class="text-base font-semibold text-[#1C1C1E]">
+                {{ t("members.detail.summary") }}
+              </h3>
+              <dl class="mt-3 grid grid-cols-2 gap-4 md:grid-cols-3">
+                <div v-for="entry in summaryEntries" :key="entry.key">
+                  <dt class="text-xs text-[#8E8E93]">{{ entry.label }}</dt>
+                  <dd
+                    class="mt-0.5 text-sm font-medium tabular-nums text-[#1C1C1E]"
+                  >
+                    {{ entry.value }}
+                  </dd>
+                </div>
+              </dl>
+            </article>
+
+            <!-- 本店訂單紀錄 -->
+            <article class="rounded-2xl bg-white p-4 shadow-ios-card">
+              <h3 class="text-base font-semibold text-[#1C1C1E]">
+                {{ t("members.detail.orders") }}
+              </h3>
+              <p
+                v-if="ordersError"
+                data-testid="member-orders-error"
+                class="mt-3 rounded-xl bg-[#FF3B30]/10 px-3 py-2 text-sm text-[#FF3B30]"
+              >
+                {{ ordersError }}
+              </p>
+              <p
+                v-else-if="ordersLoading"
+                class="mt-3 text-sm text-[#8E8E93]"
+                aria-busy="true"
+              >
+                {{ t("common.loading") }}
+              </p>
+              <p
+                v-else-if="memberOrders.length === 0"
+                class="mt-3 text-sm text-[#8E8E93]"
+              >
+                {{ t("members.detail.ordersEmpty") }}
+              </p>
+              <ul v-else class="mt-3 divide-y divide-gray-100">
+                <li
+                  v-for="order in memberOrders"
+                  :key="order.orderId"
+                  :data-testid="`member-order-${order.orderId}`"
+                  class="flex items-center justify-between gap-3 py-2.5"
+                >
+                  <div>
+                    <p class="text-sm font-medium text-[#1C1C1E]">
+                      {{ order.orderNumber }}
+                    </p>
+                    <p class="text-xs text-[#8E8E93]">
+                      {{ formatDay(order.createdAt) }}
+                    </p>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <span
+                      class="rounded-full bg-[#F2F2F7] px-2.5 py-0.5 text-xs font-medium text-[#8E8E93]"
+                    >
+                      {{ orderStatusLabel(order.status) }}
+                    </span>
+                    <span
+                      class="text-sm font-medium tabular-nums text-[#1C1C1E]"
+                    >
+                      {{ formatCents(order.totalAmountCents) }}
+                    </span>
+                  </div>
+                </li>
+              </ul>
+              <div
+                v-if="ordersPagination.pages > 1"
+                class="mt-3 flex items-center justify-between"
+              >
+                <span class="text-xs text-[#8E8E93]">
+                  {{
+                    t("members.pagination.showing", {
+                      start: ordersRangeStart,
+                      end: ordersRangeEnd,
+                      total: ordersPagination.total,
+                    })
+                  }}
+                </span>
+                <div class="flex gap-2">
+                  <button
+                    type="button"
+                    data-testid="member-orders-prev"
+                    :disabled="ordersPage === 1"
+                    class="rounded-full bg-[#F2F2F7] px-3 py-1.5 text-sm text-[#1C1C1E] disabled:opacity-40"
+                    @click="changeOrdersPage(ordersPage - 1)"
+                  >
+                    {{ t("members.pagination.previous") }}
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="member-orders-next"
+                    :disabled="ordersPage >= ordersPagination.pages"
+                    class="rounded-full bg-[#F2F2F7] px-3 py-1.5 text-sm text-[#1C1C1E] disabled:opacity-40"
+                    @click="changeOrdersPage(ordersPage + 1)"
+                  >
+                    {{ t("members.pagination.next") }}
+                  </button>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onUnmounted, onMounted, reactive, ref } from "vue";
+import {
+  ArrowPathIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CurrencyDollarIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  UserPlusIcon,
+  UsersIcon,
+  XMarkIcon,
+} from "@heroicons/vue/24/outline";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useCurrency } from "@/composables/useCurrency";
+import { useConfirmModal } from "@/composables/useConfirmModal";
+import { useDateFormatter } from "@/composables/useDateFormatter";
 import {
   membersService,
+  type MemberContactReveal,
   type MemberListItem,
+  type MemberListParams,
+  type MemberOrderItem,
+  type MemberSort,
   type MemberStats,
+  type Pagination,
 } from "@/services/membersService";
+
+const PAGE_SIZE = 20;
+const ORDERS_PAGE_SIZE = 20;
+const FREQUENT_MIN_ORDERS = 5;
+const DORMANT_DAYS = 30;
+/**
+ * §9.2: revealed PII is re-masked on a pure client-side timer so a panel left
+ * open on a counter screen stops being a standing PII disclosure. Nothing is
+ * persisted, so a reload masks it too.
+ */
+const REVEAL_TTL_MINUTES = 5;
+const REVEAL_TTL_MS = REVEAL_TTL_MINUTES * 60 * 1000;
+
+const KNOWN_ORDER_STATUSES = [
+  "pending",
+  "confirmed",
+  "preparing",
+  "ready",
+  "delivered",
+  "paid",
+  "served",
+  "completed",
+  "cancelled",
+] as const;
+
+type QuickFilter = "all" | "frequent" | "dormant" | "blocked";
 
 const { t } = useI18n();
 const authStore = useAuthStore();
 const { formatPrice } = useCurrency();
+const { confirm: confirmModal } = useConfirmModal();
+const { formatShortDate, formatRelativeTime } = useDateFormatter();
+
 const members = ref<MemberListItem[]>([]);
 const stats = ref<MemberStats>({
   totalMembers: 0,
@@ -138,40 +733,272 @@ const stats = ref<MemberStats>({
   repeatRate: 0,
   avgOrderValueCents: 0,
 });
-const pagination = ref({ total: 0, page: 1, limit: 20, pages: 1 });
+const pagination = ref<Pagination>({
+  total: 0,
+  page: 1,
+  limit: PAGE_SIZE,
+  pages: 1,
+});
 const page = ref(1);
-const search = ref("");
 const loading = ref(false);
+
+const filters = reactive({
+  search: "",
+  sort: "recent" as MemberSort,
+  blocked: "" as "" | "true" | "false",
+  // v-model on <input type="number"> applies the .number modifier implicitly,
+  // so these arrive as numbers once typed into and as "" while empty.
+  minOrders: "" as string | number,
+  minSpent: "" as string | number,
+  lastOrderFrom: "",
+  lastOrderTo: "",
+});
+
+const selectedMember = ref<MemberListItem | null>(null);
+const detailError = ref<string | null>(null);
+const memberOrders = ref<MemberOrderItem[]>([]);
+const ordersPagination = ref<Pagination>({
+  total: 0,
+  page: 1,
+  limit: ORDERS_PAGE_SIZE,
+  pages: 1,
+});
+const ordersPage = ref(1);
+const ordersLoading = ref(false);
+const ordersError = ref<string | null>(null);
+
+const revealed = ref<(MemberContactReveal & { memberId: string }) | null>(null);
+const revealLoading = ref(false);
+const revealError = ref<string | null>(null);
+
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
+let remaskTimer: ReturnType<typeof setTimeout> | undefined;
+
+const restaurantId = computed(() =>
+  authStore.restaurantId == null ? null : String(authStore.restaurantId),
+);
 
 const statCards = computed(() => [
-  { label: "總會員數", value: stats.value.totalMembers },
-  { label: "本月新增", value: stats.value.newThisMonth },
   {
-    label: "回頭客比例",
-    value: `${Math.round(stats.value.repeatRate * 100)}%`,
+    key: "total",
+    label: t("members.stats.total"),
+    value: String(stats.value.totalMembers),
+    icon: UsersIcon,
+    tint: "bg-blue-50 text-[#007AFF]",
   },
   {
-    label: "平均客單價",
-    value: formatPrice(stats.value.avgOrderValueCents / 100),
+    key: "newThisMonth",
+    label: t("members.stats.newThisMonth"),
+    value: String(stats.value.newThisMonth),
+    icon: UserPlusIcon,
+    tint: "bg-green-50 text-[#34C759]",
+  },
+  {
+    key: "repeatRate",
+    label: t("members.stats.repeatRate"),
+    value: `${Math.round(stats.value.repeatRate * 100)}%`,
+    icon: ArrowPathIcon,
+    tint: "bg-orange-50 text-[#FF9500]",
+  },
+  {
+    key: "avgOrderValue",
+    label: t("members.stats.avgOrderValue"),
+    value: formatCents(stats.value.avgOrderValueCents),
+    icon: CurrencyDollarIcon,
+    tint: "bg-indigo-50 text-indigo-500",
   },
 ]);
 
-function formatDate(value: string | null) {
-  return value ? new Intl.DateTimeFormat().format(new Date(value)) : "—";
+const quickFilterPills = computed<{ key: QuickFilter; label: string }[]>(() => [
+  { key: "all", label: t("members.quickFilters.all") },
+  { key: "frequent", label: t("members.quickFilters.frequent") },
+  { key: "dormant", label: t("members.quickFilters.dormant") },
+  { key: "blocked", label: t("members.quickFilters.blocked") },
+]);
+
+// Derived rather than stored, so the pills can never disagree with the advanced
+// filter card they write into.
+const activeQuickFilter = computed<QuickFilter>(() => {
+  if (filters.blocked === "true") return "blocked";
+  if (toOptionalNumber(filters.minOrders) === FREQUENT_MIN_ORDERS)
+    return "frequent";
+  if (filters.lastOrderTo && filters.lastOrderTo === dormantCutoff())
+    return "dormant";
+  return "all";
+});
+
+const rangeStart = computed(() =>
+  pagination.value.total === 0
+    ? 0
+    : (pagination.value.page - 1) * pagination.value.limit + 1,
+);
+const rangeEnd = computed(() =>
+  Math.min(
+    pagination.value.page * pagination.value.limit,
+    pagination.value.total,
+  ),
+);
+const ordersRangeStart = computed(() =>
+  ordersPagination.value.total === 0
+    ? 0
+    : (ordersPagination.value.page - 1) * ordersPagination.value.limit + 1,
+);
+const ordersRangeEnd = computed(() =>
+  Math.min(
+    ordersPagination.value.page * ordersPagination.value.limit,
+    ordersPagination.value.total,
+  ),
+);
+
+const visiblePages = computed(() => {
+  const pages: number[] = [];
+  const first = Math.max(1, page.value - 2);
+  const last = Math.min(pagination.value.pages, page.value + 2);
+  for (let candidate = first; candidate <= last; candidate += 1) {
+    pages.push(candidate);
+  }
+  return pages;
+});
+
+const isRevealed = computed(
+  () =>
+    revealed.value !== null &&
+    revealed.value.memberId === selectedMember.value?.memberId,
+);
+
+const displayedPhone = computed(() => {
+  if (isRevealed.value) {
+    return revealed.value?.phone ?? t("members.reveal.none");
+  }
+  return selectedMember.value?.maskedPhone ?? t("members.reveal.none");
+});
+
+const displayedEmail = computed(() => {
+  if (isRevealed.value) {
+    return revealed.value?.email ?? t("members.reveal.none");
+  }
+  return selectedMember.value?.maskedEmail ?? t("members.reveal.none");
+});
+
+const summaryEntries = computed(() => {
+  const member = selectedMember.value;
+  if (!member) return [];
+  return [
+    {
+      key: "orderCount",
+      label: t("members.detail.orderCount"),
+      value: String(member.orderCount),
+    },
+    {
+      key: "cancelledOrders",
+      label: t("members.detail.cancelledOrders"),
+      value: String(member.cancelledOrderCount),
+    },
+    {
+      key: "totalSpent",
+      label: t("members.detail.totalSpent"),
+      value: formatCents(member.totalSpentCents),
+    },
+    {
+      key: "avgOrderValue",
+      label: t("members.detail.avgOrderValue"),
+      value: formatCents(member.avgOrderValueCents),
+    },
+    {
+      key: "firstOrder",
+      label: t("members.detail.firstOrder"),
+      value: formatDay(member.firstOrderAt),
+    },
+    {
+      key: "lastOrder",
+      label: t("members.detail.lastOrder"),
+      value: formatDay(member.lastOrderAt),
+    },
+  ];
+});
+
+function formatCents(cents: number | null | undefined): string {
+  return formatPrice((cents ?? 0) / 100);
 }
-async function load() {
-  const restaurantId = authStore.restaurantId;
-  if (!restaurantId) return;
+
+function formatDay(value: string | null): string {
+  return value ? formatShortDate(value) : "—";
+}
+
+function formatRelative(value: string | null): string {
+  return value ? formatRelativeTime(value) : "—";
+}
+
+function orderStatusLabel(status: string): string {
+  // Only literal, known statuses go through t(); anything else is echoed so an
+  // unmapped status never renders as a raw translation key.
+  return (KNOWN_ORDER_STATUSES as readonly string[]).includes(status)
+    ? t(`orders.status.${status}`)
+    : status;
+}
+
+function memberName(member: MemberListItem): string {
+  if (member.status === "deleted") return t("members.deletedCustomer");
+  const name = member.displayName?.trim();
+  return name ? name : t("members.unnamedCustomer");
+}
+
+function memberInitial(member: MemberListItem): string {
+  return memberName(member).slice(0, 1).toUpperCase();
+}
+
+function statusLabel(member: MemberListItem): string {
+  if (member.status === "deleted") return t("members.status.deleted");
+  if (member.isBlocked) return t("members.status.blocked");
+  return t("members.status.active");
+}
+
+function statusTint(member: MemberListItem): string {
+  if (member.status === "deleted") return "bg-gray-100 text-[#8E8E93]";
+  if (member.isBlocked) return "bg-red-50 text-[#FF3B30]";
+  return "bg-green-50 text-[#34C759]";
+}
+
+function dormantCutoff(): string {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - DORMANT_DAYS);
+  const month = String(cutoff.getMonth() + 1).padStart(2, "0");
+  const day = String(cutoff.getDate()).padStart(2, "0");
+  return `${cutoff.getFullYear()}-${month}-${day}`;
+}
+
+function toOptionalNumber(value: string | number): number | undefined {
+  if (typeof value === "string" && value.trim() === "") return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+function buildListParams(): MemberListParams {
+  const minOrders = toOptionalNumber(filters.minOrders);
+  const minSpent = toOptionalNumber(filters.minSpent);
+  return {
+    page: page.value,
+    limit: PAGE_SIZE,
+    search: filters.search.trim() || undefined,
+    sort: filters.sort,
+    minOrders: minOrders === undefined ? undefined : Math.floor(minOrders),
+    // The filter is entered in major currency units; the API speaks cents.
+    minSpentCents:
+      minSpent === undefined ? undefined : Math.round(minSpent * 100),
+    lastOrderFrom: filters.lastOrderFrom || undefined,
+    lastOrderTo: filters.lastOrderTo || undefined,
+    blocked: filters.blocked === "" ? undefined : filters.blocked,
+  };
+}
+
+async function load(): Promise<void> {
+  const id = restaurantId.value;
+  if (!id) return;
   loading.value = true;
   try {
     const [list, memberStats] = await Promise.all([
-      membersService.list(String(restaurantId), {
-        page: page.value,
-        limit: 20,
-        search: search.value || undefined,
-      }),
-      membersService.stats(String(restaurantId)),
+      membersService.list(id, buildListParams()),
+      membersService.stats(id),
     ]);
     members.value = list.data;
     pagination.value = list.pagination;
@@ -180,14 +1007,212 @@ async function load() {
     loading.value = false;
   }
 }
-function debouncedLoad() {
+
+function reload(): void {
   page.value = 1;
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(load, 300);
+  void load();
 }
-function changePage(nextPage: number) {
+
+function debouncedReload(): void {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(reload, 300);
+}
+
+function applyQuickFilter(kind: QuickFilter): void {
+  filters.minOrders = "";
+  filters.blocked = "";
+  filters.lastOrderTo = "";
+  if (kind === "frequent") filters.minOrders = FREQUENT_MIN_ORDERS;
+  if (kind === "blocked") filters.blocked = "true";
+  if (kind === "dormant") filters.lastOrderTo = dormantCutoff();
+  reload();
+}
+
+function resetFilters(): void {
+  filters.search = "";
+  filters.sort = "recent";
+  filters.blocked = "";
+  filters.minOrders = "";
+  filters.minSpent = "";
+  filters.lastOrderFrom = "";
+  filters.lastOrderTo = "";
+  reload();
+}
+
+function changePage(nextPage: number): void {
+  if (nextPage < 1 || nextPage > pagination.value.pages) return;
   page.value = nextPage;
   void load();
 }
+
+async function openMember(member: MemberListItem): Promise<void> {
+  clearReveal();
+  selectedMember.value = member;
+  detailError.value = null;
+  ordersPage.value = 1;
+  await Promise.all([
+    loadMemberDetail(member.memberId),
+    loadMemberOrders(member.memberId),
+  ]);
+}
+
+function closeDetail(): void {
+  clearReveal();
+  selectedMember.value = null;
+  memberOrders.value = [];
+  detailError.value = null;
+  ordersError.value = null;
+}
+
+async function loadMemberDetail(memberId: string): Promise<void> {
+  const id = restaurantId.value;
+  if (!id) return;
+  try {
+    const detail = await membersService.get(id, memberId);
+    if (selectedMember.value?.memberId !== memberId) return;
+    selectedMember.value = detail;
+  } catch {
+    if (selectedMember.value?.memberId !== memberId) return;
+    detailError.value = t("members.detail.loadFailed");
+  }
+}
+
+async function loadMemberOrders(memberId: string): Promise<void> {
+  const id = restaurantId.value;
+  if (!id) return;
+  ordersLoading.value = true;
+  ordersError.value = null;
+  try {
+    const result = await membersService.listOrders(id, memberId, {
+      page: ordersPage.value,
+      limit: ORDERS_PAGE_SIZE,
+    });
+    if (selectedMember.value?.memberId !== memberId) return;
+    memberOrders.value = result.data;
+    ordersPagination.value = result.pagination;
+  } catch {
+    if (selectedMember.value?.memberId !== memberId) return;
+    memberOrders.value = [];
+    ordersError.value = t("members.detail.ordersLoadFailed");
+  } finally {
+    ordersLoading.value = false;
+  }
+}
+
+function changeOrdersPage(nextPage: number): void {
+  const member = selectedMember.value;
+  if (!member) return;
+  if (nextPage < 1 || nextPage > ordersPagination.value.pages) return;
+  ordersPage.value = nextPage;
+  void loadMemberOrders(member.memberId);
+}
+
+function apiErrorStatus(error: unknown): number | undefined {
+  const response = (error as { response?: { status?: unknown } })?.response;
+  return typeof response?.status === "number" ? response.status : undefined;
+}
+
+function apiErrorCode(error: unknown): string | undefined {
+  const payload = (
+    error as {
+      response?: { data?: { error?: { code?: unknown } } };
+    }
+  )?.response?.data?.error;
+  return typeof payload?.code === "string" ? payload.code : undefined;
+}
+
+function revealErrorMessage(error: unknown): string {
+  const code = apiErrorCode(error);
+  const status = apiErrorStatus(error);
+  if (code === "MEMBER_NOT_FOUND" || status === 404) {
+    return t("members.reveal.errors.notFound");
+  }
+  if (code === "PII_REVEAL_RATE_LIMITED" || status === 429) {
+    return t("members.reveal.errors.rateLimited");
+  }
+  // MEMBER_DELETED is the API's code for a soft-deleted customer, whose full
+  // contact details are withheld outright (spec §9.4).
+  if (
+    code === "MEMBER_DELETED" ||
+    code === "MEMBER_ACCESS_DENIED" ||
+    code === "FORBIDDEN" ||
+    status === 403
+  ) {
+    return t("members.reveal.errors.forbidden");
+  }
+  return t("members.reveal.errors.failed");
+}
+
+/**
+ * A2 PII reveal. Deliberate action only — a confirm modal that states the
+ * access is audited, then one POST. The full values live in `revealed`, which
+ * is never merged back into `members`, so leaving the panel loses them.
+ */
+async function revealContact(): Promise<void> {
+  const member = selectedMember.value;
+  const id = restaurantId.value;
+  if (!member || !id || member.status === "deleted") return;
+
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("members.reveal.confirmTitle"),
+    message: t("members.reveal.confirmMessage"),
+    confirmLabel: t("members.reveal.confirmLabel"),
+  });
+  if (!confirmed) return;
+
+  revealError.value = null;
+  revealLoading.value = true;
+  try {
+    const result = await membersService.revealContact(id, member.memberId);
+    if (selectedMember.value?.memberId !== member.memberId) return;
+    revealed.value = {
+      memberId: member.memberId,
+      phone: result?.phone ?? null,
+      email: result?.email ?? null,
+      revealedAt: result?.revealedAt ?? Date.now(),
+    };
+    scheduleRemask();
+  } catch (error) {
+    if (selectedMember.value?.memberId !== member.memberId) return;
+    revealError.value = revealErrorMessage(error);
+  } finally {
+    revealLoading.value = false;
+  }
+}
+
+function scheduleRemask(): void {
+  clearTimeout(remaskTimer);
+  remaskTimer = setTimeout(() => {
+    revealed.value = null;
+    remaskTimer = undefined;
+  }, REVEAL_TTL_MS);
+}
+
+function clearReveal(): void {
+  clearTimeout(remaskTimer);
+  remaskTimer = undefined;
+  revealed.value = null;
+  revealError.value = null;
+}
+
 onMounted(() => void load());
+onUnmounted(() => {
+  clearTimeout(searchTimer);
+  clearReveal();
+});
 </script>
+
+<style scoped>
+.sheet-enter-active,
+.sheet-leave-active {
+  transition: all 0.3s ease-out;
+}
+.sheet-enter-from,
+.sheet-leave-to {
+  opacity: 0;
+}
+.sheet-enter-from > div:last-child {
+  transform: translateY(100%);
+}
+</style>

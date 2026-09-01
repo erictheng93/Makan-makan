@@ -214,6 +214,23 @@ describe("useAuthStore", () => {
     expect(ownerStore.canAccessRoute("PlatformMarketCheckouts")).toBe(false);
   });
 
+  it("restricts the member directory to admin and owner", () => {
+    // The member list is the only tenant surface that can reach customer PII,
+    // so kitchen/service/cashier roles must not resolve the route even though
+    // they share the /dashboard shell.
+    const accessFor = (role: UserRole) => {
+      setActivePinia(createPinia());
+      localStorage.setItem("auth_user", JSON.stringify(user({ role })));
+      return useAuthStore().canAccessRoute("Members");
+    };
+
+    expect(accessFor(UserRole.ADMIN)).toBe(true);
+    expect(accessFor(UserRole.OWNER)).toBe(true);
+    expect(accessFor(UserRole.CHEF)).toBe(false);
+    expect(accessFor(UserRole.SERVICE)).toBe(false);
+    expect(accessFor(UserRole.CASHIER)).toBe(false);
+  });
+
   it("selects and clears admin restaurant context per browser tab", () => {
     localStorage.setItem(
       "auth_user",

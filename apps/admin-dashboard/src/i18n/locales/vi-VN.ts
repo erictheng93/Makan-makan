@@ -3390,6 +3390,127 @@ const viVN: Messages = {
       toggleFailed: "Chuyển đổi trạng thái thất bại",
     },
   },
+  members: {
+    subtitle: "Xem những khách hàng đã mua tại cửa hàng này",
+    deletedCustomer: "Khách hàng đã xoá",
+    unnamedCustomer: "Chưa có tên",
+    cancelledCount: "Đã huỷ {count}",
+    empty: {
+      title: "Chưa có dữ liệu thành viên",
+      description:
+        "Khách hàng sẽ xuất hiện ở đây sau khi hoàn tất đơn đầu tiên tại cửa hàng này.",
+    },
+    search: {
+      label: "Tìm thành viên",
+      placeholder:
+        "Tìm theo tên; số điện thoại và email phải nhập đầy đủ, chính xác",
+    },
+    stats: {
+      total: "Tổng thành viên",
+      newThisMonth: "Mới trong tháng",
+      repeatRate: "Tỷ lệ quay lại",
+      avgOrderValue: "Giá trị đơn trung bình",
+    },
+    quickFilters: {
+      all: "Tất cả",
+      frequent: "Khách quen (từ 5 đơn)",
+      dormant: "30 ngày chưa quay lại",
+      blocked: "Đã chặn",
+    },
+    filters: {
+      title: "Bộ lọc nâng cao",
+      sort: "Sắp xếp theo",
+      minOrders: "Số đơn tối thiểu",
+      minSpent: "Chi tiêu tối thiểu",
+      lastOrderFrom: "Mua lần cuối từ",
+      lastOrderTo: "Mua lần cuối đến",
+      blocked: "Trạng thái chặn",
+      reset: "Đặt lại bộ lọc",
+      sortOptions: {
+        recent: "Mua gần nhất",
+        spent: "Tổng chi tiêu",
+        orders: "Số đơn hàng",
+        name: "Tên",
+      },
+      blockedOptions: {
+        all: "Tất cả",
+        blocked: "Đã chặn",
+        active: "Chưa chặn",
+      },
+    },
+    table: {
+      member: "Thành viên",
+      contact: "Liên hệ",
+      orders: "Đơn tại cửa hàng",
+      spent: "Chi tiêu tại cửa hàng",
+      lastOrder: "Mua lần cuối",
+      firstOrder: "Mua lần đầu",
+      status: "Trạng thái",
+      actions: "Thao tác",
+    },
+    status: {
+      active: "Bình thường",
+      blocked: "Đã chặn",
+      deleted: "Đã xoá",
+    },
+    badges: {
+      marketingUnreachable: "Không gửi tiếp thị",
+    },
+    actions: {
+      detail: "Chi tiết",
+    },
+    pagination: {
+      previous: "Trang trước",
+      next: "Trang sau",
+      showing: "Hiển thị {start} đến {end} trong tổng số {total}",
+      label: "Phân trang",
+    },
+    detail: {
+      title: "Chi tiết thành viên",
+      close: "Đóng",
+      identity: "Hồ sơ thành viên",
+      contact: "Liên hệ",
+      summary: "Tóm tắt chi tiêu tại cửa hàng",
+      orderCount: "Số đơn",
+      cancelledOrders: "Đơn đã huỷ",
+      totalSpent: "Tổng chi tiêu",
+      avgOrderValue: "Giá trị đơn trung bình",
+      firstOrder: "Mua lần đầu",
+      lastOrder: "Mua lần cuối",
+      orders: "Lịch sử đơn tại cửa hàng",
+      ordersEmpty: "Thành viên này chưa có đơn nào tại cửa hàng",
+      loadFailed: "Không tải được dữ liệu thành viên. Vui lòng thử lại.",
+      ordersLoadFailed: "Không tải được lịch sử đơn hàng. Vui lòng thử lại.",
+      columns: {
+        orderNumber: "Mã đơn",
+        status: "Trạng thái",
+        amount: "Số tiền",
+        date: "Thời gian đặt",
+      },
+    },
+    reveal: {
+      action: "Hiện đầy đủ thông tin liên hệ",
+      confirmTitle: "Hiện đầy đủ thông tin liên hệ",
+      confirmMessage:
+        "Thao tác này được ghi vào nhật ký kiểm toán. Số điện thoại và email đầy đủ chỉ hiển thị trong bảng này và sẽ tự động che lại sau 5 phút.",
+      confirmLabel: "Hiện",
+      hide: "Che ngay",
+      revealing: "Đang tải…",
+      phone: "Điện thoại",
+      email: "Email",
+      none: "Không có",
+      autoMaskNotice:
+        "Thông tin sẽ tự động che lại sau {minutes} phút và không được lưu lại.",
+      errors: {
+        notFound: "Không tìm thấy thành viên này; bản ghi có thể đã bị xoá.",
+        rateLimited:
+          "Bạn đã đạt giới hạn 30 lượt xem trong giờ này. Vui lòng thử lại sau.",
+        forbidden:
+          "Khách hàng này đã bị xoá nên không thể hiện thông tin liên hệ đầy đủ.",
+        failed: "Không hiện được thông tin liên hệ. Vui lòng thử lại.",
+      },
+    },
+  },
   employees: {
     title: "Quản lý nhân viên",
     subtitle: "Quản lý thông tin nhân viên, lịch làm việc và nghỉ phép",
