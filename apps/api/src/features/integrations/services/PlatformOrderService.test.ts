@@ -555,6 +555,31 @@ describe("PlatformOrderService", () => {
     ]);
   });
 
+  it("ignores a cancellation payload it cannot read an order id out of", async () => {
+    const mutations = mockMutations();
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mocks.adapter.parseCancellation.mockRejectedValueOnce(
+      new Error("Uber Eats cancellation payload is missing an order id"),
+    );
+
+    // Unreadable is not the same as failed: reporting it as a failure would
+    // buy an unbounded redelivery loop for a payload that cannot improve.
+    await expect(
+      createService().processCancellation(
+        "uber_eats",
+        { order: {} },
+        "restaurant-1",
+      ),
+    ).resolves.toEqual({ handled: false });
+
+    expect(mocks.ordersService.cancelOrder).not.toHaveBeenCalled();
+    expect(mutations.updated).toEqual([]);
+    expect(console.error).toHaveBeenCalledWith(
+      "Unparseable uber_eats cancellation payload:",
+      "Uber Eats cancellation payload is missing an order id",
+    );
+  });
+
   it("ignores a cancellation mapping owned by another restaurant", async () => {
     mockMutations();
     mockSelectResults({

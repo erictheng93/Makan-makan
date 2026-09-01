@@ -280,7 +280,24 @@ export class PlatformOrderService {
     restaurantId: string,
   ): Promise<{ handled: boolean }> {
     const adapter = getAdapter(platform);
-    const cancellation = await adapter.parseCancellation(payload);
+
+    let cancellation: { platformOrderId: string; reason?: string };
+    try {
+      cancellation = await adapter.parseCancellation(payload);
+    } catch (error) {
+      // A payload we cannot read an order id out of will not become readable on
+      // redelivery, so this belongs with "we do not recognise this event"
+      // rather than with a failure. Returning 500 would buy an unbounded retry
+      // loop that clears the event-id dedup on every pass; the raw payload
+      // stays in platform_webhook_logs, which is where the real event shape
+      // gets established.
+      console.error(
+        `Unparseable ${platform} cancellation payload:`,
+        error instanceof Error ? error.message : error,
+      );
+      return { handled: false };
+    }
+
     const mappedOrder = await this.findMappedOrder(
       platform,
       cancellation.platformOrderId,
@@ -295,7 +312,7 @@ export class PlatformOrderService {
     try {
       await ordersService.cancelOrder(
         mappedOrder.orderId,
-        cancellation.reason ?? "Cancelled on Uber Eats",
+        cancellation.reason ?? `Cancelled on ${platform}`,
       );
     } catch (error) {
       // A duplicate callback, or a cancellation after completion, is a normal
