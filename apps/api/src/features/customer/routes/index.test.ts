@@ -1323,6 +1323,65 @@ describe("customer identity routes", () => {
     ]);
   });
 
+  // #297: production is not uniformly STRICT, so a TEXT value already sitting
+  // in the INTEGER `default_party_size` column reads back as a string. This
+  // PATCH is a read-modify-write, so without a coercion at the bind site the
+  // string is written straight back — and the D1 bind signature takes
+  // `unknown[]`, so neither TypeScript nor the database objects.
+  it("re-binds default_party_size as an integer when the stored row holds a string", async () => {
+    const storedRow = {
+      dietary_tags: "[]",
+      allergens: "[]",
+      // What a non-STRICT production row hands back.
+      default_party_size: "8",
+      marketing_opt_in: 0,
+      waiting_list_opt_in: 1,
+      promo_from_favorites_opt_in: 0,
+      quiet_hours_start: null,
+      quiet_hours_end: null,
+      updated_at_ms: 1,
+    };
+    const db = createDb({ first: [storedRow, storedRow] });
+
+    const response = await request(
+      "/preferences",
+      "PATCH",
+      { dietaryTags: ["halal"] },
+      { DB: db },
+    ).response;
+
+    expect(response.status).toBe(200);
+    const args = db.state.statements.find((statement) =>
+      statement.sql.includes("INSERT INTO customer_preferences"),
+    )?.args;
+    expect(args?.[3]).toBe(8);
+    expect(typeof args?.[3]).toBe("number");
+  });
+
+  it("drops an unparsable stored default_party_size instead of writing it back", async () => {
+    const storedRow = {
+      dietary_tags: "[]",
+      allergens: "[]",
+      default_party_size: "not-a-number",
+      marketing_opt_in: 0,
+      waiting_list_opt_in: 1,
+      promo_from_favorites_opt_in: 0,
+      quiet_hours_start: null,
+      quiet_hours_end: null,
+      updated_at_ms: 1,
+    };
+    const db = createDb({ first: [storedRow, storedRow] });
+
+    await request("/preferences", "PATCH", { dietaryTags: [] }, { DB: db })
+      .response;
+
+    expect(
+      db.state.statements.find((statement) =>
+        statement.sql.includes("INSERT INTO customer_preferences"),
+      )?.args?.[3],
+    ).toBeNull();
+  });
+
   it("manages favorites with target validation and duplicate reuse", async () => {
     const db = createDb({
       first: [

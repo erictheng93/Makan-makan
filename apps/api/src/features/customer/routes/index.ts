@@ -773,7 +773,8 @@ routes.patch(
         customerId,
         JSON.stringify(merged.dietaryTags ?? []),
         JSON.stringify(merged.allergens ?? []),
-        merged.defaultPartySize ?? null,
+        // INTEGER column, re-bound from an untyped read — see toIntegerOrNull.
+        toIntegerOrNull(merged.defaultPartySize),
         merged.marketingOptIn ? 1 : 0,
         merged.waitingListOptIn === false ? 0 : 1,
         merged.promoFromFavoritesOptIn ? 1 : 0,
@@ -1681,6 +1682,28 @@ async function loadPreferences(env: Env, customerId: string) {
     quietHoursEnd: row?.quiet_hours_end ?? null,
     updatedAtMs: row?.updated_at_ms ?? null,
   };
+}
+
+/**
+ * Narrow an untyped D1 read back to an integer before it is re-bound.
+ *
+ * `PATCH /preferences` is a read-modify-write: any field the request omits is
+ * re-bound from whatever `loadPreferences` returned, and those values are typed
+ * `unknown` because they come off a raw `D1Result` row. `D1PreparedStatement`
+ * accepts `unknown[]`, so neither TypeScript nor Drizzle sees the hazard, and
+ * `customer_preferences` is STRICT only in the baseline — production was built
+ * from the legacy track and is not uniformly STRICT (see CLAUDE.md), so SQLite
+ * would silently store TEXT in the INTEGER `default_party_size` column and hand
+ * it back as a string forever after. Coerce here; nothing downstream will.
+ */
+function toIntegerOrNull(value: unknown): number | null {
+  const numeric =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim() !== ""
+        ? Number(value)
+        : Number.NaN;
+  return Number.isSafeInteger(numeric) ? numeric : null;
 }
 
 function isRefreshPayload(
