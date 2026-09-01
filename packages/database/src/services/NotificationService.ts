@@ -105,6 +105,28 @@ export interface EmailProvider {
   }): Promise<{ success: boolean; messageId?: string; error?: string }>;
 }
 
+export type EmailProviderName = "mailchannels" | "resend" | "noop";
+
+export type EmailProviderEnv = Pick<
+  CloudflareEnv,
+  "RESEND_API_KEY" | "USE_MAILCHANNELS"
+>;
+
+/**
+ * Select the email provider without constructing it so deployment defaults are
+ * directly testable. MailChannels is opt-in because its unauthenticated relay
+ * is no longer a working production default.
+ */
+export function resolveEmailProviderName(
+  env: EmailProviderEnv,
+): EmailProviderName {
+  if (env.USE_MAILCHANNELS?.trim().toLowerCase() === "true") {
+    return "mailchannels";
+  }
+
+  return env.RESEND_API_KEY ? "resend" : "noop";
+}
+
 // ========================================
 // SMS Provider Interface
 // ========================================
@@ -845,27 +867,31 @@ export const notificationTemplates: Record<
 export class NotificationService extends BaseService {
   private emailProvider: EmailProvider | null = null;
   private smsProvider: SMSProvider | null = null;
+  readonly emailProviderName: EmailProviderName;
 
   constructor(d1: D1Database, env: CloudflareEnv) {
     super(d1, env);
+    this.emailProviderName = resolveEmailProviderName(env);
     this.initializeProviders(env);
   }
 
   private initializeProviders(env: CloudflareEnv) {
-    // Initialize email provider
-    // Priority: MailChannels (Cloudflare official) > Resend (alternative)
-    if (env.USE_MAILCHANNELS !== "false") {
-      // MailChannels is enabled by default (no API key needed!)
-      this.emailProvider = new MailChannelsEmailProvider(
-        env.NOTIFICATION_FROM_EMAIL || "notifications@makanmasak.com",
-        "MakanMasak",
-      );
-    } else if (env.RESEND_API_KEY) {
-      // Fallback to Resend if explicitly disabled MailChannels
-      this.emailProvider = new ResendEmailProvider(
-        env.RESEND_API_KEY,
-        env.NOTIFICATION_FROM_EMAIL || "notifications@makanmasak.com",
-      );
+    switch (this.emailProviderName) {
+      case "mailchannels":
+        this.emailProvider = new MailChannelsEmailProvider(
+          env.NOTIFICATION_FROM_EMAIL || "notifications@makanmasak.com",
+          "MakanMasak",
+        );
+        break;
+      case "resend":
+        this.emailProvider = new ResendEmailProvider(
+          env.RESEND_API_KEY!,
+          env.NOTIFICATION_FROM_EMAIL || "notifications@makanmasak.com",
+        );
+        break;
+      case "noop":
+        this.emailProvider = null;
+        break;
     }
 
     // Initialize SMS provider. The vendor is chosen by SMS_PROVIDER (or
