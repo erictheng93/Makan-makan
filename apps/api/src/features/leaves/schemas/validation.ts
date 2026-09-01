@@ -158,8 +158,13 @@ export const adjustLeaveBalanceSchema = z.object({
   reason: nonEmptyString.max(500),
 });
 
+// restaurantId is deliberately absent: POST /:restaurantId/balances/accrue takes
+// it from the path, where requireRestaurantAccess has already checked it, and the
+// handler reads it from validatedParams. Requiring it in the body here made every
+// call 400 with `restaurantId: invalid_type` — the admin's "初始化假期餘額" button
+// could never succeed. Do not "fix" that by having the client send it: a second,
+// unguarded source of the tenant id is the shape behind #265 and #275.
 export const accrueLeaveBalancesSchema = z.object({
-  restaurantId: restaurantIdString,
   year: yearInteger,
 });
 

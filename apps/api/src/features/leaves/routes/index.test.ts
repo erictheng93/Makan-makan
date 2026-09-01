@@ -350,9 +350,12 @@ describe("leaves routes", () => {
       2026,
     );
 
+    // Body carries the year and nothing else — the restaurant comes from the
+    // path. This test used to send restaurantId in the body too, which is the
+    // only reason it passed: the schema demanded a field the admin dashboard
+    // never sends, so "初始化假期餘額" 400'd in production while CI stayed green.
     const accrueResponse = await app.fetch(
       jsonRequest(`https://test/${RESTAURANT_ID}/balances/accrue`, "POST", {
-        restaurantId: RESTAURANT_ID,
         year: 2026,
       }),
       env as never,
