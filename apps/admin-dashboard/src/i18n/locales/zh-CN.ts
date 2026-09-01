@@ -3391,6 +3391,41 @@ const zhCN: Messages = {
     badges: {
       marketingUnreachable: "不可营销推送",
     },
+    annotations: {
+      title: "本店备注",
+      description: "只有本店可见，不会分享给其他商家。",
+      tagsLabel: "标签",
+      tagsPlaceholder: "输入标签后按 Enter",
+      tagsHint: "最多 20 个，每个 40 字以内。",
+      tagRemove: "移除标签 {tag}",
+      noteLabel: "备注",
+      notePlaceholder: "记下这位客人的偏好或注意事项",
+      save: "保存备注",
+      saving: "保存中…",
+      saved: "已保存",
+      tagFilter: "标签",
+      tagFilterPlaceholder: "完整标签名称",
+    },
+    block: {
+      title: "封锁标记",
+      explain:
+        "封锁只是本店自己的标记，不会阻止对方下单 —— 访客点餐没有会员身份，拦不到。",
+      reasonLabel: "封锁原因",
+      reasonPlaceholder: "供日后查核使用",
+      blockAction: "封锁此会员",
+      unblockAction: "解除封锁",
+      blocking: "处理中…",
+      confirmBlock:
+        "确定要封锁“{name}”吗？此操作会记录在审计日志中。封锁不会阻止对方下单。",
+      confirmUnblock:
+        "确定要解除“{name}”的封锁标记吗？此操作会记录在审计日志中。",
+      currentReason: "封锁原因：{reason}",
+      errors: {
+        notFound: "找不到这位会员，可能已被移除。",
+        invalid: "备注内容格式不符，请检查长度后重试。",
+        failed: "更新失败，请稍后重试。",
+      },
+    },
     actions: {
       detail: "详情",
     },

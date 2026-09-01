@@ -3455,6 +3455,41 @@ const jaJP: Messages = {
     badges: {
       marketingUnreachable: "販促配信不可",
     },
+    annotations: {
+      title: "当店のメモ",
+      description: "当店のみに表示され、他店には共有されません。",
+      tagsLabel: "タグ",
+      tagsPlaceholder: "タグを入力して Enter",
+      tagsHint: "最大 20 個、各 40 文字まで。",
+      tagRemove: "タグ {tag} を削除",
+      noteLabel: "メモ",
+      notePlaceholder: "好みや注意点を記録",
+      save: "メモを保存",
+      saving: "保存中…",
+      saved: "保存しました",
+      tagFilter: "タグ",
+      tagFilterPlaceholder: "タグの完全な名称",
+    },
+    block: {
+      title: "ブロック表示",
+      explain:
+        "ブロックは当店の記録上の目印です。注文を止めるものではありません —— ゲスト注文には会員情報がないため、判別できません。",
+      reasonLabel: "理由",
+      reasonPlaceholder: "後から確認するため",
+      blockAction: "この会員をブロック",
+      unblockAction: "ブロックを解除",
+      blocking: "処理中…",
+      confirmBlock:
+        "{name} をブロックしますか？この操作は監査ログに記録されます。ブロックしても注文は止まりません。",
+      confirmUnblock:
+        "{name} のブロック表示を解除しますか？この操作は監査ログに記録されます。",
+      currentReason: "理由：{reason}",
+      errors: {
+        notFound: "この会員は見つかりません。",
+        invalid: "メモの形式が正しくありません。文字数をご確認ください。",
+        failed: "保存できませんでした。しばらくしてからお試しください。",
+      },
+    },
     actions: {
       detail: "詳細",
     },

@@ -18,6 +18,7 @@ const stats = vi.hoisted(() => vi.fn());
 const getMember = vi.hoisted(() => vi.fn());
 const listOrders = vi.hoisted(() => vi.fn());
 const revealContact = vi.hoisted(() => vi.fn());
+const update = vi.hoisted(() => vi.fn());
 const confirmModal = vi.hoisted(() => vi.fn());
 
 // `@/i18n` is deliberately NOT mocked. A `t: (key) => key` stub makes a missing
@@ -39,6 +40,7 @@ vi.mock("@/services/membersService", () => ({
     get: getMember,
     listOrders,
     revealContact,
+    update,
   },
 }));
 
@@ -55,6 +57,13 @@ const TEXT = {
   revealRateLimited: "本小時的查看次數已達上限（每小時 30 次），請稍後再試。",
   revealForbidden: "此會員已刪除，無法查看完整聯絡方式。",
   ordersEmpty: "此會員在本店尚無訂單",
+  annotationsSave: "儲存註記",
+  annotationsSaved: "已儲存",
+  blockAction: "封鎖此會員",
+  unblockAction: "解除封鎖",
+  blockExplain:
+    "封鎖只是本店自己的標記，不會阻止對方下單 —— 訪客點餐沒有會員身分，擋不到。",
+  blockNotFound: "找不到這位會員，可能已被移除。",
 } as const;
 
 let MembersView: Component;
@@ -72,6 +81,8 @@ function member(overrides: Partial<MemberListItem> = {}): MemberListItem {
     firstOrderAt: "2026-01-02T00:00:00.000Z",
     lastOrderAt: "2026-08-30T00:00:00.000Z",
     tags: null,
+    note: null,
+    blockedReason: null,
     isBlocked: false,
     marketingReachable: true,
     status: "active",
@@ -136,6 +147,9 @@ describe("MembersView", () => {
     );
     listOrders.mockResolvedValue(ordersResponse([]));
     revealContact.mockResolvedValue({ phone: null, email: null });
+    update.mockImplementation(async (_restaurantId, memberId, patch) =>
+      member({ memberId, ...patch }),
+    );
     confirmModal.mockResolvedValue(true);
   });
 
@@ -333,6 +347,173 @@ describe("MembersView", () => {
     expect(wrapper.get('[data-testid="member-phone"]').text()).toBe(
       "0912***678",
     );
+  });
+
+  it("sends the whole tag list and the note, not a delta", async () => {
+    const wrapper = await mountView();
+    await openFirstMember(wrapper);
+
+    const tagInput = wrapper.get('[data-testid="member-tag-input"]');
+    await tagInput.setValue("vip");
+    await tagInput.trigger("keydown.enter");
+    await tagInput.setValue("gluten-free");
+    await tagInput.trigger("keydown.enter");
+    await wrapper.get('[data-testid="member-note-input"]').setValue("怕辣");
+    await wrapper
+      .get('[data-testid="member-annotations-save"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(update).toHaveBeenCalledOnce();
+    expect(update).toHaveBeenCalledWith(
+      "shop-a",
+      "member-a",
+      expect.objectContaining({ tags: ["vip", "gluten-free"], note: "怕辣" }),
+    );
+    expect(wrapper.get('[data-testid="member-annotations-saved"]').text()).toBe(
+      TEXT.annotationsSaved,
+    );
+  });
+
+  it("drops a removed tag from the list it sends", async () => {
+    list.mockResolvedValue(listResponse([member({ tags: ["vip", "lapsed"] })]));
+    getMember.mockResolvedValue(member({ tags: ["vip", "lapsed"] }));
+
+    const wrapper = await mountView();
+    await openFirstMember(wrapper);
+    await wrapper.get('[data-testid="member-tag-remove-vip"]').trigger("click");
+    await wrapper
+      .get('[data-testid="member-annotations-save"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(update).toHaveBeenCalledWith(
+      "shop-a",
+      "member-a",
+      expect.objectContaining({ tags: ["lapsed"] }),
+    );
+  });
+
+  it("clears the note to null rather than sending an empty string", async () => {
+    list.mockResolvedValue(listResponse([member({ note: "舊備註" })]));
+    getMember.mockResolvedValue(member({ note: "舊備註" }));
+
+    const wrapper = await mountView();
+    await openFirstMember(wrapper);
+    await wrapper.get('[data-testid="member-note-input"]').setValue("   ");
+    await wrapper
+      .get('[data-testid="member-annotations-save"]')
+      .trigger("click");
+    await flushPromises();
+
+    expect(update).toHaveBeenCalledWith(
+      "shop-a",
+      "member-a",
+      expect.objectContaining({ note: null, tags: null }),
+    );
+  });
+
+  it("will not block until the audit warning is confirmed", async () => {
+    confirmModal.mockResolvedValue(false);
+
+    const wrapper = await mountView();
+    await openFirstMember(wrapper);
+    await wrapper.get('[data-testid="member-block-toggle"]').trigger("click");
+    await flushPromises();
+
+    expect(confirmModal).toHaveBeenCalledOnce();
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("blocks with the typed reason once confirmed", async () => {
+    const wrapper = await mountView();
+    await openFirstMember(wrapper);
+    await wrapper
+      .get('[data-testid="member-block-reason"]')
+      .setValue("多次惡意取消");
+    await wrapper.get('[data-testid="member-block-toggle"]').trigger("click");
+    await flushPromises();
+
+    expect(update).toHaveBeenCalledWith(
+      "shop-a",
+      "member-a",
+      expect.objectContaining({
+        isBlocked: true,
+        blockedReason: "多次惡意取消",
+      }),
+    );
+  });
+
+  it("offers unblock for an already blocked member and sends no reason", async () => {
+    list.mockResolvedValue(
+      listResponse([member({ isBlocked: true, blockedReason: "先前濫用" })]),
+    );
+    getMember.mockResolvedValue(
+      member({ isBlocked: true, blockedReason: "先前濫用" }),
+    );
+
+    const wrapper = await mountView();
+    await openFirstMember(wrapper);
+    const toggle = wrapper.get('[data-testid="member-block-toggle"]');
+    expect(toggle.text()).toBe(TEXT.unblockAction);
+
+    await toggle.trigger("click");
+    await flushPromises();
+
+    expect(update).toHaveBeenCalledWith("shop-a", "member-a", {
+      isBlocked: false,
+    });
+  });
+
+  it("tells the operator that blocking does not stop the person ordering", async () => {
+    const wrapper = await mountView();
+    await openFirstMember(wrapper);
+
+    expect(wrapper.get('[data-testid="member-block-explain"]').text()).toBe(
+      TEXT.blockExplain,
+    );
+  });
+
+  it("surfaces a 404 from the update endpoint instead of failing silently", async () => {
+    update.mockRejectedValue({ response: { status: 404 } });
+
+    const wrapper = await mountView();
+    await openFirstMember(wrapper);
+    await wrapper.get('[data-testid="member-block-toggle"]').trigger("click");
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="member-block-error"]').text()).toBe(
+      TEXT.blockNotFound,
+    );
+  });
+
+  it("sends the tag filter as an exact value to the service", async () => {
+    const wrapper = await mountView();
+    await wrapper.get('[data-testid="member-filter-tag"]').setValue("vip");
+    await wrapper.get('[data-testid="member-filter-tag"]').trigger("change");
+    await flushPromises();
+
+    expect(list).toHaveBeenLastCalledWith(
+      "shop-a",
+      expect.objectContaining({ tag: "vip" }),
+    );
+  });
+
+  it("discards an unsaved annotation draft when the drawer is closed", async () => {
+    const wrapper = await mountView();
+    await openFirstMember(wrapper);
+    await wrapper.get('[data-testid="member-note-input"]').setValue("暫時的");
+    await wrapper.get('[data-testid="member-detail-close"]').trigger("click");
+    await flushPromises();
+    await openFirstMember(wrapper);
+
+    expect(
+      (
+        wrapper.get('[data-testid="member-note-input"]')
+          .element as HTMLTextAreaElement
+      ).value,
+    ).toBe("");
+    expect(update).not.toHaveBeenCalled();
   });
 
   it("reveals the full values in the panel only, never in the list row", async () => {

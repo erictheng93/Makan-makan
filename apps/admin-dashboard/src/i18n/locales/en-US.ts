@@ -3448,6 +3448,42 @@ const enUS: Messages = {
     badges: {
       marketingUnreachable: "No marketing",
     },
+    annotations: {
+      title: "Notes for this restaurant",
+      description: "Visible only here. Never shared with other restaurants.",
+      tagsLabel: "Tags",
+      tagsPlaceholder: "Type a tag and press Enter",
+      tagsHint: "Up to 20 tags, 40 characters each.",
+      tagRemove: "Remove tag {tag}",
+      noteLabel: "Note",
+      notePlaceholder: "Preferences or anything worth remembering",
+      save: "Save notes",
+      saving: "Saving…",
+      saved: "Saved",
+      tagFilter: "Tag",
+      tagFilterPlaceholder: "Full tag name",
+    },
+    block: {
+      title: "Block marker",
+      explain:
+        "Blocking is a marker in your own records. It does not stop the person ordering — a guest order carries no member identity, so it cannot be caught.",
+      reasonLabel: "Reason",
+      reasonPlaceholder: "For later reference",
+      blockAction: "Block this member",
+      unblockAction: "Remove block",
+      blocking: "Working…",
+      confirmBlock:
+        "Block {name}? This is recorded in the audit log. Blocking does not stop them ordering.",
+      confirmUnblock:
+        "Remove the block marker on {name}? This is recorded in the audit log.",
+      currentReason: "Reason: {reason}",
+      errors: {
+        notFound: "This member no longer exists.",
+        invalid:
+          "The notes did not pass validation. Check the lengths and try again.",
+        failed: "Could not save. Please try again.",
+      },
+    },
     actions: {
       detail: "Details",
     },

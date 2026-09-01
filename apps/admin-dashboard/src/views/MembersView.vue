@@ -132,6 +132,23 @@
         <div>
           <label
             class="mb-2 block text-xs font-medium text-[#8E8E93]"
+            for="member-filter-tag"
+          >
+            {{ t("members.annotations.tagFilter") }}
+          </label>
+          <input
+            id="member-filter-tag"
+            v-model="filters.tag"
+            data-testid="member-filter-tag"
+            type="text"
+            :placeholder="t('members.annotations.tagFilterPlaceholder')"
+            class="w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2.5 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+            @change="reload"
+          />
+        </div>
+        <div>
+          <label
+            class="mb-2 block text-xs font-medium text-[#8E8E93]"
             for="member-min-orders"
           >
             {{ t("members.filters.minOrders") }}
@@ -430,6 +447,7 @@
               </h2>
               <button
                 type="button"
+                data-testid="member-detail-close"
                 class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-[#3C3C43] transition-colors duration-200 hover:bg-gray-300"
                 :aria-label="t('members.detail.close')"
                 @click="closeDetail"
@@ -658,6 +676,156 @@
                 </div>
               </div>
             </article>
+
+            <!-- 本店註記：標籤與備註 -->
+            <article class="rounded-2xl bg-white p-4 shadow-ios-card">
+              <h3 class="text-base font-semibold text-[#1C1C1E]">
+                {{ t("members.annotations.title") }}
+              </h3>
+              <p class="mt-1 text-xs text-[#8E8E93]">
+                {{ t("members.annotations.description") }}
+              </p>
+
+              <label
+                class="mt-4 block text-xs font-medium text-[#8E8E93]"
+                for="member-tag-input"
+              >
+                {{ t("members.annotations.tagsLabel") }}
+              </label>
+              <div
+                class="mt-1.5 flex flex-wrap items-center gap-1.5"
+                data-testid="member-tag-list"
+              >
+                <span
+                  v-for="tag in draft.tags"
+                  :key="tag"
+                  class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700"
+                >
+                  {{ tag }}
+                  <button
+                    type="button"
+                    :data-testid="`member-tag-remove-${tag}`"
+                    :aria-label="t('members.annotations.tagRemove', { tag })"
+                    class="text-blue-700 transition-opacity duration-200 hover:opacity-60"
+                    @click="removeTag(tag)"
+                  >
+                    <XMarkIcon class="h-3 w-3" />
+                  </button>
+                </span>
+              </div>
+              <input
+                id="member-tag-input"
+                v-model="tagDraft"
+                data-testid="member-tag-input"
+                type="text"
+                :placeholder="t('members.annotations.tagsPlaceholder')"
+                class="mt-2 w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+                @keydown.enter.prevent="addTag"
+              />
+              <p class="mt-1 text-xs text-[#AEAEB2]">
+                {{ t("members.annotations.tagsHint") }}
+              </p>
+
+              <label
+                class="mt-4 block text-xs font-medium text-[#8E8E93]"
+                for="member-note-input"
+              >
+                {{ t("members.annotations.noteLabel") }}
+              </label>
+              <textarea
+                id="member-note-input"
+                v-model="draft.note"
+                data-testid="member-note-input"
+                rows="3"
+                :placeholder="t('members.annotations.notePlaceholder')"
+                class="mt-1.5 w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+              ></textarea>
+
+              <div class="mt-3 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  data-testid="member-annotations-save"
+                  :disabled="annotationsSaving"
+                  class="inline-flex h-11 items-center rounded-full bg-blue-500 px-5 text-sm font-medium text-white transition-colors duration-200 hover:bg-blue-700 disabled:opacity-40"
+                  @click="saveAnnotations"
+                >
+                  {{
+                    annotationsSaving
+                      ? t("members.annotations.saving")
+                      : t("members.annotations.save")
+                  }}
+                </button>
+                <span
+                  v-if="annotationsSaved"
+                  data-testid="member-annotations-saved"
+                  class="text-xs text-green-700"
+                >
+                  {{ t("members.annotations.saved") }}
+                </span>
+              </div>
+            </article>
+
+            <!-- 封鎖標記（危險區） -->
+            <article class="rounded-2xl bg-red-50 p-4">
+              <h3 class="text-base font-semibold text-red-700">
+                {{ t("members.block.title") }}
+              </h3>
+              <p
+                data-testid="member-block-explain"
+                class="mt-1 text-xs text-red-700"
+              >
+                {{ t("members.block.explain") }}
+              </p>
+
+              <p
+                v-if="selectedMember.isBlocked && selectedMember.blockedReason"
+                data-testid="member-block-current-reason"
+                class="mt-3 text-sm text-red-700"
+              >
+                {{
+                  t("members.block.currentReason", {
+                    reason: selectedMember.blockedReason,
+                  })
+                }}
+              </p>
+
+              <template v-if="!selectedMember.isBlocked">
+                <label
+                  class="mt-3 block text-xs font-medium text-red-700"
+                  for="member-block-reason"
+                >
+                  {{ t("members.block.reasonLabel") }}
+                </label>
+                <input
+                  id="member-block-reason"
+                  v-model="blockReasonDraft"
+                  data-testid="member-block-reason"
+                  type="text"
+                  :placeholder="t('members.block.reasonPlaceholder')"
+                  class="mt-1.5 w-full rounded-xl border-0 bg-white px-3 py-2 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-red-500/30"
+                />
+              </template>
+
+              <button
+                type="button"
+                data-testid="member-block-toggle"
+                :disabled="blockPending || selectedMember.status === 'deleted'"
+                class="mt-3 inline-flex h-11 items-center rounded-full px-5 text-sm font-medium transition-colors duration-200 disabled:opacity-40"
+                :class="blockButtonTint"
+                @click="toggleBlocked"
+              >
+                {{ blockButtonLabel }}
+              </button>
+
+              <p
+                v-if="blockError"
+                data-testid="member-block-error"
+                class="mt-3 rounded-xl bg-white px-3 py-2 text-sm text-red-700"
+                role="alert"
+              >
+                {{ blockError }}
+              </p>
+            </article>
           </div>
         </div>
       </Transition>
@@ -746,6 +914,7 @@ const filters = reactive({
   search: "",
   sort: "recent" as MemberSort,
   blocked: "" as "" | "true" | "false",
+  tag: "",
   // v-model on <input type="number"> applies the .number modifier implicitly,
   // so these arrive as numbers once typed into and as "" while empty.
   minOrders: "" as string | number,
@@ -770,6 +939,23 @@ const ordersError = ref<string | null>(null);
 const revealed = ref<(MemberContactReveal & { memberId: string }) | null>(null);
 const revealLoading = ref(false);
 const revealError = ref<string | null>(null);
+
+/**
+ * A3 annotation draft. Held separately from `selectedMember` so an unsaved
+ * edit never leaks into the list rows behind the drawer, and so closing the
+ * drawer discards it rather than showing a value the server never received.
+ */
+const draft = reactive<{ tags: string[]; note: string }>({
+  tags: [],
+  note: "",
+});
+const tagDraft = ref("");
+const blockReasonDraft = ref("");
+const annotationsSaving = ref(false);
+const annotationsSaved = ref(false);
+const blockPending = ref(false);
+const blockError = ref<string | null>(null);
+let savedNoticeTimer: ReturnType<typeof setTimeout> | undefined;
 
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 let remaskTimer: ReturnType<typeof setTimeout> | undefined;
@@ -805,7 +991,7 @@ const statCards = computed(() => [
     label: t("members.stats.avgOrderValue"),
     value: formatCents(stats.value.avgOrderValueCents),
     icon: CurrencyDollarIcon,
-    tint: "bg-indigo-50 text-indigo-500",
+    tint: "bg-teal-50 text-teal-500",
   },
 ]);
 
@@ -980,6 +1166,9 @@ function buildListParams(): MemberListParams {
     page: page.value,
     limit: PAGE_SIZE,
     search: filters.search.trim() || undefined,
+    // Exact match server-side; a partial tag would turn the list into an
+    // enumeration tool the same way a partial phone search would.
+    tag: filters.tag.trim() || undefined,
     sort: filters.sort,
     minOrders: minOrders === undefined ? undefined : Math.floor(minOrders),
     // The filter is entered in major currency units; the API speaks cents.
@@ -1032,6 +1221,7 @@ function resetFilters(): void {
   filters.search = "";
   filters.sort = "recent";
   filters.blocked = "";
+  filters.tag = "";
   filters.minOrders = "";
   filters.minSpent = "";
   filters.lastOrderFrom = "";
@@ -1048,6 +1238,7 @@ function changePage(nextPage: number): void {
 async function openMember(member: MemberListItem): Promise<void> {
   clearReveal();
   selectedMember.value = member;
+  resetAnnotationDraft(member);
   detailError.value = null;
   ordersPage.value = 1;
   await Promise.all([
@@ -1059,6 +1250,9 @@ async function openMember(member: MemberListItem): Promise<void> {
 function closeDetail(): void {
   clearReveal();
   selectedMember.value = null;
+  // Drop the unsaved draft with the drawer: reopening must show what the
+  // server holds, never a half-typed edit from a previous member.
+  resetAnnotationDraft(null);
   memberOrders.value = [];
   detailError.value = null;
   ordersError.value = null;
@@ -1071,6 +1265,9 @@ async function loadMemberDetail(memberId: string): Promise<void> {
     const detail = await membersService.get(id, memberId);
     if (selectedMember.value?.memberId !== memberId) return;
     selectedMember.value = detail;
+    // The list projection and the detail projection can differ; the draft has
+    // to follow the authoritative one.
+    resetAnnotationDraft(detail);
   } catch {
     if (selectedMember.value?.memberId !== memberId) return;
     detailError.value = t("members.detail.loadFailed");
@@ -1196,8 +1393,146 @@ function clearReveal(): void {
   revealError.value = null;
 }
 
+/**
+ * Class names are looked up from a static map, never assembled from a state
+ * value. Tailwind's scanner cannot follow `bg-${x}-50`, so a concatenated
+ * class is simply never generated and the styling silently does not render.
+ */
+const BLOCK_BUTTON_TINT: Record<"block" | "unblock", string> = {
+  block: "bg-red-500 text-white hover:bg-red-700",
+  unblock: "bg-white text-red-700 hover:bg-red-100",
+};
+
+const blockButtonTint = computed(() =>
+  selectedMember.value?.isBlocked
+    ? BLOCK_BUTTON_TINT.unblock
+    : BLOCK_BUTTON_TINT.block,
+);
+
+const blockButtonLabel = computed(() => {
+  if (blockPending.value) return t("members.block.blocking");
+  return selectedMember.value?.isBlocked
+    ? t("members.block.unblockAction")
+    : t("members.block.blockAction");
+});
+
+/** Reset the drafts to whatever the server currently holds for this member. */
+function resetAnnotationDraft(member: MemberListItem | null): void {
+  draft.tags = member?.tags ? [...member.tags] : [];
+  draft.note = member?.note ?? "";
+  tagDraft.value = "";
+  blockReasonDraft.value = "";
+  annotationsSaved.value = false;
+  blockError.value = null;
+}
+
+function addTag(): void {
+  const tag = tagDraft.value.trim();
+  tagDraft.value = "";
+  // Deduplicate here rather than letting the API reject the whole PATCH: a
+  // repeated tag is a slip, not an error worth failing the save over.
+  if (!tag || draft.tags.includes(tag)) return;
+  draft.tags.push(tag);
+}
+
+function removeTag(tag: string): void {
+  draft.tags = draft.tags.filter((entry) => entry !== tag);
+}
+
+function annotationErrorMessage(error: unknown): string {
+  const status = (error as { response?: { status?: number } })?.response
+    ?.status;
+  const code = (
+    error as { response?: { data?: { error?: { code?: string } } } }
+  )?.response?.data?.error?.code;
+  if (code === "MEMBER_NOT_FOUND" || status === 404) {
+    return t("members.block.errors.notFound");
+  }
+  if (status === 400) return t("members.block.errors.invalid");
+  return t("members.block.errors.failed");
+}
+
+/**
+ * `tags` replaces the whole list server-side, so the full intended array goes
+ * out every time. An empty note is sent as null rather than "" so the column
+ * ends up genuinely cleared instead of holding an empty string.
+ */
+async function saveAnnotations(): Promise<void> {
+  const id = restaurantId.value;
+  const member = selectedMember.value;
+  if (!id || !member) return;
+  annotationsSaving.value = true;
+  annotationsSaved.value = false;
+  blockError.value = null;
+  try {
+    const updated = await membersService.update(id, member.memberId, {
+      tags: draft.tags.length > 0 ? [...draft.tags] : null,
+      note: draft.note.trim() ? draft.note.trim() : null,
+    });
+    applyUpdatedMember(updated);
+    annotationsSaved.value = true;
+    clearTimeout(savedNoticeTimer);
+    savedNoticeTimer = setTimeout(() => {
+      annotationsSaved.value = false;
+      savedNoticeTimer = undefined;
+    }, 4000);
+  } catch (error) {
+    blockError.value = annotationErrorMessage(error);
+  } finally {
+    annotationsSaving.value = false;
+  }
+}
+
+async function toggleBlocked(): Promise<void> {
+  const id = restaurantId.value;
+  const member = selectedMember.value;
+  if (!id || !member) return;
+  const nextBlocked = !member.isBlocked;
+  const name = memberName(member);
+  const confirmed = await confirmModal({
+    title: t("members.block.title"),
+    message: nextBlocked
+      ? t("members.block.confirmBlock", { name })
+      : t("members.block.confirmUnblock", { name }),
+    confirmLabel: nextBlocked
+      ? t("members.block.blockAction")
+      : t("members.block.unblockAction"),
+    type: "danger",
+  });
+  if (!confirmed) return;
+
+  blockPending.value = true;
+  blockError.value = null;
+  try {
+    const updated = await membersService.update(id, member.memberId, {
+      isBlocked: nextBlocked,
+      // Only meaningful when blocking; the API clears it on an unblock anyway.
+      ...(nextBlocked && blockReasonDraft.value.trim()
+        ? { blockedReason: blockReasonDraft.value.trim() }
+        : {}),
+    });
+    applyUpdatedMember(updated);
+    blockReasonDraft.value = "";
+  } catch (error) {
+    blockError.value = annotationErrorMessage(error);
+  } finally {
+    blockPending.value = false;
+  }
+}
+
+/** Keep the drawer and the row behind it in step with what the server saved. */
+function applyUpdatedMember(updated: MemberListItem): void {
+  selectedMember.value = updated;
+  const index = members.value.findIndex(
+    (row) => row.memberId === updated.memberId,
+  );
+  if (index !== -1) members.value[index] = updated;
+  resetAnnotationDraft(updated);
+}
+
 onMounted(() => void load());
 onUnmounted(() => {
+  clearTimeout(savedNoticeTimer);
   clearTimeout(searchTimer);
   clearReveal();
 });

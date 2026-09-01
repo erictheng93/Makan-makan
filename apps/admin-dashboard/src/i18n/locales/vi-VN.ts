@@ -3456,6 +3456,42 @@ const viVN: Messages = {
     badges: {
       marketingUnreachable: "Không gửi tiếp thị",
     },
+    annotations: {
+      title: "Ghi chú của nhà hàng",
+      description:
+        "Chỉ nhà hàng này thấy được, không chia sẻ cho nhà hàng khác.",
+      tagsLabel: "Thẻ",
+      tagsPlaceholder: "Nhập thẻ rồi nhấn Enter",
+      tagsHint: "Tối đa 20 thẻ, mỗi thẻ 40 ký tự.",
+      tagRemove: "Xoá thẻ {tag}",
+      noteLabel: "Ghi chú",
+      notePlaceholder: "Sở thích hoặc điều cần lưu ý về khách này",
+      save: "Lưu ghi chú",
+      saving: "Đang lưu…",
+      saved: "Đã lưu",
+      tagFilter: "Thẻ",
+      tagFilterPlaceholder: "Tên thẻ đầy đủ",
+    },
+    block: {
+      title: "Đánh dấu chặn",
+      explain:
+        "Chặn chỉ là dấu ghi trong hồ sơ của nhà hàng. Nó không ngăn được khách đặt hàng — đơn khách vãng lai không có danh tính thành viên nên không thể chặn.",
+      reasonLabel: "Lý do",
+      reasonPlaceholder: "Để tra cứu về sau",
+      blockAction: "Chặn thành viên này",
+      unblockAction: "Bỏ chặn",
+      blocking: "Đang xử lý…",
+      confirmBlock:
+        "Chặn {name}? Thao tác này được ghi vào nhật ký kiểm toán. Chặn không ngăn được họ đặt hàng.",
+      confirmUnblock:
+        "Bỏ đánh dấu chặn với {name}? Thao tác này được ghi vào nhật ký kiểm toán.",
+      currentReason: "Lý do: {reason}",
+      errors: {
+        notFound: "Không tìm thấy thành viên này.",
+        invalid: "Ghi chú không hợp lệ. Vui lòng kiểm tra độ dài và thử lại.",
+        failed: "Không lưu được. Vui lòng thử lại.",
+      },
+    },
     actions: {
       detail: "Chi tiết",
     },

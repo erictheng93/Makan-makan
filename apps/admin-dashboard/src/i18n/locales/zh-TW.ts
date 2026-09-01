@@ -3509,6 +3509,41 @@ const zhTWCore = {
     badges: {
       marketingUnreachable: "不可行銷發送",
     },
+    annotations: {
+      title: "本店註記",
+      description: "只有本店看得到，不會分享給其他店家。",
+      tagsLabel: "標籤",
+      tagsPlaceholder: "輸入標籤後按 Enter",
+      tagsHint: "最多 20 個，每個 40 字以內。",
+      tagRemove: "移除標籤 {tag}",
+      noteLabel: "備註",
+      notePlaceholder: "記下這位客人的偏好或注意事項",
+      save: "儲存註記",
+      saving: "儲存中…",
+      saved: "已儲存",
+      tagFilter: "標籤",
+      tagFilterPlaceholder: "完整標籤名稱",
+    },
+    block: {
+      title: "封鎖標記",
+      explain:
+        "封鎖只是本店自己的標記，不會阻止對方下單 —— 訪客點餐沒有會員身分，擋不到。",
+      reasonLabel: "封鎖原因",
+      reasonPlaceholder: "供日後查核用",
+      blockAction: "封鎖此會員",
+      unblockAction: "解除封鎖",
+      blocking: "處理中…",
+      confirmBlock:
+        "確定要封鎖「{name}」嗎？此操作會記錄在稽核日誌中。封鎖不會阻止對方下單。",
+      confirmUnblock:
+        "確定要解除「{name}」的封鎖標記嗎？此操作會記錄在稽核日誌中。",
+      currentReason: "封鎖原因：{reason}",
+      errors: {
+        notFound: "找不到這位會員，可能已被移除。",
+        invalid: "註記內容不符合格式，請檢查長度後再試。",
+        failed: "更新失敗，請稍後再試。",
+      },
+    },
     actions: {
       detail: "詳情",
     },

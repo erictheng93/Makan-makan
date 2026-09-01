@@ -3470,6 +3470,42 @@ const idID: Messages = {
     badges: {
       marketingUnreachable: "Tidak untuk pemasaran",
     },
+    annotations: {
+      title: "Catatan restoran ini",
+      description: "Hanya terlihat di sini, tidak dibagikan ke restoran lain.",
+      tagsLabel: "Tag",
+      tagsPlaceholder: "Ketik tag lalu tekan Enter",
+      tagsHint: "Maksimal 20 tag, masing-masing 40 karakter.",
+      tagRemove: "Hapus tag {tag}",
+      noteLabel: "Catatan",
+      notePlaceholder: "Preferensi atau hal yang perlu diingat",
+      save: "Simpan catatan",
+      saving: "Menyimpan…",
+      saved: "Tersimpan",
+      tagFilter: "Tag",
+      tagFilterPlaceholder: "Nama tag lengkap",
+    },
+    block: {
+      title: "Penanda blokir",
+      explain:
+        "Blokir hanya penanda di catatan restoran ini. Ini tidak menghentikan orang tersebut memesan — pesanan tamu tidak membawa identitas anggota sehingga tidak bisa dicegat.",
+      reasonLabel: "Alasan",
+      reasonPlaceholder: "Untuk rujukan nanti",
+      blockAction: "Blokir anggota ini",
+      unblockAction: "Lepas blokir",
+      blocking: "Memproses…",
+      confirmBlock:
+        "Blokir {name}? Tindakan ini dicatat di log audit. Blokir tidak menghentikan mereka memesan.",
+      confirmUnblock:
+        "Lepas penanda blokir pada {name}? Tindakan ini dicatat di log audit.",
+      currentReason: "Alasan: {reason}",
+      errors: {
+        notFound: "Anggota ini tidak ditemukan.",
+        invalid:
+          "Catatan tidak lolos validasi. Periksa panjangnya lalu coba lagi.",
+        failed: "Gagal menyimpan. Silakan coba lagi.",
+      },
+    },
     actions: {
       detail: "Detail",
     },
