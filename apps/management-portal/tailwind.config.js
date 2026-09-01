@@ -1,3 +1,5 @@
+import { iosColors, iosShadows } from "../../design-tokens.js";
+
 import forms from "@tailwindcss/forms";
 
 /** @type {import('tailwindcss').Config} */
@@ -6,10 +8,11 @@ export default {
   theme: {
     extend: {
       boxShadow: {
+        ...iosShadows,
         card: "0 4px 16px rgba(0, 0, 0, 0.06)",
       },
       colors: {
-        "ios-bg": "#F2F2F7",
+        ...iosColors,
         primary: {
           50: "#f0fdf4",
           100: "#dcfce7",

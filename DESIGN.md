@@ -20,6 +20,25 @@ colors:
   separator: "#E5E5EA"
   badge-blue-soft: "#E3F2FD"
   badge-orange-soft: "#FFF3E0"
+  # Generated 50-950 ramps for the five hues above, defined once in
+  # design-tokens.js at the repo root and substituted for Tailwind's stock
+  # blue/green/orange/red/teal in every app. Step 500 is always the exact iOS
+  # value listed above; 700+ is the text step, 500/600 are fill steps.
+  blue-100: "#E0EFFF"
+  blue-500: "#007AFF"
+  blue-700: "#084E9D"
+  green-100: "#E7F8EB"
+  green-500: "#34C759"
+  green-700: "#267B3D"
+  orange-100: "#FFF2E0"
+  orange-500: "#FF9500"
+  orange-700: "#9B5E09"
+  red-100: "#FFE7E6"
+  red-500: "#FF3B30"
+  red-700: "#9B2A25"
+  teal-100: "#E6F6F8"
+  teal-500: "#30B0C7"
+  teal-700: "#236E7D"
   on-primary: "#FFFFFF"
 typography:
   h1:
@@ -197,12 +216,18 @@ The base interface is built from white cards floating on a soft iOS-gray backgro
 - **iOS Orange (#FF9500):** Warning, pending, and delayed states.
 - **iOS Red (#FF3B30):** Errors, urgent timing, destructive actions, and disconnected states.
 - **iOS Teal (#30B0C7):** Data visualization accents (rings, charts).
-- **Customer accent (#2563EB):** Indigo override used by the customer app's primary CTA.
+- **Customer accent (#2563EB):** Deeper blue used by the customer app's primary CTA. (Called an "indigo override" in earlier revisions; it is a blue, and naming it indigo is what licensed a drift into actual indigo elsewhere.)
 - **Admin accent (#B7440A):** Warm management accent for owner/admin dashboards.
 - **Portal accent (#15803D):** Green theme for the management portal and onboarding apps.
 - **Secondary text (#8E8E93) / Tertiary text (#AEAEB2):** Captions, metadata, and disabled states.
 
 Do not let a single accent dominate every app. Use the accent that matches the workflow, keep the iOS neutrals (`#F2F2F7` background, `#FFFFFF` cards, `#E5E5EA` separators) as the shared language, and reserve red for states that genuinely require attention.
+
+**These five hues are the whole palette.** There is no purple, indigo, violet, fuchsia or pink in this system — purple/indigo gradients and cyan-on-dark are the most recognisable signature of generated UI, and an operational dashboard should not look like one. When a stat tile or chart series needs "another colour", it takes the next hue from the palette; when it needs an eighth, that is the signal to stop encoding meaning in colour and use labels or grouping instead.
+
+`design-tokens.js` at the repo root is the single source of truth. It defines the neutrals, the five hues, and full 50–950 ramps, and every app's `tailwind.config.js` imports it — so `bg-green-100` renders iOS green in all five apps and cannot drift between them. It also aliases the hues that mean the same thing here (`amber` and `yellow` are warnings, so they resolve to orange; `emerald` is success, so it resolves to green; `sky` to blue, `cyan` to teal). `purple`, `indigo`, `violet`, `fuchsia` and `pink` are deliberately _not_ aliased: they are removed from source instead, because markup that says "purple" while the screen shows teal is worse than the drift it replaces.
+
+For text, use the 700 step on white or on a 50/100 tint (all five clear 4.5:1); 500 and 600 are fill steps for buttons, bars and dots. Multi-series charts use `CHART_SERIES_COLORS` from `@makanmasak/shared/utils/chart-palette`, never per-chart hexes.
 
 ## Typography
 
@@ -224,7 +249,7 @@ Separate surfaces with **soft shadows, not borders** — this is the core of the
 - `card` `0 4px 16px rgba(0,0,0,0.06)` for primary cards
 - `card-lg` `0 8px 30px rgba(0,0,0,0.08)` for floating/elevated surfaces
 
-Avoid hard 1px borders for separation, deep stacked surfaces, and shadows heavier than 8%. Glass effects and gradients should be reserved for transient overlays or PWA prompts, never core operational layouts.
+Avoid hard 1px borders for separation, deep stacked surfaces, and shadows heavier than 8%. Glass effects and gradients should be reserved for transient overlays or PWA prompts, **never core operational layouts** — a dashboard hero card, a score card and a chart highlight tile all take a flat fill from the palette, not a two-stop gradient.
 
 ## Shapes
 

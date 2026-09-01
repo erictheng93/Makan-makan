@@ -1,9 +1,12 @@
+import { iosColors, iosShadows } from "../../design-tokens.js";
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{vue,js,ts,jsx,tsx}"],
   theme: {
     extend: {
       colors: {
+        ...iosColors,
         primary: {
           50: "#fef7ee",
           100: "#fdecd3",
@@ -28,19 +31,9 @@ export default {
           800: "#1e293b",
           900: "#0f172a",
         },
-        "ios-bg": "#F2F2F7",
-        ios: {
-          primary: "#007AFF",
-          success: "#34C759",
-          warning: "#FF9500",
-          error: "#FF3B30",
-          teal: "#30B0C7",
-        },
       },
       boxShadow: {
-        "ios-sm": "0 2px 8px rgba(0,0,0,0.04)",
-        "ios-card": "0 4px 16px rgba(0,0,0,0.06)",
-        "ios-float": "0 8px 30px rgba(0,0,0,0.08)",
+        ...iosShadows,
       },
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui"],

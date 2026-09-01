@@ -1,3 +1,5 @@
+import { iosColors, iosShadows } from "../../design-tokens.js";
+
 import forms from "@tailwindcss/forms";
 import typography from "@tailwindcss/typography";
 
@@ -7,6 +9,7 @@ export default {
   theme: {
     extend: {
       colors: {
+        ...iosColors,
         primary: {
           50: "#eff6ff",
           100: "#dbeafe",
@@ -33,17 +36,6 @@ export default {
           900: "#0f172a",
           950: "#020617",
         },
-        "ios-bg": "#F2F2F7",
-        "ios-card": "#FFFFFF",
-        "ios-text": "#1C1C1E",
-        "ios-secondary": "#8E8E93",
-        "ios-tertiary": "#AEAEB2",
-        "ios-separator": "#E5E5EA",
-        "ios-blue": "#007AFF",
-        "ios-green": "#34C759",
-        "ios-orange": "#FF9500",
-        "ios-red": "#FF3B30",
-        "ios-teal": "#30B0C7",
       },
       fontFamily: {
         sans: [
@@ -82,6 +74,7 @@ export default {
         "ios-lg": "24px",
       },
       boxShadow: {
+        ...iosShadows,
         soft: "0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)",
         "soft-lg":
           "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
