@@ -424,6 +424,36 @@ describe("platform webhook routes", () => {
     });
   });
 
+  it("ignores an event type that announces neither a new order nor a cancellation", async () => {
+    const mutations = mockMutations();
+    mockSelectResults({ platformIntegrations: [[integration()]] });
+
+    const response = await request("/uber-eats", {
+      method: "POST",
+      body: JSON.stringify(
+        webhookPayload({ event_type: "orders.status_changed" }),
+      ),
+      headers: { "Content-Type": "application/json" },
+    });
+    const body = await json(response);
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({
+      success: true,
+      data: {
+        acknowledged: true,
+        eventType: "orders.status_changed",
+        handled: false,
+      },
+    });
+    // Routing anything but a creation event through order creation is what
+    // produced the orphan orders in #237, and the cancellation branch must not
+    // swallow unrelated types either.
+    expect(mocks.orderService.processWebhook).not.toHaveBeenCalled();
+    expect(mocks.orderService.processCancellation).not.toHaveBeenCalled();
+    expect(mutations.updated[0]).toMatchObject({ status: "ignored" });
+  });
+
   it("acknowledges payment events without order processing", async () => {
     const mutations = mockMutations();
     mockSelectResults({ platformIntegrations: [[integration()]] });
