@@ -144,6 +144,11 @@ import {
   MinusIcon,
 } from "@heroicons/vue/24/outline";
 import type { PerformanceTrend } from "@/services/statisticsService";
+import {
+  CHART_METRIC_COLORS,
+  CHART_NEUTRAL_COLOR,
+  withAlpha,
+} from "@makanmasak/shared/utils/chart-palette";
 
 // 註冊 Chart.js 組件
 ChartJS.register(
@@ -385,14 +390,14 @@ const getMetricLabel = (metric: string) => {
   return labels[metric] || metric;
 };
 
+// Metric colours come from the shared chart palette so the same metric is the
+// same colour in every chart that plots it. These used to be Tailwind's
+// green/blue/purple/amber, which is how "revenue" ended up purple -- a hue this
+// design system does not have.
 const getMetricColor = (metric: string, alpha = 1) => {
-  const colors: Record<string, string> = {
-    completion_rate: `rgba(34, 197, 94, ${alpha})`, // green
-    avg_prep_time: `rgba(59, 130, 246, ${alpha})`, // blue
-    revenue: `rgba(168, 85, 247, ${alpha})`, // purple
-    total_orders: `rgba(245, 158, 11, ${alpha})`, // amber
-  };
-  return colors[metric] || `rgba(107, 114, 128, ${alpha})`;
+  const hex = CHART_METRIC_COLORS[metric];
+  if (!hex) return withAlpha(CHART_NEUTRAL_COLOR, alpha);
+  return withAlpha(hex, alpha);
 };
 
 const formatValue = (value: number, metric: string) => {

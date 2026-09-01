@@ -55,6 +55,7 @@ import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { schedulingService } from "@/services/schedulingService";
 import BaseChart from "./BaseChart.vue";
+import { CHART_SERIES_COLORS } from "@makanmasak/shared/utils/chart-palette";
 
 interface ShiftData {
   id: string;
@@ -89,16 +90,7 @@ const chartTypes = computed(() => [
   { value: "pie" as const, label: t("charts.shiftDistribution.pieChart") },
 ]);
 
-const colors = [
-  "#3b82f6", // 藍色 - 早班
-  "#10b981", // 綠色 - 午班
-  "#f59e0b", // 橙色 - 晚班
-  "#8b5cf6", // 紫色 - 夜班
-  "#ef4444", // 紅色 - 全天
-  "#06b6d4", // 青色
-  "#ec4899", // 粉色
-  "#6b7280", // 灰色
-];
+const colors = CHART_SERIES_COLORS;
 
 const totalCount = computed(() => {
   return shifts.value.reduce((sum, shift) => sum + shift.count, 0);
@@ -217,7 +209,7 @@ onMounted(() => {
 
 .type-btn.active {
   background: white;
-  color: #3b82f6;
+  color: #007aff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -235,7 +227,7 @@ onMounted(() => {
   padding: 12px;
   background: #f9fafb;
   border-radius: 10px;
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid #007aff;
   transition: all 0.2s;
 }
 
