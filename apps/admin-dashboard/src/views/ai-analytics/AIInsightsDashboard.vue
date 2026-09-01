@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed } from "vue";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useAIAnalytics } from "@/composables/useAIAnalytics";
@@ -128,10 +128,11 @@ const handleGenerateReport = async (refresh = false) => {
   }
 };
 
-// Load report on mount
-onMounted(() => {
-  handleGenerateReport();
-});
+// Deliberately no auto-generate on mount. Generating a report is a billed call
+// to the shop's own AI provider, and firing it from onMounted meant every
+// navigation to this page spent money the owner never asked to spend. The empty
+// state already says "點擊下方按鈕生成您的第一份 AI 分析報告" and wires up
+// 立即生成 / 重新生成報告 — this now matches what the page tells the user.
 
 // Format currency using the active restaurant's currency
 const formatCurrency = (value: number) => formatPrice(value);
