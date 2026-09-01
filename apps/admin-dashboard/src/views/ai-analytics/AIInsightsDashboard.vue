@@ -22,13 +22,21 @@ import LightBulbIcon from "@heroicons/vue/24/outline/LightBulbIcon";
 
 const { t } = useI18n();
 const authStore = useAuthStore();
-const { generateReport, error: apiError } = useAIAnalytics();
+const {
+  generateReport,
+  error: apiError,
+  errorCode: apiErrorCode,
+} = useAIAnalytics();
 const { formatPrice } = useCurrency();
 
 const report = ref<AIAnalyticsReport | null>(null);
 const selectedTimeRange = ref("30d");
 const isGenerating = ref(false);
 const errorMessage = ref<string | null>(null);
+
+const isProviderNotConfigured = computed(
+  () => apiErrorCode.value === "AI_PROVIDER_NOT_CONFIGURED",
+);
 
 const restaurantId = computed(() => authStore.restaurantId || "");
 
@@ -257,7 +265,33 @@ const formatPercent = (value: number) => {
 
         <!-- Error State -->
         <div
-          v-if="errorMessage && !isGenerating"
+          v-if="errorMessage && !isGenerating && isProviderNotConfigured"
+          class="bg-teal-50 border border-teal-200 rounded-2xl p-6 mb-6"
+        >
+          <div class="flex items-start space-x-3">
+            <SparklesIcon
+              class="w-6 h-6 text-teal-600 flex-shrink-0 mt-0.5"
+              aria-hidden="true"
+            />
+            <div class="flex-1">
+              <h3 class="text-teal-900 font-semibold mb-1">
+                {{ t("aiAnalytics.providerNotConfiguredTitle") }}
+              </h3>
+              <p class="text-teal-800 text-sm mb-3">
+                {{ t("aiAnalytics.providerNotConfiguredHint") }}
+              </p>
+              <router-link
+                to="/dashboard/ai-analytics/config"
+                class="inline-flex px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+              >
+                {{ t("aiAnalytics.configureProvider") }}
+              </router-link>
+            </div>
+          </div>
+        </div>
+
+        <div
+          v-else-if="errorMessage && !isGenerating"
           class="bg-red-50 border border-red-200 rounded-2xl p-6 mb-6"
         >
           <div class="flex items-start space-x-3">

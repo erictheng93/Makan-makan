@@ -4886,6 +4886,10 @@ const idID: Messages = {
     reportError: "Gagal membuat laporan",
     generateFailed: "Tidak dapat membuat laporan analisis AI",
     retry: "Coba Lagi",
+    providerNotConfiguredTitle: "Penyedia AI belum dikonfigurasi",
+    providerNotConfiguredHint:
+      "Masukkan kunci API di Pengaturan AI untuk membuat laporan.",
+    configureProvider: "Buka Pengaturan AI",
     noReport: "Belum ada laporan analisis",
     noReportHint:
       "Klik tombol di bawah untuk membuat laporan analisis AI pertama Anda",
@@ -4947,8 +4951,9 @@ const idID: Messages = {
     saveSuccess: "Konfigurasi tersimpan",
     saveFailed: "Gagal menyimpan",
     saveError: "Terjadi kesalahan saat menyimpan konfigurasi",
-    infoEncryption: "Perlindungan Enkripsi",
-    infoEncryptionDesc: "Semua API key disimpan dengan enkripsi AES-256",
+    infoEncryption: "Penyimpanan Kunci API",
+    infoEncryptionDesc:
+      "Kunci API disimpan sebagai konfigurasi penyedia AI yang dipilih.",
     infoTracking: "Pelacakan Penggunaan",
     infoTrackingDesc: "Secara otomatis melacak penggunaan API dan biaya",
     infoCaching: "Cache Pintar",

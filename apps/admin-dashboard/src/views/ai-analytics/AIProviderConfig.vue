@@ -418,7 +418,7 @@ const handleSaveConfig = async () => {
       <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="bg-white rounded-xl p-4 border border-gray-100">
           <div class="text-sm font-semibold text-gray-900 mb-1">
-            🔒 {{ t("aiConfig.infoEncryption") }}
+            {{ t("aiConfig.infoEncryption") }}
           </div>
           <div class="text-xs text-gray-600">
             {{ t("aiConfig.infoEncryptionDesc") }}

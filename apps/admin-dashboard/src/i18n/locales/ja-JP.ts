@@ -4864,6 +4864,10 @@ const jaJP: Messages = {
     reportError: "レポート生成に失敗",
     generateFailed: "AI分析レポートを生成できませんでした",
     retry: "再試行",
+    providerNotConfiguredTitle: "AIプロバイダーが未設定です",
+    providerNotConfiguredHint:
+      "AI設定でAPIキーを入力するとレポートを生成できます。",
+    configureProvider: "AI設定へ",
     noReport: "分析レポートなし",
     noReportHint: "下のボタンをクリックして最初のAI分析レポートを生成",
     generateNow: "今すぐ生成",
@@ -4923,8 +4927,9 @@ const jaJP: Messages = {
     saveSuccess: "設定を保存しました",
     saveFailed: "保存に失敗",
     saveError: "設定の保存中にエラーが発生しました",
-    infoEncryption: "暗号化保護",
-    infoEncryptionDesc: "すべてのAPIキーはAES-256で暗号化保存",
+    infoEncryption: "APIキーの保存",
+    infoEncryptionDesc:
+      "APIキーは選択したAIプロバイダーの設定として保存されます。",
     infoTracking: "使用量追跡",
     infoTrackingDesc: "API使用量とコストを自動記録",
     infoCaching: "スマートキャッシュ",

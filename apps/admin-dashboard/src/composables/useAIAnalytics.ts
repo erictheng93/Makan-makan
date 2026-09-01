@@ -17,6 +17,7 @@ import { api } from "@/services/api";
 
 interface AIAnalyticsErrorResponse {
   error?: {
+    code?: string;
     message?: string;
   };
   message?: string;
@@ -53,6 +54,7 @@ interface UseAIAnalyticsReturn {
   // State
   loading: Ref<boolean>;
   error: Ref<string | null>;
+  errorCode: Ref<string | null>;
 
   // AI Configuration
   getConfig: (
@@ -105,6 +107,7 @@ interface UseAIAnalyticsReturn {
 export function useAIAnalytics(): UseAIAnalyticsReturn {
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const errorCode = ref<string | null>(null);
 
   async function requestAI<T>(
     method: "GET" | "POST",
@@ -116,6 +119,7 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
   ): Promise<T | null> {
     loading.value = true;
     error.value = null;
+    errorCode.value = null;
 
     try {
       const url = `/ai-analytics${endpoint}`;
@@ -137,6 +141,7 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
         responseData?.message ||
         (err instanceof Error ? err.message : "Unknown error occurred");
       error.value = errorMessage;
+      errorCode.value = responseData?.error?.code || null;
       console.error("AI Analytics API Error:", {
         endpoint,
         error: err,
@@ -285,6 +290,7 @@ export function useAIAnalytics(): UseAIAnalyticsReturn {
   return {
     loading,
     error,
+    errorCode,
     getConfig,
     saveConfig,
     testProvider,

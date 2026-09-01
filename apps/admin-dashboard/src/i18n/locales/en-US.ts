@@ -4932,6 +4932,10 @@ const enUS: Messages = {
     reportError: "Report generation failed",
     generateFailed: "Unable to generate AI analytics report",
     retry: "Retry",
+    providerNotConfiguredTitle: "AI provider is not configured",
+    providerNotConfiguredHint:
+      "Configure an API key in AI Settings to generate a report.",
+    configureProvider: "Go to AI Settings",
     noReport: "No report available",
     noReportHint:
       "Click the button below to generate your first AI analytics report",
@@ -4992,8 +4996,9 @@ const enUS: Messages = {
     saveSuccess: "Configuration saved",
     saveFailed: "Save failed",
     saveError: "An error occurred while saving configuration",
-    infoEncryption: "Encryption",
-    infoEncryptionDesc: "All API keys are stored with AES-256 encryption",
+    infoEncryption: "API Key Storage",
+    infoEncryptionDesc:
+      "Your API key is stored as configuration for the selected AI provider.",
     infoTracking: "Usage Tracking",
     infoTrackingDesc: "Automatically tracks API usage and costs",
     infoCaching: "Smart Caching",
