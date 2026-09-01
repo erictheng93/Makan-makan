@@ -88,6 +88,49 @@ function toCallerContext(user: AuthUser): CallerContext {
   };
 }
 
+/**
+ * Propagate a staff-initiated cancellation without delaying its local response.
+ * Platform-originated cancellations intentionally do not use this helper, which
+ * prevents an inbound webhook from being echoed back to its source platform.
+ */
+function syncCancellationToPlatform(
+  c: {
+    env: Env;
+    executionCtx?: { waitUntil(promise: Promise<unknown>): void };
+  },
+  order: unknown,
+): void {
+  if (
+    !order ||
+    typeof order !== "object" ||
+    typeof (order as { id?: unknown }).id !== "string" ||
+    !(order as { orderSource?: unknown }).orderSource ||
+    (order as { orderSource?: unknown }).orderSource === "direct"
+  ) {
+    return;
+  }
+
+  const orderId = (order as { id: string }).id;
+  c.executionCtx?.waitUntil(
+    (async () => {
+      try {
+        const { PlatformOrderService } =
+          await import("../../integrations/services/PlatformOrderService");
+        await new PlatformOrderService(c.env).syncStatusToPlatform(
+          orderId,
+          "cancelled",
+        );
+      } catch (err) {
+        logger.error(
+          "Failed to sync cancellation to platform",
+          err instanceof Error ? err : undefined,
+          { orderId },
+        );
+      }
+    })(),
+  );
+}
+
 // Map a wire status string onto the canonical OrderStatus union. The
 // only non-identity hop is `completed` → `delivered`, kept so realtime
 // clients that still emit the older event vocabulary keep working.
@@ -734,6 +777,8 @@ app.delete(
       throw badRequest("Failed to cancel order");
     }
 
+    syncCancellationToPlatform(c, order);
+
     return c.json({
       success: true,
       message: "Order cancelled successfully",
@@ -766,6 +811,14 @@ app.post(
       user.id,
       user.role as UserRole,
     );
+
+    if (data.action === "cancel") {
+      for (const cancelledOrder of result.results) {
+        if (cancelledOrder.success) {
+          syncCancellationToPlatform(c, cancelledOrder.data);
+        }
+      }
+    }
 
     return c.json({
       success: true,

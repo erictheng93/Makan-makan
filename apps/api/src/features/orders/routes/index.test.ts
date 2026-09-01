@@ -17,6 +17,9 @@ const serviceMocks = vi.hoisted(() => ({
   getActiveOrders: vi.fn(),
   previewCoupon: vi.fn(),
 }));
+const platformOrderServiceMocks = vi.hoisted(() => ({
+  syncStatusToPlatform: vi.fn(),
+}));
 const gateMocks = vi.hoisted(() => ({
   enforceQuota: vi.fn(),
   quotaGate: vi.fn(
@@ -79,6 +82,12 @@ vi.mock("../../../shared/utils/meter", () => ({
 vi.mock("../services/OrdersService", () => ({
   OrdersService: function OrdersService() {
     return serviceMocks;
+  },
+}));
+
+vi.mock("../../integrations/services/PlatformOrderService", () => ({
+  PlatformOrderService: function PlatformOrderService() {
+    return platformOrderServiceMocks;
   },
 }));
 
@@ -152,6 +161,7 @@ describe("orders routes", () => {
     for (const mock of Object.values(serviceMocks)) {
       mock.mockReset();
     }
+    platformOrderServiceMocks.syncStatusToPlatform.mockReset();
     gateMocks.enforceQuota.mockReset();
     gateMocks.meterEmit.mockReset();
     gateMocks.assertShopOrderingEnabled.mockReset();
@@ -786,6 +796,104 @@ describe("orders routes", () => {
     );
   });
 
+  it("syncs a successfully cancelled platform order in the background", async () => {
+    const waitUntilPromises: Array<Promise<unknown>> = [];
+    serviceMocks.getOrder.mockResolvedValue({
+      id: "55",
+      restaurantId: "restaurant-1",
+      orderSource: "uber_eats",
+    });
+    serviceMocks.cancelOrder.mockResolvedValue({
+      id: "55",
+      status: "cancelled",
+      orderSource: "uber_eats",
+    });
+
+    const response = await routes.fetch(
+      new Request("https://orders.test/55", { method: "DELETE" }),
+      createEnv() as never,
+      {
+        waitUntil: (promise: Promise<unknown>) =>
+          waitUntilPromises.push(promise),
+      } as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(waitUntilPromises).toHaveLength(1);
+    await Promise.all(waitUntilPromises);
+    expect(platformOrderServiceMocks.syncStatusToPlatform).toHaveBeenCalledWith(
+      "55",
+      "cancelled",
+    );
+  });
+
+  it("does not sync direct or failed cancellations to a platform", async () => {
+    const waitUntil = vi.fn();
+    serviceMocks.getOrder.mockResolvedValue({
+      id: "55",
+      restaurantId: "restaurant-1",
+      orderSource: "direct",
+    });
+    serviceMocks.cancelOrder.mockResolvedValue({
+      id: "55",
+      status: "cancelled",
+    });
+
+    const directResponse = await routes.fetch(
+      new Request("https://orders.test/55", { method: "DELETE" }),
+      createEnv() as never,
+      { waitUntil } as never,
+    );
+
+    expect(directResponse.status).toBe(200);
+    expect(waitUntil).not.toHaveBeenCalled();
+
+    serviceMocks.getOrder.mockResolvedValue({
+      id: "56",
+      restaurantId: "restaurant-1",
+      orderSource: "uber_eats",
+    });
+    serviceMocks.cancelOrder.mockResolvedValue(null);
+    const failedResponse = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://orders.test/56", { method: "DELETE" }),
+        createEnv() as never,
+        { waitUntil } as never,
+      ),
+    );
+
+    expect(failedResponse.status).toBe(400);
+    expect(waitUntil).not.toHaveBeenCalled();
+  });
+
+  it("keeps a local cancellation successful when platform sync fails", async () => {
+    const waitUntilPromises: Array<Promise<unknown>> = [];
+    serviceMocks.getOrder.mockResolvedValue({
+      id: "55",
+      restaurantId: "restaurant-1",
+      orderSource: "uber_eats",
+    });
+    serviceMocks.cancelOrder.mockResolvedValue({
+      id: "55",
+      status: "cancelled",
+    });
+    platformOrderServiceMocks.syncStatusToPlatform.mockRejectedValue(
+      new Error("platform unavailable"),
+    );
+
+    const response = await routes.fetch(
+      new Request("https://orders.test/55", { method: "DELETE" }),
+      createEnv() as never,
+      {
+        waitUntil: (promise: Promise<unknown>) =>
+          waitUntilPromises.push(promise),
+      } as never,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(Promise.all(waitUntilPromises)).resolves.toEqual([undefined]);
+  });
+
   it("passes a caller-supplied cancellation reason to the service", async () => {
     const env = createEnv();
     serviceMocks.getOrder.mockResolvedValue({
@@ -916,6 +1024,54 @@ describe("orders routes", () => {
       }),
       "user-42",
       1,
+    );
+  });
+
+  it("syncs only successfully cancelled platform orders from a bulk operation", async () => {
+    const waitUntilPromises: Array<Promise<unknown>> = [];
+    serviceMocks.bulkUpdateOrders.mockResolvedValue({
+      successCount: 2,
+      failedCount: 1,
+      results: [
+        {
+          orderId: "platform-1",
+          success: true,
+          data: { id: "platform-1", orderSource: "uber_eats" },
+        },
+        {
+          orderId: "direct-1",
+          success: true,
+          data: { id: "direct-1", orderSource: "direct" },
+        },
+        {
+          orderId: "platform-2",
+          success: false,
+          data: { id: "platform-2", orderSource: "foodpanda" },
+        },
+      ],
+    });
+
+    const response = await routes.fetch(
+      jsonRequest("/bulk", {
+        action: "cancel",
+        orderIds: ["platform-1", "direct-1", "platform-2"],
+      }),
+      createEnv() as never,
+      {
+        waitUntil: (promise: Promise<unknown>) =>
+          waitUntilPromises.push(promise),
+      } as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(waitUntilPromises).toHaveLength(1);
+    await Promise.all(waitUntilPromises);
+    expect(
+      platformOrderServiceMocks.syncStatusToPlatform,
+    ).toHaveBeenCalledTimes(1);
+    expect(platformOrderServiceMocks.syncStatusToPlatform).toHaveBeenCalledWith(
+      "platform-1",
+      "cancelled",
     );
   });
 
