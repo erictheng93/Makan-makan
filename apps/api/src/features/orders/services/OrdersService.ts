@@ -1359,7 +1359,7 @@ export class OrdersService implements IOrdersService {
     if (!caller) return;
     if (caller.userRole === 0) return;
     if (
-      caller.userRestaurantId &&
+      !caller.userRestaurantId?.trim() ||
       caller.userRestaurantId !== order.restaurantId
     ) {
       this.logger.warn("Cross-tenant order access denied", {

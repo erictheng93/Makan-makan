@@ -680,6 +680,17 @@ export const requireRole = (allowedRoles: number[]) => {
       throw forbidden("Insufficient permissions", "INSUFFICIENT_ROLE");
     }
 
+    // Roles 1–4 are restaurant-scoped staff accounts. Reject malformed or
+    // incomplete identities at the authorization boundary so they cannot be
+    // mistaken for platform-wide administrators by downstream handlers.
+    if (
+      user.role >= USER_ROLES.OWNER &&
+      user.role <= USER_ROLES.CASHIER &&
+      !String(user.restaurantId ?? "").trim()
+    ) {
+      throw forbidden("Restaurant assignment required", "FORBIDDEN");
+    }
+
     await next();
   };
 };

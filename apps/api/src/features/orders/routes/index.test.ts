@@ -1032,6 +1032,37 @@ describe("orders routes", () => {
     );
   });
 
+  it("denies an unassigned owner on every order access route", async () => {
+    authState.user = { id: "unassigned-owner", role: 1, restaurantId: null };
+
+    const responses = await Promise.all([
+      routes.fetch(new Request("https://orders.test/55"), createEnv() as never),
+      routes.fetch(
+        new Request("https://orders.test/55", { method: "DELETE" }),
+        createEnv() as never,
+      ),
+      routes.fetch(
+        jsonRequest("/55/status", { status: "confirmed" }, "PUT"),
+        createEnv() as never,
+      ),
+      routes.fetch(
+        jsonRequest("/bulk", {
+          action: "cancel",
+          orderIds: ["55"],
+        }),
+        createEnv() as never,
+      ),
+    ]);
+
+    expect(responses.map((response) => response.status)).toEqual([
+      403, 403, 403, 403,
+    ]);
+    expect(serviceMocks.getOrder).not.toHaveBeenCalled();
+    expect(serviceMocks.cancelOrder).not.toHaveBeenCalled();
+    expect(serviceMocks.updateOrderStatus).not.toHaveBeenCalled();
+    expect(serviceMocks.bulkUpdateOrders).not.toHaveBeenCalled();
+  });
+
   it("syncs only successfully cancelled platform orders from a bulk operation", async () => {
     const waitUntilPromises: Array<Promise<unknown>> = [];
     serviceMocks.bulkUpdateOrders.mockResolvedValue({

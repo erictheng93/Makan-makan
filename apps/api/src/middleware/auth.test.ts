@@ -11,6 +11,7 @@ import {
   customerAuthMiddleware,
   optionalAuth,
   optionalCanonicalCustomerAuthMiddleware,
+  requireRole,
   requireRestaurantAccess,
   verifyJwtToken,
 } from "./auth";
@@ -463,6 +464,74 @@ describe("requireRestaurantAccess", () => {
     );
 
     expect(response.status).toBe(403);
+  });
+});
+
+describe("requireRole", () => {
+  function appWithUser(user: AuthUser) {
+    const app = new Hono();
+    app.onError(apiErrorHandler);
+    app.use("/protected", (c, next) => {
+      c.set("user", user);
+      return next();
+    });
+    app.use("/protected", requireRole([0, 1, 2, 3, 4]));
+    app.get("/protected", (c) => c.json({ ok: true }));
+    return app;
+  }
+
+  it.each([1, 2, 3, 4])(
+    "denies a tenant-scoped role without a restaurant assignment (role %i)",
+    async (role) => {
+      const app = appWithUser({
+        id: staffUserId,
+        username: "unassigned-staff",
+        role,
+        restaurantId: undefined,
+      });
+
+      const response = await app.fetch(
+        new Request("https://api.test/protected"),
+        {} as never,
+      );
+
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toMatchObject({
+        error: { code: "FORBIDDEN" },
+      });
+    },
+  );
+
+  it("denies a tenant-scoped role with a blank restaurant assignment", async () => {
+    const app = appWithUser({
+      id: staffUserId,
+      username: "unassigned-owner",
+      role: 1,
+      restaurantId: "  ",
+    });
+
+    const response = await app.fetch(
+      new Request("https://api.test/protected"),
+      {} as never,
+    );
+
+    expect(response.status).toBe(403);
+  });
+
+  it("allows a platform admin without a restaurant assignment", async () => {
+    const app = appWithUser({
+      id: staffUserId,
+      username: "admin",
+      role: 0,
+      restaurantId: undefined,
+    });
+
+    const response = await app.fetch(
+      new Request("https://api.test/protected"),
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
   });
 });
 

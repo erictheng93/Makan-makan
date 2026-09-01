@@ -670,6 +670,20 @@ describe("OrdersService workflows", () => {
     expect(getBaseOrder).not.toHaveBeenCalled();
   });
 
+  it("denies an unassigned tenant role access to an order", async () => {
+    const service = new OrdersService(createEnv() as never);
+    getBaseOrder.mockResolvedValue(
+      createOrder({ restaurantId: "restaurant-2" }),
+    );
+
+    await expect(
+      service.getOrder("42", true, {
+        userId: "unassigned-owner",
+        userRole: 1,
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
   it("updates order status with version guard, cache invalidation, and realtime event", async () => {
     const env = createEnv();
     const previous = createOrder({ status: "confirmed", version: 7 });
