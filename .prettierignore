@@ -19,6 +19,8 @@ pnpm-lock.yaml
 
 # Claude Code config
 .claude/
+# impeccable skill's local hook cache (untracked tool artifact)
+.impeccable/
 # gstack-installed agent skills (vendored, untracked)
 .agents/
 
