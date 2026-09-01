@@ -18,7 +18,7 @@
   {
     "tableName": "audit_logs",
     "schemaFile": "packages/database/src/schema/audit-logs.ts",
-    "line": 49,
+    "line": 55,
     "category": "audit_log",
     "migrationPlan": "retain",
     "rationale": "Append-only audit trail; integer ids are local ordering handles."

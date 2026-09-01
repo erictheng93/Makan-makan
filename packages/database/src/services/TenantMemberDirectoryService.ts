@@ -32,6 +32,7 @@ export interface MemberListFilters {
   page: number;
   limit: number;
   search?: string;
+  tag?: string;
   minOrders?: number;
   minSpentCents?: number;
   lastOrderFrom?: Date;
@@ -56,7 +57,9 @@ export interface TenantMemberListItem {
   firstOrderAt: Date | null;
   lastOrderAt: Date | null;
   tags: string[] | null;
+  note: string | null;
   isBlocked: boolean;
+  blockedReason: string | null;
   marketingReachable: boolean;
   status: "active" | "deleted";
 }
@@ -94,6 +97,27 @@ export type MemberContactRevealOutcome =
   | { outcome: "deleted" };
 
 /**
+ * Every field optional; the route's zod schema is what enforces "at least
+ * one field present" before this ever runs. `undefined` means "leave this
+ * column alone"; `null` (where the field allows it) means "clear it".
+ */
+export interface MemberPatch {
+  tags?: string[] | null;
+  note?: string | null;
+  isBlocked?: boolean;
+  blockedReason?: string | null;
+}
+
+/**
+ * Same not-found shape as the reveal flow, and for the same reason: another
+ * tenant's member must read as "does not exist", never as "exists but you
+ * can't touch it".
+ */
+export type MemberUpdateOutcome =
+  | { outcome: "updated"; member: TenantMemberListItem }
+  | { outcome: "not-found" };
+
+/**
  * The only consent that gates a marketing send. The version catalog lives in
  * `@makanmasak/shared-types`; nothing here compares a version string, because
  * "which version is current" is not this projection's question to answer.
@@ -128,7 +152,9 @@ export class TenantMemberDirectoryService extends BaseService {
       firstOrderAt: restaurantCustomers.firstOrderAt,
       lastOrderAt: restaurantCustomers.lastOrderAt,
       tags: restaurantCustomers.tags,
+      note: restaurantCustomers.note,
       isBlocked: restaurantCustomers.isBlocked,
+      blockedReason: restaurantCustomers.blockedReason,
       marketingOptIn: customerPreferences.marketingOptIn,
       // Consent is an append-only ledger, so a customer has many rows per type
       // and a join would multiply the page. A correlated EXISTS keeps one row
@@ -169,7 +195,9 @@ export class TenantMemberDirectoryService extends BaseService {
       firstOrderAt: row.firstOrderAt,
       lastOrderAt: row.lastOrderAt,
       tags: row.tags,
+      note: row.note,
       isBlocked: Boolean(row.isBlocked),
+      blockedReason: row.blockedReason,
       // Both halves are required (spec §9.3): the preference flag says what the
       // customer chose in the app, the consent ledger says whether that choice
       // is still legally live. A revoked consent with a stale opt-in flag must
@@ -287,6 +315,125 @@ export class TenantMemberDirectoryService extends BaseService {
     });
   }
 
+  /**
+   * Tenant-local marker fields only (spec §7.1 D-4): tags, note, and the
+   * block marker. Never touches `customers` or any other tenant's row, and
+   * never accepts a `customers` column in the first place — the route's zod
+   * schema is `.strict()`, so an unknown key 400s before it ever reaches
+   * here.
+   *
+   * `isBlocked` is a MARKER ONLY, by design (spec Q-2). It is not checked by
+   * order creation, reservations, or coupons, and it must not become one:
+   * a guest order carries no `customer_id` at all, so a blocked member can
+   * always place one as a guest, and a check that only sometimes fires is
+   * worse than no check — staff would come to trust a gate that doesn't
+   * gate. If enforcement is ever wanted, it needs its own design for how a
+   * guest checkout is supposed to recognise a blocked person, which today it
+   * structurally cannot.
+   *
+   * Audit decision (issue #299 A3): only an actual `isBlocked` transition
+   * writes an audit row; tag and note edits do not. Block/unblock changes
+   * how staff treat a member and is exactly the kind of action that gets
+   * disputed later ("who blocked this customer, and why"), so it needs a
+   * paper trail. A tag or note edit is ordinary CRM housekeeping — an owner
+   * re-tags and re-words notes routinely, and an audit log padded with
+   * "changed note from X to Y" a dozen times a day would bury the one entry
+   * that actually matters. Re-sending `isBlocked: true` on an already
+   * blocked member (no state change) does not write a second row either;
+   * only the flip is the auditable event.
+   */
+  async update(
+    scope: TenantScope,
+    memberId: string,
+    patch: MemberPatch,
+    actor: AuditActor,
+  ): Promise<MemberUpdateOutcome> {
+    const current = await this.resolveTenantMember(scope, memberId);
+    if (!current) return { outcome: "not-found" };
+
+    const wasBlocked = Boolean(current.isBlocked);
+    const isBlocked = patch.isBlocked ?? wasBlocked;
+    // Whatever reason accompanied a block does not survive an unblock: a
+    // stale reason on an unblocked member reads as evidence for a block that
+    // no longer exists.
+    const blockedReason = !isBlocked
+      ? null
+      : patch.blockedReason !== undefined
+        ? patch.blockedReason
+        : current.blockedReason;
+    const tags = patch.tags !== undefined ? patch.tags : current.tags;
+    const note = patch.note !== undefined ? patch.note : current.note;
+
+    // The restaurant predicate here is deliberately redundant: `memberId` is
+    // already a primary key and `resolveTenantMember` above refused anything
+    // outside the scope, so no request reaches this statement with a foreign
+    // member. It is defence in depth against a future caller that skips the
+    // resolve step -- and, precisely because it is unreachable, NO TEST CAN
+    // COVER IT. Mutating it away leaves the suite green (verified 2026-09-02),
+    // so do not read that green as permission to simplify this WHERE; the
+    // guard the tests actually pin is the one in `resolveTenantMember`.
+    await this.db
+      .update(restaurantCustomers)
+      .set({
+        tags,
+        note,
+        isBlocked: isBlocked ? 1 : 0,
+        blockedReason,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(restaurantCustomers.restaurantId, scope.restaurantId),
+          eq(restaurantCustomers.id, memberId),
+        ),
+      );
+
+    if (patch.isBlocked !== undefined && isBlocked !== wasBlocked) {
+      await this.writeBlockStatusAudit(
+        scope,
+        memberId,
+        actor,
+        wasBlocked,
+        isBlocked,
+        blockedReason,
+      );
+    }
+
+    const updated = await this.resolveTenantMember(scope, memberId);
+    return { outcome: "updated", member: this.toPublicMember(updated)! };
+  }
+
+  /**
+   * Records the block/unblock transition and the reason that came with it —
+   * never a second copy of the member's PII. `resourceId` is the
+   * tenant-scoped member id, same discipline as `writeRevealAudit`.
+   */
+  private async writeBlockStatusAudit(
+    scope: TenantScope,
+    memberId: string,
+    actor: AuditActor,
+    from: boolean,
+    to: boolean,
+    blockedReason: string | null,
+  ) {
+    await this.db.insert(auditLogs).values({
+      userId: actor.userId,
+      restaurantId: scope.restaurantId,
+      action: AUDIT_ACTIONS.MEMBER_BLOCK_STATUS_CHANGE,
+      resource: "restaurant_customers",
+      resourceId: memberId,
+      description: to
+        ? `Blocked member ${memberId}`
+        : `Unblocked member ${memberId}`,
+      changes: {
+        metadata: { from, to, blockedReason },
+      },
+      ipAddress: actor.ipAddress ?? null,
+      userAgent: actor.userAgent ?? null,
+      success: true,
+    });
+  }
+
   async list(
     scope: TenantScope,
     filters: MemberListFilters,
@@ -312,6 +459,19 @@ export class TenantMemberDirectoryService extends BaseService {
       conditions.push(
         eq(restaurantCustomers.isBlocked, filters.blocked ? 1 : 0),
       );
+    if (filters.tag) {
+      // `tags` is a JSON array column, so a LIKE/substring test would let
+      // "vip" match a member tagged only "vip-lapsed". json_each expands the
+      // array so the comparison is against one exact element at a time.
+      // Guard the NULL case explicitly rather than relying on json_each's
+      // behaviour against a NULL argument.
+      conditions.push(
+        sql`${restaurantCustomers.tags} is not null and exists (
+          select 1 from json_each(${restaurantCustomers.tags})
+          where value = ${filters.tag}
+        )`,
+      );
+    }
     if (filters.search?.trim()) {
       const search = filters.search.trim();
       // PII may only be compared as a complete value, never a partial LIKE.

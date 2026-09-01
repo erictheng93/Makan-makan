@@ -6,6 +6,7 @@ import {
   requireRole,
 } from "../../../middleware/auth";
 import {
+  validateBody,
   validateOptionalBody,
   validateParams,
   validateQuery,
@@ -16,6 +17,7 @@ import {
   memberListQuerySchema,
   memberOrdersQuerySchema,
   memberParamSchema,
+  memberPatchBodySchema,
   memberRevealContactBodySchema,
   restaurantIdParamSchema,
 } from "../schemas/validation";
@@ -79,6 +81,43 @@ routes.get(
     const member = await directory(c.env).get({ restaurantId }, memberId);
     if (!member) throw notFound("Member not found", "MEMBER_NOT_FOUND");
     return c.json({ success: true, data: member });
+  },
+);
+
+// Tags / note / block marker (issue #299 A3). Tenant-local fields only —
+// `isBlocked` is a marker, not enforcement; see the comment on
+// TenantMemberDirectoryService.update() for why a guest order still walks
+// straight through a blocked member and why that is not "finished" here.
+routes.patch(
+  "/:restaurantId/members/:memberId",
+  authMiddleware,
+  requireRole([0, 1]),
+  requireRestaurantAccess("restaurantId"),
+  validateParams(memberParamSchema),
+  validateBody(memberPatchBodySchema),
+  async (c) => {
+    const { restaurantId, memberId } = c.get("validatedParams");
+    const patch = c.get("validatedBody");
+    const actor = c.get("user");
+
+    const result = await directory(c.env).update(
+      { restaurantId },
+      memberId,
+      patch,
+      {
+        userId: actor.id,
+        ipAddress: c.req.header("CF-Connecting-IP") ?? null,
+        userAgent: c.req.header("User-Agent") ?? null,
+      },
+    );
+
+    // Same 404 as the GET, for the same reason: another tenant's member must
+    // not be distinguishable from one that does not exist.
+    if (result.outcome === "not-found") {
+      throw notFound("Member not found", "MEMBER_NOT_FOUND");
+    }
+
+    return c.json({ success: true, data: result.member });
   },
 );
 

@@ -83,6 +83,19 @@ describe("Members API — tenant isolation", () => {
     );
   }
 
+  function patch(path: string, token: string, body: Record<string, unknown>) {
+    return testApp.app.fetch(
+      new Request(`https://test/api/v1${path}`, {
+        method: "PATCH",
+        headers: {
+          ...headers(token),
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }),
+    );
+  }
+
   async function shop(name: string) {
     const restaurant = await seed.restaurant({ name });
     const owner = await seed.user({
@@ -190,6 +203,17 @@ describe("Members API — tenant isolation", () => {
         token,
       );
       expect(reveal.status).toBe(403);
+
+      // Same for the PATCH route: it is a separate route registration with
+      // its own middleware chain, so a copy-paste that dropped the role
+      // guard there specifically would not be caught by the list or reveal
+      // assertions above.
+      const write = await patch(
+        `/restaurants/${a.restaurantId}/members/${target.memberId}`,
+        token,
+        { note: "should never land" },
+      );
+      expect(write.status).toBe(403);
       await expect(auditRows()).resolves.toEqual([]);
     },
   );
@@ -218,6 +242,7 @@ describe("Members API — tenant isolation", () => {
     });
     expect(Object.keys(body.data[0]!).sort()).toEqual([
       "avgOrderValueCents",
+      "blockedReason",
       "cancelledOrderCount",
       "displayName",
       "firstOrderAt",
@@ -228,6 +253,7 @@ describe("Members API — tenant isolation", () => {
       "maskedEmail",
       "maskedPhone",
       "memberId",
+      "note",
       "orderCount",
       "status",
       "tags",
@@ -584,6 +610,203 @@ describe("Members API — tenant isolation", () => {
       // The refused request must not have been audited as a disclosure.
       expect(await auditRows()).toHaveLength(30);
     }, 60_000);
+  });
+
+  describe("update — tags, note, and the block marker (A3)", () => {
+    it("sets tags/note/isBlocked and reads them back through the member projection", async () => {
+      const a = await shop("members-update");
+      const mine = await member(a.restaurantId, "Taggable");
+
+      const res = await patch(
+        `/restaurants/${a.restaurantId}/members/${mine.memberId}`,
+        a.token,
+        {
+          tags: ["vip", "regular"],
+          note: "Prefers window seating",
+          isBlocked: true,
+          blockedReason: "Repeated chargebacks",
+        },
+      );
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { data: Record<string, unknown> };
+      expect(body.data).toMatchObject({
+        memberId: mine.memberId,
+        tags: ["vip", "regular"],
+        note: "Prefers window seating",
+        isBlocked: true,
+        blockedReason: "Repeated chargebacks",
+      });
+
+      // The PATCH response is the projection already, but re-read through GET
+      // to prove the write actually landed rather than merely being echoed.
+      const readBack = await get(
+        `/restaurants/${a.restaurantId}/members/${mine.memberId}`,
+        a.token,
+      );
+      const readBody = (await readBack.json()) as {
+        data: Record<string, unknown>;
+      };
+      expect(readBody.data).toMatchObject({
+        tags: ["vip", "regular"],
+        note: "Prefers window seating",
+        isBlocked: true,
+        blockedReason: "Repeated chargebacks",
+      });
+    });
+
+    it("404s on another restaurant's member and leaves the victim byte-identical", async () => {
+      const attacker = await shop("update-attacker");
+      const victimShop = await shop("update-victim");
+      const victim = await member(victimShop.restaurantId, "Victim");
+      const before = await testApp.testDb.drizzle
+        .select()
+        .from(restaurantCustomers)
+        .where(eq(restaurantCustomers.id, victim.memberId));
+
+      const res = await patch(
+        `/restaurants/${attacker.restaurantId}/members/${victim.memberId}`,
+        attacker.token,
+        { note: "cross tenant probe" },
+      );
+      expect(res.status).toBe(404);
+      const body = (await res.json()) as { error: { code: string } };
+      expect(body.error.code).toBe("MEMBER_NOT_FOUND");
+      await expect(
+        testApp.testDb.drizzle
+          .select()
+          .from(restaurantCustomers)
+          .where(eq(restaurantCustomers.id, victim.memberId)),
+      ).resolves.toEqual(before);
+      await expect(auditRows()).resolves.toEqual([]);
+    });
+
+    it("400s on an unknown body key (a customers-table field) and writes nothing", async () => {
+      const a = await shop("members-update-unknown-key");
+      const mine = await member(a.restaurantId, "Untouched");
+      const before = await testApp.testDb.drizzle
+        .select()
+        .from(restaurantCustomers)
+        .where(eq(restaurantCustomers.id, mine.memberId));
+
+      // primaryPhone is a `customers` column, not a restaurant_customers one.
+      // Spec §7.1: any customers-table field appearing in this body must 400,
+      // never be silently stripped — this is the entire point of `.strict()`.
+      const res = await patch(
+        `/restaurants/${a.restaurantId}/members/${mine.memberId}`,
+        a.token,
+        { primaryPhone: "+886900000000" },
+      );
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { error: { code: string } };
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+      await expect(
+        testApp.testDb.drizzle
+          .select()
+          .from(restaurantCustomers)
+          .where(eq(restaurantCustomers.id, mine.memberId)),
+      ).resolves.toEqual(before);
+    });
+
+    it("400s on an empty body instead of treating it as a no-op 200", async () => {
+      const a = await shop("members-update-empty");
+      const mine = await member(a.restaurantId, "Empty");
+
+      const res = await patch(
+        `/restaurants/${a.restaurantId}/members/${mine.memberId}`,
+        a.token,
+        {},
+      );
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { error: { code: string } };
+      expect(body.error.code).toBe("VALIDATION_ERROR");
+    });
+
+    it("writes exactly one audit row for a block and another for an unblock, clearing the reason", async () => {
+      const a = await shop("members-update-audit");
+      const mine = await member(a.restaurantId, "Blockable");
+
+      const blockRes = await patch(
+        `/restaurants/${a.restaurantId}/members/${mine.memberId}`,
+        a.token,
+        { isBlocked: true, blockedReason: "Abusive to staff" },
+      );
+      expect(blockRes.status).toBe(200);
+
+      let rows = await auditRows();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        userId: a.ownerId,
+        restaurantId: a.restaurantId,
+        action: "member_block_status_change",
+        resource: "restaurant_customers",
+        resourceId: mine.memberId,
+        success: true,
+      });
+
+      const unblockRes = await patch(
+        `/restaurants/${a.restaurantId}/members/${mine.memberId}`,
+        a.token,
+        { isBlocked: false },
+      );
+      expect(unblockRes.status).toBe(200);
+      const unblockBody = (await unblockRes.json()) as {
+        data: Record<string, unknown>;
+      };
+      // Unblocking must not leave a stale reason on an unblocked member.
+      expect(unblockBody.data.blockedReason).toBeNull();
+      expect(unblockBody.data.isBlocked).toBe(false);
+
+      rows = await auditRows();
+      expect(rows).toHaveLength(2);
+      expect(rows[1]).toMatchObject({
+        action: "member_block_status_change",
+        resource: "restaurant_customers",
+        resourceId: mine.memberId,
+        success: true,
+      });
+    });
+
+    it("does not audit a tag or note edit", async () => {
+      const a = await shop("members-update-no-audit");
+      const mine = await member(a.restaurantId, "Housekeeping");
+
+      const res = await patch(
+        `/restaurants/${a.restaurantId}/members/${mine.memberId}`,
+        a.token,
+        { tags: ["vip"], note: "Called about a late delivery" },
+      );
+      expect(res.status).toBe(200);
+      expect(await auditRows()).toEqual([]);
+    });
+
+    it("matches a tag exactly and never as a substring of a longer tag", async () => {
+      const a = await shop("members-update-tag-filter");
+      const vip = await member(a.restaurantId, "VipMember");
+      const lapsed = await member(a.restaurantId, "LapsedVip");
+
+      const tagVip = await patch(
+        `/restaurants/${a.restaurantId}/members/${vip.memberId}`,
+        a.token,
+        { tags: ["vip"] },
+      );
+      expect(tagVip.status).toBe(200);
+      const tagLapsed = await patch(
+        `/restaurants/${a.restaurantId}/members/${lapsed.memberId}`,
+        a.token,
+        { tags: ["vip-lapsed"] },
+      );
+      expect(tagLapsed.status).toBe(200);
+
+      const res = await get(
+        `/restaurants/${a.restaurantId}/members?tag=vip`,
+        a.token,
+      );
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as {
+        data: Array<{ memberId: string }>;
+      };
+      expect(body.data.map((row) => row.memberId)).toEqual([vip.memberId]);
+    });
   });
 
   describe("historical backfill", () => {

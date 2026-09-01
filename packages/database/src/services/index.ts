@@ -81,6 +81,8 @@ export {
   type MemberListResult,
   type MemberContactRevealOutcome,
   type TenantMemberContact,
+  type MemberPatch,
+  type MemberUpdateOutcome,
 } from "./TenantMemberDirectoryService";
 export { maskEmail, maskPhone } from "./pii-masking";
 export {

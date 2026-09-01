@@ -31,6 +31,12 @@ export const AUDIT_ACTIONS = {
   // 匯出會員名單。與下方的 DATA_EXPORT 分開，因為那個太籠統，
   // 會把備份匯出混進顧客資料匯出的稽核查詢裡。
   CUSTOMER_DATA_EXPORT: "customer_data_export",
+  // 會員封鎖標記的切換（issue #299 A3, spec Q-2）：resource 仍是
+  // restaurant_customers、resourceId 仍是 member id。只有 isBlocked 的
+  // 切換會寫這個動作 —— tags/note 編輯故意不稽核，見
+  // TenantMemberDirectoryService.update() 的註解。這是「標記」動作本身
+  // 被記錄，不是訂單／訂位的強制阻擋（本規格明確不做那個）。
+  MEMBER_BLOCK_STATUS_CHANGE: "member_block_status_change",
 
   // 系統相關
   SYSTEM_CONFIG: "system_config",
