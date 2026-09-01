@@ -84,7 +84,7 @@ const REQUIRED_DEPLOYMENT_SECRETS = new Map([
       {
         name: "RESEND_API_KEY",
         level: "recommended",
-        why: 'the only working email provider (USE_MAILCHANNELS="false" in production); without it customer email registration commits the account then answers 502',
+        why: 'the only working email provider (USE_MAILCHANNELS="false" in production); without it every email flow -- registration, forgot-password, resend-verification -- refuses up front with 503 EMAIL_CHANNEL_UNAVAILABLE rather than accepting mail it cannot deliver',
       },
       {
         anyOf: [
