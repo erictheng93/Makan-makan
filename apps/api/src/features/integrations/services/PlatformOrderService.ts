@@ -19,6 +19,7 @@ import type { Env } from "../../../types/env";
 import { getAdapter } from "../adapters/PlatformAdapter";
 import { PlatformIntegrationService } from "./PlatformIntegrationService";
 import { ReceiptService } from "../../pos/services/ReceiptService";
+import { OrdersService } from "../../orders/services/OrdersService";
 import { toRequiredCents } from "../../../shared/utils/money";
 
 export class PlatformOrderService {
@@ -266,6 +267,61 @@ export class PlatformOrderService {
     return orderId;
   }
 
+  /**
+   * Applies a cancellation delivered by the platform. This deliberately uses
+   * OrdersService rather than the database service so all cancellation side
+   * effects (stock, coupons, cache, activity and realtime) remain intact.
+   * It must never call syncStatusToPlatform: that would echo the platform's
+   * own cancellation back to it.
+   */
+  async processCancellation(
+    platform: PlatformType,
+    payload: unknown,
+    restaurantId: string,
+  ): Promise<{ handled: boolean }> {
+    const adapter = getAdapter(platform);
+    const cancellation = await adapter.parseCancellation(payload);
+    const mappedOrder = await this.findMappedOrder(
+      platform,
+      cancellation.platformOrderId,
+    );
+
+    // The mapped id alone is not authority to mutate another tenant's order.
+    if (!mappedOrder || mappedOrder.restaurantId !== restaurantId) {
+      return { handled: false };
+    }
+
+    const ordersService = new OrdersService(this.env);
+    try {
+      await ordersService.cancelOrder(
+        mappedOrder.orderId,
+        cancellation.reason ?? "Cancelled on Uber Eats",
+      );
+    } catch (error) {
+      // A duplicate callback, or a cancellation after completion, is a normal
+      // terminal state. Acknowledge it so the provider does not retry forever.
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "ORDER_NOT_CANCELLABLE"
+      ) {
+        const order = await ordersService.getOrder(mappedOrder.orderId);
+        if (order?.status !== "cancelled") {
+          return { handled: true };
+        }
+      } else {
+        throw error;
+      }
+    }
+
+    await this.db
+      .update(platformOrders)
+      .set({ platformStatus: "cancelled", updatedAt: new Date() })
+      .where(eq(platformOrders.id, mappedOrder.id));
+
+    return { handled: true };
+  }
+
   private async resumePostCreateProcessing(
     orderId: string,
     platformStatus: string | null | undefined,
@@ -312,10 +368,17 @@ export class PlatformOrderService {
   private async findMappedOrder(
     platform: PlatformType,
     platformOrderId: string,
-  ): Promise<{ orderId: string; platformStatus: string | null } | null> {
+  ): Promise<{
+    id: string;
+    orderId: string;
+    restaurantId: string;
+    platformStatus: string | null;
+  } | null> {
     const [existing] = await this.db
       .select({
+        id: platformOrders.id,
         orderId: platformOrders.orderId,
+        restaurantId: platformOrders.restaurantId,
         platformStatus: platformOrders.platformStatus,
       })
       .from(platformOrders)

@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   drizzle: vi.fn(),
   adapter: {
     verifyWebhook: vi.fn(),
+    parseCancellation: vi.fn(),
   },
   integrationService: {
     getDecryptedCredentials: vi.fn(),
@@ -21,6 +22,7 @@ const mocks = vi.hoisted(() => ({
   integrationServiceCtor: vi.fn(),
   orderService: {
     processWebhook: vi.fn(),
+    processCancellation: vi.fn(),
   },
   orderServiceCtor: vi.fn(),
 }));
@@ -183,6 +185,13 @@ describe("platform webhook routes", () => {
       (stored: unknown) => Promise.resolve(stored),
     );
     mocks.orderService.processWebhook.mockResolvedValue(101);
+    mocks.adapter.parseCancellation.mockResolvedValue({
+      platformOrderId: "uber-order-1",
+      reason: "customer_cancelled",
+    });
+    mocks.orderService.processCancellation.mockResolvedValue({
+      handled: true,
+    });
   });
 
   it("rejects malformed payloads and payloads without a store id", async () => {
@@ -355,7 +364,7 @@ describe("platform webhook routes", () => {
     });
   });
 
-  it("acknowledges event types that do not announce a new order", async () => {
+  it("processes platform cancellations without echoing them into order creation", async () => {
     const mutations = mockMutations();
     mockSelectResults({ platformIntegrations: [[integration()]] });
 
@@ -367,18 +376,52 @@ describe("platform webhook routes", () => {
     const body = await json(response);
 
     expect(response.status).toBe(200);
-    expect(body).toEqual({
-      success: true,
-      data: {
-        acknowledged: true,
-        eventType: "orders.cancel",
-        handled: false,
-      },
-    });
-    // Routing a cancellation through order creation is what produced the
-    // orphan orders in #237.
+    expect(body).toEqual({ success: true, data: { handled: true } });
     expect(mocks.orderService.processWebhook).not.toHaveBeenCalled();
+    expect(mocks.orderService.processCancellation).toHaveBeenCalledWith(
+      "uber_eats",
+      webhookPayload({ event_type: "orders.cancel" }),
+      "restaurant-1",
+    );
+    expect(mutations.updated[0]).toMatchObject({ status: "processed" });
+  });
+
+  it("acknowledges an unmapped cancellation as ignored", async () => {
+    const mutations = mockMutations();
+    mockSelectResults({ platformIntegrations: [[integration()]] });
+    mocks.orderService.processCancellation.mockResolvedValueOnce({
+      handled: false,
+    });
+
+    const response = await request("/uber-eats", {
+      method: "POST",
+      body: JSON.stringify(webhookPayload({ event_type: "order.cancelled" })),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    expect(response.status).toBe(200);
     expect(mutations.updated[0]).toMatchObject({ status: "ignored" });
+  });
+
+  it("records a real cancellation failure and returns 500 for redelivery", async () => {
+    const mutations = mockMutations();
+    mockSelectResults({ platformIntegrations: [[integration()]] });
+    mocks.orderService.processCancellation.mockRejectedValueOnce(
+      new Error("D1 unavailable"),
+    );
+
+    const response = await request("/uber-eats", {
+      method: "POST",
+      body: JSON.stringify(webhookPayload({ event_type: "order.cancelled" })),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    expect(response.status).toBe(500);
+    expect(mutations.updated[0]).toMatchObject({
+      status: "failed",
+      error: "D1 unavailable",
+      platformEventId: null,
+    });
   });
 
   it("acknowledges payment events without order processing", async () => {

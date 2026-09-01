@@ -5,7 +5,6 @@ import {
 } from "@makanmasak/database/testing";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import {
-  OrderService,
   orderItems,
   orders,
   ingredientDefinitions,
@@ -106,7 +105,7 @@ describe("platform webhook deduplication", () => {
     const env = {
       DB: testDb.bindings.DB,
       ENCRYPTION_KEY: "test-encryption-key",
-    } as Env;
+    } as unknown as Env;
 
     return {
       restaurantId: restaurant.id,
@@ -262,17 +261,50 @@ describe("platform webhook deduplication", () => {
       DB: testDb.bindings.DB,
       ENCRYPTION_KEY: "test-encryption-key",
       JWT_SECRET: "test-jwt-secret",
-    } as Env;
+      CACHE_KV: {
+        get: async () => null,
+        put: async () => undefined,
+        delete: async () => undefined,
+        list: async () => ({ keys: [] }),
+      },
+    } as unknown as Env;
     const orderId = await new PlatformOrderService(env).processWebhook(
       "uber_eats",
       uberPayload("uber-order-cancel"),
       restaurant.id,
     );
 
-    await new OrderService(testDb.bindings.DB, env).cancelOrder(
-      orderId,
-      "Platform order cancelled by restaurant",
-    );
+    await expect(
+      new PlatformOrderService(env).processCancellation(
+        "uber_eats",
+        {
+          order: { id: "uber-order-cancel" },
+          reason: "Cancelled on Uber Eats",
+        },
+        restaurant.id,
+      ),
+    ).resolves.toEqual({ handled: true });
+
+    await expect(
+      new PlatformOrderService(env).processCancellation(
+        "uber_eats",
+        { order: { id: "uber-order-cancel" } },
+        restaurant.id,
+      ),
+    ).resolves.toEqual({ handled: true });
+
+    const [cancelledOrder] = await testDb.drizzle
+      .select({ status: orders.status, cancelledAt: orders.cancelledAt })
+      .from(orders)
+      .where(eq(orders.id, orderId));
+    const [mapping] = await testDb.drizzle
+      .select({ platformStatus: platformOrders.platformStatus })
+      .from(platformOrders)
+      .where(eq(platformOrders.orderId, orderId));
+
+    expect(cancelledOrder).toMatchObject({ status: "cancelled" });
+    expect(cancelledOrder.cancelledAt).toBeInstanceOf(Date);
+    expect(mapping).toEqual({ platformStatus: "cancelled" });
 
     const [menu] = await testDb.drizzle
       .select({ inventoryCount: menuItems.inventoryCount })

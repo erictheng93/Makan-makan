@@ -22,6 +22,7 @@ const mocks = vi.hoisted(() => ({
     acceptOrder: vi.fn(),
     cancelOrder: vi.fn(),
     denyOrder: vi.fn(),
+    parseCancellation: vi.fn(),
     parseOrder: vi.fn(),
   },
   integrationService: {
@@ -30,6 +31,10 @@ const mocks = vi.hoisted(() => ({
   },
   receiptService: {
     createKitchenTicket: vi.fn(),
+  },
+  ordersService: {
+    cancelOrder: vi.fn(),
+    getOrder: vi.fn(),
   },
   ingredientConsumption: {
     buildConsumptionWrites: vi.fn(),
@@ -62,6 +67,12 @@ vi.mock("./PlatformIntegrationService", () => ({
 vi.mock("../../pos/services/ReceiptService", () => ({
   ReceiptService: vi.fn(function ReceiptService() {
     return mocks.receiptService;
+  }),
+}));
+
+vi.mock("../../orders/services/OrdersService", () => ({
+  OrdersService: vi.fn(function OrdersService() {
+    return mocks.ordersService;
   }),
 }));
 
@@ -176,6 +187,9 @@ describe("PlatformOrderService", () => {
     vi.clearAllMocks();
     vi.spyOn(Date, "now").mockReturnValue(1710000000000);
     mocks.adapter.parseOrder.mockResolvedValue(parsedOrder());
+    mocks.adapter.parseCancellation.mockResolvedValue({
+      platformOrderId: "uber-order-1",
+    });
     mocks.adapter.acceptOrder.mockResolvedValue(undefined);
     mocks.adapter.denyOrder.mockResolvedValue(undefined);
     mocks.adapter.cancelOrder.mockResolvedValue(undefined);
@@ -188,6 +202,7 @@ describe("PlatformOrderService", () => {
     mocks.receiptService.createKitchenTicket.mockResolvedValue({
       success: true,
     });
+    mocks.ordersService.cancelOrder.mockResolvedValue({ id: "order-101" });
     mocks.ingredientConsumption.buildConsumptionWrites.mockResolvedValue([
       { kind: "ingredient-write" },
     ]);
@@ -501,6 +516,142 @@ describe("PlatformOrderService", () => {
       "Failed to auto-accept order uber-order-1:",
       expect.any(Error),
     );
+  });
+
+  it("cancels a mapped order through OrdersService and never echoes to the adapter", async () => {
+    const mutations = mockMutations();
+    mockSelectResults({
+      platformOrders: [
+        [
+          {
+            id: "platform-row-101",
+            orderId: "order-101",
+            restaurantId: "restaurant-1",
+            platformStatus: "accepted",
+          },
+        ],
+      ],
+    });
+    mocks.adapter.parseCancellation.mockResolvedValueOnce({
+      platformOrderId: "uber-order-1",
+      reason: "customer_cancelled",
+    });
+
+    await expect(
+      createService().processCancellation(
+        "uber_eats",
+        { order: { id: "uber-order-1" } },
+        "restaurant-1",
+      ),
+    ).resolves.toEqual({ handled: true });
+
+    expect(mocks.ordersService.cancelOrder).toHaveBeenCalledWith(
+      "order-101",
+      "customer_cancelled",
+    );
+    expect(mocks.adapter.cancelOrder).not.toHaveBeenCalled();
+    expect(mutations.updated).toEqual([
+      expect.objectContaining({ platformStatus: "cancelled" }),
+    ]);
+  });
+
+  it("ignores a cancellation mapping owned by another restaurant", async () => {
+    mockMutations();
+    mockSelectResults({
+      platformOrders: [
+        [
+          {
+            id: "platform-row-other",
+            orderId: "order-other",
+            restaurantId: "restaurant-other",
+            platformStatus: "accepted",
+          },
+        ],
+      ],
+    });
+    mocks.adapter.parseCancellation.mockResolvedValueOnce({
+      platformOrderId: "uber-order-other",
+    });
+
+    await expect(
+      createService().processCancellation(
+        "uber_eats",
+        { order: { id: "uber-order-other" } },
+        "restaurant-1",
+      ),
+    ).resolves.toEqual({ handled: false });
+
+    expect(mocks.ordersService.cancelOrder).not.toHaveBeenCalled();
+    expect(mocks.adapter.cancelOrder).not.toHaveBeenCalled();
+  });
+
+  it("acknowledges an already terminal mapped order without changing platform state", async () => {
+    const mutations = mockMutations();
+    mockSelectResults({
+      platformOrders: [
+        [
+          {
+            id: "platform-row-completed",
+            orderId: "order-completed",
+            restaurantId: "restaurant-1",
+            platformStatus: "accepted",
+          },
+        ],
+      ],
+    });
+    mocks.adapter.parseCancellation.mockResolvedValueOnce({
+      platformOrderId: "uber-order-completed",
+    });
+    mocks.ordersService.cancelOrder.mockRejectedValueOnce(
+      Object.assign(new Error("Order cannot be cancelled"), {
+        code: "ORDER_NOT_CANCELLABLE",
+      }),
+    );
+    mocks.ordersService.getOrder.mockResolvedValueOnce({ status: "completed" });
+
+    await expect(
+      createService().processCancellation(
+        "uber_eats",
+        { order: { id: "uber-order-completed" } },
+        "restaurant-1",
+      ),
+    ).resolves.toEqual({ handled: true });
+
+    expect(mutations.updated).toEqual([]);
+  });
+
+  it("repairs platform state when a retry finds the local order already cancelled", async () => {
+    const mutations = mockMutations();
+    mockSelectResults({
+      platformOrders: [
+        [
+          {
+            id: "platform-row-retry",
+            orderId: "order-cancelled",
+            restaurantId: "restaurant-1",
+            platformStatus: "accepted",
+          },
+        ],
+      ],
+    });
+    mocks.ordersService.cancelOrder.mockRejectedValueOnce(
+      Object.assign(new Error("Order cannot be cancelled"), {
+        code: "ORDER_NOT_CANCELLABLE",
+      }),
+    );
+    mocks.ordersService.getOrder.mockResolvedValueOnce({ status: "cancelled" });
+
+    await expect(
+      createService().processCancellation(
+        "uber_eats",
+        { order: { id: "uber-order-retry" } },
+        "restaurant-1",
+      ),
+    ).resolves.toEqual({ handled: true });
+
+    expect(mutations.updated).toEqual([
+      expect.objectContaining({ platformStatus: "cancelled" }),
+    ]);
   });
 
   it("syncs platform status transitions for accepted, denied, cancelled, and ready orders", async () => {

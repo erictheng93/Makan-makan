@@ -144,6 +144,24 @@ describe("UberEatsAdapter", () => {
     });
   });
 
+  it("parses cancellation notifications without treating them as carts", async () => {
+    await expect(
+      createAdapter().parseCancellation({
+        order: { id: "uber-order-cancelled" },
+        reason: "customer_cancelled",
+      }),
+    ).resolves.toEqual({
+      platformOrderId: "uber-order-cancelled",
+      reason: "customer_cancelled",
+    });
+  });
+
+  it("rejects cancellation notifications without a string order id", async () => {
+    await expect(
+      createAdapter().parseCancellation({ order_id: 42 }),
+    ).rejects.toThrow("missing an order id");
+  });
+
   it("refreshes access tokens and reports token refresh failures", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")

@@ -24,6 +24,12 @@ export class FoodpandaAdapter implements PlatformAdapter {
     throw new Error("Foodpanda integration not yet implemented");
   }
 
+  async parseCancellation(
+    _payload: unknown,
+  ): Promise<{ platformOrderId: string; reason?: string }> {
+    throw new Error("Foodpanda integration not yet implemented");
+  }
+
   async acceptOrder(
     _platformOrderId: string,
     _creds: PlatformCredentials,

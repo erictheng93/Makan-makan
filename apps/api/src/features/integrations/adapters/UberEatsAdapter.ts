@@ -111,6 +111,28 @@ export class UberEatsAdapter implements PlatformAdapter {
     };
   }
 
+  async parseCancellation(
+    payload: unknown,
+  ): Promise<{ platformOrderId: string; reason?: string }> {
+    const notification = payload as UberEatsCancellationPayload;
+    const platformOrderId =
+      notification.order?.id ??
+      notification.platform_order_id ??
+      notification.order_id ??
+      notification.id;
+    if (
+      typeof platformOrderId !== "string" ||
+      platformOrderId.trim().length === 0
+    ) {
+      throw new Error("Uber Eats cancellation payload is missing an order id");
+    }
+
+    return {
+      platformOrderId,
+      reason: notification.reason ?? notification.cancellation_reason,
+    };
+  }
+
   async acceptOrder(
     platformOrderId: string,
     creds: PlatformCredentials,
@@ -289,4 +311,13 @@ interface UberEatsOrderPayload {
       tax?: { amount: number };
     };
   };
+}
+
+interface UberEatsCancellationPayload {
+  id?: string;
+  order?: { id?: string };
+  order_id?: string;
+  platform_order_id?: string;
+  reason?: string;
+  cancellation_reason?: string;
 }

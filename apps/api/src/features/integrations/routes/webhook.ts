@@ -32,6 +32,18 @@ const ORDER_CREATION_EVENT_TYPES = new Set([
   "orders.scheduled.notification",
 ]);
 
+// Providers have used both American and British spellings and both singular
+// and plural namespaces. Keep these explicit until production webhook logs
+// establish the precise contracted event name for each provider.
+const ORDER_CANCELLATION_EVENT_TYPES = new Set([
+  "order.cancel",
+  "order.cancelled",
+  "order.canceled",
+  "orders.cancel",
+  "orders.cancelled",
+  "orders.canceled",
+]);
+
 // Webhook error bodies are an external platform contract. Uber Eats and
 // Foodpanda determine delivery success from the HTTP status, so these routes
 // intentionally retain their established `{ error: string }` responses rather
@@ -228,6 +240,52 @@ webhookRoutes.post(
         },
         200,
       );
+    }
+
+    if (ORDER_CANCELLATION_EVENT_TYPES.has(eventType)) {
+      try {
+        const orderService = new PlatformOrderService(c.env);
+        const result = await orderService.processCancellation(
+          "uber_eats",
+          payload,
+          integration.integration.restaurantId,
+        );
+
+        await db
+          .update(platformWebhookLogs)
+          .set({
+            status: result.handled
+              ? WEBHOOK_LOG_STATUS.PROCESSED
+              : WEBHOOK_LOG_STATUS.IGNORED,
+            processedAt: new Date(),
+          })
+          .where(eq(platformWebhookLogs.id, logId));
+
+        return c.json({ success: true, data: result }, 200);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        await db
+          .update(platformWebhookLogs)
+          .set({
+            status: WEBHOOK_LOG_STATUS.FAILED,
+            error: errorMessage,
+            processedAt: new Date(),
+            platformEventId: null,
+          })
+          .where(eq(platformWebhookLogs.id, logId));
+
+        return c.json(
+          {
+            success: false,
+            error: {
+              code: "WEBHOOK_PROCESSING_FAILED",
+              message: "Processing failed",
+            },
+          },
+          500,
+        );
+      }
     }
 
     if (!ORDER_CREATION_EVENT_TYPES.has(eventType)) {
