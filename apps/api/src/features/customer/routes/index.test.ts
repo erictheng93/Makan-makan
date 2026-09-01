@@ -738,6 +738,123 @@ describe("customer identity routes", () => {
     expect(notificationMocks.sendNotification).toHaveBeenCalledOnce();
   });
 
+  // #298: production shipped for months with no working email provider and
+  // every deploy green, because the routes answered 201/200 for mail that was
+  // never sent. The SMS side already refuses up front; these pin the same
+  // contract for email. The table walks the three env shapes that matter.
+  describe.each([
+    {
+      description: "production with no usable email provider",
+      env: { NODE_ENV: "production" },
+      refuses: true,
+    },
+    {
+      description: "production with Resend configured",
+      env: { NODE_ENV: "production", RESEND_API_KEY: "resend-key" },
+      refuses: false,
+    },
+    {
+      description: "development with no usable email provider",
+      env: { NODE_ENV: "development" },
+      refuses: false,
+    },
+  ])("email channel guard: $description", ({ env, refuses }) => {
+    it.each([
+      {
+        path: "/auth/register",
+        body: {
+          identifier: "ada@example.com",
+          password: "long-password",
+          displayName: "Ada",
+        },
+        okStatus: 201,
+      },
+      {
+        path: "/auth/forgot-password",
+        body: { identifier: "ada@example.com" },
+        okStatus: 200,
+      },
+      {
+        path: "/auth/resend-verification",
+        body: { identifier: "ada@example.com" },
+        okStatus: 200,
+      },
+    ])(
+      refuses ? "refuses $path with 503" : "allows $path",
+      async ({ path, body, okStatus }) => {
+        const db = createDb({ first: [null] });
+
+        const { response } = request(path, "POST", body, { DB: db, ...env });
+        const raw = await response;
+
+        if (refuses) {
+          expect(raw.status).toBe(503);
+          await expect(raw.json()).resolves.toMatchObject({
+            success: false,
+            error: { code: "EMAIL_CHANNEL_UNAVAILABLE" },
+          });
+          // The refusal precedes every write, so no half-created account and —
+          // for the two silent endpoints — no lookup that could leak whether
+          // the identifier exists.
+          expect(db.state.statements).toHaveLength(0);
+        } else {
+          expect(raw.status).toBe(okStatus);
+        }
+      },
+    );
+  });
+
+  it("keeps the production email guard independent of whether the account exists", async () => {
+    // Both calls must answer identically: a guard placed after the identity
+    // lookup would make /forgot-password an account-existence oracle.
+    const known = await request(
+      "/auth/forgot-password",
+      "POST",
+      { identifier: "ada@example.com" },
+      {
+        DB: createDb({ first: [passwordIdentityRow()] }),
+        NODE_ENV: "production",
+      },
+    ).response;
+    const unknown = await request(
+      "/auth/forgot-password",
+      "POST",
+      { identifier: "nobody@example.com" },
+      { DB: createDb({ first: [null] }), NODE_ENV: "production" },
+    ).response;
+
+    expect([known.status, unknown.status]).toEqual([503, 503]);
+    await expect(known.json()).resolves.toEqual(await unknown.json());
+  });
+
+  it("still issues phone registration in production without an email provider", async () => {
+    // The guard is email-only: an SMS-capable deploy must keep working.
+    const response = await request(
+      "/auth/register",
+      "POST",
+      {
+        identifier: "+886912345678",
+        password: "long-password",
+        displayName: "Phone User",
+      },
+      {
+        DB: createDb({ first: [null] }),
+        NODE_ENV: "production",
+        SMS_PROVIDER: "mitake",
+        MITAKE_USERNAME: "acct",
+        MITAKE_PASSWORD: "secret",
+        SMS_FETCH: vi
+          .fn()
+          .mockResolvedValue(
+            new Response("[1]\r\nmsgid=990001\r\nstatuscode=1"),
+          ),
+      },
+    ).response;
+
+    expect(response.status).toBe(201);
+    expect(notificationMocks.sendNotification).not.toHaveBeenCalled();
+  });
+
   it("skips email dispatch entirely for phone registration", async () => {
     // E.164 already: normalizeE164Phone is stubbed in this file and only
     // prefixes "+", so a local 09xxxxxxxx form would not normalize here.

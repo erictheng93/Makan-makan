@@ -4,7 +4,11 @@ import { getCookie } from "hono/cookie";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { generateUUID, normalizeE164Phone } from "@makanmasak/utils";
-import { createSmsProvider, NotificationService } from "@makanmasak/database";
+import {
+  createSmsProvider,
+  NotificationService,
+  resolveEmailProviderName,
+} from "@makanmasak/database";
 import {
   CUSTOMER_CONSENT_TYPES,
   CUSTOMER_PASSWORD_PROVIDER,
@@ -240,6 +244,9 @@ routes.post("/auth/register", validateBody(registerSchema), async (c) => {
   const body = c.get("validatedBody");
   rejectWeakPassword(body.password);
   const identifier = parseAuthIdentifier(body.identifier);
+  // Before any row is written: an email registration that cannot be delivered
+  // leaves an account nobody can ever verify.
+  if (identifier.kind === "email") assertEmailChannelAvailable(c.env);
   await enforcePasswordRateLimit(c, "register", identifier.value);
 
   const existing = await loadPasswordIdentity(c.env, identifier.value);
@@ -374,6 +381,9 @@ routes.post(
   async (c) => {
     const { identifier: rawIdentifier } = c.get("validatedBody");
     const identifier = parseAuthIdentifier(rawIdentifier);
+    // Before the identity lookup, so the refusal cannot depend on whether the
+    // account exists. See assertEmailChannelAvailable.
+    if (identifier.kind === "email") assertEmailChannelAvailable(c.env);
     await enforcePasswordRateLimit(c, "forgot", identifier.value);
 
     const identity = await loadPasswordIdentity(c.env, identifier.value);
@@ -503,6 +513,9 @@ routes.post(
   async (c) => {
     const { identifier: rawIdentifier } = c.get("validatedBody");
     const identifier = parseAuthIdentifier(rawIdentifier);
+    // Before the identity lookup, for the same enumeration reason as
+    // /forgot-password. See assertEmailChannelAvailable.
+    if (identifier.kind === "email") assertEmailChannelAvailable(c.env);
     await enforcePasswordRateLimit(c, "resend_verification", identifier.value);
 
     const identity = await loadPasswordIdentity(c.env, identifier.value);
@@ -1212,6 +1225,33 @@ function parseAuthIdentifier(rawIdentifier: string): AuthIdentifier {
   } catch {
     throw badRequest("Invalid identifier", "INVALID_IDENTIFIER");
   }
+}
+
+/**
+ * A production deploy with no email vendor cannot deliver a verification or
+ * reset link to anyone. Refuse up front rather than answering 200/201 for a
+ * mail that will never arrive — the silent version of this is what let broken
+ * email configuration survive every green deploy. Mirrors the SMS guard in
+ * `issuePhoneOtp`, which uses the same NODE_ENV + "noop" provider test.
+ *
+ * The decision reads env only, never account state, so callers must invoke it
+ * *before* looking the identity up: `/forgot-password` and
+ * `/resend-verification` answer identically for known and unknown identifiers,
+ * and a guard that fired only for existing accounts would turn a misconfigured
+ * deploy into an account-existence oracle.
+ *
+ * Outside production a noop provider stays usable: local dev and tests must be
+ * able to register without a mail vendor.
+ */
+function assertEmailChannelAvailable(env: Env): void {
+  if (env.NODE_ENV !== "production") return;
+  if (resolveEmailProviderName(env) !== "noop") return;
+
+  throw new ApiError(
+    "EMAIL_CHANNEL_UNAVAILABLE",
+    "Email delivery is not configured",
+    503,
+  );
 }
 
 function rejectWeakPassword(password: string): void {

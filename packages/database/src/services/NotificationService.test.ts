@@ -38,6 +38,24 @@ describe("resolveEmailProviderName", () => {
       { USE_MAILCHANNELS: "true", RESEND_API_KEY: "resend-key" },
       "mailchannels",
     ],
+    [
+      "normalizes the MailChannels opt-in before comparing it",
+      { USE_MAILCHANNELS: " TRUE " },
+      "mailchannels",
+    ],
+    // The bug this whole issue came from was an opt-*out* test
+    // (`USE_MAILCHANNELS !== "false"`), which made every unset or unexpected
+    // value select the dead MailChannels relay. Only the literal opt-in counts.
+    [
+      "treats a non-'true' flag as no opt-in rather than as an opt-out",
+      { USE_MAILCHANNELS: "1", RESEND_API_KEY: "resend-key" },
+      "resend",
+    ],
+    [
+      "treats an empty flag as no opt-in",
+      { USE_MAILCHANNELS: "", RESEND_API_KEY: "resend-key" },
+      "resend",
+    ],
   ] as const)("%s", (_description, env, expected) => {
     expect(resolveEmailProviderName(buildEnv(env))).toBe(expected);
   });

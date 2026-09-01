@@ -179,6 +179,10 @@ export interface Env {
   }) => Promise<{ ok: boolean; status: number }>;
   SENDGRID_API_KEY?: string;
   RESEND_API_KEY?: string;
+  // Opt-in flag read by NotificationService's resolveEmailProviderName. Only
+  // "true" selects MailChannels; anything else falls back to Resend (or to the
+  // noop provider when RESEND_API_KEY is absent).
+  USE_MAILCHANNELS?: string;
   BILLING_EMAIL_FROM?: string;
   STRIPE_WEBHOOK_SECRET?: string;
   LINEPAY_WEBHOOK_SECRET?: string;
