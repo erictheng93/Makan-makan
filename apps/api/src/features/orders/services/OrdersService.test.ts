@@ -1014,18 +1014,21 @@ describe("OrdersService workflows", () => {
     );
 
     expect(result).toMatchObject({ successCount: 1, failedCount: 1 });
+    // Matched exactly, not by substring: the refusal must not name the order's
+    // restaurant. A bulk request reports per-id outcomes for up to 100 ids, so
+    // a message naming the owner is an `order id -> restaurant` oracle.
     expect(result.results).toEqual([
       { orderId: "owner-order", success: true, data: expect.any(Object) },
       {
         orderId: "foreign-order",
         success: false,
-        error: expect.stringContaining("Access denied"),
+        error: "Access denied",
       },
     ]);
     expect(result.errors).toEqual([
       {
         orderId: "foreign-order",
-        error: expect.stringContaining("Access denied"),
+        error: "Access denied",
       },
     ]);
     expect(updateBaseOrderStatus).toHaveBeenCalledTimes(1);
@@ -1068,7 +1071,7 @@ describe("OrdersService workflows", () => {
       {
         orderId: "foreign-order",
         success: false,
-        error: expect.stringContaining("Access denied"),
+        error: "Access denied",
       },
     ]);
     expect(cancelBaseOrder).toHaveBeenCalledTimes(1);

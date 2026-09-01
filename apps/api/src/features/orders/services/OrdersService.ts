@@ -1332,6 +1332,12 @@ export class OrdersService implements IOrdersService {
    * Defence-in-depth: verify the caller has access to the order's restaurant.
    * Admin (role 0) is always allowed. Non-admin must match restaurantId.
    * When no caller context is provided, trust the route layer (backward compatible).
+   *
+   * The refusal deliberately says nothing about who owns the order. POST
+   * /orders/bulk answers up to 100 ids in one request and reports per-id
+   * outcomes, so a message naming the owning restaurant would turn a rejected
+   * batch into an `order id -> restaurant` lookup table. The detail is still
+   * worth having, so it goes to the log rather than to the caller.
    */
   private assertRestaurantAccess(
     order: { restaurantId: string },
@@ -1343,10 +1349,12 @@ export class OrdersService implements IOrdersService {
       caller.userRestaurantId &&
       caller.userRestaurantId !== order.restaurantId
     ) {
-      throw forbidden(
-        `Access denied: user restaurant ${caller.userRestaurantId} cannot access order from restaurant ${order.restaurantId}`,
-        "FORBIDDEN",
-      );
+      this.logger.warn("Cross-tenant order access denied", {
+        userId: caller.userId,
+        callerRestaurantId: caller.userRestaurantId,
+        orderRestaurantId: order.restaurantId,
+      });
+      throw forbidden("Access denied", "FORBIDDEN");
     }
   }
 
