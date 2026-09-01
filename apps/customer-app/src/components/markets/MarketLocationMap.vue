@@ -281,7 +281,7 @@ function renderMarkers(maplibregl: typeof MapLibreGL) {
 
   for (const vendor of plottedVendors.value) {
     new maplibregl.Marker({
-      color: vendor.isOpen ? "#059669" : "#6b7280",
+      color: vendor.isOpen ? "#2da34c" : "#6b7280",
       scale: 0.82,
     })
       .setLngLat([vendor.longitude as number, vendor.latitude as number])

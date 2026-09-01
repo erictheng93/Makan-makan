@@ -161,7 +161,7 @@ const safeAttachments = (request: LeaveRequest) => {
 }
 
 .count-badge {
-  background: #ef4444;
+  background: #ff3b30;
   color: white;
   padding: 4px 12px;
   border-radius: 16px;
@@ -180,7 +180,7 @@ const safeAttachments = (request: LeaveRequest) => {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border-left: 4px solid #f59e0b;
+  border-left: 4px solid #ff9500;
 }
 
 .employee-info {
@@ -194,7 +194,7 @@ const safeAttachments = (request: LeaveRequest) => {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: #007aff;
   color: white;
   display: flex;
   align-items: center;
@@ -254,7 +254,7 @@ const safeAttachments = (request: LeaveRequest) => {
 }
 
 .attachment-link {
-  color: #3b82f6;
+  color: #007aff;
   text-decoration: none;
 }
 

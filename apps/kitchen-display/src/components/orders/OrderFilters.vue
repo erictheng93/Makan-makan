@@ -432,13 +432,13 @@ const orderTypeOptions = computed(() => [
     value: "takeaway",
     label: t("orderType.takeaway"),
     emoji: "🛍️",
-    activeClass: "bg-[#E8F5E9] text-ios-green",
+    activeClass: "bg-green-100 text-green-700",
   },
   {
     value: "delivery",
     label: t("orderType.delivery"),
     emoji: "🛵",
-    activeClass: "bg-[#FFF3E0] text-ios-orange",
+    activeClass: "bg-orange-100 text-orange-700",
   },
 ]);
 
@@ -453,19 +453,19 @@ const orderSourceOptions = computed(() => [
     value: "market_checkout",
     label: t("platform.marketCheckout"),
     emoji: "\uD83C\uDFEE",
-    activeClass: "bg-[#FFF3E0] text-ios-orange",
+    activeClass: "bg-orange-100 text-orange-700",
   },
   {
     value: "uber_eats",
     label: t("platform.uberEats"),
     emoji: "\uD83D\uDFE2",
-    activeClass: "bg-[#E8F5E9] text-ios-green",
+    activeClass: "bg-green-100 text-green-700",
   },
   {
     value: "foodpanda",
     label: t("platform.foodpanda"),
     emoji: "\uD83E\uDE77",
-    activeClass: "bg-[#FCE4EC] text-[#E91E8C]",
+    activeClass: "bg-teal-100 text-teal-700",
   },
 ]);
 

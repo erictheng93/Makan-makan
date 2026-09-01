@@ -34,10 +34,10 @@ const props = withDefaults(defineProps<Props>(), {
  * Get color based on health score
  */
 const getScoreColor = (score: number): string => {
-  if (score >= 80) return "#10b981"; // green
-  if (score >= 60) return "#f59e0b"; // yellow
+  if (score >= 80) return "#34c759"; // green
+  if (score >= 60) return "#ff9500"; // yellow
   if (score >= 40) return "#f97316"; // orange
-  return "#ef4444"; // red
+  return "#ff3b30"; // red
 };
 
 const chartData = computed((): ChartData<"doughnut"> => {

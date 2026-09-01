@@ -96,6 +96,17 @@ const componentOptions: Array<{ value: ComponentType; label: string }> = [
 ];
 
 // Severity options
+// Written out in full: the template used to build these from `option.color`
+// with a template literal, which Tailwind's scanner cannot follow, so no
+// severity pill ever received its active styling.
+const SEVERITY_ACTIVE_CLASSES: Record<string, string> = {
+  gray: "bg-gray-50 border-gray-300 text-gray-700",
+  blue: "bg-blue-50 border-blue-300 text-blue-700",
+  yellow: "bg-orange-50 border-orange-300 text-orange-700",
+  red: "bg-red-50 border-red-300 text-red-700",
+  teal: "bg-teal-50 border-teal-300 text-teal-700",
+};
+
 const severityOptions: Array<{
   value: SeverityLevel;
   label: string;
@@ -116,7 +127,7 @@ const severityOptions: Array<{
   {
     value: "fatal",
     label: t("monitoring.alerts.severity.fatal"),
-    color: "purple",
+    color: "teal",
   },
 ];
 
@@ -369,7 +380,8 @@ function toggleStatus(status: AlertStatus) {
             :class="[
               'px-3 py-1.5 text-sm rounded-lg border transition-colors',
               localFilter.severity.includes(option.value)
-                ? `bg-${option.color}-50 border-${option.color}-300 text-${option.color}-700`
+                ? SEVERITY_ACTIVE_CLASSES[option.color] ||
+                  SEVERITY_ACTIVE_CLASSES.gray
                 : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50',
             ]"
             @click="toggleSeverity(option.value)"

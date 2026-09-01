@@ -85,7 +85,7 @@ interface Props {
   title: string;
   value: string | number;
   icon: string;
-  color?: "green" | "blue" | "yellow" | "red" | "purple" | "gray";
+  color?: "green" | "blue" | "orange" | "red" | "teal" | "gray";
   subtitle?: string;
   trend?: "up" | "down" | "stable";
   progress?: number;
@@ -129,7 +129,7 @@ const colorClasses = {
     icon: "text-blue-600",
     progress: "bg-blue-500",
   },
-  yellow: {
+  orange: {
     border: "border-l-yellow-500",
     iconBg: "bg-yellow-100",
     icon: "text-yellow-600",
@@ -141,11 +141,11 @@ const colorClasses = {
     icon: "text-red-600",
     progress: "bg-red-500",
   },
-  purple: {
-    border: "border-l-purple-500",
-    iconBg: "bg-purple-100",
-    icon: "text-purple-600",
-    progress: "bg-purple-500",
+  teal: {
+    border: "border-l-teal-500",
+    iconBg: "bg-teal-100",
+    icon: "text-teal-600",
+    progress: "bg-teal-500",
   },
   gray: {
     border: "border-l-gray-500",

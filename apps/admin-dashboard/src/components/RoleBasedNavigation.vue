@@ -5,7 +5,7 @@
         <!-- Logo 和主導航 -->
         <div class="flex">
           <div class="flex-shrink-0 flex items-center">
-            <BuildingStorefrontIcon class="h-8 w-8 text-purple-600" />
+            <BuildingStorefrontIcon class="h-8 w-8 text-teal-600" />
             <span class="ml-2 text-xl font-bold text-gray-900">MakanMasak</span>
           </div>
 
@@ -19,7 +19,7 @@
                 'flex items-center px-1 pt-1 text-sm font-medium transition-colors duration-200',
                 $route.path === item.href ||
                 $route.path.startsWith(item.href + '/')
-                  ? 'border-b-2 border-purple-500 text-purple-600'
+                  ? 'border-b-2 border-teal-500 text-teal-600'
                   : 'text-gray-500 hover:text-gray-700 hover:border-gray-300',
               ]"
             >
@@ -57,7 +57,7 @@
 
           <!-- 通知 -->
           <button
-            class="relative p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-lg"
+            class="relative p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 rounded-lg"
             @click="showNotifications = !showNotifications"
           >
             <BellIcon class="h-6 w-6" />
@@ -75,7 +75,7 @@
               class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50"
             >
               <div
-                class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center"
+                class="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center"
               >
                 <span class="text-sm font-medium text-white">
                   {{ userInitials }}
@@ -131,7 +131,7 @@
             :class="[
               'flex items-center px-3 py-2 text-base font-medium transition-colors duration-200',
               $route.path === item.href
-                ? 'bg-purple-50 border-r-4 border-purple-500 text-purple-700'
+                ? 'bg-teal-50 border-r-4 border-teal-500 text-teal-700'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50',
             ]"
           >
@@ -309,7 +309,7 @@ const roleColorClass = computed(() => {
 
   const roleColors: Record<number, string> = {
     [UserRole.ADMIN]: "bg-red-100 text-red-800",
-    [UserRole.OWNER]: "bg-purple-100 text-purple-800",
+    [UserRole.OWNER]: "bg-teal-100 text-teal-800",
     [UserRole.CHEF]: "bg-orange-100 text-orange-800",
     [UserRole.SERVICE]: "bg-blue-100 text-blue-800",
     [UserRole.CASHIER]: "bg-green-100 text-green-800",

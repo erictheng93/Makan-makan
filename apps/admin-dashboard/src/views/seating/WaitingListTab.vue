@@ -1195,7 +1195,7 @@ function getStatusBadgeClass(status: string): string {
     waiting: "bg-orange-100 text-orange-800",
     called: "bg-blue-100 text-blue-800",
     confirmed: "bg-green-100 text-green-800",
-    seated: "bg-purple-100 text-purple-800",
+    seated: "bg-teal-100 text-teal-800",
     cancelled: "bg-gray-100 text-gray-800",
     expired: "bg-red-100 text-red-800",
   };

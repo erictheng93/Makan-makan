@@ -19,6 +19,23 @@ export interface MemberListItem {
   isBlocked: boolean;
   marketingReachable: boolean;
   status: "active" | "deleted";
+  /** A3: tenant-local annotations. The A2 projection did not carry these. */
+  note: string | null;
+  blockedReason: string | null;
+}
+
+/**
+ * A3 `PATCH /restaurants/:restaurantId/members/:memberId`. Every field is
+ * optional but the body must change something, and an unknown key is a 400 --
+ * the API rejects `customers` columns outright rather than ignoring them, so
+ * only send what actually changed. `tags` replaces the whole list rather than
+ * merging, which is why callers always send the full intended array.
+ */
+export interface MemberUpdatePayload {
+  tags?: string[] | null;
+  note?: string | null;
+  isBlocked?: boolean;
+  blockedReason?: string | null;
 }
 
 export interface MemberStats {
@@ -61,6 +78,8 @@ export interface MemberListParams {
   lastOrderTo?: string;
   /** The API validates an enum of the two literal strings, not a boolean. */
   blocked?: "true" | "false";
+  /** A3: exact match against one tag, never a substring of a longer one. */
+  tag?: string;
   sort?: MemberSort;
 }
 
@@ -117,6 +136,24 @@ export const membersService = {
   async get(restaurantId: string, memberId: string): Promise<MemberListItem> {
     const response = await api.get<MemberListItem>(
       `/restaurants/${restaurantId}/members/${memberId}`,
+    );
+    return unwrapApiPayload<MemberListItem>(response.data);
+  },
+
+  /**
+   * A3: edit this restaurant's own annotations on a member -- tags, note, and
+   * the block marker. Blocking is a marker only: it does not stop the person
+   * ordering (a guest order carries no customer id), so nothing here should
+   * ever be presented to an operator as a barrier.
+   */
+  async update(
+    restaurantId: string,
+    memberId: string,
+    payload: MemberUpdatePayload,
+  ): Promise<MemberListItem> {
+    const response = await api.patch<MemberListItem>(
+      `/restaurants/${restaurantId}/members/${memberId}`,
+      payload,
     );
     return unwrapApiPayload<MemberListItem>(response.data);
   },

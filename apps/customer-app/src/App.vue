@@ -7,7 +7,7 @@
     >
       <div class="text-center">
         <div
-          class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"
+          class="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"
         />
         <p class="mt-4 text-gray-600">{{ t("common.loadingApp") }}</p>
       </div>
@@ -154,7 +154,7 @@ a:focus,
 input:focus,
 textarea:focus,
 select:focus {
-  outline: 2px solid #4f46e5;
+  outline: 2px solid #0465d0;
   outline-offset: 2px;
 }
 </style>

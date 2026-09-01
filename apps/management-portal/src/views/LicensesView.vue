@@ -102,7 +102,7 @@ const getTierClass = (tier: LicenseTier) => {
   const classes: Record<LicenseTier, string> = {
     standard: "badge-info",
     professional: "badge-success",
-    enterprise: "bg-purple-100 text-purple-800",
+    enterprise: "bg-teal-100 text-teal-800",
   };
   return classes[tier] || "badge-gray";
 };
@@ -170,7 +170,7 @@ const getTierClass = (tier: LicenseTier) => {
           <p class="text-sm font-medium text-gray-500">
             {{ t("licenses.tier.enterprise") }}
           </p>
-          <p class="text-2xl font-semibold text-purple-600">
+          <p class="text-2xl font-semibold text-teal-600">
             {{ stats.enterprise }}
           </p>
         </div>

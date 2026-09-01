@@ -572,7 +572,7 @@ function categoryClass(cat: string): string {
     feature_request: "bg-[#34C759]/10 text-[#34C759]",
     usability: "bg-[#007AFF]/10 text-[#007AFF]",
     performance: "bg-[#FF9500]/10 text-[#FF9500]",
-    billing: "bg-purple-100 text-purple-700",
+    billing: "bg-teal-100 text-teal-700",
     other: "bg-gray-100 text-[#3C3C43]",
   };
   return map[cat] ?? "bg-gray-100 text-[#3C3C43]";

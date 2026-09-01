@@ -6,9 +6,9 @@
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center space-x-3">
         <div
-          class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center"
+          class="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center"
         >
-          <CogIcon class="w-5 h-5 text-purple-600" />
+          <CogIcon class="w-5 h-5 text-teal-600" />
         </div>
         <div>
           <h3 class="text-lg font-semibold text-gray-900">
@@ -39,8 +39,8 @@
         <!-- Master Toggle -->
         <button
           :class="[
-            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2',
-            automationActive ? 'bg-purple-600' : 'bg-gray-200',
+            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2',
+            automationActive ? 'bg-teal-600' : 'bg-gray-200',
           ]"
           @click="toggleAutomation"
         >
@@ -70,7 +70,7 @@
             <input
               v-model="rules.autoAssignment.enabled"
               type="checkbox"
-              class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+              class="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
             />
           </div>
 
@@ -83,7 +83,7 @@
                 v-model="rules.autoAssignment.skillBased"
                 type="checkbox"
                 :disabled="!rules.autoAssignment.enabled"
-                class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                class="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
               />
             </div>
             <div class="flex items-center justify-between">
@@ -94,7 +94,7 @@
                 v-model="rules.autoAssignment.loadBalancing"
                 type="checkbox"
                 :disabled="!rules.autoAssignment.enabled"
-                class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                class="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
               />
             </div>
             <div class="flex items-center justify-between">
@@ -105,7 +105,7 @@
                 v-model="rules.autoAssignment.priorityFirst"
                 type="checkbox"
                 :disabled="!rules.autoAssignment.enabled"
-                class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                class="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
               />
             </div>
           </div>
@@ -120,7 +120,7 @@
             <input
               v-model="rules.autoProgression.enabled"
               type="checkbox"
-              class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+              class="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
             />
           </div>
 
@@ -136,7 +136,7 @@
                   min="0"
                   max="10"
                   :disabled="!rules.autoProgression.enabled"
-                  class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
                 <span class="text-sm text-gray-500">{{
                   t("common.seconds")
@@ -154,7 +154,7 @@
                   min="0"
                   max="30"
                   :disabled="!rules.autoProgression.enabled"
-                  class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
                 <span class="text-sm text-gray-500">{{
                   t("common.seconds")
@@ -173,7 +173,7 @@
             <input
               v-model="rules.smartScheduling.enabled"
               type="checkbox"
-              class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+              class="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
             />
           </div>
 
@@ -186,7 +186,7 @@
                 v-model="rules.smartScheduling.cookingTimeBased"
                 type="checkbox"
                 :disabled="!rules.smartScheduling.enabled"
-                class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                class="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
               />
             </div>
             <div class="flex items-center justify-between">
@@ -197,7 +197,7 @@
                 v-model="rules.smartScheduling.batchSimilar"
                 type="checkbox"
                 :disabled="!rules.smartScheduling.enabled"
-                class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                class="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
               />
             </div>
             <div class="flex items-center justify-between">
@@ -208,7 +208,7 @@
                 v-model="rules.smartScheduling.prepTimeConsidered"
                 type="checkbox"
                 :disabled="!rules.smartScheduling.enabled"
-                class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                class="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
               />
             </div>
           </div>
@@ -223,7 +223,7 @@
             <input
               v-model="rules.qualityControl.enabled"
               type="checkbox"
-              class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+              class="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
             />
           </div>
 
@@ -236,7 +236,7 @@
                 v-model="rules.qualityControl.autoCheck"
                 type="checkbox"
                 :disabled="!rules.qualityControl.enabled"
-                class="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                class="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
               />
             </div>
             <div>
@@ -253,7 +253,7 @@
                     !rules.qualityControl.enabled ||
                     !rules.qualityControl.autoCheck
                   "
-                  class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  class="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
                 <span class="text-sm text-gray-500">{{
                   t("common.seconds")
@@ -286,11 +286,11 @@
           </div>
           <div class="text-sm text-blue-600">{{ t("workflow.timeSaved") }}</div>
         </div>
-        <div class="text-center p-3 bg-purple-50 rounded-lg">
-          <div class="text-2xl font-bold text-purple-600">
+        <div class="text-center p-3 bg-teal-50 rounded-lg">
+          <div class="text-2xl font-bold text-teal-600">
             {{ automationStats.efficiencyGain }}%
           </div>
-          <div class="text-sm text-purple-600">
+          <div class="text-sm text-teal-600">
             {{ t("workflow.efficiencyImproved") }}
           </div>
         </div>
@@ -374,7 +374,7 @@
   <div class="flex justify-between items-center">
     <div class="flex space-x-3">
       <button
-        class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+        class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
         @click="saveWorkflowRules"
       >
         {{ t("workflow.saveRules") }}

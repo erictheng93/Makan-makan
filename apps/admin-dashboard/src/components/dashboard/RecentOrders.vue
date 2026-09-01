@@ -171,8 +171,8 @@ const getStatusColor = (status: OrderStatus) => {
       text: "bg-orange-100 text-orange-800",
     },
     ready: {
-      bg: "bg-purple-500",
-      text: "bg-purple-100 text-purple-800",
+      bg: "bg-teal-500",
+      text: "bg-teal-100 text-teal-800",
     },
     delivered: {
       bg: "bg-green-500",

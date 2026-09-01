@@ -564,12 +564,12 @@ onMounted(() => {
 .form-textarea:focus,
 .form-select:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #007aff;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .form-input.error {
-  border-color: #dc2626;
+  border-color: #d0332b;
 }
 
 .form-help {
@@ -581,7 +581,7 @@ onMounted(() => {
 
 .error-text {
   font-size: 0.75rem;
-  color: #dc2626;
+  color: #d0332b;
   margin-top: 0.25rem;
 }
 
@@ -646,7 +646,7 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: #007aff;
   color: white;
 }
 

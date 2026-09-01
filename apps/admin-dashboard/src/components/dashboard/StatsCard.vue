@@ -61,7 +61,7 @@ interface StatsCardProps {
   title: string;
   value: string | number;
   icon: string;
-  color: "blue" | "green" | "purple" | "orange" | "red" | "indigo";
+  color: "blue" | "green" | "orange" | "red" | "teal";
   loading?: boolean;
   trend?: {
     value: number;
@@ -97,10 +97,10 @@ const colorMap = {
     iconBg: "bg-green-100",
     iconColor: "text-green-600",
   },
-  purple: {
-    text: "text-purple-600",
-    iconBg: "bg-purple-100",
-    iconColor: "text-purple-600",
+  teal: {
+    text: "text-teal-600",
+    iconBg: "bg-teal-100",
+    iconColor: "text-teal-600",
   },
   orange: {
     text: "text-orange-600",
@@ -111,11 +111,6 @@ const colorMap = {
     text: "text-red-600",
     iconBg: "bg-red-100",
     iconColor: "text-red-600",
-  },
-  indigo: {
-    text: "text-indigo-600",
-    iconBg: "bg-indigo-100",
-    iconColor: "text-indigo-600",
   },
 };
 

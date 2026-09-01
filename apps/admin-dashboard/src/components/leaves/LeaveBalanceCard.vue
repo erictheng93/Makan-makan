@@ -5,7 +5,7 @@
       <div class="leave-type-info">
         <div
           class="color-indicator"
-          :style="{ backgroundColor: balance.leaveType?.color || '#3B82F6' }"
+          :style="{ backgroundColor: balance.leaveType?.color || '#007aff' }"
         />
         <div class="type-details">
           <h3 class="type-name">
@@ -120,9 +120,9 @@ const progressPercentage = computed(() => {
 // 根據使用比例返回顏色
 const getProgressColor = () => {
   const percentage = progressPercentage.value;
-  if (percentage >= 90) return "#EF4444"; // 紅色：接近用完
-  if (percentage >= 70) return "#F59E0B"; // 橙色：警告
-  return "#10B981"; // 綠色：充足
+  if (percentage >= 90) return "#ff3b30"; // 紅色：接近用完
+  if (percentage >= 70) return "#ff9500"; // 橙色：警告
+  return "#34c759"; // 綠色：充足
 };
 
 // 格式化天數
@@ -197,7 +197,7 @@ const formatDays = (days: number): string => {
 .remaining-days {
   font-size: 32px;
   font-weight: 700;
-  color: #3b82f6;
+  color: #007aff;
   line-height: 1;
 }
 
@@ -262,7 +262,7 @@ const formatDays = (days: number): string => {
 
 .expiry-note {
   font-size: 12px;
-  color: #f59e0b;
+  color: #ff9500;
   font-weight: 400;
 }
 
@@ -289,7 +289,7 @@ const formatDays = (days: number): string => {
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: #007aff;
   color: white;
 }
 

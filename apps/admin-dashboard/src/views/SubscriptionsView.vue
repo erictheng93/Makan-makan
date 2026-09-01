@@ -601,7 +601,7 @@ function planBadgeClass(tier: PlanTier): string {
     trial: "bg-gray-100 text-[#3C3C43]",
     basic: "bg-[#007AFF]/10 text-[#007AFF]",
     pro: "bg-[#FF9500]/10 text-[#FF9500]",
-    enterprise: "bg-purple-100 text-purple-700",
+    enterprise: "bg-teal-100 text-teal-700",
   };
   return map[tier] ?? "bg-gray-100 text-[#3C3C43]";
 }

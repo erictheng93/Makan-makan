@@ -119,8 +119,8 @@
       <!-- 平均客單價 -->
       <div class="bg-white rounded-2xl shadow-ios-card p-6">
         <div class="flex items-center">
-          <div class="p-3 rounded-full bg-purple-100">
-            <CalculatorIcon class="h-8 w-8 text-purple-600" />
+          <div class="p-3 rounded-full bg-teal-100">
+            <CalculatorIcon class="h-8 w-8 text-teal-600" />
           </div>
           <div class="ml-4">
             <p class="text-sm text-gray-500">

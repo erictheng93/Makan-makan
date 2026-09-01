@@ -138,9 +138,9 @@ const statCards = computed(() => [
     label: t("users.stats.owner"),
     value: employeeList.stats.value.owner,
     icon: Crown,
-    bgClass: "bg-purple-50",
-    iconClass: "text-purple-600",
-    valueClass: "text-purple-600",
+    bgClass: "bg-teal-50",
+    iconClass: "text-teal-600",
+    valueClass: "text-teal-600",
   },
   {
     label: t("users.stats.chef"),

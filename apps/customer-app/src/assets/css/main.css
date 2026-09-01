@@ -34,11 +34,11 @@
   }
 
   .btn-primary {
-    @apply bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500;
+    @apply bg-teal-600 text-white hover:bg-teal-700 focus:ring-teal-500;
   }
 
   .btn-secondary {
-    @apply bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-indigo-500;
+    @apply bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-teal-500;
   }
 
   .btn-danger {
@@ -46,12 +46,12 @@
   }
 
   .btn-ghost {
-    @apply text-gray-700 hover:bg-gray-100 focus:ring-indigo-500;
+    @apply text-gray-700 hover:bg-gray-100 focus:ring-teal-500;
   }
 
   /* 輸入框樣式 */
   .input {
-    @apply block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500;
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500;
   }
 
   .input-error {
@@ -73,7 +73,7 @@
   }
 
   .badge-primary {
-    @apply bg-indigo-100 text-indigo-800;
+    @apply bg-teal-100 text-teal-800;
   }
 
   .badge-success {
@@ -99,7 +99,7 @@
 
   /* 加載動畫 */
   .spinner {
-    @apply animate-spin rounded-full border-2 border-gray-300 border-t-indigo-600;
+    @apply animate-spin rounded-full border-2 border-gray-300 border-t-teal-600;
   }
 }
 
@@ -184,18 +184,6 @@
     @apply backdrop-blur-md bg-black/80 border border-white/10;
   }
 
-  /* 漸變背景 */
-  .gradient-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  }
-
-  .gradient-secondary {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  }
-
-  .gradient-success {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  }
 }
 
 /* PWA 相關樣式 */
@@ -283,7 +271,7 @@
   }
 
   .btn-primary {
-    @apply border-2 border-indigo-800;
+    @apply border-2 border-teal-800;
   }
 }
 

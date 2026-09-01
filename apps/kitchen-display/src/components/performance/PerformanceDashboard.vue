@@ -103,17 +103,17 @@
         </div>
       </div>
 
-      <div class="bg-purple-50 rounded-lg p-4" data-testid="metric-card">
+      <div class="bg-teal-50 rounded-lg p-4" data-testid="metric-card">
         <div class="flex items-center space-x-2 mb-2">
-          <FilmIcon class="w-5 h-5 text-purple-600" />
-          <span class="text-sm font-medium text-purple-900">{{
+          <FilmIcon class="w-5 h-5 text-teal-600" />
+          <span class="text-sm font-medium text-teal-900">{{
             t("performance.frameRate")
           }}</span>
         </div>
-        <div class="text-2xl font-bold text-purple-600">
+        <div class="text-2xl font-bold text-teal-600">
           {{ formatMetricValue(frameRate.avg, "fps") }}
         </div>
-        <div class="text-xs text-purple-600">
+        <div class="text-xs text-teal-600">
           最低: {{ formatMetricValue(frameRate.min, "fps") }}
         </div>
       </div>
@@ -803,7 +803,7 @@ onUnmounted(() => {
 <style scoped>
 /* Simple chart bars */
 .bg-blue-500 {
-  background-color: #3b82f6;
+  background-color: #007aff;
   opacity: 0.8;
 }
 

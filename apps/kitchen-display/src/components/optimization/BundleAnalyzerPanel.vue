@@ -2,7 +2,7 @@
   <!-- Bundle Performance Analyzer Panel -->
   <div class="bg-white rounded-xl shadow-lg overflow-hidden">
     <!-- Header -->
-    <div class="px-6 py-4 bg-gradient-to-r from-purple-600 to-blue-600">
+    <div class="px-6 py-4 bg-gradient-to-r from-teal-600 to-blue-600">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-3">
           <div
@@ -14,7 +14,7 @@
             <h3 class="text-lg font-semibold text-white">
               {{ t("optimization.title") }}
             </h3>
-            <p class="text-purple-100 text-sm">
+            <p class="text-teal-100 text-sm">
               {{ t("optimization.description") }}
             </p>
           </div>
@@ -23,7 +23,7 @@
         <!-- Refresh Button -->
         <button
           :disabled="analyzing"
-          class="relative inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-purple-600 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
+          class="relative inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-teal-600 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50"
           @click="refreshAnalysis"
         >
           <ArrowPathIcon
@@ -207,15 +207,15 @@
               </p>
             </div>
             <div
-              class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center"
+              class="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center"
             >
-              <DocumentDuplicateIcon class="w-5 h-5 text-indigo-600" />
+              <DocumentDuplicateIcon class="w-5 h-5 text-teal-600" />
             </div>
           </div>
           <div class="mt-2">
             <div class="w-full bg-gray-200 rounded-full h-2">
               <div
-                class="bg-indigo-600 h-2 rounded-full transition-all duration-500"
+                class="bg-teal-600 h-2 rounded-full transition-all duration-500"
                 :style="{
                   width:
                     Math.min(
@@ -243,15 +243,15 @@
               </p>
             </div>
             <div
-              class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center"
+              class="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center"
             >
-              <PaintBrushIcon class="w-5 h-5 text-purple-600" />
+              <PaintBrushIcon class="w-5 h-5 text-teal-600" />
             </div>
           </div>
           <div class="mt-2">
             <div class="w-full bg-gray-200 rounded-full h-2">
               <div
-                class="bg-purple-600 h-2 rounded-full transition-all duration-500"
+                class="bg-teal-600 h-2 rounded-full transition-all duration-500"
                 :style="{
                   width:
                     Math.min((analysis.metrics.renderTime / 50) * 100, 100) +
@@ -331,7 +331,7 @@
             <p class="font-medium text-gray-600">
               {{ t("optimization.cached") }}
             </p>
-            <p class="text-lg font-bold text-purple-600">
+            <p class="text-lg font-bold text-teal-600">
               {{ cacheStats.componentsCached }}
             </p>
           </div>

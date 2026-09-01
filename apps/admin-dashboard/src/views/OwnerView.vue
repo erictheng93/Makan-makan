@@ -65,7 +65,7 @@
         <button
           v-for="action in quickActions"
           :key="action.key"
-          class="flex flex-col items-center p-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-purple-500 hover:bg-purple-50 transition-colors duration-200"
+          class="flex flex-col items-center p-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-teal-500 hover:bg-teal-50 transition-colors duration-200"
           @click="handleQuickAction(action.key)"
         >
           <component :is="action.icon" class="w-8 h-8 text-gray-400 mb-2" />
@@ -220,7 +220,7 @@
               <span class="text-gray-600">{{
                 t("owner.estimatedMonthly")
               }}</span>
-              <span class="font-bold text-purple-600">{{
+              <span class="font-bold text-teal-600">{{
                 formatPrice(todayRevenue * 30)
               }}</span>
             </div>
@@ -572,8 +572,8 @@ const kpiMetrics = computed(() => {
       trend: "stable" as const,
       trendIcon: MinusIcon,
       icon: UsersIcon,
-      borderColor: "border-purple-500",
-      bgColor: "bg-purple-500",
+      borderColor: "border-teal-500",
+      bgColor: "bg-teal-500",
     },
     {
       key: "tables",

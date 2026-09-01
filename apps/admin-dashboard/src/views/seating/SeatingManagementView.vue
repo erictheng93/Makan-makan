@@ -184,9 +184,9 @@ const statCards = computed(() => [
     label: t("seating.stats.todayServed"),
     value: waitingStats.value.totalServedToday,
     icon: Users,
-    bgClass: "bg-purple-50",
-    iconClass: "text-purple-600",
-    valueClass: "text-purple-600",
+    bgClass: "bg-teal-50",
+    iconClass: "text-teal-600",
+    valueClass: "text-teal-600",
   },
 ]);
 

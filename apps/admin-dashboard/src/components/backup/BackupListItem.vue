@@ -370,12 +370,12 @@ const formatDuration = (startTime: string, endTime: string): string => {
 
 .status-failed {
   background: #fee2e2;
-  color: #dc2626;
+  color: #d0332b;
 }
 
 .status-pending {
   background: #fef3c7;
-  color: #d97706;
+  color: #d07b04;
 }
 
 .status-cancelled {
@@ -385,7 +385,7 @@ const formatDuration = (startTime: string, endTime: string): string => {
 
 .error-message {
   font-size: 0.875rem;
-  color: #dc2626;
+  color: #d0332b;
   font-style: italic;
 }
 
@@ -406,7 +406,7 @@ const formatDuration = (startTime: string, endTime: string): string => {
   width: 1rem;
   height: 1rem;
   border: 2px solid #e5e7eb;
-  border-top-color: #3b82f6;
+  border-top-color: #007aff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -456,7 +456,7 @@ const formatDuration = (startTime: string, endTime: string): string => {
 
 .restore-btn {
   background: #dbeafe;
-  color: #3b82f6;
+  color: #007aff;
 }
 
 .restore-btn:hover {
@@ -476,7 +476,7 @@ const formatDuration = (startTime: string, endTime: string): string => {
 
 .delete-btn {
   background: #fee2e2;
-  color: #dc2626;
+  color: #d0332b;
 }
 
 .delete-btn:hover {

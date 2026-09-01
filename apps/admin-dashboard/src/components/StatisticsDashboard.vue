@@ -109,7 +109,7 @@
         :title="t('statisticsDashboard.pendingOrders')"
         :value="statisticsService.dashboardData.realtime_stats.pending_orders"
         icon="QueueListIcon"
-        color="yellow"
+        color="orange"
         :subtitle="`${statisticsService.dashboardData.realtime_stats.preparing_orders} ${t('statisticsDashboard.preparing')}`"
       />
 
@@ -122,7 +122,7 @@
           statisticsService.completionRateToday >= 90
             ? 'green'
             : statisticsService.completionRateToday >= 80
-              ? 'yellow'
+              ? 'orange'
               : 'red'
         "
         :subtitle="`${statisticsService.dashboardData.realtime_stats.completed_today}/${statisticsService.dashboardData.realtime_stats.total_today} ${t('statisticsDashboard.ordersUnit')}`"
@@ -141,7 +141,7 @@
           statisticsService.dashboardData.kpis.avg_preparation_time <= 20
             ? 'green'
             : statisticsService.dashboardData.kpis.avg_preparation_time <= 30
-              ? 'yellow'
+              ? 'orange'
               : 'red'
         "
         :subtitle="t('statisticsDashboard.targetTime')"
@@ -156,7 +156,7 @@
           statisticsService.dashboardData.kpis.efficiency_score >= 85
             ? 'green'
             : statisticsService.dashboardData.kpis.efficiency_score >= 70
-              ? 'yellow'
+              ? 'orange'
               : 'red'
         "
         :subtitle="t('statisticsDashboard.compositeEfficiency')"

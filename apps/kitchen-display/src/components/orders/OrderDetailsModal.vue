@@ -237,7 +237,7 @@ const getOrderTypeBadgeClass = (type?: string) => {
   const colors: Record<string, string> = {
     dine_in: `${base} bg-blue-100 text-ios-blue`,
     takeout: `${base} bg-orange-100 text-ios-orange`,
-    delivery: `${base} bg-purple-100 text-purple-700`,
+    delivery: `${base} bg-teal-100 text-teal-700`,
   };
   return colors[type ?? ""] ?? `${base} bg-blue-100 text-ios-blue`;
 };

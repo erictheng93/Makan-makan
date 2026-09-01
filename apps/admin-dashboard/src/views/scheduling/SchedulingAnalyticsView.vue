@@ -128,7 +128,7 @@ const quickStats = ref([
     change: "",
     changeIcon: "",
     trend: "positive",
-    color: "#3b82f6",
+    color: "#007aff",
   },
   {
     icon: "⏰",
@@ -137,7 +137,7 @@ const quickStats = ref([
     change: "",
     changeIcon: "",
     trend: "positive",
-    color: "#10b981",
+    color: "#34c759",
   },
   {
     icon: "📅",
@@ -146,7 +146,7 @@ const quickStats = ref([
     change: "",
     changeIcon: "",
     trend: "positive",
-    color: "#f59e0b",
+    color: "#ff9500",
   },
   {
     icon: "⚡",
@@ -155,7 +155,7 @@ const quickStats = ref([
     change: "",
     changeIcon: "",
     trend: "positive",
-    color: "#ef4444",
+    color: "#ff3b30",
   },
 ]);
 
@@ -198,7 +198,7 @@ const fetchAnalyticsData = async () => {
         change: "",
         changeIcon: "",
         trend: "positive",
-        color: "#3b82f6",
+        color: "#007aff",
       },
       {
         icon: "⏰",
@@ -207,7 +207,7 @@ const fetchAnalyticsData = async () => {
         change: "",
         changeIcon: "",
         trend: "positive",
-        color: "#10b981",
+        color: "#34c759",
       },
       {
         icon: "📅",
@@ -216,7 +216,7 @@ const fetchAnalyticsData = async () => {
         change: "",
         changeIcon: "",
         trend: "positive",
-        color: "#f59e0b",
+        color: "#ff9500",
       },
       {
         icon: "⚡",
@@ -225,7 +225,7 @@ const fetchAnalyticsData = async () => {
         change: "",
         changeIcon: "",
         trend: "positive",
-        color: "#ef4444",
+        color: "#ff3b30",
       },
     ];
 
@@ -240,7 +240,7 @@ const fetchAnalyticsData = async () => {
         description: t("schedulingAnalytics.insightAbsenceDesc", {
           count: noShowCount,
         }),
-        color: "#ef4444",
+        color: "#ff3b30",
       });
     }
 
@@ -253,7 +253,7 @@ const fetchAnalyticsData = async () => {
         description: t("schedulingAnalytics.insightOvertimeDesc", {
           hours: Math.round(overtimeHours * 10) / 10,
         }),
-        color: "#f59e0b",
+        color: "#ff9500",
       });
     }
 
@@ -266,7 +266,7 @@ const fetchAnalyticsData = async () => {
         description: t("schedulingAnalytics.insightCancelledDesc", {
           count: cancelledCount,
         }),
-        color: "#3b82f6",
+        color: "#007aff",
       });
     }
 
@@ -276,7 +276,7 @@ const fetchAnalyticsData = async () => {
         icon: "🎯",
         title: t("schedulingAnalytics.insightAllGoodTitle"),
         description: t("schedulingAnalytics.insightAllGoodDesc"),
-        color: "#10b981",
+        color: "#34c759",
       });
     }
 
@@ -398,7 +398,7 @@ onMounted(() => {
 }
 
 .export-btn {
-  background: #3b82f6;
+  background: #007aff;
   color: white;
 }
 
@@ -472,15 +472,15 @@ onMounted(() => {
 }
 
 .stat-change.positive {
-  color: #10b981;
+  color: #34c759;
 }
 
 .stat-change.negative {
-  color: #ef4444;
+  color: #ff3b30;
 }
 
 .stat-change.warning {
-  color: #f59e0b;
+  color: #ff9500;
 }
 
 .change-icon {
@@ -547,7 +547,7 @@ onMounted(() => {
   padding: 20px;
   background: #f9fafb;
   border-radius: 12px;
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid #007aff;
   transition: all 0.2s;
 }
 
@@ -607,8 +607,8 @@ onMounted(() => {
 
 .view-detail-btn:hover {
   background: white;
-  border-color: #3b82f6;
-  color: #3b82f6;
+  border-color: #007aff;
+  color: #007aff;
 }
 
 /* 響應式設計 */

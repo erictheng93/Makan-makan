@@ -162,10 +162,10 @@ const ROLE_LABELS: Record<number, string> = {
 };
 
 const ROLE_CLASSES: Record<number, string> = {
-  1: "bg-[#007AFF]/10 text-[#007AFF]",
-  2: "bg-[#FF9500]/10 text-[#FF9500]",
-  3: "bg-[#34C759]/10 text-[#34C759]",
-  4: "bg-[#AF52DE]/10 text-[#AF52DE]",
+  1: "bg-blue-100 text-blue-700",
+  2: "bg-orange-100 text-orange-700",
+  3: "bg-green-100 text-green-700",
+  4: "bg-teal-100 text-teal-700",
 };
 
 function roleLabel(role: number): string {

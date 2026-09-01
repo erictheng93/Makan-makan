@@ -174,7 +174,7 @@ const handleSaveConfig = async () => {
       <!-- Header -->
       <div class="mb-8">
         <div class="flex items-center space-x-3 mb-2">
-          <SparklesIcon class="w-8 h-8 text-indigo-600" />
+          <SparklesIcon class="w-8 h-8 text-teal-600" />
           <h1 class="text-3xl font-bold text-gray-900">
             {{ t("aiConfig.title") }}
           </h1>
@@ -199,7 +199,7 @@ const handleSaveConfig = async () => {
           </router-link>
           <router-link
             to="/dashboard/ai-analytics/config"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-teal-600 text-white"
           >
             {{ t("aiAnalytics.navConfig") }}
           </router-link>
@@ -220,10 +220,10 @@ const handleSaveConfig = async () => {
               v-for="provider in providers"
               :key="provider.value"
               type="button"
-              class="relative flex items-start p-4 border-2 rounded-xl transition-all duration-200 hover:border-indigo-300 hover:shadow-sm"
+              class="relative flex items-start p-4 border-2 rounded-xl transition-all duration-200 hover:border-teal-300 hover:shadow-sm"
               :class="
                 form.provider === provider.value
-                  ? 'border-indigo-600 bg-indigo-50'
+                  ? 'border-teal-600 bg-teal-50'
                   : 'border-gray-200 bg-white'
               "
               @click="
@@ -242,7 +242,7 @@ const handleSaveConfig = async () => {
               </div>
               <CheckCircleIcon
                 v-if="form.provider === provider.value"
-                class="w-5 h-5 text-indigo-600 absolute top-4 right-4"
+                class="w-5 h-5 text-teal-600 absolute top-4 right-4"
               />
             </button>
           </div>
@@ -251,9 +251,7 @@ const handleSaveConfig = async () => {
         <!-- Configuration Form -->
         <div class="p-8 space-y-6">
           <!-- Selected Provider Info -->
-          <div
-            class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 flex items-center space-x-3"
-          >
+          <div class="bg-teal-50 rounded-xl p-4 flex items-center space-x-3">
             <div class="text-2xl">{{ selectedProvider?.icon }}</div>
             <div>
               <div class="font-semibold text-gray-900">
@@ -278,7 +276,7 @@ const handleSaveConfig = async () => {
                 v-model="form.apiKey"
                 type="password"
                 :placeholder="t('aiConfig.enterApiKey')"
-                class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
               />
             </div>
             <p class="text-xs text-gray-500 mt-2">
@@ -296,7 +294,7 @@ const handleSaveConfig = async () => {
               type="text"
               :list="`models-${form.provider}`"
               :placeholder="t('aiConfig.modelPlaceholder')"
-              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
             />
             <datalist :id="`models-${form.provider}`">
               <option
@@ -319,7 +317,7 @@ const handleSaveConfig = async () => {
               v-model="form.customBaseUrl"
               type="url"
               placeholder="https://your-api-endpoint.com"
-              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
             />
           </div>
 
@@ -407,7 +405,7 @@ const handleSaveConfig = async () => {
 
             <button
               :disabled="isSaving || !form.apiKey"
-              class="flex-1 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-indigo-500/30"
+              class="flex-1 px-6 py-3 bg-teal-600 text-white font-semibold rounded-xl hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-teal-500/30"
               @click="handleSaveConfig"
             >
               {{ isSaving ? t("aiConfig.saving") : t("aiConfig.saveConfig") }}

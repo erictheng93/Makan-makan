@@ -179,7 +179,7 @@ const chartData = computed(() => {
         label: getMetricLabel(),
         data: trendData.value.map((item) => item.value),
         backgroundColor: "rgba(59, 130, 246, 0.1)",
-        borderColor: "#3b82f6",
+        borderColor: "#007aff",
         borderWidth: 2,
         fill: true,
         tension: 0.4,
@@ -319,13 +319,13 @@ onMounted(() => {
 
 .metric-select:hover,
 .period-select:hover {
-  border-color: #3b82f6;
+  border-color: #007aff;
 }
 
 .metric-select:focus,
 .period-select:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #007aff;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -348,17 +348,17 @@ onMounted(() => {
 }
 
 .highlight-card:nth-child(1) {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #007aff;
   color: white;
 }
 
 .highlight-card:nth-child(2) {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: #34c759;
   color: white;
 }
 
 .highlight-card:nth-child(3) {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: #ff9500;
   color: white;
 }
 
@@ -384,11 +384,11 @@ onMounted(() => {
 }
 
 .trend-up {
-  color: #10b981;
+  color: #34c759;
 }
 
 .trend-down {
-  color: #ef4444;
+  color: #ff3b30;
 }
 
 .trend-stable {
@@ -396,11 +396,11 @@ onMounted(() => {
 }
 
 .change-positive {
-  color: #10b981;
+  color: #34c759;
 }
 
 .change-negative {
-  color: #ef4444;
+  color: #ff3b30;
 }
 
 @media (max-width: 768px) {

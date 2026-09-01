@@ -706,9 +706,12 @@ const getOrderType = (order: Order) => {
 const getSourceClass = (source: string) => {
   const classes: Record<string, string> = {
     uber_eats: "bg-green-100 text-green-800",
-    foodpanda: "bg-pink-100 text-pink-800",
+    foodpanda: "bg-teal-100 text-teal-800",
     grabfood: "bg-orange-100 text-orange-800",
-    market_checkout: "bg-amber-100 text-amber-800",
+    // Blue rather than amber: amber resolves to orange here and would have been
+    // indistinguishable from grabfood. Market checkout is also the one source
+    // that is ours rather than a third party, so primary blue fits.
+    market_checkout: "bg-blue-100 text-blue-800",
   };
   return classes[source] || "bg-gray-100 text-gray-800";
 };
@@ -952,11 +955,17 @@ const getNextStatus = (currentStatus: string) => {
 
 const getStatusClass = (status: string) => {
   const classes: Record<string, string> = {
-    pending: "bg-yellow-100 text-yellow-800",
+    // Eight statuses on five hues, so the chain separates by depth as well as
+    // hue: pending is the lightest orange and ready the full one (ready is the
+    // state that needs someone to act), preparing the lighter teal and
+    // delivered the deeper. Before this, yellow/amber collapsed onto orange and
+    // purple onto teal, which made pending look like ready and preparing look
+    // like delivered.
+    pending: "bg-orange-50 text-orange-700",
     confirmed: "bg-blue-100 text-blue-800",
-    preparing: "bg-purple-100 text-purple-800",
+    preparing: "bg-teal-100 text-teal-800",
     ready: "bg-orange-100 text-orange-800",
-    delivered: "bg-teal-100 text-teal-800",
+    delivered: "bg-teal-200 text-teal-900",
     paid: "bg-green-100 text-green-800",
     completed: "bg-green-100 text-green-800",
     cancelled: "bg-red-100 text-red-800",
@@ -982,7 +991,7 @@ const getTypeClass = (type: string) => {
   const classes: Record<string, string> = {
     dine_in: "bg-blue-100 text-blue-800",
     takeaway: "bg-green-100 text-green-800",
-    delivery: "bg-purple-100 text-purple-800",
+    delivery: "bg-teal-100 text-teal-800",
   };
   return classes[type] || "bg-gray-100 text-gray-800";
 };

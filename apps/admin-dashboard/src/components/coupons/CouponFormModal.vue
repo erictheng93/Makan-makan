@@ -40,7 +40,7 @@
                   v-model="form.name"
                   type="text"
                   required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   :placeholder="t('couponForm.couponNamePlaceholder')"
                 />
               </div>
@@ -54,7 +54,7 @@
                   v-model="form.code"
                   type="text"
                   required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   placeholder="NEWUSER10"
                   :class="{ 'bg-gray-100': isEditing }"
                   :readonly="isEditing"
@@ -74,7 +74,7 @@
                 <select
                   v-model="form.discountType"
                   required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 >
                   <option value="">{{ t("couponForm.selectType") }}</option>
                   <option value="percentage">
@@ -93,7 +93,7 @@
                 <textarea
                   v-model="form.description"
                   rows="3"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   :placeholder="t('couponForm.descriptionPlaceholder')"
                 />
               </div>
@@ -118,7 +118,7 @@
                     min="0"
                     :max="form.discountType === 'percentage' ? 100 : undefined"
                     required
-                    class="w-full px-3 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    class="w-full px-3 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                     :placeholder="
                       form.discountType === 'percentage' ? '10' : '5.00'
                     "
@@ -141,7 +141,7 @@
                     type="number"
                     step="0.01"
                     min="0"
-                    class="w-full px-3 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    class="w-full px-3 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                     placeholder="50.00"
                   />
                   <div class="absolute right-3 top-2 text-gray-500 text-sm">
@@ -163,7 +163,7 @@
                     type="number"
                     step="0.01"
                     min="0"
-                    class="w-full px-3 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    class="w-full px-3 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                     placeholder="0.00"
                   />
                   <div class="absolute right-3 top-2 text-gray-500 text-sm">
@@ -190,7 +190,7 @@
                   v-model.number="form.usageLimit"
                   type="number"
                   min="1"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   :placeholder="t('couponForm.unlimitedPlaceholder')"
                 />
               </div>
@@ -203,7 +203,7 @@
                   v-model.number="form.usageLimitPerUser"
                   type="number"
                   min="1"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                   :placeholder="t('couponForm.unlimitedPlaceholder')"
                 />
               </div>
@@ -224,7 +224,7 @@
                   v-model="form.validFrom"
                   type="datetime-local"
                   required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 />
               </div>
 
@@ -237,7 +237,7 @@
                   v-model="form.validTo"
                   type="datetime-local"
                   required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                 />
               </div>
 
@@ -251,7 +251,7 @@
                     <input
                       v-model="form.isActive"
                       type="checkbox"
-                      class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                      class="rounded border-gray-300 text-teal-600 focus:ring-teal-500 h-4 w-4"
                     />
                     <span class="ml-2 text-sm text-gray-700">{{
                       t("couponForm.enableCoupon")
@@ -261,7 +261,7 @@
                     <input
                       v-model="form.isVisible"
                       type="checkbox"
-                      class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                      class="rounded border-gray-300 text-teal-600 focus:ring-teal-500 h-4 w-4"
                     />
                     <span class="ml-2 text-sm text-gray-700">{{
                       t("couponForm.visibleToCustomers")
@@ -277,13 +277,13 @@
             <!-- 預覽區域 -->
             <div
               v-if="form.name && form.discountType && form.discountValue"
-              class="mt-8 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200"
+              class="mt-8 p-4 bg-teal-50 rounded-lg border border-teal-200"
             >
               <h4 class="text-sm font-medium text-gray-900 mb-2">
                 {{ t("couponForm.preview") }}
               </h4>
               <div
-                class="bg-white rounded-lg p-4 border border-indigo-300 shadow-sm"
+                class="bg-white rounded-lg p-4 border border-teal-300 shadow-sm"
               >
                 <div class="flex items-start justify-between">
                   <div class="flex-1">
@@ -299,7 +299,7 @@
                     </p>
                   </div>
                   <div class="text-right">
-                    <div class="text-lg font-bold text-indigo-600">
+                    <div class="text-lg font-bold text-teal-600">
                       <span v-if="form.discountType === 'percentage'">
                         {{ form.discountValue }}% {{ t("couponForm.discount") }}
                         <span
@@ -354,7 +354,7 @@
               </button>
               <button
                 type="submit"
-                class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                class="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 :disabled="isSubmitting || !isFormValid"
               >
                 <span v-if="isSubmitting">

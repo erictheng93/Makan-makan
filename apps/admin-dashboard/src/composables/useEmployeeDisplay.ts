@@ -3,14 +3,14 @@ import { Crown, ChefHat, Truck, CreditCard, User } from "lucide-vue-next";
 import type { Component } from "vue";
 
 const AVATAR_CLASSES: Record<number, string> = {
-  1: "bg-purple-100 text-purple-700",
+  1: "bg-teal-100 text-teal-700",
   2: "bg-orange-100 text-orange-700",
   3: "bg-green-100 text-green-700",
   4: "bg-blue-100 text-blue-700",
 };
 
 const ROLE_BADGE_CLASSES: Record<number, string> = {
-  1: "bg-purple-50 text-purple-700",
+  1: "bg-teal-50 text-teal-700",
   2: "bg-orange-50 text-orange-700",
   3: "bg-green-50 text-green-700",
   4: "bg-blue-50 text-blue-700",

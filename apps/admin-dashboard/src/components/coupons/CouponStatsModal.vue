@@ -114,11 +114,11 @@
                 </div>
               </div>
 
-              <div class="bg-purple-50 rounded-lg p-4">
-                <div class="text-2xl font-bold text-purple-600">
+              <div class="bg-teal-50 rounded-lg p-4">
+                <div class="text-2xl font-bold text-teal-600">
                   {{ formatPrice(stats.avgDiscount || 0) }}
                 </div>
-                <div class="text-sm text-purple-700">
+                <div class="text-sm text-teal-700">
                   {{ t("couponStats.avgDiscount") }}
                 </div>
               </div>
@@ -225,7 +225,7 @@
         <!-- Loading State -->
         <div v-else class="mt-6 text-center py-8">
           <div
-            class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"
+            class="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto"
           ></div>
           <p class="mt-2 text-sm text-gray-600">
             {{ t("couponStats.loading") }}
@@ -236,7 +236,7 @@
         <div class="flex justify-end pt-6 border-t mt-6">
           <button
             type="button"
-            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
             @click="$emit('close')"
           >
             {{ t("common.close") }}

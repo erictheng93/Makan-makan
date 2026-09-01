@@ -571,7 +571,7 @@
           </span>
           <span
             v-if="selectedCheckout.payment.parentPayment.lastReconciliation"
-            class="rounded-full bg-indigo-50 px-2.5 py-1 text-indigo-700"
+            class="rounded-full bg-teal-50 px-2.5 py-1 text-teal-700"
           >
             最後查單
             {{
@@ -603,7 +603,7 @@
               selectedCheckout.payment.parentPayment.lastReconciliation
                 ?.payloadSummary
             "
-            class="rounded-full bg-indigo-50 px-2.5 py-1 text-indigo-700"
+            class="rounded-full bg-teal-50 px-2.5 py-1 text-teal-700"
           >
             查單摘要
             {{
@@ -1268,8 +1268,11 @@ function formatProviderAmountCents(value: number) {
 function paymentClass(status: MarketCheckoutPaymentStatus) {
   return {
     pending: "bg-gray-100 text-gray-700",
-    partial_paid: "bg-amber-50 text-amber-700",
-    paid: "bg-emerald-50 text-emerald-700",
+    // partial_paid was amber and partial_refunded orange -- the same colour
+    // here, since amber resolves to orange. Money coming in reads as a lighter
+    // step of the success hue; money going back out stays on orange.
+    partial_paid: "bg-green-50 text-green-700",
+    paid: "bg-green-100 text-green-800",
     failed: "bg-red-50 text-red-700",
     refunded: "bg-slate-100 text-slate-700",
     partial_refunded: "bg-orange-50 text-orange-700",

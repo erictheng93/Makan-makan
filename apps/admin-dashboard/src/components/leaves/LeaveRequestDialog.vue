@@ -659,7 +659,7 @@ watch(
 
 .form-label.required::after {
   content: " *";
-  color: #ef4444;
+  color: #ff3b30;
 }
 
 .label-note {
@@ -686,14 +686,14 @@ watch(
 .form-select:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #007aff;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .form-input.error,
 .form-select.error,
 .form-textarea.error {
-  border-color: #ef4444;
+  border-color: #ff3b30;
 }
 
 .form-textarea {
@@ -724,7 +724,7 @@ watch(
 .error-message {
   display: block;
   font-size: 12px;
-  color: #ef4444;
+  color: #ff3b30;
   margin-top: 4px;
 }
 
@@ -761,7 +761,7 @@ watch(
 }
 
 .file-upload-area:hover {
-  border-color: #3b82f6;
+  border-color: #007aff;
   background: #f9fafb;
 }
 
@@ -829,7 +829,7 @@ watch(
   border: none;
   background: transparent;
   cursor: pointer;
-  color: #ef4444;
+  color: #ff3b30;
   flex-shrink: 0;
 }
 
@@ -854,7 +854,7 @@ watch(
   gap: 8px;
   padding: 12px;
   background: #fef3c7;
-  border-left: 4px solid #f59e0b;
+  border-left: 4px solid #ff9500;
   border-radius: 8px;
   margin-bottom: 8px;
   font-size: 14px;
@@ -865,7 +865,7 @@ watch(
   width: 20px;
   height: 20px;
   flex-shrink: 0;
-  color: #f59e0b;
+  color: #ff9500;
 }
 
 /* 對話框操作 */
@@ -903,7 +903,7 @@ watch(
 }
 
 .btn-submit {
-  background: #3b82f6;
+  background: #007aff;
   color: white;
 }
 

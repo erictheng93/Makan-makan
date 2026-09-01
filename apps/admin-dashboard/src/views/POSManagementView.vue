@@ -100,8 +100,8 @@
 
       <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center">
-          <div class="p-3 rounded-full bg-purple-100">
-            <UserGroupIcon class="h-6 w-6 text-purple-600" />
+          <div class="p-3 rounded-full bg-teal-100">
+            <UserGroupIcon class="h-6 w-6 text-teal-600" />
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-gray-500">
@@ -464,18 +464,18 @@
               <div
                 v-for="promotion in activePromotions"
                 :key="promotion.id"
-                class="p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200"
+                class="p-3 bg-teal-50 rounded-lg border border-teal-200"
               >
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-sm font-medium text-purple-900">
+                    <p class="text-sm font-medium text-teal-900">
                       {{ promotion.title }}
                     </p>
-                    <p class="text-xs text-purple-600">
+                    <p class="text-xs text-teal-600">
                       {{ promotion.description }}
                     </p>
                   </div>
-                  <span class="text-sm font-bold text-purple-900">
+                  <span class="text-sm font-bold text-teal-900">
                     {{
                       promotion.discountType === "percentage"
                         ? `${promotion.discountValue}%`
@@ -699,7 +699,7 @@
               </p>
 
               <div class="flex items-center justify-between">
-                <span class="text-lg font-bold text-purple-600">
+                <span class="text-lg font-bold text-teal-600">
                   {{
                     promotion.discountType === "percentage"
                       ? `${promotion.discountValue}%`
@@ -1162,7 +1162,7 @@ const getTransactionTypeColor = (type: string) => {
     refund: "bg-red-100",
     cash_in: "bg-blue-100",
     cash_out: "bg-orange-100",
-    drawer_count: "bg-purple-100",
+    drawer_count: "bg-teal-100",
   };
   return colors[type] || "bg-gray-100";
 };

@@ -109,7 +109,7 @@ onBeforeUnmount(() => {
 
 .language-button.active {
   background: #f3f4f6;
-  border-color: #3b82f6;
+  border-color: #007aff;
 }
 
 .language-button .flag {
@@ -162,7 +162,7 @@ onBeforeUnmount(() => {
 
 .language-option.active {
   background: #eff6ff;
-  color: #3b82f6;
+  color: #007aff;
   font-weight: 500;
 }
 
@@ -177,7 +177,7 @@ onBeforeUnmount(() => {
 
 .language-option .check {
   font-size: 14px;
-  color: #3b82f6;
+  color: #007aff;
   font-weight: bold;
 }
 

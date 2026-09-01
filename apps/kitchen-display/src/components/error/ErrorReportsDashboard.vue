@@ -547,9 +547,11 @@ const showErrorDetails = (error: ErrorReport) => {
 
 const getSeverityColor = (severity: string): string => {
   const colors: Record<string, string> = {
+    // medium was yellow and high orange, which are one colour here. Severity is
+    // a ramp, so it climbs one: green → light orange → full orange → red.
     low: "bg-green-400",
-    medium: "bg-yellow-400",
-    high: "bg-orange-400",
+    medium: "bg-orange-300",
+    high: "bg-orange-500",
     critical: "bg-red-500",
   };
   return colors[severity] || "bg-gray-400";
@@ -558,7 +560,7 @@ const getSeverityColor = (severity: string): string => {
 const getSeverityBadgeColor = (severity: string): string => {
   const colors: Record<string, string> = {
     low: "bg-green-100 text-green-800",
-    medium: "bg-yellow-100 text-yellow-800",
+    medium: "bg-orange-50 text-orange-700",
     high: "bg-orange-100 text-orange-800",
     critical: "bg-red-100 text-red-800",
   };

@@ -85,14 +85,14 @@
         </div>
       </div>
 
-      <div class="bg-purple-100 rounded-lg p-6 border-l-4 border-purple-500">
+      <div class="bg-teal-100 rounded-lg p-6 border-l-4 border-teal-500">
         <div class="flex items-center">
-          <ClockIcon class="h-8 w-8 text-purple-600 mr-3" />
+          <ClockIcon class="h-8 w-8 text-teal-600 mr-3" />
           <div>
-            <p class="text-sm font-medium text-purple-800">
+            <p class="text-sm font-medium text-teal-800">
               {{ t("serviceView.avgDeliveryTime") }}
             </p>
-            <p class="text-2xl font-bold text-purple-900">
+            <p class="text-2xl font-bold text-teal-900">
               {{ avgDeliveryTime }}{{ t("serviceView.minutes") }}
             </p>
           </div>
@@ -402,11 +402,11 @@
                     {{ todayStats.avgTime }}{{ t("serviceView.minutes") }}
                   </p>
                 </div>
-                <div class="text-center p-3 bg-purple-50 rounded">
-                  <p class="text-sm text-purple-600">
+                <div class="text-center p-3 bg-teal-50 rounded">
+                  <p class="text-sm text-teal-600">
                     {{ t("serviceView.onTimeRate") }}
                   </p>
-                  <p class="text-2xl font-bold text-purple-800">
+                  <p class="text-2xl font-bold text-teal-800">
                     {{ todayStats.onTimeRate }}%
                   </p>
                 </div>

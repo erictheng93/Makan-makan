@@ -46,7 +46,7 @@
             v-for="request in day.leaveRequests.slice(0, 3)"
             :key="request.id"
             class="leave-indicator"
-            :style="{ backgroundColor: request.leaveType?.color || '#3B82F6' }"
+            :style="{ backgroundColor: request.leaveType?.color || '#007aff' }"
             :title="`${request.employeeName} - ${request.leaveType?.name}`"
           />
           <span v-if="day.leaveRequests.length > 3" class="more-indicator">
@@ -268,7 +268,7 @@ const nextMonth = () => {
 
 .calendar-day:hover {
   background: #f9fafb;
-  border-color: #3b82f6;
+  border-color: #007aff;
 }
 
 .calendar-day.other-month {
@@ -277,7 +277,7 @@ const nextMonth = () => {
 
 .calendar-day.today {
   background: #eff6ff;
-  border-color: #3b82f6;
+  border-color: #007aff;
 }
 
 .calendar-day.has-leave {

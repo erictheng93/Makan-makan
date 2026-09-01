@@ -142,7 +142,7 @@ const renderBarChart = (
       // -nOr
       const bgColor = Array.isArray(dataset.backgroundColor)
         ? dataset.backgroundColor[index] || dataset.backgroundColor[0]
-        : dataset.backgroundColor || "#3b82f6";
+        : dataset.backgroundColor || "#007aff";
 
       ctx.fillStyle = bgColor;
       ctx.fillRect(x, y, barWidth, barHeight);
@@ -209,7 +209,7 @@ const renderLineChart = (
   datasets.forEach((dataset, _datasetIndex) => {
     const lineColor = Array.isArray(dataset.borderColor)
       ? dataset.borderColor[0]
-      : dataset.borderColor || "#3b82f6";
+      : dataset.borderColor || "#007aff";
 
     ctx.strokeStyle = lineColor;
     ctx.lineWidth = 2;
@@ -328,7 +328,7 @@ const renderLegend = (
   datasets.forEach((dataset, index) => {
     const color = Array.isArray(dataset.backgroundColor)
       ? dataset.backgroundColor[0]
-      : dataset.backgroundColor || "#3b82f6";
+      : dataset.backgroundColor || "#007aff";
 
     ctx.fillStyle = color;
     ctx.fillRect(legendX, legendY + index * 25, 15, 15);
@@ -430,7 +430,7 @@ canvas {
   height: 40px;
   margin: 0 auto 10px;
   border: 4px solid #e5e7eb;
-  border-top-color: #3b82f6;
+  border-top-color: #007aff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -455,6 +455,6 @@ canvas {
 }
 
 .chart-error p {
-  color: #ef4444;
+  color: #ff3b30;
 }
 </style>

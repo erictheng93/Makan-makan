@@ -139,25 +139,23 @@
           </div>
         </div>
 
-        <div
-          class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4"
-        >
+        <div class="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg p-4">
           <div class="flex items-center justify-between">
             <div>
-              <div class="text-2xl font-bold text-purple-900">
+              <div class="text-2xl font-bold text-teal-900">
                 {{ currentStats.performance.efficiency }}%
               </div>
-              <div class="text-sm text-purple-600">
+              <div class="text-sm text-teal-600">
                 {{ t("interactiveStats.kitchenEfficiency") }}
               </div>
             </div>
             <div
-              class="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center"
+              class="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center"
             >
               <BoltIcon class="w-5 h-5 text-white" />
             </div>
           </div>
-          <div class="mt-2 text-xs text-purple-500">
+          <div class="mt-2 text-xs text-teal-500">
             系統負載: {{ currentStats.realTime.systemLoad }}%
           </div>
         </div>
@@ -211,7 +209,7 @@
         <!-- Performance Metrics -->
         <div class="bg-gray-50 rounded-lg p-6">
           <h4 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
-            <ChartPieIcon class="w-5 h-5 mr-2 text-purple-600" />
+            <ChartPieIcon class="w-5 h-5 mr-2 text-teal-600" />
             性能指標
           </h4>
           <div class="space-y-4">
@@ -500,8 +498,8 @@
               </div>
 
               <!-- Peak Hours -->
-              <div class="bg-purple-50 rounded-lg p-4">
-                <h5 class="font-medium text-purple-900 mb-3 flex items-center">
+              <div class="bg-teal-50 rounded-lg p-4">
+                <h5 class="font-medium text-teal-900 mb-3 flex items-center">
                   <SunIcon class="w-4 h-4 mr-2" />
                   繁忙時段
                 </h5>
@@ -509,7 +507,7 @@
                   <span
                     v-for="hour in currentStats.performance.peakHours"
                     :key="hour"
-                    class="px-3 py-1 bg-purple-100 text-purple-800 text-sm rounded-full font-medium"
+                    class="px-3 py-1 bg-teal-100 text-teal-800 text-sm rounded-full font-medium"
                   >
                     {{ hour }}
                   </span>

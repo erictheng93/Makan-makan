@@ -301,7 +301,7 @@ function exportReport(): void {
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: #007aff;
   color: white;
 }
 
@@ -328,25 +328,27 @@ function exportReport(): void {
   border-radius: 12px;
   text-align: center;
   margin-bottom: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  /* Flat fill, not a gradient: DESIGN.md reserves gradients for transient
+     overlays and PWA prompts, never core operational layouts. */
+  background: #007aff;
   color: white;
 }
 
 .score-card.grade-a {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: #34c759;
 }
 
 .score-card.grade-b {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: #007aff;
 }
 
 .score-card.grade-c {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  background: #ff9500;
 }
 
 .score-card.grade-d,
 .score-card.grade-f {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: #ff3b30;
 }
 
 .score-value {
@@ -391,17 +393,17 @@ function exportReport(): void {
 }
 
 .metric-card.good {
-  border-color: #10b981;
+  border-color: #34c759;
   background: #f0fdf4;
 }
 
 .metric-card.needs-improvement {
-  border-color: #f59e0b;
+  border-color: #ff9500;
   background: #fffbeb;
 }
 
 .metric-card.poor {
-  border-color: #ef4444;
+  border-color: #ff3b30;
   background: #fef2f2;
 }
 
@@ -514,7 +516,7 @@ function exportReport(): void {
 }
 
 .resource-duration {
-  color: #ef4444;
+  color: #ff3b30;
   font-weight: 600;
 }
 

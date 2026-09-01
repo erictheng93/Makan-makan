@@ -345,7 +345,7 @@ const getNotificationIconBg = (type: string) => {
     order_urgent: "bg-red-100",
     order_ready: "bg-green-100",
     system_alert: "bg-yellow-100",
-    staff_update: "bg-purple-100",
+    staff_update: "bg-teal-100",
     reminder: "bg-gray-100",
   };
   return bgMap[type as keyof typeof bgMap] || "bg-gray-100";
@@ -357,7 +357,7 @@ const getNotificationIconColor = (type: string) => {
     order_urgent: "text-red-600",
     order_ready: "text-green-600",
     system_alert: "text-yellow-600",
-    staff_update: "text-purple-600",
+    staff_update: "text-teal-600",
     reminder: "text-gray-600",
   };
   return colorMap[type as keyof typeof colorMap] || "text-gray-600";

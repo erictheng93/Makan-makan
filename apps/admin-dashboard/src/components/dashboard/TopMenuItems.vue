@@ -166,7 +166,7 @@ const getRankColor = (index: number) => {
     "from-gray-400 to-gray-600", // Silver - 2nd place
     "from-orange-400 to-orange-600", // Bronze - 3rd place
     "from-blue-400 to-blue-600", // Blue - 4th place
-    "from-purple-400 to-purple-600", // Purple - 5th place
+    "from-teal-400 to-teal-600", // Purple - 5th place
   ];
 
   if (index < colors.length) {
@@ -181,7 +181,7 @@ const getRankBarColor = (index: number) => {
     "bg-gray-400", // Silver
     "bg-orange-400", // Bronze
     "bg-blue-400", // Blue
-    "bg-purple-400", // Purple
+    "bg-teal-400", // Purple
   ];
 
   if (index < colors.length) {

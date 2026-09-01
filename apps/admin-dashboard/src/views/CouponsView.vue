@@ -10,7 +10,7 @@
       </div>
       <div class="flex items-center space-x-4">
         <button
-          class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+          class="px-6 py-3 bg-teal-600 text-white font-semibold rounded-lg hover:bg-teal-700 transition-colors"
           @click="showCreateModal = true"
         >
           <PlusIcon class="w-5 h-5 inline mr-2" />
@@ -58,8 +58,8 @@
       </div>
       <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center">
-          <div class="p-2 bg-purple-100 rounded-lg">
-            <CurrencyDollarIcon class="w-6 h-6 text-purple-600" />
+          <div class="p-2 bg-teal-100 rounded-lg">
+            <CurrencyDollarIcon class="w-6 h-6 text-teal-600" />
           </div>
           <div class="ml-4">
             <p class="text-sm text-gray-600">
@@ -84,7 +84,7 @@
             v-model="filters.search"
             type="text"
             :placeholder="t('coupons.filters.searchPlaceholder')"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
           />
         </div>
         <div>
@@ -93,7 +93,7 @@
           }}</label>
           <select
             v-model="filters.status"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
           >
             <option value="">{{ t("coupons.filters.allStatus") }}</option>
             <option value="active">{{ t("coupons.filters.active") }}</option>
@@ -112,7 +112,7 @@
           }}</label>
           <select
             v-model="filters.discountType"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
           >
             <option value="">{{ t("coupons.filters.allTypes") }}</option>
             <option value="percentage">
@@ -256,7 +256,7 @@
                     class="w-full bg-gray-200 rounded-full h-2 mt-1"
                   >
                     <div
-                      class="bg-indigo-600 h-2 rounded-full"
+                      class="bg-teal-600 h-2 rounded-full"
                       :style="{
                         width: `${Math.min(100, (coupon.usedCount / coupon.usageLimit) * 100)}%`,
                       }"
@@ -291,7 +291,7 @@
               <td class="px-6 py-4 text-right">
                 <div class="flex items-center justify-end space-x-2">
                   <button
-                    class="text-indigo-600 hover:text-indigo-900 text-sm"
+                    class="text-teal-600 hover:text-teal-900 text-sm"
                     @click="viewCouponStats(coupon)"
                   >
                     {{ t("coupons.actions.stats") }}
@@ -303,7 +303,7 @@
                     {{ t("coupons.actions.edit") }}
                   </button>
                   <button
-                    class="text-purple-600 hover:text-purple-900 text-sm"
+                    class="text-teal-600 hover:text-teal-900 text-sm"
                     :data-testid="`distribute-coupon-${coupon.id}`"
                     @click="distributeCoupon(coupon)"
                   >
@@ -389,7 +389,7 @@
                 :class="[
                   'relative inline-flex items-center px-4 py-2 border text-sm font-medium',
                   page === currentPage
-                    ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                    ? 'z-10 bg-teal-50 border-teal-500 text-teal-600'
                     : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
                 ]"
                 @click="currentPage = page"

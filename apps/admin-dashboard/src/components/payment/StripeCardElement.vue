@@ -250,10 +250,10 @@ const getStripeTheme = () => {
   return {
     theme: "stripe" as const,
     variables: {
-      colorPrimary: "#3b82f6",
+      colorPrimary: "#007aff",
       colorBackground: "#ffffff",
       colorText: "#1f2937",
-      colorDanger: "#ef4444",
+      colorDanger: "#ff3b30",
       fontFamily:
         '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       spacingUnit: "6px",
@@ -269,14 +269,14 @@ const getStripeTheme = () => {
         transition: "border-color 0.2s, box-shadow 0.2s",
       },
       ".Input:focus": {
-        borderColor: "#3b82f6",
+        borderColor: "#007aff",
         boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.1)",
       },
       ".Input--invalid": {
-        borderColor: "#ef4444",
+        borderColor: "#ff3b30",
       },
       ".Input--complete": {
-        borderColor: "#10b981",
+        borderColor: "#34c759",
       },
     },
   };
@@ -308,12 +308,12 @@ const initializeStripe = async () => {
           },
         },
         invalid: {
-          color: "#ef4444",
-          iconColor: "#ef4444",
+          color: "#ff3b30",
+          iconColor: "#ff3b30",
         },
         complete: {
-          color: "#10b981",
-          iconColor: "#10b981",
+          color: "#34c759",
+          iconColor: "#34c759",
         },
       },
       hidePostalCode: true, // 隱藏郵遞區號欄位
@@ -563,7 +563,7 @@ onUnmounted(() => {
 }
 
 .card-icon.jcb {
-  @apply bg-purple-100 text-purple-800;
+  @apply bg-teal-100 text-teal-800;
 }
 
 /* 3D Secure 驗證 */

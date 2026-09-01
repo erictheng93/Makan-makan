@@ -33,7 +33,7 @@ interface ProductAnalyticsTab {
   label: string;
   icon: Component;
   description: string;
-  color: "indigo" | "orange" | "green";
+  color: "teal" | "orange" | "green";
 }
 
 const activeTab = ref<ProductAnalyticsTabId>("traffic");
@@ -56,13 +56,34 @@ const timeRangeOptions = computed(() => [
 ]);
 
 // Tab configurations
+// Written out in full so Tailwind's content scanner can see every class. The
+// previous version concatenated `tab.color` into the class string at runtime,
+// which the scanner cannot follow -- none of those classes were ever generated.
+const ACTIVE_TAB_CLASSES: Record<ProductAnalyticsTab["color"], string> = {
+  teal: "bg-teal-50 border-b-2 border-teal-600",
+  orange: "bg-orange-50 border-b-2 border-orange-600",
+  green: "bg-green-50 border-b-2 border-green-600",
+};
+
+const ACTIVE_TAB_ICON_CLASSES: Record<ProductAnalyticsTab["color"], string> = {
+  teal: "text-teal-600",
+  orange: "text-orange-600",
+  green: "text-green-600",
+};
+
+const ACTIVE_TAB_LABEL_CLASSES: Record<ProductAnalyticsTab["color"], string> = {
+  teal: "text-teal-900",
+  orange: "text-orange-900",
+  green: "text-green-900",
+};
+
 const tabs = computed<ProductAnalyticsTab[]>(() => [
   {
     id: "traffic",
     label: t("productAnalytics.trafficDrivers"),
     icon: UserGroupIcon,
     description: t("productAnalytics.trafficDriversDesc"),
-    color: "indigo",
+    color: "teal",
   },
   {
     id: "bestsellers",
@@ -155,7 +176,7 @@ const getTrendColor = (trend: number) => {
         <div class="flex items-center justify-between mb-4">
           <div>
             <div class="flex items-center space-x-3 mb-2">
-              <ChartBarIcon class="w-8 h-8 text-indigo-600" />
+              <ChartBarIcon class="w-8 h-8 text-teal-600" />
               <h1 class="text-3xl font-bold text-gray-900">
                 {{ t("productAnalytics.title") }}
               </h1>
@@ -177,7 +198,7 @@ const getTrendColor = (trend: number) => {
             </router-link>
             <router-link
               to="/dashboard/ai-analytics/products"
-              class="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-indigo-600 text-white"
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-teal-600 text-white"
             >
               {{ t("aiAnalytics.navProducts") }}
             </router-link>
@@ -193,7 +214,7 @@ const getTrendColor = (trend: number) => {
           <div class="flex items-center space-x-3">
             <select
               v-model="selectedTimeRange"
-              class="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              class="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             >
               <option
                 v-for="option in timeRangeOptions"
@@ -229,13 +250,7 @@ const getTrendColor = (trend: number) => {
             class="flex-1 px-6 py-4 flex items-center justify-center space-x-3 transition-all relative"
             :class="
               activeTab === tab.id
-                ? 'bg-gradient-to-br from-' +
-                  tab.color +
-                  '-50 to-' +
-                  tab.color +
-                  '-100 border-b-2 border-' +
-                  tab.color +
-                  '-600'
+                ? ACTIVE_TAB_CLASSES[tab.color]
                 : 'hover:bg-gray-50'
             "
             @click="activeTab = tab.id"
@@ -245,7 +260,7 @@ const getTrendColor = (trend: number) => {
               class="w-6 h-6"
               :class="
                 activeTab === tab.id
-                  ? 'text-' + tab.color + '-600'
+                  ? ACTIVE_TAB_ICON_CLASSES[tab.color]
                   : 'text-gray-400'
               "
             />
@@ -254,7 +269,7 @@ const getTrendColor = (trend: number) => {
                 class="font-semibold"
                 :class="
                   activeTab === tab.id
-                    ? 'text-' + tab.color + '-900'
+                    ? ACTIVE_TAB_LABEL_CLASSES[tab.color]
                     : 'text-gray-600'
                 "
               >
@@ -297,7 +312,7 @@ const getTrendColor = (trend: number) => {
       >
         <div class="text-center">
           <ArrowPathIcon
-            class="w-12 h-12 text-indigo-600 animate-spin mx-auto mb-4"
+            class="w-12 h-12 text-teal-600 animate-spin mx-auto mb-4"
           />
           <div class="text-gray-600 font-medium">
             {{ t("productAnalytics.loading") }}
@@ -319,10 +334,10 @@ const getTrendColor = (trend: number) => {
           <div
             class="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-lg"
             :class="{
-              'bg-gradient-to-br from-yellow-400 to-orange-500': index === 0,
-              'bg-gradient-to-br from-gray-300 to-gray-400': index === 1,
-              'bg-gradient-to-br from-orange-300 to-orange-400': index === 2,
-              'bg-gradient-to-br from-indigo-500 to-purple-600': index > 2,
+              'bg-orange-500': index === 0,
+              'bg-gray-400': index === 1,
+              'bg-orange-300': index === 2,
+              'bg-teal-500': index > 2,
             }"
           >
             {{ index + 1 }}
@@ -356,7 +371,7 @@ const getTrendColor = (trend: number) => {
                 <span class="text-sm text-gray-600">{{
                   t("productAnalytics.conversionRate")
                 }}</span>
-                <span class="font-semibold text-indigo-600">{{
+                <span class="font-semibold text-teal-600">{{
                   formatPercent(product.conversionRate)
                 }}</span>
               </div>
@@ -366,7 +381,7 @@ const getTrendColor = (trend: number) => {
                 <span class="text-sm text-gray-600">{{
                   t("productAnalytics.cartAdditionRate")
                 }}</span>
-                <span class="font-semibold text-purple-600">{{
+                <span class="font-semibold text-teal-600">{{
                   formatPercent(product.cartAdditionRate)
                 }}</span>
               </div>
@@ -476,7 +491,7 @@ const getTrendColor = (trend: number) => {
               :key="category"
               class="px-2 py-1 text-xs font-semibold rounded-full"
               :class="{
-                'bg-indigo-100 text-indigo-700': category === 'traffic-driver',
+                'bg-teal-100 text-teal-700': category === 'traffic-driver',
                 'bg-orange-100 text-orange-700': category === 'bestseller',
                 'bg-green-100 text-green-700': category === 'profit-leader',
                 'bg-red-100 text-red-700': category === 'underperformer',
@@ -496,7 +511,7 @@ const getTrendColor = (trend: number) => {
 
           <!-- Hover Effect -->
           <div
-            class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+            class="absolute inset-0 bg-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
           ></div>
         </div>
       </div>
@@ -517,9 +532,7 @@ const getTrendColor = (trend: number) => {
         v-if="currentProducts.length > 0"
         class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6"
       >
-        <div
-          class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-100"
-        >
+        <div class="bg-blue-50 rounded-2xl p-6 border border-blue-100">
           <div class="flex items-center space-x-3 mb-3">
             <div
               class="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center"
@@ -543,20 +556,18 @@ const getTrendColor = (trend: number) => {
           </p>
         </div>
 
-        <div
-          class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-100"
-        >
+        <div class="bg-teal-50 rounded-2xl p-6 border border-teal-100">
           <div class="flex items-center space-x-3 mb-3">
             <div
-              class="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center"
+              class="w-10 h-10 bg-teal-500 rounded-xl flex items-center justify-center"
             >
               <SparklesIcon class="w-6 h-6 text-white" />
             </div>
-            <div class="font-semibold text-purple-900">
+            <div class="font-semibold text-teal-900">
               {{ t("productAnalytics.optimizationTips") }}
             </div>
           </div>
-          <p class="text-sm text-purple-800 leading-relaxed">
+          <p class="text-sm text-teal-800 leading-relaxed">
             <template v-if="activeTab === 'traffic'">
               {{ t("productAnalytics.tipTraffic") }}
             </template>
@@ -569,9 +580,7 @@ const getTrendColor = (trend: number) => {
           </p>
         </div>
 
-        <div
-          class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100"
-        >
+        <div class="bg-green-50 rounded-2xl p-6 border border-green-100">
           <div class="flex items-center space-x-3 mb-3">
             <div
               class="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center"

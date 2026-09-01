@@ -551,12 +551,12 @@ onMounted(() => {
   content: "";
   width: 3px;
   height: 16px;
-  background: #3b82f6;
+  background: #007aff;
   border-radius: 2px;
 }
 
 .required {
-  color: #ef4444;
+  color: #ff3b30;
   font-weight: 700;
 }
 
@@ -583,7 +583,7 @@ onMounted(() => {
 
 .form-control:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #007aff;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -629,7 +629,7 @@ textarea.form-control {
   background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
   border: 2px solid #fecaca;
   border-radius: 10px;
-  color: #dc2626;
+  color: #d0332b;
   font-size: 14px;
   font-weight: 500;
   margin-top: 16px;
@@ -703,7 +703,7 @@ textarea.form-control {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #007aff 0%, #2563eb 100%);
   color: white;
 }
 
@@ -761,7 +761,7 @@ textarea.form-control {
 
 /* Input Validation States */
 .form-control.is-valid {
-  border-color: #10b981;
+  border-color: #34c759;
 }
 
 .form-control.is-valid:focus {
@@ -769,7 +769,7 @@ textarea.form-control {
 }
 
 .form-control.is-invalid {
-  border-color: #ef4444;
+  border-color: #ff3b30;
 }
 
 .form-control.is-invalid:focus {

@@ -272,7 +272,7 @@ function getSeverityTextClass(severity: string) {
     info: "text-blue-500",
     warning: "text-yellow-500",
     critical: "text-red-500",
-    fatal: "text-purple-500",
+    fatal: "text-teal-500",
   };
   return classMap[severity] || "text-gray-500";
 }
@@ -282,7 +282,7 @@ function getSeverityBorderClass(severity: string) {
     info: "border-l-4 border-l-blue-500",
     warning: "border-l-4 border-l-yellow-500",
     critical: "border-l-4 border-l-red-500",
-    fatal: "border-l-4 border-l-purple-500",
+    fatal: "border-l-4 border-l-teal-500",
   };
   return classMap[severity] || "";
 }

@@ -400,7 +400,7 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: #007aff;
   color: white;
 }
 
@@ -547,7 +547,7 @@ onMounted(() => {
 }
 
 .view-all-link {
-  color: #3b82f6;
+  color: #007aff;
   text-decoration: none;
   font-weight: 500;
 }

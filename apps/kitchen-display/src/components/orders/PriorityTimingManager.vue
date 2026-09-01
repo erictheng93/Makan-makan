@@ -580,7 +580,7 @@ input[type="range"]::-webkit-slider-thumb {
   width: 20px;
   border-radius: 50%;
   background: #ffffff;
-  border: 2px solid #f59e0b;
+  border: 2px solid #ff9500;
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
@@ -590,17 +590,17 @@ input[type="range"]::-moz-range-thumb {
   width: 20px;
   border-radius: 50%;
   background: #ffffff;
-  border: 2px solid #f59e0b;
+  border: 2px solid #ff9500;
   cursor: pointer;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 /* Red slider variant */
 input[type="range"].red::-webkit-slider-thumb {
-  border-color: #dc2626;
+  border-color: #d0332b;
 }
 
 input[type="range"].red::-moz-range-thumb {
-  border-color: #dc2626;
+  border-color: #d0332b;
 }
 </style>

@@ -219,7 +219,7 @@
                 </button>
                 <button
                   v-if="reservation.status === 'confirmed'"
-                  class="text-purple-600 hover:text-purple-900"
+                  class="text-teal-600 hover:text-teal-900"
                   :title="t('reservation.markArrived')"
                   @click="markArrived(reservation.id)"
                 >
@@ -227,7 +227,7 @@
                 </button>
                 <button
                   v-if="reservation.status === 'arrived'"
-                  class="text-indigo-600 hover:text-indigo-900"
+                  class="text-teal-600 hover:text-teal-900"
                   :title="t('reservation.markSeated')"
                   @click="markSeated(reservation.id)"
                 >
@@ -954,12 +954,18 @@ function getStatusText(status: string): string {
 /**
  * Get status badge class
  */
+// Seven statuses, five hues. `arrived` and `seated` were purple and indigo,
+// which the palette does not have; mapping both to teal would have made two
+// distinct states look identical. They are adjacent steps in the same journey,
+// so they share teal and separate by depth instead -- arrived is the lighter
+// tint, seated the saturated one, the same way the timer moves neutral → orange
+// → red under pressure.
 function getStatusBadgeClass(status: string): string {
   const classMap: Record<string, string> = {
     pending: "bg-yellow-100 text-yellow-800",
     confirmed: "bg-green-100 text-green-800",
-    arrived: "bg-purple-100 text-purple-800",
-    seated: "bg-indigo-100 text-indigo-800",
+    arrived: "bg-teal-50 text-teal-700",
+    seated: "bg-teal-200 text-teal-900",
     completed: "bg-blue-100 text-blue-800",
     cancelled: "bg-red-100 text-red-800",
     no_show: "bg-gray-100 text-gray-800",

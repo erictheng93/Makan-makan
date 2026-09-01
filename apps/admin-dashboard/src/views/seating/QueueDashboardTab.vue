@@ -335,11 +335,11 @@
 
               <!-- 發送通知 -->
               <button
-                class="p-4 bg-purple-100 rounded-lg hover:bg-purple-200 transition-colors text-center"
+                class="p-4 bg-teal-100 rounded-lg hover:bg-teal-200 transition-colors text-center"
                 @click="sendNotification"
               >
-                <BellIcon class="w-6 h-6 text-purple-600 mx-auto mb-2" />
-                <span class="text-sm font-medium text-purple-800">{{
+                <BellIcon class="w-6 h-6 text-teal-600 mx-auto mb-2" />
+                <span class="text-sm font-medium text-teal-800">{{
                   t("queue.sendNotification")
                 }}</span>
               </button>
@@ -360,7 +360,7 @@
 
             <!-- 自動分配控制 -->
             <div
-              class="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg"
+              class="mt-6 p-4 bg-gradient-to-r from-blue-50 to-teal-50 rounded-lg"
             >
               <div class="flex items-center justify-between mb-3">
                 <h4 class="font-medium text-gray-900">
@@ -856,12 +856,15 @@ const calculateEstimatedWait = (queueIndex: number) => {
 const getQueueNumberColor = (status: string) => {
   const colors: Record<string, string> = {
     waiting: "bg-blue-100 text-blue-800",
-    called: "bg-yellow-100 text-yellow-800",
-    notified: "bg-purple-100 text-purple-800",
+    // called was yellow and expired orange, which are the same colour here.
+    // Being called is the live, act-now state so it keeps full orange; expired
+    // is spent and drops to the muted step next to cancelled.
+    called: "bg-orange-100 text-orange-800",
+    notified: "bg-teal-100 text-teal-800",
     seated: "bg-green-100 text-green-800",
     no_show: "bg-red-100 text-red-800",
     cancelled: "bg-gray-100 text-gray-800",
-    expired: "bg-orange-100 text-orange-800",
+    expired: "bg-orange-50 text-orange-700",
   };
   return colors[status] || "bg-gray-100 text-gray-800";
 };
@@ -882,12 +885,15 @@ const getStatusText = (status: string) => {
 const getStatusClass = (status: string) => {
   const classes: Record<string, string> = {
     waiting: "bg-blue-100 text-blue-800",
-    called: "bg-yellow-100 text-yellow-800",
-    notified: "bg-purple-100 text-purple-800",
+    // called was yellow and expired orange, which are the same colour here.
+    // Being called is the live, act-now state so it keeps full orange; expired
+    // is spent and drops to the muted step next to cancelled.
+    called: "bg-orange-100 text-orange-800",
+    notified: "bg-teal-100 text-teal-800",
     seated: "bg-green-100 text-green-800",
     no_show: "bg-red-100 text-red-800",
     cancelled: "bg-gray-100 text-gray-800",
-    expired: "bg-orange-100 text-orange-800",
+    expired: "bg-orange-50 text-orange-700",
   };
   return classes[status] || "bg-gray-100 text-gray-800";
 };
@@ -896,7 +902,9 @@ const getTableStatusColor = (status: string) => {
   const colors: Record<string, string> = {
     available: "border-green-200 bg-green-50",
     occupied: "border-red-200 bg-red-50",
-    reserved: "border-yellow-200 bg-yellow-50",
+    // reserved was yellow, cleaning orange -- now the same hue, so they
+    // separate by depth: a held table is the stronger signal.
+    reserved: "border-orange-300 bg-orange-100",
     cleaning: "border-orange-200 bg-orange-50",
   };
   return colors[status] || "border-gray-200 bg-gray-50";
@@ -906,8 +914,8 @@ const getTableStatusTextColor = (status: string) => {
   const colors: Record<string, string> = {
     available: "bg-green-100 text-green-800",
     occupied: "bg-red-100 text-red-800",
-    reserved: "bg-yellow-100 text-yellow-800",
-    cleaning: "bg-orange-100 text-orange-800",
+    reserved: "bg-orange-200 text-orange-900",
+    cleaning: "bg-orange-50 text-orange-700",
   };
   return colors[status] || "bg-gray-100 text-gray-800";
 };

@@ -368,7 +368,7 @@ onMounted(() => {
 
 .btn-request-leave {
   padding: 12px 24px;
-  background: #3b82f6;
+  background: #007aff;
   color: white;
   border: none;
   border-radius: 8px;
@@ -414,17 +414,17 @@ onMounted(() => {
 }
 
 .tab:hover {
-  color: #3b82f6;
+  color: #007aff;
 }
 
 .tab.active {
-  color: #3b82f6;
-  border-bottom-color: #3b82f6;
+  color: #007aff;
+  border-bottom-color: #007aff;
 }
 
 .tab-count {
   padding: 2px 8px;
-  background: #ef4444;
+  background: #ff3b30;
   color: white;
   border-radius: 12px;
   font-size: 12px;
@@ -472,7 +472,7 @@ onMounted(() => {
   width: 48px;
   height: 48px;
   border: 4px solid #e5e7eb;
-  border-top-color: #3b82f6;
+  border-top-color: #007aff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

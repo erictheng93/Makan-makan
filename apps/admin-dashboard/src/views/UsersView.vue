@@ -19,14 +19,14 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
       <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center">
-          <div class="p-2 bg-purple-100 rounded-lg">
-            <CrownIcon class="h-6 w-6 text-purple-600" />
+          <div class="p-2 bg-teal-100 rounded-lg">
+            <CrownIcon class="h-6 w-6 text-teal-600" />
           </div>
           <div class="ml-4">
             <h3 class="text-sm font-semibold text-gray-900">
               {{ t("users.stats.owner") }}
             </h3>
-            <p class="text-xl font-bold text-purple-600">
+            <p class="text-xl font-bold text-teal-600">
               {{ stats.owner }}
             </p>
           </div>
@@ -268,7 +268,7 @@
                       >
                         <div class="flex items-center space-x-2">
                           <button
-                            class="text-indigo-600 hover:text-indigo-900"
+                            class="text-teal-600 hover:text-teal-900"
                             @click="editUser(user)"
                           >
                             {{ t("users.actions.edit") }}
@@ -623,7 +623,7 @@ const getRoleIcon = (role: number) => {
 
 const getRoleBadgeClass = (role: number) => {
   const classes: Record<number, string> = {
-    1: "bg-purple-100 text-purple-800",
+    1: "bg-teal-100 text-teal-800",
     2: "bg-orange-100 text-orange-800",
     3: "bg-green-100 text-green-800",
     4: "bg-blue-100 text-blue-800",

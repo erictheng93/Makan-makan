@@ -4,8 +4,8 @@
     <div class="mb-8 p-6 bg-white rounded-lg shadow border border-gray-200">
       <div class="mb-5">
         <div class="flex items-center gap-3 mb-2">
-          <div class="p-2 bg-indigo-100 rounded-lg">
-            <ArrowPathIcon class="h-6 w-6 text-indigo-600" />
+          <div class="p-2 bg-teal-100 rounded-lg">
+            <ArrowPathIcon class="h-6 w-6 text-teal-600" />
           </div>
           <h2 class="text-2xl font-bold text-gray-900">
             {{ t("swapRequests.title") }}

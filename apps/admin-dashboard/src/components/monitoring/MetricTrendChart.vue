@@ -51,7 +51,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  color: "#3b82f6",
+  color: "#007aff",
   fillColor: "rgba(59, 130, 246, 0.1)",
   unit: "",
   showGrid: true,

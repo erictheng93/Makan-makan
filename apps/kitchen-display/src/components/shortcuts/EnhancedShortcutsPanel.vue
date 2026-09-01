@@ -2,7 +2,7 @@
   <!-- Enhanced Keyboard Shortcuts Panel -->
   <div class="bg-white rounded-xl shadow-lg overflow-hidden">
     <!-- Header -->
-    <div class="px-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-600">
+    <div class="px-6 py-4 bg-teal-600">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-3">
           <div
@@ -14,7 +14,7 @@
             <h3 class="text-lg font-semibold text-white">
               {{ t("shortcuts.center") }}
             </h3>
-            <p class="text-purple-100 text-sm">
+            <p class="text-teal-100 text-sm">
               {{ t("shortcuts.enhancedControl") }}
             </p>
           </div>
@@ -36,7 +36,7 @@
 
           <button
             :class="[
-              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-purple-600',
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-teal-600',
               shortcuts.enabled ? 'bg-green-400' : 'bg-gray-300',
             ]"
             @click="toggleShortcuts"
@@ -99,7 +99,7 @@
           <input
             v-model="shortcuts.showVisualFeedback"
             type="checkbox"
-            class="form-checkbox text-purple-600 rounded"
+            class="form-checkbox text-teal-600 rounded"
           />
         </div>
       </div>
@@ -114,7 +114,7 @@
               :class="[
                 'py-2 px-1 border-b-2 font-medium text-sm',
                 activeCategory === String(categoryName)
-                  ? 'border-purple-500 text-purple-600'
+                  ? 'border-teal-500 text-teal-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
               ]"
               @click="activeCategory = String(categoryName)"
@@ -222,7 +222,7 @@
                 <input
                   v-model="shortcut.enabled"
                   type="checkbox"
-                  class="form-checkbox text-purple-600 rounded"
+                  class="form-checkbox text-teal-600 rounded"
                   @change="updateShortcut(shortcut)"
                 />
               </div>
@@ -251,7 +251,7 @@
               >
               <div class="w-16 bg-gray-200 rounded-full h-1">
                 <div
-                  class="bg-purple-500 h-1 rounded-full"
+                  class="bg-teal-500 h-1 rounded-full"
                   :style="{
                     width: `${(usage.count / Math.max(...(shortcuts.stats.value.mostUsed?.map((u: ShortcutStats['mostUsed'][number]) => u.count) || [1]))) * 100}%`,
                   }"
@@ -297,7 +297,7 @@
             {{ t("shortcuts.customShortcuts") }}
           </h4>
           <button
-            class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+            class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
             @click="startCustomShortcut"
           >
             <PlusIcon class="w-4 h-4 mr-1" />
@@ -408,14 +408,19 @@ const getCategoryName = (category: string): string => {
 };
 
 const getColorClass = (color?: string): string => {
+  // The palette's own names. `yellow` and `purple` are kept as aliases only so
+  // existing shortcut definitions keep resolving -- both now land on the hue
+  // the design system actually has, and neither is a colour a new shortcut
+  // should ask for.
   const colors: Record<string, string> = {
     red: "bg-red-500",
     green: "bg-green-500",
     blue: "bg-blue-500",
-    yellow: "bg-yellow-500",
-    purple: "bg-purple-500",
     orange: "bg-orange-500",
+    teal: "bg-teal-500",
     gray: "bg-gray-500",
+    yellow: "bg-orange-500",
+    purple: "bg-teal-500",
   };
   return colors[color || "gray"] || "bg-gray-500";
 };

@@ -628,7 +628,7 @@ const renderPerformanceChart = () => {
 
   // Draw axes and data points
   // This is a simplified implementation
-  ctx.strokeStyle = "#3b82f6";
+  ctx.strokeStyle = "#007aff";
   ctx.lineWidth = 2;
   ctx.beginPath();
 
@@ -686,15 +686,15 @@ onMounted(() => {
 }
 
 .health-card.health-healthy {
-  border-color: #10b981;
+  border-color: #34c759;
 }
 
 .health-card.health-warning {
-  border-color: #f59e0b;
+  border-color: #ff9500;
 }
 
 .health-card.health-critical {
-  border-color: #ef4444;
+  border-color: #ff3b30;
 }
 
 .health-header {
@@ -767,7 +767,7 @@ onMounted(() => {
 
 .storage-fill {
   height: 100%;
-  background: #3b82f6;
+  background: #007aff;
   transition: width 0.3s ease;
 }
 
@@ -860,15 +860,15 @@ onMounted(() => {
 }
 
 .restaurant-card.status-healthy {
-  border-left-color: #10b981;
+  border-left-color: #34c759;
 }
 
 .restaurant-card.status-warning {
-  border-left-color: #f59e0b;
+  border-left-color: #ff9500;
 }
 
 .restaurant-card.status-critical {
-  border-left-color: #ef4444;
+  border-left-color: #ff3b30;
 }
 
 .restaurant-header {
@@ -899,15 +899,15 @@ onMounted(() => {
 }
 
 .status-indicator.healthy .status-dot {
-  background: #10b981;
+  background: #34c759;
 }
 
 .status-indicator.warning .status-dot {
-  background: #f59e0b;
+  background: #ff9500;
 }
 
 .status-indicator.critical .status-dot {
-  background: #ef4444;
+  background: #ff3b30;
 }
 
 .restaurant-metrics {
@@ -936,7 +936,7 @@ onMounted(() => {
 }
 
 .alert-count {
-  background: #ef4444;
+  background: #ff3b30;
   color: white;
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
@@ -962,18 +962,18 @@ onMounted(() => {
 }
 
 .alert-item.severity-critical {
-  border-left-color: #ef4444;
+  border-left-color: #ff3b30;
 }
 
 .alert-item.severity-high {
-  border-left-color: #f59e0b;
+  border-left-color: #ff9500;
 }
 
 .alert-icon {
   flex-shrink: 0;
   width: 1.5rem;
   height: 1.5rem;
-  color: #ef4444;
+  color: #ff3b30;
 }
 
 .alert-content {
@@ -1021,7 +1021,7 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: #007aff;
   color: white;
 }
 

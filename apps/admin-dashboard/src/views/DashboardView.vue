@@ -57,7 +57,7 @@
         :title="t('dashboard.averageOrderValue')"
         :value="formatCurrency(averageOrderValue)"
         icon="trending-up"
-        color="purple"
+        color="teal"
         :loading="isLoading"
       />
       <StatsCard
@@ -244,9 +244,9 @@
 
         <router-link
           to="/dashboard/seating"
-          class="flex flex-col items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+          class="flex flex-col items-center p-4 bg-teal-50 rounded-lg hover:bg-teal-100 transition-colors"
         >
-          <Clock class="w-8 h-8 text-purple-600 mb-2" />
+          <Clock class="w-8 h-8 text-teal-600 mb-2" />
           <span class="text-sm font-medium text-gray-900">{{
             t("dashboard.waitingManagement")
           }}</span>

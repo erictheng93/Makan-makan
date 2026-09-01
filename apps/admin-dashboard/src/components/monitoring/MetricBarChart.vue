@@ -55,7 +55,7 @@ const props = withDefaults(defineProps<Props>(), {
 const chartData = computed((): ChartData<"bar"> => {
   const labels = props.data.map((point) => point.label);
   const values = props.data.map((point) => point.value);
-  const colors = props.data.map((point) => point.color || "#3b82f6");
+  const colors = props.data.map((point) => point.color || "#007aff");
 
   return {
     labels,

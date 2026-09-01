@@ -65,12 +65,18 @@ const alertStyles: Record<string, string> = {
   info: "bg-blue-50 border-blue-200",
 };
 
+// Five alert types on a five-hue palette. `procurement_needed` was amber and
+// `high_demand` orange -- distinct in Tailwind's palette, identical in ours,
+// since amber resolves to orange here. It takes blue instead: it is the one
+// entry that asks for an action rather than reporting a condition.
+// `excess_stock` and `unusual_spike` are both teal data anomalies, so they
+// separate by depth rather than hue.
 const typeStyles: Record<string, string> = {
   high_demand: "bg-orange-100 text-orange-800",
   low_stock: "bg-red-100 text-red-800",
-  unusual_spike: "bg-purple-100 text-purple-800",
-  procurement_needed: "bg-amber-100 text-amber-800",
-  excess_stock: "bg-teal-100 text-teal-800",
+  unusual_spike: "bg-teal-200 text-teal-900",
+  procurement_needed: "bg-blue-100 text-blue-800",
+  excess_stock: "bg-teal-50 text-teal-700",
 };
 
 const typeLabels: Record<string, string> = {

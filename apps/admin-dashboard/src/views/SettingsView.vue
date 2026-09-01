@@ -2700,7 +2700,7 @@ onMounted(() => {
 }
 
 input:checked + .slider {
-  background-color: #3b82f6;
+  background-color: #007aff;
 }
 
 input:checked + .slider:before {

@@ -131,7 +131,7 @@ const chartData = computed(() => {
           const hue = 210 - index * 15;
           return `hsl(${hue}, 70%, 60%)`;
         }),
-        borderColor: "#3b82f6",
+        borderColor: "#007aff",
         borderWidth: 0,
       },
     ],
@@ -246,13 +246,13 @@ onMounted(() => {
 
 .period-select:hover,
 .type-select:hover {
-  border-color: #3b82f6;
+  border-color: #007aff;
 }
 
 .period-select:focus,
 .type-select:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #007aff;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -264,18 +264,18 @@ onMounted(() => {
 }
 
 .stat-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #007aff;
   padding: 16px;
   border-radius: 12px;
   color: white;
 }
 
 .stat-card:nth-child(2) {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: #34c759;
 }
 
 .stat-card:nth-child(3) {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: #ff9500;
 }
 
 .stat-label {

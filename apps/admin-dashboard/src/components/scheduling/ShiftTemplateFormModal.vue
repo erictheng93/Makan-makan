@@ -425,7 +425,7 @@ const defaultForm = () => ({
   maxEmployees: 5,
   hourlyRate: null as number | null,
   overtimeMultiplier: 1.5,
-  colorCode: "#3B82F6",
+  colorCode: "#007aff",
   icon: "",
   isActive: true,
 });
@@ -698,7 +698,7 @@ watch(
 
 .form-label.required::after {
   content: "*";
-  color: #ef4444;
+  color: #ff3b30;
 }
 
 .form-input,
@@ -717,7 +717,7 @@ watch(
 .form-input:focus,
 .form-select:focus,
 .form-textarea:focus {
-  border-color: #3b82f6;
+  border-color: #007aff;
 }
 
 .form-textarea {
@@ -729,7 +729,7 @@ watch(
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: #3b82f6;
+  accent-color: #007aff;
 }
 
 /* Days Selector */
@@ -756,7 +756,7 @@ watch(
 }
 
 .day-label.selected {
-  border-color: #3b82f6;
+  border-color: #007aff;
   background: #eff6ff;
 }
 
@@ -771,7 +771,7 @@ watch(
 }
 
 .day-label.selected .day-name {
-  color: #3b82f6;
+  color: #007aff;
 }
 
 /* Color Picker */
@@ -839,7 +839,7 @@ watch(
   padding: 12px;
   background: #eff6ff;
   border-radius: 8px;
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid #007aff;
   font-size: 14px;
   color: #1e40af;
 }
@@ -855,7 +855,7 @@ watch(
   gap: 10px;
   padding: 12px 16px;
   background: #fee2e2;
-  color: #dc2626;
+  color: #d0332b;
   border-radius: 8px;
   border: 1px solid #fecaca;
   font-size: 14px;
@@ -905,7 +905,7 @@ watch(
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #007aff 0%, #2563eb 100%);
   color: white;
 }
 

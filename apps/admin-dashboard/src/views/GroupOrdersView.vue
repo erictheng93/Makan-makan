@@ -166,7 +166,7 @@
                   <div class="flex items-center mb-3">
                     <div class="flex-shrink-0">
                       <div
-                        class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center"
+                        class="w-12 h-12 bg-gradient-to-r from-blue-500 to-teal-600 rounded-lg flex items-center justify-center"
                       >
                         <UserGroupIcon class="w-6 h-6 text-white" />
                       </div>
@@ -673,7 +673,7 @@
               </button>
 
               <button
-                class="w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                class="w-full py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
                 @click="generateShareCode"
               >
                 {{ t("groupOrders.generateShareCode") }}
@@ -1105,10 +1105,10 @@ const getMemberColor = (index: number) => {
   const colors = [
     "bg-blue-500 text-white",
     "bg-green-500 text-white",
-    "bg-purple-500 text-white",
+    "bg-teal-500 text-white",
     "bg-orange-500 text-white",
-    "bg-pink-500 text-white",
-    "bg-indigo-500 text-white",
+    "bg-teal-500 text-white",
+    "bg-teal-500 text-white",
   ];
   return colors[index % colors.length];
 };

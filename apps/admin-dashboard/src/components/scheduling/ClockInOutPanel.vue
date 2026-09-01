@@ -414,7 +414,7 @@ defineExpose({
   align-items: center;
   margin-bottom: 20px;
   padding: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #007aff;
   border-radius: 12px;
   color: white;
   box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);
@@ -532,7 +532,7 @@ defineExpose({
   border-radius: 10px;
   padding: 12px;
   margin-bottom: 16px;
-  border-left: 4px solid #10b981;
+  border-left: 4px solid #34c759;
 }
 
 .status-row {
@@ -558,7 +558,7 @@ defineExpose({
 
 .status-time {
   font-weight: 700;
-  color: #059669;
+  color: #2da34c;
   font-family: "Courier New", monospace;
   margin-left: auto;
 }
@@ -601,12 +601,12 @@ defineExpose({
 }
 
 .btn-clock-in {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, #34c759 0%, #2da34c 100%);
   color: white;
 }
 
 .btn-clock-out {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: linear-gradient(135deg, #ff3b30 0%, #d0332b 100%);
   color: white;
 }
 
@@ -618,7 +618,7 @@ defineExpose({
   gap: 8px;
   padding: 14px 20px;
   background: #f0fdf4;
-  color: #059669;
+  color: #2da34c;
   border-radius: 10px;
   font-weight: 700;
   font-size: 15px;
@@ -656,7 +656,7 @@ defineExpose({
 }
 
 .notes-textarea:focus {
-  border-color: #3b82f6;
+  border-color: #007aff;
 }
 
 .notes-actions {
@@ -687,7 +687,7 @@ defineExpose({
 }
 
 .btn-confirm {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #007aff 0%, #2563eb 100%);
   color: white;
 }
 
@@ -738,7 +738,7 @@ defineExpose({
   width: 40px;
   height: 40px;
   border: 3px solid #f3f4f6;
-  border-top-color: #3b82f6;
+  border-top-color: #007aff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 12px;
@@ -765,13 +765,13 @@ defineExpose({
 
 .error-message {
   background: #fee2e2;
-  color: #dc2626;
+  color: #d0332b;
   border: 1px solid #fecaca;
 }
 
 .success-message {
   background: #d1fae5;
-  color: #059669;
+  color: #2da34c;
   border: 1px solid #a7f3d0;
 }
 
@@ -785,7 +785,7 @@ defineExpose({
   padding: 4px 8px;
   border: none;
   background: transparent;
-  color: #dc2626;
+  color: #d0332b;
   font-size: 16px;
   cursor: pointer;
   border-radius: 4px;
@@ -843,7 +843,7 @@ defineExpose({
 
 .record-hours {
   font-weight: 700;
-  color: #3b82f6;
+  color: #007aff;
   font-family: "Courier New", monospace;
 }
 

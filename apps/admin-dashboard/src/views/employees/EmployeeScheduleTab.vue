@@ -176,7 +176,7 @@ const scheduleStatusClass = (status: string) => {
   const classes: Record<string, string> = {
     completed: "bg-emerald-50 text-emerald-700",
     scheduled: "bg-blue-50 text-blue-700",
-    confirmed: "bg-indigo-50 text-indigo-700",
+    confirmed: "bg-teal-50 text-teal-700",
     cancelled: "bg-red-50 text-red-700",
     no_show: "bg-red-50 text-red-700",
   };

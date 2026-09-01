@@ -223,7 +223,7 @@
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center space-x-3">
             <div
-              class="w-10 h-10 rounded-lg bg-pink-100 flex items-center justify-center text-lg"
+              class="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center text-lg"
             >
               🩷
             </div>

@@ -2,7 +2,7 @@
   <!-- Interactive Audio Control Panel -->
   <div class="bg-white rounded-xl shadow-lg overflow-hidden">
     <!-- Header -->
-    <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600">
+    <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-teal-600">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-3">
           <div

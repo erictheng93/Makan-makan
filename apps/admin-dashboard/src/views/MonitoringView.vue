@@ -691,7 +691,7 @@
                       <div class="h-64">
                         <MetricTrendChart
                           :label="t('monitoring.performance.cache.hitRate')"
-                          color="#8b5cf6"
+                          color="#30b0c7"
                           :data="cacheHitRateTrendData"
                           fill-color="rgba(139, 92, 246, 0.1)"
                           unit="%"
@@ -983,8 +983,8 @@ const keyMetricsCards = computed(() => {
       trendIcon: MinusIcon,
       trendColor: "text-gray-400",
       icon: CircleStackIcon,
-      iconColor: "text-purple-600",
-      bgColor: "bg-purple-50",
+      iconColor: "text-teal-600",
+      bgColor: "bg-teal-50",
     },
     {
       // 5xx only. Client 4xx is shown as its own subtitle rather than folded in
@@ -1059,7 +1059,7 @@ const multiMetricChartSeries = computed(() => {
         timestamp: d.timestamp,
         value: d.apiResponseTime,
       })),
-      color: "#3b82f6",
+      color: "#007aff",
       fillColor: "rgba(59, 130, 246, 0.1)",
     });
   }
@@ -1071,7 +1071,7 @@ const multiMetricChartSeries = computed(() => {
         timestamp: d.timestamp,
         value: d.dbQueryTime,
       })),
-      color: "#10b981",
+      color: "#34c759",
       fillColor: "rgba(16, 185, 129, 0.1)",
     });
   }
@@ -1094,7 +1094,7 @@ const errorBarChartData = computed(() => {
   return overview.value.topErrors.map((error) => ({
     label: error.type,
     value: error.count,
-    color: "#ef4444",
+    color: "#ff3b30",
   }));
 });
 
@@ -1346,7 +1346,7 @@ function getAlertSeverityBadgeColor(severity: string) {
     info: "bg-blue-100 text-blue-800",
     warning: "bg-yellow-100 text-yellow-800",
     critical: "bg-red-100 text-red-800",
-    fatal: "bg-purple-100 text-purple-800",
+    fatal: "bg-teal-100 text-teal-800",
   };
   return colorMap[severity] || "bg-gray-100 text-gray-800";
 }

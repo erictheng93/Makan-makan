@@ -6,8 +6,8 @@
     >
       <div class="flex-1">
         <div class="flex items-center gap-3 mb-2">
-          <div class="p-2 bg-purple-100 rounded-lg">
-            <QueueListIcon class="h-6 w-6 text-purple-600" />
+          <div class="p-2 bg-teal-100 rounded-lg">
+            <QueueListIcon class="h-6 w-6 text-teal-600" />
           </div>
           <h2 class="text-2xl font-bold text-gray-900">
             {{ t("shiftTemplates.management") }}

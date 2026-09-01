@@ -217,7 +217,7 @@ const recentActivity = computed(() => {
       },
       confirmed: {
         badge: t("employees.activity.confirmed"),
-        badgeClass: "bg-indigo-50 text-indigo-700",
+        badgeClass: "bg-teal-50 text-teal-700",
       },
       cancelled: {
         badge: t("employees.activity.cancelled"),
