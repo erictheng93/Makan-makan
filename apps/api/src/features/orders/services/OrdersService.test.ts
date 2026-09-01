@@ -985,6 +985,131 @@ describe("OrdersService workflows", () => {
     });
   });
 
+  it("keeps foreign orders out of an owner's bulk status update", async () => {
+    const service = new OrdersService(createEnv() as never);
+    getBaseOrder
+      .mockResolvedValueOnce(
+        createOrder({ id: "owner-order", restaurantId: "restaurant-1" }),
+      )
+      .mockResolvedValueOnce(
+        createOrder({ id: "foreign-order", restaurantId: "restaurant-2" }),
+      );
+    updateBaseOrderStatus.mockResolvedValueOnce(
+      createOrder({ id: "owner-order", status: "preparing" }),
+    );
+
+    const result = await service.bulkUpdateOrders(
+      {
+        action: "update_status",
+        orderIds: ["owner-order", "foreign-order"],
+        data: { status: "preparing" },
+      },
+      "owner-1",
+      1,
+      {
+        userId: "owner-1",
+        userRole: 1,
+        userRestaurantId: "restaurant-1",
+      },
+    );
+
+    expect(result).toMatchObject({ successCount: 1, failedCount: 1 });
+    expect(result.results).toEqual([
+      { orderId: "owner-order", success: true, data: expect.any(Object) },
+      {
+        orderId: "foreign-order",
+        success: false,
+        error: expect.stringContaining("Access denied"),
+      },
+    ]);
+    expect(result.errors).toEqual([
+      {
+        orderId: "foreign-order",
+        error: expect.stringContaining("Access denied"),
+      },
+    ]);
+    expect(updateBaseOrderStatus).toHaveBeenCalledTimes(1);
+    expect(updateBaseOrderStatus).toHaveBeenCalledWith(
+      "owner-order",
+      expect.objectContaining({ status: "preparing" }),
+    );
+  });
+
+  it("keeps foreign orders out of an owner's bulk cancellation", async () => {
+    const service = new OrdersService(createEnv() as never);
+    getBaseOrder
+      .mockResolvedValueOnce(
+        createOrder({ id: "owner-order", restaurantId: "restaurant-1" }),
+      )
+      .mockResolvedValueOnce(
+        createOrder({ id: "foreign-order", restaurantId: "restaurant-2" }),
+      );
+    cancelBaseOrder.mockResolvedValueOnce(
+      createOrder({ id: "owner-order", status: "cancelled" }),
+    );
+
+    const result = await service.bulkUpdateOrders(
+      {
+        action: "cancel",
+        orderIds: ["owner-order", "foreign-order"],
+      },
+      "owner-1",
+      1,
+      {
+        userId: "owner-1",
+        userRole: 1,
+        userRestaurantId: "restaurant-1",
+      },
+    );
+
+    expect(result).toMatchObject({ successCount: 1, failedCount: 1 });
+    expect(result.results).toEqual([
+      { orderId: "owner-order", success: true, data: expect.any(Object) },
+      {
+        orderId: "foreign-order",
+        success: false,
+        error: expect.stringContaining("Access denied"),
+      },
+    ]);
+    expect(cancelBaseOrder).toHaveBeenCalledTimes(1);
+    expect(cancelBaseOrder).toHaveBeenCalledWith(
+      "owner-order",
+      "Bulk cancellation",
+    );
+  });
+
+  it("allows an admin to update orders across restaurants in bulk", async () => {
+    const service = new OrdersService(createEnv() as never);
+    getBaseOrder
+      .mockResolvedValueOnce(
+        createOrder({ id: "restaurant-1-order", restaurantId: "restaurant-1" }),
+      )
+      .mockResolvedValueOnce(
+        createOrder({ id: "restaurant-2-order", restaurantId: "restaurant-2" }),
+      );
+    updateBaseOrderStatus
+      .mockResolvedValueOnce(
+        createOrder({ id: "restaurant-1-order", status: "preparing" }),
+      )
+      .mockResolvedValueOnce(
+        createOrder({ id: "restaurant-2-order", status: "preparing" }),
+      );
+
+    const result = await service.bulkUpdateOrders(
+      {
+        action: "update_status",
+        orderIds: ["restaurant-1-order", "restaurant-2-order"],
+        data: { status: "preparing" },
+      },
+      "admin-1",
+      0,
+      { userId: "admin-1", userRole: 0 },
+    );
+
+    expect(result).toMatchObject({ successCount: 2, failedCount: 0 });
+    expect(updateBaseOrderStatus).toHaveBeenCalledTimes(2);
+  });
+
   it("allows a shop owner to mark a delivered order paid", async () => {
     const service = new OrdersService(createEnv() as never);
     getBaseOrder.mockResolvedValue(

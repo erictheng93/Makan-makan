@@ -870,6 +870,7 @@ export class OrdersService implements IOrdersService {
     operation: BulkOrderOperation,
     userId?: string,
     userRole?: UserRole,
+    caller?: CallerContext,
   ): Promise<BulkOrderResult> {
     try {
       const batchId =
@@ -901,6 +902,7 @@ export class OrdersService implements IOrdersService {
                   },
                   userId,
                   userRole,
+                  caller,
                 );
                 success = !!updated;
                 data = updated;
@@ -912,6 +914,7 @@ export class OrdersService implements IOrdersService {
                 orderId,
                 operation.data?.reason || "Bulk cancellation",
                 userId,
+                caller,
               );
               success = !!cancelled;
               data = cancelled;

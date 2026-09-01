@@ -1024,6 +1024,11 @@ describe("orders routes", () => {
       }),
       "user-42",
       1,
+      {
+        userId: "user-42",
+        userRole: 1,
+        userRestaurantId: "restaurant-1",
+      },
     );
   });
 

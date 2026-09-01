@@ -449,6 +449,7 @@ export interface IOrdersService {
     operation: BulkOrderOperation,
     userId?: string,
     userRole?: UserRole,
+    caller?: CallerContext,
   ): Promise<BulkOrderResult>;
 
   // Coupon and Discount Operations
