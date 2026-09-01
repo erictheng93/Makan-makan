@@ -91,16 +91,33 @@ MakanMasak is a modern, serverless restaurant management system built on Cloudfl
   live in `packages/database/strict-table-policy.json`; `pnpm check:strict-tables`
   enforces both rules for migrations, not the live schema. All 117 tables in the
   baseline are already STRICT, but production was built from the legacy track and
-  is not uniformly STRICT (2026-08-30 measurement: 15 of 119 non-shadow tables).
-  Recheck production with:
+  is almost entirely non-STRICT: **3 of 119** non-shadow tables (2026-09-01
+  measurement — `ingredient_stock_movements`, `print_agents`, `receipts`).
+
+  The "15 of 119" this file and issue #297 previously recorded was an artifact of
+  the query, not a real count. `sql LIKE '%STRICT%'` is a substring match, so it
+  also matches `ON DELETE RESTRICT` (9 tables, `orders` and
+  `credit_ledger_entries` among them) and the column name `di**strict**`
+  (`restaurants`, `markets`, `dish_search_index`). The keyword only counts as the
+  table option after the closing paren. Recheck production with:
 
   ```sql
   SELECT COUNT(*) AS total,
-         SUM(CASE WHEN sql LIKE '%STRICT%' THEN 1 ELSE 0 END) AS strict_tables
+         SUM(CASE WHEN sql LIKE '%STRICT%' THEN 1 ELSE 0 END) AS buggy_do_not_use,
+         SUM(CASE WHEN trim(replace(sql, char(10), ' ')) LIKE '%) STRICT'
+                  THEN 1 ELSE 0 END) AS strict_tables
   FROM sqlite_master
   WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
     AND name NOT LIKE '%_fts%' AND name NOT LIKE 'd1_%';
   ```
+
+  Type contamination has not actually occurred yet: 721 INTEGER columns across
+  the 114 non-STRICT tables that have any, 0 non-integer cells (2026-09-01). Read
+  that as "production is nearly empty" rather than "the write paths are proven" —
+  88 of those tables have no rows at all and the whole database held 1,352 rows
+  when measured. Re-measure once real traffic lands; `docs/production-strict-type-audit.md`
+  has the reusable command block, including the `_cf_KV` table that returns
+  `SQLITE_AUTH [7500]` deterministically and must be excluded from any sweep.
 
   For raw `env.DB.prepare(...)` writes to legacy production tables, validate
   integer timestamps and amounts in the service layer; TypeScript/Drizzle types
