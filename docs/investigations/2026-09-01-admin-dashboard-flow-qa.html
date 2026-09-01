@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>店家後台流程 QA — 2026-09-01</title>
+<style>
+:root{
+  --ground:#F2F2F7; --surface:#FFFFFF; --surface-2:#F8F8FB;
+  --ink:#1C1C1E; --ink-2:#55555C; --ink-3:#8A8A92;
+  --hair:rgba(28,28,30,.10); --hair-2:rgba(28,28,30,.06);
+  --shadow:0 1px 1.5px rgba(24,24,45,.05), 0 5px 16px rgba(24,24,45,.05);
+  --shadow-sm:0 1px 1px rgba(24,24,45,.05), 0 3px 10px rgba(24,24,45,.05);
+  --blue:#007AFF; --blue-ink:#0A5FC2;
+  --green:#34C759; --green-ink:#17803D;
+  --orange:#FF9500; --orange-ink:#A85F04;
+  --red:#FF3B30; --red-ink:#C1271D;
+  --purple:#AF52DE; --purple-ink:#7B2FB5;
+  --teal:#30B0C7; --teal-ink:#0D7C8F;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0F0F13; --surface:#1B1B21; --surface-2:#212128;
+    --ink:#F0F0F4; --ink-2:#B4B4BE; --ink-3:#7E7E8A;
+    --hair:rgba(255,255,255,.14); --hair-2:rgba(255,255,255,.07);
+    --shadow:0 1px 1.5px rgba(0,0,0,.4), 0 5px 16px rgba(0,0,0,.35);
+    --shadow-sm:0 1px 1px rgba(0,0,0,.35), 0 3px 10px rgba(0,0,0,.3);
+    --blue:#3B9BFF; --blue-ink:#7CBEFF;
+    --green:#4CD97A; --green-ink:#84E5A3;
+    --orange:#FFB03D; --orange-ink:#FFC978;
+    --red:#FF6961; --red-ink:#FF9A94;
+    --purple:#C77BEB; --purple-ink:#DBA9F4;
+    --teal:#4ECBE0; --teal-ink:#8CE0EE;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0F0F13; --surface:#1B1B21; --surface-2:#212128;
+  --ink:#F0F0F4; --ink-2:#B4B4BE; --ink-3:#7E7E8A;
+  --hair:rgba(255,255,255,.14); --hair-2:rgba(255,255,255,.07);
+  --shadow:0 1px 1.5px rgba(0,0,0,.4), 0 5px 16px rgba(0,0,0,.35);
+  --shadow-sm:0 1px 1px rgba(0,0,0,.35), 0 3px 10px rgba(0,0,0,.3);
+  --blue:#3B9BFF; --blue-ink:#7CBEFF;
+  --green:#4CD97A; --green-ink:#84E5A3;
+  --orange:#FFB03D; --orange-ink:#FFC978;
+  --red:#FF6961; --red-ink:#FF9A94;
+  --purple:#C77BEB; --purple-ink:#DBA9F4;
+  --teal:#4ECBE0; --teal-ink:#8CE0EE;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:"IBM Plex Sans","Noto Sans TC",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.7; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:960px; margin:0 auto; padding:36px 22px 80px}
+code{
+  font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:.87em; background:var(--surface-2); padding:1.5px 6px;
+  border-radius:6px; overflow-wrap:anywhere;
+}
+pre{
+  background:var(--surface-2); border-radius:14px; padding:13px 16px;
+  overflow-x:auto; font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  font-size:12.5px; line-height:1.65; margin:12px 0;
+}
+pre code{background:none; padding:0}
+a{color:var(--blue-ink); font-weight:600; text-decoration:none}
+a:hover{text-decoration:underline}
+
+header.mast{margin-bottom:26px}
+header.mast h1{
+  margin:0; font-size:31px; font-weight:900; letter-spacing:-.025em;
+  line-height:1.2; text-wrap:balance;
+}
+header.mast .sub{margin:8px 0 0; font-size:14.5px; color:var(--ink-2)}
+.meta{
+  display:flex; flex-wrap:wrap; gap:10px 26px; margin-top:16px;
+  background:var(--surface); border-radius:16px; padding:13px 18px;
+  box-shadow:var(--shadow); font-size:12.5px; color:var(--ink-2);
+}
+.meta b{color:var(--ink); font-weight:600}
+
+section{margin-top:34px}
+h2{
+  margin:0 0 14px; font-size:20px; font-weight:800; letter-spacing:-.015em;
+}
+h3{
+  margin:26px 0 10px; font-size:16px; font-weight:700; letter-spacing:-.01em;
+}
+p{margin:10px 0}
+
+.card{
+  background:var(--surface); border-radius:20px; padding:18px 22px 20px;
+  box-shadow:var(--shadow); margin:14px 0;
+}
+.card > :first-child{margin-top:0}
+.card > :last-child{margin-bottom:0}
+
+.finding{
+  --ac:var(--ink-3); --ac-ink:var(--ink-2);
+  background:var(--surface); border-radius:20px; box-shadow:var(--shadow);
+  margin:14px 0; overflow:hidden;
+}
+.finding.blocker{--ac:var(--red); --ac-ink:var(--red-ink)}
+.finding.data{--ac:var(--purple); --ac-ink:var(--purple-ink)}
+.finding.ux{--ac:var(--orange); --ac-ink:var(--orange-ink)}
+.finding.ok{--ac:var(--green); --ac-ink:var(--green-ink)}
+.finding-h{
+  display:flex; align-items:baseline; gap:11px; flex-wrap:wrap;
+  padding:14px 22px 12px;
+  background:color-mix(in srgb, var(--ac) 11%, var(--surface));
+  border-bottom:1px solid color-mix(in srgb, var(--ac) 20%, transparent);
+}
+.finding-h .id{
+  font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  font-size:12px; font-weight:700; color:var(--ac-ink);
+  background:color-mix(in srgb, var(--ac) 18%, var(--surface));
+  padding:2px 10px; border-radius:999px; flex:none;
+}
+.finding-h h4{
+  margin:0; font-size:15.5px; font-weight:700; letter-spacing:-.01em;
+  flex:1; min-width:220px;
+}
+.finding-b{padding:14px 22px 18px}
+.finding-b > :first-child{margin-top:0}
+.finding-b > :last-child{margin-bottom:0}
+
+.tag{
+  display:inline-block; font-size:11px; font-weight:700; letter-spacing:.04em;
+  padding:2.5px 11px; border-radius:999px; white-space:nowrap;
+}
+.tag.blocker{background:color-mix(in srgb, var(--red) 16%, var(--surface)); color:var(--red-ink)}
+.tag.data{background:color-mix(in srgb, var(--purple) 16%, var(--surface)); color:var(--purple-ink)}
+.tag.ux{background:color-mix(in srgb, var(--orange) 18%, var(--surface)); color:var(--orange-ink)}
+.tag.ok{background:color-mix(in srgb, var(--green) 18%, var(--surface)); color:var(--green-ink)}
+.tag.fixed{background:color-mix(in srgb, var(--blue) 16%, var(--surface)); color:var(--blue-ink)}
+.tag.issue{background:color-mix(in srgb, var(--teal) 18%, var(--surface)); color:var(--teal-ink)}
+
+.evidence{
+  margin:12px 0; padding:11px 15px; border-radius:14px;
+  background:var(--surface-2); font-size:13.5px; line-height:1.65;
+}
+.evidence b{font-weight:600}
+.evidence .lbl{
+  display:block; font-size:10.5px; font-weight:700; letter-spacing:.12em;
+  color:var(--ink-3); margin-bottom:5px;
+}
+
+.tablewrap{overflow-x:auto; margin:14px 0; border-radius:18px; box-shadow:var(--shadow)}
+table{border-collapse:collapse; width:100%; background:var(--surface); font-size:13.5px}
+th,td{padding:10px 15px; text-align:left; vertical-align:top}
+th{
+  font-size:11px; font-weight:700; letter-spacing:.08em; color:var(--ink-3);
+  background:var(--surface-2); white-space:nowrap;
+}
+td{border-top:1px solid var(--hair-2)}
+td.mono, th.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace; font-size:12px; white-space:nowrap}
+
+ul,ol{margin:10px 0; padding-left:22px}
+li{margin:5px 0}
+ul.plain{list-style:none; padding-left:0}
+ul.plain li{
+  position:relative; padding-left:16px;
+}
+ul.plain li::before{
+  content:""; position:absolute; left:0; top:11px;
+  width:5px; height:5px; border-radius:50%; background:var(--ink-3);
+}
+
+.note{
+  border-radius:14px; padding:12px 16px; margin:14px 0; font-size:13.5px;
+  background:color-mix(in srgb, var(--blue) 9%, transparent);
+}
+.note b{color:var(--blue-ink)}
+.warn{background:color-mix(in srgb, var(--orange) 12%, transparent)}
+.warn b{color:var(--orange-ink)}
+
+footer{
+  margin-top:44px; padding-top:18px; border-top:1px solid var(--hair-2);
+  font-size:12.5px; color:var(--ink-3);
+}
+@media (max-width:640px){
+  .wrap{padding:24px 14px 60px}
+  header.mast h1{font-size:24px}
+  .finding-h,.finding-b,.card{padding-left:16px; padding-right:16px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <h1>店家後台流程 QA — 2026-09-01</h1>
+  <p class="sub">
+    依 <code>docs/architecture/master-user-flow.html</code> 的「2. 店家後台」四條子流程，
+    用真瀏覽器在 production 逐頁走過一遍：店務主流程 → 營運管理流程 → 人事流程 → 分析與設定。
+  </p>
+  <div class="meta">
+    <span><b>環境</b> production（非本機）</span>
+    <span><b>前端</b> admin.makanmasak.com，Pages 部署 <code>a59b76f</code>（3 天前）</span>
+    <span><b>後端</b> api.makanmasak.com</span>
+    <span><b>帳號</b> <code>owner1</code>（role 1 店主）</span>
+    <span><b>餐廳</b> 麻吉 Demo 廣東粥 <code>019fa136-…31a1</code></span>
+  </div>
+</header>
+
+<section>
+  <h2>做了什麼</h2>
+  <div class="card">
+    <p>
+      以 Playwright 驅動真實瀏覽器登入 production 後台，照 master-user-flow 的節點順序逐一操作，
+      每個可疑畫面都往下追到「API 實際回了什麼」與「哪一行程式碼造成的」，不以畫面推論作結。
+      需要斷言資料庫事實時直接查 production D1（唯讀），寫入操作事後全部還原。
+    </p>
+    <p>覆蓋範圍：</p>
+    <ul class="plain">
+      <li><b>店務主流程</b>　營運儀表板 → 訂單管理 → 菜單管理 → 選項群組 → 桌位設定</li>
+      <li><b>營運管理流程</b>　食材庫存 → 優惠券 → 需求預測 → 揪團／服務預約 → 平台工單</li>
+      <li><b>人事流程</b>　員工列表 → 排班管理 → 出勤紀錄 → 請假審核　<span class="tag ux">本輪首次</span></li>
+      <li><b>分析與設定</b>　營運分析 → AI 洞察 → 訂閱與帳務 → 系統設定　<span class="tag ux">本輪首次</span></li>
+    </ul>
+    <p>
+      前兩條流程在 2026-08-25 已做過一輪（issues #254–#270），本輪當回歸驗收；
+      後兩條是第一次走，也是本次大部分發現的來源。
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2>結論摘要</h2>
+  <p>共 20 項發現。其中 <b>5 項是流程走不完的硬阻斷</b>，4 項已在本次直接修掉。</p>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th class="mono">#</th><th>發現</th><th>流程</th><th>類型</th><th>處置</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono">F10a</td><td>沒有任何 UI 能建立「假別」，請假申請永遠送不出去</td><td>人事</td><td><span class="tag blocker">阻斷</span></td><td><span class="tag issue">開 issue</span></td></tr>
+        <tr><td class="mono">F10b</td><td>「初始化假期餘額」必定 400</td><td>人事</td><td><span class="tag blocker">阻斷</span></td><td><span class="tag fixed">已修</span></td></tr>
+        <tr><td class="mono">F7</td><td>全站沒有打卡入口，出勤流程整條是裝飾</td><td>人事</td><td><span class="tag blocker">阻斷</span></td><td><span class="tag issue">開 issue</span></td></tr>
+        <tr><td class="mono">F16</td><td>系統設定 28 個欄位只有 8 個會存，其餘按「儲存」後靜默丟棄</td><td>設定</td><td><span class="tag blocker">阻斷</span></td><td><span class="tag issue">開 issue</span></td></tr>
+        <tr><td class="mono">F20</td><td>店主完全沒有「訂閱與帳務」介面</td><td>設定</td><td><span class="tag blocker">阻斷</span></td><td><span class="tag issue">開 issue</span></td></tr>
+        <tr><td class="mono">F2</td><td>訂單推到「已付款」但 payment_status 仍 pending，之後不能退款也不能取消</td><td>店務</td><td><span class="tag data">資料</span></td><td><span class="tag issue">開 issue</span></td></tr>
+        <tr><td class="mono">F3</td><td>PaymentService 寫入的 <code>payment_status="paid"</code> 不在正規集合內，讀回一律變 pending</td><td>店務</td><td><span class="tag data">資料</span></td><td><span class="tag issue">開 issue</span></td></tr>
+        <tr><td class="mono">F11</td><td>數據分析 KPI 把已取消訂單算成營收，同頁報表沒有</td><td>分析</td><td><span class="tag data">資料</span></td><td><span class="tag issue">開 issue</span></td></tr>
+        <tr><td class="mono">F12</td><td>期間選單寫「本月」，實作是「最近 30 天」</td><td>分析</td><td><span class="tag data">資料</span></td><td><span class="tag issue">開 issue</span></td></tr>
+        <tr><td class="mono">F1</td><td>員工動態永遠「離線」；KPI「在線員工」其實是啟用帳號數</td><td>店務</td><td><span class="tag data">資料</span></td><td><span class="tag issue">開 issue</span></td></tr>
+        <tr><td class="mono">F8</td><td>出勤率／缺席的分母是全體員工，與當天排班無關</td><td>人事</td><td><span class="tag data">資料</span></td><td><span class="tag issue">開 issue</span></td></tr>
+        <tr><td class="mono">F13</td><td>營業時段分析用 UTC 小時分桶（已開的 #290，production 確認成立）</td><td>分析</td><td><span class="tag data">資料</span></td><td>併入 #290</td></tr>
+        <tr><td class="mono">F14</td><td>AI 洞察頁一開啟就自動送出付費生成請求</td><td>分析</td><td><span class="tag ux">成本</span></td><td><span class="tag fixed">已修</span></td></tr>
+        <tr><td class="mono">F17</td><td>「重置為預設值」是完全的空操作（附危險確認對話框）</td><td>設定</td><td><span class="tag ux">體驗</span></td><td><span class="tag fixed">已修</span></td></tr>
+        <tr><td class="mono">F4</td><td>每次開後台都跳「網絡連接已恢復」，且文案硬寫中文</td><td>全站</td><td><span class="tag ux">體驗</span></td><td><span class="tag fixed">已修</span></td></tr>
+        <tr><td class="mono">F5</td><td>API 全端點約 1–4 秒，偶發 <code>ERR_CONNECTION_CLOSED</code></td><td>全站</td><td><span class="tag ux">效能</span></td><td><span class="tag issue">開 issue</span></td></tr>
+        <tr><td class="mono">F18</td><td>稅率與服務費後端已接好，前端沒有任何欄位</td><td>設定</td><td><span class="tag ux">缺口</span></td><td><span class="tag issue">開 issue</span></td></tr>
+        <tr><td class="mono">F19</td><td>時區下拉有 9 個選項，但所有日期分桶都硬寫 +08</td><td>設定</td><td><span class="tag ux">缺口</span></td><td><span class="tag issue">開 issue</span></td></tr>
+        <tr><td class="mono">F9</td><td>SchedulingView 沒掛路由：換班申請與排班清單進不去</td><td>人事</td><td><span class="tag ux">缺口</span></td><td><span class="tag issue">開 issue</span></td></tr>
+        <tr><td class="mono">F15</td><td>AI 未設定的錯誤訊息是未在地化英文，且沒有前往設定的連結</td><td>分析</td><td><span class="tag ux">體驗</span></td><td><span class="tag issue">開 issue</span></td></tr>
+        <tr><td class="mono">F6</td><td>「QR 碼管理模式」必填欄位做成純 div，鍵盤與螢幕閱讀器用不了</td><td>店務</td><td><span class="tag ux">a11y</span></td><td><span class="tag issue">開 issue</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>人事流程：整條走不完</h2>
+  <p>
+    這是本輪最大的發現。人事流程四個節點裡，<b>排班管理是唯一真的能用的</b>；
+    出勤與請假各自被一個獨立的阻斷擋死，而且兩者都不是「還沒做完」，
+    是「元件寫好了但沒接上」與「schema 多要了一個欄位」。
+  </p>
+
+  <div class="finding blocker">
+    <div class="finding-h"><span class="id">F7</span><h4>全站沒有任何打卡入口，所以出勤流程整條是裝飾</h4></div>
+    <div class="finding-b">
+      <p>
+        <code>components/scheduling/ClockInOutPanel.vue</code> 是一支完整的元件——有上班／下班按鈕、
+        有 <code>schedulingService.clockIn/clockOut</code> 的呼叫——但<b>全 repo 沒有任何檔案 import 它</b>。
+        後端 <code>POST /schedules/:id/clock-in</code> 與 <code>/clock-out</code> 都存在且可用。
+      </p>
+      <div class="evidence">
+        <span class="lbl">實測連鎖後果（production 全部成立）</span>
+        出勤總覽「已到班 <b>0</b> ／ 缺席 <b>5</b> ／ 出勤率 <b>0%</b>」・
+        員工管理 KPI「目前在班 <b>0</b>」・
+        員工列表「工作狀態」欄五個人都是<b>未在班</b>。
+        <code>useEmployeeList.ts:18</code> 的 <code>clockedInList</code> 永遠是空陣列。
+      </div>
+      <p>
+        這和 #267 的 <code>RecipeEditor.vue</code> 是同一種形狀：元件寫完了，掛載點忘了接。
+        master-user-flow 的「出勤紀錄 · 上下班 · 工時統計」在 UI 上沒有起點。
+      </p>
+    </div>
+  </div>
+
+  <div class="finding blocker">
+    <div class="finding-h"><span class="id">F10a</span><h4>沒有任何 UI 能建立「假別」，請假申請永遠送不出去</h4></div>
+    <div class="finding-b">
+      <p>
+        「申請請假」對話框的<b>假別</b>是必填，但下拉只有一個「請選擇假別」——
+        <code>GET /leaves/{rid}/types</code> 回 <code>{"data":[]}</code>，於是<b>「送出申請」永遠是 disabled</b>。
+      </p>
+      <div class="evidence">
+        <span class="lbl">為什麼是死結而不是「還沒建資料」</span>
+        production <code>SELECT COUNT(*) FROM leave_types</code> = <b>0</b>。
+        後端有 <code>POST /:restaurantId/types</code>（限 ADMIN/OWNER），
+        但 <code>services/leavesService.ts</code> 只有 getLeaveTypes / getBalances / getRequests /
+        createRequest / approve / reject / cancel ——<b>沒有 createLeaveType</b>，任何 view 也沒有入口。
+        management-api、onboarding、scripts 全掃過，<b>沒有任何地方會 seed 預設假別</b>。
+      </div>
+      <p>新租戶開站即死結：店主開不了假別，就永遠沒有人能請假，也就永遠沒有東西可以審核。</p>
+    </div>
+  </div>
+
+  <div class="finding blocker">
+    <div class="finding-h"><span class="id">F10b</span><h4>「初始化假期餘額」必定 400　<span class="tag fixed">已修</span></h4></div>
+    <div class="finding-b">
+      <pre><code>POST /api/v1/leaves/{rid}/balances/accrue   body: {"year":2026}
+→ 400  VALIDATION_ERROR
+   restaurantId: "Restaurant ID must be a valid UUID"  (invalid_type)</code></pre>
+      <p>
+        <code>invalid_type</code> 表示 zod 收到的是 <code>undefined</code>，不是格式錯。
+        路徑本身已經是 <code>/:restaurantId/balances/accrue</code>，handler 讀的也是
+        <code>validatedParams.restaurantId</code>——body 那一把<b>從頭到尾沒有人用</b>，
+        卻被 <code>accrueLeaveBalancesSchema</code> 列為必填。
+      </p>
+      <div class="note">
+        <b>同一份檔案裡就有正確寫法。</b><code>validation.ts:113</code> 的
+        <code>createLeaveRequestSchema</code> 明寫
+        <code>restaurantId: restaurantIdString.optional(), // Injected by route handler from URL param</code>，
+        就在 accrue 上方 48 行。
+      </div>
+      <div class="note warn">
+        <b>修法只有一種是對的：</b>把 accrue schema 的 <code>restaurantId</code> 拿掉。
+        不要改成讓前端補送 body——那會造出第二個沒有經過
+        <code>requireRestaurantAccess</code> 把關的租戶來源，正是 #265 / #275 的形狀。
+      </div>
+    </div>
+  </div>
+
+  <div class="finding data">
+    <div class="finding-h"><span class="id">F8</span><h4>出勤率與缺席的分母是全體在職員工，跟當天排班完全無關</h4></div>
+    <div class="finding-b">
+      <pre><code>// AttendanceOverviewTab.vue:162-166
+const total   = employeeList.users.value.filter((u) =&gt; u.isActive).length;
+const working = employeeList.stats.value.currentlyWorking;
+const onLeave = employeeList.stats.value.onLeaveToday;
+const absent  = Math.max(0, total - working - onLeave);
+const rate    = total &gt; 0 ? Math.round((working / total) * 100) : 0;</code></pre>
+      <div class="evidence">
+        <span class="lbl">實測</span>
+        我在排班總覽把 Demo Chef 排進 2026-09-01 的班，出勤總覽的數字<b>完全沒變</b>。
+        排出來的班表對這一頁沒有任何影響。
+      </div>
+      <p>
+        五人的店只排兩個人，另外三個休假的人會被算成紅字「缺席」，出勤率上限 40%。
+        而且 <code>currentlyWorking</code> 是「此刻在班」的瞬時值——打烊後任何店都是 0%，
+        卻掛在「出勤率」這個標籤下。
+      </p>
+    </div>
+  </div>
+
+  <div class="finding ux">
+    <div class="finding-h"><span class="id">F9</span><h4>SchedulingView.vue 沒有掛路由：換班申請與排班清單檢視進不去</h4></div>
+    <div class="finding-b">
+      <p>
+        <code>router/index.ts:361</code> 把 <code>/dashboard/scheduling</code>
+        redirect 到員工管理的排班分頁，而 <code>views/scheduling/SchedulingView.vue</code>
+        在 router 內<b>零引用</b>。它獨有五個分頁：月曆 / 清單 / 班次模板 /
+        <b>排班衝突</b> / <b>換班申請</b>，也是
+        <code>SchedulingList</code>、<code>SchedulingConflicts</code>、<code>SwapRequests</code>
+        三支元件的唯一 importer。
+      </p>
+      <p>後端 scheduling feature 自述 workflow 含 <code>swap / approve / reject</code>，但前端沒有入口。</p>
+    </div>
+  </div>
+
+  <div class="finding ok">
+    <div class="finding-h"><span class="id">OK</span><h4>排班本身是通的</h4></div>
+    <div class="finding-b">
+      <p>
+        建立班次模板（QA早班 08:00–16:00）→ 點格子 → 選員工 → 確認排班，
+        Demo Chef 正確排進 2026-09-01，格子出現「移除排班」，未分配員工清單同步移除。
+        整條路徑沒有卡點。
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>分析與設定：數字對不起來，設定存不進去</h2>
+
+  <div class="finding blocker">
+    <div class="finding-h"><span class="id">F16</span><h4>系統設定 28 個欄位裡只有 8 個真的會存，其餘按「儲存設定」後靜默丟棄</h4></div>
+    <div class="finding-b">
+      <div class="evidence">
+        <span class="lbl">實測</span>
+        把「預設準備時間」15 改成 18 → 按「儲存設定」→ <b>顯示成功訊息</b> →
+        但 <code>PUT /restaurants/{rid}</code> 的 body 是：
+        <pre><code>{"isAvailable":true,"supportsTakeaway":false,"supportsDelivery":false,
+ "settings":{"allowGuestOrders":true,"currency":"TWD","enableDineIn":true,
+ "enableTakeaway":false,"enableDelivery":false,"deliveryFee":0,
+ "estimatedPrepTimeMin":15,"estimatedPrepTimeMax":20}}</code></pre>
+        <b>沒有 defaultPreparationTime。</b>
+      </div>
+      <p>
+        <code>SettingsView.vue:1977</code> 的 <code>settings</code> 有 28 個葉節點，
+        <code>saveSettings</code> 只送 <code>orders.acceptGuestOrders</code> +
+        <code>system.currency</code>，加上另一個物件 <code>deliverySettings</code> 的 5 個欄位。
+        <code>loadSettings</code> 也只讀那 8 把，所以重整後一律回到寫死的預設值。
+      </p>
+      <p>畫面上可編輯、按下儲存後被丟掉的包含：</p>
+      <ul class="plain">
+        <li>餐廳名稱／聯絡電話／餐廳地址／營業時間／時區</li>
+        <li>介面語言、自動登出時間</li>
+        <li>自動確認訂單、訂單準備時間提醒、預設準備時間、訂單記錄保留期限</li>
+        <li><b>啟用最低消費＋最低消費金額</b></li>
+        <li>桌號前綴／自動清理桌台／清理延遲</li>
+        <li>通知設定 6 項、安全設定 7 項</li>
+      </ul>
+      <div class="note warn">
+        <b>最低消費特別要命。</b><code>order.ts:637-646</code> 的建單流程真的會讀
+        <code>settings.minOrderAmount</code> 並擋單，但 UI 存不進去——店主永遠設不了最低消費。
+      </div>
+    </div>
+  </div>
+
+  <div class="finding ux">
+    <div class="finding-h"><span class="id">F17</span><h4>「重置為預設值」是完全的空操作　<span class="tag fixed">已修</span></h4></div>
+    <div class="finding-b">
+      <div class="evidence">
+        <span class="lbl">實測</span>
+        把預設準備時間改成 18 → 按「重置為預設值」→ 確認對話框寫
+        「確定要將所有設定重置為預設值嗎？<b>此操作無法恢復。</b>」→ 按「重置」→
+        欄位<b>還是 18</b>，沒有回到 15。
+      </div>
+      <p>
+        根因是 <code>SettingsView.vue:2176</code> 的
+        <code>const defaultSettings = { ...settings }</code>——對 reactive 物件做<b>淺</b>展開，
+        <code>restaurant</code>／<code>system</code>／<code>orders</code>／<code>tables</code>／
+        <code>notifications</code>／<code>security</code> 六個巢狀物件是<b>同一份參考</b>。
+        於是 <code>Object.assign(settings, defaultSettings)</code> 等於把同一批參考寫回自己，
+        預設值從來沒有被快照下來。
+      </p>
+    </div>
+  </div>
+
+  <div class="finding data">
+    <div class="finding-h"><span class="id">F11</span><h4>數據分析上半部的 KPI 把已取消訂單算成營收，下半部沒有</h4></div>
+    <div class="finding-b">
+      <div class="evidence">
+        <span class="lbl">同一畫面兩組數字（期間選「本年」）</span>
+        上方 KPI：<b>總營收 NT$1,185 / 訂單數量 7 / 平均客單價 NT$169</b><br>
+        同頁「詳細營業報表」：8/02 三單 NT$480、8/04 一單 NT$90 = <b>NT$570 / 4 單</b><br>
+        差額 <b>NT$615</b> 正好是三張已取消訂單（270 + 180 + 165）。CSV 匯出也是 NT$570。
+      </div>
+      <p>
+        根因在 <code>packages/database/src/services/analytics.ts:257-264</code>：
+        <code>totalOrders</code> / <code>totalRevenue</code> / <code>averageOrderValue</code>
+        只掛 restaurant + 日期兩個條件，<b>沒有任何 status 過濾</b>；
+        緊接著 <code>:267-278</code> 的 <code>completedOrders</code> 與 <code>cancelledOrders</code>
+        卻各自有 status 過濾——<b>作者知道有這個區別，主查詢漏掉了</b>。
+      </p>
+      <p>
+        正確寫法就在同一個檔案裡：<code>:683</code> 的 <code>getDashboardData</code>
+        用的是 <code>inArray(status, FULFILLED_ORDER_STATUSES)</code>。
+      </p>
+    </div>
+  </div>
+
+  <div class="finding data">
+    <div class="finding-h"><span class="id">F12</span><h4>期間選單寫「本週／本月／本季／本年」，實作是「最近 7／30／90／365 天」</h4></div>
+    <div class="finding-b">
+      <pre><code>// AnalyticsView.vue:506-530
+case "month":   from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
+case "quarter": from = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000); break;
+case "year":    from = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000); break;
+default:        from = new Date(now.getFullYear(), now.getMonth(), now.getDate());</code></pre>
+      <p>
+        只有 <code>today</code> 是真正的「今日零點」。9/1 點「本月」拿到的是 8/2–9/1，
+        幾乎全是上個月的數字；月初尤其離譜。實測選「本年」送出的是
+        <code>dateFrom=2025-09-01T14:45:42Z</code>（正好一年前的此刻），不是 2026-01-01。
+      </p>
+      <p>
+        附帶：<code>:534-542</code> 的 <code>getDashboardPeriod()</code> 把 quarter 映射成
+        <code>"month"</code>，所以選「本季」時上方 KPI 抓的是月資料、下方圖表抓 90 天——
+        同一頁兩個窗口。
+      </p>
+    </div>
+  </div>
+
+  <div class="finding ux">
+    <div class="finding-h"><span class="id">F14</span><h4>AI 洞察頁一開啟就自動送出付費 AI 生成請求　<span class="tag fixed">已修</span></h4></div>
+    <div class="finding-b">
+      <p>
+        <code>AIInsightsDashboard.vue:132</code> 是 <code>onMounted(() =&gt; handleGenerateReport())</code>，
+        帶 <code>includeForecasting: true</code>。使用者沒有按任何按鈕。
+        每次導航進這一頁，就是一次（快取未命中時的）AI 費用。
+      </p>
+      <p>
+        諷刺的是同頁空狀態寫著<b>「點擊下方按鈕生成您的第一份 AI 分析報告」</b>——
+        但它早就自己打過一次了。實測載入後立刻出現 <code>POST /ai-analytics/generate → 400</code>。
+      </p>
+    </div>
+  </div>
+
+  <div class="finding blocker">
+    <div class="finding-h"><span class="id">F20</span><h4>店主完全沒有「訂閱與帳務」介面</h4></div>
+    <div class="finding-b">
+      <p>
+        master-user-flow 把「訂閱與帳務 · 方案 / 用量 / 帳單明細」放在
+        <b>2. 店家後台</b>的「分析與設定」群組裡。實際上：
+      </p>
+      <ul class="plain">
+        <li><code>/dashboard/subscriptions</code> 的 meta 是 <code>roles: [UserRole.ADMIN]</code>（role 0），店主打進去被導到 <code>/unauthorized</code>（實測）。</li>
+        <li><code>SubscriptionsView.vue</code> 是<b>平台管理工具</b>——表單第一個欄位是 <code>subscriptions.form.restaurantId</code>，用來替任意餐廳開訂閱，本來就不是店主視角。</li>
+        <li>側邊欄沒有任何帳務入口。</li>
+      </ul>
+      <p>
+        所以要嘛是文件把節點放錯層（該移到「4. 平台管理」），
+        要嘛是產品缺一個店主視角的帳務頁。<b>這需要產品決定，不是單純的 bug。</b>
+      </p>
+    </div>
+  </div>
+
+  <div class="finding ux">
+    <div class="finding-h"><span class="id">F18 / F19</span><h4>稅率與服務費沒有欄位；時區有欄位但沒人讀</h4></div>
+    <div class="finding-b">
+      <p>
+        <b>F18</b>　<code>restaurants.settings</code> 有 <code>taxRate</code> /
+        <code>serviceChargeRate</code>，建單流程 <code>order.ts:648-660</code>
+        真的會讀它們算稅金與服務費。但 <code>SettingsView.vue</code> 全檔沒有這兩個欄位——
+        店主永遠只能是 0%。master-user-flow 的「系統設定 · 營業時間 · 稅率 · 服務費」對不上。
+      </p>
+      <p>
+        附帶：<code>order.ts:642-645</code> 最低消費未達的錯誤訊息把幣別<b>硬寫成 <code>RM</code></b>
+        （<code>最低消費：RM${'{'}...{'}'}</code>），而這家店的 currency 設定是 TWD；
+        而且是 <code>throw new Error(中文字串)</code>，沒有走 ApiError／統一錯誤碼。
+      </p>
+      <p>
+        <b>F19</b>　基本設定的「時區」有 9 個選項，目前選的是「馬來西亞 (GMT+8)」——
+        這是一家台中的店。這個值不但存不進去（見 F16），就算存得進去也沒人讀：
+        <code>analytics.ts</code> 的 <code>businessDateNow()</code> /
+        <code>strftime(..., '+8 hours')</code>、ForecastService 的分桶，全部是寫死的常數。
+        選「日本 (GMT+9)」或「越南 (GMT+7)」的店，營業日界線仍然是 +08。
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>店務主流程：訂單生命週期會走進死路</h2>
+
+  <div class="finding data">
+    <div class="finding-h"><span class="id">F2</span><h4>狀態推到「已付款」但 payment_status 仍是 pending，之後既不能退款也不能取消</h4></div>
+    <div class="finding-b">
+      <div class="evidence">
+        <span class="lbl">實測</span>
+        連按「更新」把訂單 <code>pending → confirmed → preparing → ready → delivered → paid</code>
+        全部 200（#254 已修，狀態機走得完了）。但最後一次的回應是：
+        <pre><code>{"status":"paid", ... ,"paidAt":1788272567665,"paymentStatus":"pending"}</code></pre>
+      </div>
+      <p>
+        <code>order.ts:1342</code> 的 <code>updateOrderStatus</code> 只寫
+        <code>status</code> 與 <code>${'{'}status{'}'}At</code>，<b>從不碰 paymentStatus</b>。
+        後台也沒有任何 UI 能看到或設定它——
+        <code>OrdersService.updatePaymentStatus</code> 是空殼：參數全 <code>_</code> 前綴、
+        註解寫「Implementation would depend on base service capabilities」、
+        直接回傳未修改的 order，而且<b>全 repo 沒有任何路由呼叫它</b>。
+      </p>
+      <p><b>連鎖後果，訂單在後台變成死路：</b></p>
+      <ul class="plain">
+        <li><code>canRefund</code>（<code>OrdersView.vue:839</code>）要求 <code>order.paymentTransactionId</code>，那個欄位只有 PaymentService 會寫 → 用「更新」關掉的訂單<b>永遠看不到退款鈕</b>。</li>
+        <li><code>canCancel</code>（<code>:938</code>）只允許 pending / confirmed，但伺服器的 <code>ORDER_STATUS_TRANSITIONS</code> 其實允許 <code>preparing → cancelled</code> 與 <code>ready → cancelled</code>。<b>廚房開做後店主無法取消</b>，只能一路推到 paid。</li>
+        <li><code>paid: []</code> 是終止態 → 一旦推到已付款，<b>既不能退款也不能取消</b>。</li>
+      </ul>
+      <p>
+        營收面：<code>analytics.ts:683</code> 的今日營收用
+        <code>status IN FULFILLED_ORDER_STATUSES</code>，所以按下「更新」就直接記入營收，
+        實際上沒有收到錢。
+      </p>
+    </div>
+  </div>
+
+  <div class="finding data">
+    <div class="finding-h"><span class="id">F3</span><h4>PaymentService 寫入的 <code>payment_status = "paid"</code> 不在正規集合內，讀回來一律變 pending</h4></div>
+    <div class="finding-b">
+      <pre><code>// shared-types/order.ts:161  — 正規集合
+ORDER_PAYMENT_STATUSES = ["pending", "completed", "failed", "refunded"]
+
+// PaymentService.ts:354 與 :367  — 實際寫進 DB 的值
+.update(orders).set({ paymentStatus: "paid", ... })
+
+// order.ts:491  — 讀回來的時候
+toOrderPaymentStatus(v) = 集合內 ? v : "pending"</code></pre>
+      <p>
+        所以<b>真的收過錢的訂單，API 讀回來會說沒付款</b>。
+        篩選也對不上：orders route 的 <code>stringToPaymentStatus</code> 把
+        <code>"paid"</code> 正規化成 <code>"completed"</code>，查詢是
+        <code>inArray(payment_status, ["completed"])</code>，DB 裡卻是字面的
+        <code>"paid"</code> → 永不命中。
+      </p>
+      <div class="note">
+        <b>目前還沒引爆。</b>production 7 筆訂單的 <code>payment_status</code> 全是
+        <code>pending</code>（實查 D1），代表<b>還沒有任何一筆真實付款走過 PaymentService</b>。
+        但 <code>orders</code> 在 production 非 STRICT、欄位無 CHECK，寫什麼進去都收——
+        這是一顆等著第一筆真實金流去踩的地雷。
+      </div>
+    </div>
+  </div>
+
+  <div class="finding data">
+    <div class="finding-h"><span class="id">F1</span><h4>員工動態永遠顯示「離線」，而 KPI「在線員工」其實是啟用帳號數</h4></div>
+    <div class="finding-b">
+      <p>店主總覽同一個畫面上，兩塊互相矛盾：KPI 說 <b>5/5 在線</b>，下方列表說 <b>5 人全離線</b>。</p>
+      <ul class="plain">
+        <li><code>OwnerView.vue:615</code> 讀 <code>user.status === "active"</code>，但 <code>GET /users</code> 回的是 <code>isActive: true</code>（camelCase boolean），<b>沒有 status 這個欄位</b> → 恆為 <code>undefined</code> → 全部渲染離線。實測 <code>owner1</code> 剛登入（<code>lastLoginAt</code> = 當下）仍顯示離線。</li>
+        <li><code>OwnerView.vue:531</code> 的 KPI 標題是 <code>t("owner.kpi.onlineStaff")</code>＝「在線員工」，值卻是 <code>/users/stats</code> 的 <code>active_users</code>，也就是 <code>COUNT(*) WHERE is_active = 1</code>（<code>user.ts:639</code>）→ 只要沒人被停用就永遠 N/N。</li>
+      </ul>
+      <div class="note warn">
+        <b>不要把 <code>user.status</code> 直接換成 <code>isActive</code> 就了事。</b>
+        那只會讓五個人全部變成綠色的「在線」，比現在更誤導——因為
+        <b>系統根本沒有任何 presence 訊號</b>（見 F7）。
+        這一格要嘛顯示真實打卡狀態，要嘛改標籤成「啟用帳號」，是產品決定。
+      </div>
+    </div>
+  </div>
+
+  <div class="finding ux">
+    <div class="finding-h"><span class="id">F6</span><h4>「QR 碼管理模式」是必填，卻做成兩個純 div</h4></div>
+    <div class="finding-b">
+      <p>
+        <code>components/tables/QRModeSelector.vue:12-21</code>（座位模式那半對稱）：
+        <code>&lt;div :class="… cursor-pointer" @click="selectMode('table')"&gt;</code>——
+        沒有 <code>role="radio"</code>、<code>aria-checked</code>、<code>tabindex</code>，
+        也沒有 keydown handler，選取狀態只靠 border / ring 的顏色與一個自己畫的圓點 div。
+      </p>
+      <p>
+        標籤明寫 <code>*</code> 必填。滑鼠使用者沒問題；
+        鍵盤使用者<b>無法聚焦也無法切換</b>，a11y tree 裡兩張卡片的
+        <code>aria-checked</code> 都是 <code>null</code>（實測），螢幕閱讀器看不出選了哪一個。
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>全站：一個假警報與一個真問題</h2>
+
+  <div class="finding ux">
+    <div class="finding-h"><span class="id">F4</span><h4>每次開後台都跳「網絡連接已恢復」，而且是硬寫的中文　<span class="tag fixed">已修</span></h4></div>
+    <div class="finding-b">
+      <pre><code>// errorHandler.ts:185-188
+onStatusChange(callback) {
+  this.callbacks.push(callback);
+  callback(this.isOnline);   // 立即回調當前狀態  ← 每次註冊都會跑
+}</code></pre>
+      <p>
+        <code>setupGlobalErrorHandler</code>（<code>:675</code>）註冊的 callback 是
+        「<code>isOnline</code> → <code>toast.success</code>」，而正常開頁
+        <code>navigator.onLine</code> 就是 <code>true</code>——<b>每次載入必跳</b>，
+        使用者從頭到尾沒斷過線。實測每一頁都出現。
+      </p>
+      <p>
+        文案也是硬寫中文（<code>"網絡連接已恢復"</code> /
+        <code>"網絡連接已斷開，將在離線模式下運行"</code>），
+        但六個語系都已經有 <code>networkRestored</code> / <code>networkDisconnected</code> 兩把 key，
+        <b>全 repo 零引用</b>。英／日／越／印尼語使用者會看到中文。
+      </p>
+    </div>
+  </div>
+
+  <div class="finding ux">
+    <div class="finding-h"><span class="id">F5</span><h4>API 全端點約 1–4 秒，且偶發 <code>ERR_CONNECTION_CLOSED</code></h4></div>
+    <div class="finding-b">
+      <div class="evidence">
+        <span class="lbl">實測</span>
+        <code>/info</code>（CLAUDE.md 定義「最便宜、不碰任何 binding」的存活探針）連測 8 次：
+        <b>1.05 / 1.65 / 1.76 / 1.86 / 1.92 / 2.22 / 2.36 / 4.09 秒</b>，另有一次 10 秒 timeout。<br>
+        <code>/api/v1/monitoring/health</code> 4 次：0.53 / 1.93 / 2.35 / 2.55 秒。<br>
+        效能目標是 <b>API P99 &lt; 300ms</b>。
+      </div>
+      <p>
+        比慢更值得注意的是<b>連線被關掉</b>：瀏覽器 console 出現
+        <code>net::ERR_CONNECTION_CLOSED</code>，而且不只發生在 <code>/info</code>——
+        建立班次模板的 POST 也中了一次，<b>第二次重試才成功</b>。
+        <code>/analytics/realtime-dashboard</code> 則是 10 秒 timeout 後被 abort。
+      </p>
+      <p>
+        這也解釋了為什麼多個頁面第一眼看起來像壞掉：
+        訂位分頁的「5 列空白列」其實是 skeleton，座位管理 KPI 的
+        「可用桌位 0 / 平均等待 0 min」其實是載入中——等 2–4 秒後都會變成正確值。
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>本次直接修掉的 4 項</h2>
+  <p>挑選標準：根因明確、範圍收斂在單一檔案、不需要產品決策、且不觸碰金流與租戶邊界。</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th class="mono">#</th><th>檔案</th><th>改了什麼</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="mono">F10b</td>
+          <td class="mono">apps/api/src/features/leaves/<br>schemas/validation.ts<br>routes/index.test.ts</td>
+          <td>把 <code>accrueLeaveBalancesSchema</code> 的 <code>restaurantId</code> 拿掉（路徑已經是租戶來源）。<b>同時修了測試</b>——它原本在 body 裡送 <code>restaurantId</code>，那正是 CI 一直綠燈的原因。</td>
+        </tr>
+        <tr>
+          <td class="mono">F4</td>
+          <td class="mono">apps/admin-dashboard/src/<br>utils/errorHandler.ts</td>
+          <td><code>onStatusChange</code> 改成只在<b>狀態轉換</b>時回調（想讀當前值的呼叫端用一直都在的 <code>getStatus()</code>）；兩則 toast 改用既有的六語系 key。</td>
+        </tr>
+        <tr>
+          <td class="mono">F17</td>
+          <td class="mono">apps/admin-dashboard/src/<br>views/SettingsView.vue</td>
+          <td><code>defaultSettings</code> 改成 <code>structuredClone(toRaw(settings))</code> 的深快照，並在每次 reset 時<b>再 clone 一次</b>（否則第一次重置後快照又會與 settings 共用參考）。</td>
+        </tr>
+        <tr>
+          <td class="mono">F14</td>
+          <td class="mono">apps/admin-dashboard/src/views/<br>ai-analytics/AIInsightsDashboard.vue</td>
+          <td>移除 <code>onMounted</code> 自動生成。頁面本來就有「立即生成 / 重新生成報告」按鈕與對應的空狀態文案，改完之後行為才和畫面說的一致。</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">
+    <b>F10b 有做突變驗收。</b>把舊 schema 放回去，測試如預期轉紅
+    （<code>expect(accrueResponse.status).toBe(200)</code> 失敗）；改回來後 13 個測試全過。
+  </div>
+</section>
+
+<section>
+  <h2>本輪確認「沒問題」的（避免重複查）</h2>
+  <div class="card">
+    <ul class="plain">
+      <li><b>訂單狀態機在後台走得完了</b>——<code>pending → confirmed → preparing → ready → delivered → paid</code> 全部 200（#254 已修）。</li>
+      <li><b>儀表板 KPI 不再是假的零</b>——桌位使用率 0/1、即時訂單、員工動態都有真資料（#255 / #262 / #272 已修）。</li>
+      <li><b>共用選項組已有側邊欄入口</b>，空狀態文案完整（#257 已修）。</li>
+      <li><b>食材配方編輯器接上了</b>——配方管理 → 選菜品 → 編輯配方對話框正常開啟（#267 已修）。</li>
+      <li><b>需求預測點一次只送一次 POST</b>（#268 的雙倍呼叫已修），「明日」的日期也正確。</li>
+      <li><b>菜品的「10 已售出」是對的</b>——<code>menu_items.order_count</code> 與 <code>order_items</code> 實際 <code>SUM(quantity)</code> 都是 10。</li>
+      <li><b>「今天」的分析日界是對的</b>——送出的 <code>dateFrom</code> 是 <code>2026-08-31T16:00:00Z</code>，正是 +08 的今日零點。</li>
+      <li><b>CSV 匯出的數字是對的</b>（NT$570 / 4 單），錯的是頁面上方的 KPI（見 F11）。</li>
+      <li><b>訂位空清單顯示「暫無訂位記錄」</b>，先前看到的 5 列空白列是 skeleton，不是 bug。</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>production 資料善後</h2>
+  <div class="card">
+    <p>本次在 production 建立或改動的資料<b>全部已還原並逐項驗證</b>：</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>動作</th><th>還原方式</th><th>驗證</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>訂單 <code>019fca75-…cf57</code> 由 pending 推到 paid</td>
+            <td>還原 <code>status='pending'</code>、<code>version=0</code>、五個 <code>*_at_ms</code> 設回 NULL、<code>updated_at_ms=created_at_ms</code></td>
+            <td class="mono">pending / 0 ✓</td>
+          </tr>
+          <tr><td>班次模板「QA早班」</td><td>DELETE</td><td class="mono">shift_templates = 0 ✓</td></tr>
+          <tr><td>Demo Chef 的 2026-09-01 排班</td><td>DELETE</td><td class="mono">employee_schedules = 0 ✓</td></tr>
+          <tr><td>「產生預測」寫入的 2 筆快取</td><td>DELETE</td><td class="mono">forecast_cache 44 → 42（原有值）✓</td></tr>
+          <tr><td>下載到工作區的 analytics CSV</td><td>刪除</td><td class="mono">✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      還原前先查過其他未被動過的 pending 訂單，確認它們的
+      <code>version</code> 是 0 且五個時間戳皆為 NULL，
+      所以還原後的狀態與原始狀態逐欄一致，不是憑印象猜的。
+    </p>
+    <p><b>沒有動到</b>：菜單、優惠券、桌台、員工帳號、餐廳設定、假別與假期餘額。</p>
+  </div>
+</section>
+
+<footer>
+  <p>
+    測試日期 2026-09-01・環境 production・前端 Pages <code>a59b76f</code>・
+    對照文件 <code>docs/architecture/master-user-flow.html</code> v1.0
+  </p>
+  <p>
+    註：production 前端落後 <code>origin/main</code> 30 個 commit，本報告每一項發現
+    都已回頭在 <code>a59b76f</code> 的原始碼上確認，不是拿 main 的程式碼解釋線上行為。
+  </p>
+</footer>
+
+</div>
+</body>
+</html>
