@@ -24,6 +24,19 @@ and `customer_auth_identities` are all **empty**; `orders` has 7 rows. So "we me
 and it is clean" is true but carries very little assurance — it mostly says production has
 barely been written to yet, not that the write paths are proven safe.
 
+## Update 2026-09-02
+
+`0015` and `0016` were applied to production on 2026-09-02. The count is now
+**4 of 120** — `restaurant_customers` joins the three below, because every new
+table ships STRICT. `customer_auth_identities` went from 10 to 17 columns and
+is still **not** STRICT, which is exactly the case section 2 of issue #297 warns
+about: those seven new columns have no database-level type protection, so
+`expiryTimestampMs` validation in the OAuth service is what stands between an
+ISO string and the `token_expires_at_ms` INTEGER column.
+
+The contamination measurement below was taken before that migration and is
+unaffected by it: both migrations added structure, not rows.
+
 ## Correction: the recorded `15 / 119` was wrong
 
 CLAUDE.md and issue #297 both record "15 of 119 tables are STRICT". That number came from

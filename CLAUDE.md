@@ -91,8 +91,11 @@ MakanMasak is a modern, serverless restaurant management system built on Cloudfl
   live in `packages/database/strict-table-policy.json`; `pnpm check:strict-tables`
   enforces both rules for migrations, not the live schema. All 117 tables in the
   baseline are already STRICT, but production was built from the legacy track and
-  is almost entirely non-STRICT: **3 of 119** non-shadow tables (2026-09-01
-  measurement — `ingredient_stock_movements`, `print_agents`, `receipts`).
+  is almost entirely non-STRICT: **4 of 120** non-shadow tables (2026-09-02,
+  after `0016` shipped — `ingredient_stock_movements`, `print_agents`,
+  `receipts`, `restaurant_customers`). Every new table arrives STRICT, so this
+  ratio only moves as tables are added; the 116 legacy ones stay unprotected
+  until something recreates them.
 
   The "15 of 119" this file and issue #297 previously recorded was an artifact of
   the query, not a real count. `sql LIKE '%STRICT%'` is a substring match, so it
