@@ -66,11 +66,45 @@ describe("AIInsightsDashboard", () => {
       "AI provider not configured. Please configure an AI provider first.",
     );
     expect(wrapper.text()).not.toContain("aiAnalytics.retry");
+    expect(wrapper.text()).not.toContain("aiAnalytics.regenerateReport");
+    expect(wrapper.text()).not.toContain("aiAnalytics.generateNow");
     expect(
       wrapper
         .findAll('a[href="/dashboard/ai-analytics/config"]')
         .find((link) => link.text() === "aiAnalytics.configureProvider")
         ?.exists(),
     ).toBe(true);
+  });
+
+  it("keeps retry available for other report errors", async () => {
+    generateReport.mockImplementationOnce(async () => {
+      apiError.value = "Temporary service failure";
+      apiErrorCode.value = "AI_SERVICE_UNAVAILABLE";
+      return null;
+    });
+
+    const wrapper = mount(AIInsightsDashboard, {
+      global: {
+        mocks: {
+          $route: { path: "/dashboard/ai-analytics/insights" },
+        },
+        stubs: {
+          ModuleGate: { props: ["module"], template: "<slot />" },
+          RouterLink: { props: ["to"], template: '<a :href="to"><slot /></a>' },
+        },
+      },
+    });
+
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "aiAnalytics.generateNow")
+      ?.trigger("click");
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("Temporary service failure");
+    expect(wrapper.text()).toContain("aiAnalytics.retry");
+    expect(wrapper.text()).not.toContain(
+      "aiAnalytics.providerNotConfiguredTitle",
+    );
   });
 });

@@ -240,6 +240,7 @@ const formatPercent = (value: number) => {
             </select>
 
             <button
+              v-if="!isProviderNotConfigured"
               :disabled="isGenerating"
               :aria-label="
                 isGenerating
@@ -679,7 +680,7 @@ const formatPercent = (value: number) => {
         </div>
 
         <!-- No Data State -->
-        <div v-else class="text-center py-20">
+        <div v-else-if="!errorMessage" class="text-center py-20">
           <SparklesIcon class="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <div class="text-gray-600 font-medium mb-2">
             {{ t("aiAnalytics.noReport") }}
