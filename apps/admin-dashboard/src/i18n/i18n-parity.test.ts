@@ -61,6 +61,18 @@ function missingKeys(messages: unknown): string[] {
   return sourceKeys.filter((key) => !present.has(key)).sort();
 }
 
+function resolveMessage(messages: unknown, key: string): unknown {
+  return key
+    .split(".")
+    .reduce<unknown>(
+      (node, segment) =>
+        node && typeof node === "object"
+          ? (node as MessageTree)[segment]
+          : undefined,
+      messages,
+    );
+}
+
 describe("admin i18n locale parity", () => {
   it("adds no untranslated key that the baseline does not already record", () => {
     const newlyMissing = Object.fromEntries(
@@ -152,5 +164,63 @@ describe("admin i18n locale parity", () => {
     );
 
     expect(missing).toEqual({});
+  }, 15_000);
+
+  it("keeps every interpolated placeholder present in every locale", () => {
+    const i18nDir = path.dirname(fileURLToPath(import.meta.url));
+    const sourceRoot = path.resolve(i18nDir, "..");
+    const allLocales: Record<string, unknown> = {
+      "zh-TW": zhTW,
+      ...localeMessages,
+    };
+
+    // Matches a translation call that passes a params object. No current call
+    // site nests braces inside that object, which keeps this a cheap regex
+    // rather than a parser; a call site that starts nesting simply stops being
+    // checked, it never misreports. (Written without a literal example call —
+    // the key-coverage test above scans this file too and would read one as a
+    // real, and missing, key.)
+    const callPattern =
+      /\bt\(\s*["'`]([A-Za-z0-9_.]+)["'`]\s*,\s*\{([^{}]*)\}/g;
+    const paramPattern = /(?:^|,)\s*([A-Za-z_$][\w$]*)\s*[:,}]/g;
+
+    const passedParams = new Map<string, Set<string>>();
+    for (const file of sourceFiles(sourceRoot)) {
+      if (file.includes(`${path.sep}locales${path.sep}`)) continue;
+      if (/\.test\.ts$/.test(file)) continue;
+
+      for (const match of fs.readFileSync(file, "utf8").matchAll(callPattern)) {
+        const names = [...match[2].matchAll(paramPattern)].map((m) => m[1]);
+        if (names.length === 0) continue;
+
+        const known = passedParams.get(match[1]) ?? new Set<string>();
+        names.forEach((name) => known.add(name));
+        passedParams.set(match[1], known);
+      }
+    }
+
+    const dropped: Record<string, string[]> = {};
+    for (const [key, names] of passedParams) {
+      for (const name of names) {
+        const offenders = Object.entries(allLocales)
+          .filter(([, messages]) => {
+            const value = resolveMessage(messages, key);
+            // A key absent from a locale is the parity tests' business above,
+            // not this one — it falls back to zh-TW and renders fine.
+            return typeof value === "string" && !value.includes(`{${name}}`);
+          })
+          .map(([locale]) => locale)
+          .sort();
+
+        if (offenders.length > 0) dropped[`${key} {${name}}`] = offenders;
+      }
+    }
+
+    // A value passed to t() that the message never names is dropped in silence.
+    // SchedulingView shipped `t("scheduling.peopleCount", { count })` against
+    // zh-TW "人", so the 目前上班中 badge read "人" with no number — invisible
+    // until #314 finally made that page reachable, and invisible to component
+    // tests that stub t as key => key.
+    expect(dropped).toEqual({});
   }, 15_000);
 });
