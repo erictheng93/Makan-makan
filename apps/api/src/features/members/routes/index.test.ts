@@ -92,6 +92,22 @@ function jsonRequest(url: string, method: string, body?: unknown) {
   });
 }
 
+/**
+ * `Response.json()` is typed `unknown`, and apps/api's test tsconfig is in the
+ * typecheck gate, so every read of a response body needs a shape. These two
+ * keep the assertions readable without scattering casts through the file.
+ */
+async function readError(response: Response) {
+  return (await response.json()) as {
+    success: false;
+    error: { code: string; message: string };
+  };
+}
+
+async function readData<T>(response: Response) {
+  return (await response.json()) as { success: true; data: T };
+}
+
 const MEMBER = {
   memberId: MEMBER_ID,
   displayName: "A Customer",
@@ -210,7 +226,7 @@ describe("members routes", () => {
       createEnv() as never,
     );
     expect(missing.status).toBe(404);
-    expect((await missing.json()).error.code).toBe("MEMBER_NOT_FOUND");
+    expect((await readError(missing)).error.code).toBe("MEMBER_NOT_FOUND");
   });
 
   it("patches tenant-local fields and records who did it", async () => {
@@ -329,7 +345,7 @@ describe("members routes", () => {
     );
 
     expect(response.status).toBe(404);
-    expect((await response.json()).error.code).toBe("MEMBER_NOT_FOUND");
+    expect((await readError(response)).error.code).toBe("MEMBER_NOT_FOUND");
   });
 
   it("lists a member's orders and 404s when the member is out of scope", async () => {
@@ -380,7 +396,11 @@ describe("members routes", () => {
     );
 
     expect(response.status).toBe(200);
-    const body = await response.json();
+    const body = await readData<{
+      phone: string | null;
+      email: string | null;
+      revealedAt: number;
+    }>(response);
     expect(body.data.phone).toBe("0900000000");
     expect(body.data.email).toBe("a@example.com");
     expect(typeof body.data.revealedAt).toBe("number");
@@ -435,7 +455,7 @@ describe("members routes", () => {
     );
 
     expect(response.status).toBe(403);
-    expect((await response.json()).error.code).toBe("MEMBER_DELETED");
+    expect((await readError(response)).error.code).toBe("MEMBER_DELETED");
   });
 
   it("404s a reveal against a member the scope cannot see", async () => {
@@ -450,7 +470,7 @@ describe("members routes", () => {
     );
 
     expect(response.status).toBe(404);
-    expect((await response.json()).error.code).toBe("MEMBER_NOT_FOUND");
+    expect((await readError(response)).error.code).toBe("MEMBER_NOT_FOUND");
   });
 
   it("never reaches the service when the throttle rejects", async () => {
