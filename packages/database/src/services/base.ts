@@ -25,6 +25,42 @@ const ORDER_NUMBER_SEGMENT_MODULUS =
  */
 export type DeploymentMode = "saas" | "independent";
 
+/**
+ * A D1 Sessions API constraint: `"first-unconstrained"`, `"first-primary"`, or
+ * a bookmark returned by a previous session's `getBookmark()`.
+ *
+ * Kept as a string rather than a union so a caller can pass a bookmark through
+ * unchanged once bookmark propagation exists (#321).
+ */
+export type D1SessionConstraint = string;
+
+export interface BaseServiceOptions {
+  /**
+   * When set, this service's query builder runs inside a D1 Session, so its
+   * reads can be served by a regional read replica instead of always crossing
+   * to the primary. Leave unset — the default — and the service behaves exactly
+   * as it did before sessions existed.
+   *
+   * Worth knowing before turning this on for a service (#321):
+   *
+   * - The primary for makanmasak-prod is in APAC while the Worker runs at
+   *   whichever colo the request landed on. `/api/v1/system/health` self-reports
+   *   108-115ms for a bare `SELECT 1`, so a method with four serial queries is a
+   *   450ms method for reasons that have nothing to do with the query.
+   * - Writes are safe: D1 routes them to the primary regardless, and reads later
+   *   in the *same* session are read-your-writes consistent.
+   * - The risk is across requests. One request writes; the next opens a fresh
+   *   `"first-unconstrained"` session and may read a replica that has not caught
+   *   up yet. So enable this on read paths that tolerate seconds of staleness,
+   *   and use `"first-primary"` — or a propagated bookmark — where a caller
+   *   must see its own recent write.
+   * - It is a no-op until read replication is enabled on the database. Only
+   *   `served_by_primary` from a production `D1Result.meta` proves a replica
+   *   actually served a query; miniflare reports neither field locally.
+   */
+  readSessionConstraint?: D1SessionConstraint;
+}
+
 export interface CloudflareEnv {
   JWT_SECRET: string;
   NODE_ENV?: string;
@@ -92,7 +128,11 @@ export class BaseService {
   protected tenantId?: string;
   protected tenantName?: string;
 
-  constructor(d1: D1Database, env: CloudflareEnv) {
+  constructor(
+    d1: D1Database,
+    env: CloudflareEnv,
+    options: BaseServiceOptions = {},
+  ) {
     this.d1 = d1;
     this.env = env;
 
@@ -101,7 +141,15 @@ export class BaseService {
     this.tenantId = env.TENANT_ID;
     this.tenantName = env.TENANT_NAME;
 
-    this.db = drizzle(d1, {
+    // `this.d1` stays on the primary; only the query builder is wrapped, and
+    // only when a caller asked for it. Drizzle's d1 driver calls prepare() and
+    // batch(), both of which a D1DatabaseSession implements, so the cast holds
+    // at runtime — the same shape DiscoveryService has been shipping.
+    const readClient = options.readSessionConstraint
+      ? (d1.withSession(options.readSessionConstraint) as unknown as D1Database)
+      : d1;
+
+    this.db = drizzle(readClient, {
       schema,
       logger: env.NODE_ENV === "development",
     });
