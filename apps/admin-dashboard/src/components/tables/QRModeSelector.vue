@@ -1,150 +1,168 @@
 <template>
   <div class="qr-mode-selector">
-    <div class="mb-4">
-      <label class="block text-sm font-medium text-gray-700 mb-2">
+    <fieldset class="border-0 p-0 m-0">
+      <legend class="block text-sm font-medium text-gray-700 mb-2">
         {{ t("qrMode.label") }} <span class="text-red-500">*</span>
-      </label>
+      </legend>
       <p class="text-xs text-gray-500 mb-4">{{ t("qrMode.description") }}</p>
-    </div>
 
-    <!-- 模式選擇 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-      <!-- 桌子模式 -->
-      <div
-        :class="[
-          'mode-card relative rounded-lg border-2 p-6 cursor-pointer transition-all',
-          modelValue === 'table'
-            ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
-            : 'border-gray-300 hover:border-blue-300',
-        ]"
-        @click="selectMode('table')"
-      >
-        <div class="flex items-start justify-between mb-3">
-          <div class="flex items-center">
-            <div
-              :class="[
-                'w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center',
-                modelValue === 'table'
-                  ? 'border-blue-500 bg-blue-500'
-                  : 'border-gray-300',
-              ]"
-            >
+      <!-- 模式選擇 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <!-- 桌子模式 -->
+        <label
+          :class="[
+            'mode-card block relative rounded-lg border-2 p-6 cursor-pointer transition-all focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2',
+            modelValue === 'table'
+              ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+              : 'border-gray-300 hover:border-blue-300',
+          ]"
+        >
+          <input
+            :checked="modelValue === 'table'"
+            :aria-label="t('qrMode.tableMode')"
+            class="sr-only"
+            name="qr-mode"
+            required
+            type="radio"
+            value="table"
+            @change="selectMode('table')"
+          />
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex items-center">
               <div
-                v-if="modelValue === 'table'"
-                class="w-2 h-2 bg-white rounded-full"
-              />
-            </div>
-            <h3 class="text-lg font-semibold text-gray-900">
-              {{ t("qrMode.tableMode") }}
-            </h3>
-          </div>
-          <TableCellsIcon class="h-8 w-8 text-gray-400" />
-        </div>
-
-        <p class="text-sm text-gray-600 mb-4">
-          {{ t("qrMode.tableModeDesc") }}
-        </p>
-
-        <!-- 桌子模式圖示 -->
-        <div class="bg-white rounded-lg p-4 border border-gray-200">
-          <div class="flex items-center justify-center">
-            <div class="text-center">
-              <div
-                class="w-24 h-24 mx-auto bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300"
+                :class="[
+                  'w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center',
+                  modelValue === 'table'
+                    ? 'border-blue-500 bg-blue-500'
+                    : 'border-gray-300',
+                ]"
               >
-                <QRCodeIcon class="h-12 w-12 text-gray-400" />
+                <div
+                  v-if="modelValue === 'table'"
+                  class="w-2 h-2 bg-white rounded-full"
+                />
               </div>
-              <p class="text-xs text-gray-500 mt-2">
-                {{ t("qrMode.oneTableOneCode") }}
-              </p>
+              <h3 class="text-lg font-semibold text-gray-900">
+                {{ t("qrMode.tableMode") }}
+              </h3>
             </div>
+            <TableCellsIcon class="h-8 w-8 text-gray-400" />
           </div>
-        </div>
 
-        <div class="mt-4 space-y-2">
-          <div class="flex items-center text-xs text-gray-600">
-            <CheckIcon class="h-4 w-4 text-green-500 mr-2" />
-            {{ t("qrMode.tableAdvantage1") }}
-          </div>
-          <div class="flex items-center text-xs text-gray-600">
-            <CheckIcon class="h-4 w-4 text-green-500 mr-2" />
-            {{ t("qrMode.tableAdvantage2") }}
-          </div>
-          <div class="flex items-center text-xs text-gray-600">
-            <CheckIcon class="h-4 w-4 text-green-500 mr-2" />
-            {{ t("qrMode.tableAdvantage3") }}
-          </div>
-        </div>
-      </div>
-
-      <!-- 座位模式 -->
-      <div
-        :class="[
-          'mode-card relative rounded-lg border-2 p-6 cursor-pointer transition-all',
-          modelValue === 'seat'
-            ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
-            : 'border-gray-300 hover:border-blue-300',
-        ]"
-        @click="selectMode('seat')"
-      >
-        <div class="flex items-start justify-between mb-3">
-          <div class="flex items-center">
-            <div
-              :class="[
-                'w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center',
-                modelValue === 'seat'
-                  ? 'border-blue-500 bg-blue-500'
-                  : 'border-gray-300',
-              ]"
-            >
-              <div
-                v-if="modelValue === 'seat'"
-                class="w-2 h-2 bg-white rounded-full"
-              />
-            </div>
-            <h3 class="text-lg font-semibold text-gray-900">
-              {{ t("qrMode.seatMode") }}
-            </h3>
-          </div>
-          <UserGroupIcon class="h-8 w-8 text-gray-400" />
-        </div>
-
-        <p class="text-sm text-gray-600 mb-4">
-          {{ t("qrMode.seatModeDesc") }}
-        </p>
-
-        <!-- 座位模式圖示 -->
-        <div class="bg-white rounded-lg p-4 border border-gray-200">
-          <div class="grid grid-cols-2 gap-2">
-            <div
-              v-for="i in 4"
-              :key="i"
-              class="w-full aspect-square bg-gray-100 rounded flex items-center justify-center border border-dashed border-gray-300"
-            >
-              <QRCodeIcon class="h-6 w-6 text-gray-400" />
-            </div>
-          </div>
-          <p class="text-xs text-gray-500 mt-2 text-center">
-            {{ t("qrMode.oneSeatOneCode") }}
+          <p class="text-sm text-gray-600 mb-4">
+            {{ t("qrMode.tableModeDesc") }}
           </p>
-        </div>
 
-        <div class="mt-4 space-y-2">
-          <div class="flex items-center text-xs text-gray-600">
-            <CheckIcon class="h-4 w-4 text-green-500 mr-2" />
-            {{ t("qrMode.seatAdvantage1") }}
+          <!-- 桌子模式圖示 -->
+          <div class="bg-white rounded-lg p-4 border border-gray-200">
+            <div class="flex items-center justify-center">
+              <div class="text-center">
+                <div
+                  class="w-24 h-24 mx-auto bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300"
+                >
+                  <QRCodeIcon class="h-12 w-12 text-gray-400" />
+                </div>
+                <p class="text-xs text-gray-500 mt-2">
+                  {{ t("qrMode.oneTableOneCode") }}
+                </p>
+              </div>
+            </div>
           </div>
-          <div class="flex items-center text-xs text-gray-600">
-            <CheckIcon class="h-4 w-4 text-green-500 mr-2" />
-            {{ t("qrMode.seatAdvantage2") }}
+
+          <div class="mt-4 space-y-2">
+            <div class="flex items-center text-xs text-gray-600">
+              <CheckIcon class="h-4 w-4 text-green-500 mr-2" />
+              {{ t("qrMode.tableAdvantage1") }}
+            </div>
+            <div class="flex items-center text-xs text-gray-600">
+              <CheckIcon class="h-4 w-4 text-green-500 mr-2" />
+              {{ t("qrMode.tableAdvantage2") }}
+            </div>
+            <div class="flex items-center text-xs text-gray-600">
+              <CheckIcon class="h-4 w-4 text-green-500 mr-2" />
+              {{ t("qrMode.tableAdvantage3") }}
+            </div>
           </div>
-          <div class="flex items-center text-xs text-gray-600">
-            <CheckIcon class="h-4 w-4 text-green-500 mr-2" />
-            {{ t("qrMode.seatAdvantage3") }}
+        </label>
+
+        <!-- 座位模式 -->
+        <label
+          :class="[
+            'mode-card block relative rounded-lg border-2 p-6 cursor-pointer transition-all focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2',
+            modelValue === 'seat'
+              ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+              : 'border-gray-300 hover:border-blue-300',
+          ]"
+        >
+          <input
+            :checked="modelValue === 'seat'"
+            :aria-label="t('qrMode.seatMode')"
+            class="sr-only"
+            name="qr-mode"
+            required
+            type="radio"
+            value="seat"
+            @change="selectMode('seat')"
+          />
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex items-center">
+              <div
+                :class="[
+                  'w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center',
+                  modelValue === 'seat'
+                    ? 'border-blue-500 bg-blue-500'
+                    : 'border-gray-300',
+                ]"
+              >
+                <div
+                  v-if="modelValue === 'seat'"
+                  class="w-2 h-2 bg-white rounded-full"
+                />
+              </div>
+              <h3 class="text-lg font-semibold text-gray-900">
+                {{ t("qrMode.seatMode") }}
+              </h3>
+            </div>
+            <UserGroupIcon class="h-8 w-8 text-gray-400" />
           </div>
-        </div>
+
+          <p class="text-sm text-gray-600 mb-4">
+            {{ t("qrMode.seatModeDesc") }}
+          </p>
+
+          <!-- 座位模式圖示 -->
+          <div class="bg-white rounded-lg p-4 border border-gray-200">
+            <div class="grid grid-cols-2 gap-2">
+              <div
+                v-for="i in 4"
+                :key="i"
+                class="w-full aspect-square bg-gray-100 rounded flex items-center justify-center border border-dashed border-gray-300"
+              >
+                <QRCodeIcon class="h-6 w-6 text-gray-400" />
+              </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2 text-center">
+              {{ t("qrMode.oneSeatOneCode") }}
+            </p>
+          </div>
+
+          <div class="mt-4 space-y-2">
+            <div class="flex items-center text-xs text-gray-600">
+              <CheckIcon class="h-4 w-4 text-green-500 mr-2" />
+              {{ t("qrMode.seatAdvantage1") }}
+            </div>
+            <div class="flex items-center text-xs text-gray-600">
+              <CheckIcon class="h-4 w-4 text-green-500 mr-2" />
+              {{ t("qrMode.seatAdvantage2") }}
+            </div>
+            <div class="flex items-center text-xs text-gray-600">
+              <CheckIcon class="h-4 w-4 text-green-500 mr-2" />
+              {{ t("qrMode.seatAdvantage3") }}
+            </div>
+          </div>
+        </label>
       </div>
-    </div>
+    </fieldset>
 
     <!-- 座位模式配置 -->
     <div
