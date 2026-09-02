@@ -560,8 +560,8 @@ const getSeverityColor = (severity: string): string => {
 const getSeverityBadgeColor = (severity: string): string => {
   const colors: Record<string, string> = {
     low: "bg-green-100 text-green-800",
-    medium: "bg-orange-50 text-orange-700",
-    high: "bg-orange-100 text-orange-800",
+    medium: "bg-orange-100 text-orange-800",
+    high: "bg-orange-200 text-orange-900",
     critical: "bg-red-100 text-red-800",
   };
   return colors[severity] || "bg-gray-100 text-gray-800";

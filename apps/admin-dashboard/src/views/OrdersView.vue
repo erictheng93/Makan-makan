@@ -961,10 +961,10 @@ const getStatusClass = (status: string) => {
     // delivered the deeper. Before this, yellow/amber collapsed onto orange and
     // purple onto teal, which made pending look like ready and preparing look
     // like delivered.
-    pending: "bg-orange-50 text-orange-700",
+    pending: "bg-orange-100 text-orange-800",
     confirmed: "bg-blue-100 text-blue-800",
     preparing: "bg-teal-100 text-teal-800",
-    ready: "bg-orange-100 text-orange-800",
+    ready: "bg-orange-200 text-orange-900",
     delivered: "bg-teal-200 text-teal-900",
     paid: "bg-green-100 text-green-800",
     completed: "bg-green-100 text-green-800",

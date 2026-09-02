@@ -859,12 +859,12 @@ const getQueueNumberColor = (status: string) => {
     // called was yellow and expired orange, which are the same colour here.
     // Being called is the live, act-now state so it keeps full orange; expired
     // is spent and drops to the muted step next to cancelled.
-    called: "bg-orange-100 text-orange-800",
+    called: "bg-orange-200 text-orange-900",
     notified: "bg-teal-100 text-teal-800",
     seated: "bg-green-100 text-green-800",
     no_show: "bg-red-100 text-red-800",
     cancelled: "bg-gray-100 text-gray-800",
-    expired: "bg-orange-50 text-orange-700",
+    expired: "bg-orange-100 text-orange-800",
   };
   return colors[status] || "bg-gray-100 text-gray-800";
 };
@@ -888,12 +888,12 @@ const getStatusClass = (status: string) => {
     // called was yellow and expired orange, which are the same colour here.
     // Being called is the live, act-now state so it keeps full orange; expired
     // is spent and drops to the muted step next to cancelled.
-    called: "bg-orange-100 text-orange-800",
+    called: "bg-orange-200 text-orange-900",
     notified: "bg-teal-100 text-teal-800",
     seated: "bg-green-100 text-green-800",
     no_show: "bg-red-100 text-red-800",
     cancelled: "bg-gray-100 text-gray-800",
-    expired: "bg-orange-50 text-orange-700",
+    expired: "bg-orange-100 text-orange-800",
   };
   return classes[status] || "bg-gray-100 text-gray-800";
 };
@@ -915,7 +915,7 @@ const getTableStatusTextColor = (status: string) => {
     available: "bg-green-100 text-green-800",
     occupied: "bg-red-100 text-red-800",
     reserved: "bg-orange-200 text-orange-900",
-    cleaning: "bg-orange-50 text-orange-700",
+    cleaning: "bg-orange-100 text-orange-800",
   };
   return colors[status] || "bg-gray-100 text-gray-800";
 };

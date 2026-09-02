@@ -964,7 +964,7 @@ function getStatusBadgeClass(status: string): string {
   const classMap: Record<string, string> = {
     pending: "bg-yellow-100 text-yellow-800",
     confirmed: "bg-green-100 text-green-800",
-    arrived: "bg-teal-50 text-teal-700",
+    arrived: "bg-teal-100 text-teal-800",
     seated: "bg-teal-200 text-teal-900",
     completed: "bg-blue-100 text-blue-800",
     cancelled: "bg-red-100 text-red-800",

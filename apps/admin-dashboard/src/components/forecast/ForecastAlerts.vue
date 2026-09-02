@@ -76,7 +76,7 @@ const typeStyles: Record<string, string> = {
   low_stock: "bg-red-100 text-red-800",
   unusual_spike: "bg-teal-200 text-teal-900",
   procurement_needed: "bg-blue-100 text-blue-800",
-  excess_stock: "bg-teal-50 text-teal-700",
+  excess_stock: "bg-teal-100 text-teal-800",
 };
 
 const typeLabels: Record<string, string> = {
