@@ -3630,6 +3630,7 @@ const idID: Messages = {
       today: "Hari Ini",
       week: "Minggu",
       month: "Bulan",
+      advancedScheduling: "Penjadwalan Lanjutan",
       manageTemplates: "Kelola Template",
       loading: "Memuat jadwal...",
       retry: "Coba Lagi",

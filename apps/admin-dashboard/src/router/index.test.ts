@@ -35,6 +35,20 @@ describe("admin dashboard router", () => {
     ]);
   });
 
+  it("keeps advanced scheduling reachable by admins and owners without changing the legacy redirect", () => {
+    const advanced = router.resolve("/dashboard/employees/scheduling/advanced");
+    const legacy = router
+      .getRoutes()
+      .find((route) => route.path === "/dashboard/scheduling");
+
+    expect(legacy?.redirect).toEqual({ name: "EmployeeScheduling" });
+    expect(advanced.name).toBe("AdvancedScheduling");
+    expect(advanced.matched.at(-1)?.meta.roles).toEqual([
+      UserRole.ADMIN,
+      UserRole.OWNER,
+    ]);
+  });
+
   it("keeps OwnerOverview, Orders, and GroupOrders role boundaries distinct", () => {
     const rolesFor = (name: string) =>
       router.getRoutes().find((route) => route.name === name)?.meta.roles;

@@ -3665,6 +3665,7 @@ const zhTWCore = {
       today: "今天",
       week: "週",
       month: "月",
+      advancedScheduling: "進階排班",
       manageTemplates: "管理模板",
       loading: "載入排班中...",
       retry: "重試",

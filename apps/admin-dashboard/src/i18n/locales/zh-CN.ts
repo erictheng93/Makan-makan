@@ -3547,6 +3547,7 @@ const zhCN: Messages = {
       today: "今天",
       week: "周",
       month: "月",
+      advancedScheduling: "进阶排班",
       manageTemplates: "管理模板",
       loading: "加载排班中...",
       retry: "重试",

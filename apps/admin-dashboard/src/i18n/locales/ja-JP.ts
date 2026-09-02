@@ -3614,6 +3614,7 @@ const jaJP: Messages = {
       today: "今日",
       week: "週",
       month: "月",
+      advancedScheduling: "詳細シフト管理",
       manageTemplates: "テンプレート管理",
       loading: "シフトを読み込み中...",
       retry: "再試行",

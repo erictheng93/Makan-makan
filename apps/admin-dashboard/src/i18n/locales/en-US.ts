@@ -3609,6 +3609,7 @@ const enUS: Messages = {
       today: "Today",
       week: "Week",
       month: "Month",
+      advancedScheduling: "Advanced Scheduling",
       manageTemplates: "Manage Templates",
       loading: "Loading schedules...",
       retry: "Retry",

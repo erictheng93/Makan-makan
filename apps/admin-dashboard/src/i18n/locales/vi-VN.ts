@@ -3616,6 +3616,7 @@ const viVN: Messages = {
       today: "Hôm nay",
       week: "Tuần",
       month: "Tháng",
+      advancedScheduling: "Lập lịch nâng cao",
       manageTemplates: "Quản lý mẫu",
       loading: "Đang tải lịch...",
       retry: "Thử lại",

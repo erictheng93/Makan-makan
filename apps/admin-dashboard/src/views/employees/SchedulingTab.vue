@@ -58,6 +58,14 @@
         </button>
       </div>
 
+      <RouterLink
+        :to="{ name: 'AdvancedScheduling' }"
+        data-testid="advanced-scheduling-link"
+        class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-white text-[#007AFF] border border-[#007AFF]/20 hover:bg-[#007AFF]/10 transition-colors"
+      >
+        {{ t("employees.scheduling.advancedScheduling") }}
+      </RouterLink>
+
       <!-- Manage templates button -->
       <button
         class="ml-auto flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors shadow-sm"

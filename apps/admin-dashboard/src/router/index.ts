@@ -188,6 +188,15 @@ const routes: RouteRecordRaw[] = [
             component: () => import("@/views/employees/SchedulingTab.vue"),
           },
           {
+            path: "scheduling/advanced",
+            name: "AdvancedScheduling",
+            component: () => import("@/views/scheduling/SchedulingView.vue"),
+            meta: {
+              titleKey: "pages.scheduling",
+              roles: [UserRole.ADMIN, UserRole.OWNER],
+            },
+          },
+          {
             path: "leaves",
             name: "EmployeeLeaves",
             component: () => import("@/views/employees/LeavesTab.vue"),
