@@ -253,11 +253,52 @@ footer{
         <tr><td class="mono">F5</td><td>API 全端點約 1–4 秒，偶發 <code>ERR_CONNECTION_CLOSED</code></td><td>全站</td><td><span class="tag ux">效能</span></td><td><span class="tag issue">開 issue</span></td></tr>
         <tr><td class="mono">F18</td><td>稅率與服務費後端已接好，前端沒有任何欄位</td><td>設定</td><td><span class="tag ux">缺口</span></td><td><span class="tag issue">開 issue</span></td></tr>
         <tr><td class="mono">F19</td><td>時區下拉有 9 個選項，但所有日期分桶都硬寫 +08</td><td>設定</td><td><span class="tag ux">缺口</span></td><td><span class="tag issue">開 issue</span></td></tr>
-        <tr><td class="mono">F9</td><td>SchedulingView 沒掛路由：換班申請與排班清單進不去</td><td>人事</td><td><span class="tag ux">缺口</span></td><td><span class="tag issue">開 issue</span></td></tr>
-        <tr><td class="mono">F15</td><td>AI 未設定的錯誤訊息是未在地化英文，且沒有前往設定的連結</td><td>分析</td><td><span class="tag ux">體驗</span></td><td><span class="tag issue">開 issue</span></td></tr>
-        <tr><td class="mono">F6</td><td>「QR 碼管理模式」必填欄位做成純 div，鍵盤與螢幕閱讀器用不了</td><td>店務</td><td><span class="tag ux">a11y</span></td><td><span class="tag issue">開 issue</span></td></tr>
+        <tr><td class="mono">F9</td><td>SchedulingView 沒掛路由：換班申請與排班清單進不去</td><td>人事</td><td><span class="tag ux">缺口</span></td><td><span class="tag fixed">已修（後續）</span></td></tr>
+        <tr><td class="mono">F15</td><td>AI 未設定的錯誤訊息是未在地化英文，且沒有前往設定的連結</td><td>分析</td><td><span class="tag ux">體驗</span></td><td><span class="tag fixed">已修（後續）</span></td></tr>
+        <tr><td class="mono">F6</td><td>「QR 碼管理模式」必填欄位做成純 div，鍵盤與螢幕閱讀器用不了</td><td>店務</td><td><span class="tag ux">a11y</span></td><td><span class="tag fixed">已修（後續）</span></td></tr>
       </tbody>
     </table>
+  </div>
+
+  <div class="card" style="--ac:var(--green)">
+    <h3 style="margin-top:0">後續進展（2026-09-02 更新）</h3>
+    <p>
+      這份報告是 <b>2026-09-01 當天的快照</b>，內容不改。以下是報告寫完之後實際發生的變化，
+      供讀者對照現況——三項原本標「開 issue」的已經修掉並上線，摘要表已同步標為「已修（後續）」。
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th class="mono">#</th><th>issue</th><th>修在哪</th><th>驗證</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="mono">F6</td><td>#317</td>
+            <td class="mono">51d4c347<br>4dd976b4</td>
+            <td>改成 <code>&lt;label&gt;</code> 包真正的 <code>&lt;input type="radio" class="sr-only"&gt;</code>，帶 <code>name</code>／<code>required</code>／<code>aria-label</code> 與 <code>focus-within:ring</code>。鍵盤與螢幕閱讀器都可用了。</td>
+          </tr>
+          <tr>
+            <td class="mono">F9</td><td>#314</td>
+            <td class="mono">53201458<br>906b26e1</td>
+            <td><code>SchedulingView.vue</code> 掛在 <code>/dashboard/employees/scheduling/advanced</code>，帶 ADMIN/OWNER 角色守門。換班申請與排班清單進得去了。<br><b>但員工端要怎麼發起換班仍未定</b>——那個產品問題另開為 #320。</td>
+          </tr>
+          <tr>
+            <td class="mono">F15</td><td>#318</td>
+            <td class="mono">4247893c<br>15e614b1</td>
+            <td>加了 <code>aiAnalytics.providerNotConfiguredTitle/Hint</code> 兩把 i18n key 與一個連到 <code>/dashboard/ai-analytics/config</code> 的入口，並移除了註定失敗的重試。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      <b>其餘 issue 仍然開著</b>（#307–#313、#315、#316）。特別確認過
+      <b>#312 沒有被修掉</b>：<code>analytics.ts</code> 的 <code>totalRevenue</code> 到現在
+      仍然沒有 status 過濾，已取消訂單還是會被算進營收。
+    </p>
+    <p>
+      另外，2026-09-02 做了一次<b>全系統顏色統一</b>（<code>66d7bb4b</code>…<code>f1fe2b2b</code>），
+      六個 deployable 全部上線。那次順手修掉了本報告 F14 提到的
+      「AI 洞察一開啟就自動送出付費請求」，並把 F6 所在的那個元件連同整個 purple／indigo 色系
+      一起從原始碼移除。與本報告其他發現無關。
+    </p>
   </div>
 </section>
 
