@@ -34,7 +34,9 @@ describe("QRModeSelector", () => {
       "qr-mode",
       "qr-mode",
     ]);
-    expect(radios.map((radio) => radio.element.checked)).toEqual([true, false]);
+    expect(
+      radios.map((radio) => (radio.element as HTMLInputElement).checked),
+    ).toEqual([true, false]);
   });
 
   it("emits the selected mode when a keyboard-accessible radio changes", async () => {
