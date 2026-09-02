@@ -266,6 +266,18 @@ interface ServiceCheck {
   responseTime?: number;
   error?: string;
   lastCheck: string;
+  /**
+   * Which D1 instance answered the probe, straight out of `D1Result.meta`.
+   * Present only on the database check, and only where D1 reports it —
+   * miniflare returns neither field locally.
+   *
+   * This is the one signal that proves read replication is doing anything
+   * (#321): the config toggle and the Sessions API calls are both silent, so
+   * without this the only way to tell a working replica from a no-op is to
+   * time queries and guess.
+   */
+  servedByPrimary?: boolean;
+  servedByRegion?: string;
 }
 
 interface EndpointHealth {
@@ -371,18 +383,30 @@ async function runBasicHealthCheck(c: Context<{ Bindings: Env }>): Promise<{
 
   let dbStatus: ServiceCheck;
   try {
-    const { createDatabase, sql } = await import("@makanmasak/database");
-    const db = createDatabase(c.env.DB);
-    const [result] = await db
-      .select({ test: sql<number>`1` })
-      .from(sql`(SELECT 1)`);
-    const healthResult: ServiceCheck = {
+    // Deliberately the raw binding rather than the Drizzle builder this used to
+    // call: `meta` is where served_by_primary/served_by_region live, and the
+    // builder does not surface it. The Layer-3 ban exists because raw column
+    // names drift when the schema migrates — `SELECT 1` names no columns, so
+    // there is nothing here to drift.
+    //
+    // Probing through a session means this reports what a replica-eligible read
+    // actually got, not what a primary-pinned one would have.
+    const probe = await c.env.DB.withSession("first-unconstrained")
+      .prepare("SELECT 1 AS test")
+      .all<{ test: number }>();
+    const meta = probe.meta as {
+      served_by_primary?: boolean;
+      served_by_region?: string;
+    };
+
+    dbStatus = {
       name: "database",
-      status: result?.test === 1 ? "healthy" : "degraded",
+      status: probe.results?.[0]?.test === 1 ? "healthy" : "degraded",
       responseTime: Date.now() - startTime,
       lastCheck: new Date().toISOString(),
+      servedByPrimary: meta?.served_by_primary,
+      servedByRegion: meta?.served_by_region,
     };
-    dbStatus = healthResult;
   } catch (error) {
     dbStatus = {
       name: "database",

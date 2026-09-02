@@ -128,36 +128,68 @@ app.onError((err, c) => {
  * `response.json()` (or the failed assertion's actual value) for that text
  * rather than expecting a rejected promise.
  *
- * `runBasicHealthCheck` (in ../index.ts) issues
- * `db.select({...}).from(sql\`(SELECT 1)\`)` — a raw SQL fragment, not a
- * schema table. It DOES call `from()`, so the "never called from(table)"
- * guard never fires for it. `fixtureTables` maps whatever value reaches
- * `from()` to the name its fixtures are declared under, so the fragment is
- * registered as `healthProbe` alongside the four schema tables the route
- * handlers import. That keeps the probe's queue independent of theirs and
- * lets a missing fixture name itself instead of reporting `<unknown table>`
- * — see `HEALTH_PROBE_FROM`.
+ * `runBasicHealthCheck` (in ../index.ts) no longer goes through Drizzle. It
+ * probes the raw binding — `env.DB.withSession(...).prepare("SELECT 1 AS
+ * test").all()` — because `served_by_primary` / `served_by_region` live on
+ * `D1Result.meta` and the query builder does not surface them (#321).
+ *
+ * `healthProbe` stays the knob for it so every existing test reads the same,
+ * but it now feeds `probeQueue` below rather than a Drizzle fixture queue.
+ * Declaring it under `fixtureTables` as well is harmless — the select fixture
+ * helper does not complain about fixtures nothing consumed.
  */
-// The mocked `sql` tag above returns the raw template text for any template
-// with no interpolations, so `sql\`(SELECT 1)\`` — the exact argument
-// `runBasicHealthCheck` passes to `.from()` — always evaluates to this
-// string. It stands in for a raw SQL fragment, never a real schema table.
-const HEALTH_PROBE_FROM = "(SELECT 1)";
-
 const fixtureTables = {
   orders: database.orders,
   users: database.users,
   restaurants: database.restaurants,
   auditLogs: database.auditLogs,
-  healthProbe: HEALTH_PROBE_FROM,
 };
-type SelectFixtureName = keyof typeof fixtureTables;
+type SelectFixtureName = keyof typeof fixtureTables | "healthProbe";
+
+// Rows the next D1 health probe returns, and an error to throw instead.
+let probeQueue: unknown[][] = [];
+let probeError: unknown = null;
+let probeMeta: Record<string, unknown> = {};
+
 function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName> = {}) {
-  const fixtureDb = createSelectFixtureDb(fixtureTables, fixtures);
+  const { healthProbe, ...tableFixtures } = fixtures as Record<
+    string,
+    unknown[][]
+  >;
+  probeQueue = healthProbe ? [...healthProbe] : [];
+  probeError = null;
+  probeMeta = {};
+
+  const fixtureDb = createSelectFixtureDb(
+    fixtureTables,
+    tableFixtures as SelectFixtures<keyof typeof fixtureTables>,
+  );
   database.select.mockImplementation((selection: unknown) => {
     database.selectCalls.push(selection);
     return fixtureDb.select();
   });
+}
+
+function createProbeD1() {
+  const all = vi.fn(async () => {
+    if (probeError) throw probeError;
+    const rows = probeQueue.shift();
+    if (!rows) {
+      // Mirrors the select-fixture helper: name the missing fixture rather
+      // than quietly reporting a healthy database.
+      throw new Error("No health probe fixtures remaining for healthProbe");
+    }
+    return { results: rows, meta: probeMeta };
+  });
+
+  // Typed to take the arguments the route actually passes: the test file is in
+  // the typecheck project, and a zero-arg vi.fn() here fails tsc even though
+  // vitest runs it happily.
+  return {
+    withSession: vi.fn((_constraint: string) => ({
+      prepare: vi.fn((_query: string) => ({ all })),
+    })),
+  };
 }
 
 function createKv() {
@@ -182,7 +214,7 @@ function request(
 ) {
   const kv = createKv();
   const env = {
-    DB: {},
+    DB: createProbeD1(),
     CACHE_KV: kv,
     API_VERSION: "test-v1",
     NODE_ENV: "test",
@@ -565,6 +597,43 @@ describe("system routes", () => {
     );
   });
 
+  it("surfaces which D1 instance answered when D1 reports it", async () => {
+    mockSelectResults({ healthProbe: [[{ test: 1 }]] });
+    probeMeta = { served_by_primary: false, served_by_region: "WNAM" };
+
+    const response = await request("/health").res;
+    const body = (await response.json()) as {
+      services: { name: string; servedByPrimary?: boolean }[];
+    };
+
+    // The only proof read replication is doing anything (#321). The config
+    // toggle and the withSession() call are both silent, so without this the
+    // difference between a working replica and a no-op is guesswork.
+    expect(body.services).toContainEqual(
+      expect.objectContaining({
+        name: "database",
+        servedByPrimary: false,
+        servedByRegion: "WNAM",
+      }),
+    );
+  });
+
+  it("omits the served-by fields where D1 does not report them", async () => {
+    mockSelectResults({ healthProbe: [[{ test: 1 }]] });
+
+    const response = await request("/health").res;
+    const body = (await response.json()) as {
+      services: Record<string, unknown>[];
+    };
+    const database = body.services.find((s) => s.name === "database");
+
+    // miniflare returns neither field, so the health payload must not invent
+    // them — an absent field has to stay absent rather than read as "primary".
+    expect(database).toBeDefined();
+    expect(database).not.toHaveProperty("servedByPrimary");
+    expect(database).not.toHaveProperty("servedByRegion");
+  });
+
   it("reports degraded health when database checks return unexpected data", async () => {
     mockSelectResults({ healthProbe: [[{ test: 0 }]] });
 
@@ -641,9 +710,7 @@ describe("system routes", () => {
   });
 
   it("reports database health check errors", async () => {
-    database.createDatabase.mockImplementationOnce(() => {
-      throw "database unavailable";
-    });
+    probeError = "database unavailable";
 
     const response = await request("/health").res;
     const body = await response.json();
@@ -1019,11 +1086,22 @@ describe("system routes", () => {
     await expect(
       database.select({}).from({ name: "untracked" }),
     ).rejects.toThrow("Missing select fixture for <unknown table>");
-    // The raw-SQL health probe query draws from its own queue, not
-    // fixtureTables — see the doc comment above HEALTH_PROBE_FROM.
-    await expect(database.select({}).from(HEALTH_PROBE_FROM)).resolves.toEqual([
-      { test: 1 },
-    ]);
+    // healthProbe is no longer a Drizzle fixture at all — it feeds the raw D1
+    // session probe, which is why declaring it above did not consume one of
+    // these queues.
+    const probe = createProbeD1();
+    await expect(
+      probe
+        .withSession("first-unconstrained")
+        .prepare("SELECT 1 AS test")
+        .all(),
+    ).resolves.toEqual({ results: [{ test: 1 }], meta: {} });
+    await expect(
+      probe
+        .withSession("first-unconstrained")
+        .prepare("SELECT 1 AS test")
+        .all(),
+    ).rejects.toThrow("No health probe fixtures remaining for healthProbe");
     // A query that never calls from() reports distinctly from either
     // missing-fixture case above.
     await expect(Promise.resolve(database.select({}))).rejects.toThrow(
