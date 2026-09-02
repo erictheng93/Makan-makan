@@ -57,6 +57,7 @@ vi.mock("@makanmasak/database", async (importOriginal) => {
   };
 });
 
+import { AnalyticsService as DatabaseAnalyticsService } from "@makanmasak/database";
 import { AnalyticsService } from "./AnalyticsService";
 
 function createService() {
@@ -412,5 +413,21 @@ describe("AnalyticsService", () => {
     );
     expect(mocks.cache.clear).toHaveBeenNthCalledWith(1, "analytics:*:7:*");
     expect(mocks.cache.clear).toHaveBeenNthCalledWith(2, "analytics:*");
+  });
+
+  it("reads through a replica-eligible D1 session", () => {
+    createService();
+
+    // Every route that builds this service is a read-only dashboard or report,
+    // and the wrapped service issues no writes, so its queries do not have to
+    // cross to the APAC primary (#321). Asserting the constraint here is the
+    // only cheap check available: the effect is invisible locally — miniflare
+    // reports no served_by_primary — and invisible in production too until
+    // read replication is switched on.
+    expect(DatabaseAnalyticsService).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      { readSessionConstraint: "first-unconstrained" },
+    );
   });
 });

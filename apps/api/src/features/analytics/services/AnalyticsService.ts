@@ -136,7 +136,18 @@ export class AnalyticsService implements IAnalyticsService {
   private env: Env;
 
   constructor(db: Env["DB"], env: Env, kv?: Env["CACHE_KV"]) {
-    this.databaseService = new DatabaseAnalyticsService(db, env);
+    // Every route that builds this service is a read-only dashboard or report,
+    // and the service it wraps issues no writes at all, so its queries can be
+    // served by a regional read replica rather than crossing to the APAC
+    // primary each time (#321). A dashboard that is a few seconds stale is
+    // fine; a dashboard that takes 113ms per query to be exactly current is
+    // what #316 was filed about.
+    //
+    // No effect until read replication is enabled on the database, and only
+    // served_by_primary from a production D1Result proves it took effect.
+    this.databaseService = new DatabaseAnalyticsService(db, env, {
+      readSessionConstraint: "first-unconstrained",
+    });
     this.cache = kv ? new KVCacheService(kv) : new NoopCacheService();
     this.logger = new ConsoleLogger("AnalyticsService");
     this.env = env;
