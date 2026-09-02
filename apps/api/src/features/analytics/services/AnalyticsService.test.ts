@@ -263,15 +263,12 @@ describe("AnalyticsService", () => {
     );
   });
 
-  it("computes realtime metrics from dashboard and realtime snapshots", async () => {
-    mocks.databaseService.getDashboardData.mockResolvedValue({
-      summary: dashboardSummary,
-      tableStatus: { total: 10 },
-    });
+  it("computes realtime metrics from the single realtime snapshot", async () => {
     mocks.databaseService.getRealtimeDashboard.mockResolvedValue({
       activeOrders: 6,
       kitchenQueue: 3,
       occupiedTables: 4,
+      dashboard: { summary: dashboardSummary, tableStatus: { total: 10 } },
     });
 
     await expect(createService().getRealtimeData("7")).resolves.toEqual({
@@ -281,6 +278,31 @@ describe("AnalyticsService", () => {
       pendingOrders: 3,
       tableUtilization: 40,
     });
+
+    // The summary and tableStatus come off the snapshot getRealtimeDashboard
+    // already fetched. Calling getDashboardData as well re-ran its nine queries
+    // against a cross-region D1 primary for data we were handed (#316), so the
+    // point of the fix is that this stays at zero.
+    expect(mocks.databaseService.getRealtimeDashboard).toHaveBeenCalledOnce();
+    expect(mocks.databaseService.getDashboardData).not.toHaveBeenCalled();
+  });
+
+  it("returns the empty snapshot without a realtime query when no restaurant is scoped", async () => {
+    mocks.databaseService.getDashboardData.mockResolvedValue({
+      summary: dashboardSummary,
+      tableStatus: { total: 0 },
+    });
+
+    await expect(createService().getRealtimeData()).resolves.toEqual({
+      timestamp: "2026-06-07T12:00:00.000Z",
+      summary: dashboardSummary,
+      activeOrders: 0,
+      pendingOrders: 0,
+      tableUtilization: 0,
+    });
+
+    expect(mocks.databaseService.getDashboardData).toHaveBeenCalledWith("");
+    expect(mocks.databaseService.getRealtimeDashboard).not.toHaveBeenCalled();
   });
 
   it("generates json and csv exports with encoded payload metadata", async () => {

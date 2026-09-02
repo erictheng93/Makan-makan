@@ -713,7 +713,7 @@ export class AnalyticsService extends BaseService {
       // 根本沒有 "completed"，所以 dashboard 永遠顯示 0。
 
       // 今日營收和訂單數
-      const [todayStats] = await this.db
+      const todayStatsQuery = this.db
         .select({
           revenue: sumMoneyAmount(orders.totalAmountCents),
           orderCount: count(),
@@ -727,7 +727,7 @@ export class AnalyticsService extends BaseService {
           ),
         );
 
-      const [todayRevenueRow] = await this.db
+      const todayRevenueQuery = this.db
         .select({
           revenue: sumMoneyAmount(orders.totalAmountCents),
         })
@@ -741,7 +741,7 @@ export class AnalyticsService extends BaseService {
         );
 
       // 本月營收和訂單數
-      const [monthStats] = await this.db
+      const monthStatsQuery = this.db
         .select({
           revenue: sumMoneyAmount(orders.totalAmountCents),
           orderCount: count(),
@@ -755,7 +755,7 @@ export class AnalyticsService extends BaseService {
           ),
         );
 
-      const [monthRevenueRow] = await this.db
+      const monthRevenueQuery = this.db
         .select({
           revenue: sumMoneyAmount(orders.totalAmountCents),
         })
@@ -769,7 +769,7 @@ export class AnalyticsService extends BaseService {
         );
 
       // 上月資料（用於計算成長率）
-      const [lastMonthStats] = await this.db
+      const lastMonthStatsQuery = this.db
         .select({
           revenue: sumMoneyAmount(orders.totalAmountCents),
           orderCount: count(),
@@ -783,7 +783,7 @@ export class AnalyticsService extends BaseService {
           ),
         );
 
-      const [lastMonthRevenueRow] = await this.db
+      const lastMonthRevenueQuery = this.db
         .select({
           revenue: sumMoneyAmount(orders.totalAmountCents),
         })
@@ -796,18 +796,8 @@ export class AnalyticsService extends BaseService {
           ),
         );
 
-      // 計算成長率 — 營收成長率用已結帳的營收，訂單成長率用非取消訂單數
-      const revenueGrowth = this.calculateGrowthRate(
-        Number(monthRevenueRow?.revenue) || 0,
-        Number(lastMonthRevenueRow?.revenue) || 0,
-      );
-      const orderGrowth = this.calculateGrowthRate(
-        monthStats.orderCount,
-        lastMonthStats.orderCount,
-      );
-
       // 最近訂單
-      const recentOrders = await this.db
+      const recentOrdersQuery = this.db
         .select({
           id: orders.id,
           orderNumber: orders.orderNumber,
@@ -824,7 +814,7 @@ export class AnalyticsService extends BaseService {
         .limit(10);
 
       // 熱銷商品 — 計非取消訂單即可（不限定 paid，否則剛出餐的熱賣品都會被排除）
-      const topSellingItems = await this.db
+      const topSellingItemsQuery = this.db
         .select({
           itemId: menuItems.id,
           itemName: menuItems.name,
@@ -854,7 +844,7 @@ export class AnalyticsService extends BaseService {
       // being deleted (TableSetupTab writes `isActive: status !== "maintenance"`),
       // and leaving it in `total` alone reproduces the very symptom #272 was
       // filed about — "0/4" for a shop with one usable table.
-      const [tableStatus] = await this.db
+      const tableStatusQuery = this.db
         .select({
           total: count(),
           occupied: sum(
@@ -872,6 +862,42 @@ export class AnalyticsService extends BaseService {
             eq(tables.isActive, true),
           ),
         );
+
+      // 九筆查詢彼此獨立（沒有任何一筆吃另一筆的結果），所以走一次 db.batch()
+      // 而不是九個 await。D1 主庫在 APAC、Worker 卻跑在使用者落點的 colo，
+      // 單一 `SELECT 1` 實測 113ms（`/api/v1/system/health` 自報），序列化的話
+      // 光這個函式就是九個來回。batch 把它壓成一次。
+      const [
+        [todayStats],
+        [todayRevenueRow],
+        [monthStats],
+        [monthRevenueRow],
+        [lastMonthStats],
+        [lastMonthRevenueRow],
+        recentOrders,
+        topSellingItems,
+        [tableStatus],
+      ] = await this.db.batch([
+        todayStatsQuery,
+        todayRevenueQuery,
+        monthStatsQuery,
+        monthRevenueQuery,
+        lastMonthStatsQuery,
+        lastMonthRevenueQuery,
+        recentOrdersQuery,
+        topSellingItemsQuery,
+        tableStatusQuery,
+      ]);
+
+      // 計算成長率 — 營收成長率用已結帳的營收，訂單成長率用非取消訂單數
+      const revenueGrowth = this.calculateGrowthRate(
+        Number(monthRevenueRow?.revenue) || 0,
+        Number(lastMonthRevenueRow?.revenue) || 0,
+      );
+      const orderGrowth = this.calculateGrowthRate(
+        monthStats.orderCount,
+        lastMonthStats.orderCount,
+      );
 
       return {
         summary: {
@@ -1184,19 +1210,22 @@ export class AnalyticsService extends BaseService {
   }
 
   // 取得實時儀表板資料 (Referenced in API routes)
+  //
+  // `dashboard` 是這裡本來就要查的那份 DashboardData，順手回傳出去。
+  // 呼叫端（AnalyticsService.getRealtimeData）以前會自己再查一次同一份資料，
+  // 等於整組九筆查詢跑兩遍。回傳它就不必再查。
   async getRealtimeDashboard(restaurantId: string): Promise<{
     activeOrders: number;
     kitchenQueue: number;
     averageWaitTime: number;
     occupiedTables: number;
     todayRevenue: number;
+    dashboard: DashboardData;
     alerts: Array<{ type: string; severity: string; message: string }>;
   }> {
     try {
-      const dashboardData = await this.getDashboardData(restaurantId);
-
       // 活躍訂單數
-      const [{ activeOrders }] = await this.db
+      const activeOrdersQuery = this.db
         .select({ activeOrders: count() })
         .from(orders)
         .where(
@@ -1207,7 +1236,7 @@ export class AnalyticsService extends BaseService {
         );
 
       // 廚房隊列
-      const [{ kitchenQueue }] = await this.db
+      const kitchenQueueQuery = this.db
         .select({ kitchenQueue: count() })
         .from(orders)
         .where(
@@ -1218,14 +1247,14 @@ export class AnalyticsService extends BaseService {
         );
 
       // 平均等待時間 (基於最近完成的訂單)
-      const [{ averageWaitTime }] = await this.db
+      const averageWaitTimeQuery = this.db
         .select({
           averageWaitTime: avg(
             sql<number>`
-              CASE 
-                WHEN ${orders.readyAt} IS NOT NULL AND ${orders.createdAt} IS NOT NULL 
+              CASE
+                WHEN ${orders.readyAt} IS NOT NULL AND ${orders.createdAt} IS NOT NULL
                 THEN ${unixMsDiffMinutes(orders.readyAt, orders.createdAt)}
-                ELSE NULL 
+                ELSE NULL
               END
             `,
           ),
@@ -1239,7 +1268,21 @@ export class AnalyticsService extends BaseService {
           ),
         );
 
+      // dashboard 與這三筆彼此不相依，兩批同時發出去而不是排隊等。
+      const [
+        dashboardData,
+        [[{ activeOrders }], [{ kitchenQueue }], [{ averageWaitTime }]],
+      ] = await Promise.all([
+        this.getDashboardData(restaurantId),
+        this.db.batch([
+          activeOrdersQuery,
+          kitchenQueueQuery,
+          averageWaitTimeQuery,
+        ]),
+      ]);
+
       return {
+        dashboard: dashboardData,
         activeOrders,
         kitchenQueue,
         averageWaitTime: Number(averageWaitTime) || 0,

@@ -388,14 +388,13 @@ export class AnalyticsService implements IAnalyticsService {
     try {
       this.logger.debug("Getting real-time analytics data", { restaurantId });
 
-      // Get fresh data directly from database service (no caching for real-time)
-      // Use databaseService.getDashboardData() to get full DashboardData including tableStatus
-      const fullDashboardData = await this.databaseService.getDashboardData(
-        restaurantId ? String(restaurantId) : "",
-      );
-      const dashboardSummary = fullDashboardData.summary;
-
-      // Get realtime metrics from database service
+      // Get fresh data directly from database service (no caching for real-time).
+      // getRealtimeDashboard already fetches the full DashboardData it needs for
+      // occupiedTables/todayRevenue and hands it back as `dashboard`, so read it
+      // from there. Calling getDashboardData() separately ran the same nine
+      // queries a second time — against a D1 primary that is a cross-region
+      // round trip from wherever the Worker happens to run (#316).
+      let dashboardSummary;
       let activeOrders = 0;
       let pendingOrders = 0;
       let tableUtilization = 0;
@@ -403,16 +402,22 @@ export class AnalyticsService implements IAnalyticsService {
       if (restaurantId) {
         const realtimeDashboard =
           await this.databaseService.getRealtimeDashboard(String(restaurantId));
+        dashboardSummary = realtimeDashboard.dashboard.summary;
         activeOrders = realtimeDashboard.activeOrders || 0;
         pendingOrders = realtimeDashboard.kitchenQueue || 0; // Kitchen queue = orders in preparing status
 
         // Calculate table utilization from full dashboard data (includes tableStatus)
-        const totalTables = fullDashboardData.tableStatus?.total || 0;
+        const totalTables = realtimeDashboard.dashboard.tableStatus?.total || 0;
         const occupiedTables = realtimeDashboard.occupiedTables || 0;
         tableUtilization =
           totalTables > 0
             ? Math.round((occupiedTables / totalTables) * 100)
             : 0;
+      } else {
+        // No restaurant scope (system admin): getDashboardData("") short-circuits
+        // to the empty shape without touching the database.
+        dashboardSummary = (await this.databaseService.getDashboardData(""))
+          .summary;
       }
 
       const realtimeData: RealtimeAnalyticsData = {
