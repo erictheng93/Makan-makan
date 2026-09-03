@@ -769,12 +769,22 @@ const { mutate: createOrder } = useMutation({
   },
 });
 
+/**
+ * Idempotency key for the cart currently being submitted. Generated once and
+ * reused for every retry of the *same* cart, which is the whole point: a guest
+ * whose connection dropped mid-submit is told "please try again", and the
+ * second tap has to be recognisable as the same order rather than a new one.
+ * Cleared on success so the next cart gets a fresh key.
+ */
+const pendingGuestMutationId = ref<string | null>(null);
+
 // 訪客訂單 Mutation (dine-in without login)
 const { mutate: createGuestOrder } = useMutation({
   mutationFn: (orderData: CreateGuestOrderRequest) =>
     orderApi.createGuestOrder(orderData),
   onSuccess: (response) => {
     toast.success(t("toast.orderSubmitSuccess"));
+    pendingGuestMutationId.value = null;
     cartStore.clearCart();
     router.push(
       `/restaurant/${props.restaurantId}/table/${props.tableId}/order/${response.order.id}`,
@@ -1072,6 +1082,11 @@ const submitOrder = async () => {
     isSubmitting.value = true;
     showConfirmation.value = false;
 
+    // Minted once per cart, not per tap -- see pendingGuestMutationId.
+    if (!pendingGuestMutationId.value) {
+      pendingGuestMutationId.value = crypto.randomUUID();
+    }
+
     const isAuthenticated = hasCustomerAccessToken();
     const isDineIn = !!props.tableId;
 
@@ -1090,6 +1105,7 @@ const submitOrder = async () => {
           notes: item.notes,
         })),
         notes: orderNotes.value.trim() || undefined,
+        clientMutationId: pendingGuestMutationId.value ?? undefined,
       };
 
       createGuestOrder(guestOrderData);

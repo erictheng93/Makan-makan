@@ -90,6 +90,19 @@ export interface OrderTrackingInfo {
 export interface CreateGuestOrderRequest {
   restaurantId: string;
   guestName: string;
+  /**
+   * Idempotency key for this submission. The server has enforced it all along
+   * -- `orders` carries a unique index on (restaurant_id, client_mutation_id)
+   * in production, and a violation surfaces as CLIENT_MUTATION_DUPLICATE / 409
+   * -- but no caller was sending one, so the whole mechanism was dead code.
+   *
+   * Without it, a connection dropped between the order committing and the KV
+   * active-order lock being written (that write is measured at ~380ms) leaves
+   * the guest looking at "please try again", and a second tap creates a second
+   * order. The KV lock is the only other guard and it is not durable yet in
+   * that window.
+   */
+  clientMutationId?: string;
   orderType: "shop" | "table" | "seat";
   waitingListId?: string;
   customerPhone?: string;

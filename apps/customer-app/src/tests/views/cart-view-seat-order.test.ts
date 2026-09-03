@@ -86,13 +86,17 @@ vi.mock("@tanstack/vue-query", () => ({
   useQuery: () => ({
     data: ref({ name: "Demo Restaurant", settings: {} }),
   }),
+  // Calls onSuccess as well as onError. It used to call only onError, which
+  // meant every success-path effect -- clearing the cart, resetting the
+  // idempotency key, navigating -- was invisible to any test using this stub.
   useMutation: (options: {
     mutationFn: (data: unknown) => unknown;
+    onSuccess?: (result: unknown) => void;
     onError?: (error: unknown) => void;
   }) => ({
     mutate: async (data: unknown) => {
       try {
-        await options.mutationFn(data);
+        options.onSuccess?.(await options.mutationFn(data));
       } catch (error) {
         options.onError?.(error);
       }
@@ -150,6 +154,56 @@ describe("CartView seat orders", () => {
         tableId: 4,
         seatId: 6,
       }),
+    );
+  });
+
+  it("carries a mutation id, and reuses it when the guest retries the same cart", async () => {
+    // The server has always enforced this: orders has a unique index on
+    // (restaurant_id, client_mutation_id) and a violation becomes a 409. No
+    // caller was sending a key, so the mechanism was dead. A guest whose
+    // connection drops mid-submit is told "please try again" -- the second tap
+    // has to be the same order, not a second one.
+    createGuestOrder.mockRejectedValueOnce(new Error("Network Error"));
+
+    const wrapper = mount(CartView, {
+      props: { restaurantId: "restaurant-1", tableId: 4 },
+      global: { stubs: { RouterLink: true } },
+    });
+    await flushPromises();
+
+    await wrapper.find("button[data-testid='confirm']").trigger("click");
+    await flushPromises();
+
+    const firstKey = createGuestOrder.mock.calls[0][0].clientMutationId;
+    expect(typeof firstKey).toBe("string");
+    expect(firstKey.length).toBeGreaterThan(0);
+
+    // Second tap after the failure: same cart, so the same key.
+    await wrapper.find("button[data-testid='confirm']").trigger("click");
+    await flushPromises();
+
+    expect(createGuestOrder).toHaveBeenCalledTimes(2);
+    expect(createGuestOrder.mock.calls[1][0].clientMutationId).toBe(firstKey);
+  });
+
+  it("mints a fresh mutation id once an order has gone through", async () => {
+    // Otherwise a guest ordering a second round would be deduplicated against
+    // their first order and never get their food.
+    const wrapper = mount(CartView, {
+      props: { restaurantId: "restaurant-1", tableId: 4 },
+      global: { stubs: { RouterLink: true } },
+    });
+    await flushPromises();
+
+    await wrapper.find("button[data-testid='confirm']").trigger("click");
+    await flushPromises();
+    const firstKey = createGuestOrder.mock.calls[0][0].clientMutationId;
+
+    await wrapper.find("button[data-testid='confirm']").trigger("click");
+    await flushPromises();
+
+    expect(createGuestOrder.mock.calls[1][0].clientMutationId).not.toBe(
+      firstKey,
     );
   });
 
