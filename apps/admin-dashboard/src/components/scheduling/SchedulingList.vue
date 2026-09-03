@@ -431,6 +431,7 @@ import { useToast } from "vue-toastification";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import type { EmployeeSchedule } from "@/types/scheduling";
+import { toCsv } from "@/utils/csv";
 
 const { t } = useI18n();
 const toast = useToast();
@@ -711,10 +712,7 @@ const exportToCSV = (data: EmployeeSchedule[], filename: string) => {
     ];
   });
 
-  const csvContent = [
-    headers.join(","),
-    ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
-  ].join("\n");
+  const csvContent = toCsv([headers, ...rows]);
 
   const bom = "\uFEFF";
   const blob = new Blob([bom + csvContent], {
