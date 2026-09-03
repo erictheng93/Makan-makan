@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>未結 issue 優先級調查 · 2026-09-04</title>
+<style>
+  :root{
+    --bg:#F2F2F7; --card:#fff; --ink:#1C1C1E; --ink2:#3A3A3C; --mute:#8E8E93;
+    --blue:#007AFF; --green:#34C759; --orange:#FF9500; --red:#FF3B30;
+    --line:rgba(60,60,67,.10);
+    --shadow:0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.75 -apple-system,BlinkMacSystemFont,"SF Pro Text","Noto Sans TC",sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:48px 20px 96px}
+  header{margin-bottom:36px}
+  h1{font-size:30px;line-height:1.3;letter-spacing:-.02em;margin:0 0 10px}
+  .sub{color:var(--mute);font-size:14px}
+  section{background:var(--card);border-radius:22px;padding:26px 28px;margin-bottom:20px;box-shadow:var(--shadow)}
+  h2{font-size:20px;letter-spacing:-.01em;margin:0 0 6px}
+  h3{font-size:16px;margin:26px 0 8px;color:var(--ink)}
+  p{margin:10px 0;color:var(--ink2)}
+  .lede{color:var(--ink2);margin:0 0 18px}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px;display:block;overflow-x:auto}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--mute);font-weight:600;font-size:12.5px;letter-spacing:.02em;white-space:nowrap}
+  code{font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;
+    background:rgba(120,120,128,.10);padding:1.5px 6px;border-radius:6px}
+  pre{background:#1C1C1E;color:#F2F2F7;border-radius:14px;padding:15px 17px;overflow-x:auto;
+    font:12.5px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;margin:12px 0}
+  pre code{background:none;padding:0;color:inherit}
+  .pill{display:inline-block;border-radius:999px;padding:2px 11px;font-size:12px;font-weight:600;white-space:nowrap}
+  .p0{background:rgba(255,59,48,.12);color:#C4271E}
+  .p1{background:rgba(255,149,0,.14);color:#9A5A00}
+  .p2{background:rgba(0,122,255,.12);color:#0058B8}
+  .p3{background:rgba(142,142,147,.16);color:#5A5A5F}
+  .note{border-left:3px solid var(--orange);background:rgba(255,149,0,.06);
+    border-radius:0 14px 14px 0;padding:13px 17px;margin:16px 0}
+  .good{border-left-color:var(--green);background:rgba(52,199,89,.07)}
+  .bad{border-left-color:var(--red);background:rgba(255,59,48,.06)}
+  ol,ul{color:var(--ink2);padding-left:22px}
+  li{margin:6px 0}
+  .chain{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0;font-size:14px}
+  .chain b{background:rgba(0,122,255,.10);color:#0058B8;border-radius:999px;padding:5px 14px;font-weight:600}
+  .chain span{color:var(--mute)}
+  footer{color:var(--mute);font-size:13px;text-align:center;margin-top:32px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>未結 issue 優先級調查</h1>
+  <div class="sub">2026-09-04 · 涵蓋 #307–#313、#326、#316 群組 · 每一項都對照當前程式碼與 production 複驗過</div>
+</header>
+
+<section>
+  <h2>排序依據</h2>
+  <p class="lede">用「線上會發生什麼壞事」乘上「多容易發生」排，不是 issue 編號，也不是修起來的難易。</p>
+  <table>
+    <tr><th>級</th><th>Issue</th><th>為什麼在這一級</th></tr>
+    <tr><td><span class="pill p0">P0</span></td><td>#311 → #310 → #312 → #326</td><td>金額與付款狀態的正確性。四張互相咬合，順序不能亂。</td></tr>
+    <tr><td><span class="pill p1">P1</span></td><td>#309</td><td>靜默資料遺失。UI 報成功、值從未離開瀏覽器。</td></tr>
+    <tr><td><span class="pill p2">P2</span></td><td>#307 → #308 → #313</td><td>功能整條沒有起點，但不會弄壞資料。</td></tr>
+    <tr><td><span class="pill p3">P3</span></td><td>#323 / #324 / #325</td><td>效能。目前無真實流量，P99 不可量測，基準線剛被 #322 改變。</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>最重要的一件事：P0 四張有依賴順序</h2>
+  <p>它們看起來是四個獨立的 bug，實際上是同一條付款資料流上的四個斷點。<strong>照編號或照難易度修，會在錯的基礎上調數字。</strong></p>
+  <div class="chain">
+    <b>#311 定調詞彙</b><span>→</span><b>#310 補上寫入路徑</b><span>→</span><b>#312 修營收口徑</b><span>→</span><b>#326 補冪等</b>
+  </div>
+  <h3>為什麼是這個順序</h3>
+  <ol>
+    <li><b>#311 必須最先。</b>它決定 <code>payment_status</code> 的正規值。#310 要實作 <code>updatePaymentStatus</code>，在詞彙定調前寫，就是再多一個要改的寫入點。</li>
+    <li><b>#310 在 #312 之前。</b>#312 的營收目前以 <code>orders.status IN (paid, delivered, served)</code> 為準，而 #310 證明店主按「更新」就能把狀態推到 <code>paid</code> 卻沒有收到錢。先修 #312 的 status 過濾，數字仍然含這種「按出來的」訂單。</li>
+    <li><b>#326 可以並行。</b>它在下單路徑上，與付款狀態無關，唯一的相依是不要和 #310 同時改 <code>orders</code> 的寫入而互相衝突。</li>
+  </ol>
+</section>
+
+<section>
+  <h2>#311 · 付款狀態詞彙分裂</h2>
+  <p class="lede">issue 的修法方向正確，但範圍要擴大兩處，同時有一個好消息。</p>
+
+  <h3>現況是三套詞彙在打架</h3>
+  <table>
+    <tr><th>層</th><th>詞彙</th></tr>
+    <tr><td>正規型別 <code>ORDER_PAYMENT_STATUSES</code></td><td><code>pending</code> · <code>completed</code> · <code>failed</code> · <code>refunded</code></td></tr>
+    <tr><td>實際寫入（3 個服務）</td><td><code>pending</code>（預設） · <code>paid</code> · <code>refunded</code> · <code>partial_refunded</code></td></tr>
+    <tr><td>守衛（防重複付款／退款）</td><td><code>paid</code> · <code>completed</code> · <code>refunded</code> · <code>partial_refunded</code></td></tr>
+  </table>
+  <p><code>completed</code> 與 <code>failed</code> <strong>在全 repo 都沒有任何寫入點</strong>。宣告的四個值裡有兩個是空的，而真正會寫的兩個不在集合裡。</p>
+
+  <h3>issue 漏掉的兩處</h3>
+  <ul>
+    <li><b>第三個寫入點。</b><code>pos/services/MarketCheckoutPOSPaymentService.ts:339</code> 也把 <code>"paid"</code> 寫進 <code>orders</code> 表。issue 只點名了 PaymentService 的兩處。</li>
+    <li><b><code>partial_refunded</code> 同樣不在正規集合。</b><code>refundPayment.ts:102</code> 部分退款時寫這個值，讀回來一樣變成 <code>pending</code>——與 <code>paid</code> 完全相同的故障，只是走另一條路。</li>
+  </ul>
+
+  <div class="note good">
+    <b>好消息：不需要動任何守衛。</b>三個守衛都已經同時接受 <code>paid</code> 與 <code>completed</code>——
+    <code>payableGuard</code> 的 <code>NOT IN ('paid','completed','refunded','partial_refunded')</code>、
+    <code>isAlreadyFinalized</code> 的同名清單、<code>refundPayment</code> 的負向清單
+    <code>NOT IN ('pending','failed','cancelled','refunded')</code>。
+    收斂到 <code>completed</code> 是三個字面值 + 一個型別的改動，不碰控制流。
+  </div>
+
+  <div class="note">
+    <b>時間成本只會上升。</b>production 目前七筆訂單全是 <code>pending</code>，零筆需要遷移。
+    一旦有第一筆真實付款進來，就要多寫一支 backfill。
+  </div>
+
+  <h3>不要一起改的</h3>
+  <p><code>GroupOrdersService:2512</code> 寫的是 <code>splitBills</code> 表、<code>MarketCheckoutPaymentProvider</code> 寫的是 market checkout 自己的表。那些網域的 <code>paid</code> 是合法詞彙。掃描要用「打在 orders 表上」而不是「字面值是 paid」為準：</p>
+  <pre><code>pat = re.compile(r"\.update\(\s*orders\s*\)(.{0,700}?)\.where", re.S)</code></pre>
+</section>
+
+<section>
+  <h2>#310 · 付款狀態在後台無路可寫</h2>
+  <p class="lede">三項主張全部複驗成立，另外找到一個讓它「看起來有覆蓋」的假象。</p>
+  <p><code>updatePaymentStatusSchema</code> 其實已經寫好了（<code>validation.ts:184</code>），只是沒有任何路由掛它。所以連請求驗證都備好了，差的只有端點與實作。</p>
+
+  <div class="note bad">
+    <b>它的測試鎖住了空殼。</b><code>OrdersService.test.ts:898-902</code> 斷言的是
+    「回傳的 order id 是 42」與「快取被清掉」，<strong>完全沒有斷言付款狀態有被寫入任何地方</strong>。
+    所以這兩個測試在一個什麼都不做的空殼上是綠的，方法看起來有覆蓋。
+  </div>
+
+  <h3>可以先切出來的一項</h3>
+  <p>前端 <code>canCancel</code> 只允許 <code>pending</code>/<code>confirmed</code>，但伺服器的 <code>ORDER_STATUS_TRANSITIONS</code> 允許 <code>preparing → cancelled</code> 與 <code>ready → cancelled</code>——<b>前端比後端更嚴</b>。這一項不依賴 #311，是純前端判斷式放寬，可獨立成一個 commit，而且是三項裡最直接影響店主日常的：客人中途走人時，目前只能把單一路推到 paid，那正是「進死路」的入口。</p>
+</section>
+
+<section>
+  <h2>#312 · 數據分析</h2>
+  <p class="lede">實際是三個缺陷，不是兩個。而且修法有一個很容易做錯的細節。</p>
+
+  <div class="note bad">
+    <b><code>totalOrders</code> 絕對不能一起加過濾。</b>它是轉換率的分母
+    （<code>completedOrders / totalOrders</code>）。順手一起過濾，分子分母變同一個集合，
+    <strong>轉換率永遠是 100%</strong>。正確做法是把一個查詢<b>拆成兩個</b>：
+    A 不過濾出 <code>totalOrders</code>，B 過濾出 <code>totalRevenue</code> + <code>averageOrderValue</code>。
+    AOV 必須與營收同一個查詢，否則會算成 570/7 而不是 570/4。
+  </div>
+
+  <h3>缺陷二：不只「本月」，每一個期間都是滾動視窗</h3>
+  <table>
+    <tr><th>選項</th><th>實際</th></tr>
+    <tr><td>今日</td><td>✅ 真的是日曆邊界</td></tr>
+    <tr><td>本週 / 本月 / 本季 / 本年</td><td>❌ 最近 7 / 30 / 90 / 365 天</td></tr>
+  </table>
+
+  <h3>缺陷三（issue 未提）：同一畫面兩個端點拿到不同區間</h3>
+  <pre><code>const map = { today:"today", week:"week", month:"month",
+              quarter:"month",   // ← 本季被映射成 month
+              year:"year" };</code></pre>
+  <p>選「本季」時，<code>/analytics/performance</code> 收到 <b>90 天</b>的日期範圍，而 <code>/analytics/dashboard</code> 收到 <code>period=month</code>。這是與 status 過濾<b>獨立的第二個成因</b>——修好過濾後，選本季時兩半仍然對不起來。</p>
+</section>
+
+<section>
+  <h2>#326 · 已登入下單無冪等</h2>
+  <p class="lede">比 issue 估的還小。服務層整條鏈已經接好了。</p>
+  <table>
+    <tr><th>層</th><th>狀態</th></tr>
+    <tr><td><code>CreateOrderData</code> 型別</td><td>✅ 已有欄位</td></tr>
+    <tr><td><code>OrdersService.createOrder</code> → <code>baseOrderData</code></td><td>✅ <b>已經在透傳</b></td></tr>
+    <tr><td>DB 層 <code>createOrder</code> / 唯一索引 / 409 映射</td><td>✅ 全部已存在</td></tr>
+    <tr><td><code>createOrderSchema</code>（zod）</td><td>❌ 缺 → 欄位被剝掉</td></tr>
+    <tr><td>路由組 <code>createOrderData</code></td><td>❌ 缺</td></tr>
+  </table>
+  <p>伺服器端是 <b>2 行</b>，不需要改 <code>OrdersService</code>。</p>
+  <div class="note bad">
+    <b>這裡有一個會做出假綠燈的陷阱。</b>因為服務層已經透傳，只加 zod 欄位而忘記加路由那一行，
+    <strong>型別檢查不會報錯</strong>（物件字面值少一個 optional 欄位完全合法），
+    測試若只斷言「回應 201」也會過。必須直接斷言 mock 收到了那把鍵。
+  </div>
+</section>
+
+<section>
+  <h2>#309 · 系統設定靜默丟棄</h2>
+  <p class="lede">後端完全有能力接收。這是<strong>純前端</strong>修正，範圍縮小到一支檔案。</p>
+  <ul>
+    <li><code>restaurantSettingsSchema</code> <b>明確宣告</b>了 <code>minOrderAmount</code>、<code>autoAcceptOrders</code>、<code>timezone</code>、<code>maxOrdersPerHour</code>，其餘靠 <code>.loose()</code> 放行。</li>
+    <li>餐廳名稱／電話／地址是頂層欄位，<code>updateRestaurantSchema</code> 由 <code>.partial()</code> 產生，全部可選、全部收。</li>
+    <li>寫入是<b>合併</b>不是覆蓋（<code>{...existingSettings, ...incomingSettings}</code>），所以分批送出不會互相洗掉——這原本是最大的風險，實際上不存在。</li>
+  </ul>
+  <p>不需要動 API、不需要 migration、不需要部署 Worker，只要 Pages。</p>
+  <div class="note">
+    <b>驗收不能看 UI 訊息。</b>這張的本質就是「UI 報成功但值沒離開瀏覽器」，
+    任何以 UI 訊息為準的驗收都會重現同一個假象。條件是：改值 → 儲存 → <b>重整</b> → 值還在。
+  </div>
+</section>
+
+<section>
+  <h2>#307 · 假別死結</h2>
+  <p class="lede">後端 CRUD 是完整的三支，不是一支。純前端修正。</p>
+  <table>
+    <tr><th>方法</th><th>路徑</th><th>守門</th></tr>
+    <tr><td><code>POST</code></td><td><code>/:restaurantId/types</code></td><td>ADMIN/OWNER + <code>requireRestaurantAccess</code> + 驗證</td></tr>
+    <tr><td><code>PUT</code></td><td><code>/types/:id</code></td><td>ADMIN/OWNER + 驗證</td></tr>
+    <tr><td><code>DELETE</code></td><td><code>/types/:id</code></td><td>ADMIN/OWNER，租戶範圍在 handler 內</td></tr>
+  </table>
+  <p><code>leavesService.ts</code> 裡 <code>createLeaveType</code> 命中數為 <b>0</b>，三支都沒接。production <code>leave_types</code> 仍為 0 筆。</p>
+  <div class="note">
+    <b>先記下來免得下次重查：</b><code>PUT</code> 與 <code>DELETE</code> 沒有掛 <code>requireRestaurantAccess</code>，
+    守門改成在 handler 內以 id 反查租戶。這不是漏洞，但掃跨租戶問題時會長得像漏洞——
+    #275 就是這個形狀：<b>守門寫在 handler 內，只看中介層清單會誤判</b>。
+  </div>
+</section>
+
+<section>
+  <h2>一再出現的同一個形狀</h2>
+  <p class="lede">這輪調查裡它又出現了兩次，值得單獨記下來。</p>
+  <p><strong>檢查的範圍由被檢查的東西決定，所以結構上不可能失敗。</strong></p>
+  <table>
+    <tr><th>案例</th><th>看起來</th><th>實際</th></tr>
+    <tr><td><code>updatePaymentStatus</code> 的測試</td><td>方法有覆蓋</td><td>只斷言回傳值與快取，空殼也是綠的</td></tr>
+    <tr><td>#326 若只加 zod 欄位</td><td>型別檢查過、測試綠</td><td>物件字面值少一個 optional 欄位完全合法</td></tr>
+    <tr><td><code>pnpm verify</code> 在 main 上</td><td>✓ All checks passed</td><td>0 packages，什麼都沒檢查</td></tr>
+    <tr><td><code>sql LIKE '%STRICT%'</code></td><td>15/119 張 STRICT</td><td>吃到 <code>ON DELETE RESTRICT</code> 與 <code>district</code>，真值 3</td></tr>
+  </table>
+  <p>共同的解法是<b>突變驗收</b>：把舊的錯誤放回去，確認檢查真的轉紅。上面每一張 issue 的驗收清單裡都補了這一條。</p>
+</section>
+
+<section>
+  <h2>P3（效能）為什麼排在最後</h2>
+  <ul>
+    <li><b>基準線剛被 #322 改變。</b>移除 Smart Placement 後 Worker 落點從 100% 北美變成 0%，<code>database.responseTime</code> 從 115–169ms 變成 P50 91ms。#323 與 #324 的舊數字都含跨太平洋成本，必須重測。</li>
+    <li><b>P99 目前不可量測。</b>24 小時讀取查詢約 1,475 次，多半是我們自己在測。用開發者機器的 curl 迴圈算不出 P99。</li>
+    <li><b>遙測是現成的。</b><code>advancedAnalyticsMiddleware</code> 已掛在 <code>app.use("*")</code>，每個請求都寫進 <code>makanmasak-metrics-prod</code>。缺的只是真實流量。</li>
+  </ul>
+  <p>在那之前，這幾張應該用 P50 與結構性條件（colo 落點、根因指名）驗收，不要對著 P99 宣稱達標。</p>
+</section>
+
+<footer>調查於 2026-09-04 · 對照 commit <code>433b32a2</code> 與 production D1 <code>makanmasak-prod</code></footer>
+
+</div>
+</body>
+</html>
