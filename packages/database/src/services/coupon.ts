@@ -269,11 +269,13 @@ export class CouponService extends BaseService {
 
   private toCouponUpdate(updates: Partial<CreateCouponData>) {
     const {
+      restaurantId,
       discountValue,
       maxDiscountAmount,
       minOrderAmount,
       ...nonMoneyUpdates
     } = updates;
+    void restaurantId;
     void discountValue;
     void maxDiscountAmount;
     void minOrderAmount;

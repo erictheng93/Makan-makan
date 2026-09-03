@@ -192,6 +192,29 @@ describe("coupons routes", () => {
     });
   });
 
+  it("rejects attempts to move a coupon to another restaurant", async () => {
+    mocks.getCoupon.mockResolvedValue(coupon());
+    mocks.updateCoupon.mockResolvedValue(
+      coupon({ restaurantId: "restaurant-2" }),
+    );
+
+    const response = await createAppWithErrorEnvelope().fetch(
+      jsonRequest("https://test/10", "PUT", {
+        restaurantId: "restaurant-2",
+        name: "Moved coupon",
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: { code: "VALIDATION_ERROR" },
+    });
+    expect(mocks.getCoupon).not.toHaveBeenCalled();
+    expect(mocks.updateCoupon).not.toHaveBeenCalled();
+  });
+
   it("keeps an owner off another restaurant's distribution endpoints", async () => {
     // Same guard shape as the rest of this router.
     mocks.currentUser.role = 1;

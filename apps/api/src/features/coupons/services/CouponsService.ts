@@ -233,8 +233,8 @@ export class CouponsService extends BaseCouponService {
   }
 
   /**
-   * `code` is updatable (updateCouponSchema is createCouponSchema.partial()),
-   * so an edit can collide with an existing code just as a create can. The
+   * `code` is permitted by updateCouponSchema, so an edit can collide with an
+   * existing code just as a create can. The
    * base method has no preflight lookup, which leaves the unique constraint
    * as the only signal -- and untranslated it sanitises to GENERIC_ERROR, so
    * the client sees a 500 plus a HIGH-severity Slack page instead of the 409

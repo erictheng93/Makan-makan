@@ -52,7 +52,10 @@ export const createCouponSchema = z.object({
   isVisible: z.boolean().optional(),
 });
 
-export const updateCouponSchema = createCouponSchema.partial();
+export const updateCouponSchema = createCouponSchema
+  .omit({ restaurantId: true })
+  .partial()
+  .extend({ restaurantId: z.never().optional() });
 
 export const couponFiltersSchema = z.object({
   restaurantId: z.string().optional(),
