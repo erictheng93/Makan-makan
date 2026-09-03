@@ -19,6 +19,10 @@ const mocks = vi.hoisted(() => {
       suspendShift: vi.fn(),
     },
     shiftServiceCtor: vi.fn(),
+    tenantAccess: {
+      requireRegister: vi.fn(),
+      requireShift: vi.fn(),
+    },
     reportService: {
       generateShiftReport: vi.fn(),
       getShiftStats: vi.fn(),
@@ -41,6 +45,12 @@ vi.mock("../services/ShiftService", () => ({
   ShiftService: vi.fn(function ShiftService(...args: unknown[]) {
     mocks.shiftServiceCtor(...args);
     return mocks.shiftService;
+  }),
+}));
+
+vi.mock("../services/PosTenantAccessService", () => ({
+  PosTenantAccessService: vi.fn(function PosTenantAccessService() {
+    return mocks.tenantAccess;
   }),
 }));
 
@@ -123,6 +133,26 @@ describe("POS shift routes", () => {
       success: true,
       data: { totalShifts: 3 },
     });
+    mocks.tenantAccess.requireRegister.mockResolvedValue(undefined);
+    mocks.tenantAccess.requireShift.mockResolvedValue(undefined);
+  });
+
+  it("blocks foreign registers and shifts before accessing shift data", async () => {
+    mocks.tenantAccess.requireRegister.mockRejectedValueOnce(
+      new ApiError("FORBIDDEN", "只能存取自己餐廳的收銀機", 403),
+    );
+    let response = await request(`/current/${registerId}`);
+
+    expect(response.status).toBe(403);
+    expect(mocks.shiftService.getCurrentShift).not.toHaveBeenCalled();
+
+    mocks.tenantAccess.requireShift.mockRejectedValueOnce(
+      new ApiError("FORBIDDEN", "只能存取自己餐廳的班次", 403),
+    );
+    response = await request(`/${shiftId}/report`);
+
+    expect(response.status).toBe(403);
+    expect(mocks.reportService.generateShiftReport).not.toHaveBeenCalled();
   });
 
   it("starts a shift for the authenticated cashier", async () => {

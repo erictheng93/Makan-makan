@@ -19,6 +19,11 @@ const mocks = vi.hoisted(() => {
       reprintReceipt: vi.fn(),
     },
     receiptServiceCtor: vi.fn(),
+    tenantAccess: {
+      requireReceipt: vi.fn(),
+      requireRegister: vi.fn(),
+      requireRegisterAndShift: vi.fn(),
+    },
     resolveOrderIdentity: vi.fn(),
   };
 });
@@ -37,6 +42,12 @@ vi.mock("../services/ReceiptService", () => ({
   ReceiptService: vi.fn(function ReceiptService(...args: unknown[]) {
     mocks.receiptServiceCtor(...args);
     return mocks.receiptService;
+  }),
+}));
+
+vi.mock("../services/PosTenantAccessService", () => ({
+  PosTenantAccessService: vi.fn(function PosTenantAccessService() {
+    return mocks.tenantAccess;
   }),
 }));
 
@@ -165,6 +176,27 @@ describe("POS receipt routes", () => {
       orderNumber: "ORD-101",
       restaurantId: "restaurant-1",
     });
+    mocks.tenantAccess.requireReceipt.mockResolvedValue(undefined);
+    mocks.tenantAccess.requireRegister.mockResolvedValue(undefined);
+    mocks.tenantAccess.requireRegisterAndShift.mockResolvedValue(undefined);
+  });
+
+  it("blocks foreign receipt and register resources before accessing them", async () => {
+    mocks.tenantAccess.requireReceipt.mockRejectedValueOnce(
+      new ApiError("FORBIDDEN", "只能存取自己餐廳的收據", 403),
+    );
+    let response = await request(`/${receiptId}`);
+
+    expect(response.status).toBe(403);
+    expect(mocks.receiptService.getReceiptDetail).not.toHaveBeenCalled();
+
+    mocks.tenantAccess.requireRegister.mockRejectedValueOnce(
+      new ApiError("FORBIDDEN", "只能存取自己餐廳的收銀機", 403),
+    );
+    response = await request(`/registers/${registerId}/receipts`);
+
+    expect(response.status).toBe(403);
+    expect(mocks.receiptService.getReceipts).not.toHaveBeenCalled();
   });
 
   it("prints receipts with register and shift headers", async () => {

@@ -17,6 +17,11 @@ const mocks = vi.hoisted(() => ({
     rejectCashMovement: vi.fn(),
   },
   cashMovementServiceCtor: vi.fn(),
+  tenantAccess: {
+    requireCashMovement: vi.fn(),
+    requireRegister: vi.fn(),
+    requireShift: vi.fn(),
+  },
 }));
 
 vi.mock("../../../middleware/auth", () => ({
@@ -33,6 +38,12 @@ vi.mock("../services/CashMovementService", () => ({
   CashMovementService: vi.fn(function CashMovementService(...args: unknown[]) {
     mocks.cashMovementServiceCtor(...args);
     return mocks.cashMovementService;
+  }),
+}));
+
+vi.mock("../services/PosTenantAccessService", () => ({
+  PosTenantAccessService: vi.fn(function PosTenantAccessService() {
+    return mocks.tenantAccess;
   }),
 }));
 
@@ -120,6 +131,36 @@ describe("POS cash movement routes", () => {
     mocks.cashMovementService.rejectCashMovement.mockResolvedValue({
       success: true,
     });
+    mocks.tenantAccess.requireCashMovement.mockResolvedValue(undefined);
+    mocks.tenantAccess.requireRegister.mockResolvedValue(undefined);
+    mocks.tenantAccess.requireShift.mockResolvedValue(undefined);
+  });
+
+  it("blocks foreign shift, register, and movement resources", async () => {
+    mocks.tenantAccess.requireShift.mockRejectedValueOnce(
+      new ApiError("FORBIDDEN", "只能存取自己餐廳的班次", 403),
+    );
+    let response = await request(`/shifts/${shiftId}/cash-movements`);
+    expect(response.status).toBe(403);
+    expect(mocks.cashMovementService.getCashMovements).not.toHaveBeenCalled();
+
+    mocks.tenantAccess.requireRegister.mockRejectedValueOnce(
+      new ApiError("FORBIDDEN", "只能存取自己餐廳的收銀機", 403),
+    );
+    response = await request(`/registers/${registerId}/cash-count`);
+    expect(response.status).toBe(403);
+    expect(mocks.cashMovementService.getCashCount).not.toHaveBeenCalled();
+
+    mocks.tenantAccess.requireCashMovement.mockRejectedValueOnce(
+      new ApiError("FORBIDDEN", "只能存取自己餐廳的現金異動", 403),
+    );
+    response = await request(`/cash-movements/${movementId}/approve`, {
+      method: "POST",
+    });
+    expect(response.status).toBe(403);
+    expect(
+      mocks.cashMovementService.approveCashMovement,
+    ).not.toHaveBeenCalled();
   });
 
   it("processes cash movements for the authenticated user", async () => {

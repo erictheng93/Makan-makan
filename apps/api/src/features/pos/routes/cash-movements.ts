@@ -11,6 +11,7 @@ import {
   validateParams,
 } from "../../../middleware/validation";
 import { CashMovementService } from "../services/CashMovementService";
+import { PosTenantAccessService } from "../services/PosTenantAccessService";
 import {
   cashMovementSchema,
   shiftParamsSchema,
@@ -35,6 +36,7 @@ app.post(
     const { shiftId } = c.get("validatedParams");
     const data = c.get("validatedBody");
     const user = c.get("user");
+    await new PosTenantAccessService(c.env.DB).requireShift(user, shiftId);
 
     const cashMovementService = new CashMovementService(c.env.DB);
     const result = await cashMovementService.processCashMovement(
@@ -67,6 +69,10 @@ app.get(
   async (c) => {
     const { shiftId } = c.get("validatedParams");
     const { type, page, limit } = c.get("validatedQuery");
+    await new PosTenantAccessService(c.env.DB).requireShift(
+      c.get("user"),
+      shiftId,
+    );
 
     const cashMovementService = new CashMovementService(c.env.DB);
     const result = await cashMovementService.getCashMovements(shiftId, {
@@ -110,6 +116,10 @@ app.get(
   async (c) => {
     const { registerId } = c.get("validatedParams");
     const { date } = c.get("validatedQuery");
+    await new PosTenantAccessService(c.env.DB).requireRegister(
+      c.get("user"),
+      registerId,
+    );
 
     const cashMovementService = new CashMovementService(c.env.DB);
     const result = await cashMovementService.getCashCount(registerId, date);
@@ -141,6 +151,10 @@ app.post(
   async (c) => {
     const { movementId } = c.get("validatedParams");
     const user = c.get("user");
+    await new PosTenantAccessService(c.env.DB).requireCashMovement(
+      user,
+      movementId,
+    );
 
     const cashMovementService = new CashMovementService(c.env.DB);
     const result = await cashMovementService.approveCashMovement(
@@ -181,6 +195,10 @@ app.post(
     const { movementId } = c.get("validatedParams");
     const { reason } = c.get("validatedBody");
     const user = c.get("user");
+    await new PosTenantAccessService(c.env.DB).requireCashMovement(
+      user,
+      movementId,
+    );
 
     const cashMovementService = new CashMovementService(c.env.DB);
     const result = await cashMovementService.rejectCashMovement(

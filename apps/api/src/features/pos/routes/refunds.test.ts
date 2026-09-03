@@ -18,6 +18,11 @@ const mocks = vi.hoisted(() => ({
     rejectRefund: vi.fn(),
   },
   refundServiceCtor: vi.fn(),
+  tenantAccess: {
+    requireRefund: vi.fn(),
+    requireRegister: vi.fn(),
+    requireRegisterAndShift: vi.fn(),
+  },
   resolveOrderIdentity: vi.fn(),
 }));
 
@@ -35,6 +40,12 @@ vi.mock("../services/RefundService", () => ({
   RefundService: vi.fn(function RefundService(...args: unknown[]) {
     mocks.refundServiceCtor(...args);
     return mocks.refundService;
+  }),
+}));
+
+vi.mock("../services/PosTenantAccessService", () => ({
+  PosTenantAccessService: vi.fn(function PosTenantAccessService() {
+    return mocks.tenantAccess;
   }),
 }));
 
@@ -138,6 +149,36 @@ describe("POS refund routes", () => {
       orderNumber: "ORD-101",
       restaurantId: "restaurant-1",
     });
+    mocks.tenantAccess.requireRefund.mockResolvedValue(undefined);
+    mocks.tenantAccess.requireRegister.mockResolvedValue(undefined);
+    mocks.tenantAccess.requireRegisterAndShift.mockResolvedValue(undefined);
+  });
+
+  it("blocks foreign and inconsistent refund ledger identifiers", async () => {
+    mocks.tenantAccess.requireRegisterAndShift.mockRejectedValueOnce(
+      new ApiError("FORBIDDEN", "班次與收銀機不相符", 403),
+    );
+    let response = await request("/create", {
+      method: "POST",
+      body: JSON.stringify(refundPayload()),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Register-Id": registerId,
+        "X-Shift-Id": shiftId,
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect(mocks.refundService.processRefund).not.toHaveBeenCalled();
+    expect(mocks.resolveOrderIdentity).not.toHaveBeenCalled();
+
+    mocks.tenantAccess.requireRefund.mockRejectedValueOnce(
+      new ApiError("FORBIDDEN", "只能存取自己餐廳的退款", 403),
+    );
+    response = await request(`/${refundId}`);
+
+    expect(response.status).toBe(403);
+    expect(mocks.refundService.getRefundDetail).not.toHaveBeenCalled();
   });
 
   it("creates refunds with register and shift headers", async () => {

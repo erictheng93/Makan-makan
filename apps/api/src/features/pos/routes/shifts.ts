@@ -12,6 +12,7 @@ import {
 } from "../../../middleware/validation";
 import { ShiftService } from "../services/ShiftService";
 import { ReportService } from "../services/ReportService";
+import { PosTenantAccessService } from "../services/PosTenantAccessService";
 import {
   startShiftSchema,
   endShiftSchema,
@@ -41,6 +42,11 @@ app.post(
       throw forbidden("只能為自己開班");
     }
 
+    await new PosTenantAccessService(c.env.DB).requireRegister(
+      user,
+      data.registerId,
+    );
+
     const shiftService = new ShiftService(c.env.DB);
     const result = await shiftService.startShift(data);
 
@@ -69,6 +75,7 @@ app.post(
     const { shiftId } = c.get("validatedParams");
     const data = c.get("validatedBody");
     const user = c.get("user");
+    await new PosTenantAccessService(c.env.DB).requireShift(user, shiftId);
 
     const shiftService = new ShiftService(c.env.DB);
     const result = await shiftService.endShift(shiftId, data, user.id);
@@ -101,6 +108,10 @@ app.post(
   async (c) => {
     const { shiftId } = c.get("validatedParams");
     const { reason } = c.get("validatedBody");
+    await new PosTenantAccessService(c.env.DB).requireShift(
+      c.get("user"),
+      shiftId,
+    );
 
     const shiftService = new ShiftService(c.env.DB);
     const result = await shiftService.suspendShift(shiftId, reason);
@@ -127,6 +138,10 @@ app.post(
   validateParams(shiftParamsSchema),
   async (c) => {
     const { shiftId } = c.get("validatedParams");
+    await new PosTenantAccessService(c.env.DB).requireShift(
+      c.get("user"),
+      shiftId,
+    );
 
     const shiftService = new ShiftService(c.env.DB);
     const result = await shiftService.resumeShift(shiftId);
@@ -157,6 +172,10 @@ app.get(
   ),
   async (c) => {
     const { registerId } = c.get("validatedParams");
+    await new PosTenantAccessService(c.env.DB).requireRegister(
+      c.get("user"),
+      registerId,
+    );
 
     const shiftService = new ShiftService(c.env.DB);
     const result = await shiftService.getCurrentShift(registerId);
@@ -183,6 +202,10 @@ app.get(
   validateParams(shiftParamsSchema),
   async (c) => {
     const { shiftId } = c.get("validatedParams");
+    await new PosTenantAccessService(c.env.DB).requireShift(
+      c.get("user"),
+      shiftId,
+    );
 
     const reportService = new ReportService(c.env.DB);
     const result = await reportService.generateShiftReport(shiftId);

@@ -50,6 +50,15 @@ vi.mock("../services/ReceiptService", () => ({
   }),
 }));
 
+vi.mock("../services/PosTenantAccessService", () => ({
+  PosTenantAccessService: vi.fn(function PosTenantAccessService() {
+    return {
+      requireReceipt: vi.fn(),
+      requireRegisterAndShift: vi.fn(),
+    };
+  }),
+}));
+
 vi.mock("../../../shared/services/order-identity", () => ({
   resolveOrderIdentity: vi.fn(async (_db: unknown, orderId: unknown) => ({
     id: typeof orderId === "number" ? orderId : 101,

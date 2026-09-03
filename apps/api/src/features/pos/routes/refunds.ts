@@ -21,6 +21,7 @@ import type { Env } from "../../../types/env";
 import { badRequest, notFound } from "../../../shared/utils/api-error";
 import { AlertService } from "../../../services/AlertService";
 import { resolveOrderIdentity } from "../../../shared/services/order-identity";
+import { PosTenantAccessService } from "../services/PosTenantAccessService";
 
 const app = new Hono<{ Bindings: Env }>();
 const processRefundRouteSchema = processRefundSchema.extend({
@@ -81,6 +82,12 @@ app.post(
       throw badRequest("需要指定收銀機ID");
     }
 
+    await new PosTenantAccessService(c.env.DB).requireRegisterAndShift(
+      user,
+      registerId,
+      shiftId,
+    );
+
     const orderIdentity = await resolveOrderIdentity(
       c.env.DB,
       data.originalOrderId,
@@ -130,6 +137,10 @@ app.get(
     const { registerId } = c.get("validatedParams");
     const { startDate, endDate, status, orderId, page, limit } =
       c.get("validatedQuery");
+    await new PosTenantAccessService(c.env.DB).requireRegister(
+      c.get("user"),
+      registerId,
+    );
 
     const refundService = createRefundService(c.env);
     const result = await refundService.getRefunds(registerId, {
@@ -167,6 +178,10 @@ app.get(
   ),
   async (c) => {
     const { refundId } = c.get("validatedParams");
+    await new PosTenantAccessService(c.env.DB).requireRefund(
+      c.get("user"),
+      refundId,
+    );
 
     const refundService = createRefundService(c.env);
     const result = await refundService.getRefundDetail(refundId);
@@ -201,6 +216,7 @@ app.post(
   async (c) => {
     const { refundId } = c.get("validatedParams");
     const user = c.get("user");
+    await new PosTenantAccessService(c.env.DB).requireRefund(user, refundId);
 
     const refundService = createRefundService(c.env);
     const result = await refundService.approveRefund(refundId, user.id);
@@ -238,6 +254,7 @@ app.post(
     const { refundId } = c.get("validatedParams");
     const { reason } = c.get("validatedBody");
     const user = c.get("user");
+    await new PosTenantAccessService(c.env.DB).requireRefund(user, refundId);
 
     const refundService = createRefundService(c.env);
     const result = await refundService.rejectRefund(refundId, user.id, reason);
@@ -275,6 +292,7 @@ app.post(
     const { refundId } = c.get("validatedParams");
     const { reason } = c.get("validatedBody");
     const user = c.get("user");
+    await new PosTenantAccessService(c.env.DB).requireRefund(user, refundId);
 
     const refundService = createRefundService(c.env);
     const result = await refundService.cancelRefund(refundId, user.id, reason);

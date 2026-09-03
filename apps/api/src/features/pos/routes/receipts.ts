@@ -13,6 +13,7 @@ import {
   boundedPageQuery,
 } from "../../../middleware/validation";
 import { ReceiptService } from "../services/ReceiptService";
+import { PosTenantAccessService } from "../services/PosTenantAccessService";
 import { printReceiptSchema, receiptParamsSchema } from "../schemas";
 import type { Env } from "../../../types/env";
 import { badRequest, notFound } from "../../../shared/utils/api-error";
@@ -66,6 +67,12 @@ app.post(
       throw badRequest("需要指定收銀機ID");
     }
 
+    await new PosTenantAccessService(c.env.DB).requireRegisterAndShift(
+      user,
+      registerId,
+      shiftId,
+    );
+
     const orderIdentity = await resolveOrderIdentity(c.env.DB, data.orderId, {
       restaurantId:
         user.restaurantId !== undefined ? String(user.restaurantId) : undefined,
@@ -107,6 +114,10 @@ app.post(
   validateParams(receiptParamsSchema),
   async (c) => {
     const { receiptId } = c.get("validatedParams");
+    await new PosTenantAccessService(c.env.DB).requireReceipt(
+      c.get("user"),
+      receiptId,
+    );
 
     const receiptService = new ReceiptService(c.env.DB);
     const result = await receiptService.reprintReceipt(receiptId);
@@ -140,6 +151,10 @@ app.post(
   validateParams(receiptParamsSchema),
   async (c) => {
     const { receiptId } = c.get("validatedParams");
+    await new PosTenantAccessService(c.env.DB).requireReceipt(
+      c.get("user"),
+      receiptId,
+    );
 
     const receiptService = new ReceiptService(c.env.DB);
     const result = await receiptService.cancelPrint(receiptId);
@@ -173,6 +188,10 @@ app.get(
     const { registerId } = c.get("validatedParams");
     const { startDate, endDate, receiptType, page, limit } =
       c.get("validatedQuery");
+    await new PosTenantAccessService(c.env.DB).requireRegister(
+      c.get("user"),
+      registerId,
+    );
 
     const receiptService = new ReceiptService(c.env.DB);
     const result = await receiptService.getReceipts(registerId, {
@@ -205,6 +224,10 @@ app.get(
   validateParams(receiptParamsSchema),
   async (c) => {
     const { receiptId } = c.get("validatedParams");
+    await new PosTenantAccessService(c.env.DB).requireReceipt(
+      c.get("user"),
+      receiptId,
+    );
 
     const receiptService = new ReceiptService(c.env.DB);
     const result = await receiptService.getReceiptDetail(receiptId);
