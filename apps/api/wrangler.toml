@@ -362,9 +362,15 @@ binding = "AI"
 binding = "DISCOVERY_VECTORIZE"
 index_name = "makanmasak-discovery-prod"
 
-# Smart placement for production
-[env.production.placement]
-mode = "smart"
+
+# Deliberately no [placement] block. Smart Placement was enabled here and put
+# the Worker in North America (observed PDX and ATL) while this Worker's D1
+# primary runs in APAC, so every query became a trans-Pacific round trip -- a
+# `SELECT 1` measured 115-169ms. It needs "consistent traffic from multiple
+# locations" to place well, and at ~1 request/minute it had nothing to work
+# with. Without the block the Worker runs at the client edge, which for this
+# product's Taiwan and Malaysia users is already beside the APAC database.
+# See #322 before re-adding it.
 
 # Analytics for production
 [[env.production.analytics_engine_datasets]]

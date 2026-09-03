@@ -110,6 +110,3 @@ id = "30ba7daf1e4c41438233542de10dd02f"
 binding = "RATE_LIMIT_KV"
 id = "e442a551aa3f484db44fcdfa1084ff81"
 
-# Smart placement for production
-[env.production.placement]
-mode = "smart"

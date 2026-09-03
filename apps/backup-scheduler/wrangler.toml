@@ -101,6 +101,3 @@ bucket_name = "makanmasak-backups-prod"
 binding = "ANALYTICS"
 dataset = "makanmasak-backup-metrics-prod"
 
-# Smart placement for production
-[env.production.placement]
-mode = "smart"

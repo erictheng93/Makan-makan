@@ -93,9 +93,6 @@ id = "e8da1ab3a04740e48c53a710494c31df"
 binding = "BUNDLE_STORAGE"
 bucket_name = "makanmasak-management-bundles-prod"
 
-# Smart placement for production
-[env.production.placement]
-mode = "smart"
 
 # Secrets (set via wrangler secret put):
 # - JWT_SECRET: JWT signing secret for management tokens
