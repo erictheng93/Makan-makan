@@ -393,7 +393,7 @@ async function validateNotificationRecipientScope(
   }
 
   if (
-    recipient.email &&
+    !recipient.email ||
     recipient.email.toLowerCase() !==
       notificationData.recipientEmail.toLowerCase()
   ) {

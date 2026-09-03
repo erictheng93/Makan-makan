@@ -357,9 +357,7 @@ describe("notification routes", () => {
     expect(notificationFns.sendNotification).not.toHaveBeenCalled();
   });
 
-  it("allows matching restaurant recipients without a stored email", async () => {
-    notificationFns.sendNotification.mockResolvedValue({ success: true });
-
+  it("rejects owner recipients without a stored email", async () => {
     const response = await request(
       "/send",
       "POST",
@@ -369,10 +367,15 @@ describe("notification routes", () => {
       }),
     );
 
-    expect(response.status).toBe(200);
-    expect(notificationFns.sendNotification).toHaveBeenCalledWith(
-      notificationBody,
-    );
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      success: false,
+      error: {
+        code: "RECIPIENT_EMAIL_MISMATCH",
+        message: "Recipient email does not match user",
+      },
+    });
+    expect(notificationFns.sendNotification).not.toHaveBeenCalled();
   });
 
   it("rejects owner recipients whose email does not match the target user", async () => {

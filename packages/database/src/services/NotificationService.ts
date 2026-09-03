@@ -18,6 +18,15 @@ function stripHtmlTags(html: string): string {
   return result;
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 // ========================================
 // Types
 // ========================================
@@ -920,7 +929,11 @@ export class NotificationService extends BaseService {
 
       // Render content
       const subject = this.renderTemplate(template.subject || "", payload.data);
-      const body = this.renderTemplate(template.body || "", payload.data);
+      const body = this.renderTemplate(
+        template.body || "",
+        payload.data,
+        payload.type === "email",
+      );
 
       // Send based on type
       if (payload.type === "email" && payload.recipientEmail) {
@@ -972,27 +985,26 @@ export class NotificationService extends BaseService {
   private renderTemplate(
     template: string,
     data: Record<string, unknown>,
+    escapeHtmlValues = false,
   ): string {
-    let result = template;
-
-    // Replace {{variable}} placeholders
-    for (const [key, value] of Object.entries(data)) {
-      const placeholder = new RegExp(`{{${key}}}`, "g");
-      result = result.replace(placeholder, String(value || ""));
-    }
-
     // Handle {{#if variable}} conditionals (simple implementation)
-    result = result.replace(
+    const result = template.replace(
       /{{#if\s+(\w+)}}([\s\S]*?){{\/if}}/g,
       (_match, key, content) => {
         return data[key] ? content : "";
       },
     );
 
-    // Clean up any remaining unresolved placeholders (missing variables)
-    result = result.replace(/{{(\w+)}}/g, "");
-
-    return result.trim();
+    return result
+      .replace(/{{(\w+)}}/g, (_match, key: string) => {
+        const value = Object.prototype.hasOwnProperty.call(data, key)
+          ? data[key]
+          : "";
+        const rendered =
+          value === null || value === undefined ? "" : String(value);
+        return escapeHtmlValues ? escapeHtml(rendered) : rendered;
+      })
+      .trim();
   }
 
   /**
