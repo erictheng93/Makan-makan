@@ -633,6 +633,35 @@ describe("OrderService order pricing", () => {
     expect(result.pagination.total).toBe(1);
   });
 
+  it("hands back a partially refunded status instead of rewriting it to pending", async () => {
+    const service = new OrderService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const order = await service.createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+    });
+
+    // What refundPayment writes for a partial refund. The column is
+    // unconstrained TEXT, so the value lands whether or not the read path
+    // knows it; `toOrderPaymentStatus` falls back to "pending" for anything
+    // outside ORDER_PAYMENT_STATUSES, which turned every partially refunded
+    // order into an apparently unpaid one (#311).
+    await testDb.drizzle
+      .update(orders)
+      .set({ paymentStatus: "partial_refunded" })
+      .where(eq(orders.id, order.id));
+
+    // The list path is enough: getOrder and getOrders both project through the
+    // same `mapToOrder`, so either one exercises the fallback.
+    const listed = await service.getOrders({
+      restaurantId,
+      paymentStatus: "partial_refunded",
+    });
+    expect(listed.orders.map((o) => o.id)).toEqual([order.id]);
+    expect(listed.orders[0]?.paymentStatus).toBe("partial_refunded");
+  });
+
   it("searches the complete order set by customer name", async () => {
     const service = new OrderService(testDb.bindings.DB, {
       JWT_SECRET: "test",

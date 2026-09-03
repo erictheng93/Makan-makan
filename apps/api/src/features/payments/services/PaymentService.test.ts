@@ -59,6 +59,11 @@ function queueReplayRows(orderRows: unknown[][], paymentRows: unknown[][]) {
   );
 }
 
+// Takes rows and ignores them. Call sites pass things like
+// `[{ status: "paid", paymentStatus: "paid" }]`, which reads as a fixture but
+// configures nothing — the update mock in createD1() supplies its own result.
+// Left as-is so the call sites keep documenting intent, but do not reason
+// about post-update state from those arguments; they are inert.
 function mockOrderUpdate(_returningRows: unknown[] = []) {
   return [];
 }
@@ -288,7 +293,7 @@ describe("PaymentService", () => {
         paymentId: "pay_order-101_1780833600000",
         orderId: "order-101",
         orderStatus: "paid",
-        paymentStatus: "paid",
+        paymentStatus: "completed",
         authorizedTotal: 120,
       },
     });
@@ -318,9 +323,12 @@ describe("PaymentService", () => {
     });
 
     expect(statementContaining(statements, "UPDATE orders")?.payload).toEqual({
+      // orders.status and orders.payment_status deliberately disagree in
+      // spelling: "paid" is the workflow state, "completed" is the canonical
+      // OrderPaymentStatus that the read path will accept back (#311).
       status: "paid",
       paidAt: new Date(1780833600000),
-      paymentStatus: "paid",
+      paymentStatus: "completed",
       paymentMethod: "cash",
       paymentTransactionId: "pay_order-101_1780833600000",
       updatedAt: new Date(1780833600000),
@@ -364,7 +372,10 @@ describe("PaymentService", () => {
         paymentId: "pay_order-101_1780833600000",
         orderId: "order-101",
         orderStatus: "paid",
-        paymentStatus: "paid",
+        // The recorded transaction row says "paid" (PAYMENT_TRANSACTION_STATUS);
+        // the replayed response must still report the order's own vocabulary,
+        // or it would contradict the live call it is replaying.
+        paymentStatus: "completed",
         authorizedTotal: 120,
       },
     });
@@ -395,7 +406,7 @@ describe("PaymentService", () => {
       ),
     ).resolves.toMatchObject({
       status: 200,
-      data: { orderStatus: "preparing", paymentStatus: "paid" },
+      data: { orderStatus: "preparing", paymentStatus: "completed" },
     });
   });
 
@@ -544,13 +555,13 @@ describe("PaymentService", () => {
     ).resolves.toMatchObject({
       data: {
         orderStatus: "served",
-        paymentStatus: "paid",
+        paymentStatus: "completed",
         authorizedTotal: 120,
       },
     });
 
     expect(statementContaining(statements, "UPDATE orders")?.payload).toEqual({
-      paymentStatus: "paid",
+      paymentStatus: "completed",
       paymentMethod: "split",
       paymentTransactionId: "pay_order-101_1780833600000",
       updatedAt: new Date(1780833600000),
@@ -682,6 +693,10 @@ describe("PaymentService", () => {
   it("rejects finalized orders and staff roles without payment authority", async () => {
     const { db } = createD1();
     queueOrderRows([
+      // Deliberately the pre-#311 spelling. Rows written before the three
+      // writers moved to "completed" still exist, and `isAlreadyFinalized`
+      // has to keep recognising them or an already-paid legacy order could be
+      // charged a second time.
       [order({ paymentStatus: "paid" })],
       [order({ status: "cancelled", paymentStatus: "pending" })],
       [order()],

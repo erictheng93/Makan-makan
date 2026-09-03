@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
 import { eq } from "drizzle-orm";
-import { paymentTransactions } from "@makanmasak/database";
+import {
+  orders,
+  paymentTransactions,
+  OrderService,
+} from "@makanmasak/database";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
@@ -64,6 +68,33 @@ describe("payment idempotency replay", () => {
 
     expect(replay).toEqual(first);
     await expect(recordedRows("idem-real-1")).resolves.toHaveLength(1);
+  });
+
+  it("stores a payment status the read path hands back, not one it rewrites to pending", async () => {
+    const restaurant = await seed.restaurant();
+    const order = await seed.order(restaurant.id);
+
+    await service().processPayment(payment(order.id), {
+      idempotencyKey: "idem-real-paid",
+    });
+
+    // orders.payment_status is unconstrained TEXT, so a value outside
+    // ORDER_PAYMENT_STATUSES does not fail the write -- it lands, and
+    // `toOrderPaymentStatus` quietly rewrites it to "pending" on the way out.
+    // A genuinely paid order then reads back as unpaid (#311). Checking the
+    // cell alone would miss the rewrite; checking the read alone would pass on
+    // a write that never happened. Both ends, or neither proves anything.
+    const [row] = await testApp.testDb.drizzle
+      .select({ paymentStatus: orders.paymentStatus })
+      .from(orders)
+      .where(eq(orders.id, order.id));
+    expect(row?.paymentStatus).toBe("completed");
+
+    const readBack = await new OrderService(
+      testApp.env.DB,
+      testApp.env,
+    ).getOrder(order.id);
+    expect(readBack?.paymentStatus).toBe("completed");
   });
 
   it("refuses a key already recorded against a different order", async () => {

@@ -20,6 +20,7 @@ import { ConsoleLogger } from "../../../core/monitoring";
 import type { Env } from "../../../shared/types";
 import type { AuthUser } from "../../../middleware/auth";
 import {
+  ORDER_PAYMENT_STATUSES,
   OrderStatus,
   OrderPaymentStatus,
   OrderPaymentMethod,
@@ -149,19 +150,25 @@ function convertStatusArray(
   return (typeof status === "string" ? [status] : status) as OrderStatus[];
 }
 
-// Helper function to normalize an incoming payment-status string to the
-// canonical TEXT values stored in orders.payment_status
-// (pending / completed / failed / refunded). "paid" is accepted as a legacy
-// alias for "completed".
+// Spellings accepted from clients that are not themselves canonical values.
+// "paid" is what orders.payment_status actually held until #311 changed the
+// three writers to "completed", so it has to keep resolving — both for clients
+// that still send it and for any row written before that change.
+const PAYMENT_STATUS_ALIASES: Readonly<Record<string, OrderPaymentStatus>> = {
+  paid: "completed",
+};
+
+// Normalise an incoming payment-status string to a canonical
+// OrderPaymentStatus. The identity half is derived from
+// ORDER_PAYMENT_STATUSES rather than restated, because the fallback here is a
+// silent "pending" rather than an error: a value added to the canonical set
+// and forgotten in a hand-copied map does not fail, it quietly filters by the
+// wrong status. That is exactly what happened to "partial_refunded" (#311).
 function stringToPaymentStatus(status: string): OrderPaymentStatus {
-  const statusMap: Record<string, OrderPaymentStatus> = {
-    pending: "pending",
-    completed: "completed",
-    paid: "completed",
-    failed: "failed",
-    refunded: "refunded",
-  };
-  return statusMap[status] ?? "pending";
+  if ((ORDER_PAYMENT_STATUSES as readonly string[]).includes(status)) {
+    return status as OrderPaymentStatus;
+  }
+  return PAYMENT_STATUS_ALIASES[status] ?? "pending";
 }
 
 // Helper function to convert payment status array

@@ -897,7 +897,7 @@ describe("OrdersService workflows", () => {
 
     getBaseOrder.mockResolvedValueOnce(createOrder());
     await expect(
-      service.updatePaymentStatus("42", "paid" as never, "cash" as never),
+      service.updatePaymentStatus("42", "completed", "cash"),
     ).resolves.toMatchObject({ id: "42" });
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith("order:42:full");
 
@@ -1490,7 +1490,7 @@ describe("OrdersService workflows", () => {
 
     getBaseOrder.mockResolvedValueOnce(null);
     await expect(
-      service.updatePaymentStatus("404", "paid" as never),
+      service.updatePaymentStatus("404", "completed"),
     ).resolves.toBeNull();
   });
 

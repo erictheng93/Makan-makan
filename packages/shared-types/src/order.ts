@@ -152,17 +152,30 @@ export const ROLE_STATUS_PERMISSIONS: Record<number, readonly OrderStatus[]> = {
 } as const;
 
 /**
- * Canonical OrderPaymentStatus — matches the TEXT `orders.payment_status`
- * column in `packages/database/src/schema/orders.ts:109`
- * (pending / completed / failed / refunded). This used to be a numeric enum
+ * Canonical OrderPaymentStatus — the TEXT `orders.payment_status` column in
+ * `packages/database/src/schema/orders.ts:113`. This used to be a numeric enum
  * (PENDING=0, PAID=1, FAILED=2), which never matched the string values the DB
  * and API actually produce — comparisons against real data always failed.
+ *
+ * It is deliberately NOT the same vocabulary as `payment_transactions.status`
+ * (`PAYMENT_TRANSACTION_STATUS`, which says "paid"). `orders.status` already
+ * uses "paid" for a workflow state a shop owner can set by hand without any
+ * money arriving (#310), so reusing the word here would give one row two
+ * different meanings for it. The payment side says "completed"; the external
+ * API says so too — `toExternalPaymentStatus` maps both spellings to
+ * "completed" (`features/payments/services/refundPayment.ts:211`).
+ *
+ * "partial_refunded" is here because `refundPayment` writes it for a partial
+ * refund (`refundPayment.ts:102`). Leaving it out made every partially
+ * refunded order read back as "pending", since `toOrderPaymentStatus` falls
+ * back to "pending" for anything off this list (#311).
  */
 export const ORDER_PAYMENT_STATUSES = [
   "pending",
   "completed",
   "failed",
   "refunded",
+  "partial_refunded",
 ] as const;
 
 export type OrderPaymentStatus = (typeof ORDER_PAYMENT_STATUSES)[number];

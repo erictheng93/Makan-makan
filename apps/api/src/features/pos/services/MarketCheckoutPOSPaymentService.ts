@@ -338,7 +338,9 @@ export class MarketCheckoutPOSPaymentService {
       this.db
         .update(orders)
         .set({
-          paymentStatus: "paid",
+          // Canonical OrderPaymentStatus, not the "paid" that
+          // payment_transactions and market_checkout_sessions use (#311).
+          paymentStatus: "completed",
           paymentMethod: input.paymentMethod,
           paymentTransactionId: input.paymentId,
           paidAt: sql`COALESCE(${orders.paidAt}, ${input.nowMs})`,

@@ -282,7 +282,7 @@ export class PaymentService {
         paymentId,
         orderId: input.orderId,
         orderStatus: shouldCloseOrder ? "paid" : existing.status,
-        paymentStatus: "paid",
+        paymentStatus: "completed",
         authorizedTotal: serverTotal,
       },
     };
@@ -351,9 +351,15 @@ export class PaymentService {
       return this.db
         .update(orders)
         .set({
+          // `status` and `paymentStatus` deliberately differ. "paid" is the
+          // order's workflow state; "completed" is the canonical
+          // OrderPaymentStatus. Writing "paid" into payment_status put a value
+          // outside ORDER_PAYMENT_STATUSES into the column, and every read
+          // through `toOrderPaymentStatus` then reported it as "pending" —
+          // a genuinely paid order that the API said was unpaid (#311).
           status: "paid",
           paidAt,
-          paymentStatus: "paid",
+          paymentStatus: "completed",
           paymentMethod,
           paymentTransactionId: paymentId,
           updatedAt,
@@ -364,7 +370,7 @@ export class PaymentService {
     return this.db
       .update(orders)
       .set({
-        paymentStatus: "paid",
+        paymentStatus: "completed",
         paymentMethod,
         paymentTransactionId: paymentId,
         updatedAt,
@@ -423,11 +429,17 @@ function processPaymentResultFromRow(
   order: { status: string },
 ): ProcessPaymentResult {
   const metadata = payment.metadata as { closeOrder?: unknown } | null;
-  const paymentStatus = payment.status;
+  // payment_transactions.status speaks PAYMENT_TRANSACTION_STATUS ("paid");
+  // the response's `paymentStatus` reports the *order's* payment status, which
+  // is canonical OrderPaymentStatus ("completed"). Keep the two apart: the
+  // 202/200 split and the orderStatus mirror both key off the transaction,
+  // while the reported value must match what the live path answered, or an
+  // idempotent retry would contradict the call it is replaying.
+  const transactionStatus = payment.status;
   const closedOrder = metadata?.closeOrder !== false;
 
   return {
-    status: paymentStatus === "pending" ? 202 : 200,
+    status: transactionStatus === "pending" ? 202 : 200,
     data: {
       paymentId: payment.transactionId,
       orderId: payment.orderId,
@@ -436,8 +448,9 @@ function processPaymentResultFromRow(
       // untouched, so that status is what the first response reported — not
       // the constant "pending", which was never one of its possible answers.
       orderStatus:
-        closedOrder && paymentStatus === "paid" ? "paid" : order.status,
-      paymentStatus,
+        closedOrder && transactionStatus === "paid" ? "paid" : order.status,
+      paymentStatus:
+        transactionStatus === "paid" ? "completed" : transactionStatus,
       authorizedTotal: amountFromCents(payment.amountCents) ?? 0,
     },
   };
