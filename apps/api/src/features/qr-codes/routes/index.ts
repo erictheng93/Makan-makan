@@ -34,7 +34,7 @@ import type {
   SignedQrQueryInput,
   UpdateTemplateInput,
 } from "../schemas/validation";
-import type { QRDownloadCaller } from "../types";
+import type { QRDownloadCaller, QRTemplateActor } from "../types";
 
 // Import services
 import { QrCodesService } from "../services/QrCodesService";
@@ -61,6 +61,10 @@ function qrDownloadCaller(user: {
     userRestaurantId:
       user.restaurantId == null ? undefined : String(user.restaurantId),
   };
+}
+
+function qrTemplateActor(user: { id: string; role: number }): QRTemplateActor {
+  return { userId: user.id, userRole: user.role };
 }
 
 function signedQrFailure(
@@ -326,9 +330,14 @@ app.put(
   async (c) => {
     const { id } = c.get("validatedParams") as QRTemplateIdParamInput;
     const data = c.get("validatedBody") as UpdateTemplateInput;
+    const user = c.get("user");
     const service = new QrCodesService(c.env);
 
-    const template = await service.updateTemplate(id, data);
+    const template = await service.updateTemplate(
+      id,
+      data,
+      qrTemplateActor(user),
+    );
 
     if (!template) {
       throw notFound("Template not found", "TEMPLATE_NOT_FOUND");
@@ -349,9 +358,10 @@ app.delete(
   validateParams(qrCodeSchemas.params),
   async (c) => {
     const { id } = c.get("validatedParams") as QRTemplateIdParamInput;
+    const user = c.get("user");
     const service = new QrCodesService(c.env);
 
-    const deleted = await service.deleteTemplate(id);
+    const deleted = await service.deleteTemplate(id, qrTemplateActor(user));
 
     if (!deleted) {
       throw notFound("Template not found", "TEMPLATE_NOT_FOUND");

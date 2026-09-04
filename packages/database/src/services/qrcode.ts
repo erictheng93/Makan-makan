@@ -1,4 +1,4 @@
-import { eq, desc, count, sql } from "drizzle-orm";
+import { and, eq, desc, count, sql } from "drizzle-orm";
 import { BaseService } from "./base";
 import { prefixedUuid } from "./id-generation";
 import { businessDateNow, dateFromUnixMs } from "../utils/sql-time";
@@ -65,6 +65,17 @@ export interface CreateQRTemplateData {
   style: QRStyleData;
   isDefault?: boolean;
   createdBy: string;
+}
+
+/**
+ * 模板寫入的歸屬判定選項。
+ *
+ * `qr_templates` 沒有 `restaurant_id`（不像 `qr_codes`），唯一能表示歸屬的欄位
+ * 只有 `created_by`，所以寫入一律以建立者為界；平台管理員（role 0）例外，
+ * 讓他們仍能維護 `created_by` 為 NULL 的平台預設模板。
+ */
+export interface QRTemplateWriteOptions {
+  isPlatformAdmin?: boolean;
 }
 
 export interface QRCodeStats {
@@ -221,7 +232,15 @@ export class QRCodeService extends BaseService {
     id: number,
     data: Partial<CreateQRTemplateData>,
     userId: string,
-  ): Promise<QRTemplate> {
+    options: QRTemplateWriteOptions = {},
+  ): Promise<QRTemplate | null> {
+    // 先確認歸屬：查不到或不屬於呼叫者一律回 null，讓上層回 404，
+    // 不區分「不存在」與「別人的」以免被拿來列舉其他店家的模板。
+    const owned = await this.getOwnedTemplate(id, userId, options);
+    if (!owned) {
+      return null;
+    }
+
     const updateData: Partial<NewQRTemplate> = {
       updatedAt: new Date(),
     };
@@ -232,10 +251,11 @@ export class QRCodeService extends BaseService {
     if (data.style) updateData.styleJson = JSON.stringify(data.style);
     if (data.isDefault !== undefined) updateData.isDefault = data.isDefault;
 
+    // where 也帶上歸屬條件，避免讀取與寫入之間被換掉 created_by。
     await this.db
       .update(qrTemplates)
       .set(updateData)
-      .where(eq(qrTemplates.id, id));
+      .where(this.templateOwnershipFilter(id, userId, options));
 
     const template = await this.getTemplate(id);
     if (!template) {
@@ -259,14 +279,23 @@ export class QRCodeService extends BaseService {
   /**
    * 軟刪除QR碼模板
    */
-  async deleteTemplate(id: number, userId: string): Promise<void> {
+  async deleteTemplate(
+    id: number,
+    userId: string,
+    options: QRTemplateWriteOptions = {},
+  ): Promise<boolean> {
+    const owned = await this.getOwnedTemplate(id, userId, options);
+    if (!owned) {
+      return false;
+    }
+
     await this.db
       .update(qrTemplates)
       .set({
         isActive: false,
         updatedAt: new Date(),
       })
-      .where(eq(qrTemplates.id, id));
+      .where(this.templateOwnershipFilter(id, userId, options));
 
     // 記錄審計日誌
     await this.createAuditLog({
@@ -275,6 +304,34 @@ export class QRCodeService extends BaseService {
       resource: "qr_templates",
       description: JSON.stringify({ templateId: id }),
     });
+
+    return true;
+  }
+
+  /**
+   * 模板寫入的歸屬條件；平台管理員不加 created_by 限制。
+   */
+  private templateOwnershipFilter(
+    id: number,
+    userId: string,
+    options: QRTemplateWriteOptions,
+  ) {
+    return options.isPlatformAdmin
+      ? eq(qrTemplates.id, id)
+      : and(eq(qrTemplates.id, id), eq(qrTemplates.createdBy, userId));
+  }
+
+  private async getOwnedTemplate(
+    id: number,
+    userId: string,
+    options: QRTemplateWriteOptions,
+  ): Promise<QRTemplate | null> {
+    const result = await this.db
+      .select()
+      .from(qrTemplates)
+      .where(this.templateOwnershipFilter(id, userId, options))
+      .limit(1);
+    return result[0] || null;
   }
 
   /**

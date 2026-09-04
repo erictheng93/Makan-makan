@@ -435,22 +435,88 @@ describe("QrCodesService", () => {
     });
 
     await expect(
-      createService().updateTemplate(1, {
-        name: "Updated",
-        category: "branded",
-        style: { size: 400 },
-      }),
+      createService().updateTemplate(
+        1,
+        {
+          name: "Updated",
+          category: "branded",
+          style: { size: 400 },
+        },
+        { userId: "user-7", userRole: 1 },
+      ),
     ).resolves.toMatchObject({
       name: "Updated",
       category: "branded",
       style: { size: 400 },
     });
+    // 真實操作者要傳到 DB 層（以前寫死 "system"），店主不得享有平台管理員豁免
+    expect(mocks.qrService.updateTemplate).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ name: "Updated" }),
+      "user-7",
+      { isPlatformAdmin: false },
+    );
     expect(mocks.cache.delete).toHaveBeenCalledWith("qr-template:1");
 
-    mocks.qrService.deleteTemplate.mockResolvedValue(undefined);
-    await expect(createService().deleteTemplate(1)).resolves.toBe(true);
+    mocks.qrService.deleteTemplate.mockResolvedValue(true);
+    await expect(
+      createService().deleteTemplate(1, { userId: "user-7", userRole: 1 }),
+    ).resolves.toBe(true);
+    expect(mocks.qrService.deleteTemplate).toHaveBeenCalledWith(1, "user-7", {
+      isPlatformAdmin: false,
+    });
 
     mocks.qrService.deleteTemplate.mockRejectedValueOnce(new Error("db"));
-    await expect(createService().deleteTemplate(2)).resolves.toBe(false);
+    await expect(
+      createService().deleteTemplate(2, { userId: "user-7", userRole: 1 }),
+    ).resolves.toBe(false);
+  });
+
+  it("returns not-found instead of writing when the caller does not own the template", async () => {
+    // DB 層以 created_by 判定歸屬，比對不到時回 null/false（不是丟例外），
+    // 上層要照樣轉成 404，而不是誤報成功。
+    mocks.qrService.updateTemplate.mockResolvedValueOnce(null);
+    await expect(
+      createService().updateTemplate(
+        7,
+        { name: "Hijacked" },
+        { userId: "other-owner", userRole: 1 },
+      ),
+    ).resolves.toBeNull();
+
+    mocks.qrService.deleteTemplate.mockResolvedValueOnce(false);
+    await expect(
+      createService().deleteTemplate(7, {
+        userId: "other-owner",
+        userRole: 1,
+      }),
+    ).resolves.toBe(false);
+    expect(mocks.cache.delete).not.toHaveBeenCalledWith("qr-template:7");
+  });
+
+  it("lets a platform admin (role 0) bypass the created_by scope", async () => {
+    mocks.qrService.updateTemplate.mockResolvedValueOnce({
+      id: 3,
+      name: "Platform default",
+      description: "",
+      styleJson: '{"size":256}',
+      isActive: true,
+      createdAt: "2026-06-07T00:00:00.000Z",
+      updatedAt: "2026-06-07T00:00:00.000Z",
+    });
+
+    await expect(
+      createService().updateTemplate(
+        3,
+        { name: "Platform default" },
+        { userId: "admin-1", userRole: 0 },
+      ),
+    ).resolves.toMatchObject({ id: 3 });
+    expect(mocks.qrService.updateTemplate).toHaveBeenCalledWith(
+      3,
+      expect.objectContaining({ name: "Platform default" }),
+      "admin-1",
+      { isPlatformAdmin: true },
+    );
   });
 });

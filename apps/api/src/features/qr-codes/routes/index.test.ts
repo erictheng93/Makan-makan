@@ -349,6 +349,16 @@ describe("QR code routes", () => {
     expect(qrServiceFns.createTemplate).toHaveBeenCalledWith(
       expect.objectContaining({ name: "Modern", createdBy: "user-7" }),
     );
+    // 模板寫入必須帶著真實操作者，DB 層才能用 created_by 擋跨租戶改寫
+    expect(qrServiceFns.updateTemplate).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ name: "Updated" }),
+      expect.objectContaining({ userId: "user-7" }),
+    );
+    expect(qrServiceFns.deleteTemplate).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ userId: "user-7" }),
+    );
     expect(getResponse.status).toBe(200);
     await expect(getResponse.json()).resolves.toMatchObject({
       data: { id: 1, name: "Modern" },

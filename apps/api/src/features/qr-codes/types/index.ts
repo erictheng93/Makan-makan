@@ -181,6 +181,15 @@ export interface IQRCodeService {
   getStatistics(restaurantId?: string): Promise<QRStatistics>;
 }
 
+/**
+ * 模板寫入的呼叫者身分。`qr_templates` 沒有 `restaurant_id`，歸屬只能靠
+ * `created_by`，因此更新／刪除都必須帶著真實的操作者，不能再寫死 "system"。
+ */
+export interface QRTemplateActor {
+  userId: string;
+  userRole: number;
+}
+
 export interface IQRTemplateService {
   listTemplates(category?: string): Promise<QRTemplate[]>;
   getTemplate(id: number): Promise<QRTemplate | null>;
@@ -188,8 +197,9 @@ export interface IQRTemplateService {
   updateTemplate(
     id: number,
     data: UpdateQRTemplateData,
+    actor: QRTemplateActor,
   ): Promise<QRTemplate | null>;
-  deleteTemplate(id: number): Promise<boolean>;
+  deleteTemplate(id: number, actor: QRTemplateActor): Promise<boolean>;
 }
 
 // Event types

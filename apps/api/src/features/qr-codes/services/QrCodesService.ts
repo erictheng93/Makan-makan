@@ -10,7 +10,7 @@ import {
   ConsoleLogger,
   SimplePerformanceTracker,
 } from "../../../core/monitoring";
-import { CACHE_TTL } from "../../../shared/constants";
+import { CACHE_TTL, USER_ROLES } from "../../../shared/constants";
 import { forbidden } from "../../../shared/utils/api-error";
 import { QRCodeService } from "@makanmasak/database";
 import * as QRCode from "qrcode";
@@ -27,6 +27,7 @@ import type {
   UpdateQRTemplateData,
   QRStatistics,
   QRDownloadCaller,
+  QRTemplateActor,
   IQRCodeService,
   IQRTemplateService,
 } from "../types";
@@ -704,11 +705,13 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
   async updateTemplate(
     id: number,
     data: UpdateQRTemplateData,
+    actor: QRTemplateActor,
   ): Promise<QRTemplate | null> {
     const timer = this.performance.startTimer("qr-codes.updateTemplate");
 
     try {
-      // Update template using the existing QRCodeService
+      // 帶入真實操作者：模板歸屬只看 created_by，寫死 "system" 會讓任何店主
+      // 改到別人的模板，審計日誌也記不到真兇。
       const template = await this.qrService.updateTemplate(
         id,
         {
@@ -716,8 +719,9 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
           description: data.description,
           style: data.style,
         },
-        "system",
-      ); // Default user ID - should be passed from context
+        actor.userId,
+        { isPlatformAdmin: actor.userRole === USER_ROLES.ADMIN },
+      );
 
       if (!template) {
         return null;
@@ -761,12 +765,18 @@ export class QrCodesService implements IQRCodeService, IQRTemplateService {
     }
   }
 
-  async deleteTemplate(id: number): Promise<boolean> {
+  async deleteTemplate(id: number, actor: QRTemplateActor): Promise<boolean> {
     const timer = this.performance.startTimer("qr-codes.deleteTemplate");
 
     try {
-      // Delete template using the existing QRCodeService
-      await this.qrService.deleteTemplate(id, "system"); // Default user ID - should be passed from context
+      // 同 updateTemplate：軟刪除也必須限定在自己建立的模板。
+      const deleted = await this.qrService.deleteTemplate(id, actor.userId, {
+        isPlatformAdmin: actor.userRole === USER_ROLES.ADMIN,
+      });
+
+      if (!deleted) {
+        return false;
+      }
 
       // Clear caches
       await this.cache.delete(`qr-template:${id}`);
