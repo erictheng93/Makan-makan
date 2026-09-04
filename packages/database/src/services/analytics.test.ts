@@ -261,6 +261,117 @@ describe("AnalyticsService revenue analytics", () => {
   );
 });
 
+describe("AnalyticsService order analytics", () => {
+  let testDb: TestDatabase;
+
+  beforeAll(async () => {
+    testDb = await createTestDatabase();
+  }, REAL_D1_SETUP_TIMEOUT_MS);
+
+  afterAll(async () => {
+    await testDb?.dispose();
+  });
+
+  beforeEach(async () => {
+    await testDb.truncateAll();
+    await testDb.drizzle.insert(restaurants).values({
+      id: "analytics-restaurant",
+      name: "Analytics Test Restaurant",
+      type: "casual",
+      category: "testing",
+      address: "1 Test Road",
+      district: "Test District",
+      phone: "0912345678",
+    });
+  });
+
+  const window = {
+    restaurantId: "analytics-restaurant",
+    dateFrom: "2026-01-08T00:00:00.000Z",
+    dateTo: "2026-01-10T00:00:00.000Z",
+  };
+
+  it("keeps cancelled orders out of revenue while still counting them as orders", async () => {
+    // The screen reported NT$1,185 across 7 orders while its own revenue
+    // report, chart and CSV export all said NT$570 across 4 — the difference
+    // being three cancellations counted as income (#312).
+    await testDb.drizzle.insert(orders).values([
+      order("paid-1", "A-001", "2026-01-08T12:00:00.000Z", 30000),
+      order("paid-2", "A-002", "2026-01-09T12:00:00.000Z", 20000),
+      order("cancelled-1", "A-003", "2026-01-08T13:00:00.000Z", 90000, {
+        status: "cancelled",
+      }),
+    ]);
+
+    const result = await new AnalyticsService(
+      testDb.bindings.DB,
+      {} as never,
+    ).getOrderAnalytics(window);
+
+    expect(result.totalRevenue).toBe(500);
+    expect(result.averageOrderValue).toBe(250);
+
+    // Order count deliberately keeps every order: it is the conversion rate's
+    // denominator, and three of these were placed even though one was undone.
+    expect(result.totalOrders).toBe(3);
+    expect(result.cancelledOrders).toBe(1);
+  });
+
+  it("does not report a 100% conversion rate when some orders were cancelled", async () => {
+    // Guards the tempting one-line version of the fix above: filtering
+    // totalOrders by status too makes the rate a set divided by itself.
+    await testDb.drizzle.insert(orders).values([
+      order("paid-1", "A-001", "2026-01-08T12:00:00.000Z", 30000),
+      order("cancelled-1", "A-002", "2026-01-08T13:00:00.000Z", 90000, {
+        status: "cancelled",
+      }),
+    ]);
+
+    const result = await new AnalyticsService(
+      testDb.bindings.DB,
+      {} as never,
+    ).getOrderAnalytics(window);
+
+    expect(result.conversionRate).toBe(50);
+  });
+
+  it("measures growth against the window immediately before the selected one", async () => {
+    // Two days in the window, two days immediately before it. The rates have
+    // to describe that span — they used to come from the dashboard summary,
+    // which is always month-over-month whatever the caller asked for.
+    await testDb.drizzle
+      .insert(orders)
+      .values([
+        order("current-1", "A-001", "2026-01-08T12:00:00.000Z", 30000),
+        order("current-2", "A-002", "2026-01-09T12:00:00.000Z", 30000),
+        order("prior-1", "A-003", "2026-01-06T12:00:00.000Z", 30000),
+      ]);
+
+    const result = await new AnalyticsService(
+      testDb.bindings.DB,
+      {} as never,
+    ).getOrderAnalytics(window);
+
+    // 600 against a prior 300, and 2 orders against a prior 1.
+    expect(result.revenueGrowth).toBe(100);
+    expect(result.orderGrowth).toBe(100);
+  });
+
+  it("reports no growth rather than an infinite one when the prior window earned nothing", async () => {
+    await testDb.drizzle
+      .insert(orders)
+      .values([order("current-1", "A-001", "2026-01-08T12:00:00.000Z", 30000)]);
+
+    const result = await new AnalyticsService(
+      testDb.bindings.DB,
+      {} as never,
+    ).getOrderAnalytics(window);
+
+    expect(result.revenueGrowth).toBe(0);
+    expect(result.orderGrowth).toBe(0);
+  });
+});
+
 describe("AnalyticsService financial report", () => {
   let testDb: TestDatabase;
 

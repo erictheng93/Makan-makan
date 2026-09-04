@@ -92,6 +92,12 @@ export interface OrderAnalytics {
   conversionRate: number;
   averagePreparationTime: number;
   popularTimeSlots: Array<{ hour: number; orderCount: number }>;
+  /** Change against the equally long window immediately before this one, in
+   * percent. Callers used to pair these figures with the dashboard summary's
+   * month-over-month rates, so a year's revenue was shown beside a monthly
+   * change (#312). Zero when there is no prior window or it earned nothing. */
+  revenueGrowth: number;
+  orderGrowth: number;
 }
 
 export interface MenuAnalytics {
@@ -254,15 +260,32 @@ export class AnalyticsService extends BaseService {
         conditions.push(lte(orders.createdAt, new Date(dateTo)));
       }
 
-      // 基本訂單統計
+      // Two queries, not one. `totalOrders` counts every order in the window
+      // because it is the denominator of the conversion rate below -- filtering
+      // it to fulfilled orders as well would make that rate a set divided by
+      // itself, permanently 100%.
+      //
+      // Revenue and average order value must exclude everything that was not
+      // fulfilled. Without that filter the KPI cards counted cancelled orders
+      // as income: NT$1,185 across 7 orders on a screen whose own revenue
+      // report, chart and CSV export all said NT$570 across 4, the difference
+      // being three cancellations (#312). The two queries immediately below
+      // this one always did filter by status, so the distinction was known --
+      // it was only the headline figures that missed it.
       const [orderStats] = await this.db
+        .select({ totalOrders: count() })
+        .from(orders)
+        .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+      const [revenueStats] = await this.db
         .select({
-          totalOrders: count(),
           totalRevenue: sumMoneyAmount(orders.totalAmountCents),
           averageOrderValue: avgMoneyAmount(orders.totalAmountCents),
         })
         .from(orders)
-        .where(conditions.length > 0 ? and(...conditions) : undefined);
+        .where(
+          and(...conditions, inArray(orders.status, FULFILLED_ORDER_STATUSES)),
+        );
 
       // 已完成訂單數
       const [{ completedOrders }] = await this.db
@@ -309,12 +332,25 @@ export class AnalyticsService extends BaseService {
         .groupBy(sql`strftime('%H', ${orders.createdAt} / 1000, 'unixepoch')`)
         .orderBy(desc(count()));
 
+      // Growth against the window immediately before this one, the same
+      // construction getFinancialReport uses. The alternative in place before
+      // this was the dashboard summary's month-over-month rate, which is a
+      // fixed window: selecting "this year" showed a year's revenue with a
+      // monthly change beside it, describing two different spans in one card.
+      const { revenueGrowth, orderGrowth } = await this.getPriorWindowGrowth(
+        filters,
+        Number(revenueStats.totalRevenue) || 0,
+        orderStats.totalOrders,
+      );
+
       return {
         totalOrders: orderStats.totalOrders,
         completedOrders,
         cancelledOrders,
-        averageOrderValue: Number(orderStats.averageOrderValue) || 0,
-        totalRevenue: Number(orderStats.totalRevenue) || 0,
+        averageOrderValue: Number(revenueStats.averageOrderValue) || 0,
+        totalRevenue: Number(revenueStats.totalRevenue) || 0,
+        revenueGrowth,
+        orderGrowth,
         conversionRate: Math.round(conversionRate * 100) / 100,
         averagePreparationTime: Number(averagePreparationTime) || 0,
         popularTimeSlots: popularTimeSlots.map((slot) => ({
@@ -325,6 +361,70 @@ export class AnalyticsService extends BaseService {
     } catch (error) {
       this.handleError(error, "getOrderAnalytics");
     }
+  }
+
+  /**
+   * Revenue and order change against the equally long window ending where the
+   * current one begins. Returns zeros when the caller gave no date range (the
+   * window has no length, so "the period before" is undefined) or when the
+   * prior window earned nothing — a percentage against zero is not a growth
+   * rate, and reporting one as an enormous positive number is worse than
+   * reporting none.
+   */
+  private async getPriorWindowGrowth(
+    filters: AnalyticsFilters,
+    currentRevenue: number,
+    currentOrders: number,
+  ): Promise<{ revenueGrowth: number; orderGrowth: number }> {
+    const none = { revenueGrowth: 0, orderGrowth: 0 };
+    if (!filters.dateFrom || !filters.dateTo) return none;
+
+    const fromMs = new Date(filters.dateFrom).getTime();
+    const toMs = new Date(filters.dateTo).getTime();
+    const span = toMs - fromMs;
+    if (!Number.isFinite(span) || span <= 0) return none;
+
+    const priorConditions = [
+      gte(orders.createdAt, new Date(fromMs - span)),
+      lte(orders.createdAt, new Date(fromMs)),
+    ];
+    if (filters.restaurantId) {
+      priorConditions.push(eq(orders.restaurantId, filters.restaurantId));
+    }
+
+    const [priorOrders] = await this.db
+      .select({ total: count() })
+      .from(orders)
+      .where(and(...priorConditions));
+
+    const [priorRevenue] = await this.db
+      .select({ total: sumMoneyAmount(orders.totalAmountCents) })
+      .from(orders)
+      .where(
+        and(
+          ...priorConditions,
+          inArray(orders.status, FULFILLED_ORDER_STATUSES),
+        ),
+      );
+
+    const priorRevenueTotal = Number(priorRevenue.total) || 0;
+    const priorOrderTotal = priorOrders.total;
+
+    return {
+      revenueGrowth:
+        priorRevenueTotal > 0
+          ? Math.round(
+              ((currentRevenue - priorRevenueTotal) / priorRevenueTotal) *
+                10000,
+            ) / 100
+          : 0,
+      orderGrowth:
+        priorOrderTotal > 0
+          ? Math.round(
+              ((currentOrders - priorOrderTotal) / priorOrderTotal) * 10000,
+            ) / 100
+          : 0,
+    };
   }
 
   // 取得菜單分析
