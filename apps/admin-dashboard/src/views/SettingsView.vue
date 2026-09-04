@@ -104,38 +104,22 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">{{
               t("settings.general.timezone")
             }}</label>
-            <select
-              v-model="settings.restaurant.timezone"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            <!-- Read-only on purpose. Every business-day bucket in the
+                 platform is a hardcoded '+8 hours'
+                 (packages/database/src/utils/sql-time.ts), so a shop that
+                 picked GMT+9 still had its takings cut at the GMT+8 midnight.
+                 A selector that accepts a choice nothing honours is worse than
+                 no selector: it reported success and looked settled. Tracked
+                 for real support in #329. -->
+            <div
+              data-testid="settings-timezone-fixed"
+              class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600"
             >
-              <option value="Asia/Taipei">
-                {{ t("settings.general.timezones.taiwan") }}
-              </option>
-              <option value="Asia/Kuala_Lumpur">
-                {{ t("settings.general.timezones.malaysia") }}
-              </option>
-              <option value="Asia/Singapore">
-                {{ t("settings.general.timezones.singapore") }}
-              </option>
-              <option value="Asia/Tokyo">
-                {{ t("settings.general.timezones.japan") }}
-              </option>
-              <option value="Asia/Shanghai">
-                {{ t("settings.general.timezones.china") }}
-              </option>
-              <option value="Asia/Ho_Chi_Minh">
-                {{ t("settings.general.timezones.vietnam") }}
-              </option>
-              <option value="Asia/Jakarta">
-                {{ t("settings.general.timezones.indonesia") }}
-              </option>
-              <option value="America/New_York">
-                {{ t("settings.general.timezones.usEast") }}
-              </option>
-              <option value="America/Los_Angeles">
-                {{ t("settings.general.timezones.usWest") }}
-              </option>
-            </select>
+              GMT+8
+            </div>
+            <p class="text-xs text-gray-500 mt-1">
+              {{ t("settings.general.timezoneFixedHint") }}
+            </p>
           </div>
         </div>
       </div>
@@ -875,6 +859,52 @@
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                {{ t("settings.orders.taxRate") }}
+              </label>
+              <div class="flex items-center space-x-2">
+                <input
+                  v-model.number="settings.orders.taxRatePercent"
+                  data-testid="settings-tax-rate"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  class="w-28 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="0"
+                />
+                <span class="text-gray-500">%</span>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">
+                {{ t("settings.orders.taxRateHint") }}
+              </p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                {{ t("settings.orders.serviceChargeRate") }}
+              </label>
+              <div class="flex items-center space-x-2">
+                <input
+                  v-model.number="settings.orders.serviceChargeRatePercent"
+                  data-testid="settings-service-charge-rate"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  class="w-28 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="0"
+                />
+                <span class="text-gray-500">%</span>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">
+                {{ t("settings.orders.serviceChargeHint") }}
+              </p>
             </div>
           </div>
 
@@ -2008,6 +2038,12 @@ const settings = reactive({
     retentionDays: 90,
     minimumOrderEnabled: false,
     minimumOrderAmount: 0,
+    // Held as percentages because that is what a shop owner types. The server
+    // stores fractions -- calculateOrderTotal does `subtotalCents * taxRate`,
+    // so 5% has to reach it as 0.05. The conversion happens at the payload
+    // boundary in both directions; nothing else in this file divides by 100.
+    taxRatePercent: 0,
+    serviceChargeRatePercent: 0,
   },
   tables: {
     prefix: "T",
@@ -2186,6 +2222,25 @@ const selectedMarketReadinessSummary = computed(() =>
 // *same object* as `settings.orders` — editing a field edited the "default"
 // too, and resetToDefaults assigned those identical references back over
 // themselves. The reset button did nothing at all.
+/**
+ * The form takes a percentage; OrderService multiplies the subtotal by a
+ * fraction. Both directions round, because neither division nor multiplication
+ * by 100 is exact in binary floating point: 0.7% becomes 0.006999999999999999
+ * going in, and 7% comes back as 7.000000000000001. Of the 1001 rates a
+ * 0.1-step input can produce between 0 and 100, 93 change value across an
+ * unrounded round trip, so the owner would watch the figure grow a tail every
+ * time the page reloaded.
+ */
+function percentToRate(percent: number): number {
+  if (!Number.isFinite(percent) || percent <= 0) return 0;
+  return Math.round((percent / 100) * 1e6) / 1e6;
+}
+
+function rateToPercent(rate: number): number {
+  if (!Number.isFinite(rate) || rate <= 0) return 0;
+  return Math.round(rate * 100 * 1e4) / 1e4;
+}
+
 const defaultSettings = structuredClone(toRaw(settings));
 
 // 方法
@@ -2278,6 +2333,19 @@ const saveSettings = async () => {
             ? settings.orders.minimumOrderAmount
             : 0,
           autoAcceptOrders: settings.orders.autoConfirm,
+
+          // Fractions, not percentages: OrderService computes tax as
+          // `subtotalCents * taxRate`, so 5% has to arrive as 0.05. Both rates
+          // were unreachable from this screen until now, which is why every
+          // order carried taxAmount 0 and serviceCharge 0 (#313).
+          taxRate: percentToRate(settings.orders.taxRatePercent),
+          serviceChargeRate: percentToRate(
+            settings.orders.serviceChargeRatePercent,
+          ),
+
+          // Stored, but nothing reads it: every business-day bucket is a
+          // hardcoded '+8 hours' in packages/database/src/utils/sql-time.ts.
+          // The field is read-only in the UI for that reason -- see #329.
           timezone: settings.restaurant.timezone,
 
           // Console preferences with no server behaviour, kept under one key so
@@ -2353,6 +2421,8 @@ const loadSettings = async () => {
           estimatedPrepTimeMax?: number;
           minOrderAmount?: number;
           autoAcceptOrders?: boolean;
+          taxRate?: number;
+          serviceChargeRate?: number;
           timezone?: string;
           adminConsole?: {
             language?: string;
@@ -2439,6 +2509,14 @@ const loadSettings = async () => {
         }
         if (data.settings.autoAcceptOrders !== undefined) {
           settings.orders.autoConfirm = data.settings.autoAcceptOrders;
+        }
+        if (data.settings.taxRate !== undefined) {
+          settings.orders.taxRatePercent = rateToPercent(data.settings.taxRate);
+        }
+        if (data.settings.serviceChargeRate !== undefined) {
+          settings.orders.serviceChargeRatePercent = rateToPercent(
+            data.settings.serviceChargeRate,
+          );
         }
         if (data.settings.timezone) {
           settings.restaurant.timezone = data.settings.timezone;

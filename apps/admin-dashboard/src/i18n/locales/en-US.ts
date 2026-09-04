@@ -2479,6 +2479,8 @@ const enUS: Messages = {
       integrations: "Integrations",
     },
     general: {
+      timezoneFixedHint:
+        "Business days and reports always run on GMT+8. This cannot be changed yet.",
       restaurantInfo: "Restaurant Information",
       restaurantName: "Restaurant Name",
       contactPhone: "Contact Phone",
@@ -2516,6 +2518,11 @@ const enUS: Messages = {
       neverLogout: "Never",
     },
     orders: {
+      taxRate: "Tax rate",
+      taxRateHint: "Applied to the order subtotal. Set to 0 for no tax.",
+      serviceChargeRate: "Service charge",
+      serviceChargeHint:
+        "Applied to the order subtotal. Set to 0 for no service charge.",
       title: "Order Workflow",
       acceptGuestOrders: "Accept customer QR orders",
       acceptGuestOrdersDesc:

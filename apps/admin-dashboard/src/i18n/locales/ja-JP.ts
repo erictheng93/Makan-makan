@@ -2484,6 +2484,8 @@ const jaJP: Messages = {
       markets: "市場",
     },
     general: {
+      timezoneFixedHint:
+        "営業日とレポートは常に GMT+8 で計算されます。現在は変更できません。",
       restaurantInfo: "レストラン情報",
       restaurantName: "レストラン名",
       contactPhone: "連絡先電話番号",
@@ -2521,6 +2523,11 @@ const jaJP: Messages = {
       neverLogout: "なし",
     },
     orders: {
+      taxRate: "税率",
+      taxRateHint: "注文小計に適用されます。0 で課税なしになります。",
+      serviceChargeRate: "サービス料",
+      serviceChargeHint:
+        "注文小計に適用されます。0 でサービス料なしになります。",
       title: "注文ワークフロー",
       acceptGuestOrders: "顧客のQR注文を受け付ける",
       acceptGuestOrdersDesc:

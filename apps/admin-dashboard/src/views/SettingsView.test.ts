@@ -384,6 +384,80 @@ describe("SettingsView guest ordering availability", () => {
     expect(body.settings.minOrderAmount).toBe(0);
   });
 
+  // OrderService computes tax as `subtotalCents * taxRate`, so the server
+  // wants a fraction while the owner types a percentage. Both rates had no
+  // field at all on this screen, so every order carried taxAmount 0 and
+  // serviceCharge 0 whatever the shop actually charged (#313).
+  it("converts the tax and service percentages to the fractions the server multiplies by", async () => {
+    const wrapper = await mountSettings();
+
+    // 0.7 is one of the 261 percentages in the 0.1-step range whose division
+    // by 100 is inexact: 0.7 / 100 is 0.006999999999999999. A round number
+    // like 5 divides cleanly and would pass with the rounding removed.
+    await wrapper.get('[data-testid="settings-tax-rate"]').setValue(0.7);
+    await wrapper
+      .get('[data-testid="settings-service-charge-rate"]')
+      .setValue(10);
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "settings.saveSettings")
+      ?.trigger("click");
+    await flushPromises();
+
+    const body = vi.mocked(api.put).mock.calls[0][1] as {
+      settings: { taxRate: number; serviceChargeRate: number };
+    };
+    expect(body.settings.taxRate).toBe(0.007);
+    expect(body.settings.serviceChargeRate).toBe(0.1);
+  });
+
+  it("reads a stored fraction back as the percentage the owner entered", async () => {
+    vi.mocked(api.get).mockImplementation(async (url: string) => {
+      if (url === "/restaurants/restaurant-1") {
+        return apiGetResponse({
+          name: "雞排攤",
+          // 0.07 and 0.035 are picked because they are among the 93 rates in
+          // the 0.1-step range whose value changes across an unrounded round
+          // trip: 0.07 * 100 is 7.000000000000001. A tidier-looking fixture
+          // like 0.0825 multiplies back exactly and would pass with the
+          // rounding removed, proving nothing.
+          settings: { taxRate: 0.07, serviceChargeRate: 0.035 },
+        });
+      }
+      return apiGetResponse({});
+    });
+    const wrapper = await mountSettings();
+
+    expect(
+      (
+        wrapper.get('[data-testid="settings-tax-rate"]')
+          .element as HTMLInputElement
+      ).value,
+    ).toBe("7");
+    expect(
+      (
+        wrapper.get('[data-testid="settings-service-charge-rate"]')
+          .element as HTMLInputElement
+      ).value,
+    ).toBe("3.5");
+  });
+
+  // The picker offered nine options while every business-day bucket in the
+  // platform is a hardcoded '+8 hours'. Choosing GMT+9 reported success and
+  // changed nothing, which #309 made worse by finally persisting the value.
+  it("shows the timezone as fixed rather than offering a choice nothing honours", async () => {
+    const wrapper = await mountSettings();
+
+    expect(wrapper.get('[data-testid="settings-timezone-fixed"]').text()).toBe(
+      "GMT+8",
+    );
+    expect(
+      wrapper
+        .findAll("option")
+        .some((o) => o.attributes("value") === "Asia/Tokyo"),
+    ).toBe(false);
+  });
+
   // businessHours is Record<day, ...> and the customer app renders it per day.
   // This screen shows one pair for the week, so sending it unconditionally
   // would flatten per-day hours the owner never looked at.

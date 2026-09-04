@@ -2444,6 +2444,7 @@ const zhCN: Messages = {
       markets: "市场 / 商圈",
     },
     general: {
+      timezoneFixedHint: "营业日与报表一律以 GMT+8 计算，目前无法更改。",
       restaurantInfo: "餐厅信息",
       restaurantName: "餐厅名称",
       contactPhone: "联系电话",
@@ -2481,6 +2482,10 @@ const zhCN: Messages = {
       neverLogout: "不自动退出",
     },
     orders: {
+      taxRate: "税率",
+      taxRateHint: "应用于订单小计。设为 0 表示不加税。",
+      serviceChargeRate: "服务费",
+      serviceChargeHint: "应用于订单小计。设为 0 表示不收服务费。",
       title: "订单流程设置",
       acceptGuestOrders: "接受顾客扫码点餐",
       acceptGuestOrdersDesc: "允许顾客通过桌台与店家 QR Code 提交订单",

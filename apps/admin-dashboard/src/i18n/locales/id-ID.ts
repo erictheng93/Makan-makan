@@ -2495,6 +2495,8 @@ const idID: Messages = {
       markets: "Pasar",
     },
     general: {
+      timezoneFixedHint:
+        "Hari kerja dan laporan selalu memakai GMT+8. Belum dapat diubah.",
       restaurantInfo: "Informasi Restoran",
       restaurantName: "Nama Restoran",
       contactPhone: "Telepon Kontak",
@@ -2532,6 +2534,12 @@ const idID: Messages = {
       neverLogout: "Tidak Pernah",
     },
     orders: {
+      taxRate: "Tarif pajak",
+      taxRateHint:
+        "Diterapkan pada subtotal pesanan. Setel 0 untuk tanpa pajak.",
+      serviceChargeRate: "Biaya layanan",
+      serviceChargeHint:
+        "Diterapkan pada subtotal pesanan. Setel 0 untuk tanpa biaya layanan.",
       title: "Alur Pesanan",
       acceptGuestOrders: "Terima pesanan QR pelanggan",
       acceptGuestOrdersDesc:

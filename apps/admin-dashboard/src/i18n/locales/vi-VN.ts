@@ -2483,6 +2483,8 @@ const viVN: Messages = {
       markets: "Thị trường",
     },
     general: {
+      timezoneFixedHint:
+        "Ngày kinh doanh và báo cáo luôn theo GMT+8. Hiện chưa thể thay đổi.",
       restaurantInfo: "Thông tin nhà hàng",
       restaurantName: "Tên nhà hàng",
       contactPhone: "Số điện thoại liên hệ",
@@ -2520,6 +2522,12 @@ const viVN: Messages = {
       neverLogout: "Không bao giờ",
     },
     orders: {
+      taxRate: "Thuế suất",
+      taxRateHint:
+        "Áp dụng cho tạm tính của đơn hàng. Đặt 0 để không tính thuế.",
+      serviceChargeRate: "Phí dịch vụ",
+      serviceChargeHint:
+        "Áp dụng cho tạm tính của đơn hàng. Đặt 0 để không thu phí dịch vụ.",
       title: "Quy trình đơn hàng",
       acceptGuestOrders: "Nhận đơn đặt hàng bằng QR của khách",
       acceptGuestOrdersDesc:

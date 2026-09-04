@@ -2556,6 +2556,7 @@ const zhTWCore = {
       integrations: "外送平台串接",
     },
     general: {
+      timezoneFixedHint: "營業日與報表一律以 GMT+8 計算，目前無法變更。",
       restaurantInfo: "餐廳資訊",
       restaurantName: "餐廳名稱",
       contactPhone: "聯絡電話",
@@ -2593,6 +2594,10 @@ const zhTWCore = {
       neverLogout: "不自動登出",
     },
     orders: {
+      taxRate: "稅率",
+      taxRateHint: "套用於訂單小計。設為 0 表示不加稅。",
+      serviceChargeRate: "服務費",
+      serviceChargeHint: "套用於訂單小計。設為 0 表示不收服務費。",
       title: "訂單流程設定",
       acceptGuestOrders: "接受顧客掃碼點餐",
       acceptGuestOrdersDesc: "允許顧客透過桌台與店家 QR Code 送出訂單",
