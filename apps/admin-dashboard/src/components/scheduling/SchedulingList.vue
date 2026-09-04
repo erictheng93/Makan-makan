@@ -276,20 +276,12 @@
               <td
                 class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono"
               >
-                {{
-                  formatClockTime(
-                    schedule.clockInTime || schedule.actualStartTime,
-                  )
-                }}
+                {{ formatClockTime(schedule.clockInTime) }}
               </td>
               <td
                 class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-mono"
               >
-                {{
-                  formatClockTime(
-                    schedule.clockOutTime || schedule.actualEndTime,
-                  )
-                }}
+                {{ formatClockTime(schedule.clockOutTime) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 {{
@@ -768,8 +760,8 @@ const formatClockTime = (timeStr: string | null | undefined): string => {
 };
 
 const getClockStatusDotClass = (schedule: EmployeeSchedule): string => {
-  const clockedIn = schedule.clockInTime || schedule.actualStartTime;
-  const clockedOut = schedule.clockOutTime || schedule.actualEndTime;
+  const clockedIn = schedule.clockInTime;
+  const clockedOut = schedule.clockOutTime;
   // Currently working: clocked in but not out
   if (clockedIn && !clockedOut) {
     return "bg-green-500 animate-pulse";

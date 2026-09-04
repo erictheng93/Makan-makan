@@ -58,18 +58,22 @@
 
       <!-- Clock Status -->
       <div
-        v-if="todaySchedule.actualStartTime || todaySchedule.actualEndTime"
+        v-if="todaySchedule.clockInTime || todaySchedule.clockOutTime"
         class="clock-status"
       >
-        <div v-if="todaySchedule.actualStartTime" class="status-row">
+        <div v-if="todaySchedule.clockInTime" class="status-row">
           <span class="status-icon">✓</span>
           <span class="status-label">{{ t("clockInOut.clockInTime") }}:</span>
-          <span class="status-time">{{ todaySchedule.actualStartTime }}</span>
+          <span class="status-time" data-testid="clock-in-time">{{
+            formatClockTime(todaySchedule.clockInTime)
+          }}</span>
         </div>
-        <div v-if="todaySchedule.actualEndTime" class="status-row">
+        <div v-if="todaySchedule.clockOutTime" class="status-row">
           <span class="status-icon">✓</span>
           <span class="status-label">{{ t("clockInOut.clockOutTime") }}:</span>
-          <span class="status-time">{{ todaySchedule.actualEndTime }}</span>
+          <span class="status-time" data-testid="clock-out-time">{{
+            formatClockTime(todaySchedule.clockOutTime)
+          }}</span>
         </div>
         <div v-if="todaySchedule.actualHours" class="status-row">
           <span class="status-icon">📊</span>
@@ -84,9 +88,10 @@
       <!-- Action Buttons -->
       <div class="action-buttons">
         <button
-          v-if="!todaySchedule.actualStartTime"
+          v-if="!todaySchedule.clockInTime"
           class="btn btn-clock-in"
           :disabled="loading"
+          data-testid="clock-in-button"
           @click="handleClockIn"
         >
           <span class="btn-icon">🟢</span>
@@ -94,16 +99,17 @@
         </button>
 
         <button
-          v-else-if="!todaySchedule.actualEndTime"
+          v-else-if="!todaySchedule.clockOutTime"
           class="btn btn-clock-out"
           :disabled="loading"
+          data-testid="clock-out-button"
           @click="handleClockOut"
         >
           <span class="btn-icon">🔴</span>
           <span>{{ t("clockInOut.clockOut") }}</span>
         </button>
 
-        <div v-else class="completed-message">
+        <div v-else class="completed-message" data-testid="shift-completed">
           <span class="completed-icon">✅</span>
           <span>{{ t("clockInOut.shiftCompleted") }}</span>
         </div>
@@ -171,11 +177,13 @@
         >
           <div class="record-date">{{ formatDate(record.workDate) }}</div>
           <div class="record-times">
-            <span v-if="record.actualStartTime">
-              {{ t("clockInOut.clockInShort") }}: {{ record.actualStartTime }}
+            <span v-if="record.clockInTime">
+              {{ t("clockInOut.clockInShort") }}:
+              {{ formatClockTime(record.clockInTime) }}
             </span>
-            <span v-if="record.actualEndTime">
-              {{ t("clockInOut.clockOutShort") }}: {{ record.actualEndTime }}
+            <span v-if="record.clockOutTime">
+              {{ t("clockInOut.clockOutShort") }}:
+              {{ formatClockTime(record.clockOutTime) }}
             </span>
           </div>
           <div class="record-hours">{{ record.actualHours || 0 }}h</div>
@@ -280,7 +288,7 @@ const fetchRecentRecords = async () => {
     });
 
     recentRecords.value = response.data.filter(
-      (r) => r.actualStartTime || r.actualEndTime,
+      (r) => r.clockInTime || r.clockOutTime,
     );
   } catch (err) {
     console.error("Failed to fetch recent records:", err);
@@ -365,6 +373,20 @@ const formatDate = (dateStr: string): string => {
   ];
   const weekday = dayNames[date.getDay()];
   return `${month}/${day} (${weekday})`;
+};
+
+/**
+ * clock_in_time_ms / clock_out_time_ms are INTEGER timestamp_ms columns, so the
+ * API hands back an ISO datetime, not an "HH:mm" time-of-day. Render the local
+ * wall-clock time rather than the raw string.
+ */
+const formatClockTime = (timeStr: string | null | undefined): string => {
+  if (!timeStr) return "—";
+  const date = new Date(timeStr);
+  if (Number.isNaN(date.getTime())) return "—";
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
 };
 
 const formatDateISO = (date: Date): string => {

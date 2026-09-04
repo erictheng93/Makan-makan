@@ -76,10 +76,13 @@ export interface EmployeeSchedule {
   endTime: string;
   breakDurationMinutes: number;
   scheduledHours: number;
-  clockInTime: string | null; // ISO timestamp from DB
-  clockOutTime: string | null; // ISO timestamp from DB
-  actualStartTime: string | null; // Alias for clockInTime
-  actualEndTime: string | null; // Alias for clockOutTime
+  // clock_in_time_ms / clock_out_time_ms, serialized as ISO datetimes.
+  // There is deliberately no actualStartTime/actualEndTime alias: the columns
+  // do not exist and GET /scheduling/:id/schedules returns the rows verbatim,
+  // so a declared alias reads as `undefined` at runtime. ClockInOutPanel read
+  // only the aliases, which is why its clock-in button never advanced (#308).
+  clockInTime: string | null;
+  clockOutTime: string | null;
   actualHours: number | null;
   overtimeHours: number | null;
   status: "scheduled" | "confirmed" | "completed" | "cancelled" | "no_show";

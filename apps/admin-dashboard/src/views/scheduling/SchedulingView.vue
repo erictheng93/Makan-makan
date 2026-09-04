@@ -156,7 +156,7 @@
             <div class="text-xs text-gray-500">
               {{
                 t("scheduling.since", {
-                  time: formatClockTime(emp.clockInTime || emp.actualStartTime),
+                  time: formatClockTime(emp.clockInTime),
                 })
               }}
             </div>
