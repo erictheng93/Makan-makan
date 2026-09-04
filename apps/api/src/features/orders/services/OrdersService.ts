@@ -1399,12 +1399,17 @@ export class OrdersService implements IOrdersService {
       );
     }
 
-    // Non-admin users MUST be scoped to their restaurant
-    if (restaurantId) {
-      return { ...filters, restaurantId };
+    // Roles 1–4 MUST be scoped to their restaurant, and one with no assignment
+    // has nothing to scope to. Falling through with the filters untouched ran
+    // the query unscoped — and getOrders' post-query strip is guarded by the
+    // same empty restaurantId, so it did not catch the leak either. That is how
+    // a NULL-tenant staff account read every restaurant's orders (#306); refuse
+    // instead, the same way assertRestaurantAccess does for a single order.
+    if (!restaurantId?.trim()) {
+      throw forbidden("Restaurant assignment required", "FORBIDDEN");
     }
 
-    return filters;
+    return { ...filters, restaurantId };
   }
 
   private convertToBaseFilters(

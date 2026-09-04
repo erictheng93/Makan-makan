@@ -1036,6 +1036,7 @@ describe("orders routes", () => {
     authState.user = { id: "unassigned-owner", role: 1, restaurantId: null };
 
     const responses = await Promise.all([
+      routes.fetch(new Request("https://orders.test/"), createEnv() as never),
       routes.fetch(new Request("https://orders.test/55"), createEnv() as never),
       routes.fetch(
         new Request("https://orders.test/55", { method: "DELETE" }),
@@ -1055,8 +1056,9 @@ describe("orders routes", () => {
     ]);
 
     expect(responses.map((response) => response.status)).toEqual([
-      403, 403, 403, 403,
+      403, 403, 403, 403, 403,
     ]);
+    expect(serviceMocks.getOrders).not.toHaveBeenCalled();
     expect(serviceMocks.getOrder).not.toHaveBeenCalled();
     expect(serviceMocks.cancelOrder).not.toHaveBeenCalled();
     expect(serviceMocks.updateOrderStatus).not.toHaveBeenCalled();

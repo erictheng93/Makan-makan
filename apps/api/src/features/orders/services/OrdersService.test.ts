@@ -651,6 +651,42 @@ describe("OrdersService workflows", () => {
     expect(getBaseOrders).not.toHaveBeenCalled();
   });
 
+  it.each([1, 2, 3, 4] as const)(
+    "refuses list queries from a role %i caller with no restaurant assignment",
+    async (userRole) => {
+      const service = new OrdersService(createEnv() as never);
+      getBaseOrders.mockResolvedValue({
+        orders: [
+          createOrder({ id: "1", restaurantId: "restaurant-1" }),
+          createOrder({ id: "2", restaurantId: "restaurant-2" }),
+        ],
+        pagination: { page: 1, limit: 20, total: 2, totalPages: 1 },
+      });
+
+      // A tenant-scoped role with no restaurantId has nothing to scope to. The
+      // old branch returned the filters untouched, so the query ran unscoped —
+      // and the post-query strip in getOrders is guarded by that same empty
+      // restaurantId, so it did not catch the leak either (#306).
+      await expect(
+        service.getOrders({}, "10", userRole, {
+          userId: "10",
+          userRole,
+          userRestaurantId: undefined,
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
+
+      await expect(
+        service.getOrders({}, "10", userRole, {
+          userId: "10",
+          userRole,
+          userRestaurantId: "   ",
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+      expect(getBaseOrders).not.toHaveBeenCalled();
+    },
+  );
+
   it("enforces cached order restaurant access before returning data", async () => {
     const env = createEnv({
       cacheGet: async (key) =>
