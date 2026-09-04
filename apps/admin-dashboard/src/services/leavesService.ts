@@ -5,13 +5,40 @@
 
 import { api } from "@/services/api";
 
+/**
+ * Mirrors the leave_types row, which GET /leaves/:restaurantId/types returns
+ * unprojected. `maxDaysPerYear` used to be declared here and does not exist on
+ * that table -- the per-year figure is accrualAmount, interpreted through
+ * accrualType.
+ */
 export interface LeaveType {
   id: number;
+  restaurantId: string | null;
+  code: string;
   name: string;
-  description?: string;
-  maxDaysPerYear: number;
+  description?: string | null;
+  accrualType: "yearly" | "monthly" | "none";
+  accrualAmount: number;
   requiresApproval: boolean;
-  color?: string;
+  minNoticeDays: number;
+  requiresDocumentation: boolean;
+  allowHalfDay: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  color?: string | null;
+}
+
+/**
+ * The four fields createLeaveTypeSchema requires. Everything else it accepts
+ * has a server-side default, so this is the whole minimum form.
+ */
+export interface CreateLeaveTypeInput {
+  code: string;
+  name: string;
+  accrualType: "yearly" | "monthly" | "none";
+  accrualAmount: number;
+  description?: string;
+  requiresApproval?: boolean;
 }
 
 export interface LeaveBalance {
@@ -130,6 +157,45 @@ class LeavesService {
       data,
     );
     return response.data.data!;
+  }
+
+  /**
+   * Create a leave type.
+   *
+   * The route has existed since the feature shipped; nothing called it, so
+   * every new tenant started with an empty list and the leave-request dialog's
+   * type selector had nothing to offer -- which made its submit button
+   * permanently disabled and the whole approval flow unreachable (#307).
+   */
+  async createLeaveType(
+    restaurantId: string,
+    data: CreateLeaveTypeInput,
+  ): Promise<LeaveType> {
+    const response = await this.api.post<LeaveType>(
+      `/leaves/${restaurantId}/types`,
+      data,
+    );
+    return response.data.data!;
+  }
+
+  /**
+   * Update a leave type. Tenant scope is enforced inside the handler by
+   * looking the id up, not by a route-level guard, so there is no restaurantId
+   * in the path.
+   */
+  async updateLeaveType(
+    typeId: number,
+    data: Partial<CreateLeaveTypeInput> & { isActive?: boolean },
+  ): Promise<LeaveType> {
+    const response = await this.api.put<LeaveType>(
+      `/leaves/types/${typeId}`,
+      data,
+    );
+    return response.data.data!;
+  }
+
+  async deleteLeaveType(typeId: number): Promise<void> {
+    await this.api.delete(`/leaves/types/${typeId}`);
   }
 
   /**

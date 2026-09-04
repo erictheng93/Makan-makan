@@ -284,17 +284,21 @@ import { useI18n } from "@/i18n";
 
 const { t } = useI18n();
 
+// Exactly the fields this dialog reads. It used to declare five more --
+// maxDaysPerYear, defaultDaysPerYear, colorCode, color, description -- none of
+// which it used and the first three of which are not columns on leave_types at
+// all, so anyone reaching for them would have typechecked and got undefined.
+//
+// Deliberately structural rather than a Pick of the service's LeaveType: the
+// two callers pass different shapes, because shared-types carries its own
+// LeaveType that has drifted a long way from the table (see #330). Narrowing
+// this to one of them would only move the mismatch.
 interface RequestDialogLeaveType {
   id: number;
   name: string;
-  description?: string;
-  maxDaysPerYear?: number;
-  defaultDaysPerYear?: number;
   minNoticeDays?: number;
   requiresDocumentation?: boolean;
   allowHalfDay?: boolean;
-  color?: string;
-  colorCode?: string;
 }
 
 interface RequestDialogLeaveBalance {

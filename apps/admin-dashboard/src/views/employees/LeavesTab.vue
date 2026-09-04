@@ -6,6 +6,7 @@
         <button
           v-for="tab in tabs"
           :key="tab.key"
+          :data-testid="`leaves-tab-${tab.key}`"
           class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all"
           :class="
             activeTab === tab.key
@@ -29,12 +30,18 @@
           </span>
         </button>
       </div>
+      <!-- Disabled rather than opening a dialog whose type selector would be
+           empty. Leave type is required there, so the submit button could
+           never enable and the dialog gave no clue why (#307). -->
       <button
-        class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors shadow-sm"
+        data-testid="leaves-apply"
+        class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+        :disabled="leaveTypes.length === 0"
+        :title="leaveTypes.length === 0 ? t('leaves.manage.noTypesHint') : ''"
         @click="showRequestDialog = true"
       >
         <Plus class="w-3.5 h-3.5" />
-        申請請假
+        {{ t("leaves.manage.apply") }}
       </button>
     </div>
 
@@ -55,7 +62,7 @@
         class="ml-2 underline text-[#FF3B30]/70 hover:text-[#FF3B30]"
         @click="loadData"
       >
-        重試
+        {{ t("leaves.manage.retry") }}
       </button>
     </div>
 
@@ -85,6 +92,145 @@
         :employees="employeeList"
         @accrue="handleAccrue"
       />
+
+      <!-- Tab: Leave types. The routes behind this have always existed; with
+           nothing calling them a new tenant had no way to create the first
+           type, and without one no leave request could be submitted (#307). -->
+      <div v-else-if="activeTab === 'types'" class="space-y-4">
+        <div
+          v-if="leaveTypes.length === 0"
+          data-testid="leaves-no-types"
+          class="bg-white rounded-2xl shadow-sm px-5 py-6 text-center"
+        >
+          <p class="text-[#1C1C1E] font-semibold">
+            {{ t("leaves.manage.noTypes") }}
+          </p>
+          <p class="text-sm text-[#1C1C1E]/60 mt-1">
+            {{ t("leaves.manage.noTypesHint") }}
+          </p>
+        </div>
+
+        <div
+          v-else
+          class="bg-white rounded-2xl shadow-sm divide-y divide-[#E5E5EA]"
+        >
+          <div
+            v-for="type in leaveTypes"
+            :key="type.id"
+            data-testid="leave-type-row"
+            class="flex items-center justify-between px-5 py-3"
+          >
+            <div>
+              <p class="text-sm font-semibold text-[#1C1C1E]">
+                {{ type.name }}
+                <span class="ml-2 text-xs font-normal text-[#1C1C1E]/40">{{
+                  type.code
+                }}</span>
+              </p>
+              <p class="text-xs text-[#1C1C1E]/60 mt-0.5">
+                {{
+                  t(`leaves.manage.accrual${accrualLabel(type.accrualType)}`)
+                }}
+                · {{ type.accrualAmount }}
+              </p>
+            </div>
+            <button
+              :data-testid="`leave-type-delete-${type.id}`"
+              class="text-xs text-[#FF3B30] hover:underline"
+              @click="handleDeleteType(type)"
+            >
+              {{ t("common.delete") }}
+            </button>
+          </div>
+        </div>
+
+        <form
+          class="bg-white rounded-2xl shadow-sm px-5 py-4 space-y-3"
+          @submit.prevent="handleCreateType"
+        >
+          <p class="text-sm font-semibold text-[#1C1C1E]">
+            {{ t("leaves.manage.createType") }}
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs text-[#1C1C1E]/60 mb-1">{{
+                t("leaves.manage.code")
+              }}</label>
+              <input
+                v-model="typeForm.code"
+                data-testid="leave-type-code"
+                required
+                maxlength="20"
+                class="w-full px-3 py-2 rounded-xl bg-[#F2F2F7] text-sm"
+              />
+              <p class="text-xs text-[#1C1C1E]/40 mt-1">
+                {{ t("leaves.manage.codeHint") }}
+              </p>
+            </div>
+            <div>
+              <label class="block text-xs text-[#1C1C1E]/60 mb-1">{{
+                t("leaves.manage.name")
+              }}</label>
+              <input
+                v-model="typeForm.name"
+                data-testid="leave-type-name"
+                required
+                maxlength="50"
+                class="w-full px-3 py-2 rounded-xl bg-[#F2F2F7] text-sm"
+              />
+            </div>
+            <div>
+              <label class="block text-xs text-[#1C1C1E]/60 mb-1">{{
+                t("leaves.manage.accrualType")
+              }}</label>
+              <select
+                v-model="typeForm.accrualType"
+                data-testid="leave-type-accrual"
+                class="w-full px-3 py-2 rounded-xl bg-[#F2F2F7] text-sm"
+              >
+                <option value="yearly">
+                  {{ t("leaves.manage.accrualYearly") }}
+                </option>
+                <option value="monthly">
+                  {{ t("leaves.manage.accrualMonthly") }}
+                </option>
+                <option value="none">
+                  {{ t("leaves.manage.accrualNone") }}
+                </option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-[#1C1C1E]/60 mb-1">{{
+                t("leaves.manage.accrualAmount")
+              }}</label>
+              <input
+                v-model.number="typeForm.accrualAmount"
+                data-testid="leave-type-amount"
+                type="number"
+                min="0"
+                step="0.5"
+                class="w-full px-3 py-2 rounded-xl bg-[#F2F2F7] text-sm"
+              />
+            </div>
+          </div>
+          <label class="flex items-center gap-2 text-sm text-[#1C1C1E]">
+            <input
+              v-model="typeForm.requiresApproval"
+              data-testid="leave-type-requires-approval"
+              type="checkbox"
+            />
+            {{ t("leaves.manage.requiresApproval") }}
+          </label>
+          <button
+            type="submit"
+            data-testid="leave-type-save"
+            :disabled="isSavingType"
+            class="px-4 py-2 rounded-full text-sm font-semibold bg-[#007AFF] text-white disabled:opacity-40"
+          >
+            {{ t("leaves.manage.save") }}
+          </button>
+        </form>
+      </div>
     </template>
 
     <LeaveRequestDialog
@@ -118,7 +264,7 @@ import type {
 
 const STAFFING_THRESHOLD = 3;
 
-type TabKey = "queue" | "history" | "balance";
+type TabKey = "queue" | "history" | "balance" | "types";
 type LeavePeriod = "full" | "am" | "pm";
 
 interface LeaveRequestFormData {
@@ -129,11 +275,12 @@ interface LeaveRequestFormData {
   reason: string;
 }
 
-const tabs: Array<{ key: TabKey; label: string }> = [
-  { key: "queue", label: "待我處理" },
-  { key: "history", label: "全部請假" },
-  { key: "balance", label: "假期餘額" },
-];
+const tabs = computed<Array<{ key: TabKey; label: string }>>(() => [
+  { key: "queue", label: t("leaves.manage.queue") },
+  { key: "history", label: t("leaves.manage.history") },
+  { key: "balance", label: t("leaves.manage.balance") },
+  { key: "types", label: t("leaves.manage.types") },
+]);
 
 const authStore = useAuthStore();
 const { users, fetchUsers } = useEmployeeList();
@@ -159,6 +306,73 @@ const employeeList = computed(() =>
     name: u.fullName || u.username,
   })),
 );
+
+const typeForm = ref({
+  code: "",
+  name: "",
+  accrualType: "yearly" as "yearly" | "monthly" | "none",
+  accrualAmount: 0,
+  requiresApproval: true,
+});
+const isSavingType = ref(false);
+
+function accrualLabel(accrualType: LeaveType["accrualType"]) {
+  return accrualType === "yearly"
+    ? "Yearly"
+    : accrualType === "monthly"
+      ? "Monthly"
+      : "None";
+}
+
+const handleCreateType = async () => {
+  const restaurantId = authStore.restaurantId;
+  if (!restaurantId || isSavingType.value) return;
+
+  isSavingType.value = true;
+  error.value = null;
+  try {
+    // The code column is uppercase letters and underscores only, and the
+    // server rejects anything else. Normalise here so an owner typing
+    // "annual leave" gets ANNUAL_LEAVE rather than a validation error naming
+    // a regex.
+    await leavesService.createLeaveType(String(restaurantId), {
+      ...typeForm.value,
+      code: typeForm.value.code
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z_]+/g, "_")
+        .replace(/^_+|_+$/g, ""),
+      name: typeForm.value.name.trim(),
+    });
+    typeForm.value = {
+      code: "",
+      name: "",
+      accrualType: "yearly",
+      accrualAmount: 0,
+      requiresApproval: true,
+    };
+    await loadData();
+  } catch (e) {
+    error.value = resolveUserFacingError(e, t, {
+      fallbackKey: "leaves.manage.createFailed",
+    }).message;
+  } finally {
+    isSavingType.value = false;
+  }
+};
+
+const handleDeleteType = async (type: LeaveType) => {
+  if (!window.confirm(t("leaves.manage.deleteConfirm"))) return;
+  error.value = null;
+  try {
+    await leavesService.deleteLeaveType(type.id);
+    await loadData();
+  } catch (e) {
+    error.value = resolveUserFacingError(e, t, {
+      fallbackKey: "leaves.manage.deleteFailed",
+    }).message;
+  }
+};
 
 const loadData = async () => {
   const restaurantId = authStore.restaurantId;
@@ -228,7 +442,7 @@ const handleLeaveRequest = async (formData: LeaveRequestFormData) => {
       ? formData.leaveTypeId
       : Number(formData.leaveTypeId);
   if (!Number.isFinite(leaveTypeId)) {
-    error.value = "請選擇有效的假別";
+    error.value = t("leaves.manage.selectValidType");
     return;
   }
 
