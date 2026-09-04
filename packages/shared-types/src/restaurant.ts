@@ -28,6 +28,14 @@ export interface Restaurant extends UUIDEntity {
   planType: PlanType;
   settings?: RestaurantSettings;
 
+  /**
+   * IANA name of the zone this restaurant's business day is cut in. A column
+   * rather than a `settings` key since #329: every revenue and report bucket
+   * derives its SQL offset from it, and two copies of the day boundary is how
+   * a shop ends up with a report it cannot reconcile against the till.
+   */
+  timezone?: string;
+
   // 店家级别 QR Code（用于无桌号的外带/自取订单）
   shopQrCode?: string;
   shopQrCodeImageUrl?: string;
@@ -49,7 +57,6 @@ export enum PlanType {
 
 export interface RestaurantSettings {
   currency?: string;
-  timezone?: string;
   language?: string;
   allowGuestOrders?: boolean;
   autoAcceptOrders?: boolean;

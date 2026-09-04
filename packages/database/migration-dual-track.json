@@ -66,6 +66,10 @@
     {
       "fresh": "0016_restaurant_customers.sql",
       "reason": "The tenant-local customer directory is derived from platform API orders and customers; the management-api database has neither source table."
+    },
+    {
+      "fresh": "0017_restaurant_business_timezone.sql",
+      "reason": "restaurants is a platform-API table; the management-api database has no restaurants row whose business-day boundary could be paired against."
     }
   ],
   "legacyOnly": [
@@ -74,5 +78,5 @@
       "reason": "Legacy operational performance-index migration predates this guard and is reviewed as legacy-only."
     }
   ],
-  "note": "The fresh track was squashed into 0000_baseline_strict.sql, so per-file pairings against it no longer exist. Note that no wrangler.toml points at legacyDir — see AGENTS.md/CLAUDE.md."
+  "note": "The fresh track was squashed into 0000_baseline_strict.sql, so per-file pairings against it no longer exist. Note that no wrangler.toml points at legacyDir \u2014 see AGENTS.md/CLAUDE.md."
 }

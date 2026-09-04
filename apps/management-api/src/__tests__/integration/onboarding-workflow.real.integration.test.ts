@@ -89,6 +89,7 @@ function createPlatformDb() {
       shop_qr_settings TEXT,
       shop_qr_version INTEGER NOT NULL DEFAULT 1,
       settings TEXT,
+      timezone TEXT NOT NULL DEFAULT 'Asia/Taipei',
       rating REAL DEFAULT 0,
       review_count INTEGER NOT NULL DEFAULT 0,
       total_orders INTEGER NOT NULL DEFAULT 0,

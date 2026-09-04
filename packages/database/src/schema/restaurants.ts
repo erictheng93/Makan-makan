@@ -43,6 +43,13 @@ export const restaurants = sqliteTable(
       Record<string, { open: string; close: string; isOpen: boolean }>
     >(),
 
+    // IANA name of the timezone this restaurant's business day is cut in.
+    // Every revenue and report bucket derives its SQL offset from here, so it
+    // is a column rather than a `settings` key: two copies of the day boundary
+    // is how a shop ends up reconciling against a report it cannot explain.
+    // Constrained to the fixed-offset zones in utils/business-timezone.ts.
+    timezone: text("timezone").notNull().default("Asia/Taipei"),
+
     // 狀態和設定
     isAvailable: integer("is_available", { mode: "boolean" })
       .notNull()

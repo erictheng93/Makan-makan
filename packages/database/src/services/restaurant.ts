@@ -3,6 +3,7 @@ import { BaseService } from "./base";
 import { resolveAppBaseUrl } from "./app-base-url";
 import { restaurants, categories, menuItems, tables, users } from "../schema";
 import type { Restaurant } from "@makanmasak/shared-types";
+import type { BusinessTimezone } from "../utils/business-timezone";
 import { PlanType } from "@makanmasak/shared-types";
 
 /** 只列出 mapToRestaurant 實際讀取的欄位，任何餵給它的查詢都必須選滿 */
@@ -36,6 +37,7 @@ type RestaurantRow = Pick<
   | "shopQrVersion"
   | "supportsDelivery"
   | "supportsTakeaway"
+  | "timezone"
   | "totalOrders"
   | "type"
   | "updatedAt"
@@ -65,6 +67,12 @@ export interface UpdateRestaurantData extends Partial<CreateRestaurantData> {
   isAvailable?: boolean;
   isActive?: boolean;
   settings?: RestaurantInsert["settings"];
+  /**
+   * Narrowed to the supported zones rather than the column's plain `string`:
+   * only a fixed-offset zone can be expressed as a SQLite date modifier, so
+   * anything else would be stored and then ignored by every report (#329).
+   */
+  timezone?: BusinessTimezone;
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -201,6 +209,7 @@ export class RestaurantService extends BaseService {
           latitude: restaurants.latitude,
           longitude: restaurants.longitude,
           settings: restaurants.settings,
+          timezone: restaurants.timezone,
           shopQrCodeImageUrl: restaurants.shopQrCodeImageUrl,
           shopQrSettings: restaurants.shopQrSettings,
           shopQrVersion: restaurants.shopQrVersion,
@@ -726,6 +735,7 @@ export class RestaurantService extends BaseService {
       bannerUrl: restaurant.bannerUrl ?? undefined,
       imageUrls: restaurant.imageUrls ?? undefined,
       settings: restaurant.settings ?? undefined,
+      timezone: restaurant.timezone,
       rating: restaurant.rating ?? undefined,
       reviewCount: restaurant.reviewCount,
       totalOrders: restaurant.totalOrders,
