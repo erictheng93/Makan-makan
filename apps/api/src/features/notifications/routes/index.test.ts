@@ -134,19 +134,19 @@ describe("notification routes", () => {
       .mockResolvedValueOnce({ success: false, error: "provider offline" })
       .mockResolvedValueOnce({ success: false });
 
-    const successResponse = await request("/test", "POST", {
-      recipientEmail: "owner@test.dev",
+    // 收件人必須是同店且 email 相符的帳號 —— createEnv() 的 DB stub 回的是
+    // restaurant-1 / staff@test.dev。
+    const testBody = {
+      recipientId: "12",
+      recipientEmail: "staff@test.dev",
       category: "shift_reminder",
-    });
+    };
+    const successResponse = await request("/test", "POST", testBody);
     const failureResponse = await request("/test", "POST", {
-      recipientEmail: "owner@test.dev",
-      category: "shift_reminder",
+      ...testBody,
       type: "sms",
     });
-    const fallbackFailureResponse = await request("/test", "POST", {
-      recipientEmail: "owner@test.dev",
-      category: "shift_reminder",
-    });
+    const fallbackFailureResponse = await request("/test", "POST", testBody);
 
     expect(successResponse.status).toBe(200);
     await expect(successResponse.json()).resolves.toMatchObject({
@@ -159,7 +159,7 @@ describe("notification routes", () => {
     expect(notificationFns.sendTestNotification).toHaveBeenNthCalledWith(
       1,
       "email",
-      "owner@test.dev",
+      "staff@test.dev",
     );
     expect(failureResponse.status).toBe(500);
     await expect(failureResponse.json()).resolves.toEqual({
@@ -180,12 +180,75 @@ describe("notification routes", () => {
     expect(notificationFns.sendTestNotification).toHaveBeenNthCalledWith(
       2,
       "sms",
-      "owner@test.dev",
+      "staff@test.dev",
     );
     expect(notificationFns.sendTestNotification).toHaveBeenNthCalledWith(
       3,
       "email",
-      "owner@test.dev",
+      "staff@test.dev",
+    );
+  });
+
+  it("refuses to send a test notification to an arbitrary external address", async () => {
+    const response = await request("/test", "POST", {
+      recipientId: "12",
+      recipientEmail: "victim@example.com",
+      category: "shift_reminder",
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: { code: "RECIPIENT_EMAIL_MISMATCH" },
+    });
+    expect(notificationFns.sendTestNotification).not.toHaveBeenCalled();
+  });
+
+  it("refuses a test notification aimed at another restaurant's user", async () => {
+    const response = await request(
+      "/test",
+      "POST",
+      {
+        recipientId: "12",
+        recipientEmail: "staff@test.dev",
+        category: "shift_reminder",
+      },
+      createEnv({
+        DB: createDb({
+          restaurant_id: "restaurant-2",
+          email: "staff@test.dev",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      success: false,
+      error: { code: "ACCESS_DENIED" },
+    });
+    expect(notificationFns.sendTestNotification).not.toHaveBeenCalled();
+  });
+
+  it("defaults the test recipient to the caller when recipientId is omitted", async () => {
+    notificationFns.sendTestNotification.mockResolvedValueOnce({
+      success: true,
+      provider: "resend",
+    });
+    const env = createEnv();
+
+    const response = await request(
+      "/test",
+      "POST",
+      { recipientEmail: "staff@test.dev", category: "shift_reminder" },
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    // 查的是呼叫者自己的 id，不是隨便一個 body 帶進來的 id
+    expect(env.DB.prepare).toHaveBeenCalledOnce();
+    expect(notificationFns.sendTestNotification).toHaveBeenCalledWith(
+      "email",
+      "staff@test.dev",
     );
   });
 

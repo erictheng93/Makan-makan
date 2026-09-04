@@ -21,7 +21,19 @@ const app = new Hono<{ Bindings: Env }>();
 // Validation Schemas
 // ========================================
 
+const idString = z.preprocess((value) => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return value;
+}, z.string().trim().min(1));
+
 const testNotificationSchema = z.object({
+  /**
+   * 測試信的收件人。省略時預設寄給呼叫者本人；填了就必須是同店員工，
+   * 且 recipientEmail 要與該帳號的 email 相符（與 /send 同一套檢查）。
+   */
+  recipientId: idString.optional(),
   recipientEmail: z.email(),
   category: z.enum([
     "leave_request_submitted",
@@ -38,13 +50,6 @@ const testNotificationSchema = z.object({
   ]),
   type: z.enum(["email", "sms"]).default("email"),
 });
-
-const idString = z.preprocess((value) => {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value);
-  }
-  return value;
-}, z.string().trim().min(1));
 
 const sendNotificationSchema = z.object({
   recipientId: idString,
@@ -68,13 +73,9 @@ const sendNotificationSchema = z.object({
   recipientPhone: z.string().optional(),
 });
 
-type SendNotificationContext = Context<
-  { Bindings: Env } & {
-    Variables: {
-      validatedBody: z.infer<typeof sendNotificationSchema>;
-    };
-  }
->;
+// Hono 的 Context 在 env 型別上是不變的（invariant，`set` 讓它逆變），
+// 所以這裡用泛型接住各路由自己的 Variables，而不是釘死成 Context<{Bindings: Env}>。
+type NotificationRecipientEnv = { Bindings: Env };
 
 // ========================================
 // POST /test - Send test notification
@@ -86,6 +87,16 @@ app.post(
   validateBody(testNotificationSchema),
   async (c) => {
     const data = c.get("validatedBody");
+    const user = c.get("user");
+
+    // 內容雖然是固定的樣板文字（沒有注入面），但寄件網域是平台的，
+    // 所以收件人一樣要驗：不驗就是一支對外的免費發信機。
+    const recipientGuard = await validateNotificationRecipientScope(c, {
+      recipientId: data.recipientId ?? user.id,
+      recipientEmail: data.recipientEmail,
+    });
+    if (recipientGuard) return recipientGuard;
+
     const service = new NotificationService(c.env.DB, c.env);
 
     // Send test notification with sample data
@@ -341,9 +352,16 @@ app.post(
   },
 );
 
-async function validateNotificationRecipientScope(
-  c: SendNotificationContext,
-  notificationData: z.infer<typeof sendNotificationSchema>,
+/**
+ * 收件人驗證：非平台管理員只能寄給自家餐廳、且 email 與該帳號相符的使用者。
+ * /send 與 /test 共用同一份實作 —— /test 少了它就等於一支可用平台網域
+ * 對網際網路上任意信箱發信的端點。
+ */
+async function validateNotificationRecipientScope<
+  E extends NotificationRecipientEnv,
+>(
+  c: Context<E>,
+  notificationData: { recipientId: string; recipientEmail: string },
 ): Promise<Response | null> {
   const user = c.get("user");
   if (user.role === USER_ROLES.ADMIN) return null;
