@@ -34,7 +34,6 @@ export const RestaurantSettingsSchema = z
     taxRate: z.number().optional(),
     serviceCharge: z.number().optional(),
     currency: z.string().optional(),
-    timezone: z.string().optional(),
   })
   .loose();
 
@@ -50,6 +49,8 @@ export const RestaurantSchema = z
     coverImageUrl: z.string().optional().nullable(),
     operatingHours: z.unknown().optional().nullable(),
     settings: z.unknown().optional().nullable(),
+    // Business-day boundary, moved out of `settings` in #329.
+    timezone: z.string().optional(),
     ownerId: z.union([z.number(), z.string()]).optional(),
     isActive: z.union([z.boolean(), z.number()]).optional(),
     ...TimestampFields,

@@ -4,7 +4,10 @@
  */
 
 import { z } from "zod";
-import { RESTAURANT_SERVICE_TYPES } from "@makanmasak/database";
+import {
+  RESTAURANT_SERVICE_TYPES,
+  SUPPORTED_BUSINESS_TIMEZONES,
+} from "@makanmasak/database";
 import { VALIDATION_LIMITS } from "../../../shared/constants";
 import { httpUrlSchema } from "../../../shared/utils/url";
 
@@ -63,7 +66,6 @@ const restaurantSettingsSchema = z
     maxOrdersPerHour: z.number().int().min(1).optional(),
     autoAcceptOrders: z.boolean().optional(),
     currency: z.string().length(3).optional(), // ISO currency codes are 3 characters
-    timezone: z.string().optional(),
     // Fulfillment settings
     enableDineIn: z.boolean().optional(),
     enableTakeaway: z.boolean().optional(),
@@ -257,6 +259,13 @@ const updateRestaurantSchema = createRestaurantSchema.partial().extend({
   supportsTakeaway: z.boolean().optional(),
   supportsDelivery: z.boolean().optional(),
   settings: restaurantSettingsSchema.optional(),
+
+  // A column of its own, not a `settings` key (#329): every business-day
+  // bucket derives its SQL offset from it. An enum rather than a free string
+  // because only fixed-offset zones can be expressed as a SQLite modifier --
+  // accepting `America/New_York` here would store a boundary the report layer
+  // then silently ignores, which is the shape of the bug this replaces.
+  timezone: z.enum(SUPPORTED_BUSINESS_TIMEZONES).optional(),
 });
 
 // Restaurant list query parameters

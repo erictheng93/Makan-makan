@@ -4,6 +4,7 @@
  */
 
 // Import and re-export shared types for consistency
+import type { BusinessTimezone } from "@makanmasak/database";
 import type {
   Restaurant as SharedRestaurant,
   RestaurantSettings as SharedRestaurantSettings,
@@ -46,6 +47,7 @@ export interface UpdateRestaurantData extends Partial<CreateRestaurantData> {
   supportsTakeaway?: boolean;
   supportsDelivery?: boolean;
   settings?: Partial<RestaurantSettings>;
+  timezone?: BusinessTimezone;
 }
 
 // Enhanced restaurant statistics interface

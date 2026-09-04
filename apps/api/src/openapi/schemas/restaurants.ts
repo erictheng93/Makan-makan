@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { SUPPORTED_BUSINESS_TIMEZONES } from "@makanmasak/database";
 import { createRoute } from "@hono/zod-openapi";
 import { errorResponses } from "../config";
 
@@ -25,8 +26,16 @@ const RestaurantSettings = z.object({
   taxRate: z.number().min(0).max(1).default(0),
   serviceCharge: z.number().min(0).max(1).default(0),
   currency: z.string().default("TWD"),
-  timezone: z.string().default("Asia/Taipei"),
 });
+
+/**
+ * The business-day boundary, a column of its own since #329. Restricted to
+ * fixed-offset zones: a DST zone cannot be written as a SQLite date modifier,
+ * so accepting one would store a boundary the report layer ignores.
+ */
+const BusinessTimezone = z
+  .enum(SUPPORTED_BUSINESS_TIMEZONES)
+  .default("Asia/Taipei");
 
 /**
  * Restaurants API Schemas
@@ -50,6 +59,7 @@ export const RestaurantsSchemas = {
     coverImageUrl: z.url().optional(),
     operatingHours: z.array(OperatingHours).optional(),
     settings: RestaurantSettings,
+    timezone: BusinessTimezone,
     ownerId: z.uuid(),
     isActive: z.boolean(),
     createdAt: z.iso.datetime(),
@@ -79,6 +89,7 @@ export const RestaurantsSchemas = {
     email: z.email().optional(),
     operatingHours: z.array(OperatingHours).optional(),
     settings: RestaurantSettings.optional(),
+    timezone: BusinessTimezone.optional(),
     isActive: z.boolean().optional(),
   }),
 
