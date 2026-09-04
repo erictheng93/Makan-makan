@@ -28,6 +28,13 @@ const processRefundRouteSchema = processRefundSchema.extend({
   originalOrderId: z.union([z.number().int().positive(), z.string().min(1)]),
 });
 
+/**
+ * 收銀機/班次識別碼走 header，不經過 validateBody / validateParams，所以格式
+ * 沒有任何一層擋。同名的路徑參數在本檔其他路由都是 z.uuid()；header 版本先前
+ * 是任意字串就直接進服務層查詢，並被原封不動寫進 refunds.register_id。
+ */
+const posLedgerIdSchema = z.uuid();
+
 export const refundListQuerySchema = z.object({
   startDate: z
     .string()
@@ -80,6 +87,15 @@ app.post(
 
     if (!registerId) {
       throw badRequest("需要指定收銀機ID");
+    }
+    if (!posLedgerIdSchema.safeParse(registerId).success) {
+      throw badRequest("收銀機ID格式錯誤");
+    }
+    if (
+      shiftId !== undefined &&
+      !posLedgerIdSchema.safeParse(shiftId).success
+    ) {
+      throw badRequest("班次ID格式錯誤");
     }
 
     await new PosTenantAccessService(c.env.DB).requireRegisterAndShift(

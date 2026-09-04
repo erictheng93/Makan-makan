@@ -295,6 +295,43 @@ describe("POS refund routes", () => {
     );
   });
 
+  /**
+   * 這兩個識別碼走 header，不經過 validateBody / validateParams，格式先前沒有
+   * 任何一層擋——任意字串會直接進服務層查詢，並被寫進 refunds.register_id。
+   */
+  it("rejects malformed register and shift headers before touching the service", async () => {
+    let response = await request("/create", {
+      method: "POST",
+      body: JSON.stringify(refundPayload()),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Register-Id": "register-1",
+      },
+    });
+    let body = await json(response);
+
+    expect(response.status).toBe(400);
+    expect(body.error?.code).toBe("BAD_REQUEST");
+    expect(mocks.tenantAccess.requireRegisterAndShift).not.toHaveBeenCalled();
+    expect(mocks.refundService.processRefund).not.toHaveBeenCalled();
+
+    response = await request("/create", {
+      method: "POST",
+      body: JSON.stringify(refundPayload()),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Register-Id": registerId,
+        "X-Shift-Id": "shift-1",
+      },
+    });
+    body = await json(response);
+
+    expect(response.status).toBe(400);
+    expect(body.error?.code).toBe("BAD_REQUEST");
+    expect(mocks.tenantAccess.requireRegisterAndShift).not.toHaveBeenCalled();
+    expect(mocks.refundService.processRefund).not.toHaveBeenCalled();
+  });
+
   it("rejects create requests without a register header and maps service errors", async () => {
     let response = await request("/create", {
       method: "POST",

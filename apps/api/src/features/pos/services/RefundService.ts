@@ -46,6 +46,26 @@ export interface RefundServiceOptions {
   alertSink?: (alert: RefundCompletionAlert) => Promise<void> | void;
 }
 
+/**
+ * `orders.payment_status` 是無約束 TEXT，值域只靠寫入端自律，所以這裡列的是
+ * 實際會被寫進去、且代表「錢已經收到過」的值，而不是某個 enum：
+ *
+ * - "completed"：PaymentService 收款成功寫入的 canonical OrderPaymentStatus。
+ * - "paid"：#311 修正前寫進去的舊值，正式環境仍有存量資料。
+ * - "refunded" / "partial_refunded"：退款流程自己寫回的狀態。已退過的訂單仍可
+ *   再退（部分退款會連續發生），超額由下方的可退款額度守門擋掉。
+ *
+ * 其餘一律拒絕——"pending"、"failed"、NULL，以及任何漂進這個欄位的未知字串。
+ * 與 PaymentService 的 isAlreadyFinalized 用同一組值；那邊拿來擋重複收款，
+ * 這邊拿來擋「還沒收到錢就退錢」。
+ */
+const REFUNDABLE_PAYMENT_STATUSES: readonly string[] = [
+  "completed",
+  "paid",
+  "refunded",
+  "partial_refunded",
+];
+
 export class RefundService {
   private db;
   private readonly alertSink?: RefundServiceOptions["alertSink"];
@@ -78,6 +98,17 @@ export class RefundService {
         return {
           success: false,
           error: "原訂單不存在",
+        };
+      }
+
+      // 檢查訂單是否已收款。未付款的訂單退款等於憑空付錢出去：現金退款還會
+      // 直接從錢櫃扣出一筆 cash_movement。
+      if (
+        !REFUNDABLE_PAYMENT_STATUSES.includes(originalOrder.paymentStatus ?? "")
+      ) {
+        return {
+          success: false,
+          error: "訂單尚未付款，無法退款",
         };
       }
 

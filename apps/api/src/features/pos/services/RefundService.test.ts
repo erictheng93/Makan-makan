@@ -159,7 +159,16 @@ describe("RefundService", () => {
       fixtures: { refunds: { update: [{ changes: 1 }] } },
     });
     mockSelectResults({
-      orders: [[{ id: 101, totalAmount: 100, totalAmountCents: 10000 }]],
+      orders: [
+        [
+          {
+            id: 101,
+            totalAmount: 100,
+            totalAmountCents: 10000,
+            paymentStatus: "completed",
+          },
+        ],
+      ],
       refunds: [[{ totalRefunded: 10 }], [refundRow()]],
       cashShifts: [[{ status: "active" }]],
     });
@@ -212,7 +221,16 @@ describe("RefundService", () => {
       fixtures: { refunds: { update: [{ changes: 1 }] } },
     });
     mockSelectResults({
-      orders: [[{ id: 101, totalAmount: 100, totalAmountCents: 10000 }]],
+      orders: [
+        [
+          {
+            id: 101,
+            totalAmount: 100,
+            totalAmountCents: 10000,
+            paymentStatus: "completed",
+          },
+        ],
+      ],
       refunds: [
         [{ totalRefunded: 0 }],
         [
@@ -254,7 +272,16 @@ describe("RefundService", () => {
       .mockImplementation(() => undefined);
     const mutations = mockMutations({ failSecondInsert: true });
     mockSelectResults({
-      orders: [[{ id: 101, totalAmount: 100, totalAmountCents: 10000 }]],
+      orders: [
+        [
+          {
+            id: 101,
+            totalAmount: 100,
+            totalAmountCents: 10000,
+            paymentStatus: "completed",
+          },
+        ],
+      ],
       refunds: [[{ totalRefunded: 0 }]],
       cashShifts: [[{ status: "active" }]],
     });
@@ -293,7 +320,16 @@ describe("RefundService", () => {
       },
     });
     mockSelectResults({
-      orders: [[{ id: 101, totalAmount: 100, totalAmountCents: 10000 }]],
+      orders: [
+        [
+          {
+            id: 101,
+            totalAmount: 100,
+            totalAmountCents: 10000,
+            paymentStatus: "completed",
+          },
+        ],
+      ],
       refunds: [[{ totalRefunded: 0 }], [refundRow()]],
     });
     const consoleError = vi
@@ -342,7 +378,16 @@ describe("RefundService", () => {
       fixtures: { refunds: { update: [{ changes: 1 }] } },
     });
     mockSelectResults({
-      orders: [[{ id: 101, totalAmount: 100, totalAmountCents: 10000 }]],
+      orders: [
+        [
+          {
+            id: 101,
+            totalAmount: 100,
+            totalAmountCents: 10000,
+            paymentStatus: "completed",
+          },
+        ],
+      ],
       refunds: [[{ totalRefunded: 0 }], [refundRow()]],
     });
 
@@ -366,7 +411,16 @@ describe("RefundService", () => {
       fixtures: { refunds: { update: [{ changes: 1 }] } },
     });
     mockSelectResults({
-      orders: [[{ id: 101, totalAmount: 19.99, totalAmountCents: 1999 }]],
+      orders: [
+        [
+          {
+            id: 101,
+            totalAmount: 19.99,
+            totalAmountCents: 1999,
+            paymentStatus: "completed",
+          },
+        ],
+      ],
       refunds: [
         [{ totalRefunded: 19.98 }],
         [
@@ -406,7 +460,9 @@ describe("RefundService", () => {
       createService().processRefund(refundRequest(), "register-1", "user-7"),
     ).resolves.toMatchObject({ success: false });
 
-    mockSelectResults({ orders: [[{ id: 101, totalAmount: 100 }]] });
+    mockSelectResults({
+      orders: [[{ id: 101, totalAmount: 100, paymentStatus: "completed" }]],
+    });
     await expect(
       createService().processRefund(
         refundRequest({ refundAmount: 125 }),
@@ -416,14 +472,16 @@ describe("RefundService", () => {
     ).resolves.toMatchObject({ success: false });
 
     mockSelectResults({
-      orders: [[{ id: 101, totalAmount: 100 }]],
+      orders: [[{ id: 101, totalAmount: 100, paymentStatus: "completed" }]],
       refunds: [[{ totalRefunded: 90 }]],
     });
     await expect(
       createService().processRefund(refundRequest(), "register-1", "user-7"),
     ).resolves.toMatchObject({ success: false });
 
-    mockSelectResults({ orders: [[{ id: 101, totalAmount: 100 }]] });
+    mockSelectResults({
+      orders: [[{ id: 101, totalAmount: 100, paymentStatus: "completed" }]],
+    });
     await expect(
       createService().processRefund(
         refundRequest({ refundAmount: 19.995 }),
@@ -434,6 +492,86 @@ describe("RefundService", () => {
 
     expect(mutations.inserted).toHaveLength(0);
   });
+
+  /**
+   * orders.payment_status 是無約束 TEXT，所以這裡逐個列出實際會落在欄位裡的
+   * 未收款值——包含 NULL 與漂進來的未知字串。只驗 "pending" 會讓其他值繼續
+   * 可退，而未付款訂單退現金會直接從錢櫃扣出一筆 cash_movement。
+   */
+  it.each([["pending"], ["failed"], [null], ["unpaid"]])(
+    "refuses to refund an order whose payment status is %s",
+    async (paymentStatus) => {
+      const mutations = mockMutations();
+      mockSelectResults({
+        orders: [
+          [
+            {
+              id: 101,
+              totalAmount: 100,
+              totalAmountCents: 10000,
+              paymentStatus,
+            },
+          ],
+        ],
+      });
+
+      await expect(
+        createService().processRefund(
+          refundRequest(),
+          "register-1",
+          "user-7",
+          "shift-1",
+        ),
+      ).resolves.toMatchObject({
+        success: false,
+        error: "訂單尚未付款，無法退款",
+      });
+      expect(mutations.inserted).toHaveLength(0);
+    },
+  );
+
+  /**
+   * "paid" 是 #311 修正前寫進 payment_status 的舊值，正式環境仍有存量；
+   * "partial_refunded" 則是連續部分退款的第二筆。兩者都必須留在可退範圍內。
+   */
+  it.each([["paid"], ["partial_refunded"]])(
+    "still refunds an order already settled as %s",
+    async (paymentStatus) => {
+      uuidMocks.generateUUID
+        .mockReturnValueOnce("refund-1")
+        .mockReturnValueOnce("movement-1");
+      const mutations = mockMutations({
+        fixtures: { refunds: { update: [{ changes: 1 }] } },
+      });
+      mockSelectResults({
+        orders: [
+          [
+            {
+              id: 101,
+              totalAmount: 100,
+              totalAmountCents: 10000,
+              paymentStatus,
+            },
+          ],
+        ],
+        refunds: [[{ totalRefunded: 0 }], [refundRow()]],
+        cashShifts: [[{ status: "active" }]],
+      });
+
+      await expect(
+        createService().processRefund(
+          refundRequest(),
+          "register-1",
+          "user-7",
+          "shift-1",
+        ),
+      ).resolves.toMatchObject({ success: true });
+      expect(mutations.inserted[0]).toMatchObject({
+        originalOrderId: "101",
+        refundAmountCents: 2500,
+      });
+    },
+  );
 
   it("lists refunds with parsed JSON fields and pagination metadata", async () => {
     mockSelectResults({
