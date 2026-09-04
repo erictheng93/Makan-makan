@@ -68,6 +68,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "@/i18n";
+import { toCsv } from "@/utils/csv";
 import type { IngredientForecastItem } from "@makanmasak/shared-types";
 
 const { t } = useI18n();
@@ -130,15 +131,29 @@ const totalCost = computed(() =>
 );
 
 function exportCSV() {
-  const header = "Supplier,Ingredient,Quantity,Unit,Estimated Cost\n";
-  const rows = procurementItems.value
-    .map((item) => {
-      const details = props.ingredientDetails.get(item.ingredientId);
-      return `"${details?.supplier || ""}","${item.ingredientName}",${item.gap},"${item.unit}",${item.estimatedCost?.toFixed(2) || ""}`;
-    })
-    .join("\n");
+  // 供應商與食材名稱是使用者自填的自由文字，手寫引號會被值裡的 " 逃逸掉，
+  // 而 = + - @ 開頭的值在 Excel 會被當公式執行 —— 一律交給 toCsv 處理。
+  const headers = [
+    "Supplier",
+    "Ingredient",
+    "Quantity",
+    "Unit",
+    "Estimated Cost",
+  ];
+  const rows = procurementItems.value.map((item) => {
+    const details = props.ingredientDetails.get(item.ingredientId);
+    return [
+      details?.supplier || "",
+      item.ingredientName,
+      item.gap,
+      item.unit,
+      item.estimatedCost?.toFixed(2) || "",
+    ];
+  });
 
-  const blob = new Blob(["\uFEFF" + header + rows], {
+  const csvContent = toCsv([headers, ...rows]);
+
+  const blob = new Blob(["\uFEFF" + csvContent], {
     type: "text/csv;charset=utf-8",
   });
   const url = URL.createObjectURL(blob);
