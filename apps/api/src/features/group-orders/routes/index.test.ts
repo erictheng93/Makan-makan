@@ -239,9 +239,12 @@ describe("group orders routes", () => {
 
     expect(exportResponse.status).toBe(200);
     expect(exportResponse.headers.get("Content-Type")).toBe("text/csv");
-    await expect(exportResponse.text()).resolves.toContain(
-      `${groupOrderId},ABC123,active,Ada,3,5,880`,
-    );
+    const csv = await exportResponse.text();
+    expect(csv).toContain(`${groupOrderId},active,Ada,3,5,880`);
+    // share code 是還能用的憑證：拿到就能匿名加入並改動共用購物車，
+    // 所以它不進匯出檔，連標題列都不留。
+    expect(csv).not.toContain("ABC123");
+    expect(csv).not.toContain("Share Code");
   });
 
   it("blocks owners from listing another restaurant's group orders", async () => {
@@ -254,6 +257,88 @@ describe("group orders routes", () => {
 
     expect(response.status).toBe(403);
     expect(listGroupOrders).not.toHaveBeenCalled();
+  });
+
+  it("blocks owners from exporting another restaurant's group orders", async () => {
+    const response = await withSilencedRouteError(() =>
+      routes.fetch(
+        new Request("https://test/export?restaurantId=restaurant-2"),
+        createEnv() as never,
+      ),
+    );
+
+    expect(response.status).toBe(403);
+    expect(listGroupOrders).not.toHaveBeenCalled();
+  });
+
+  // 開團會把 orders.created 記到 body 指定的那家店上。少了這道比對，A 店的
+  // 員工可以拿 B 店的額度開團，在 enforce 模式下把 B 店推過硬上限。
+  it.each<[string, number]>([
+    ["owner", 1],
+    ["chef", 2],
+    ["service crew", 3],
+    ["cashier", 4],
+  ])(
+    "blocks a %s from generating a share code for another restaurant",
+    async (_label, role) => {
+      currentUser.value = {
+        id: "user-10",
+        username: "staff",
+        role,
+        restaurantId: "restaurant-1",
+      };
+
+      const response = await withSilencedRouteError(() =>
+        routes.fetch(
+          new Request("https://test/generate-code", {
+            method: "POST",
+            body: JSON.stringify({ restaurantId: "restaurant-2" }),
+          }),
+          createEnv() as never,
+        ),
+      );
+
+      expect(response.status).toBe(403);
+      expect(createGroupOrder).not.toHaveBeenCalled();
+      expect(meterEmit).not.toHaveBeenCalled();
+    },
+  );
+
+  it("lets the platform admin generate a share code for any restaurant", async () => {
+    currentUser.value = {
+      id: "user-0",
+      username: "admin",
+      role: 0,
+      restaurantId: "restaurant-1",
+    };
+    createGroupOrder.mockResolvedValue({
+      success: true,
+      data: {
+        groupOrderId,
+        shareCode: "ADMIN1",
+        expiresAt: "2026-06-08T01:00:00.000Z",
+        recoveryCode: "recovery-admin",
+      },
+    });
+
+    const response = await routes.fetch(
+      new Request("https://test/generate-code", {
+        method: "POST",
+        body: JSON.stringify({ restaurantId: "restaurant-2" }),
+      }),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(createGroupOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ restaurantId: "restaurant-2" }),
+      "user-0",
+    );
+    expect(meterEmit).toHaveBeenCalledWith(
+      expect.anything(),
+      "orders.created",
+      expect.objectContaining({ restaurantId: "restaurant-2" }),
+    );
   });
 
   it("generates share codes and creates group orders with metering and realtime events", async () => {

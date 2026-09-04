@@ -259,7 +259,28 @@ app.post(
   async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const user = c.get("user");
-    const restaurantId = body.restaurantId || String(user.restaurantId);
+    const rawRestaurantId = (body as { restaurantId?: unknown } | null)
+      ?.restaurantId;
+    const requestedRestaurantId =
+      typeof rawRestaurantId === "string" || typeof rawRestaurantId === "number"
+        ? String(rawRestaurantId)
+        : undefined;
+
+    // 這條路開給角色 0-4，而 body 的 restaurantId 從來沒有跟呼叫者自己的店比對過。
+    // 少了這道比對，A 店的員工可以替 B 店開團：orders.created 記到 B 店的用量上，
+    // 在 QUOTA_ENFORCEMENT_MODE=enforce 之下把 B 店推過硬上限，B 店真正的
+    // POST /orders 就開始回 429。只有平台管理員（角色 0）可以指定別家店。
+    if (
+      user.role !== 0 &&
+      requestedRestaurantId &&
+      String(user.restaurantId) !== requestedRestaurantId
+    ) {
+      throw forbidden(
+        "Access denied: can only create group orders for own restaurant",
+      );
+    }
+
+    const restaurantId = requestedRestaurantId || String(user.restaurantId);
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
     const result = await groupOrderService.createGroupOrder(
@@ -307,6 +328,16 @@ app.get(
     const status = c.req.query("status");
     const user = c.get("user");
 
+    // 同 GET / 與 GET /statistics：查詢字串的 restaurantId 必須是自己的店，
+    // 否則店主可以匯出別家店的進行中團購（含主揪、金額）。
+    if (
+      user.role === 1 &&
+      restaurantId &&
+      String(user.restaurantId) !== String(restaurantId)
+    ) {
+      throw forbidden("Access denied: can only export own restaurant orders");
+    }
+
     const targetRestaurantId = restaurantId || String(user.restaurantId);
 
     const groupOrderService = new GroupOrdersService(c.env.DB, c.env.CACHE_KV);
@@ -316,9 +347,12 @@ app.get(
     );
 
     // Generate CSV
+    //
+    // shareCode 不進報表：它是還能用的憑證，不是欄位。任何人拿到進行中團購的
+    // share code 就能匿名加入並改動共用購物車，所以匯出檔一旦外流（信箱、
+    // 試算表、雲端硬碟）等於把那些團的控制權一起送出去。
     const headers = [
       "ID",
-      "Share Code",
       "Status",
       "Host",
       "Members",
@@ -331,7 +365,6 @@ app.get(
       csvRows.push(
         toCsvRow([
           order.id,
-          order.shareCode,
           order.status,
           order.hostName,
           order.memberCount,
