@@ -2582,7 +2582,6 @@ const zhTWCore = {
       integrations: "外送平台串接",
     },
     general: {
-      timezoneFixedHint: "營業日與報表一律以 GMT+8 計算，目前無法變更。",
       restaurantInfo: "餐廳資訊",
       restaurantName: "餐廳名稱",
       contactPhone: "聯絡電話",
@@ -2598,8 +2597,6 @@ const zhTWCore = {
         china: "中國 (GMT+8)",
         vietnam: "越南 (GMT+7)",
         indonesia: "印尼 (GMT+7)",
-        usEast: "美國東部 (GMT-5)",
-        usWest: "美國西部 (GMT-8)",
       },
       systemPreferences: "系統偏好",
       language: "介面語言",

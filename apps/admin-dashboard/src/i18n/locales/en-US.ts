@@ -2506,8 +2506,6 @@ const enUS: Messages = {
       integrations: "Integrations",
     },
     general: {
-      timezoneFixedHint:
-        "Business days and reports always run on GMT+8. This cannot be changed yet.",
       restaurantInfo: "Restaurant Information",
       restaurantName: "Restaurant Name",
       contactPhone: "Contact Phone",
@@ -2523,8 +2521,6 @@ const enUS: Messages = {
         china: "China (GMT+8)",
         vietnam: "Vietnam (GMT+7)",
         indonesia: "Indonesia (GMT+7)",
-        usEast: "US Eastern (GMT-5)",
-        usWest: "US Pacific (GMT-8)",
       },
       systemPreferences: "System Preferences",
       language: "Interface Language",

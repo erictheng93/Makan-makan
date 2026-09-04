@@ -2511,8 +2511,6 @@ const jaJP: Messages = {
       markets: "市場",
     },
     general: {
-      timezoneFixedHint:
-        "営業日とレポートは常に GMT+8 で計算されます。現在は変更できません。",
       restaurantInfo: "レストラン情報",
       restaurantName: "レストラン名",
       contactPhone: "連絡先電話番号",
@@ -2528,8 +2526,6 @@ const jaJP: Messages = {
         china: "中国 (GMT+8)",
         vietnam: "ベトナム (GMT+7)",
         indonesia: "インドネシア (GMT+7)",
-        usEast: "アメリカ東部 (GMT-5)",
-        usWest: "アメリカ西部 (GMT-8)",
       },
       systemPreferences: "システム設定",
       language: "表示言語",

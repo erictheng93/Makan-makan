@@ -2522,8 +2522,6 @@ const idID: Messages = {
       markets: "Pasar",
     },
     general: {
-      timezoneFixedHint:
-        "Hari kerja dan laporan selalu memakai GMT+8. Belum dapat diubah.",
       restaurantInfo: "Informasi Restoran",
       restaurantName: "Nama Restoran",
       contactPhone: "Telepon Kontak",
@@ -2539,8 +2537,6 @@ const idID: Messages = {
         china: "Tiongkok (GMT+8)",
         vietnam: "Vietnam (GMT+7)",
         indonesia: "Indonesia (GMT+7)",
-        usEast: "AS Timur (GMT-5)",
-        usWest: "AS Barat (GMT-8)",
       },
       systemPreferences: "Preferensi Sistem",
       language: "Bahasa Antarmuka",

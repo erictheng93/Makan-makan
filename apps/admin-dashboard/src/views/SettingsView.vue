@@ -104,22 +104,39 @@
             <label class="block text-sm font-medium text-gray-700 mb-2">{{
               t("settings.general.timezone")
             }}</label>
-            <!-- Read-only on purpose. Every business-day bucket in the
-                 platform is a hardcoded '+8 hours'
-                 (packages/database/src/utils/sql-time.ts), so a shop that
-                 picked GMT+9 still had its takings cut at the GMT+8 midnight.
-                 A selector that accepts a choice nothing honours is worse than
-                 no selector: it reported success and looked settled. Tracked
-                 for real support in #329. -->
-            <div
-              data-testid="settings-timezone-fixed"
-              class="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-600"
+            <!-- Honoured again as of #329: the choice here is stored on
+                 `restaurants.timezone` and every business-day bucket derives
+                 its SQL offset from it. Only fixed-offset zones are listed --
+                 SQLite takes a constant date modifier, so a zone whose offset
+                 moves twice a year would bucket half its year into the wrong
+                 day, which is why the two US entries are gone. -->
+            <select
+              v-model="settings.restaurant.timezone"
+              data-testid="settings-timezone"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              GMT+8
-            </div>
-            <p class="text-xs text-gray-500 mt-1">
-              {{ t("settings.general.timezoneFixedHint") }}
-            </p>
+              <option value="Asia/Taipei">
+                {{ t("settings.general.timezones.taiwan") }}
+              </option>
+              <option value="Asia/Kuala_Lumpur">
+                {{ t("settings.general.timezones.malaysia") }}
+              </option>
+              <option value="Asia/Singapore">
+                {{ t("settings.general.timezones.singapore") }}
+              </option>
+              <option value="Asia/Shanghai">
+                {{ t("settings.general.timezones.china") }}
+              </option>
+              <option value="Asia/Tokyo">
+                {{ t("settings.general.timezones.japan") }}
+              </option>
+              <option value="Asia/Ho_Chi_Minh">
+                {{ t("settings.general.timezones.vietnam") }}
+              </option>
+              <option value="Asia/Jakarta">
+                {{ t("settings.general.timezones.indonesia") }}
+              </option>
+            </select>
           </div>
         </div>
       </div>
@@ -2023,7 +2040,7 @@ const settings = reactive({
     longitude: null as number | null,
     openTime: "08:00",
     closeTime: "22:00",
-    timezone: "Asia/Kuala_Lumpur",
+    timezone: "Asia/Taipei",
   },
   system: {
     language: "zh-TW",
@@ -2311,6 +2328,11 @@ const saveSettings = async () => {
         isAvailable: settings.orders.acceptGuestOrders,
         supportsTakeaway: deliverySettings.enableTakeaway,
         supportsDelivery: deliverySettings.enableDelivery,
+
+        // A column, not a `settings` key: this is where every business-day
+        // bucket reads its offset from, and one boundary in two places is how
+        // a report ends up disagreeing with the till (#329).
+        timezone: settings.restaurant.timezone,
         settings: {
           allowGuestOrders: settings.orders.acceptGuestOrders,
           currency: settings.system.currency,
@@ -2342,11 +2364,6 @@ const saveSettings = async () => {
           serviceChargeRate: percentToRate(
             settings.orders.serviceChargeRatePercent,
           ),
-
-          // Stored, but nothing reads it: every business-day bucket is a
-          // hardcoded '+8 hours' in packages/database/src/utils/sql-time.ts.
-          // The field is read-only in the UI for that reason -- see #329.
-          timezone: settings.restaurant.timezone,
 
           // Console preferences with no server behaviour, kept under one key so
           // the flat namespace above stays "settings the server acts on".
@@ -2406,6 +2423,7 @@ const loadSettings = async () => {
         longitude?: number | null;
         isAvailable?: boolean;
         supportsTakeaway?: boolean;
+        timezone?: string;
         businessHours?: Record<
           string,
           { open: string; close: string; isOpen: boolean }
@@ -2423,7 +2441,6 @@ const loadSettings = async () => {
           autoAcceptOrders?: boolean;
           taxRate?: number;
           serviceChargeRate?: number;
-          timezone?: string;
           adminConsole?: {
             language?: string;
             autoLogoutMinutes?: number;
@@ -2449,6 +2466,7 @@ const loadSettings = async () => {
         if (data.longitude !== undefined) {
           settings.restaurant.longitude = data.longitude;
         }
+        if (data.timezone) settings.restaurant.timezone = data.timezone;
         settings.orders.acceptGuestOrders =
           data.settings?.allowGuestOrders === true &&
           data.isAvailable !== false;
@@ -2518,10 +2536,6 @@ const loadSettings = async () => {
             data.settings.serviceChargeRate,
           );
         }
-        if (data.settings.timezone) {
-          settings.restaurant.timezone = data.settings.timezone;
-        }
-
         // Console preferences. Each group is merged rather than assigned so a
         // payload written by an older build, missing keys this one expects,
         // leaves the defaults in place instead of turning them undefined.

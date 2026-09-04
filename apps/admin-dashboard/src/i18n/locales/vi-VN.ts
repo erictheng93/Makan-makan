@@ -2510,8 +2510,6 @@ const viVN: Messages = {
       markets: "Thị trường",
     },
     general: {
-      timezoneFixedHint:
-        "Ngày kinh doanh và báo cáo luôn theo GMT+8. Hiện chưa thể thay đổi.",
       restaurantInfo: "Thông tin nhà hàng",
       restaurantName: "Tên nhà hàng",
       contactPhone: "Số điện thoại liên hệ",
@@ -2527,8 +2525,6 @@ const viVN: Messages = {
         china: "Trung Quốc (GMT+8)",
         vietnam: "Việt Nam (GMT+7)",
         indonesia: "Indonesia (GMT+7)",
-        usEast: "Miền Đông Hoa Kỳ (GMT-5)",
-        usWest: "Miền Tây Hoa Kỳ (GMT-8)",
       },
       systemPreferences: "Tùy chọn hệ thống",
       language: "Ngôn ngữ giao diện",

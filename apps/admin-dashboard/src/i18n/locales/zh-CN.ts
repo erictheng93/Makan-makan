@@ -2470,7 +2470,6 @@ const zhCN: Messages = {
       markets: "市场 / 商圈",
     },
     general: {
-      timezoneFixedHint: "营业日与报表一律以 GMT+8 计算，目前无法更改。",
       restaurantInfo: "餐厅信息",
       restaurantName: "餐厅名称",
       contactPhone: "联系电话",
@@ -2486,8 +2485,6 @@ const zhCN: Messages = {
         china: "中国 (GMT+8)",
         vietnam: "越南 (GMT+7)",
         indonesia: "印尼 (GMT+7)",
-        usEast: "美国东部 (GMT-5)",
-        usWest: "美国西部 (GMT-8)",
       },
       systemPreferences: "系统偏好",
       language: "界面语言",

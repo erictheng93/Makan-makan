@@ -339,17 +339,20 @@ describe("SettingsView guest ordering availability", () => {
 
     const body = vi.mocked(api.put).mock.calls[0][1] as {
       name?: string;
+      timezone?: string;
       settings: Record<string, unknown>;
     };
 
     // Loaded from the API and echoed back rather than dropped.
     expect(body.name).toBe("雞排攤");
 
+    // A column of its own since #329, alongside name and the rest.
+    expect(body.timezone).toEqual(expect.any(String));
+
     // Declared by restaurantSettingsSchema and read by the server.
     expect(body.settings).toMatchObject({
       minOrderAmount: expect.any(Number),
       autoAcceptOrders: expect.any(Boolean),
-      timezone: expect.any(String),
     });
 
     // Console-only preferences, grouped so the flat namespace stays "settings
@@ -442,20 +445,54 @@ describe("SettingsView guest ordering availability", () => {
     ).toBe("3.5");
   });
 
-  // The picker offered nine options while every business-day bucket in the
-  // platform is a hardcoded '+8 hours'. Choosing GMT+9 reported success and
-  // changed nothing, which #309 made worse by finally persisting the value.
-  it("shows the timezone as fixed rather than offering a choice nothing honours", async () => {
+  // The picker used to offer nine options while every business-day bucket was
+  // a hardcoded '+8 hours': choosing GMT+9 reported success and changed
+  // nothing, which #309 made worse by finally persisting the value. #329 moved
+  // the boundary onto restaurants.timezone and made the report layer read it.
+  it("round-trips the timezone through the restaurant column, not settings", async () => {
+    vi.mocked(api.get).mockImplementation(async (url: string) => {
+      if (url === "/restaurants/restaurant-1") {
+        return apiGetResponse({ name: "雞排攤", timezone: "Asia/Tokyo" });
+      }
+      return apiGetResponse({});
+    });
     const wrapper = await mountSettings();
 
-    expect(wrapper.get('[data-testid="settings-timezone-fixed"]').text()).toBe(
-      "GMT+8",
+    const select = wrapper.get<HTMLSelectElement>(
+      '[data-testid="settings-timezone"]',
     );
-    expect(
-      wrapper
-        .findAll("option")
-        .some((o) => o.attributes("value") === "Asia/Tokyo"),
-    ).toBe(false);
+    expect(select.element.value).toBe("Asia/Tokyo");
+
+    await select.setValue("Asia/Ho_Chi_Minh");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "settings.saveSettings")
+      ?.trigger("click");
+    await flushPromises();
+
+    const body = vi.mocked(api.put).mock.calls[0][1] as {
+      timezone?: string;
+      settings: Record<string, unknown>;
+    };
+    expect(body.timezone).toBe("Asia/Ho_Chi_Minh");
+    // One boundary, one place. A settings copy is what #311 is about.
+    expect(body.settings).not.toHaveProperty("timezone");
+  });
+
+  // SQLite takes a constant date modifier, so a zone whose offset moves twice
+  // a year cannot be bucketed correctly. Offering one would put the platform
+  // straight back into "the choice is stored and then ignored".
+  it("offers no daylight-saving zone", async () => {
+    const wrapper = await mountSettings();
+
+    const offered = wrapper
+      .get('[data-testid="settings-timezone"]')
+      .findAll("option")
+      .map((option) => option.attributes("value"));
+
+    expect(offered).toContain("Asia/Tokyo");
+    expect(offered).not.toContain("America/New_York");
+    expect(offered).not.toContain("America/Los_Angeles");
   });
 
   // businessHours is Record<day, ...> and the customer app renders it per day.
