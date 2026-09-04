@@ -5,6 +5,7 @@ vi.mock("drizzle-orm/d1", () => ({
 }));
 
 import { ForecastService } from "./ForecastService";
+import { MAX_FORECAST_RANGE_DAYS } from "../schemas/validation";
 import {
   forecastCache,
   menuItems,
@@ -342,6 +343,17 @@ describe("ForecastService", () => {
         weeklySales: [],
       }),
     ).toBeNull();
+  });
+
+  it("clamps the produced date range to MAX_FORECAST_RANGE_DAYS", () => {
+    const service = new ForecastService({} as D1Database, createKV().kv);
+
+    // 服務層自己也夾一次上限，不能只靠 zod refinement：這裡的區間是一年。
+    const dates = service["getDateRange"]("2026-01-01", "2026-12-31");
+
+    expect(dates).toHaveLength(MAX_FORECAST_RANGE_DAYS);
+    expect(dates[0]).toBe("2026-01-01");
+    expect(dates.at(-1)).toBe("2026-01-31");
   });
 
   it("hydrates fresh DB cache misses back into KV", async () => {

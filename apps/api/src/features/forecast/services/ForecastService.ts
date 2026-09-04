@@ -19,6 +19,7 @@ import type {
   GenerateForecastOptions,
   IForecastService,
 } from "../types";
+import { MAX_FORECAST_RANGE_DAYS } from "../schemas/validation";
 
 const WEIGHTS = { 1: 0.4, 2: 0.3, 3: 0.2, 4: 0.1 };
 const KV_TTL_SECONDS = 6 * 60 * 60; // 6 hours
@@ -666,11 +667,17 @@ export class ForecastService implements IForecastService {
       });
   }
 
+  /**
+   * 縱深防禦：每個日期都要跑一輪 D1 讀寫再加一次 KV put，而目前唯一的上限
+   * 是 generateForecastSchema 的 refinement。任何沒經過該 schema 的呼叫端
+   * （內部服務、日後新增的路由）都不該能把一次請求放大成數千筆寫入，
+   * 所以服務層自己也夾同一個上限。
+   */
   private getDateRange(start: string, end: string): string[] {
     const dates: string[] = [];
     const current = new Date(start);
     const endDate = new Date(end);
-    while (current <= endDate) {
+    while (current <= endDate && dates.length < MAX_FORECAST_RANGE_DAYS) {
       dates.push(this.formatDate(current));
       // Steps in UTC to match formatDate's toISOString. Stepping in local time
       // shifts the instant by an hour across a DST boundary, which is enough
