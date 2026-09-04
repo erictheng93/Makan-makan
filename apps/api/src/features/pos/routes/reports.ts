@@ -7,6 +7,7 @@ import { z } from "zod";
 import { authMiddleware, requireRole } from "../../../middleware/auth";
 import { validateQuery } from "../../../middleware/validation";
 import { ReportService } from "../services/ReportService";
+import { PosTenantAccessService } from "../services/PosTenantAccessService";
 import type { Env } from "../../../types/env";
 import {
   ApiError,
@@ -174,6 +175,10 @@ app.get(
         if (!shiftId) {
           throw badRequest("班次報表需要指定班次ID");
         }
+        // 這條分支不吃上面算出來的 finalRestaurantId，只吃 shiftId，所以上面
+        // 那段餐廳範圍檢查對它完全沒有作用。班次歸屬要另外查
+        // (cash_shifts -> cash_registers.restaurant_id)。
+        await new PosTenantAccessService(c.env.DB).requireShift(user, shiftId);
         result = await reportService.generateShiftReport(shiftId);
         break;
 

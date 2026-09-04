@@ -17,6 +17,9 @@ const mocks = vi.hoisted(() => {
       getRegisterUsageStats: vi.fn(),
     },
     reportServiceCtor: vi.fn(),
+    tenantAccess: {
+      requireShift: vi.fn(),
+    },
   };
 });
 
@@ -34,6 +37,12 @@ vi.mock("../services/ReportService", () => ({
   ReportService: vi.fn(function ReportService(...args: unknown[]) {
     mocks.reportServiceCtor(...args);
     return mocks.reportService;
+  }),
+}));
+
+vi.mock("../services/PosTenantAccessService", () => ({
+  PosTenantAccessService: vi.fn(function PosTenantAccessService() {
+    return mocks.tenantAccess;
   }),
 }));
 
@@ -104,6 +113,7 @@ describe("POS report routes", () => {
       success: true,
       data: { shiftId: "550e8400-e29b-41d4-a716-446655440000" },
     });
+    mocks.tenantAccess.requireShift.mockResolvedValue(undefined);
   });
 
   it("returns daily reports for the owner restaurant or explicit admin restaurant", async () => {
@@ -237,19 +247,46 @@ describe("POS report routes", () => {
     expect(csv).toContain("2026-06-07,5,1200,60,20,1,100,1140");
   });
 
-  it("exports shift and register usage reports, and returns PDF not implemented", async () => {
+  /**
+   * 這個匯出分支只吃 shiftId，handler 上面算出來的 finalRestaurantId 在這裡
+   * 完全沒被用到，所以餐廳範圍檢查對它無效。班次歸屬得靠 requireShift 另外查。
+   * 舊版這裡是「隨便給一個 shiftId 也回 200」，等於把漏洞釘成綠燈。
+   */
+  it("refuses to export a shift report the caller's restaurant does not own", async () => {
     const shiftId = "550e8400-e29b-41d4-a716-446655440000";
-    let response = await request(`/export?type=shift&shiftId=${shiftId}`);
-    let body = await json(response);
+    mocks.tenantAccess.requireShift.mockRejectedValueOnce(
+      new ApiError("FORBIDDEN", "只能存取自己餐廳的班次", 403),
+    );
+
+    const response = await request(`/export?type=shift&shiftId=${shiftId}`);
+    const body = await json(response);
+
+    expect(response.status).toBe(403);
+    expect(body.error?.code).toBe("FORBIDDEN");
+    // 報表服務本身不做歸屬檢查，所以這裡必須是「根本沒被呼叫」，
+    // 而不是「呼叫了但結果沒外流」。
+    expect(mocks.reportService.generateShiftReport).not.toHaveBeenCalled();
+  });
+
+  it("exports a shift report only after the ownership guard passes", async () => {
+    const shiftId = "550e8400-e29b-41d4-a716-446655440000";
+    const response = await request(`/export?type=shift&shiftId=${shiftId}`);
+    const body = await json(response);
 
     expect(response.status).toBe(200);
+    expect(mocks.tenantAccess.requireShift).toHaveBeenCalledWith(
+      expect.objectContaining({ restaurantId: "restaurant-1" }),
+      shiftId,
+    );
     expect(mocks.reportService.generateShiftReport).toHaveBeenCalledWith(
       shiftId,
     );
     expect(body.data).toEqual({ shiftId });
+  });
 
-    response = await request("/export?type=register-usage");
-    body = await json(response);
+  it("exports register usage reports, and returns PDF not implemented", async () => {
+    let response = await request("/export?type=register-usage");
+    let body = await json(response);
     expect(response.status).toBe(200);
     expect(mocks.reportService.getRegisterUsageStats).toHaveBeenCalledWith(
       "restaurant-1",

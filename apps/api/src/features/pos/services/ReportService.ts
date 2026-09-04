@@ -3,7 +3,7 @@
  */
 
 import { drizzle } from "drizzle-orm/d1";
-import { eq, and, sql, type SQL } from "drizzle-orm";
+import { eq, and, gte, lte, sql, type SQL } from "drizzle-orm";
 import {
   cashShifts,
   cashRegisters,
@@ -39,19 +39,28 @@ export class ReportService {
     error?: string;
   }> {
     try {
-      // 獲取班次基本資訊
-      const [shift] = await this.db
-        .select()
+      // 獲取班次基本資訊。班次本身沒有 restaurant_id，餐廳歸屬只能經收銀機
+      // (cash_shifts.register_id -> cash_registers.restaurant_id) 取得；下面
+      // 的訂單統計一定要用它收斂，否則會把全平台的營收算進來。用 innerJoin：
+      // 收銀機查不到就代表這個班次無法歸屬到任何餐廳，寧可當成不存在。
+      const [shiftRow] = await this.db
+        .select({
+          shift: cashShifts,
+          restaurantId: cashRegisters.restaurantId,
+        })
         .from(cashShifts)
+        .innerJoin(cashRegisters, eq(cashShifts.registerId, cashRegisters.id))
         .where(eq(cashShifts.id, shiftId))
         .limit(1);
 
-      if (!shift) {
+      if (!shiftRow) {
         return {
           success: false,
           error: "班次不存在",
         };
       }
+
+      const { shift, restaurantId } = shiftRow;
 
       // 獲取現金流動記錄
       const movements = await this.db
@@ -95,8 +104,13 @@ export class ReportService {
         .from(orders)
         .where(
           and(
-            sql`${orders.createdAt} >= ${startedAt}`,
-            sql`${orders.createdAt} <= ${endedAt}`,
+            // 沒有這條餐廳條件時，這份彙總是整個平台的營收、單量與付款組合。
+            eq(orders.restaurantId, restaurantId),
+            // created_at_ms 是 timestamp_ms 欄位，交給 gte/lte 由 Drizzle 把
+            // Date 轉成整數毫秒。先前手寫 sql`${orders.createdAt} >= ${startedAt}`
+            // 會把 Date 物件原封不動綁進去，D1 直接回 D1_TYPE_ERROR。
+            gte(orders.createdAt, startedAt),
+            lte(orders.createdAt, endedAt),
           ),
         );
 

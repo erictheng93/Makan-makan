@@ -111,7 +111,10 @@ describe("ReportService", () => {
     uuidMocks.generateUUID.mockReturnValue("report-1");
     const inserted = mockInsert();
     mockSelectResults({
-      cashShifts: [[shiftRow()]],
+      // 班次讀取現在 join 收銀機取餐廳歸屬，回傳的是 { shift, restaurantId }。
+      // 這個 fixture db 不模擬 where，所以「只算自己餐廳的訂單」證明不在這裡，
+      // 在 pos-shift-report-tenancy.real.integration.test.ts 用真 D1 驗。
+      cashShifts: [[{ shift: shiftRow(), restaurantId: "restaurant-1" }]],
       cashMovements: [
         [
           {
