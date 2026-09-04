@@ -3612,6 +3612,9 @@ const enUS: Messages = {
       working: "Currently Working",
       noOneWorking: "No one is working right now",
       noOneOnLeave: "No one is on leave today",
+      clockPanel: "Clock in / out",
+      clockFor: "Clocking for",
+      noClockableStaff: "No active staff to clock in yet",
     },
     detail: {
       back: "Back to Employee List",

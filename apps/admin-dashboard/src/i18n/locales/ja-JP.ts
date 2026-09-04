@@ -3617,6 +3617,9 @@ const jaJP: Messages = {
       working: "勤務中",
       noOneWorking: "現在勤務中のスタッフはいません",
       noOneOnLeave: "本日休暇のスタッフはいません",
+      clockPanel: "打刻",
+      clockFor: "打刻の対象",
+      noClockableStaff: "打刻できる在籍スタッフがいません",
     },
     detail: {
       back: "従業員一覧に戻る",

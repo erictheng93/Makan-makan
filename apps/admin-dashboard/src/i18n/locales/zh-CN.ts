@@ -3546,6 +3546,9 @@ const zhCN: Messages = {
       working: "当前在班",
       noOneWorking: "当前没有员工在班",
       noOneOnLeave: "今日无人请假",
+      clockPanel: "打卡",
+      clockFor: "打卡对象",
+      noClockableStaff: "尚无可打卡的在职员工",
     },
     detail: {
       back: "返回员工列表",

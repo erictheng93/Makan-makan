@@ -3634,6 +3634,9 @@ const idID: Messages = {
       working: "Sedang Bekerja",
       noOneWorking: "Tidak ada yang sedang bekerja saat ini",
       noOneOnLeave: "Tidak ada yang cuti hari ini",
+      clockPanel: "Absensi",
+      clockFor: "Absen untuk",
+      noClockableStaff: "Belum ada staf aktif untuk diabsen",
     },
     detail: {
       back: "Kembali ke Daftar Karyawan",

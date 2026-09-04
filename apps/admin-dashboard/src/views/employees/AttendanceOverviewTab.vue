@@ -14,6 +14,55 @@
       </div>
     </div>
 
+    <!-- Clock In / Out -->
+    <div>
+      <h3
+        class="text-sm font-semibold text-[#1C1C1E] mb-3 flex items-center gap-2"
+      >
+        <Clock class="w-4 h-4 text-[#007AFF]" />
+        {{ t("employees.attendance.clockPanel") }}
+      </h3>
+
+      <div v-if="clockableEmployees.length > 0" class="max-w-[500px] mx-auto">
+        <label
+          class="block text-xs text-[#1C1C1E]/40 mb-1"
+          for="clock-target-select"
+        >
+          {{ t("employees.attendance.clockFor") }}
+        </label>
+        <select
+          id="clock-target-select"
+          v-model="clockTargetId"
+          data-testid="clock-target-select"
+          class="w-full mb-4 px-3 py-2 rounded-xl bg-[#F2F2F7] text-sm text-[#1C1C1E] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
+        >
+          <option
+            v-for="emp in clockableEmployees"
+            :key="emp.id"
+            :value="emp.id"
+          >
+            {{ emp.fullName || emp.username }}
+          </option>
+        </select>
+
+        <!-- Remount on target change: the panel loads its schedule onMounted. -->
+        <ClockInOutPanel
+          v-if="restaurantId && clockTargetId !== undefined"
+          :key="String(clockTargetId)"
+          :restaurant-id="restaurantId"
+          :employee-id="clockTargetId"
+          @clock-in="refreshAttendance"
+          @clock-out="refreshAttendance"
+        />
+      </div>
+      <div v-else class="text-center py-8">
+        <Clock class="mx-auto w-8 h-8 text-[#1C1C1E]/15 mb-2" />
+        <p class="text-xs text-[#1C1C1E]/30">
+          {{ t("employees.attendance.noClockableStaff") }}
+        </p>
+      </div>
+    </div>
+
     <!-- Currently Working -->
     <div>
       <h3
@@ -121,10 +170,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
+import { useAuthStore } from "@/stores/auth";
 import { useEmployeeList } from "@/composables/useEmployeeList";
+import ClockInOutPanel from "@/components/scheduling/ClockInOutPanel.vue";
 import { getInitials } from "@/composables/useEmployeeDisplay";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import { Clock, CalendarOff } from "lucide-vue-next";
@@ -142,7 +193,39 @@ defineProps<{
 const router = useRouter();
 const { t } = useI18n();
 const { formatTime } = useDateFormatter();
+const authStore = useAuthStore();
 const employeeList = useEmployeeList();
+
+const restaurantId = computed(() => authStore.restaurantId);
+
+const clockableEmployees = computed(() =>
+  employeeList.users.value.filter((u) => u.isActive),
+);
+
+// This tab is ADMIN/OWNER only (router meta), so the panel is a manager
+// surface: it defaults to the signed-in user clocking themselves, and 代打 for
+// another employee is one select away. POST /schedules/:id/clock-in accepts a
+// body employeeId only from a manager, and resolves the schedule within the
+// caller's restaurant, so the selector cannot reach another tenant.
+const clockTargetId = ref<number | undefined>(undefined);
+
+watch(
+  clockableEmployees,
+  (list) => {
+    if (clockTargetId.value !== undefined) return;
+    const self = list.find(
+      (u) => String(u.id) === String(authStore.user?.id ?? ""),
+    );
+    clockTargetId.value = self?.id ?? list[0]?.id;
+  },
+  { immediate: true },
+);
+
+// A clock action changes who counts as on shift, so the stats above it are
+// stale until the clocked-in list is refetched.
+const refreshAttendance = () => {
+  employeeList.fetchClockedIn();
+};
 
 const clockedInEmployees = employeeList.clockedInList;
 const clockedInLoading = employeeList.clockedInLoading;

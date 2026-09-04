@@ -3620,6 +3620,9 @@ const viVN: Messages = {
       working: "Đang làm việc",
       noOneWorking: "Hiện không có ai đang làm việc",
       noOneOnLeave: "Hôm nay không có ai nghỉ phép",
+      clockPanel: "Chấm công",
+      clockFor: "Chấm công cho",
+      noClockableStaff: "Chưa có nhân viên đang làm việc để chấm công",
     },
     detail: {
       back: "Quay lại danh sách nhân viên",

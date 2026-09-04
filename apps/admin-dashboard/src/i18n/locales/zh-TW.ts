@@ -3665,6 +3665,9 @@ const zhTWCore = {
       working: "目前在班",
       noOneWorking: "目前沒有員工在班",
       noOneOnLeave: "今日無人請假",
+      clockPanel: "打卡",
+      clockFor: "打卡對象",
+      noClockableStaff: "尚無可打卡的在職員工",
     },
     detail: {
       back: "返回員工列表",
