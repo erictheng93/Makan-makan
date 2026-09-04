@@ -13,6 +13,22 @@ import { api } from "@/services/api";
 import { getAuthToken } from "@/utils/authTokenProvider";
 import { sanitizeForLog } from "@/utils/sanitize";
 import { getApiErrorStatus } from "@makanmasak/shared/utils/unknown";
+import { useAuthStore } from "@/stores/auth";
+import { UserRole } from "@/types";
+
+/**
+ * 後台同時服務店主與內場人員，但 admin 房間會廣播帶顧客姓名的候位事件，
+ * 所以伺服器端只開放 role 0/1。廚師、送菜員、收銀員要改走 kitchen 房間：
+ * 訂單與內場事件本來就同時扇出到 restaurant/kitchen/admin，他們拿得到需要的
+ * 全部內容。寫死 "admin" 會讓這三種角色的 token 申請直接被擋成 400，接著一路
+ * 重連到上限並停在錯誤狀態，等於整個即時更新失效。
+ */
+function resolveRoomType(): "admin" | "kitchen" {
+  const role = useAuthStore().userRole;
+  return role === UserRole.ADMIN || role === UserRole.OWNER
+    ? "admin"
+    : "kitchen";
+}
 
 export type ConnectionStatus =
   | "disconnected"
@@ -84,7 +100,7 @@ class WebSocketService {
     }>(
       "/realtime/auth/token",
       {
-        roomType: "admin",
+        roomType: resolveRoomType(),
         roomId: restaurantId,
         restaurantId,
         sessionId: token,

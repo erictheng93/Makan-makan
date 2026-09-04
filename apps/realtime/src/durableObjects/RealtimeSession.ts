@@ -57,6 +57,11 @@ interface StoredEvent {
 }
 const HEARTBEAT_REQUEST = "ping";
 const HEARTBEAT_RESPONSE = "pong";
+// 1008 (policy violation) is what every client in this repo already treats as
+// "re-authenticate, then reconnect" — customer-app's useWebSocket maps it to
+// its onAuthFailure path, and the admin/kitchen clients re-mint a token on any
+// close that is not 1000/1001.
+const TOKEN_EXPIRED_CLOSE_CODE = 1008;
 
 export class RealtimeSession implements DurableObject {
   private state: DurableObjectState;
@@ -297,6 +302,11 @@ export class RealtimeSession implements DurableObject {
     const connectionInfo = this.getConnectionInfo(socket);
     if (!connectionInfo) {
       socket.close(1008, "Missing connection metadata");
+      return;
+    }
+
+    if (this.isAuthExpired(connectionInfo)) {
+      this.closeExpiredConnection(socket);
       return;
     }
 
@@ -550,9 +560,19 @@ export class RealtimeSession implements DurableObject {
    */
   private routeEvent(event: RealtimeEvent): number {
     let sentCount = 0;
+    const nowSeconds = Math.floor(Date.now() / 1000);
 
     for (const [socket, connectionInfo] of this.getConnectionEntries()) {
       if (socket.readyState !== WebSocket.OPEN) continue;
+
+      // Fan-out is the moment that matters for a passive listener: an attacker
+      // holding a revoked token need never send us anything, so checking only
+      // on inbound messages would leave the feed flowing. The object is
+      // already awake here, so this costs nothing extra.
+      if (this.isAuthExpired(connectionInfo, nowSeconds)) {
+        this.closeExpiredConnection(socket);
+        continue;
+      }
 
       // 檢查是否應該發送此事件到此連線
       if (this.shouldSendEventToConnection(event, connectionInfo)) {
@@ -776,6 +796,39 @@ export class RealtimeSession implements DurableObject {
     return socket.deserializeAttachment() as ConnectionInfo | null;
   }
 
+  /**
+   * The upgrade handshake was the only place a token's claims were ever read,
+   * so a connection outlived every revocation its expiry is supposed to
+   * enforce: a demoted or dismissed admin kept a cross-restaurant feed open
+   * indefinitely, and re-checking role or restaurant at upgrade time alone
+   * cannot reach an already-open socket. Expiry is the one claim we can
+   * re-evaluate without a DB round trip, and the tokens are short (5 minutes
+   * for staff, 15 for guests), so closing on it is what turns a revocation
+   * into a disconnection.
+   *
+   * Deliberately evaluated only where the object is already awake — an inbound
+   * message, a broadcast fan-out, the cleanup alarm. No timer is scheduled,
+   * because waking a hibernating object on a schedule is exactly the cost
+   * hibernation was enabled to avoid.
+   */
+  private isAuthExpired(
+    connectionInfo: ConnectionInfo,
+    nowSeconds: number = Math.floor(Date.now() / 1000),
+  ): boolean {
+    const exp = connectionInfo.auth?.exp;
+    // Every minting path in RealtimeAuthService stamps `exp`, and
+    // verifyWebSocketToken rejects a token whose exp has passed. A connection
+    // with no exp therefore came from nowhere legitimate: treat it as expired
+    // rather than as eternal.
+    if (typeof exp !== "number" || !Number.isFinite(exp)) return true;
+    return exp <= nowSeconds;
+  }
+
+  private closeExpiredConnection(socket: WebSocket): void {
+    socket.close(TOKEN_EXPIRED_CLOSE_CODE, "Token expired");
+    socket.serializeAttachment(null);
+  }
+
   private getConnectionEntries(): Array<[WebSocket, ConnectionInfo]> {
     return this.getActiveConnections().map((socket) => [
       socket,
@@ -963,8 +1016,13 @@ export class RealtimeSession implements DurableObject {
     const now = Date.now();
     const timeout = 30 * 60 * 1000; // 30 minutes
 
-    // 1. 清理不活躍的連線
+    // 1. 清理不活躍的連線，以及 token 已過期的連線
+    const nowSeconds = Math.floor(now / 1000);
     for (const [socket, connectionInfo] of this.getConnectionEntries()) {
+      if (this.isAuthExpired(connectionInfo, nowSeconds)) {
+        this.closeExpiredConnection(socket);
+        continue;
+      }
       if (now - connectionInfo.lastActivity > timeout) {
         socket.close();
         socket.serializeAttachment(null);

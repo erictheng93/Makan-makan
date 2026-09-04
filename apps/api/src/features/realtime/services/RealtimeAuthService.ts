@@ -524,6 +524,14 @@ export class RealtimeAuthService {
     };
   }
 
+  /**
+   * The realtime role is a projection of the caller's app role, never of the
+   * room they asked for. Stamping "admin" for every admin/restaurant room let
+   * the room hand out a privilege the caller did not hold: the DO reads this
+   * claim to decide who receives unclassified event types
+   * (`shouldSendEventToConnection`'s default arm). canAccessRoomType is the
+   * only thing that decides who may enter; this only says what they are.
+   */
   private determineRole(
     roomType: RoomType,
     appRole?: number | string,
@@ -531,16 +539,12 @@ export class RealtimeAuthService {
     if (roomType === "customer") {
       return "customer";
     }
-    if (roomType === "kitchen") {
-      if (typeof appRole === "number" && appRole <= 1) {
-        return "admin";
-      }
-      return "staff";
-    }
-    if (roomType === "admin" || roomType === "restaurant") {
+    // Only a real numeric role earns "admin". Coercing a string would promote
+    // "" and null to 0, which is the platform-admin code.
+    if (typeof appRole === "number" && appRole >= 0 && appRole <= 1) {
       return "admin";
     }
-    return "customer";
+    return "staff";
   }
 
   private async validateSessionAccess(
@@ -627,10 +631,22 @@ export class RealtimeAuthService {
     return { user };
   }
 
+  /**
+   * The `admin` room used to fall through to "any staff role", which let a
+   * chef or cashier mint a token for it. That room carries data the kitchen
+   * room deliberately does not — WaitingListService broadcasts `customerName`
+   * to `admin:{rid}` — so it is owner/platform only, same as `restaurant`.
+   * `kitchen` stays the one staff-wide room. Anything outside the union is
+   * denied rather than defaulted, because the route reads roomType off the
+   * request body.
+   */
   private canAccessRoomType(role: number, roomType: RoomType): boolean {
     if (roomType === "customer") return role === 5;
-    if (roomType === "restaurant") return role === 0 || role === 1;
-    return role >= 0 && role <= 4;
+    if (roomType === "restaurant" || roomType === "admin") {
+      return role === 0 || role === 1;
+    }
+    if (roomType === "kitchen") return role >= 0 && role <= 4;
+    return false;
   }
 
   private canAccessRestaurant(

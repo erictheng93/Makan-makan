@@ -214,12 +214,18 @@ function createSocket(overrides: Record<string, unknown> = {}) {
  */
 type AuthClaims = Omit<RealtimeAuthPayload, "iat" | "exp">;
 
+/**
+ * `exp` used to be a don't-care `0` here. It stopped being one once the session
+ * re-checks it on every awake path, so the default is now a live token and a
+ * test that wants an expired connection asks for one via `expiresInSeconds`.
+ */
 function connection(
   overrides: Partial<Omit<ConnectionInfo, "auth">> & {
     auth?: AuthClaims;
+    expiresInSeconds?: number;
   } = {},
 ): ConnectionInfo {
-  const { auth, ...rest } = overrides;
+  const { auth, expiresInSeconds = 3600, ...rest } = overrides;
   const claims: AuthClaims = auth ?? {
     role: "customer",
     roomType: "customer",
@@ -229,6 +235,7 @@ function connection(
     // JSON, and the token minter writes them as text.
     tableId: "7",
   };
+  const issuedAt = Math.floor(Date.now() / 1000);
   return {
     id: "conn-1",
     type: "customer",
@@ -239,7 +246,7 @@ function connection(
     auth:
       "auth" in overrides && auth === undefined
         ? undefined
-        : { ...claims, iat: 0, exp: 0 },
+        : { ...claims, iat: issuedAt, exp: issuedAt + expiresInSeconds },
   };
 }
 
@@ -1073,6 +1080,69 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     expect(internals(session).routeEvent(heartbeat)).toBe(0);
   });
 
+  // Revocation only reaches a live socket if something re-reads the token after
+  // the handshake. These three are every path the object is already awake on.
+  it("closes connections whose token expired instead of routing events to them", () => {
+    const sockets: WebSocket[] = [];
+    const session = createSession(createEnv(), createState({ sockets }));
+    const expiredAdmin = createSocket();
+    const liveAdmin = createSocket();
+
+    const adminAuth = {
+      role: "admin" as const,
+      restaurantId: "restaurant-1",
+      roomType: "admin" as const,
+      roomId: "restaurant-1",
+    };
+    expiredAdmin.serializeAttachment(
+      connection({
+        id: "expired-admin",
+        type: "admin",
+        auth: adminAuth,
+        expiresInSeconds: -60,
+      }),
+    );
+    liveAdmin.serializeAttachment(
+      connection({ id: "live-admin", type: "admin", auth: adminAuth }),
+    );
+    sockets.push(expiredAdmin, liveAdmin);
+
+    const liveEvent = event("evt-live");
+    const sent = internals(session).routeEvent(liveEvent);
+
+    expect(sent).toBe(1);
+    expect(expiredAdmin.send).not.toHaveBeenCalled();
+    expect(expiredAdmin.close).toHaveBeenCalledWith(1008, "Token expired");
+    expect(expiredAdmin.serializeAttachment).toHaveBeenLastCalledWith(null);
+    expect(liveAdmin.send).toHaveBeenCalledWith(JSON.stringify(liveEvent));
+  });
+
+  it("closes an expired connection on its next message instead of answering it", async () => {
+    const session = createSession(createEnv());
+    const socket = createSocket();
+    socket.serializeAttachment(
+      connection({ id: "expired-ping", expiresInSeconds: -1 }),
+    );
+
+    await session.webSocketMessage(socket, "ping");
+
+    expect(socket.close).toHaveBeenCalledWith(1008, "Token expired");
+    expect(socket.send).not.toHaveBeenCalled();
+  });
+
+  it("treats a connection with no auth payload as expired", () => {
+    const sockets: WebSocket[] = [];
+    const session = createSession(createEnv(), createState({ sockets }));
+    const anonymous = createSocket();
+    anonymous.serializeAttachment(
+      connection({ id: "anonymous", auth: undefined }),
+    );
+    sockets.push(anonymous);
+
+    expect(internals(session).routeEvent(event("evt-anon"))).toBe(0);
+    expect(anonymous.close).toHaveBeenCalledWith(1008, "Token expired");
+  });
+
   it("keeps event history bounded and returns all events when a cursor is unknown", async () => {
     const session = createSession(createEnv());
     const now = Date.now();
@@ -1519,6 +1589,9 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
   it("cleans up inactive connections and expired history through alarm", async () => {
     const staleSocket = createSocket();
     const activeSocket = createSocket();
+    // Busy enough to survive the inactivity sweep, but its token is gone — the
+    // exact shape of a revoked staff member who keeps the socket warm.
+    const expiredButBusySocket = createSocket();
     const now = Date.now();
     staleSocket.serializeAttachment(
       connection({ id: "stale", lastActivity: now - 31 * 60 * 1000 }),
@@ -1526,8 +1599,15 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
     activeSocket.serializeAttachment(
       connection({ id: "active", lastActivity: now }),
     );
+    expiredButBusySocket.serializeAttachment(
+      connection({
+        id: "expired-busy",
+        lastActivity: now,
+        expiresInSeconds: -30,
+      }),
+    );
     const state = createState({
-      sockets: [staleSocket, activeSocket],
+      sockets: [staleSocket, activeSocket, expiredButBusySocket],
       storage: new Map([
         ["eventHistory", [event("fresh", now), event("old", now - 90_000_000)]],
       ]),
@@ -1538,6 +1618,13 @@ describe("RealtimeSession message, routing, and validation behavior", () => {
 
     expect(staleSocket.close).toHaveBeenCalled();
     expect(staleSocket.serializeAttachment).toHaveBeenLastCalledWith(null);
+    expect(expiredButBusySocket.close).toHaveBeenCalledWith(
+      1008,
+      "Token expired",
+    );
+    expect(expiredButBusySocket.serializeAttachment).toHaveBeenLastCalledWith(
+      null,
+    );
     expect(activeSocket.deserializeAttachment()).toMatchObject({
       id: "active",
     });

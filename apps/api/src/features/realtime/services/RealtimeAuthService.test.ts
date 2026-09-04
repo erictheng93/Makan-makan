@@ -760,6 +760,123 @@ describe("RealtimeAuthService", () => {
     });
   });
 
+  // The admin room used to fall through to "any staff role". It carries data
+  // the kitchen room does not — WaitingListService broadcasts customerName to
+  // admin:{rid} — so chef/service/cashier must be turned away here, before any
+  // token is signed.
+  it("refuses admin room tokens for non-owner staff roles", async () => {
+    const service = createService();
+
+    for (const role of [2, 3, 4]) {
+      await expect(
+        service.generateWebSocketToken({
+          roomType: "admin",
+          roomId: "restaurant-1",
+          restaurantId: "restaurant-1",
+          sessionId: createSessionToken({ role }),
+        }),
+      ).resolves.toEqual({
+        error: "Session role cannot access this realtime room",
+      });
+    }
+  });
+
+  it("mints admin room tokens for owners and stamps the role from the app role", async () => {
+    const prepared = createPreparedDb({
+      id: ownerId,
+      username: "owner",
+      role: 1,
+      restaurant_id: "restaurant-1",
+      is_active: 1,
+      token_version: 2,
+    });
+    const service = createService({ DB: { prepare: prepared.prepare } });
+
+    const response = await service.generateWebSocketToken({
+      roomType: "admin",
+      roomId: "restaurant-1",
+      restaurantId: "restaurant-1",
+      sessionId: createSessionToken({
+        sub: ownerId,
+        username: "owner",
+        role: 1,
+        restaurantId: "restaurant-1",
+        tv: 2,
+      }),
+    });
+
+    expect(response).toMatchObject({ expiresIn: 300 });
+    await expect(
+      service.verifyWebSocketToken("token" in response ? response.token : ""),
+    ).resolves.toMatchObject({
+      valid: true,
+      payload: { roomType: "admin", role: "admin", appRole: 1 },
+    });
+  });
+
+  // determineRole is now a projection of the app role rather than of the room.
+  // canAccessRoomType keeps non-owners out of the admin room, so the only way
+  // to pin the projection itself is to call it directly — otherwise a future
+  // loosening of the room gate would silently restore "any staff is admin".
+  it("never stamps admin from the room name alone", () => {
+    const service = createService() as unknown as {
+      determineRole(
+        roomType: RealtimeAuthTokenRequest["roomType"],
+        appRole?: number | string,
+      ): string;
+    };
+    const determineRole = (
+      roomType: RealtimeAuthTokenRequest["roomType"],
+      appRole?: number | string,
+    ) => service.determineRole(roomType, appRole);
+
+    for (const roomType of ["admin", "restaurant", "kitchen"] as const) {
+      expect(determineRole(roomType, 2)).toBe("staff");
+      expect(determineRole(roomType, 4)).toBe("staff");
+      expect(determineRole(roomType, 0)).toBe("admin");
+      expect(determineRole(roomType, 1)).toBe("admin");
+      // A string role must not be coerced — Number("") is 0, the platform
+      // admin code.
+      expect(determineRole(roomType, "")).toBe("staff");
+      expect(determineRole(roomType, undefined)).toBe("staff");
+    }
+    expect(determineRole("customer", 0)).toBe("customer");
+  });
+
+  it("derives the realtime role from the app role, not the room name", async () => {
+    const service = createService();
+
+    const chefKitchen = await service.generateWebSocketToken({
+      roomType: "kitchen",
+      roomId: "restaurant-1",
+      restaurantId: "restaurant-1",
+      sessionId: createSessionToken({ role: 2 }),
+    });
+    await expect(
+      service.verifyWebSocketToken(
+        "token" in chefKitchen ? chefKitchen.token : "",
+      ),
+    ).resolves.toMatchObject({
+      valid: true,
+      payload: { role: "staff", appRole: 2 },
+    });
+
+    const platformAdmin = await service.generateWebSocketToken({
+      roomType: "restaurant",
+      roomId: "restaurant-1",
+      restaurantId: "restaurant-1",
+      sessionId: createSessionToken({ role: 0 }),
+    });
+    await expect(
+      service.verifyWebSocketToken(
+        "token" in platformAdmin ? platformAdmin.token : "",
+      ),
+    ).resolves.toMatchObject({
+      valid: true,
+      payload: { role: "admin", appRole: 0 },
+    });
+  });
+
   it("rejects inactive, stale, mismatched, and cross-restaurant DB users", async () => {
     const cases = [
       {
