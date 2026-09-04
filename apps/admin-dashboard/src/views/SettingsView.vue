@@ -2862,7 +2862,9 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
+  /* ios-separator. The on-state below already uses ios-blue; #ccc was a plain
+     web grey that predates the palette. */
+  background-color: #e5e5ea;
   transition: 0.4s;
   border-radius: 24px;
 }
