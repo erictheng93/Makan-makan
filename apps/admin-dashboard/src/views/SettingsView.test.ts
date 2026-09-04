@@ -272,7 +272,7 @@ describe("SettingsView guest ordering availability", () => {
     vi.mocked(marketsService.listJoinRequests).mockResolvedValue([]);
   });
 
-  it("saves the guest ordering switch to both restaurant availability gates", async () => {
+  async function mountSettings() {
     const wrapper = mount(SettingsView, {
       global: {
         stubs: {
@@ -282,6 +282,11 @@ describe("SettingsView guest ordering availability", () => {
       },
     });
     await flushPromises();
+    return wrapper;
+  }
+
+  it("saves the guest ordering switch to both restaurant availability gates", async () => {
+    const wrapper = await mountSettings();
 
     const guestOrderingCheckbox = wrapper
       .findAll<HTMLInputElement>('input[type="checkbox"]')
@@ -299,21 +304,100 @@ describe("SettingsView guest ordering availability", () => {
       ?.trigger("click");
     await flushPromises();
 
-    expect(api.put).toHaveBeenCalledWith("/restaurants/restaurant-1", {
-      isAvailable: true,
-      supportsTakeaway: true,
-      supportsDelivery: false,
-      settings: {
-        allowGuestOrders: true,
-        currency: "MYR",
-        enableDineIn: true,
-        enableTakeaway: true,
-        enableDelivery: false,
-        deliveryFee: 0,
-        estimatedPrepTimeMin: 15,
-        estimatedPrepTimeMax: 20,
-      },
+    expect(api.put).toHaveBeenCalledWith(
+      "/restaurants/restaurant-1",
+      expect.objectContaining({
+        isAvailable: true,
+        supportsTakeaway: true,
+        supportsDelivery: false,
+        settings: expect.objectContaining({
+          allowGuestOrders: true,
+          currency: "MYR",
+          enableDineIn: true,
+          enableTakeaway: true,
+          enableDelivery: false,
+          deliveryFee: 0,
+          estimatedPrepTimeMin: 15,
+          estimatedPrepTimeMax: 20,
+        }),
+      }),
+    );
+  });
+
+  // Editing a field, saving, and reloading used to return the original value:
+  // the payload carried three sources out of the reactive tree's thirty-odd
+  // leaves and the rest were dropped between the form and the request, with a
+  // success toast either way (#309).
+  it("sends the fields the form edits, not just the three it used to", async () => {
+    const wrapper = await mountSettings();
+
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "settings.saveSettings")
+      ?.trigger("click");
+    await flushPromises();
+
+    const body = vi.mocked(api.put).mock.calls[0][1] as {
+      name?: string;
+      settings: Record<string, unknown>;
+    };
+
+    // Loaded from the API and echoed back rather than dropped.
+    expect(body.name).toBe("雞排攤");
+
+    // Declared by restaurantSettingsSchema and read by the server.
+    expect(body.settings).toMatchObject({
+      minOrderAmount: expect.any(Number),
+      autoAcceptOrders: expect.any(Boolean),
+      timezone: expect.any(String),
     });
+
+    // Console-only preferences, grouped so the flat namespace stays "settings
+    // the server acts on".
+    expect(body.settings.adminConsole).toMatchObject({
+      retentionDays: expect.any(Number),
+      tables: expect.objectContaining({ prefix: expect.any(String) }),
+      notifications: expect.objectContaining({
+        sound: expect.objectContaining({ enabled: expect.any(Boolean) }),
+      }),
+      security: expect.objectContaining({
+        password: expect.objectContaining({ minLength: expect.any(Number) }),
+      }),
+    });
+  });
+
+  // The order gate is `minOrderAmount > 0`, so zero and "off" are the same
+  // state. Storing the toggle as well would let the two disagree with no way
+  // to tell which one the gate follows.
+  it("sends zero for the minimum spend when the toggle is off", async () => {
+    const wrapper = await mountSettings();
+
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "settings.saveSettings")
+      ?.trigger("click");
+    await flushPromises();
+
+    const body = vi.mocked(api.put).mock.calls[0][1] as {
+      settings: { minOrderAmount: number };
+    };
+    expect(body.settings.minOrderAmount).toBe(0);
+  });
+
+  // businessHours is Record<day, ...> and the customer app renders it per day.
+  // This screen shows one pair for the week, so sending it unconditionally
+  // would flatten per-day hours the owner never looked at.
+  it("leaves business hours alone when the hours fields were not touched", async () => {
+    const wrapper = await mountSettings();
+
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "settings.saveSettings")
+      ?.trigger("click");
+    await flushPromises();
+
+    const body = vi.mocked(api.put).mock.calls[0][1] as Record<string, unknown>;
+    expect(body).not.toHaveProperty("businessHours");
   });
 });
 

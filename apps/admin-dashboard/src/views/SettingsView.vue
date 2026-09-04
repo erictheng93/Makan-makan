@@ -2189,11 +2189,70 @@ const selectedMarketReadinessSummary = computed(() =>
 const defaultSettings = structuredClone(toRaw(settings));
 
 // 方法
+// What the server last told us, so a field the user did not touch is not
+// resent. Only business hours need this today -- see buildBusinessHours.
+const loadedBusinessHours = reactive({ openTime: "", closeTime: "" });
+
+const WEEKDAY_KEYS = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+] as const;
+
+/**
+ * businessHours is Record<day, {open, close, isOpen}> and the customer app
+ * renders it per day (formatBusinessHours). This screen offers a single
+ * open/close pair for the whole week, so writing it always would flatten any
+ * per-day hours set elsewhere, silently and with nothing on screen to warn the
+ * owner. Return undefined when the pair is unchanged since load: the server
+ * merges settings and skips absent columns, so omitting the field leaves the
+ * stored hours exactly as they were.
+ *
+ * isOpen is carried over per day rather than forced true, so a shop that is
+ * closed on Mondays stays closed on Mondays after an hours edit.
+ */
+function buildBusinessHours() {
+  const { openTime, closeTime } = settings.restaurant;
+  if (
+    openTime === loadedBusinessHours.openTime &&
+    closeTime === loadedBusinessHours.closeTime
+  ) {
+    return undefined;
+  }
+  return Object.fromEntries(
+    WEEKDAY_KEYS.map((day) => [
+      day,
+      {
+        open: openTime,
+        close: closeTime,
+        isOpen: currentBusinessHours.value?.[day]?.isOpen ?? true,
+      },
+    ]),
+  );
+}
+
+const currentBusinessHours = ref<Record<
+  string,
+  { open: string; close: string; isOpen: boolean }
+> | null>(null);
+
 const saveSettings = async () => {
   try {
     const restaurantId = authStore.restaurantId;
     if (restaurantId) {
+      const businessHours = buildBusinessHours();
       await api.put(`/restaurants/${restaurantId}`, {
+        // Top-level restaurant columns.
+        name: settings.restaurant.name,
+        phone: settings.restaurant.phone,
+        address: settings.restaurant.address,
+        city: settings.restaurant.city,
+        district: settings.restaurant.district,
+        ...(businessHours ? { businessHours } : {}),
         isAvailable: settings.orders.acceptGuestOrders,
         supportsTakeaway: deliverySettings.enableTakeaway,
         supportsDelivery: deliverySettings.enableDelivery,
@@ -2206,9 +2265,38 @@ const saveSettings = async () => {
           deliveryFee: deliverySettings.deliveryFee,
           estimatedPrepTimeMin: deliverySettings.estimatedPrepTimeMin,
           estimatedPrepTimeMax: deliverySettings.estimatedPrepTimeMax,
+
+          // Read by the server. restaurantSettingsSchema declares these, and
+          // OrderService.createOrder gates on minOrderAmount -- it is compared
+          // against a major-unit subtotal, so the figure entered here goes
+          // through unconverted.
+          //
+          // The toggle is not stored: 0 and "disabled" are the same thing to
+          // the gate (`minOrderAmount > 0`), so storing both invites them to
+          // disagree. It is derived back from the amount on load.
+          minOrderAmount: settings.orders.minimumOrderEnabled
+            ? settings.orders.minimumOrderAmount
+            : 0,
+          autoAcceptOrders: settings.orders.autoConfirm,
+          timezone: settings.restaurant.timezone,
+
+          // Console preferences with no server behaviour, kept under one key so
+          // the flat namespace above stays "settings the server acts on".
+          adminConsole: {
+            language: settings.system.language,
+            autoLogoutMinutes: settings.system.autoLogoutMinutes,
+            preparationTimeAlert: settings.orders.preparationTimeAlert,
+            defaultPreparationTime: settings.orders.defaultPreparationTime,
+            retentionDays: settings.orders.retentionDays,
+            tables: { ...settings.tables },
+            notifications: structuredClone(toRaw(settings.notifications)),
+            security: structuredClone(toRaw(settings.security)),
+          },
         },
       });
       setRestaurantCurrency(settings.system.currency as CurrencyCode);
+      loadedBusinessHours.openTime = settings.restaurant.openTime;
+      loadedBusinessHours.closeTime = settings.restaurant.closeTime;
     }
 
     showSuccessMessage.value = true;
@@ -2250,6 +2338,10 @@ const loadSettings = async () => {
         longitude?: number | null;
         isAvailable?: boolean;
         supportsTakeaway?: boolean;
+        businessHours?: Record<
+          string,
+          { open: string; close: string; isOpen: boolean }
+        > | null;
         settings?: {
           allowGuestOrders?: boolean;
           currency?: string;
@@ -2259,6 +2351,19 @@ const loadSettings = async () => {
           deliveryFee?: number;
           estimatedPrepTimeMin?: number;
           estimatedPrepTimeMax?: number;
+          minOrderAmount?: number;
+          autoAcceptOrders?: boolean;
+          timezone?: string;
+          adminConsole?: {
+            language?: string;
+            autoLogoutMinutes?: number;
+            preparationTimeAlert?: boolean;
+            defaultPreparationTime?: number;
+            retentionDays?: number;
+            tables?: Partial<typeof settings.tables>;
+            notifications?: Partial<typeof settings.notifications>;
+            security?: Partial<typeof settings.security>;
+          };
         };
       }>(`/restaurants/${restaurantId}`);
       const data = response.data?.data;
@@ -2280,6 +2385,21 @@ const loadSettings = async () => {
         if (data.supportsTakeaway !== undefined) {
           deliverySettings.enableTakeaway = data.supportsTakeaway;
         }
+
+        // The screen shows one open/close pair for the week; take it from the
+        // first day that has hours. Recording what was loaded is what lets
+        // saveSettings leave per-day hours alone when the owner did not touch
+        // these two fields.
+        currentBusinessHours.value = data.businessHours ?? null;
+        const firstDay = Object.values(data.businessHours ?? {}).find(
+          (day) => day?.open && day?.close,
+        );
+        if (firstDay) {
+          settings.restaurant.openTime = firstDay.open;
+          settings.restaurant.closeTime = firstDay.close;
+        }
+        loadedBusinessHours.openTime = settings.restaurant.openTime;
+        loadedBusinessHours.closeTime = settings.restaurant.closeTime;
       }
       if (data?.settings) {
         if (data.settings.currency) {
@@ -2305,6 +2425,66 @@ const loadSettings = async () => {
         if (data.settings.estimatedPrepTimeMax !== undefined) {
           deliverySettings.estimatedPrepTimeMax =
             data.settings.estimatedPrepTimeMax;
+        }
+
+        // Server-read settings.
+        if (data.settings.minOrderAmount !== undefined) {
+          settings.orders.minimumOrderAmount = data.settings.minOrderAmount;
+          // Derived, not stored: the order gate gates on `> 0`, so an amount of
+          // zero and a disabled toggle are the same thing. Keeping a separate
+          // flag would let the two disagree and there would be no way to tell
+          // which one the gate was following.
+          settings.orders.minimumOrderEnabled =
+            data.settings.minOrderAmount > 0;
+        }
+        if (data.settings.autoAcceptOrders !== undefined) {
+          settings.orders.autoConfirm = data.settings.autoAcceptOrders;
+        }
+        if (data.settings.timezone) {
+          settings.restaurant.timezone = data.settings.timezone;
+        }
+
+        // Console preferences. Each group is merged rather than assigned so a
+        // payload written by an older build, missing keys this one expects,
+        // leaves the defaults in place instead of turning them undefined.
+        const console = data.settings.adminConsole;
+        if (console) {
+          if (console.language) settings.system.language = console.language;
+          if (console.autoLogoutMinutes !== undefined) {
+            settings.system.autoLogoutMinutes = console.autoLogoutMinutes;
+          }
+          if (console.preparationTimeAlert !== undefined) {
+            settings.orders.preparationTimeAlert = console.preparationTimeAlert;
+          }
+          if (console.defaultPreparationTime !== undefined) {
+            settings.orders.defaultPreparationTime =
+              console.defaultPreparationTime;
+          }
+          if (console.retentionDays !== undefined) {
+            settings.orders.retentionDays = console.retentionDays;
+          }
+          if (console.tables) Object.assign(settings.tables, console.tables);
+          if (console.notifications?.sound) {
+            Object.assign(
+              settings.notifications.sound,
+              console.notifications.sound,
+            );
+          }
+          if (console.notifications?.desktop) {
+            Object.assign(
+              settings.notifications.desktop,
+              console.notifications.desktop,
+            );
+          }
+          if (console.security?.password) {
+            Object.assign(
+              settings.security.password,
+              console.security.password,
+            );
+          }
+          if (console.security?.login) {
+            Object.assign(settings.security.login, console.security.login);
+          }
         }
       }
     }
