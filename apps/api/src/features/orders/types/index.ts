@@ -506,16 +506,7 @@ export type OrderErrorCode =
  * Valid status transitions: maps each status to the statuses it can transition to.
  * Single source of truth — used by both route-layer guards and service-layer validation.
  */
-export const ORDER_STATUS_TRANSITIONS: Record<string, readonly string[]> = {
-  pending: ["confirmed", "cancelled"],
-  confirmed: ["preparing", "cancelled"],
-  preparing: ["ready", "cancelled"],
-  ready: ["delivered", "cancelled"],
-  delivered: ["paid", "refunded"],
-  paid: [],
-  cancelled: [],
-  refunded: [],
-} as const;
+export { ORDER_STATUS_TRANSITIONS } from "@makanmasak/shared-types";
 
 /**
  * Role-based permissions for which statuses each role can set an order to.

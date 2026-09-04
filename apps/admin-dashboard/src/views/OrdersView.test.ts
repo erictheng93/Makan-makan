@@ -184,4 +184,39 @@ describe("OrdersView", () => {
         .exists(),
     ).toBe(false);
   });
+
+  // The server's machine allows preparing -> cancelled and ready -> cancelled.
+  // This screen used to offer the button only for pending and confirmed, so a
+  // customer who left once the kitchen had started gave the owner no way out
+  // except pushing the order to paid — recording revenue that never arrived,
+  // in a state nothing can reverse (#310).
+  it.each(["preparing", "ready"] as const)(
+    "offers cancellation from %s, which the server accepts",
+    (status) => {
+      const order = makeOrder({ status });
+      orderStore.orders = [order];
+      const wrapper = mount(OrdersView);
+
+      expect(
+        wrapper.find(`[data-testid="admin-order-cancel-${order.id}"]`).exists(),
+      ).toBe(true);
+    },
+  );
+
+  it("does not offer cancellation to a role the server would 403", () => {
+    // ROLE_STATUS_PERMISSIONS grants "cancelled" to admin and owner only, but
+    // this route is also served to chef, service crew and cashier. The button
+    // used to render for all of them with no role check at all.
+    const order = makeOrder({ status: "preparing" });
+    orderStore.orders = [order];
+
+    for (const role of [2, 3, 4]) {
+      authStore.user.role = role;
+      const view = mount(OrdersView);
+      expect(
+        view.find(`[data-testid="admin-order-cancel-${order.id}"]`).exists(),
+      ).toBe(false);
+      view.unmount();
+    }
+  });
 });

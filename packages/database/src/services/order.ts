@@ -27,6 +27,7 @@ import {
   ORDER_STATUS,
 } from "../schema";
 import {
+  CANCELLABLE_ORDER_STATUSES,
   ORDER_ITEM_STATUSES,
   ORDER_PAYMENT_METHODS,
   ORDER_PAYMENT_STATUSES,
@@ -47,18 +48,13 @@ import { IngredientConsumptionService } from "./ingredient-consumption";
 import { loadAssembledMenuItemOptions } from "./menu-options";
 import { TenantMemberDirectoryService } from "./TenantMemberDirectoryService";
 
-// Kept deliberately in step with ORDER_STATUS_TRANSITIONS in
-// apps/api/src/features/orders/types/index.ts, which lets pending, confirmed,
-// preparing and ready all move to cancelled. The two lists used to disagree,
-// and the gap was not academic: PUT /orders/:id/status honoured the wider list
-// while restoring no inventory at all, so cancelling a `preparing` order left
-// its stock deducted with no way back (#282).
-const cancellableOrderStatuses: readonly string[] = [
-  ORDER_STATUS.PENDING,
-  ORDER_STATUS.CONFIRMED,
-  ORDER_STATUS.PREPARING,
-  ORDER_STATUS.READY,
-];
+// Derived from the shared status machine rather than restated. These two used
+// to be separate hand-maintained lists and they disagreed; the gap was not
+// academic, because PUT /orders/:id/status honoured the wider one while
+// restoring no inventory at all, so cancelling a `preparing` order left its
+// stock deducted with no way back (#282). A comment saying "keep these in
+// step" is not a mechanism — this is.
+const cancellableOrderStatuses = CANCELLABLE_ORDER_STATUSES;
 
 export const orderMenuItemSummaryColumns = {
   id: true,

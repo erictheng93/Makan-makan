@@ -133,6 +133,43 @@ export const ORDER_STATUSES = [
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
+/**
+ * The order status machine. Every consumer that needs to know "what can this
+ * order become" reads it from here.
+ *
+ * It lives in shared-types rather than in the API because three copies of this
+ * knowledge already existed and one of them had drifted: OrdersView's
+ * `canCancel` offered cancellation only from pending and confirmed, while the
+ * server accepted it from preparing and ready too, so a shop owner whose
+ * customer left mid-cook had no button and could only push the order forward
+ * to paid (#310). An earlier divergence between the API table and
+ * `cancellableOrderStatuses` in packages/database was worse than a missing
+ * button: the wider list was honoured while no inventory was restored, so a
+ * cancelled `preparing` order left its stock deducted with no way back (#282).
+ *
+ * Values stay `string[]` rather than `OrderStatus[]` on purpose — callers do
+ * `TRANSITIONS[current]?.includes(next)` with plain strings off the wire, and
+ * a narrower element type turns that `includes` into a compile error.
+ */
+export const ORDER_STATUS_TRANSITIONS: Record<string, readonly string[]> = {
+  pending: ["confirmed", "cancelled"],
+  confirmed: ["preparing", "cancelled"],
+  preparing: ["ready", "cancelled"],
+  ready: ["delivered", "cancelled"],
+  delivered: ["paid", "refunded"],
+  paid: [],
+  cancelled: [],
+  refunded: [],
+} as const;
+
+/** Statuses an order can still be cancelled from, derived so it cannot drift
+ * from the machine above. */
+export const CANCELLABLE_ORDER_STATUSES: readonly string[] = Object.entries(
+  ORDER_STATUS_TRANSITIONS,
+)
+  .filter(([, next]) => next.includes("cancelled"))
+  .map(([status]) => status);
+
 /** Statuses each staff role may set. Owners retain full control of their own
  * restaurant; route-level restaurant access remains the tenancy boundary. */
 export const ROLE_STATUS_PERMISSIONS: Record<number, readonly OrderStatus[]> = {

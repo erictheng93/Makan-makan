@@ -643,7 +643,10 @@ import { api } from "@/services/api";
 import { useRouter } from "vue-router";
 import { useI18n } from "@/i18n";
 import { useToast } from "vue-toastification";
-import { ROLE_STATUS_PERMISSIONS } from "@makanmasak/shared-types";
+import {
+  CANCELLABLE_ORDER_STATUSES,
+  ROLE_STATUS_PERMISSIONS,
+} from "@makanmasak/shared-types";
 import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 import { useAuthStore } from "@/stores/auth";
 import { useCurrency } from "@/composables/useCurrency";
@@ -938,8 +941,28 @@ const canUpdateStatus = (status: string) => {
   );
 };
 
+// Two things this used to get wrong, both of the same shape as the 更新 and
+// 退款 buttons before they were fixed: it decided on its own what the server
+// would accept, and it did not ask whether this role may cancel at all.
+//
+// The status list came from a hardcoded ["pending", "confirmed"] while the
+// server's machine also allows preparing -> cancelled and ready -> cancelled.
+// A customer who leaves once the kitchen has started left the owner no button,
+// and the only remaining move was to push the order forward to paid -- which
+// records revenue that never arrived and is terminal (#310). Deriving it from
+// CANCELLABLE_ORDER_STATUSES means the button cannot narrow on its own again.
+//
+// The role check is the other half: ROLE_STATUS_PERMISSIONS grants "cancelled"
+// to admin and owner only, but /dashboard/orders is also routed for chef,
+// service crew and cashier. Without it the button rendered for all of them and
+// every click was a guaranteed 403.
 const canCancel = (status: string) => {
-  return ["pending", "confirmed"].includes(status);
+  const role = authStore.user?.role;
+  return (
+    CANCELLABLE_ORDER_STATUSES.includes(status) &&
+    role !== undefined &&
+    Boolean(ROLE_STATUS_PERMISSIONS[role]?.includes("cancelled"))
+  );
 };
 
 const getNextStatus = (currentStatus: string) => {
