@@ -23,6 +23,10 @@ import {
   businessDateFromUnixMsSql,
   businessDateSql,
 } from "../utils/business-day";
+import {
+  BusinessTimezoneResolver,
+  PLATFORM_BUSINESS_TIMEZONE_OFFSET_MINUTES,
+} from "../utils/business-timezone";
 import { CustomerWebPushService } from "./CustomerWebPushService";
 import { RealtimeBroadcastService } from "./RealtimeBroadcastService";
 import { BaseService, type CloudflareEnv } from "./base";
@@ -131,6 +135,20 @@ const getMutationChanges = (result: unknown): number => {
 };
 
 export class WaitingListService extends BaseService {
+  private readonly businessTimezone = new BusinessTimezoneResolver(this.db);
+
+  /**
+   * `queue_date` is a business day, so it has to be cut at the restaurant's
+   * own midnight (#329): on a hardcoded +8 a GMT+9 shop's 00:30 walk-in was
+   * filed under yesterday's queue and then invisible to every "today" lookup
+   * that follows -- including the duplicate check and the queue numbering.
+   */
+  private async queueDateSql(restaurantId: string) {
+    return businessDateSql(
+      await this.businessTimezone.offsetMinutes(restaurantId),
+    );
+  }
+
   private backgroundTasks: Promise<void>[] = [];
 
   constructor(d1: D1Database, env: CloudflareEnv) {
@@ -270,13 +288,18 @@ export class WaitingListService extends BaseService {
       // 1. 驗證輸入
       this.validateWaitingListData(data);
 
+      const offsetMinutes = await this.businessTimezone.offsetMinutes(
+        data.restaurantId,
+      );
+      const queueDate = businessDateSql(offsetMinutes);
+
       // 2. 檢查是否已在候位中——idempotent: 同手機同餐廳同日已有 active 票就回傳現有票
       const existingEntry = await this.db.get<{ id: string }>(sql`
         SELECT id FROM waiting_list
         WHERE restaurant_id = ${data.restaurantId}
           AND customer_phone = ${data.customerPhone}
           AND status IN ('waiting', 'called', 'confirmed')
-          AND queue_date = ${businessDateSql()}
+          AND queue_date = ${queueDate}
       `);
 
       if (existingEntry) {
@@ -334,7 +357,7 @@ export class WaitingListService extends BaseService {
           ${entry.id}, ${entry.restaurantId}, ${entry.customerId ?? null}, ${entry.customerName},
           ${entry.customerPhone}, ${entry.partySize}, ${entry.preferredTableType ?? null},
           ${entry.queueNumber}, ${entry.queueLetter},
-          ${businessDateFromUnixMsSql(entry.createdAt!)},
+          ${businessDateFromUnixMsSql(entry.createdAt!, offsetMinutes)},
           ${entry.priority},
           ${entry.estimatedWaitMinutes}, ${entry.status}, ${entry.notes ?? null},
           ${entry.createdAt}, ${entry.updatedAt}
@@ -413,7 +436,7 @@ export class WaitingListService extends BaseService {
         WHERE w.restaurant_id = ${restaurantId}
           AND w.customer_phone = ${customerPhone}
           AND w.status IN ('waiting', 'called', 'confirmed')
-          AND w.queue_date = ${businessDateSql()}
+          AND w.queue_date = ${await this.queueDateSql(restaurantId)}
         LIMIT 1
       `);
 
@@ -546,8 +569,12 @@ export class WaitingListService extends BaseService {
       if (filters.date) {
         conditions.push(sql`${waitingList.queueDate} = ${filters.date}`);
       } else {
-        // 默認只顯示今天的
-        conditions.push(sql`${waitingList.queueDate} = ${businessDateSql()}`);
+        // 默認只顯示今天的。沒有指定餐廳時這份清單橫跨全平台，沒有哪一家店的
+        // 午夜可以套用，所以用平台偏移量 (#329)。
+        const today = filters.restaurantId
+          ? await this.queueDateSql(filters.restaurantId)
+          : businessDateSql(PLATFORM_BUSINESS_TIMEZONE_OFFSET_MINUTES);
+        conditions.push(sql`${waitingList.queueDate} = ${today}`);
       }
 
       // 分頁
@@ -1070,7 +1097,7 @@ export class WaitingListService extends BaseService {
             WHERE restaurant_id = ${restaurantId}
               AND status = 'waiting'
               AND party_size <= ${partySize + 2}
-              AND queue_date = ${businessDateSql()}
+              AND queue_date = ${await this.queueDateSql(restaurantId)}
           `),
         this.db.get<OccupiedTableCountRow>(sql`
             SELECT
@@ -1176,7 +1203,7 @@ export class WaitingListService extends BaseService {
             FROM waiting_list
             WHERE restaurant_id = ${restaurantId}
               AND status = 'waiting'
-              AND queue_date = ${businessDateSql()}
+              AND queue_date = ${await this.queueDateSql(restaurantId)}
           `),
         this.db.get<CountRow>(sql`
             SELECT COUNT(*) as count
@@ -1234,7 +1261,9 @@ export class WaitingListService extends BaseService {
       if (date) {
         conditions.push(sql`${waitingList.queueDate} = ${date}`);
       } else {
-        conditions.push(sql`${waitingList.queueDate} = ${businessDateSql()}`);
+        conditions.push(
+          sql`${waitingList.queueDate} = ${await this.queueDateSql(restaurantId)}`,
+        );
       }
 
       const whereExpr = sql.join(conditions, sql` AND `);
@@ -1313,7 +1342,7 @@ export class WaitingListService extends BaseService {
         FROM waiting_list
         WHERE restaurant_id = ${restaurantId}
           AND queue_letter = ${letter}
-          AND queue_date = ${businessDateSql()}
+          AND queue_date = ${await this.queueDateSql(restaurantId)}
       `);
 
       const maxNumber = result?.max_number || 0;
@@ -1342,7 +1371,7 @@ export class WaitingListService extends BaseService {
           AND status = 'waiting'
           AND queue_number < ${queueNumber}
           AND party_size <= ${partySize + 2}
-          AND queue_date = ${businessDateSql()}
+          AND queue_date = ${await this.queueDateSql(restaurantId)}
       `);
 
       return result?.count || 0;
@@ -1363,7 +1392,7 @@ export class WaitingListService extends BaseService {
         FROM waiting_list
         WHERE restaurant_id = ${restaurantId}
           AND status = 'waiting'
-          AND queue_date = ${businessDateSql()}
+          AND queue_date = ${await this.queueDateSql(restaurantId)}
         ORDER BY queue_number ASC
       `);
 

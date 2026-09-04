@@ -5,6 +5,7 @@
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, gte, lte, sql, type SQL } from "drizzle-orm";
 import {
+  BusinessTimezoneResolver,
   cashShifts,
   cashRegisters,
   cashMovements,
@@ -25,9 +26,11 @@ import { generateUUID } from "@makanmasak/utils";
 
 export class ReportService {
   private db;
+  private businessTimezone;
 
   constructor(d1: D1Database) {
     this.db = drizzle(d1);
+    this.businessTimezone = new BusinessTimezoneResolver(this.db);
   }
 
   /**
@@ -259,6 +262,11 @@ export class ReportService {
     error?: string;
   }> {
     try {
+      // `date` 是店家自己的日曆日，四段查詢必須切在同一個午夜，
+      // 否則同一天的班次、訂單、退款會落在不同的日界上 (#329)。
+      const offsetMinutes =
+        await this.businessTimezone.offsetMinutes(restaurantId);
+
       // 獲取當日班次
       const shifts = await this.db
         .select()
@@ -267,7 +275,7 @@ export class ReportService {
         .where(
           and(
             eq(cashRegisters.restaurantId, restaurantId),
-            sql`${dateFromUnixMs(cashShifts.startedAt)} = ${date}`,
+            sql`${dateFromUnixMs(cashShifts.startedAt, offsetMinutes)} = ${date}`,
           ),
         )
         .orderBy(cashShifts.startedAt);
@@ -288,7 +296,7 @@ export class ReportService {
         .where(
           and(
             eq(orders.restaurantId, restaurantId),
-            sql`${dateFromUnixMs(orders.createdAt)} = ${date}`,
+            sql`${dateFromUnixMs(orders.createdAt, offsetMinutes)} = ${date}`,
           ),
         );
 
@@ -303,7 +311,7 @@ export class ReportService {
         .where(
           and(
             eq(cashRegisters.restaurantId, restaurantId),
-            sql`${dateFromUnixMs(refunds.processedAt)} = ${date}`,
+            sql`${dateFromUnixMs(refunds.processedAt, offsetMinutes)} = ${date}`,
             eq(refunds.status, "completed"),
           ),
         );
@@ -321,7 +329,7 @@ export class ReportService {
         .where(
           and(
             eq(orders.restaurantId, restaurantId),
-            sql`${dateFromUnixMs(orders.createdAt)} = ${date}`,
+            sql`${dateFromUnixMs(orders.createdAt, offsetMinutes)} = ${date}`,
           ),
         )
         .groupBy(menuItems.id, menuItems.name)
@@ -376,21 +384,31 @@ export class ReportService {
     error?: string;
   }> {
     try {
+      const offsetMinutes =
+        await this.businessTimezone.offsetMinutes(restaurantId);
       let dateFilter: SQL;
       let groupByExpr: SQL;
 
       switch (period) {
         case "day":
           dateFilter = sql`${cashShifts.startedAt} >= (unixepoch('now', '-7 days') * 1000)`;
-          groupByExpr = dateFromUnixMs(cashShifts.startedAt);
+          groupByExpr = dateFromUnixMs(cashShifts.startedAt, offsetMinutes);
           break;
         case "week":
           dateFilter = sql`${cashShifts.startedAt} >= (unixepoch('now', '-4 weeks') * 1000)`;
-          groupByExpr = strftimeFromUnixMs("%Y-%W", cashShifts.startedAt);
+          groupByExpr = strftimeFromUnixMs(
+            "%Y-%W",
+            cashShifts.startedAt,
+            offsetMinutes,
+          );
           break;
         case "month":
           dateFilter = sql`${cashShifts.startedAt} >= (unixepoch('now', '-12 months') * 1000)`;
-          groupByExpr = strftimeFromUnixMs("%Y-%m", cashShifts.startedAt);
+          groupByExpr = strftimeFromUnixMs(
+            "%Y-%m",
+            cashShifts.startedAt,
+            offsetMinutes,
+          );
           break;
       }
 

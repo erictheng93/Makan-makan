@@ -5,6 +5,7 @@
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, desc, ne, sql, type SQL } from "drizzle-orm";
 import {
+  BusinessTimezoneResolver,
   amountFromCents,
   businessNumber,
   dateFromUnixMs,
@@ -22,9 +23,11 @@ import { generateUUID } from "@makanmasak/utils";
 
 export class ReceiptService {
   private db;
+  private businessTimezone;
 
   constructor(d1: D1Database) {
     this.db = drizzle(d1);
+    this.businessTimezone = new BusinessTimezoneResolver(this.db);
   }
 
   /**
@@ -279,15 +282,20 @@ export class ReceiptService {
 
       const conditions: SQL[] = [eq(receipts.registerId, registerId)];
 
+      // Calendar-day bounds are the operator's days, so they are cut at the
+      // register's own midnight rather than a fixed +8 (#329).
+      const offsetMinutes =
+        await this.businessTimezone.offsetMinutesForCashRegister(registerId);
+
       if (startDate) {
         conditions.push(
-          sql`${dateFromUnixMs(receipts.createdAt)} >= ${startDate}`,
+          sql`${dateFromUnixMs(receipts.createdAt, offsetMinutes)} >= ${startDate}`,
         );
       }
 
       if (endDate) {
         conditions.push(
-          sql`${dateFromUnixMs(receipts.createdAt)} <= ${endDate}`,
+          sql`${dateFromUnixMs(receipts.createdAt, offsetMinutes)} <= ${endDate}`,
         );
       }
 

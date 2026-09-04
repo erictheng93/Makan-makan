@@ -5,6 +5,7 @@
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, desc, sql, type SQL } from "drizzle-orm";
 import {
+  BusinessTimezoneResolver,
   cashMovements,
   cashShifts,
   dateFromUnixMs,
@@ -19,9 +20,11 @@ import { generateUUID } from "@makanmasak/utils";
 
 export class CashMovementService {
   private db;
+  private businessTimezone;
 
   constructor(d1: D1Database) {
     this.db = drizzle(d1);
+    this.businessTimezone = new BusinessTimezoneResolver(this.db);
   }
 
   /**
@@ -159,8 +162,10 @@ export class CashMovementService {
       ];
 
       if (date) {
+        // `date` is a calendar day the operator typed, so it has to be matched
+        // at the register's own midnight rather than a fixed +8 (#329).
         conditions.push(
-          sql`${dateFromUnixMs(cashMovements.createdAt)} = ${date}`,
+          sql`${dateFromUnixMs(cashMovements.createdAt, await this.businessTimezone.offsetMinutesForCashRegister(registerId))} = ${date}`,
         );
       }
 

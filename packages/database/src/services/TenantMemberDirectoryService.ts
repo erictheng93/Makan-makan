@@ -22,6 +22,8 @@ import {
   restaurantCustomers,
 } from "../schema";
 import { BaseService } from "./base";
+import { BusinessTimezoneResolver } from "../utils/business-timezone";
+import { strftimeNow } from "../utils/sql-time";
 import { maskEmail, maskPhone } from "./pii-masking";
 
 export interface TenantScope {
@@ -137,6 +139,8 @@ const LOOKS_LIKE_PHONE = /^\+?[\d\s\-().]{6,}$/;
  * customer id; callers can only address a member through restaurant_customers.
  */
 export class TenantMemberDirectoryService extends BaseService {
+  private readonly businessTimezone = new BusinessTimezoneResolver(this.db);
+
   private memberProjection() {
     return {
       memberId: restaurantCustomers.id,
@@ -532,14 +536,19 @@ export class TenantMemberDirectoryService extends BaseService {
   }
 
   async stats(scope: TenantScope) {
-    // Business months follow the +8 convention of utils/sql-time.ts, not the
+    // Business months follow this restaurant's own midnight (#329), not the
     // server's local clock: `new Date().setDate(1)` puts UTC CI and a Taipei
     // box in different months for eight hours of every day, and would silently
     // move the boundary again the moment the Worker's TZ changed.
     //
     // Computing it in SQL also sidesteps binding a JS Date into a raw sql``
     // fragment, where there is no column encoder in scope to turn it into ms.
-    const businessMonthStartMs = sql`(unixepoch(strftime('%Y-%m-01', 'now', '+8 hours')) - 8 * 3600) * 1000`;
+    // strftime gives the shop's local first-of-month; subtracting the offset
+    // turns that wall clock back into the UTC instant the column stores.
+    const offsetMinutes = await this.businessTimezone.offsetMinutes(
+      scope.restaurantId,
+    );
+    const businessMonthStartMs = sql`(unixepoch(${strftimeNow("%Y-%m-01", offsetMinutes)}) - ${offsetMinutes * 60}) * 1000`;
     const [row] = await this.db
       .select({
         totalMembers: count(),

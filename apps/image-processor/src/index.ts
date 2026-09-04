@@ -10,6 +10,7 @@ import {
   createDatabase,
   sql,
   count,
+  PLATFORM_BUSINESS_TIMEZONE_OFFSET_MINUTES,
   dateFromUnixMs,
   images,
   imageViews,
@@ -587,7 +588,11 @@ async function sendDailyStats(env: Env) {
         active_restaurants: sql<number>`COUNT(DISTINCT ${images.restaurantId})`,
       })
       .from(images)
-      .where(sql`${dateFromUnixMs(images.uploadedAt)} = ${dateStr}`);
+      // Platform-wide daily digest -- it spans every tenant, so there is no
+      // one shop's midnight to cut it at (#329).
+      .where(
+        sql`${dateFromUnixMs(images.uploadedAt, PLATFORM_BUSINESS_TIMEZONE_OFFSET_MINUTES)} = ${dateStr}`,
+      );
 
     const stats = statsResult[0];
 
@@ -600,7 +605,7 @@ async function sendDailyStats(env: Env) {
       })
       .from(imageProcessingJobs)
       .where(
-        sql`${dateFromUnixMs(imageProcessingJobs.createdAt)} = ${dateStr}`,
+        sql`${dateFromUnixMs(imageProcessingJobs.createdAt, PLATFORM_BUSINESS_TIMEZONE_OFFSET_MINUTES)} = ${dateStr}`,
       );
 
     const processingStats = processingStatsResult[0];

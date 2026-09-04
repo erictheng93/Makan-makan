@@ -33,8 +33,13 @@ import {
   businessDateNow,
   dateFromUnixMs,
   strftimeFromUnixMs,
+  strftimeNow,
   unixMsDiffMinutes,
 } from "../utils/sql-time";
+import {
+  BusinessTimezoneResolver,
+  PLATFORM_BUSINESS_TIMEZONE_OFFSET_MINUTES,
+} from "../utils/business-timezone";
 import { BaseService } from "./base";
 
 /**
@@ -184,6 +189,21 @@ export interface DashboardData {
 }
 
 export class AnalyticsService extends BaseService {
+  private readonly businessTimezone = new BusinessTimezoneResolver(this.db);
+
+  /**
+   * The UTC offset this query's business days are cut at (#329).
+   *
+   * An unscoped filter aggregates across every tenant, so there is no single
+   * shop's midnight to honour; the platform constant says that out loud
+   * rather than quietly borrowing one restaurant's boundary for all of them.
+   */
+  private async offsetMinutesFor(restaurantId?: string): Promise<number> {
+    return restaurantId
+      ? this.businessTimezone.offsetMinutes(restaurantId)
+      : PLATFORM_BUSINESS_TIMEZONE_OFFSET_MINUTES;
+  }
+
   // 取得營收分析資料
   async getRevenueAnalytics(filters: AnalyticsFilters): Promise<RevenueData[]> {
     try {
@@ -212,7 +232,10 @@ export class AnalyticsService extends BaseService {
       conditions.push(sql`${orders.status} != 'cancelled'`);
 
       // 生成日期分組 SQL
-      const dateGroupSql = this.getDateGroupSQL(groupBy);
+      const dateGroupSql = this.getDateGroupSQL(
+        groupBy,
+        await this.offsetMinutesFor(restaurantId),
+      );
 
       // 查詢營收資料
       const revenueData = await this.db
@@ -802,10 +825,23 @@ export class AnalyticsService extends BaseService {
         };
       }
 
-      const orderBusinessDate = dateFromUnixMs(orders.createdAt);
-      const orderBusinessMonth = strftimeFromUnixMs("%Y-%m", orders.createdAt);
-      const currentBusinessMonth = sql<string>`strftime('%Y-%m', 'now', '+8 hours')`;
-      const previousBusinessMonth = sql<string>`strftime('%Y-%m', 'now', '+8 hours', 'start of month', '-1 month')`;
+      // One offset for every bucket in this dashboard: the day, the month and
+      // the month it is compared against all have to be cut at the same
+      // midnight, or the comparison is between two different calendars.
+      const offsetMinutes = await this.offsetMinutesFor(restaurantId);
+      const orderBusinessDate = dateFromUnixMs(orders.createdAt, offsetMinutes);
+      const orderBusinessMonth = strftimeFromUnixMs(
+        "%Y-%m",
+        orders.createdAt,
+        offsetMinutes,
+      );
+      const currentBusinessMonth = strftimeNow("%Y-%m", offsetMinutes);
+      const previousBusinessMonth = strftimeNow(
+        "%Y-%m",
+        offsetMinutes,
+        "start of month",
+        "-1 month",
+      );
 
       // 訂單數計非取消訂單；營收計已結帳訂單 (paid / delivered / served)
       // 先前用 eq(status, "completed") 一直過不了，因為 orders 表實際
@@ -822,7 +858,7 @@ export class AnalyticsService extends BaseService {
         .where(
           and(
             eq(orders.restaurantId, restaurantId),
-            eq(orderBusinessDate, businessDateNow()),
+            eq(orderBusinessDate, businessDateNow(offsetMinutes)),
             ne(orders.status, "cancelled"),
           ),
         );
@@ -835,7 +871,7 @@ export class AnalyticsService extends BaseService {
         .where(
           and(
             eq(orders.restaurantId, restaurantId),
-            eq(orderBusinessDate, businessDateNow()),
+            eq(orderBusinessDate, businessDateNow(offsetMinutes)),
             inArray(orders.status, FULFILLED_ORDER_STATUSES),
           ),
         );
@@ -1037,18 +1073,18 @@ export class AnalyticsService extends BaseService {
   }
 
   // 輔助函數：生成日期分組 SQL
-  private getDateGroupSQL(groupBy: string) {
+  private getDateGroupSQL(groupBy: string, offsetMinutes: number) {
     switch (groupBy) {
       case "day":
-        return dateFromUnixMs(orders.createdAt);
+        return dateFromUnixMs(orders.createdAt, offsetMinutes);
       case "week":
-        return strftimeFromUnixMs("%Y-W%W", orders.createdAt);
+        return strftimeFromUnixMs("%Y-W%W", orders.createdAt, offsetMinutes);
       case "month":
-        return strftimeFromUnixMs("%Y-%m", orders.createdAt);
+        return strftimeFromUnixMs("%Y-%m", orders.createdAt, offsetMinutes);
       case "year":
-        return strftimeFromUnixMs("%Y", orders.createdAt);
+        return strftimeFromUnixMs("%Y", orders.createdAt, offsetMinutes);
       default:
-        return dateFromUnixMs(orders.createdAt);
+        return dateFromUnixMs(orders.createdAt, offsetMinutes);
     }
   }
 
@@ -1111,7 +1147,10 @@ export class AnalyticsService extends BaseService {
     // Same population as the revenue query it is netted against.
     conditions.push(sql`${orders.status} != 'cancelled'`);
 
-    const dateGroupSql = this.getDateGroupSQL(groupBy);
+    const dateGroupSql = this.getDateGroupSQL(
+      groupBy,
+      await this.offsetMinutesFor(restaurantId),
+    );
     conditions.push(
       inArray(
         sql<string>`${dateGroupSql}`,
@@ -1155,6 +1194,7 @@ export class AnalyticsService extends BaseService {
         const shiftedDateGroupSql = this.getShiftedDateGroupSQL(
           groupBy,
           dateRange.spanMs,
+          await this.offsetMinutesFor(restaurantId),
         );
 
         const comparisonData = await this.db
@@ -1174,7 +1214,10 @@ export class AnalyticsService extends BaseService {
       }
     }
 
-    const dateGroupSql = this.getDateGroupSQL(groupBy);
+    const dateGroupSql = this.getDateGroupSQL(
+      groupBy,
+      await this.offsetMinutesFor(restaurantId),
+    );
     const priorBuckets = revenueData.map((item) =>
       this.getPreviousBucketDate(item.date, groupBy),
     );
@@ -1226,18 +1269,19 @@ export class AnalyticsService extends BaseService {
   private getShiftedDateGroupSQL(
     groupBy: NonNullable<AnalyticsFilters["groupBy"]>,
     shiftMs: number,
+    offsetMinutes: number,
   ): SQL {
     const shiftedDateSql = sql`(${orders.createdAt} + ${shiftMs})`;
 
     switch (groupBy) {
       case "day":
-        return dateFromUnixMs(shiftedDateSql);
+        return dateFromUnixMs(shiftedDateSql, offsetMinutes);
       case "week":
-        return strftimeFromUnixMs("%Y-W%W", shiftedDateSql);
+        return strftimeFromUnixMs("%Y-W%W", shiftedDateSql, offsetMinutes);
       case "month":
-        return strftimeFromUnixMs("%Y-%m", shiftedDateSql);
+        return strftimeFromUnixMs("%Y-%m", shiftedDateSql, offsetMinutes);
       case "year":
-        return strftimeFromUnixMs("%Y", shiftedDateSql);
+        return strftimeFromUnixMs("%Y", shiftedDateSql, offsetMinutes);
     }
   }
 

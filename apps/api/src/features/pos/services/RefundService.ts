@@ -10,6 +10,7 @@ import {
   orders,
   cashMovements,
   cashShifts,
+  BusinessTimezoneResolver,
   amountFromCents,
   businessNumber,
   dateFromUnixMs,
@@ -68,10 +69,12 @@ const REFUNDABLE_PAYMENT_STATUSES: readonly string[] = [
 
 export class RefundService {
   private db;
+  private businessTimezone;
   private readonly alertSink?: RefundServiceOptions["alertSink"];
 
   constructor(d1: D1Database, options: RefundServiceOptions = {}) {
     this.db = drizzle(d1);
+    this.businessTimezone = new BusinessTimezoneResolver(this.db);
     this.alertSink = options.alertSink;
   }
 
@@ -287,15 +290,20 @@ export class RefundService {
 
       const conditions: SQL[] = [eq(refunds.registerId, registerId)];
 
+      // Calendar-day bounds are the operator's days, so they are cut at the
+      // register's own midnight rather than a fixed +8 (#329).
+      const offsetMinutes =
+        await this.businessTimezone.offsetMinutesForCashRegister(registerId);
+
       if (startDate) {
         conditions.push(
-          sql`${dateFromUnixMs(refunds.processedAt)} >= ${startDate}`,
+          sql`${dateFromUnixMs(refunds.processedAt, offsetMinutes)} >= ${startDate}`,
         );
       }
 
       if (endDate) {
         conditions.push(
-          sql`${dateFromUnixMs(refunds.processedAt)} <= ${endDate}`,
+          sql`${dateFromUnixMs(refunds.processedAt, offsetMinutes)} <= ${endDate}`,
         );
       }
 

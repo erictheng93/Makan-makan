@@ -6,6 +6,7 @@ import {
   menuItems,
   orders,
   orderItems,
+  BusinessTimezoneResolver,
   dateFromUnixMs,
   getBusinessDate,
   strftimeFromUnixMs,
@@ -36,12 +37,14 @@ interface CachedItemData {
 
 export class ForecastService implements IForecastService {
   private db;
+  private businessTimezone;
 
   constructor(
     d1: D1Database,
     private kv: KVNamespace,
   ) {
     this.db = drizzle(d1);
+    this.businessTimezone = new BusinessTimezoneResolver(this.db);
   }
 
   async generateForecast(
@@ -279,12 +282,16 @@ export class ForecastService implements IForecastService {
       }
     }
 
+    const actualOrderDate = dateFromUnixMs(
+      orders.createdAt,
+      await this.businessTimezone.offsetMinutes(restaurantId),
+    );
     const actuals = await this.db
       .select({
         menuItemId: orderItems.menuItemId,
         itemName: menuItems.name,
         actualQuantity: sql<number>`SUM(${orderItems.quantity})`,
-        orderDate: dateFromUnixMs(orders.createdAt),
+        orderDate: actualOrderDate,
       })
       .from(orderItems)
       .innerJoin(orders, eq(orderItems.orderId, orders.id))
@@ -300,11 +307,11 @@ export class ForecastService implements IForecastService {
             "paid",
           ]),
           sql`${orderItems.status} != 'cancelled'`,
-          sql`${dateFromUnixMs(orders.createdAt)} >= ${startDate}`,
-          sql`${dateFromUnixMs(orders.createdAt)} <= ${endDate}`,
+          sql`${actualOrderDate} >= ${startDate}`,
+          sql`${actualOrderDate} <= ${endDate}`,
         ),
       )
-      .groupBy(orderItems.menuItemId, dateFromUnixMs(orders.createdAt));
+      .groupBy(orderItems.menuItemId, actualOrderDate);
 
     const actualMap = new Map<string, Map<number, number>>();
     for (const row of actuals) {
@@ -343,7 +350,10 @@ export class ForecastService implements IForecastService {
 
   async getAlerts(restaurantId: string): Promise<ForecastAlert[]> {
     const alerts: ForecastAlert[] = [];
-    const tomorrow = getBusinessDate(new Date(Date.now() + 86400000));
+    const tomorrow = getBusinessDate(
+      await this.businessTimezone.offsetMinutes(restaurantId),
+      new Date(Date.now() + 86400000),
+    );
 
     const forecasts = await this.getForecast(restaurantId, tomorrow, tomorrow);
     if (!forecasts.length || !forecasts[0].items.length) return [];
@@ -527,12 +537,15 @@ export class ForecastService implements IForecastService {
     targetDate: string,
     weekday: number,
   ): Promise<Record<string, { name: string; weeklySales: number[] }>> {
+    const offsetMinutes =
+      await this.businessTimezone.offsetMinutes(restaurantId);
+    const orderDate = dateFromUnixMs(orders.createdAt, offsetMinutes);
     const result = await this.db
       .select({
         menuItemId: orderItems.menuItemId,
         itemName: menuItems.name,
         quantitySum: sql<number>`SUM(${orderItems.quantity})`,
-        orderDate: dateFromUnixMs(orders.createdAt),
+        orderDate,
       })
       .from(orderItems)
       .innerJoin(orders, eq(orderItems.orderId, orders.id))
@@ -548,13 +561,13 @@ export class ForecastService implements IForecastService {
             "paid",
           ]),
           sql`${orderItems.status} != 'cancelled'`,
-          sql`CAST(${strftimeFromUnixMs("%w", orders.createdAt)} AS INTEGER) = ${weekday}`,
-          sql`${dateFromUnixMs(orders.createdAt)} >= DATE(${targetDate}, '-' || ${HISTORICAL_WEEKS * 7} || ' days')`,
-          sql`${dateFromUnixMs(orders.createdAt)} < ${targetDate}`,
+          sql`CAST(${strftimeFromUnixMs("%w", orders.createdAt, offsetMinutes)} AS INTEGER) = ${weekday}`,
+          sql`${orderDate} >= DATE(${targetDate}, '-' || ${HISTORICAL_WEEKS * 7} || ' days')`,
+          sql`${orderDate} < ${targetDate}`,
         ),
       )
-      .groupBy(orderItems.menuItemId, dateFromUnixMs(orders.createdAt))
-      .orderBy(sql`${dateFromUnixMs(orders.createdAt)} DESC`);
+      .groupBy(orderItems.menuItemId, orderDate)
+      .orderBy(sql`${orderDate} DESC`);
 
     const grouped: Record<string, { name: string; weeklySales: number[] }> = {};
     for (const row of result) {

@@ -12,6 +12,10 @@ import {
   type ImageProcessingJob,
 } from "../schema";
 import {
+  BusinessTimezoneResolver,
+  PLATFORM_BUSINESS_TIMEZONE_OFFSET_MINUTES,
+} from "../utils/business-timezone";
+import {
   dateFromUnixMs,
   strftimeFromUnixMs,
   unixMsDiffSeconds,
@@ -125,6 +129,19 @@ export interface CreateImageData {
 }
 
 export class ImageService extends BaseService {
+  private readonly businessTimezone = new BusinessTimezoneResolver(this.db);
+
+  /**
+   * Day and month buckets follow the restaurant's own midnight when the
+   * analytics call is scoped to one (#329); an unscoped call spans every
+   * tenant, so it says so with the platform offset instead.
+   */
+  private async offsetMinutesFor(restaurantId?: string): Promise<number> {
+    return restaurantId
+      ? this.businessTimezone.offsetMinutes(restaurantId)
+      : PLATFORM_BUSINESS_TIMEZONE_OFFSET_MINUTES;
+  }
+
   /**
    * Record image view for analytics
    */
@@ -202,17 +219,22 @@ export class ImageService extends BaseService {
       .orderBy(sql`SUM(${images.size}) DESC`);
 
     // Monthly upload trends
+    const uploadMonth = strftimeFromUnixMs(
+      "%Y-%m",
+      images.uploadedAt,
+      await this.offsetMinutesFor(options.restaurantId),
+    );
     const monthlyTrends = await this.db
       .select({
-        month: strftimeFromUnixMs("%Y-%m", images.uploadedAt),
+        month: uploadMonth,
         images_uploaded: count(),
         storage_used: sql<number>`SUM(${images.size})`,
         avg_file_size: sql<number>`AVG(${images.size})`,
       })
       .from(images)
       .where(whereClause)
-      .groupBy(strftimeFromUnixMs("%Y-%m", images.uploadedAt))
-      .orderBy(sql`${strftimeFromUnixMs("%Y-%m", images.uploadedAt)} DESC`)
+      .groupBy(uploadMonth)
+      .orderBy(sql`${uploadMonth} DESC`)
       .limit(12);
 
     // Total storage statistics
@@ -263,6 +285,14 @@ export class ImageService extends BaseService {
     const whereClause =
       whereConditions.length > 0 ? and(...whereConditions) : undefined;
 
+    const viewOffsetMinutes = await this.offsetMinutesFor(options.restaurantId);
+    const viewDate = dateFromUnixMs(imageViews.viewedAt, viewOffsetMinutes);
+    const viewHour = strftimeFromUnixMs(
+      "%H",
+      imageViews.viewedAt,
+      viewOffsetMinutes,
+    );
+
     // Most viewed images
     const mostViewedImages = await this.db
       .select({
@@ -271,7 +301,7 @@ export class ImageService extends BaseService {
         original_filename: images.originalFilename,
         category: images.category,
         view_count: count(imageViews.id),
-        days_viewed: sql<number>`COUNT(DISTINCT ${dateFromUnixMs(imageViews.viewedAt)})`,
+        days_viewed: sql<number>`COUNT(DISTINCT ${viewDate})`,
       })
       .from(images)
       .leftJoin(imageViews, eq(images.id, imageViews.imageId))
@@ -305,27 +335,27 @@ export class ImageService extends BaseService {
     // Daily usage trends
     const dailyUsage = await this.db
       .select({
-        date: dateFromUnixMs(imageViews.viewedAt),
+        date: viewDate,
         total_views: count(),
         unique_images_viewed: sql<number>`COUNT(DISTINCT ${imageViews.imageId})`,
       })
       .from(imageViews)
       .where(whereClause)
-      .groupBy(dateFromUnixMs(imageViews.viewedAt))
-      .orderBy(sql`${dateFromUnixMs(imageViews.viewedAt)} DESC`)
+      .groupBy(viewDate)
+      .orderBy(sql`${viewDate} DESC`)
       .limit(30);
 
     // Peak usage hours
     const hourlyUsage = await this.db
       .select({
-        hour: strftimeFromUnixMs("%H", imageViews.viewedAt),
+        hour: viewHour,
         view_count: count(),
         avg_hourly_views: sql<number>`AVG(COUNT(*)) OVER()`,
       })
       .from(imageViews)
       .where(whereClause)
-      .groupBy(strftimeFromUnixMs("%H", imageViews.viewedAt))
-      .orderBy(sql`${strftimeFromUnixMs("%H", imageViews.viewedAt)}`);
+      .groupBy(viewHour)
+      .orderBy(sql`${viewHour}`);
 
     return {
       most_viewed_images: mostViewedImages,
@@ -408,9 +438,13 @@ export class ImageService extends BaseService {
       .orderBy(desc(count()));
 
     // Processing trends over time
+    const jobDate = dateFromUnixMs(
+      imageProcessingJobs.createdAt,
+      await this.offsetMinutesFor(options.restaurantId),
+    );
     const processingTrends = await this.db
       .select({
-        date: dateFromUnixMs(imageProcessingJobs.createdAt),
+        date: jobDate,
         jobs_created: count(),
         jobs_completed: sql<number>`SUM(CASE WHEN ${imageProcessingJobs.status} = 'completed' THEN 1 ELSE 0 END)`,
         jobs_failed: sql<number>`SUM(CASE WHEN ${imageProcessingJobs.status} = 'failed' THEN 1 ELSE 0 END)`,
@@ -426,8 +460,8 @@ export class ImageService extends BaseService {
       })
       .from(imageProcessingJobs)
       .where(whereClause)
-      .groupBy(dateFromUnixMs(imageProcessingJobs.createdAt))
-      .orderBy(sql`${dateFromUnixMs(imageProcessingJobs.createdAt)} DESC`)
+      .groupBy(jobDate)
+      .orderBy(sql`${jobDate} DESC`)
       .limit(30);
 
     // Error analysis

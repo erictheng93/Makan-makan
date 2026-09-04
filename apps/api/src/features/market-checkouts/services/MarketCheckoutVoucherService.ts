@@ -16,6 +16,8 @@
 import { drizzle } from "drizzle-orm/d1";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import {
+  BusinessTimezoneResolver,
+  PLATFORM_BUSINESS_TIMEZONE_OFFSET_MINUTES,
   coupons,
   couponUsage,
   getBusinessDate,
@@ -74,9 +76,14 @@ interface NormalizedCoupon {
 
 export class MarketCheckoutVoucherService {
   private readonly db: ReturnType<typeof drizzle>;
+  // Type inferred from the constructor: annotating it would pin the schema
+  // type parameter to the resolver's default, which this schema-less drizzle
+  // instance does not match.
+  private readonly businessTimezone;
 
   constructor(env: Env) {
     this.db = drizzle(env.DB);
+    this.businessTimezone = new BusinessTimezoneResolver(this.db);
   }
 
   /**
@@ -232,7 +239,13 @@ export class MarketCheckoutVoucherService {
       );
     }
 
-    const today = getBusinessDate();
+    // A shop's voucher expires at that shop's midnight; a platform voucher
+    // has no single shop to belong to, so it uses the platform offset (#329).
+    const today = getBusinessDate(
+      coupon.restaurantId == null
+        ? PLATFORM_BUSINESS_TIMEZONE_OFFSET_MINUTES
+        : await this.businessTimezone.offsetMinutes(coupon.restaurantId),
+    );
     if (coupon.validFrom > today || coupon.validTo < today) {
       throw badRequest("This voucher has expired", "VOUCHER_EXPIRED");
     }

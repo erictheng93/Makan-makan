@@ -630,6 +630,55 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
       }),
     ).rejects.toMatchObject({ code: "VOUCHER_EXPIRED" });
   });
+
+  // 16:30 UTC is still 23:30 on the 6th in Ho Chi Minh but already 00:30 on
+  // the 7th in Taipei. A voucher whose last valid day is the 6th is therefore
+  // live at one shop and expired at the other, at the same instant (#329).
+  it("expires a shop's voucher at that shop's midnight", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-06T16:30:00.000Z"));
+
+    const lastDayOfJune6 = {
+      id: 11,
+      code: "TONIGHT",
+      name: "Tonight only",
+      restaurantId: "rest-1",
+      deletedAt: null,
+      isActive: true,
+      isVisible: true,
+      validFrom: "2026-06-01",
+      validTo: "2026-06-06",
+      usageLimit: null,
+      usedCount: null,
+      minOrderAmountCents: 0,
+      discountType: "fixed",
+      discountValueCents: 100,
+      maxDiscountAmountCents: null,
+    };
+    const checkout = {
+      code: "tonight",
+      subtotalCents: 1000,
+      childOrders: [
+        { orderId: "1", restaurantId: "rest-1", amountCents: 1000 },
+      ],
+    };
+
+    await expect(
+      makeValidateUnitService(
+        lastDayOfJune6,
+        { coupons: [[lastDayOfJune6]] },
+        7 * 60,
+      ).validateAndPrice(checkout),
+    ).resolves.toMatchObject({ couponId: 11 });
+
+    await expect(
+      makeValidateUnitService(
+        lastDayOfJune6,
+        { coupons: [[lastDayOfJune6]] },
+        8 * 60,
+      ).validateAndPrice(checkout),
+    ).rejects.toMatchObject({ code: "VOUCHER_EXPIRED" });
+  });
 });
 
 describe("MarketCheckoutVoucherService.redeem", () => {
@@ -872,15 +921,26 @@ function makeValidateUnitService(
   fixtures: SelectFixtures<SelectFixtureName> = {
     coupons: [coupon == null ? [] : [coupon]],
   },
+  // A shop's voucher expires at that shop's midnight (#329). The owning
+  // restaurant's zone is a separate read in the real service; here it is
+  // supplied directly so a test can vary the boundary without also having to
+  // declare a restaurants fixture for every coupon shape.
+  shopOffsetMinutes = 8 * 60,
 ) {
   const service = Object.create(MarketCheckoutVoucherService.prototype) as {
     db: {
       select: ReturnType<typeof vi.fn>;
     };
+    businessTimezone: {
+      offsetMinutes: (restaurantId: string) => Promise<number>;
+    };
     validateAndPrice: MarketCheckoutVoucherService["validateAndPrice"];
   };
   service.db = {
     select: createSelectMock(fixtures),
+  };
+  service.businessTimezone = {
+    offsetMinutes: async () => shopOffsetMinutes,
   };
   return service;
 }

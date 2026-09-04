@@ -2,6 +2,7 @@ import { and, eq, desc, count, sql } from "drizzle-orm";
 import { BaseService } from "./base";
 import { prefixedUuid } from "./id-generation";
 import { businessDateNow, dateFromUnixMs } from "../utils/sql-time";
+import { PLATFORM_BUSINESS_TIMEZONE_OFFSET_MINUTES } from "../utils/business-timezone";
 import {
   qrCodes,
   qrTemplates,
@@ -367,11 +368,14 @@ export class QRCodeService extends BaseService {
       .from(qrCodes);
     const totalCodes = totalCodesResult[0]?.count || 0;
 
-    // 今日QR碼數
+    // 今日QR碼數。這是全平台計數，不屬於任何一家店的營業日，所以用平台偏移量
+    // 而不是某家店的午夜 (#329)。
     const todayCodesResult = await this.db
       .select({ count: count() })
       .from(qrCodes)
-      .where(sql`${dateFromUnixMs(qrCodes.createdAt)} = ${businessDateNow()}`);
+      .where(
+        sql`${dateFromUnixMs(qrCodes.createdAt, PLATFORM_BUSINESS_TIMEZONE_OFFSET_MINUTES)} = ${businessDateNow(PLATFORM_BUSINESS_TIMEZONE_OFFSET_MINUTES)}`,
+      );
     const todayCodes = todayCodesResult[0]?.count || 0;
 
     // 總下載數

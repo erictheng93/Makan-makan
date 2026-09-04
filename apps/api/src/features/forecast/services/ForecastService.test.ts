@@ -7,10 +7,12 @@ vi.mock("drizzle-orm/d1", () => ({
 import { ForecastService } from "./ForecastService";
 import { MAX_FORECAST_RANGE_DAYS } from "../schemas/validation";
 import {
+  BusinessTimezoneResolver,
   forecastCache,
   menuItems,
   orderItems,
   orders,
+  restaurants,
 } from "@makanmasak/database";
 import {
   createSelectFixtureDb,
@@ -113,11 +115,21 @@ const fixtureTables = {
   forecastCache,
   menuItems,
   orderItems,
+  restaurants,
 };
 type SelectFixtureName = keyof typeof fixtureTables;
 
+/**
+ * Every restaurant-scoped query resolves the shop's business-day boundary
+ * first (#329). It is read once per service instance and is not what most of
+ * these tests are about, so the default answers Taipei; the business-day tests
+ * below declare their own.
+ */
 function createSelectDb(fixtures: SelectFixtures<SelectFixtureName> = {}) {
-  return createSelectFixtureDb(fixtureTables, fixtures);
+  return createSelectFixtureDb(fixtureTables, {
+    restaurants: [[{ timezone: "Asia/Taipei" }]],
+    ...fixtures,
+  });
 }
 
 /**
@@ -146,6 +158,11 @@ function useSelectDb(
   db: ReturnType<typeof createSelectDb>,
 ): void {
   (service as unknown as { db: unknown }).db = db;
+  // The timezone resolver is built in the constructor against the drizzle
+  // instance this fixture is replacing, so it has to be re-pointed at the
+  // fixture too or it keeps reading the mocked-away db (#329).
+  (service as unknown as { businessTimezone: unknown }).businessTimezone =
+    new BusinessTimezoneResolver(db as never);
 }
 
 /**
@@ -166,21 +183,34 @@ describe("ForecastService", () => {
     vi.useRealTimers();
   });
 
-  it("queries the next Taipei business day at 01:00 local time", async () => {
-    // At 01:00 Taipei, adding 24h then formatting in UTC is still 6/7;
-    // the business-day calculation must instead return local tomorrow, 6/8.
-    vi.setSystemTime(new Date("2026-06-06T17:00:00.000Z"));
-    const service = new ForecastService({} as D1Database, createKV().kv);
-    const getForecast = vi.spyOn(service, "getForecast").mockResolvedValue([]);
+  // 16:30 UTC is 00:30 the next day in Taipei but still 23:30 the same day in
+  // Ho Chi Minh, so the two shops' "tomorrow" are a day apart. Formatting the
+  // instant in UTC gives 6/7 for both, and the old hardcoded +8 gave 6/8 for
+  // both -- each of which is wrong for one of them (#329).
+  const ALERT_INSTANT = new Date("2026-06-06T16:30:00.000Z");
 
-    await service.getAlerts("restaurant-1");
+  it.each([
+    ["Asia/Taipei", "2026-06-08"],
+    ["Asia/Ho_Chi_Minh", "2026-06-07"],
+  ])(
+    "asks for tomorrow's forecast in %s, which is %s",
+    async (timezone, expectedDate) => {
+      vi.setSystemTime(ALERT_INSTANT);
+      const service = new ForecastService({} as D1Database, createKV().kv);
+      useSelectDb(service, createSelectDb({ restaurants: [[{ timezone }]] }));
+      const getForecast = vi
+        .spyOn(service, "getForecast")
+        .mockResolvedValue([]);
 
-    expect(getForecast).toHaveBeenCalledWith(
-      "restaurant-1",
-      "2026-06-08",
-      "2026-06-08",
-    );
-  });
+      await service.getAlerts("restaurant-1");
+
+      expect(getForecast).toHaveBeenCalledWith(
+        "restaurant-1",
+        expectedDate,
+        expectedDate,
+      );
+    },
+  );
 
   it("routes select fixtures by table and reports missing fixtures", async () => {
     const db = createSelectDb({
@@ -517,7 +547,9 @@ describe("ForecastService", () => {
       actual: 0,
       deviation: 100,
     });
-    expect(service["db"].select).toHaveBeenCalledTimes(4);
+    // forecast cache + two chunked menu-item name reads + actual sales, plus
+    // the one-off business-timezone lookup the accuracy buckets are cut at.
+    expect(service["db"].select).toHaveBeenCalledTimes(5);
   });
 
   it("returns no accuracy rows when no forecasts exist", async () => {

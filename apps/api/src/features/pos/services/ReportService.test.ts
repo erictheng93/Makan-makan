@@ -7,6 +7,7 @@ import {
   orders,
   receipts,
   refunds,
+  restaurants,
 } from "@makanmasak/database";
 import {
   createSelectFixtureDb,
@@ -40,11 +41,27 @@ const fixtureTables = {
   orders,
   receipts,
   refunds,
+  restaurants,
 };
 type SelectFixtureName = keyof typeof fixtureTables;
 
+/**
+ * Restaurant-scoped queries resolve the shop's business-day boundary first
+ * (#329). It is read once per service instance and is not what these tests are
+ * about, so the default answers Taipei; a test that cares declares its own.
+ */
+const BUSINESS_TIMEZONE_FIXTURES: SelectFixtures<SelectFixtureName> = {
+  restaurants: [[{ timezone: "Asia/Taipei" }]],
+};
+
 function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName>) {
-  Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
+  Object.assign(
+    mocks.db,
+    createSelectFixtureDb(fixtureTables, {
+      ...BUSINESS_TIMEZONE_FIXTURES,
+      ...fixtures,
+    }),
+  );
 }
 
 function mockInsert() {

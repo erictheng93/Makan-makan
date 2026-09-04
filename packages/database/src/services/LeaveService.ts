@@ -18,6 +18,7 @@ import {
 import { SchedulingService } from "./SchedulingService";
 import { NotificationService } from "./NotificationService";
 import { getBusinessDate } from "../utils/business-day";
+import { BusinessTimezoneResolver } from "../utils/business-timezone";
 
 // ========================================
 // Types
@@ -234,6 +235,8 @@ export interface LeaveBalanceAdjustment {
 // ========================================
 
 export class LeaveService extends BaseService {
+  private readonly businessTimezone = new BusinessTimezoneResolver(this.db);
+
   private notificationService: NotificationService;
 
   constructor(d1: D1Database, env: CloudflareEnv) {
@@ -1398,7 +1401,11 @@ export class LeaveService extends BaseService {
       // 復原，所以連班表都留不下痕跡，可反覆刷出無限有薪假。
       // 只有「還沒開始」的核准假可以取消；pending 不受影響（本來就沒扣 usedDays）。
       if (request.status === "approved") {
-        const today = getBusinessDate();
+        // "Today" is the shop's today, not the Worker's: a GMT+9 restaurant
+        // cancelling at 00:30 local must not still be inside yesterday (#329).
+        const today = getBusinessDate(
+          await this.businessTimezone.offsetMinutes(request.restaurantId),
+        );
         if (request.startDate <= today) {
           throw new Error(
             "Approved leave cannot be cancelled once it has started",

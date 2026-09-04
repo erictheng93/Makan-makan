@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cashShifts, orders, refunds } from "@makanmasak/database";
+import {
+  cashRegisters,
+  cashShifts,
+  orders,
+  refunds,
+  restaurants,
+} from "@makanmasak/database";
 import {
   createMutationFixtureDb,
   createSelectFixtureDb,
@@ -28,11 +34,33 @@ vi.mock("drizzle-orm/d1", () => ({
   drizzle: vi.fn(() => mocks.db),
 }));
 
-const fixtureTables = { cashShifts, orders, refunds };
+const fixtureTables = {
+  cashRegisters,
+  cashShifts,
+  orders,
+  refunds,
+  restaurants,
+};
 type FixtureName = keyof typeof fixtureTables;
 
+/**
+ * Restaurant-scoped queries resolve the shop's business-day boundary first
+ * (#329). It is read once per service instance and is not what these tests are
+ * about, so the default answers Taipei; a test that cares declares its own.
+ */
+const BUSINESS_TIMEZONE_FIXTURES: SelectFixtures<FixtureName> = {
+  cashRegisters: [[{ restaurantId: "restaurant-1" }]],
+  restaurants: [[{ timezone: "Asia/Taipei" }]],
+};
+
 function mockSelectResults(fixtures: SelectFixtures<FixtureName>) {
-  Object.assign(mocks.db, createSelectFixtureDb(fixtureTables, fixtures));
+  Object.assign(
+    mocks.db,
+    createSelectFixtureDb(fixtureTables, {
+      ...BUSINESS_TIMEZONE_FIXTURES,
+      ...fixtures,
+    }),
+  );
 }
 
 /**
