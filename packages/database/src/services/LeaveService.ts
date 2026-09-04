@@ -17,6 +17,7 @@ import {
 } from "../schema";
 import { SchedulingService } from "./SchedulingService";
 import { NotificationService } from "./NotificationService";
+import { getBusinessDate } from "../utils/business-day";
 
 // ========================================
 // Types
@@ -1390,6 +1391,19 @@ export class LeaveService extends BaseService {
 
       if (request.status !== "pending" && request.status !== "approved") {
         throw new Error("Leave request cannot be cancelled");
+      }
+
+      // 已核准且假期已開始（或已結束）就不能再取消：取消會把 totalDays 退回
+      // usedDays，等於把已經休掉的天數還給員工，而核准時連帶取消的排班並不會
+      // 復原，所以連班表都留不下痕跡，可反覆刷出無限有薪假。
+      // 只有「還沒開始」的核准假可以取消；pending 不受影響（本來就沒扣 usedDays）。
+      if (request.status === "approved") {
+        const today = getBusinessDate();
+        if (request.startDate <= today) {
+          throw new Error(
+            "Approved leave cannot be cancelled once it has started",
+          );
+        }
       }
 
       // Pre-fetch balance for the conditional balance update

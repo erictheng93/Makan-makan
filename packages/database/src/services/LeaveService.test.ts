@@ -1,4 +1,17 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+// 假期日期是「營業日」（UTC+8），比較必須與執行機器的時區無關。把 TZ 釘在一個
+// 明顯不是 +8 也不是 UTC 的時區，本地綠燈才不會在 UTC CI 上變成另一種結果。
+process.env.TZ = "America/Los_Angeles";
+
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { eq } from "drizzle-orm";
 import {
   employeeLeaveBalances,
@@ -189,17 +202,23 @@ describe("LeaveService balance concurrency", () => {
         pendingDays: 0,
         usedDays: 4,
       });
+    // 日期必須在未來，否則會被「已開始的核准假不得取消」規則擋下來，
+    // 這個案例要測的是併發退還的累加，不是取消窗口。
     const firstRequestId = await seedLeaveRequest(testDb, {
       employeeId,
       leaveTypeId,
       totalDays: 2,
       status: "approved",
+      startDate: "2099-06-10",
+      endDate: "2099-06-11",
     });
     const secondRequestId = await seedLeaveRequest(testDb, {
       employeeId,
       leaveTypeId,
       totalDays: 2,
       status: "approved",
+      startDate: "2099-06-12",
+      endDate: "2099-06-13",
     });
 
     await Promise.all([
@@ -207,6 +226,158 @@ describe("LeaveService balance concurrency", () => {
       service.cancelLeaveRequest(secondRequestId, approverId, "changed"),
     ]);
 
+    const [balance] = await testDb.drizzle
+      .select()
+      .from(employeeLeaveBalances)
+      .where(eq(employeeLeaveBalances.id, balanceId));
+    expect(balance.pendingDays).toBe(0);
+    expect(balance.usedDays).toBe(0);
+  });
+});
+
+describe("LeaveService approved-leave cancellation window", () => {
+  let testDb: TestDatabase;
+
+  // 凍結在 2026-09-04T17:30:00Z。此刻 UTC 日期是 09-04，釘住的 UTC-7 本地日期
+  // 也是 09-04，但營業日（UTC+8）已經跨到 09-05。任何改用本地或 UTC 日期實作
+  // 的比較，都會在下面的邊界案例上轉紅。
+  const frozenNow = new Date("2026-09-04T17:30:00.000Z");
+  const businessToday = "2026-09-05";
+  const businessTomorrow = "2026-09-06";
+  const alreadyPast = "2026-08-20";
+
+  beforeAll(async () => {
+    testDb = await createTestDatabase();
+  }, REAL_D1_SETUP_TIMEOUT_MS);
+
+  afterAll(async () => {
+    await testDb?.dispose();
+  });
+
+  beforeEach(async () => {
+    await testDb.truncateAll();
+    // 只假造 Date，setTimeout 等仍走真實計時器，避免卡住 D1 的非同步work。
+    vi.useFakeTimers({ toFake: ["Date"], shouldAdvanceTime: true });
+    vi.setSystemTime(frozenNow);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("refuses to cancel approved leave that has already been taken", async () => {
+    const service = new LeaveService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const { employeeId, leaveTypeId, balanceId } = await seedLeaveFixtures(
+      testDb,
+      { pendingDays: 0, usedDays: 2 },
+    );
+    const requestId = await seedLeaveRequest(testDb, {
+      employeeId,
+      leaveTypeId,
+      totalDays: 2,
+      status: "approved",
+      startDate: alreadyPast,
+      endDate: "2026-08-21",
+    });
+
+    await expect(
+      service.cancelLeaveRequest(requestId, employeeId, "refund me"),
+    ).rejects.toThrow(/cannot be cancelled once it has started/);
+
+    // 額度沒有被退還，申請也維持 approved
+    const [balance] = await testDb.drizzle
+      .select()
+      .from(employeeLeaveBalances)
+      .where(eq(employeeLeaveBalances.id, balanceId));
+    expect(balance.usedDays).toBe(2);
+
+    const [request] = await testDb.drizzle
+      .select()
+      .from(leaveRequests)
+      .where(eq(leaveRequests.id, requestId));
+    expect(request.status).toBe("approved");
+  });
+
+  it("refuses on the leave's own start date (business-day boundary)", async () => {
+    const service = new LeaveService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const { employeeId, leaveTypeId, balanceId } = await seedLeaveFixtures(
+      testDb,
+      { pendingDays: 0, usedDays: 2 },
+    );
+    const requestId = await seedLeaveRequest(testDb, {
+      employeeId,
+      leaveTypeId,
+      totalDays: 2,
+      status: "approved",
+      startDate: businessToday,
+      endDate: businessTomorrow,
+    });
+
+    await expect(
+      service.cancelLeaveRequest(requestId, employeeId, "refund me"),
+    ).rejects.toThrow(/cannot be cancelled once it has started/);
+
+    const [balance] = await testDb.drizzle
+      .select()
+      .from(employeeLeaveBalances)
+      .where(eq(employeeLeaveBalances.id, balanceId));
+    expect(balance.usedDays).toBe(2);
+  });
+
+  it("still refunds approved leave that has not started yet", async () => {
+    const service = new LeaveService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const { employeeId, leaveTypeId, balanceId } = await seedLeaveFixtures(
+      testDb,
+      { pendingDays: 0, usedDays: 2 },
+    );
+    const requestId = await seedLeaveRequest(testDb, {
+      employeeId,
+      leaveTypeId,
+      totalDays: 2,
+      status: "approved",
+      startDate: businessTomorrow,
+      endDate: "2026-09-07",
+    });
+
+    await expect(
+      service.cancelLeaveRequest(requestId, employeeId, "plans changed"),
+    ).resolves.toMatchObject({ id: requestId, status: "cancelled" });
+
+    const [balance] = await testDb.drizzle
+      .select()
+      .from(employeeLeaveBalances)
+      .where(eq(employeeLeaveBalances.id, balanceId));
+    expect(balance.usedDays).toBe(0);
+  });
+
+  it("still cancels a pending request whose dates are already past", async () => {
+    const service = new LeaveService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const { employeeId, leaveTypeId, balanceId } = await seedLeaveFixtures(
+      testDb,
+      { pendingDays: 2, usedDays: 0 },
+    );
+    const requestId = await seedLeaveRequest(testDb, {
+      employeeId,
+      leaveTypeId,
+      totalDays: 2,
+      status: "pending",
+      startDate: alreadyPast,
+      endDate: "2026-08-21",
+    });
+
+    await expect(
+      service.cancelLeaveRequest(requestId, employeeId, "withdrawn"),
+    ).resolves.toMatchObject({ id: requestId, status: "cancelled" });
+
+    // pending 從來沒扣過 usedDays，只釋放 pendingDays
     const [balance] = await testDb.drizzle
       .select()
       .from(employeeLeaveBalances)
@@ -626,6 +797,9 @@ async function seedLeaveRequest(
     leaveTypeId: number;
     totalDays: number;
     status?: "pending" | "approved";
+    // 已核准的假只有在尚未開始時才能取消，所以取消相關的測試必須自己指定日期。
+    startDate?: string;
+    endDate?: string;
   },
 ) {
   const now = new Date("2026-06-07T12:00:00.000Z");
@@ -635,8 +809,8 @@ async function seedLeaveRequest(
       restaurantId,
       employeeId: input.employeeId,
       leaveTypeId: input.leaveTypeId,
-      startDate: "2026-06-10",
-      endDate: "2026-06-11",
+      startDate: input.startDate ?? "2026-06-10",
+      endDate: input.endDate ?? "2026-06-11",
       startPeriod: "full",
       endPeriod: "full",
       totalDays: input.totalDays,
