@@ -2425,6 +2425,9 @@ const zhTWCore = {
     paymentMethod: "付款方式",
     processPayment: "處理付款",
     confirmPayment: "確認付款",
+    paymentFailed: "付款失敗，請重試",
+    amountMismatch:
+      "金額與伺服器記錄的訂單總額不符。此畫面上的折扣只改變顯示，不會送到伺服器。",
     paymentMethods: {
       cash: "現金",
       card: "信用卡",

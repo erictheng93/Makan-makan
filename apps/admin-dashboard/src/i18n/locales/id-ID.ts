@@ -2439,6 +2439,8 @@ const idID: Messages = {
     itemCount: "{count} item",
     orderDetails: "Detail Pesanan",
     paymentFailed: "Pembayaran gagal",
+    amountMismatch:
+      "Jumlah tidak cocok dengan total pesanan di server. Diskon yang diterapkan di layar ini hanya mengubah tampilan dan tidak pernah dikirim ke server.",
     paymentSuccess: "Pembayaran Berhasil!",
     orderCompleted: "Pesanan {orderNumber} selesai",
     digitalPayment: "Pembayaran Digital",

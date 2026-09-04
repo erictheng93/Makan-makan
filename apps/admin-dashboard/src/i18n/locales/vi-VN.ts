@@ -2426,6 +2426,8 @@ const viVN: Messages = {
     orderDetails: "Chi tiết đặt hàng",
     orderTime: "Thời gian đặt hàng",
     paymentFailed: "Thanh toán không thành công",
+    amountMismatch:
+      "Số tiền không khớp với tổng đơn hàng trên máy chủ. Giảm giá áp dụng ở màn hình này chỉ thay đổi hiển thị và không được gửi lên máy chủ.",
     paymentSuccess: "Thanh toán thành công!",
     orderCompleted: "Đơn hàng {orderNumber} đã hoàn thành",
     cashShort: "Thiếu tiền mặt {amount}",

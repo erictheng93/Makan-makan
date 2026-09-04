@@ -2427,6 +2427,8 @@ const jaJP: Messages = {
     orderDetails: "注文の詳細",
     cashShort: "{amount} による現金不足",
     paymentFailed: "支払いに失敗しました",
+    amountMismatch:
+      "サーバー上の注文合計と金額が一致しません。この画面の割引は表示を変えるだけで、サーバーには送信されません。",
     paymentSuccess: "支払いが成功しました！",
     orderTime: "注文時間",
     orderCompleted: "注文{orderNumber}が完了しました",

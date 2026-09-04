@@ -2441,6 +2441,8 @@ const enUS: Messages = {
       shiftEnded: "Shift ended, data saved.",
     },
     paymentFailed: "Payment failed",
+    amountMismatch:
+      "Amount does not match the order total on record. A discount applied on this screen changes only what is displayed and never reaches the server.",
     refundType: "Refund Type",
     refundTypes: {
       full: "Full Refund",

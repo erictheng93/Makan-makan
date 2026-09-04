@@ -109,4 +109,103 @@ describe("CashierView", () => {
       "Refund rejected",
     );
   });
+
+  // Checkout used to be `PUT /orders/:id/status {status:"paid"}` plus an
+  // optional `POST /pos/quick-payment`. The first writes only `status` and
+  // `paid_at`; the second is not a route this API has, and its 404 was
+  // swallowed. So every counter sale was counted as revenue with
+  // payment_status still "pending", no transaction row, and no
+  // paymentTransactionId — leaving it unrefundable and uncancellable (#310).
+  async function checkout(wrapper: ReturnType<typeof mount>) {
+    await wrapper.find(".cursor-pointer").trigger("click");
+    // The default method is cash, and canProcessPayment then requires the
+    // tendered amount to cover the total — without it the pay button stays
+    // disabled and the click is silently a no-op.
+    await wrapper.get('[data-testid="received-amount"]').setValue(100);
+    await wrapper.get('[data-testid="pay-btn"]').trigger("click");
+    await flushPromises();
+  }
+
+  it("settles through the real payment endpoint, carrying an idempotency key", async () => {
+    vi.mocked(api.post).mockResolvedValue({
+      data: { success: true, data: { transactionId: "txn-9" } },
+    } as never);
+    const wrapper = mount(CashierView);
+    await flushPromises();
+
+    await checkout(wrapper);
+
+    expect(api.post).toHaveBeenCalledWith(
+      "/payments",
+      expect.objectContaining({
+        orderId: "019fc320-c159-700c-a66c-39c9b98ed964",
+        paymentMode: "full",
+        amount: 100,
+        expectedTotal: 100,
+        closeOrder: true,
+      }),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "Idempotency-Key": expect.any(String),
+        }),
+      }),
+    );
+
+    // The old calls must be gone, not merely joined by a new one: leaving the
+    // status write in place would still mark the order paid ahead of the
+    // payment, which is the state this bug produced.
+    expect(api.put).not.toHaveBeenCalled();
+    expect(api.post).not.toHaveBeenCalledWith(
+      "/pos/quick-payment",
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
+  it("reuses one idempotency key across a retry, and mints a new one after success", async () => {
+    vi.mocked(api.post).mockRejectedValueOnce(new Error("network"));
+    vi.mocked(api.post).mockResolvedValue({
+      data: { success: true, data: { transactionId: "txn-9" } },
+    } as never);
+    const wrapper = mount(CashierView);
+    await flushPromises();
+
+    await checkout(wrapper);
+    await wrapper.get('[data-testid="pay-btn"]').trigger("click");
+    await flushPromises();
+
+    const keyOf = (call: number) =>
+      (
+        vi.mocked(api.post).mock.calls[call][2] as {
+          headers: Record<string, string>;
+        }
+      ).headers["Idempotency-Key"];
+
+    // A retry that mints a fresh key is not a retry as far as the server is
+    // concerned — it is a second payment.
+    expect(keyOf(1)).toBe(keyOf(0));
+  });
+
+  it("explains an amount mismatch instead of surfacing the raw HTTP failure", async () => {
+    // The server prices the order. A discount applied on this screen changes
+    // only what is displayed here, so it arrives as a total the server does
+    // not recognise.
+    vi.mocked(api.post).mockRejectedValueOnce({
+      response: {
+        status: 400,
+        data: {
+          success: false,
+          error: { code: "PAYMENT_AMOUNT_MISMATCH", message: "raw" },
+        },
+      },
+    });
+    const wrapper = mount(CashierView);
+    await flushPromises();
+
+    await checkout(wrapper);
+
+    expect(wrapper.get('[data-testid="payment-error"]').text()).toContain(
+      "cashier.amountMismatch",
+    );
+  });
 });

@@ -880,6 +880,7 @@ import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import { api, unwrapApiList, unwrapApiPayload } from "@/services/api";
+import { extractApiErrorCode } from "@/utils/errorHandler";
 import { useAuthStore } from "@/stores/auth";
 import type {
   Order as ApiOrder,
@@ -921,6 +922,10 @@ interface CashierOrder {
   discountAmount: number;
   totalAmount: number;
   paymentMethod?: string;
+  // Set by a real payment. `canRefund` on the orders screen requires it, which
+  // is why a checkout that never wrote a transaction row left the order
+  // unrefundable (#310).
+  paymentTransactionId?: string;
   items: CashierOrderItem[];
 }
 
@@ -1222,34 +1227,55 @@ const getOrderStatusText = (status: string) => {
   return texts[status] || status;
 };
 
+// Held across retries of one checkout, not minted per request. The server
+// requires an Idempotency-Key and uses it to replay the first answer instead of
+// charging again, which only works if a retry presents the same key. Cleared on
+// success so the next customer starts a new one.
+const pendingPaymentKey = ref<string | null>(null);
+
 const processPayment = async () => {
   if (!canProcessPayment.value || !selectedOrder.value) return;
 
   paymentError.value = "";
   isProcessing.value = true;
+  if (!pendingPaymentKey.value) {
+    pendingPaymentKey.value = crypto.randomUUID();
+  }
+
   try {
-    // Update order status to paid via API
-    const statusResponse = await api.put(
-      `/orders/${selectedOrder.value.id}/status`,
-      { status: "paid" },
+    // This used to be `PUT /orders/:id/status {status:"paid"}` followed by an
+    // optional `POST /pos/quick-payment`. Neither recorded a payment:
+    // updateOrderStatus writes only `status` and `paid_at`, and
+    // /pos/quick-payment does not exist in the API at all — its 404 was
+    // swallowed by a catch whose comment claimed the payment had been
+    // recorded. So an order left the counter marked paid with payment_status
+    // still "pending", no payment_transaction row, and therefore no
+    // paymentTransactionId — which is what the refund button requires. Revenue
+    // counted it (status "paid" is in FULFILLED_ORDER_STATUSES) while nothing
+    // recorded that money had arrived, and the order was terminal, so it could
+    // be neither refunded nor cancelled (#310).
+    //
+    // POST /payments does the whole thing in one guarded, idempotent call:
+    // writes the transaction, sets payment_status and payment_transaction_id,
+    // and closes the order.
+    const response = await api.post(
+      "/payments",
+      {
+        orderId: String(selectedOrder.value.id),
+        paymentMode: "full",
+        amount: selectedOrder.value.totalAmount,
+        expectedTotal: selectedOrder.value.totalAmount,
+        method: selectedPaymentMethod.value,
+        closeOrder: true,
+      },
+      { headers: { "Idempotency-Key": pendingPaymentKey.value } },
     );
 
-    if (statusResponse.data.success) {
-      // Also record payment via POS if we have a register context
-      if (currentShift.value.registerId) {
-        try {
-          await api.post("/pos/quick-payment", {
-            orderId: String(selectedOrder.value.id),
-            registerId: currentShift.value.registerId,
-            amount: selectedOrder.value.totalAmount,
-            paymentMethod: selectedPaymentMethod.value,
-            operatorId: authStore.user?.id ?? 0,
-          });
-        } catch {
-          // Non-critical: payment recorded even if POS tracking fails
-          console.warn("POS quick-payment tracking failed");
-        }
-      }
+    if (response.data.success) {
+      pendingPaymentKey.value = null;
+      const { transactionId } = unwrapApiPayload<{ transactionId?: string }>(
+        response.data.data,
+      );
 
       const orderIndex = orders.value.findIndex(
         (o) => o.id === selectedOrder.value!.id,
@@ -1258,6 +1284,7 @@ const processPayment = async () => {
         orders.value[orderIndex].paymentStatus = "completed";
         orders.value[orderIndex].status = "paid";
         orders.value[orderIndex].paymentMethod = selectedPaymentMethod.value;
+        orders.value[orderIndex].paymentTransactionId = transactionId;
       }
 
       completedOrder.value = { ...selectedOrder.value };
@@ -1269,14 +1296,29 @@ const processPayment = async () => {
     }
   } catch (error) {
     console.error("Payment processing error:", error);
+    // The server prices the order, not this screen. A local discount changes
+    // only what is displayed here, so it arrives as a total the server does not
+    // recognise. Say that plainly rather than showing "Request failed with
+    // status code 400".
+    const code = extractApiErrorCode(error);
     paymentError.value =
-      error instanceof Error
-        ? error.message
-        : t("cashier.paymentFailed") || "Payment failed";
+      code === "PAYMENT_AMOUNT_MISMATCH" || code === "PAYMENT_TOTAL_MISMATCH"
+        ? t("cashier.amountMismatch")
+        : (apiErrorMessage(error) ??
+          (error instanceof Error
+            ? error.message
+            : t("cashier.paymentFailed") || "Payment failed"));
   } finally {
     isProcessing.value = false;
   }
 };
+
+function apiErrorMessage(error: unknown): string | undefined {
+  const data = (error as { response?: { data?: unknown } } | null)?.response
+    ?.data;
+  const apiError = (data as { error?: { message?: unknown } } | null)?.error;
+  return typeof apiError?.message === "string" ? apiError.message : undefined;
+}
 
 const applyDiscount = () => {
   if (!selectedOrder.value) return;
