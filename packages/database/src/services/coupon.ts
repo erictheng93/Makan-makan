@@ -71,6 +71,8 @@ export type CouponEligibilityCode =
   | "COUPON_USAGE_LIMIT_REACHED"
   | "COUPON_MIN_ORDER_NOT_MET"
   | "COUPON_USER_LIMIT_REACHED"
+  // 設了每人上限、但呼叫端沒有身分且此券無總量上限（訪客訂單）
+  | "COUPON_REQUIRES_IDENTITY"
   | "COUPON_NOT_APPLICABLE"
   | "COUPON_ALREADY_USED";
 
@@ -454,23 +456,38 @@ export class CouponService extends BaseService {
     // 檢查每用戶使用上限。
     // 注意：count-then-insert 存在小競態（兩個併發請求可能同時通過檢查），
     // D1 沒有交易可用；總量上限仍由 claimUsageSlot 原子保證。
-    if (coupon.usageLimitPerUser && context.userId) {
-      const userUsageCount = await this.db
-        .select({ count: sql<number>`count(*)` })
-        .from(couponUsage)
-        .where(
-          and(
-            eq(couponUsage.couponId, coupon.id),
-            eq(couponUsage.userId, context.userId),
-            eq(couponUsage.status, "active"),
-          ),
-        );
+    if (coupon.usageLimitPerUser) {
+      if (!context.userId) {
+        // 訪客訂單沒有可鍵的身分：coupon_usage.user_id 是 users.id 的外鍵，
+        // 訪客只帶電話而電話在這張表沒有欄位可放，所以無法逐人計數。
+        // 若同時連總量上限都沒有，「每人 N 次」就完全無界 —— 直接拒絕，
+        // 不要讓一張設了每人上限的券變成無限量券。
+        // 有 usageLimit 時仍放行：claimUsageSlot 的原子 UPDATE 是權威封頂，
+        // 損害有界，維持既有的訪客可用行為。
+        if (!coupon.usageLimit) {
+          throw new CouponEligibilityError(
+            "COUPON_REQUIRES_IDENTITY",
+            "此優惠券限定每人使用次數，請先登入再使用",
+          );
+        }
+      } else {
+        const userUsageCount = await this.db
+          .select({ count: sql<number>`count(*)` })
+          .from(couponUsage)
+          .where(
+            and(
+              eq(couponUsage.couponId, coupon.id),
+              eq(couponUsage.userId, context.userId),
+              eq(couponUsage.status, "active"),
+            ),
+          );
 
-      if ((userUsageCount[0]?.count ?? 0) >= coupon.usageLimitPerUser) {
-        throw new CouponEligibilityError(
-          "COUPON_USER_LIMIT_REACHED",
-          "您已達到此優惠券的使用次數上限",
-        );
+        if ((userUsageCount[0]?.count ?? 0) >= coupon.usageLimitPerUser) {
+          throw new CouponEligibilityError(
+            "COUPON_USER_LIMIT_REACHED",
+            "您已達到此優惠券的使用次數上限",
+          );
+        }
       }
     }
 
