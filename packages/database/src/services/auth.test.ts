@@ -88,6 +88,7 @@ describe("AuthService refresh token rotation", () => {
     expect(verify(firstRefresh.tokens!.refreshToken, jwtSecret)).toMatchObject({
       sub: publicUserId,
       type: "refresh",
+      tv: 1,
     });
     expect(
       verify(firstRefresh.tokens!.refreshToken, jwtSecret),
@@ -153,8 +154,114 @@ describe("AuthService refresh token rotation", () => {
     expect(refreshPayload).toMatchObject({
       sub: loginUserId,
       type: "refresh",
+      tv: 3,
     });
     expect(refreshPayload).not.toHaveProperty("userId");
+  });
+
+  // A refresh token lives 7 days against the access token's 1 hour, so it is
+  // the credential that actually survives a password reset. Deactivating the
+  // session row is the primary control; this version check is the backstop for
+  // any revocation path that forgets to.
+  it("rejects a refresh token minted at a superseded token version", async () => {
+    await testDb.drizzle.insert(users).values({
+      id: publicUserId,
+      username: "owner-stale",
+      fullName: "Owner Stale",
+      passwordHash: "hash",
+      role: 1,
+      isActive: true,
+      // The reset already happened: the row moved on, the stolen token did not.
+      tokenVersion: 4,
+    });
+
+    const staleRefreshToken = sign(
+      { sub: publicUserId, type: "refresh", tv: 3, jti: "refresh-stale" },
+      jwtSecret,
+      { expiresIn: "7d" },
+    );
+
+    // The session row is deliberately still active, so the only thing that can
+    // reject this is the version claim.
+    await testDb.drizzle.insert(sessions).values({
+      id: "session-stale",
+      userId: publicUserId,
+      token: "stale-access",
+      refreshToken: staleRefreshToken,
+      isActive: true,
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    });
+
+    const service = new AuthService(testDb.bindings.DB, {
+      JWT_SECRET: jwtSecret,
+      NODE_ENV: "test",
+    });
+
+    await expect(service.refreshToken(staleRefreshToken)).resolves.toEqual({
+      success: false,
+      error: "Refresh token has been invalidated",
+    });
+  });
+
+  // An absent `tv` normalizes to 1, which is exactly what a token minted before
+  // the claim existed would have carried: token_version defaults to 1 and only
+  // increments. So legacy tokens keep working right up until the user has a
+  // revocation event, and are rejected from that moment on — no fleet-wide
+  // logout on deploy, and no window for the attack the claim exists to stop.
+  it("treats a refresh token with no version claim as version 1", async () => {
+    await testDb.drizzle.insert(users).values({
+      id: publicUserId,
+      username: "owner-legacy",
+      fullName: "Owner Legacy",
+      passwordHash: "hash",
+      role: 1,
+      isActive: true,
+      tokenVersion: 1,
+    });
+
+    const legacyRefreshToken = sign(
+      { sub: publicUserId, type: "refresh", jti: "refresh-legacy" },
+      jwtSecret,
+      { expiresIn: "7d" },
+    );
+
+    await testDb.drizzle.insert(sessions).values({
+      id: "session-legacy",
+      userId: publicUserId,
+      token: "legacy-access",
+      refreshToken: legacyRefreshToken,
+      isActive: true,
+      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    });
+
+    const service = new AuthService(testDb.bindings.DB, {
+      JWT_SECRET: jwtSecret,
+      NODE_ENV: "test",
+    });
+
+    // Never revoked: still accepted, and the rotation stamps the claim in.
+    const accepted = await service.refreshToken(legacyRefreshToken);
+    expect(accepted.success).toBe(true);
+    expect(verify(accepted.tokens!.refreshToken, jwtSecret)).toMatchObject({
+      type: "refresh",
+      tv: 1,
+    });
+
+    // Now the user resets their password: the same legacy token is dead, even
+    // though its session row survived.
+    await testDb.drizzle
+      .update(users)
+      .set({ tokenVersion: 2 })
+      .where(eq(users.id, publicUserId));
+    await testDb.drizzle
+      .update(sessions)
+      .set({ refreshToken: legacyRefreshToken, isActive: true })
+      .where(eq(sessions.id, "session-legacy"));
+
+    await expect(service.refreshToken(legacyRefreshToken)).resolves.toEqual({
+      success: false,
+      error: "Refresh token has been invalidated",
+    });
   });
 
   // The four session writes on the login path run as one ordered D1 batch.

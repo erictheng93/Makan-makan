@@ -13,6 +13,7 @@ import {
   emailVerificationTokens,
   phoneVerificationTokens,
   passwordChangeLogs,
+  sessions,
   users,
   type NewPasswordResetToken,
   type NewEmailVerificationToken,
@@ -352,6 +353,15 @@ export class VerificationService extends BaseService {
         success: true,
       };
 
+      // Bumping tokenVersion alone does not end a session: `sessions` rows stay
+      // `isActive = true`, and refreshToken() only looks the row up by
+      // refreshToken + isActive. Whoever holds a stolen refresh token could
+      // therefore trade it for a fresh access token stamped with the *new*
+      // version, so the reset evicted nobody. changePassword() has always
+      // deactivated the rows; both reset paths (email and SMS — the same batch
+      // serves each, only `changeMethod` differs) must do the same, and it goes
+      // inside the batch so a session can never survive a committed password
+      // change.
       await this.db.batch([
         this.db
           .update(users)
@@ -361,6 +371,10 @@ export class VerificationService extends BaseService {
             tokenVersion: sql`${users.tokenVersion} + 1`,
           })
           .where(eq(users.id, verification.userId!)),
+        this.db
+          .update(sessions)
+          .set({ isActive: false, updatedAt: passwordChangedAt })
+          .where(eq(sessions.userId, verification.userId!)),
         this.db
           .update(passwordResetTokens)
           .set({ usedAt: tokenUsedAt })

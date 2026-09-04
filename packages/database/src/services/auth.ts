@@ -67,10 +67,15 @@ function accessTokenPayload(user: TokenUser, tokenVersion: number) {
   };
 }
 
-function refreshTokenPayload(user: TokenUser) {
+// Refresh tokens carry `tv` for the same reason access tokens do, but it
+// matters more here: a refresh token lives 7 days against the access token's 1
+// hour, so it is the credential that actually outlives a password reset. See
+// the version check in refreshToken() for how an absent claim is treated.
+function refreshTokenPayload(user: TokenUser, tokenVersion: number) {
   return {
     sub: user.id,
     type: "refresh",
+    tv: tokenVersion,
     jti: crypto.randomUUID(),
   };
 }
@@ -253,9 +258,11 @@ export class AuthService extends BaseService {
         { expiresIn: ACCESS_TOKEN_EXPIRES_IN },
       );
 
-      const refreshToken = sign(refreshTokenPayload(user), jwtSecret, {
-        expiresIn: "7d",
-      });
+      const refreshToken = sign(
+        refreshTokenPayload(user, tokenVersion),
+        jwtSecret,
+        { expiresIn: "7d" },
+      );
 
       // These four writes used to be four sequential D1 round trips (deactivate
       // old sessions, sweep expired ones, insert the new session, stamp
@@ -440,6 +447,26 @@ export class AuthService extends BaseService {
         };
       }
 
+      const tokenVersion = normalizeTokenVersion(user.tokenVersion);
+      // Defence in depth behind the session deactivation that password resets,
+      // role changes and deactivations perform: if a `sessions` row is ever
+      // missed, the version claim still stops the refresh.
+      //
+      // An absent `tv` normalizes to 1, which is exactly the value a token
+      // minted before this claim existed would have carried — `token_version`
+      // defaults to 1 and only ever increments. So the default is not a bypass:
+      // every revocation event has already pushed the row past 1, and a legacy
+      // token is rejected the moment it matters. Failing closed on the absent
+      // claim instead would log out every staff member holding a pre-deploy
+      // refresh token, up to 7 days' worth, to reject tokens this comparison
+      // already rejects.
+      if (normalizeTokenVersion(decoded.tv) !== tokenVersion) {
+        return {
+          success: false,
+          error: "Refresh token has been invalidated",
+        };
+      }
+
       // 查詢 session (only select needed fields for security and performance)
       const session = await this.db
         .select({
@@ -469,15 +496,16 @@ export class AuthService extends BaseService {
 
       // 生成新的 access token
       const accessTokenExpiry = new Date(Date.now() + ACCESS_TOKEN_TTL_MS);
-      const tokenVersion = normalizeTokenVersion(user.tokenVersion);
       const accessToken = sign(
         accessTokenPayload(user, tokenVersion),
         jwtSecret,
         { expiresIn: ACCESS_TOKEN_EXPIRES_IN },
       );
-      const nextRefreshToken = sign(refreshTokenPayload(user), jwtSecret, {
-        expiresIn: "7d",
-      });
+      const nextRefreshToken = sign(
+        refreshTokenPayload(user, tokenVersion),
+        jwtSecret,
+        { expiresIn: "7d" },
+      );
 
       // 更新 session
       await this.db
