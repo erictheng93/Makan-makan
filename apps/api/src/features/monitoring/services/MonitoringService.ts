@@ -29,6 +29,14 @@ export interface MonitoringEnv {
   ANALYTICS_DATASET?: string;
   DB?: D1Database;
   QR_SIGNING_KEY?: string;
+  /**
+   * Comma-separated hostnames a `webhook` alert rule may be delivered to, e.g.
+   * "hooks.example.com,ops.example.com". The URL lives in an alert rule, which
+   * is data rather than deployment config, so it is checked against this list
+   * at send time. Unset means no webhook alert is sent at all -- see
+   * sendWebhookAlert.
+   */
+  ALERT_WEBHOOK_ALLOWED_HOSTS?: string;
 }
 
 /** Aggregation window for the API metrics reported by getMetrics(). */
@@ -69,6 +77,24 @@ const PERFORMANCE_THRESHOLDS = {
   MEMORY_USAGE_WARNING: 0.8, // 80%
   MEMORY_USAGE_CRITICAL: 0.9, // 90%
 } as const;
+
+const REDACTED_PATH = "[redacted-path]";
+
+/**
+ * 把訊息裡的請求路徑換掉，網域留著。
+ *
+ * 只吃「行首或空白/括號後面的 /xxx」與「絕對網址的路徑段」，所以
+ * "requests/second" 這種夾在字中間的斜線不會被誤傷。留下網域是因為 uptime
+ * 探測寫的是平台自己的位址，看得出探哪一支才有意義；會識別出租戶的是路徑上
+ * 的 id，不是 host。
+ */
+function redactRequestPaths(message: string): string {
+  return message.replace(
+    /(https?:\/\/[^\s/]+)(\/\S*)|(?<=^|[\s(<"'[])\/[\w.~%+-]+(?:\/[\w.~%+-]*)*/g,
+    (_match, origin: string | undefined) =>
+      origin ? `${origin}/${REDACTED_PATH}` : REDACTED_PATH,
+  );
+}
 
 export type UptimeProbeResult = {
   name: string;
@@ -781,9 +807,17 @@ export class MonitoringService {
     timestamp: number;
   }): Promise<void> {
     try {
+      // RECENT_ALERTS_KEY 是全平台共用的一把 key，而 message 多半來自
+      // metricsMiddleware 轉手的例外訊息與慢請求紀錄，裡面就帶著請求路徑
+      // ——路徑上的 restaurant id、order id 是別的租戶的資料。標題只有規則
+      // 名稱或 `SEVERITY: type`，不含路徑，所以只洗訊息這一欄。
+      const redacted = {
+        ...alert,
+        message: redactRequestPaths(alert.message),
+      };
       const existing = await this.kv.get(this.RECENT_ALERTS_KEY);
       const alerts = existing ? JSON.parse(existing) : [];
-      alerts.unshift(alert);
+      alerts.unshift(redacted);
       // Keep last 50 alerts, max 24h retention
       const cutoff = Date.now() - 24 * 60 * 60 * 1000;
       const filtered = (alerts as { timestamp: number }[])
@@ -1122,12 +1156,56 @@ export class MonitoringService {
     }
   }
 
+  /**
+   * 警報規則裡的 webhookUrl 是資料，不是部署設定：任何能寫入規則的人都能
+   * 指定一個位址，平台就會帶著全平台的 metrics 主動打過去。所以送出前先擋
+   * 兩層——只走 https，主機必須列在 ALERT_WEBHOOK_ALLOWED_HOSTS。沒設定
+   * 允許清單就一律不送（fail closed），寧可漏掉通知也不要把指標交出去。
+   */
+  private isWebhookUrlAllowed(webhookUrl: string): boolean {
+    const allowedHosts = (this.env?.ALERT_WEBHOOK_ALLOWED_HOSTS ?? "")
+      .split(",")
+      .map((host) => host.trim().toLowerCase())
+      .filter((host) => host.length > 0);
+
+    if (allowedHosts.length === 0) {
+      this.logger.warn(
+        "Webhook alert not sent: ALERT_WEBHOOK_ALLOWED_HOSTS is not configured",
+      );
+      return false;
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(webhookUrl);
+    } catch {
+      this.logger.warn("Webhook alert not sent: malformed webhook URL");
+      return false;
+    }
+
+    if (parsed.protocol !== "https:") {
+      this.logger.warn("Webhook alert not sent: webhook URL must use https");
+      return false;
+    }
+
+    if (!allowedHosts.includes(parsed.hostname.toLowerCase())) {
+      this.logger.warn("Webhook alert not sent: webhook host is not allowed", {
+        host: parsed.hostname,
+      });
+      return false;
+    }
+
+    return true;
+  }
+
   private async sendWebhookAlert(
     webhookUrl: string,
     title: string,
     message: string,
     severity: string,
   ): Promise<void> {
+    if (!this.isWebhookUrlAllowed(webhookUrl)) return;
+
     try {
       const payload = {
         title,

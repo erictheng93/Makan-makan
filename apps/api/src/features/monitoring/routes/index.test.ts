@@ -34,14 +34,27 @@ const mocks = vi.hoisted(() => ({
   getRecentAlerts: vi.fn(),
 }));
 
+interface MockAuthContext {
+  get(key: "user"): AuthUser;
+  json(body: { success: false }, status: 403): Response;
+}
+
 vi.mock("../../../middleware/auth", () => ({
   authMiddleware: vi.fn(async (c, next) => {
     c.set("user", mocks.currentUser);
     await next();
   }),
-  requireRole: vi.fn(() => async (_c: unknown, next: () => Promise<void>) => {
-    await next();
-  }),
+  // The real middleware rejects roles outside the list; the stub has to do the
+  // same or the role each route is registered with is never exercised.
+  requireRole: vi.fn(
+    (allowedRoles: number[]) =>
+      async (c: MockAuthContext, next: () => Promise<void>) => {
+        if (!allowedRoles.includes(c.get("user").role)) {
+          return c.json({ success: false }, 403);
+        }
+        await next();
+      },
+  ),
 }));
 
 vi.mock("../services/MonitoringService", () => ({
@@ -227,6 +240,7 @@ function alertRule(overrides: Record<string, unknown> = {}) {
 describe("monitoring routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.currentUser.role = 0;
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     vi.spyOn(console, "log").mockImplementation(() => undefined);
@@ -499,6 +513,71 @@ describe("monitoring routes", () => {
       "Test alert triggered - webhook notification with fatal severity",
       "fatal",
     );
+  });
+
+  // Alert rules live in one platform-global KV list with no owner field, and
+  // the recent-alert feed carries every tenant's exception messages. A tenant
+  // owner reaching these could silence the platform's detection with one
+  // DELETE, read other tenants' failures, or register a webhook the platform
+  // then fetches. Only role 0 gets in.
+  it("keeps alert rules, recent alerts, defaults, and test alerts away from owners", async () => {
+    mocks.currentUser.role = 1;
+
+    const requests = [
+      new Request("https://monitoring.test/alerts/rules"),
+      jsonRequest("/alerts/rules", "POST", {
+        name: "Owner rule",
+        condition: "apiMetrics.errorRate > 0.1",
+        metric: "apiMetrics.errorRate",
+        operator: ">",
+        threshold: 0.1,
+        duration: 300,
+        config: {
+          type: "webhook",
+          severity: "critical",
+          enabled: true,
+          webhookUrl: "https://attacker.example.test/collect",
+        },
+      }),
+      jsonRequest("/alerts/rules/rule-1", "PUT", { threshold: 1500 }),
+      new Request("https://monitoring.test/alerts/rules/rule-1", {
+        method: "DELETE",
+      }),
+      new Request("https://monitoring.test/alerts/recent"),
+      new Request("https://monitoring.test/alerts/defaults"),
+      jsonRequest("/alerts/test", "POST", {
+        type: "webhook",
+        severity: "fatal",
+      }),
+    ];
+
+    for (const request of requests) {
+      const response = await routes.fetch(request, createEnv() as never);
+      expect(
+        response.status,
+        `${request.method} ${new URL(request.url).pathname}`,
+      ).toBe(403);
+    }
+
+    expect(mocks.getAlertRules).not.toHaveBeenCalled();
+    expect(mocks.createAlertRule).not.toHaveBeenCalled();
+    expect(mocks.updateAlertRule).not.toHaveBeenCalled();
+    expect(mocks.deleteAlertRule).not.toHaveBeenCalled();
+    expect(mocks.getRecentAlerts).not.toHaveBeenCalled();
+  });
+
+  // The restriction is aimed at the alert rules, not at monitoring as a whole:
+  // the metrics an owner could already see stay reachable.
+  it("still serves metrics to owners", async () => {
+    mocks.currentUser.role = 1;
+
+    const response = await routes.fetch(
+      new Request("https://monitoring.test/metrics"),
+      createEnv() as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.getMetrics).toHaveBeenCalledOnce();
   });
 
   it("builds monitoring overview from health and metrics", async () => {

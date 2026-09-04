@@ -56,6 +56,7 @@ describe("MonitoringService", () => {
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     vi.spyOn(console, "info").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => new Response("OK", { status: 200 })),
@@ -112,10 +113,12 @@ describe("MonitoringService", () => {
         errorsByType: { api_error: 1 },
       },
     });
+    // 全平台共用一把 _recent_alerts key，訊息裡的請求路徑會帶著別的租戶的
+    // restaurant/order id，所以存下去之前先洗掉路徑。
     await expect(service.getRecentAlerts()).resolves.toEqual([
       expect.objectContaining({
         title: "CRITICAL: api_error",
-        message: "503 error on /orders",
+        message: "503 error on [redacted-path]",
         severity: "critical",
         type: "slack",
       }),
@@ -551,7 +554,9 @@ describe("MonitoringService", () => {
 
   it("triggers enabled alert rules and stores recent alerts", async () => {
     const { kv } = createKV();
-    const service = new MonitoringService(kv);
+    const service = new MonitoringService(kv, {
+      ALERT_WEBHOOK_ALLOWED_HOSTS: "alerts.example.test",
+    });
     const id = await service.createAlertRule({
       name: "Critical errors",
       condition: "errorMetrics.criticalErrors >= 1",
@@ -593,6 +598,61 @@ describe("MonitoringService", () => {
       expect.objectContaining({ method: "POST" }),
     );
   });
+
+  // webhookUrl 住在警報規則裡，是資料不是部署設定：能寫規則的人就等於能指定
+  // 平台要主動打去哪裡，而 payload 帶的是全平台的 metrics。所以送出前擋兩層
+  // ——只走 https、主機要在 ALERT_WEBHOOK_ALLOWED_HOSTS 內；清單沒設定就
+  // 一律不送（fail closed）。
+  it.each<[string, string | undefined, string]>([
+    [
+      "no allowlist is configured",
+      undefined,
+      "https://alerts.example.test/hook",
+    ],
+    [
+      "the host is not on the allowlist",
+      "alerts.example.test",
+      "https://attacker.example.test/collect",
+    ],
+    [
+      "the URL is not https",
+      "attacker.example.test",
+      "http://attacker.example.test/collect",
+    ],
+  ])(
+    "does not send a webhook alert when %s",
+    async (_label, allowedHosts, webhookUrl) => {
+      const { kv } = createKV();
+      const service = new MonitoringService(
+        kv,
+        allowedHosts ? { ALERT_WEBHOOK_ALLOWED_HOSTS: allowedHosts } : {},
+      );
+      await service.createAlertRule({
+        name: "Critical errors",
+        condition: "errorMetrics.criticalErrors >= 1",
+        metric: "errorMetrics.criticalErrors",
+        operator: ">=",
+        threshold: 1,
+        duration: 60,
+        config: {
+          type: "webhook",
+          severity: "critical",
+          enabled: true,
+          webhookUrl,
+        },
+      });
+
+      await service.recordError("fatal_error", "Fatal failure", "fatal");
+
+      expect(fetch).not.toHaveBeenCalled();
+      // 擋的是出站請求，本地紀錄照留 —— 管理員仍看得到警報觸發過。
+      await expect(service.getRecentAlerts()).resolves.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ title: "Critical errors" }),
+        ]),
+      );
+    },
+  );
 
   it("evaluates alert operators and skips inactive, disabled, and cooling rules", async () => {
     const { kv } = createKV();
@@ -733,11 +793,12 @@ describe("MonitoringService", () => {
         errorsByType: { uptime_check_failed: 1 },
       },
     });
+    // 網域留著（看得出探的是哪一支），路徑洗掉。
     await expect(service.getRecentAlerts()).resolves.toEqual([
       expect.objectContaining({
         title: "CRITICAL: uptime_check_failed",
         message:
-          "Uptime probe public_health failed with status 503 for https://api.makanmasak.com/api/v1/system/health",
+          "Uptime probe public_health failed with status 503 for https://api.makanmasak.com/[redacted-path]",
         severity: "critical",
       }),
     ]);

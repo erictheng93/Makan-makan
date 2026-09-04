@@ -146,11 +146,16 @@ app.post(
 
 // Alert rules management
 
-// Get all alert rules (admin + owner)
+// Alert rules are a single platform-global list under one KV key -- no owner,
+// no restaurant. Anyone who can reach these routes can read, rewrite or delete
+// the platform's own ops and security rules, so they are admin only. See the
+// same note on /alerts/recent, /alerts/defaults and /alerts/test below.
+
+// Get all alert rules (admin only)
 app.get(
   "/alerts/rules",
   authMiddleware,
-  requireRole([0, 1]),
+  requireRole([0]),
   validateQuery(paginationSchema),
   async (c) => {
     const { page, limit } = c.get("validatedQuery");
@@ -177,11 +182,11 @@ app.get(
   },
 );
 
-// Create alert rule (admin + owner)
+// Create alert rule (admin only)
 app.post(
   "/alerts/rules",
   authMiddleware,
-  requireRole([0, 1]),
+  requireRole([0]),
   validateBody(alertRuleSchema),
   async (c) => {
     const ruleData = c.get("validatedBody");
@@ -205,11 +210,11 @@ app.post(
   },
 );
 
-// Update alert rule (admin + owner)
+// Update alert rule (admin only)
 app.put(
   "/alerts/rules/:id",
   authMiddleware,
-  requireRole([0, 1]),
+  requireRole([0]),
   validateBody(updateAlertRuleSchema),
   async (c) => {
     const ruleId = c.req.param("id");
@@ -236,31 +241,29 @@ app.put(
   },
 );
 
-// Delete alert rule (admin + owner)
-app.delete(
-  "/alerts/rules/:id",
-  authMiddleware,
-  requireRole([0, 1]),
-  async (c) => {
-    const ruleId = c.req.param("id");
-    if (!ruleId) throw badRequest("Missing id parameter", "MISSING_PARAM");
-    const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
+// Delete alert rule (admin only)
+app.delete("/alerts/rules/:id", authMiddleware, requireRole([0]), async (c) => {
+  const ruleId = c.req.param("id");
+  if (!ruleId) throw badRequest("Missing id parameter", "MISSING_PARAM");
+  const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
 
-    const success = await monitoringService.deleteAlertRule(ruleId);
+  const success = await monitoringService.deleteAlertRule(ruleId);
 
-    if (!success) {
-      throw notFound("Alert rule not found", "ALERT_RULE_NOT_FOUND");
-    }
+  if (!success) {
+    throw notFound("Alert rule not found", "ALERT_RULE_NOT_FOUND");
+  }
 
-    return c.json({
-      success: true,
-      message: "Alert rule deleted successfully",
-    });
-  },
-);
+  return c.json({
+    success: true,
+    message: "Alert rule deleted successfully",
+  });
+});
 
-// Get recent alerts for polling (admin + owner)
-app.get("/alerts/recent", authMiddleware, requireRole([0, 1]), async (c) => {
+// Get recent alerts for polling (admin only)
+//
+// The recent-alert list is the same global key: it carries every tenant's
+// exception messages, so it cannot be handed to a single tenant's owner.
+app.get("/alerts/recent", authMiddleware, requireRole([0]), async (c) => {
   const sinceParam = c.req.query("since");
   const sinceTimestamp = sinceParam ? parseInt(sinceParam, 10) : undefined;
   const monitoringService = createMonitoringService(c.env.CACHE_KV, c.env);
@@ -275,8 +278,8 @@ app.get("/alerts/recent", authMiddleware, requireRole([0, 1]), async (c) => {
   });
 });
 
-// Get default alert rules (admin + owner)
-app.get("/alerts/defaults", authMiddleware, requireRole([0, 1]), async (c) => {
+// Get default alert rules (admin only)
+app.get("/alerts/defaults", authMiddleware, requireRole([0]), async (c) => {
   return c.json({
     success: true,
     data: {
@@ -287,11 +290,16 @@ app.get("/alerts/defaults", authMiddleware, requireRole([0, 1]), async (c) => {
   });
 });
 
-// Test alert system (admin + owner)
+// Test alert system (admin only)
+//
+// Writes a rule carrying a caller-supplied webhookUrl, which the platform then
+// fetches -- an outbound request on the platform's behalf, to an address from
+// the request body. MonitoringService still checks that URL against the
+// configured allowlist before sending.
 app.post(
   "/alerts/test",
   authMiddleware,
-  requireRole([0, 1]),
+  requireRole([0]),
   validateBody(testAlertSchema),
   async (c) => {
     const { type, severity, webhookUrl } = c.get("validatedBody");

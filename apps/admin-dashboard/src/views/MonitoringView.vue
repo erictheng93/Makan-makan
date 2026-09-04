@@ -241,8 +241,8 @@
           </div>
         </div>
 
-        <!-- Real-time Alert Notifications -->
-        <div class="mb-8">
+        <!-- Real-time Alert Notifications (platform admin only — see canManageAlerts) -->
+        <div v-if="canManageAlerts" class="mb-8">
           <AlertNotificationPanel
             :alerts="wsAlerts"
             :connection-status="wsConnectionStatus"
@@ -856,10 +856,21 @@ import CreateAlertRuleModal from "@/components/monitoring/CreateAlertRuleModal.v
 import { monitoringWebSocket } from "@/services/monitoringWebSocket";
 import { createVisibilityAwarePoller } from "@/services/visibilityAwarePoller";
 import { useConfirmModal } from "@/composables/useConfirmModal";
+import { useAuthStore } from "@/stores/auth";
+import { UserRole } from "@/types";
 
 const toast = useToast();
 const { t } = useI18n();
 const { confirm: confirmModal } = useConfirmModal();
+const authStore = useAuthStore();
+
+/**
+ * 告警規則存在單一全域 KV key 底下，沒有 restaurant 欄位，/alerts/recent 也會
+ * 回傳其他租戶的錯誤路徑與例外訊息，所以 API 端已把整組 /alerts/* 收成 role 0
+ * 專用。這裡必須同步：店主留在這頁仍看得到指標、健康度與錯誤統計，但告警分頁
+ * 要整個收起來，否則 getAlertRules 會 rethrow，店主一進來就是錯誤狀態。
+ */
+const canManageAlerts = computed(() => authStore.userRole === UserRole.ADMIN);
 
 /**
  * Matched to METRICS_CACHE_TTL_SECONDS in the API's MonitoringService, which is
@@ -887,7 +898,10 @@ const metrics = ref<SystemMetrics | null>(null);
 const alertRules = ref<AlertRule[]>([]);
 const performanceReport = ref<PerformanceReport | null>(null);
 
-const activeTab = ref<"alerts" | "performance" | "errors">("alerts");
+// 店主看不到告警分頁，預設分頁要跟著落到他實際看得到的第一個分頁。
+const activeTab = ref<"alerts" | "performance" | "errors">(
+  canManageAlerts.value ? "alerts" : "performance",
+);
 const reportDays = ref(7);
 
 // WebSocket state
@@ -929,12 +943,16 @@ const healthScoreBasis = computed(() =>
 );
 
 const tabs = computed(() => [
-  {
-    id: "alerts",
-    name: t("monitoring.tabs.alerts"),
-    icon: BellIcon,
-    badge: alertRules.value.length,
-  },
+  ...(canManageAlerts.value
+    ? [
+        {
+          id: "alerts",
+          name: t("monitoring.tabs.alerts"),
+          icon: BellIcon,
+          badge: alertRules.value.length,
+        },
+      ]
+    : []),
   {
     id: "performance",
     name: t("monitoring.tabs.performance"),
@@ -1379,6 +1397,9 @@ function formatRelativeTime(timestamp: number) {
 // ============================================================================
 
 function connectWebSocket() {
+  // 這條輪詢打的是 /alerts/recent，同樣已收成 role 0 專用。店主連上去只會每 30
+  // 秒吃一次 403，所以直接不啟動。
+  if (!canManageAlerts.value) return;
   try {
     // Polling service handles auth via api service — no token needed
     monitoringWebSocket.connect();
@@ -1419,7 +1440,7 @@ onMounted(async () => {
   try {
     await Promise.all([
       loadOverviewWithMetrics(),
-      loadAlertRules(),
+      ...(canManageAlerts.value ? [loadAlertRules()] : []),
       loadPerformanceReport(),
     ]);
   } catch (error) {

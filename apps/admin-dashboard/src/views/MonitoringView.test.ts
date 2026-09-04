@@ -14,6 +14,14 @@ const toastMock = vi.hoisted(() => ({
 
 vi.mock("vue-toastification", () => ({ useToast: () => toastMock }));
 
+// 告警分頁在 API 端已收成 role 0 專用，元件要跟著隱藏，所以這頁現在讀角色。
+// 沿用本檔既有的模組 mock 作風，不為了一個角色值把 pinia 掛進來。
+const currentUserRole = vi.hoisted(() => ({ value: 0 as number | undefined }));
+
+vi.mock("@/stores/auth", () => ({
+  useAuthStore: () => ({ userRole: currentUserRole.value }),
+}));
+
 vi.mock("@/i18n", () => ({
   useI18n: () => ({ t: (key: string) => key, locale: ref("zh-TW") }),
 }));
@@ -188,6 +196,7 @@ describe("MonitoringView refresh cost", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-07-29T00:00:00.000Z"));
     vi.clearAllMocks();
+    currentUserRole.value = 0;
     setTabHidden(false);
     service.getOverview.mockResolvedValue(buildOverview() as never);
     service.getMetrics.mockResolvedValue(buildMetrics() as never);
@@ -223,6 +232,20 @@ describe("MonitoringView refresh cost", () => {
 
     expect(service.getOverview).toHaveBeenCalledTimes(4);
     expect(service.getAlertRules).toHaveBeenCalledTimes(1);
+  });
+
+  // 告警規則存在單一全域 KV key，沒有租戶欄位，所以 /alerts/* 已收成 role 0
+  // 專用。店主打過去只會拿到 403，而 getAlertRules 是 rethrow，整頁會變錯誤狀態。
+  it("never reaches the admin-only alert endpoints as an owner", async () => {
+    currentUserRole.value = 1;
+
+    await mountView();
+    await vi.advanceTimersByTimeAsync(REFRESH_MS * 3);
+
+    expect(service.getAlertRules).not.toHaveBeenCalled();
+    // 指標與效能報表是店主看得到的部分，必須照常載入。
+    expect(service.getOverview).toHaveBeenCalled();
+    expect(service.getPerformanceReport).toHaveBeenCalled();
   });
 
   // The API recomputes its Analytics Engine aggregate every 60s, so anything
