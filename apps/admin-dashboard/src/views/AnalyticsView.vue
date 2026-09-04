@@ -422,6 +422,10 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useI18n } from "@/i18n";
 import { useCurrency } from "@/composables/useCurrency";
+import {
+  analyticsDateRange,
+  type AnalyticsPeriod,
+} from "@/utils/analyticsPeriod";
 import { api } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
 import {
@@ -470,6 +474,10 @@ const performanceData = ref<{
   conversionRate: number;
   averagePreparationTime: number;
   popularTimeSlots: Array<{ hour: number; orderCount: number }>;
+  // Change against the equally long window before the selected one, computed
+  // server-side so it describes the same span as the figures above it (#312).
+  revenueGrowth: number;
+  orderGrowth: number;
 }>({
   totalOrders: 0,
   completedOrders: 0,
@@ -479,6 +487,8 @@ const performanceData = ref<{
   conversionRate: 0,
   averagePreparationTime: 0,
   popularTimeSlots: [],
+  revenueGrowth: 0,
+  orderGrowth: 0,
 });
 
 const productAnalytics = ref<{
@@ -503,31 +513,10 @@ const revenueDataRaw = ref<
 const currentTableUtilization = ref(0);
 
 // Compute date range based on selected period
+// Calendar boundaries, not rolling windows -- see analyticsDateRange. Kept as
+// a wrapper so the selector's value stays the single input.
 function getDateRange() {
-  const now = new Date();
-  const to = now.toISOString();
-  let from: Date;
-
-  switch (selectedPeriod.value) {
-    case "week":
-      from = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      break;
-    case "month":
-      from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      break;
-    case "quarter":
-      from = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-      break;
-    case "year":
-      from = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-      break;
-    default:
-      // today: start of today
-      from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      break;
-  }
-
-  return { dateFrom: from.toISOString(), dateTo: to };
+  return analyticsDateRange(selectedPeriod.value as AnalyticsPeriod);
 }
 
 // Map period to dashboard API param
@@ -561,14 +550,18 @@ function buildAnalyticsUrl(
 // Computed: metrics for summary cards
 const metrics = computed(() => ({
   totalRevenue: performanceData.value.totalRevenue || 0,
-  revenueChange: dashboardSummary.value.growthRates?.revenueGrowth || 0,
+  // These come from the same response as the figures they sit beside, so both
+  // describe the selected period. They used to come from the dashboard
+  // summary, whose growth rates are always month-over-month: picking 本年 put a
+  // year's revenue next to a monthly change (#312).
+  revenueChange: performanceData.value.revenueGrowth || 0,
   totalOrders: performanceData.value.totalOrders || 0,
-  ordersChange: dashboardSummary.value.growthRates?.orderGrowth || 0,
+  ordersChange: performanceData.value.orderGrowth || 0,
   averageOrderValue: performanceData.value.averageOrderValue || 0,
   aovChange:
     performanceData.value.totalOrders > 0
-      ? dashboardSummary.value.growthRates?.revenueGrowth -
-          dashboardSummary.value.growthRates?.orderGrowth || 0
+      ? (performanceData.value.revenueGrowth || 0) -
+        (performanceData.value.orderGrowth || 0)
       : 0,
   tableUtilization: currentTableUtilization.value,
 }));
