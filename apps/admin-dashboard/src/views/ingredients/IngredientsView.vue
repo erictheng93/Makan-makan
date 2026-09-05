@@ -120,9 +120,9 @@
     <!-- Bulk Import Modal -->
     <BulkImportDialog
       v-if="showBulkImport"
-      @close="showBulkImport = false"
       :submitting="bulkImporting"
       :error="importError"
+      @close="showBulkImport = false"
       @import="handleBulkImport"
     />
 

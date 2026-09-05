@@ -120,6 +120,10 @@ export default [
     rules: {
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-explicit-any": "error",
+      // Stub components in a test exist only for the view being mounted, and
+      // several of them usually come back from one mocked composable. Obeying
+      // one-component-per-file would scatter a single mock across modules.
+      "vue/one-component-per-file": "off",
     },
   },
 
