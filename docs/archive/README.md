@@ -22,13 +22,6 @@
 
 早期實作藍圖、測試基礎建設階段報告，以及已被取代的掃描報告
 
-- `2026-05-02-technical-debt-scan.md` - **技術債掃描（已取代 2026-09-05）**。原本位於
-  `docs/TECHNICAL_DEBT_TODO.md`，一度自稱 primary working list，但 2026-07-17
-  之後就沒有實質更新。仍開著的項目已於 2026-09-05 逐一驗證後移入
-  [`docs/TODOS.md`](../TODOS.md)。**它的頭條數字全部過期**（宣稱 16 個
-  production 佔位符實為 0、172 行 TODO 實為 27 行），檔頭有完整的 superseded
-  banner 列出哪兩段是主動錯誤。保留是因為其中的 resolution 紀錄（什麼壞了、
-  什麼修好的、哪個 commit）是有用的歷史，而 `multi_branch` 移除等決定只有這裡寫了。
 - `IMPLEMENTATION_ROADMAP.md`、`IMPLEMENTATION_SUMMARY*.md`、`INDEX_LEGACY.md` - 早期實作規劃
 - `TESTING_INFRASTRUCTURE_*.md`、`WEEK3_COMPLETION_REPORT.md` - 測試基礎建設階段報告
 - `migrations-v2/` - 舊 migration 軌資料

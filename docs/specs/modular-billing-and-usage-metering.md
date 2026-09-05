@@ -674,7 +674,7 @@ Admin 限定。除錯／申訴用。Query params：`meterKey?`、`from?`、`to?`
 
 ### 4.1 Schema 變更
 
-#### 4.1.1 `paymentAuditLog`（補 2026-05-02 技術債掃描的 P1 缺口，該掃描已封存於 `docs/archive/historical-reports/2026-05-02-technical-debt-scan.md`）
+#### 4.1.1 `paymentAuditLog`（補 2026-05-02 技術債掃描的 P1 缺口；該掃描已於 2026-09-05 併入 `docs/TODOS.md` 並刪除）
 
 **鎖定 `eventType` 為 const enum**：
 

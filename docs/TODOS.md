@@ -439,7 +439,7 @@ largest genuinely-unbuilt item in this file.
 
 ### Account security and auth statistics are stubs that report zeros
 
-**Priority:** P2 **Status:** Open (absorbed 2026-09-05 from the archived 2026-05-02 debt scan, which had it corrected-to-open on 2026-07-05; re-verified against the tree today) **File:** `apps/api/src/features/authentication/services/AuthService.ts`
+**Priority:** P2 **Status:** Open (absorbed 2026-09-05 from the deleted 2026-05-02 debt scan, which had it corrected-to-open on 2026-07-05; re-verified against the tree today) **File:** `apps/api/src/features/authentication/services/AuthService.ts`
 
 **Context:** The 2026-04-21 auth work landed password reset, email verification,
 profile read/update and session termination on real database paths. Two
@@ -468,7 +468,7 @@ technically true but says nothing.
 
 ### Requesting a PDF or JPEG QR silently returns an SVG
 
-**Priority:** P3 **Status:** Open (absorbed 2026-09-05 from the archived 2026-05-02 debt scan; verified today) **File:** `apps/api/src/features/qr-codes/services/QrCodesService.ts:487`
+**Priority:** P3 **Status:** Open (absorbed 2026-09-05 from the deleted 2026-05-02 debt scan; verified today) **File:** `apps/api/src/features/qr-codes/services/QrCodesService.ts:487`
 
 **Context:** The 2026-04-22 fix replaced placeholder buffers with real QR
 artifacts, which was the P1. What it left behind is narrower but is still a
@@ -487,7 +487,8 @@ renderers"; the cheaper half is that until they exist, an unsupported format
 should 400 rather than substitute.
 
 **Scope:** Either render the requested format, or reject unsupported formats
-explicitly. Do not keep silently substituting.
+explicitly. Do not keep silently substituting. Separately, QR downloads set no
+cache headers — worth adding once product download-caching rules exist.
 
 ## repository cleanup
 
@@ -511,6 +512,14 @@ a way it would not be on the fresh track.
 then add a pre-commit or CI check that blocks new `.old` / `.disabled` /
 scratch `.txt` outside approved directories, since this list regrew after the
 last cleanup.
+
+### The route-migration helper emits skeletons that pass silently
+
+**Priority:** P3 **Status:** Open (rescued 2026-09-05 from the deleted debt scan) **File:** `scripts/migration/migrate-routes.js` (still present)
+
+Generated route files carry TODO comments and no failure, so a half-migrated
+route can ship looking finished. Make the generated skeleton throw until the
+logic is filled in, and put a checklist in the generated file.
 
 ## admin-dashboard
 
@@ -553,11 +562,97 @@ contract, so a consumer can read it and believe it.
 attempts and successes, so a reader cannot distinguish "no failures" from
 "failures are not recorded".
 
+## multi-branch (多分店)
+
+### Deferred by product decision, not missing by oversight
+
+**Priority:** — **Status:** Removed 2026-07-27, deliberately. Rescued 2026-09-05 from the deleted debt scan, because this was the only written record of the decision.
+
+**Context:** `multi_branch` was removed from `MODULES` and the Enterprise plan
+on 2026-07-27. It had never been enforceable — no route checked it, and the
+data model has no multi-branch concept at all. Advertising it on Enterprise
+promised a capability the platform cannot deliver.
+
+**Re-introducing it is a product feature, not a gate.** The minimum before the
+module key comes back:
+
+- Organization / branch-group data model — `restaurants` has no parent or
+  grouping relationship today.
+- One owner spanning several restaurants — `users.restaurantId` is a single
+  column (`packages/database/src/schema/users.ts`).
+- Branch creation and invitation owned by the shop, not the platform —
+  `POST /api/v1/restaurants` is `requireRole([ADMIN])`, platform-admin only.
+- Cross-branch switching, aggregated reporting, and permission isolation
+  between branches.
+- Only then re-add `multi_branch` to `MODULES` and gate that whole group of
+  capabilities with it.
+
+Stale `multi_branch` keys left in existing `shop_subscriptions.module_overrides`
+JSON are inert — the gate resolves against `ModuleKey` — and can be ignored or
+swept later. They are not a reason to keep the TypeScript module.
+
+## analytics
+
+### Exports are inline `data:` URLs, with no lifecycle tests
+
+**Priority:** P3 **Status:** Open (rescued 2026-09-05 from the deleted debt scan) **File:** `apps/api/src/features/analytics/services/AnalyticsService.ts`
+
+**Context:** `generateExport()` stopped being a placeholder on 2026-05-01 — it
+builds real JSON/CSV payloads for dashboard, revenue, products, customers and
+performance, and returns filename, content type, size, period, expiry metadata
+and a `data:` download URL. Two things were left open and still are.
+
+**Scope:**
+
+- Decide whether exports stay inline `data:` URLs or move to R2-backed file
+  storage. Inline means the whole export crosses the response body, so the
+  ceiling is whatever a Worker response can hold — that is the question to
+  answer, not a style preference.
+- Add tests for export lifecycle, permission boundaries, and large-payload
+  behaviour. There are none today.
+
+## backup
+
+### Restore has no rollback coverage, and storage quota is unavailable
+
+**Priority:** P2 (rollback) / P3 (quota) **Status:** Open (rescued 2026-09-05 from the deleted debt scan) **File:** `apps/api/src/features/backup/services/BackupService.ts`
+
+**Context:** Restore became a real recovery path on 2026-04-21 — it fetches the
+backup, verifies the checksum, restores table rows and records operation
+status, and a pre-restore backup is taken before a destructive overwrite. The
+compression-metric concern is resolved too: `:296` computes a real gzip ratio
+with a comment explaining that the storage service still receives the raw
+payload.
+
+**Scope:**
+
+- **P2:** multi-table restore has no transaction/rollback coverage. D1 has no
+  interactive transactions, so this has to be built out of `db.batch()` or an
+  explicit compensating path — a half-applied restore is worse than a failed
+  one.
+- **P3:** provider storage quota/usage is still unreported, pending quota data
+  from the provider.
+
+## integrations
+
+### Foodpanda needs contract tests before the adapter is ever enabled
+
+**Priority:** P2 **Status:** Open (rescued 2026-09-05 from the deleted debt scan) **File:** `apps/api/src/features/integrations/adapters/FoodpandaAdapter.ts`
+
+**Context:** Foodpanda is explicitly "coming soon": admin connect/config/
+menu-sync routes return 501 before persisting credentials or reaching the
+unimplemented adapter, so nothing can currently fail at runtime. The adapter
+and its test file both exist.
+
+**Scope:** add contract tests matching real Foodpanda webhook payloads and auth
+behaviour **before** the 501s come off. Enabling first and testing after is how
+this became a P1 the first time.
+
 ## testing / fixture harnesses
 
 ### E2E skips and mock-heavy API tests
 
-**Priority:** P2 **Status:** Open (absorbed 2026-09-05 from the archived 2026-05-02 debt scan; both counts re-measured today)
+**Priority:** P2 **Status:** Open (absorbed 2026-09-05 from the deleted 2026-05-02 debt scan; both counts re-measured today)
 
 **E2E: 11 unconditional skips, unchanged since 2026-07-05.** Across
 `tests/e2e/smoke/` (owner-overview, smoke, admin-realtime-websocket,
@@ -645,7 +740,7 @@ The step does pass `CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}`, 
 | `PRODUCTION_KITCHEN_URL` | `https://kitchen.makanmasak.com` | no |
 
 **The auto-deploy chain is a second, separate blocker** (absorbed 2026-09-05
-from the archived 2026-05-02 debt scan). Even with the secrets set, the workflow only
+from the deleted 2026-05-02 debt scan). Even with the secrets set, the workflow only
 ever runs by hand: the `workflow_run:` trigger at
 `.github/workflows/deploy-production.yml:16` is still commented out, with a
 note at line 12 saying it stays disabled until the repository has an
