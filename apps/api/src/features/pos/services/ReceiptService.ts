@@ -383,12 +383,19 @@ export class ReceiptService {
     // pulled from the customerInfo JSON snapshot and (TODO) a tables join.
     const customerSnapshot = order.customerInfo ?? null;
 
+    // 外送地址只在 KDS 螢幕上看得到，出單票上沒有 —— 對要出門送餐的人來說，
+    // 資訊在錯的地方（#295）。非外送單維持 null，格式化層不會印。
+    const delivery =
+      order.deliveryInfo?.type === "delivery" ? order.deliveryInfo : null;
+
     return {
       template: templateName,
       orderNumber: order.orderNumber,
       customerName: customerSnapshot?.name ?? null,
       // TODO: join `tables` to surface the table number — currently absent.
       tableNumber: null as string | null,
+      deliveryAddress: delivery?.address ?? null,
+      deliveryPhone: delivery?.phone ?? null,
       items: items.map((item: OrderItemRow) => ({
         name: item.itemSnapshot?.name ?? null,
         quantity: item.quantity,

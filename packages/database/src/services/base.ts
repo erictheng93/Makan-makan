@@ -362,29 +362,41 @@ export class BaseService {
   }
 
   // 計算總金額
+  //
+  // `deliveryFee` 不參與稅金與服務費：兩者都是 `subtotal * rate`，外送費是
+  // 運費而非餐點消費。它只加在最後的 totalAmountCents 上。呼叫端必須傳伺服器
+  // 端算出的金額 — 顧客請求裡的數字不可信（#295）。
   protected calculateOrderTotal(
     subtotal: number,
     taxRate: number = 0,
     serviceChargeRate: number = 0,
     discountAmount: number = 0,
+    deliveryFee: number = 0,
   ) {
     const subtotalCents = toRequiredCents(subtotal);
     const discountAmountCents = toRequiredCents(discountAmount);
+    const deliveryFeeCents = toRequiredCents(deliveryFee);
     const taxAmountCents = Math.round(subtotalCents * taxRate);
     const serviceChargeCents = Math.round(subtotalCents * serviceChargeRate);
     const totalAmountCents =
-      subtotalCents + taxAmountCents + serviceChargeCents - discountAmountCents;
+      subtotalCents +
+      taxAmountCents +
+      serviceChargeCents +
+      deliveryFeeCents -
+      discountAmountCents;
 
     return {
       subtotal: fromCents(subtotalCents),
       taxAmount: fromCents(taxAmountCents),
       serviceCharge: fromCents(serviceChargeCents),
       discountAmount: fromCents(discountAmountCents),
+      deliveryFee: fromCents(deliveryFeeCents),
       totalAmount: fromCents(totalAmountCents),
       subtotalCents,
       taxAmountCents,
       serviceChargeCents,
       discountAmountCents,
+      deliveryFeeCents,
       totalAmountCents,
     };
   }

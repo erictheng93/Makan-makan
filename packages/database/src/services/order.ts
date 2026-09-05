@@ -579,6 +579,27 @@ export class OrderService extends BaseService {
         throw new Error("Restaurant is not available");
       }
 
+      // 外送必須由店家開啟才收單。前端只是不顯示外送選項，直接打 API 帶
+      // `deliveryInfo.type = "delivery"` 一樣建得起來（#295）。守門放在這裡而
+      // 不是路由層，因為 orders / guest-orders / market-checkouts / group-orders
+      // 四條路徑都經過 createOrder。
+      //
+      // 判斷條件與 `hasEnabledFulfillmentMethod`（探索頁與餐廳清單用來標「可外
+      // 送」的那一個）相同：settings 旗標或 supports_delivery 欄位任一為真即
+      // 放行，否則探索頁掛著「可外送」的店會拒收自己招來的訂單。
+      //
+      // 只擋外送。內用與外帶沒有相同處理：`enableDineIn` / `enableTakeaway` 對
+      // 從未存過設定的店家是 undefined，在這裡當成「關閉」會把現有的內用與外帶
+      // 訂單全部擋掉（market-checkouts 每一張都是 takeaway）。外送的 undefined
+      // 本來就等於關閉 —— 前端也是 `?? false` —— 所以這道門只會擋掉 UI 從未
+      // 提供過的訂單。
+      const settings = restaurant.settings || {};
+      if (data.deliveryInfo?.type === "delivery") {
+        if (!settings.enableDelivery && !restaurant.supportsDelivery) {
+          throw new Error("DELIVERY_NOT_ENABLED");
+        }
+      }
+
       // Only validate table for dine-in orders (tableId provided)
       if (data.tableId) {
         const table = await this.db.query.tables.findFirst({
@@ -632,7 +653,6 @@ export class OrderService extends BaseService {
       }
 
       // 驗證最低消費（在折扣後但在計算稅金前）
-      const settings = restaurant.settings || {};
       const minOrderAmount = settings.minOrderAmount || 0;
       const orderAmountAfterDiscount = subtotal - discountAmount;
 
@@ -642,6 +662,13 @@ export class OrderService extends BaseService {
           `訂單未達最低消費標準。最低消費：RM${minOrderAmount.toFixed(2)}，目前金額：RM${orderAmountAfterDiscount.toFixed(2)}，還需：RM${shortfall.toFixed(2)}`,
         );
       }
+
+      // 外送費一律由店家設定決定。請求 body 帶的 `deliveryFee` 只當顯示值，
+      // 不參與計價 —— 否則顧客自己填 0 元外送費就成立（#295）。
+      const deliveryFee =
+        data.deliveryInfo?.type === "delivery"
+          ? (settings.deliveryFee ?? 0)
+          : 0;
 
       // 計算稅金和服務費（考慮折扣）
       const taxRate = settings.taxRate || 0;
@@ -656,7 +683,15 @@ export class OrderService extends BaseService {
         taxRate,
         serviceChargeRate,
         discountAmount,
+        deliveryFee,
       );
+
+      // 寫回伺服器端算出的金額，覆蓋顧客送上來的。除了不信任來源之外，
+      // `addItemsToOrder` 重算總額時也是從這裡把外送費讀回來的，兩者必須是
+      // 同一個數字。非外送單一律寫 0，順便洗掉客戶端硬塞的運費。
+      const deliveryInfo = data.deliveryInfo
+        ? { ...data.deliveryInfo, deliveryFee }
+        : undefined;
 
       // 生成訂單號碼
       const orderNumber = this.generateOrderNumber(data.restaurantId);
@@ -691,7 +726,7 @@ export class OrderService extends BaseService {
               ? { clientMutationId: data.clientMutationId }
               : {}),
             orderSource: data.orderSource || "direct",
-            deliveryInfo: data.deliveryInfo,
+            deliveryInfo,
             estimatedPrepTime: this.calculateEstimatedPrepTime(orderItemsData),
           })
           .returning(),
@@ -1037,6 +1072,12 @@ export class OrderService extends BaseService {
           ? currentServiceChargeCents / currentSubtotalCents
           : 0;
       const nextSubtotal = fromCents(currentSubtotalCents + addedSubtotalCents);
+      // 這裡是重算整張訂單的總額，不是加總差額 —— 沒有把外送費帶進來，加點
+      // 就會把它從 total 裡抹掉。運費不隨品項變動，原封讀回原本存下的那筆。
+      const deliveryFee =
+        existingOrder.deliveryInfo?.type === "delivery"
+          ? (existingOrder.deliveryInfo.deliveryFee ?? 0)
+          : 0;
       const {
         subtotalCents,
         taxAmountCents,
@@ -1047,6 +1088,7 @@ export class OrderService extends BaseService {
         taxRate,
         serviceChargeRate,
         fromCents(currentDiscountCents),
+        deliveryFee,
       );
 
       // A version is not an attempt identity: a later writer can legitimately

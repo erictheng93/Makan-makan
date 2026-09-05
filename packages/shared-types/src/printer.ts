@@ -139,6 +139,12 @@ export interface TransactionInfo {
   orderId: string;
   tableNumber?: string;
   customerName?: string;
+  /**
+   * 外送單的送達地址與聯絡電話。KDS 螢幕看得到，但要出門送餐的人拿的是這張
+   * 紙 —— 資訊得跟著單子走（#295）。非外送單為 undefined，不印。
+   */
+  deliveryAddress?: string;
+  deliveryPhone?: string;
   cashier: string;
   timestamp: Date;
   receiptNumber: string;

@@ -294,6 +294,26 @@ export class CommandBuilder {
       );
     }
 
+    // 地址不用 textColumns：那是把標籤靠左、值靠右撐開的定寬排版，一條住址
+    // 撐爆寬度後 spacesNeeded 歸零，標籤會直接黏在地址前面，再由印表機在
+    // 任意字元處硬折。標籤與地址各自一行，送餐的人才讀得完整（#295）。
+    if (transaction.deliveryAddress) {
+      builder.addRaw(ESCPOSCommands.textLine("Delivery:"));
+      builder.addRaw(ESCPOSCommands.textLine(transaction.deliveryAddress));
+    }
+
+    // 標籤不是 "Tel:"：店家自己的電話在表頭已經用掉這個字了，同一張紙上兩個
+    // "Tel:" 對送餐的人是在問「該打哪一支」。
+    if (transaction.deliveryPhone) {
+      builder.addRaw(
+        ESCPOSCommands.textColumns(
+          "Delivery Tel:",
+          transaction.deliveryPhone,
+          width,
+        ),
+      );
+    }
+
     builder.addRaw(
       ESCPOSCommands.textColumns("Cashier:", transaction.cashier, width),
     );

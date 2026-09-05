@@ -270,6 +270,27 @@ describe("OrdersService realtime broadcasts", () => {
       }),
     );
   });
+
+  // 外送守門在資料庫服務層（orders / guest-orders / market-checkouts 都經過
+  // 那裡），只丟一個哨兵訊息回來。沒有這層翻譯，一個「店家沒開外送」會變成
+  // 500（#295）。
+  it("turns the delivery gate into a 400 instead of an unhandled error", async () => {
+    createBaseOrder.mockRejectedValue(new Error("DELIVERY_NOT_ENABLED"));
+    const service = new OrdersService(createEnv() as never);
+
+    await expect(
+      service.createOrder({
+        restaurantId: "restaurant-1",
+        orderType: "shop",
+        items: [{ menuItemId: 101, quantity: 1 }],
+        deliveryInfo: { type: "delivery", address: "1 Jalan Test" },
+      }),
+    ).rejects.toMatchObject({
+      name: "ApiError",
+      status: 400,
+      code: "DELIVERY_NOT_ENABLED",
+    });
+  });
 });
 
 function buildOrderItem(overrides: Partial<OrderItem> = {}): OrderItem {

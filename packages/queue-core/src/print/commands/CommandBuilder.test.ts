@@ -64,4 +64,30 @@ describe("CommandBuilder.fromPrintContent", () => {
     expect(commands).toContain("數位收據");
     expect(commands.endsWith("\x1DV\x00")).toBe(true);
   });
+
+  // KDS 螢幕看得到外送地址，紙本出單票上沒有 —— 而拿著紙出門的正是送餐的人
+  // （#295）。
+  it("prints the delivery address and phone on its own lines", () => {
+    const content = createPrintContent();
+    content.header.transactionInfo.deliveryAddress =
+      "台中市西屯區台灣大道三段99號12樓之3";
+    content.header.transactionInfo.deliveryPhone = "0912345678";
+
+    const commands = CommandBuilder.fromPrintContent(content).buildESCPOS();
+
+    // 地址獨佔一行，標籤不會黏在門牌前面。
+    expect(commands).toContain(
+      "Delivery:\n台中市西屯區台灣大道三段99號12樓之3\n",
+    );
+    expect(commands).toContain("Delivery Tel:");
+    expect(commands).toContain("0912345678");
+  });
+
+  it("omits the delivery lines for a non-delivery order", () => {
+    const commands =
+      CommandBuilder.fromPrintContent(createPrintContent()).buildESCPOS();
+
+    expect(commands).not.toContain("Delivery:");
+    expect(commands).not.toContain("Delivery Tel:");
+  });
 });

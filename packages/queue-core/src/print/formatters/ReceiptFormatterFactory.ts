@@ -32,6 +32,8 @@ export interface ReceiptData {
   order?: {
     id?: string;
     tableNumber?: string;
+    deliveryAddress?: string;
+    deliveryPhone?: string;
     createdAt?: string | number | Date;
     items?: ReceiptOrderItem[];
     subtotal?: number;
@@ -215,6 +217,8 @@ export class TWReceiptFormatter extends BaseReceiptFormatter {
         transactionInfo: {
           orderId: order?.id || "N/A",
           tableNumber: order?.tableNumber,
+          deliveryAddress: order?.deliveryAddress,
+          deliveryPhone: order?.deliveryPhone,
           customerName: data.customer?.name,
           cashier: this.getCashierName(data, "System"),
           timestamp: new Date(order?.createdAt || Date.now()),
@@ -336,6 +340,8 @@ export class MYReceiptFormatter extends BaseReceiptFormatter {
         transactionInfo: {
           orderId: order?.id || "N/A",
           tableNumber: order?.tableNumber,
+          deliveryAddress: order?.deliveryAddress,
+          deliveryPhone: order?.deliveryPhone,
           customerName: data.customer?.name,
           cashier: this.getCashierName(data, "Cashier"),
           timestamp: new Date(order?.createdAt || Date.now()),
@@ -449,6 +455,8 @@ export class VNReceiptFormatter extends BaseReceiptFormatter {
         transactionInfo: {
           orderId: order?.id || "N/A",
           tableNumber: order?.tableNumber,
+          deliveryAddress: order?.deliveryAddress,
+          deliveryPhone: order?.deliveryPhone,
           customerName: data.customer?.name,
           cashier: this.getCashierName(data, "Thu ngân"),
           timestamp: new Date(order?.createdAt || Date.now()),

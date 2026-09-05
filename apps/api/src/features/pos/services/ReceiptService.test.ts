@@ -255,6 +255,61 @@ describe("ReceiptService", () => {
     vi.useRealTimers();
   });
 
+  // KDS 螢幕看得到送達地址，紙本出單票上沒有 —— 拿著紙出門的正是送餐的人
+  // （#295）。
+  it("carries the delivery address and phone into the receipt content", async () => {
+    uuidMocks.generateUUID.mockReturnValueOnce("receipt-1");
+    const mutations = mockMutations();
+    mockSelectResults({
+      orders: [
+        [
+          orderRow({
+            deliveryInfo: {
+              type: "delivery",
+              address: "台中市西屯區台灣大道三段99號",
+              phone: "0912345678",
+              deliveryFee: 5,
+            },
+          }),
+        ],
+      ],
+      orderItems: [[itemRow()]],
+      receipts: [[receiptRow()]],
+    });
+
+    await createService().printReceipt({ orderId: "101" }, "register-1");
+
+    expect(
+      JSON.parse((mutations.inserted[0] as { content: string }).content),
+    ).toMatchObject({
+      deliveryAddress: "台中市西屯區台灣大道三段99號",
+      deliveryPhone: "0912345678",
+    });
+  });
+
+  it("leaves the delivery lines empty for a takeaway order", async () => {
+    uuidMocks.generateUUID.mockReturnValueOnce("receipt-1");
+    const mutations = mockMutations();
+    mockSelectResults({
+      orders: [
+        [
+          orderRow({
+            // 外帶單也帶著地址（顧客資料），但不該印成送餐地址。
+            deliveryInfo: { type: "takeaway", address: "somewhere" },
+          }),
+        ],
+      ],
+      orderItems: [[itemRow()]],
+      receipts: [[receiptRow()]],
+    });
+
+    await createService().printReceipt({ orderId: "101" }, "register-1");
+
+    expect(
+      JSON.parse((mutations.inserted[0] as { content: string }).content),
+    ).toMatchObject({ deliveryAddress: null, deliveryPhone: null });
+  });
+
   it("rejects missing orders before inserting receipts", async () => {
     const mutations = mockMutations();
     mockSelectResults({ orders: [[]] });

@@ -221,6 +221,9 @@ export class OrdersService implements IOrdersService {
         if (error.message.startsWith(INVALID_CUSTOMIZATION_PREFIX)) {
           throw badRequest(error.message, "INVALID_CUSTOMIZATION");
         }
+        if (error.message === "DELIVERY_NOT_ENABLED") {
+          throw badRequest("此店家未開放外送", "DELIVERY_NOT_ENABLED");
+        }
         if (error.message === "WAITING_LIST_PREORDER_EXISTS") {
           throw conflict(
             "A pre-order already exists for this waiting-list ticket",

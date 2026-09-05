@@ -1666,6 +1666,13 @@ export class GroupOrdersService implements IGroupOrderService {
           );
       }
 
+      // 這條路徑走的是 DatabaseOrderService，拿不到 API 層的 ApiError 對應表，
+      // 所以外送守門（#295）在這裡自己翻譯。不記進 errorTracker：這是設定問題，
+      // 不是故障。
+      if (error instanceof Error && error.message === "DELIVERY_NOT_ENABLED") {
+        return { success: false, error: "此店家未開放外送" };
+      }
+
       this.errorTracker.logError("finalizeGroupOrder", error as Error, {
         groupOrderId,
       });
