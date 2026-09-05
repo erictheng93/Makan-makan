@@ -217,22 +217,12 @@ export class BaseService {
     return this.connectionManager.getMetrics();
   }
 
-  /**
-   * Execute writes in a transaction.
-   *
-   * D1 production does not support interactive BEGIN transactions. Falling
-   * back to unwrapped writes would make multi-statement mutations silently
-   * non-atomic, so callers must use D1 `db.batch()` for D1-compatible atomic
-   * writes instead of relying on this helper.
-   */
-  protected async safeTransaction<T>(
-    writeFn: (db: ReturnType<typeof drizzle<typeof schema>>) => Promise<T>,
-  ): Promise<T> {
-    void writeFn;
-    throw new Error(
-      "D1 interactive transactions are unsupported; convert this write path to db.batch() for atomicity.",
-    );
-  }
+  // There is deliberately no transaction helper on this class. D1 does not
+  // support interactive BEGIN transactions, and a helper that wrapped writes
+  // anyway would make multi-statement mutations silently non-atomic. Use
+  // `db.batch()` for atomic writes. A `safeTransaction` stub used to live here
+  // that threw at runtime to say so; it was removed once the last caller was
+  // gone, so reaching for it is now a compile error instead.
 
   // 通用錯誤處理
   protected handleError(error: unknown, operation: string): never {

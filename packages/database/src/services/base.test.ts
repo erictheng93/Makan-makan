@@ -2,32 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import { BaseService } from "./base";
 
 class TestService extends BaseService {
-  runSafeTransaction(writeFn: (db: unknown) => Promise<unknown>) {
-    return this.safeTransaction(writeFn);
-  }
-
   exposeD1() {
     return this.d1;
   }
 }
-
-describe("BaseService.safeTransaction", () => {
-  it("fails closed without opening an unsupported D1 transaction", async () => {
-    const db = {
-      transaction: vi.fn(async () => {
-        throw new Error("Failed query: begin");
-      }),
-    };
-    const service = new TestService(db as never, {} as never);
-    const writeFn = vi.fn(async () => "written");
-
-    await expect(service.runSafeTransaction(writeFn)).rejects.toThrow(
-      "convert this write path to db.batch()",
-    );
-    expect(db.transaction).not.toHaveBeenCalled();
-    expect(writeFn).not.toHaveBeenCalled();
-  });
-});
 
 describe("BaseService read replication sessions", () => {
   function buildD1() {
