@@ -148,6 +148,35 @@ describe("check-production-config", () => {
     expect(result.violations).toEqual([]);
   });
 
+  it("keeps ENCRYPTION_KEY at warning level now that #300 made its absence fail closed", () => {
+    // Pinned deliberately, not inherited. Before #300 an absent key silently
+    // derived a reproducible AES key from the empty string; the crypto helpers
+    // now throw in production instead. That turns the gap into a fail-fast,
+    // feature-confined failure — the same shape as RESEND_API_KEY — so it stays
+    // a warning. "required" is reserved for secrets whose absence breaks the
+    // Worker for everyone. Flipping this to "required" should be a conscious
+    // edit to both the entry and this test, not a drive-by.
+    const encryptionKey = apiRequirements().find(
+      (requirement) => requirement.name === "ENCRYPTION_KEY",
+    );
+
+    expect(encryptionKey).toBeDefined();
+    expect(encryptionKey!.level).toBe("recommended");
+
+    const result = checkProductionConfig({
+      root: process.cwd(),
+      env: {},
+      readDeployedSecrets: deployedSecrets(
+        allApiSecretNames().filter((name) => name !== "ENCRYPTION_KEY"),
+      ),
+    });
+
+    expect(result.violations).toEqual([]);
+    expect(textOf(result.warnings)).toContain(
+      "missing production secret: ENCRYPTION_KEY",
+    );
+  });
+
   it("treats the SMS vendors as alternatives, not as additive requirements", () => {
     const withMitakeOnly = checkProductionConfig({
       root: process.cwd(),

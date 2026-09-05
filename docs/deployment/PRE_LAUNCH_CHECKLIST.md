@@ -77,13 +77,35 @@
 - [ ] Production `CORS_ORIGIN` 已設定為正確的 domain（非 `*`）
 - [ ] 所有 `wrangler secret put` 已在 production 環境執行：
   - [ ] `JWT_SECRET`（≥ 32 字元）
-  - [ ] `ENCRYPTION_KEY`
-  - [ ] `SLACK_WEBHOOK_URL`
+  - [ ] `QR_SIGNING_KEY`（≥ 32 字元）—— 缺少時建立桌位、重新產生 QR、批次建立座位全部拋錯
+  - [ ] `ENCRYPTION_KEY`（≥ 32 字元）—— 加密第三方憑證（ai-analytics、平台外送整合、forecast provider、加密備份）。#300 之後在 production 缺少時這些路徑直接失敗，不再靜默用空字串推導出一把公開可重現的金鑰
+  - [ ] `SLACK_WEBHOOK_URL`（如有啟用 error 通知）
   - [ ] `RESEND_API_KEY`（如有啟用 email）
   - [ ] `STRIPE_SECRET_KEY`（如有啟用 payment）
+- [ ] `pnpm check:prod-config` 通過（`pnpm deploy:prod` 會自動先跑）。它讀的是**線上** Worker 的 secret 清單（`wrangler secret list --env production`），不是你 shell 裡的環境變數——`wrangler deploy` 從不上傳操作者的環境變數，所以本機 export 過從來不算數
+- [ ] 每一把 secret 的原值都已存進團隊密碼管理器（見下方「金鑰保管」）
 - [ ] Production `wrangler.toml` 的 `[env.production]` 區段所有 ID 已填入真實值（非 placeholder）
 - [ ] `NODE_ENV = "production"` 已設定
 - [ ] `LOG_LEVEL` 已從 `debug` 改為 `warn` 或 `error`
+
+#### ⚠️ 金鑰保管：先存進密碼管理器，再執行 `wrangler secret put`
+
+Cloudflare secret 是**唯寫**的：寫進去之後任何人、任何 API 都讀不回原值，
+`wrangler secret list` 只會列出名稱。
+
+對 `ENCRYPTION_KEY` 來說這是不可逆的：一旦弄丟，所有用它加密過的憑證
+（外送平台 token、LLM API key、加密備份）**永遠救不回來**，也沒有任何重設流程
+——只能把每一筆加密資料作廢並請對方重新授權。覆寫成新的一把金鑰同樣救不回舊密文，
+因為舊密文是用舊金鑰加密的。
+
+所以順序是固定的，不能倒過來：
+
+1. 產生金鑰：`openssl rand -base64 48`
+2. **先**把它存進團隊共用的密碼管理器（`JWT_SECRET`、`QR_SIGNING_KEY` 同理）
+3. 才執行 `wrangler secret put ENCRYPTION_KEY --env production`
+
+輪替 `ENCRYPTION_KEY` 一樣要先用舊金鑰把既有密文解出來、用新金鑰重新加密，
+不是換上去就好。
 
 ### 資料庫
 

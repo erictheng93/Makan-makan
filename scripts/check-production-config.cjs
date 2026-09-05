@@ -47,7 +47,16 @@ const REQUIRED_PRODUCTION_RUNTIME_VARS = new Map([
 //   "required"    -> violation; blocks the deploy (exit 1). Core auth/signing:
 //                    without it the Worker is broken for everyone.
 //   "recommended" -> warning; printed loudly, exit stays 0. One feature is dead
-//                    (a delivery channel), the rest of the system still serves.
+//                    (a delivery channel, a credential store), the rest of the
+//                    system still serves.
+//
+// The level decides block-vs-warn, NOT reported-vs-silent: printResult() prints
+// every "recommended" gap in a loud WARNING block on every deploy, before the
+// blocking section. So promoting a secret to "required" buys a hard stop, not
+// visibility — visibility is already there. Weigh that against the cost: the
+// escape hatch (CHECK_PRODUCTION_CONFIG_REQUIRE_DEPLOYMENT_SECRETS=false) is
+// all-or-nothing, so every deploy blocked over a confined feature raises the
+// odds someone sets it and disables the JWT_SECRET/QR_SIGNING_KEY checks too.
 const REQUIRED_DEPLOYMENT_SECRETS = new Map([
   [
     "apps/api/wrangler.toml",
@@ -63,23 +72,33 @@ const REQUIRED_DEPLOYMENT_SECRETS = new Map([
         why: "HMAC key for table/seat QR URLs; SignedQrVerificationService throws without it, so QR ordering stops",
       },
       {
-        // Reachable today through ai-analytics (AIAnalyticsService encrypt/decrypt)
-        // and platform integrations, whose webhook route decrypts without auth.
-        // Neither guards an absent key: PBKDF2/SHA-256 over the empty string is
-        // still a valid AES-256 key, so a missing secret does not fail — it
-        // stores LLM and Uber Eats credentials under a key anyone can rederive.
+        // Reachable through ai-analytics (AIAnalyticsService), platform
+        // integrations (PlatformIntegrationService, whose webhook route
+        // decrypts without auth), forecast provider credentials, and encrypted
+        // backups.
         //
-        // "recommended" rather than "required" because production currently has
-        // nothing encrypted to lose: platform_integrations is empty and the
-        // ai-analytics config table does not exist there, measured 2026-08-30.
-        // Blocking every deploy over a key with no ciphertext behind it trains
-        // people to reach for the override. The real fix is to make the crypto
-        // helpers refuse an absent key instead of silently downgrading — #300 —
-        // at which point this becomes a loud runtime failure and does not need
-        // to gate the deploy at all.
+        // This entry used to carry the silent-downgrade problem: PBKDF2/SHA-256
+        // over the empty string is still a valid AES-256 key, so an absent
+        // secret did not fail — it stored LLM and Uber Eats credentials under a
+        // key anyone could rederive. #300 closed that in the crypto helpers:
+        // in production an absent key now throws instead of deriving one.
+        //
+        // Deliberately still "recommended" after that fix, and the reason
+        // changed. It is no longer "there is no ciphertext in production yet"
+        // (true when measured 2026-08-30, but a fact that expires the first
+        // time someone connects an integration). It is that the failure is now
+        // fail-fast and confined: the crypto-touching routes 500, every other
+        // route serves. That is the same shape as RESEND_API_KEY below —
+        // absent, one feature refuses up front and the rest of the system is
+        // untouched — and it must carry the same level, or "required" stops
+        // meaning "the Worker is broken for everyone".
+        //
+        // The missing key is still reported loudly on every production deploy;
+        // see the level legend above for why that, not the block, is the part
+        // doing the work here.
         name: "ENCRYPTION_KEY",
         level: "recommended",
-        why: "encrypts stored third-party credentials; absent, the code derives a publicly reproducible key from the empty string instead of failing",
+        why: "encrypts stored third-party credentials (ai-analytics, platform integrations, forecast providers, encrypted backups); absent, those routes fail closed in production while the rest of the Worker serves",
       },
       {
         name: "RESEND_API_KEY",

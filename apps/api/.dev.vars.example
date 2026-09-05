@@ -18,6 +18,26 @@ CORS_ORIGIN=http://localhost:3000,http://localhost:3001,http://localhost:3002
 # all throw without it. Generate one the same way as JWT_SECRET.
 QR_SIGNING_KEY=your-secure-qr-signing-key-min-32-chars-change-this-value
 
+# AES-256-GCM key for third-party credentials at rest (minimum 32 characters).
+# Generate one with: openssl rand -base64 48
+#
+# REQUIRED IN PRODUCTION. It encrypts ai-analytics provider keys, platform
+# delivery-integration tokens, forecast provider credentials, and encrypted
+# backups. In production those paths now refuse to run when the key is absent
+# or shorter than 32 characters, instead of quietly deriving a publicly
+# reproducible key from the empty string (#300). The 32-character floor is
+# enforced, not advisory — the PBKDF2 salt and iteration count are public
+# constants, so the secret is the only entropy in the derived key.
+#
+# Optional locally — leave it commented out unless you are working on one of
+# those features, and never reuse the production value here.
+#
+# ⚠️ Cloudflare secrets are write-only: once set you cannot read the value back.
+# Store the production key in the team password manager BEFORE running
+# `wrangler secret put ENCRYPTION_KEY --env production` — lose it and every
+# credential encrypted with it is unrecoverable.
+# ENCRYPTION_KEY=your-local-encryption-key-min-32-chars-change-this-value
+
 # Optional: Add other secrets needed for local development
 # ANTHROPIC_API_KEY=your-anthropic-key
 # OPENAI_API_KEY=your-openai-key
