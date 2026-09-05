@@ -1,6 +1,12 @@
 # TODOS
 
-Organized by skill/component, then priority (P0 top → P4 bottom, then Completed).
+Organized by skill/component. Priority is stated per item, not by position — the
+sections are grouped by area, so a P1 can sit below a P4.
+
+**Last full verification: 2026-09-05.** Every item below was re-checked against
+the working tree, the GitHub API, and `contract:check` on that date; each carries
+its own verification note. Two entries were materially wrong and have been
+corrected in place (money-schema migration paths, API-contract seats delta).
 
 ## API contracts
 
@@ -14,23 +20,54 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 - Extend the extractor and snapshot to persist each field's Zod type, including optionality/nullability and nested response objects where practical.
 - Diff type changes as breaking changes and update the script documentation.
-- Resolve the current `contract:check` baseline delta for `seats.SEAT_SENSITIVE_FIELDS` (`pendingQrCode`, `pendingQrCodeVersion`, and `pendingQrPreparedAt`) by reviewing the seats change and intentionally running `contract:update` if accepted.
+- ~~Resolve the current `contract:check` baseline delta for `seats.SEAT_SENSITIVE_FIELDS` (`pendingQrCode`, `pendingQrCodeVersion`, and `pendingQrPreparedAt`)~~ — **resolved.** `pnpm contract:check` reports "No contract changes detected" as of 2026-09-05; the baseline was reconciled at some point after 2026-08-13.
+
+**Re-verified 2026-09-05 — still open.** `.api-contracts-snapshot.json` still
+stores each schema as a bare array of field names (e.g.
+`authentication/TokenPairSchema = ["expiresAt", "refreshToken", "token"]`), with
+no type information, and `scripts/check-api-contracts.cjs` still claims
+otherwise in its header (lines 8 and 19: "or type changed", "Reports additions,
+removals, and type changes"). Only the third scope item above has been cleared.
 
 ## database / money schema
 
 ### Retire legacy REAL money columns with D1 drop-column cutover
 
-**Priority:** P3 (was P2 — the migration itself is written; only deployment verification is unconfirmed) **Status (updated 2026-07-05):** The destructive cutover migration this item describes as future work has **already been written and paired**, not just guarded: `packages/database/migrations_fresh/0070_money_cents_cutover.sql` and `0071_market_checkout_child_order_cents_cutover.sql` (paired with the legacy/Wrangler track's `0087`/`0088` in `packages/database/migration-dual-track.json`, `reviewedThrough` already covers both). Both migrations self-guard with a `CHECK (violation_count = 0)` table before dropping any column, use `PRAGMA defer_foreign_keys = ON`, and capture before/after row counts — matching every item in the scope below almost verbatim. Current Drizzle schema (`packages/database/src/schema/orders.ts` etc.) has **zero remaining legacy `REAL` money columns** — only `*_cents` columns exist.
+**Priority:** P3 **Status (corrected 2026-09-05 — the previous 2026-07-05 note, replaced here, was materially wrong):** The Drizzle schema end state is real: `packages/database/src/schema/` has **zero remaining legacy `REAL` money columns** — every `real()` column left is non-monetary (lat/lng, stock levels, ratings, `quantityPerServing`). But the executable cutover is no longer where the previous note said it was.
 
-**Not verifiable from the repo:** whether these migrations have actually been run against production D1 (vs. only written and merged). That's an operational fact, not a code fact — check deployment logs or run `pnpm wrangler d1 execute` against the target DB to confirm.
+**What the 2026-07-05 note claimed, and what is actually true:**
 
-**Doc drift to fix separately:** `docs/migration/MONEY_CENTS_FIELD_RETIREMENT.md` ("Last reviewed: 2026-06-12") still describes the cutover as "intentionally incomplete" future work, even though it names these exact migration files as the plan — the doc's "Current State" section needs updating to reflect that the plan was executed.
+| Claim | Reality on 2026-09-05 |
+| --- | --- |
+| `migrations_fresh/0070_money_cents_cutover.sql` and `0071_...` exist | **Deleted.** The fresh track was squashed into a single `0000_baseline_strict.sql`; neither file is on that track any more |
+| The two are "paired" in `migration-dual-track.json` | **No.** That file's `pairs` array is `[]`, and `reviewedThrough.fresh` is just `0000_baseline_strict.sql` |
+| The legacy track carries `0087`/`0088` | True — `packages/database/migrations/0087_money_cents_cutover.sql` and `0088_...` are still on disk |
 
-**Original scope (all items below now exist in the migration files — kept for reference):**
+**Why that matters more than a stale path.** Per root `CLAUDE.md`, every
+`migrations_dir` in `apps/api`, `apps/management-api` and `apps/realtime` points
+at `migrations_fresh` — verified again on 2026-09-05. The legacy
+`packages/database/migrations/` track is referenced by **no** `wrangler.toml`,
+so the only surviving copies of this cutover sit on a track nothing applies.
+The guard logic (`CHECK (violation_count = 0)`, `PRAGMA defer_foreign_keys = ON`,
+before/after row counts) still exists in those two files, but it is not
+reachable by any `pnpm db:migrate:*` path.
+
+**Still not verifiable from the repo:** whether the cutover was ever run against
+production D1. That is an operational fact — and note that production was built
+from the legacy lineage, so it is the one database where `0087`/`0088` could
+plausibly have been applied by hand.
+
+**Doc drift: resolved.** `docs/migration/MONEY_CENTS_FIELD_RETIREMENT.md` is now
+"Last reviewed: 2026-08-21" and its Current State section already documents the
+squash and its two consequences. No action needed there.
+
+**Original scope — kept for reference.** The ✅ marks below mean "written in
+`migrations/0087`/`0088`", which after the squash means *present on a track no
+`wrangler.toml` reads*. Do not read them as "applied".
 
 - Confirm production `money_cents_retirement` and `money_cents_retirement_rollout` audit rows have `violation_count = 0` — enforced automatically via the self-guarding assertion table in the migration itself
 - Rehearse the destructive migration on a restored D1 drill database with backup/restore evidence captured — ⚠️ unverified, see above
-- Use the dedicated D1/SQLite drop-column cutover migration that omits only the legacy `REAL` money columns listed in `docs/migration/MONEY_CENTS_FIELD_RETIREMENT.md` — ✅ `0070_money_cents_cutover.sql` / `0071_market_checkout_child_order_cents_cutover.sql`
+- Use the dedicated D1/SQLite drop-column cutover migration that omits only the legacy `REAL` money columns listed in `docs/migration/MONEY_CENTS_FIELD_RETIREMENT.md` — ✅ written, as `migrations/0087_money_cents_cutover.sql` / `0088_market_checkout_child_order_cents_cutover.sql` (the `migrations_fresh/0070`/`0071` this line used to name were deleted by the squash)
 - Preserve primary keys, FKs, unique constraints, defaults, generated columns, indexes, non-legacy triggers, timestamp columns, and soft-delete columns
 - Start the cutover with `PRAGMA defer_foreign_keys = ON`, run `PRAGMA foreign_key_check`, and include row-count assertions — ✅ present in the migration files
 - Remove obsolete cents sync triggers and legacy fallback reads only after the cutover migration is verified
@@ -39,12 +76,18 @@ Organized by skill/component, then priority (P0 top → P4 bottom, then Complete
 
 ### Migrate remaining safeTransaction callers to D1 batch
 
-**Priority:** P4 (was P1 — caller migration is done, only cleanup remains) **Status (verified 2026-07-05):** Caller migration is COMPLETE. Repo-wide search (`grep -rln "safeTransaction" --include="*.ts" .`) finds `safeTransaction` used ONLY in its own definition (`packages/database/src/services/base.ts:154`) and its dedicated test (`base.test.ts`) — zero remaining callers anywhere in `apps/` or `packages/`. `FeedbackService.ts`, `LeaveService.ts`, and `SchedulingService.ts` (the three listed below) are all fully on `db.batch()` now (verified via git log: `5c2be3be`, `1f16fe22`, `b2f40b7b` and others).
+**Priority:** P4 (was P1 — caller migration is done, only cleanup remains) **Status (verified 2026-07-05):** Caller migration is COMPLETE. Repo-wide search (`grep -rln "safeTransaction" --include="*.ts" .`) finds `safeTransaction` used ONLY in its own definition (`packages/database/src/services/base.ts:154`, now `:228`) and its dedicated test (`base.test.ts`) — zero remaining callers anywhere in `apps/` or `packages/`. `FeedbackService.ts`, `LeaveService.ts`, and `SchedulingService.ts` (the three listed below) are all fully on `db.batch()` now (verified via git log: `5c2be3be`, `1f16fe22`, `b2f40b7b` and others).
 
 **Remaining scope (the only thing left):**
 
 - Delete `safeTransaction` from `BaseService` (`packages/database/src/services/base.ts`) so interactive transaction usage cannot be reintroduced — nothing calls it anymore, this is now dead code, not a migration
 - Remove/update `base.test.ts`'s coverage of `safeTransaction` accordingly
+
+**Re-verified 2026-09-05 — still open, and still exactly this small.**
+`safeTransaction` is at `packages/database/src/services/base.ts:228` (the
+2026-07-05 note's `:154` has drifted) and `base.test.ts` still exercises it via
+a local subclass. The only other hits are build output (`packages/database/dist`,
+`packages/ai-analytics/dist`), which regenerate. Zero production callers.
 
 ## billing / metering cost
 
@@ -83,6 +126,13 @@ Rejected alternatives, so they do not get re-proposed:
 
 **Note what is lost:** the per-request `metadata` (method, path, status) goes away. Nothing in billing reads it, but it is useful for debugging. That payload is genuine telemetry — sampling is fine — so Analytics Engine is the right home for it, kept separate from the billed count.
 
+**Re-verified 2026-09-05 — unchanged.** No `usage_meter_buckets` table exists in
+the schema or on either migration track, and `apps/api/src/shared/utils/meter.ts:36`
+still issues a raw `INSERT INTO usage_events` per call, mounted on every
+`apiV1` request via `usageTracker.ts:49`. (Side note for whoever picks this up:
+that raw string SQL is a Layer 3 query, which root `CLAUDE.md` bans in new code —
+the rewrite should land on Drizzle, not another template string.)
+
 **Also worth deciding separately:** `USAGE_EVENTS_TTL_DAYS` is 90. Rows are aggregated into `usage_meters` within the hour and then exist only as dispute evidence. Dropping to ~35 days (one cycle plus a buffer) cuts the table's D1 storage by roughly 60% and is a business call, not a technical one. Bucketing largely subsumes this.
 
 ### RealtimeSession is stuck on the key-value Durable Object backend
@@ -99,6 +149,11 @@ Rejected alternatives, so they do not get re-proposed:
 - Delete and re-provision the namespace under a new class name. That discards every object's stored state. `RealtimeSession` keeps only an event-history ring buffer and hibernating WebSocket attachments, so the loss is bounded — but every live socket drops. Only worth doing inside a planned maintenance window.
 
 **Done 2026-08-23 — the reachable half.** `addToEventHistory` used to rewrite the whole ~100-event array through one `storage.put` on every broadcast, costing `ceil(arrayBytes / 4 KB)` write request units. It now writes one key per event (`evt:` plus a zero-padded sequence, so `storage.list()`'s lexicographic order is insertion order) and deletes only what the caps evict: **1 write request unit + 1 delete request per broadcast, independent of history size**. Legacy `eventHistory` arrays are migrated to per-event keys on first load, so a client reconnecting across the deploy still gets its delta. Only the storage layout changed — retention rules, ordering and the `/history` cursor behave exactly as before.
+
+**Re-verified 2026-09-05 — unchanged and still externally blocked.**
+`apps/realtime/wrangler.toml:39-41` still declares `tag = "v1"` /
+`new_classes = ["RealtimeSession"]`, and the per-event `evt:` key layout
+(`RealtimeSession.ts:40`) is in place as described.
 
 **Still blocked:** the remaining gap is the backend itself. Reads are unchanged (one `list()` per object lifetime, same bytes as the old single `get`), and the delete request is inherent — every event written must eventually be removed. On SQLite that same delete is a row written against a free tier 50x larger.
 
@@ -281,7 +336,12 @@ Rejected alternatives, so they do not get re-proposed:
 
 **Why deferred:** Hard prerequisite — customer-identity work above must land first because "follow" rows live in `customer_favorites` and "broadcast targets" live in `customer_push_subscriptions`. Without those tables, this feature has nowhere to attach.
 
-**Status (2026-07-05):** Prerequisite satisfied — customer-identity Phase 1 above is verified complete, so this phase is now unblocked. Phase 4 itself has not been built: no `BroadcastService` for markets/restaurants and no "Following" UI were found in `apps/api` or `apps/customer-app` as of this check.
+**Status (re-verified 2026-09-05 — still unblocked, still unbuilt):** No
+market- or restaurant-scoped broadcast endpoint and no "Following" UI exist.
+Note for future searches: `RealtimeBroadcastService` **does** exist and matches a
+naive grep for "Broadcast", but it is the group-order/realtime fan-out in
+`@makanmasak/database`, unrelated to marketing broadcast. This phase is the
+largest genuinely-unbuilt item in this file.
 
 **Scope:**
 
@@ -295,6 +355,9 @@ Rejected alternatives, so they do not get re-proposed:
 **Priority:** P4 **Spec:** `docs/superpowers/specs/2026-05-25-night-market-discovery-design.md` §10 Phase 2 **Context:** Promote `market_operator` to a first-class role (separate from existing 0–4 restaurant roles) with self-service market editing, vendor approval queue, and per-market analytics.
 
 **Why deferred:** Phase 1 markets are platform-admin-owned, which is sufficient for MVP. Operator self-service is a scaling tool, not a launch requirement.
+
+**Re-verified 2026-09-05 — unbuilt.** Zero occurrences of `market_operator` /
+`MARKET_OPERATOR` anywhere in `apps/` or `packages/` source.
 
 **Scope:**
 
@@ -316,6 +379,11 @@ Rejected alternatives, so they do not get re-proposed:
 
 **Scope:** Either give `createSelectFixtureDb` a declared fallback bucket, or rework the two subquery-backed reads in `GroupOrdersService` so every `from()` target is a real table.
 
+**Re-verified 2026-09-05 — unchanged.** The `rawSqlSubquery` symbol and its
+routing fallback are still in `GroupOrdersService.test.ts` (declared at :92,
+routed at :139, one fixture at :3784); writes are already on the shared
+`createMutationFixtureDb` (:211), exactly as #213 left it.
+
 ### Narrow `CouponsService.createCouponWithValidation`'s return type
 
 **Priority:** P4 **Status:** Open (identified 2026-08-20, deferred from #207) **Files:** `apps/api/src/features/coupons/services/CouponsService.ts`, `apps/api/src/__tests__/integration/coupons.real.integration.test.ts`
@@ -325,6 +393,11 @@ Rejected alternatives, so they do not get re-proposed:
 **Why deferred:** #207's scope was `no-explicit-any` in test code. Narrowing the return type is a production-signature change with its own callers to check, and the issue explicitly says such findings should be filed rather than forced through a cast in the test.
 
 **Scope:** Give the method a concrete return type (the formatted coupon row), let `PaginatedCouponsResponse` follow, then replace the test's local `CouponResponse` with `ServiceData<CouponsService["createCouponWithValidation"]>`.
+
+**Re-verified 2026-09-05 — unchanged.** Still
+`async createCouponWithValidation(data: CreateCouponData): Promise<unknown>` at
+`CouponsService.ts:214`, and the integration suite still carries its local
+`CouponResponse` interface.
 
 ## deployment
 
@@ -356,10 +429,31 @@ The step does pass `CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}`, 
 | `PRODUCTION_CUSTOMER_URL` | `https://makanmasak.com` | no |
 | `PRODUCTION_KITCHEN_URL` | `https://kitchen.makanmasak.com` | no |
 
+**Re-verified 2026-09-05 — nothing has changed, and this is the highest-priority
+open item in the file.** `gh run list --workflow=deploy-production.yml` still
+shows exactly one `workflow_dispatch` (run `30110053816`, 2026-07-24, failure)
+with every other run `workflow_run`-triggered and skipped.
+`gh secret list --env production` is still empty; repository level still holds
+only `CLAUDE_CODE_OAUTH_TOKEN` and `CLOUDFLARE_ANALYTICS_READ_TOKEN`, neither of
+which this workflow uses.
+
 The account is `bdddc08c066a9abc285d75fe5947a468`, which is not the one a local `wrangler login` resolves to by default — see the account-split note.
 
 **Token permissions**, derived from the bindings actually declared across the ten `wrangler.toml` files. Account: Workers Scripts Edit, Workers KV Storage Edit, Workers R2 Storage Edit, D1 Edit, Queues Edit, Vectorize Edit, Workers AI Edit, **Cloudflare Pages Edit**, Account Settings Read. Zone (`makanmasak.com`): Workers Routes Edit, DNS Edit for the four `custom_domain` entries. Pages Edit is the one most easily missed — the five frontends deploy with `wrangler pages deploy`, which Workers Scripts Edit does not cover, and `pnpm -r run deploy:prod` reaches them. Do not add a client-IP restriction: GitHub-hosted runner addresses are not stable.
 
 ## Completed
 
-_None yet._
+Completed work is **not** collected here — it stays inline under its own section
+with a `Status: Completed <date>` marker, so the surrounding context and scope
+stay attached to it. As of 2026-09-05 that covers thirteen items: the six
+i18n entries, the four waiting-list entries, customer-identity Phase 1 (which
+uses a `Status (verified ...)` marker rather than `Status: Completed`, so a
+grep for the latter finds only twelve), and marketplace Phases 1 and 3.
+
+One of the thirteen is only **partially** complete and should not be read as
+shipped-in-full: "Wire push notification end-to-end" covers `waiting_called`
+only — `waiting_about_to_expire` still needs a scheduler/alarm and has never
+been built.
+
+This heading is kept only so that the "_None yet._" placeholder that used to sit
+here stops reading as "nothing in this file has shipped".
