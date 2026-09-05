@@ -153,6 +153,36 @@ describe("Role gap coverage: admin-only modules boundary", () => {
     expect(systemHealthRes.status).toBe(200);
   });
 
+  it("keeps the deep system health probe behind auth", async () => {
+    // The public exemption is matched on the path, which carries no query
+    // string. `?deep=1` swaps in a KV write probe and an evidence write, so it
+    // has to leave the exemption behind — otherwise the flag is an anonymous
+    // handle on the account's KV write quota (#324).
+    const anonymousRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/system/health?deep=1"),
+    );
+    expect(anonymousRes.status).toBe(401);
+
+    const restaurant = await seed.restaurant();
+    const adminUser = await seed.user({
+      id: 2,
+      username: "ticket05-deep-health-admin",
+      role: 0,
+      restaurantId: String(restaurant.id),
+    });
+    const adminToken = await testApp.authHelper.adminToken(
+      String(restaurant.id),
+      adminUser.id,
+    );
+
+    const authorizedRes = await testApp.app.fetch(
+      new Request("https://test/api/v1/system/health?deep=1", {
+        headers: { authorization: `Bearer ${adminToken}` },
+      }),
+    );
+    expect(authorizedRes.status).toBe(200);
+  });
+
   it("requires admin for /api/v1/system/health/detailed", async () => {
     const restaurant = await seed.restaurant();
     const adminUser = await seed.user({

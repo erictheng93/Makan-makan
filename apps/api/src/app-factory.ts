@@ -7,6 +7,7 @@ import type {
   ServerErrorStatusCode,
 } from "hono/utils/http-status";
 import { authMiddleware, optionalAuth } from "./middleware/auth";
+import { isDeepHealthRequest } from "./core/health/probe";
 import { corsMiddleware } from "./middleware/cors";
 import { csrfProtection, attachCSRFToken } from "./middleware/csrf";
 // import { rateLimitMiddleware } from './middleware/rateLimit'
@@ -722,7 +723,15 @@ export function createApp(
   apiV1.use("/ai-analytics/*", authMiddleware);
   // SSE auth is handled at route level (sseAuthMiddleware) to support token via query param
   apiV1.use("/system/*", async (c, next) => {
-    if (c.req.path === "/api/v1/system/health") {
+    // The exemption covers the cheap read-only health probe only. `?deep=1`
+    // swaps in a KV write probe and records uptime evidence, so it goes
+    // through auth like the rest of /system/*. `c.req.path` carries no query
+    // string, so without the second clause the flag would hand anonymous
+    // callers exactly the write-quota burn the default probe avoids (#324).
+    if (
+      c.req.path === "/api/v1/system/health" &&
+      !isDeepHealthRequest(c.req.url)
+    ) {
       await next();
       return;
     }

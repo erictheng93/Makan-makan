@@ -662,10 +662,12 @@ describe("system routes", () => {
   it("reports unhealthy health when KV checks fail", async () => {
     mockSelectResults({ healthProbe: [[{ test: 1 }]] });
     const failingKv = {
-      get: vi.fn(),
-      put: vi.fn(async () => {
+      // The default probe reads, so it is the read that has to fail. Failing
+      // `put` here would prove nothing: the public endpoint no longer writes.
+      get: vi.fn(async () => {
         throw new Error("kv unavailable");
       }),
+      put: vi.fn(),
       delete: vi.fn(),
     };
 
@@ -694,12 +696,15 @@ describe("system routes", () => {
     });
   });
 
-  it("reports degraded health when KV checks return unexpected data", async () => {
+  it("reports degraded health when the deep KV probe reads back the wrong value", async () => {
     mockSelectResults({ healthProbe: [[{ test: 1 }]] });
     const kv = createKv();
     kv.get.mockResolvedValueOnce("stale");
 
-    const response = await request("/health", "GET", undefined, {
+    // Only the write probe can tell "wrong value" from "reachable": the
+    // default read probe reads a sentinel it never wrote, so any value it gets
+    // back — including none — still proves the round trip.
+    const response = await request("/health?deep=1", "GET", undefined, {
       CACHE_KV: kv,
     }).res;
     const body = await response.json();
@@ -714,6 +719,78 @@ describe("system routes", () => {
         expect.objectContaining({ name: "kv_storage", status: "degraded" }),
       ],
     });
+  });
+
+  it("spends no KV write on the public health probe", async () => {
+    mockSelectResults({ healthProbe: [[{ test: 1 }]] });
+
+    const { res, kv } = request("/health");
+    const response = await res;
+    const body = await response.json();
+
+    // #324: this endpoint used to cost three write-class KV round trips per
+    // anonymous call — put + get + delete for the probe, then a put of the
+    // uptime evidence key. In production each of those was ~420ms, and the
+    // endpoint is the one external monitors poll.
+    expect(kv.put).not.toHaveBeenCalled();
+    expect(kv.delete).not.toHaveBeenCalled();
+    expect(kv.get).toHaveBeenCalledTimes(1);
+    expect(kv.get).toHaveBeenCalledWith("_health_probe");
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      status: "healthy",
+      services: [
+        expect.objectContaining({ name: "database" }),
+        expect.objectContaining({ name: "kv_storage", probe: "read" }),
+      ],
+    });
+  });
+
+  it("runs the write-path probe and records evidence only when asked", async () => {
+    mockSelectResults({ healthProbe: [[{ test: 1 }]] });
+
+    const { res, kv } = request("/health?deep=1");
+    const response = await res;
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      status: "healthy",
+      services: [
+        expect.objectContaining({ name: "database" }),
+        expect.objectContaining({
+          name: "kv_storage",
+          status: "healthy",
+          probe: "read-write",
+        }),
+      ],
+    });
+
+    expect(kv.put).toHaveBeenCalledWith(
+      expect.stringMatching(/^health-check-/),
+      "test",
+      { expirationTtl: 60 },
+    );
+    expect(kv.put).toHaveBeenCalledWith(
+      "system:uptime:last-check",
+      expect.stringContaining('"status":"healthy"'),
+      { expirationTtl: 60 * 60 * 24 * 7 },
+    );
+    expect(kv.delete).toHaveBeenCalledWith(
+      expect.stringMatching(/^health-check-/),
+    );
+  });
+
+  it("treats an explicit deep=0 as the cheap probe", async () => {
+    mockSelectResults({ healthProbe: [[{ test: 1 }]] });
+
+    const { res, kv } = request("/health?deep=0");
+    await res;
+
+    // Otherwise `deep=0` reads as a non-empty string and opts in, which is the
+    // opposite of what it says.
+    expect(kv.put).not.toHaveBeenCalled();
   });
 
   it("times the KV probe from its own start rather than the request's", async () => {

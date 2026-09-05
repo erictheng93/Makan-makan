@@ -16,6 +16,7 @@ import {
 } from "../schemas/validation";
 import type { Env } from "../../../shared/types";
 import type { ISystemService } from "../types";
+import { isDeepHealthRequest, probeCache } from "../../../core/health/probe";
 
 // Create feature router
 const routes = new Hono<{ Bindings: Env }>();
@@ -278,7 +279,30 @@ interface ServiceCheck {
    */
   servedByPrimary?: boolean;
   servedByRegion?: string;
+  /**
+   * Which probe produced this check. Present only on the KV check, where the
+   * two depths cost very different things and answer different questions —
+   * see `CacheProbeDepth`. Reading a latency without knowing which one ran is
+   * how #324 came to compare a three-round-trip write probe against a
+   * one-statement `SELECT 1` and conclude KV was three times slower than D1.
+   */
+  probe?: CacheProbeDepth;
 }
+
+/**
+ * How hard the KV check works.
+ *
+ * - `read` — one `get` of a sentinel key. Proves KV is reachable and spends no
+ *   write quota. This is the default, including on the public endpoint.
+ * - `read-write` — `put`, then `get`, then a background `delete`. Additionally
+ *   proves the write path, at the price of two write-class round trips.
+ *
+ * Measured against production on 2026-09-05, with the Worker already back in
+ * APAC (#322): a KV read costs ~210ms and each KV write ~420ms, against ~95ms
+ * for the D1 `SELECT 1`. The write probe was by a wide margin the most
+ * expensive thing this endpoint did, and it ran on every anonymous call.
+ */
+type CacheProbeDepth = "read" | "read-write";
 
 interface EndpointHealth {
   name: string;
@@ -442,7 +466,23 @@ async function checkDatabase(
 
 async function checkCache(
   c: Context<{ Bindings: Env }>,
+  depth: CacheProbeDepth,
 ): Promise<ServiceCheck> {
+  if (depth === "read") {
+    // The same sentinel read `/api/v1/monitoring/health` uses, so the two
+    // public health endpoints now report a comparable number.
+    const probe = await probeCache(c.env.CACHE_KV);
+
+    return {
+      name: "kv_storage",
+      status: probe.healthy ? "healthy" : "unhealthy",
+      responseTime: probe.latencyMs,
+      lastCheck: new Date().toISOString(),
+      probe: depth,
+      ...(probe.error ? { error: probe.error } : {}),
+    };
+  }
+
   const startedAt = Date.now();
 
   try {
@@ -462,6 +502,7 @@ async function checkCache(
       status: testValue === "test" ? "healthy" : "degraded",
       responseTime,
       lastCheck: new Date().toISOString(),
+      probe: depth,
     };
   } catch (error) {
     return {
@@ -470,11 +511,15 @@ async function checkCache(
       responseTime: Date.now() - startedAt,
       error: error instanceof Error ? error.message : "Unknown error",
       lastCheck: new Date().toISOString(),
+      probe: depth,
     };
   }
 }
 
-async function runBasicHealthCheck(c: Context<{ Bindings: Env }>): Promise<{
+async function runBasicHealthCheck(
+  c: Context<{ Bindings: Env }>,
+  cacheProbeDepth: CacheProbeDepth = "read",
+): Promise<{
   overallStatus: HealthStatus["status"];
   dbStatus: ServiceCheck;
   kvStatus: ServiceCheck;
@@ -493,7 +538,7 @@ async function runBasicHealthCheck(c: Context<{ Bindings: Env }>): Promise<{
   // the D1 probe, reported twice.
   const [dbStatus, kvStatus] = await Promise.all([
     checkDatabase(c),
-    checkCache(c),
+    checkCache(c, cacheProbeDepth),
   ]);
 
   const services = [dbStatus, kvStatus];
@@ -520,12 +565,18 @@ async function runBasicHealthCheck(c: Context<{ Bindings: Env }>): Promise<{
  * GET /api/v1/system/health
  */
 routes.get("/health", async (c) => {
+  // `?deep=1` swaps the sentinel read for the write-path probe and records
+  // uptime evidence. It is not reachable anonymously: `app-factory.ts` routes
+  // deep requests through `authMiddleware` while leaving the plain path public,
+  // because both of those extras spend KV writes and this endpoint is the one
+  // external monitors poll (#324).
+  const deep = isDeepHealthRequest(c.req.url);
   const {
     overallStatus: baseHealthStatus,
     dbStatus,
     kvStatus,
     responseTimeMs,
-  } = await runBasicHealthCheck(c);
+  } = await runBasicHealthCheck(c, deep ? "read-write" : "read");
 
   const services = [dbStatus, kvStatus];
   const health: HealthStatus = {
@@ -535,12 +586,19 @@ routes.get("/health", async (c) => {
     version: c.env.API_VERSION || "v1",
     environment: c.env.NODE_ENV || "development",
   };
-  await storeUptimeEvidence(c, {
-    status: baseHealthStatus,
-    dbStatus,
-    kvStatus,
-    responseTimeMs,
-  });
+  // Evidence is a fixed KV key, so writing it here used to mean every
+  // anonymous caller wrote the same key — a second KV write per request on top
+  // of the probe's, and against KV's one-write-per-second-per-key ceiling.
+  // `/health/uptime` is the endpoint whose contract is to leave evidence, and
+  // it still does so on every call; here it follows the deliberate deep check.
+  if (deep) {
+    await storeUptimeEvidence(c, {
+      status: baseHealthStatus,
+      dbStatus,
+      kvStatus,
+      responseTimeMs,
+    });
+  }
 
   const statusCode =
     baseHealthStatus === "healthy"
@@ -686,7 +744,10 @@ routes.get(
     const startTime = Date.now();
 
     // 執行基本健康檢查
-    const basicHealth = await runBasicHealthCheck(c);
+    // Admin-only, and explicitly the deep endpoint — the write-path probe
+    // belongs here, where the caller is authenticated and the cadence is a
+    // human clicking rather than a monitor polling.
+    const basicHealth = await runBasicHealthCheck(c, "read-write");
     const basicData = { status: basicHealth.overallStatus };
 
     // 檢查資料庫性能

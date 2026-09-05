@@ -64,3 +64,28 @@ export async function probeCache(kv?: KVNamespace): Promise<ProbeResult> {
     };
   }
 }
+
+/**
+ * Whether a health request asked for the write-path probe (`?deep=1`).
+ *
+ * Lives beside the probes rather than in the route file because the auth layer
+ * needs the same answer. `/api/v1/system/health` is exempt from bearer auth so
+ * external monitors can poll it, and the exemption is matched on `c.req.path`,
+ * which ignores the query string — so without this the `deep` flag would hand
+ * anonymous callers the KV writes the read probe exists to avoid (#324).
+ *
+ * Presence means deep: `?deep`, `?deep=1` and `?deep=true` all opt in, while
+ * `?deep=0` and `?deep=false` read as an explicit opt-out rather than as the
+ * non-empty string they are.
+ */
+export function isDeepHealthRequest(url: string): boolean {
+  let value: string | null;
+  try {
+    value = new URL(url).searchParams.get("deep");
+  } catch {
+    return false;
+  }
+
+  if (value === null) return false;
+  return value !== "0" && value !== "false";
+}
