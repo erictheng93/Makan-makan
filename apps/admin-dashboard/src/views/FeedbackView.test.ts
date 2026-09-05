@@ -31,7 +31,7 @@ function feedback(overrides: Partial<FeedbackItem> = {}): FeedbackItem {
   return {
     id: 1,
     restaurantId: "restaurant-1",
-    userId: 10,
+    userId: "019469a1-0010-7000-8000-000000000010",
     category: "bug_report",
     priority: "medium",
     status: "resolved",
@@ -42,7 +42,7 @@ function feedback(overrides: Partial<FeedbackItem> = {}): FeedbackItem {
     createdAt: "2026-08-28T00:00:00.000Z",
     updatedAt: "2026-08-28T00:00:00.000Z",
     resolvedAt: "2026-08-28T01:00:00.000Z",
-    resolvedBy: 99,
+    resolvedBy: "019469a1-0099-7000-8000-000000000099",
     ...overrides,
   };
 }

@@ -195,6 +195,7 @@ import type {
   AvailableEmployee,
   CreateScheduleData,
 } from "@/types/scheduling";
+import type { UserId } from "@/types/api-user";
 
 const props = defineProps<{
   schedule?: EmployeeSchedule | null;
@@ -219,7 +220,7 @@ const availableEmployees = ref<AvailableEmployee[]>([]);
 
 // Form Data
 interface ScheduleFormData {
-  employeeId: number | "";
+  employeeId: UserId | "";
   workDate: string;
   shiftTemplateId: number | "";
   startTime: string;
@@ -350,7 +351,7 @@ const handleSubmit = async () => {
     loading.value = true;
 
     const scheduleData: CreateScheduleData = {
-      employeeId: Number(formData.employeeId),
+      employeeId: formData.employeeId,
       workDate: formData.workDate,
       shiftTemplateId: formData.shiftTemplateId
         ? Number(formData.shiftTemplateId)

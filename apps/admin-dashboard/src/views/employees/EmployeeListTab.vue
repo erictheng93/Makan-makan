@@ -271,6 +271,7 @@ import {
   statusBadgeClass,
 } from "@/composables/useEmployeeDisplay";
 import type { Employee, EmployeeWithStatus } from "@/types/employee";
+import type { UserId } from "@/types/api-user";
 import {
   Search,
   Users,
@@ -340,14 +341,14 @@ watch([searchQuery, roleFilter, statusFilter], () => {
 // Helpers
 const getInitials = (user: EmployeeWithStatus) => getInitialsHelper(user);
 
-const navigateToDetail = (id: number) => {
+const navigateToDetail = (id: UserId) => {
   router.push(`/dashboard/employees/${id}`);
 };
 
 const emit = defineEmits<{
   editUser: [user: Employee];
   refresh: [];
-  resetPassword: [userId: number];
+  resetPassword: [userId: UserId];
   toggleStatus: [user: EmployeeWithStatus];
 }>();
 

@@ -86,9 +86,10 @@
 import { computed } from "vue";
 import type { ShiftTemplate } from "@/types/scheduling";
 import type { LeaveRequest } from "@/services/leavesService";
+import type { UserId } from "@/types/api-user";
 
 interface EmployeeBasic {
-  id: number;
+  id: UserId;
   name?: string;
   fullName?: string;
   role: number;
@@ -96,15 +97,15 @@ interface EmployeeBasic {
 
 const props = defineProps<{
   employees: EmployeeBasic[];
-  schedules: Array<{ employeeId: number; workDate: string }>;
+  schedules: Array<{ employeeId: UserId; workDate: string }>;
   leaveRequests: LeaveRequest[];
   selectedDate: string | null;
   shiftTemplates?: ShiftTemplate[];
-  weeklyHours?: Record<number, number>;
+  weeklyHours?: Record<UserId, number>;
 }>();
 
 const emit = defineEmits<{
-  (e: "drag-start", employeeId: number): void;
+  (e: "drag-start", employeeId: UserId): void;
 }>();
 
 const WEEKLY_HOURS_WARNING = 35;
@@ -149,7 +150,7 @@ const employeesWithStatus = computed<EmployeeWithStatus[]>(() => {
   });
 });
 
-function onDragStart(event: DragEvent, employeeId: number) {
+function onDragStart(event: DragEvent, employeeId: UserId) {
   event.dataTransfer?.setData("employeeId", String(employeeId));
   emit("drag-start", employeeId);
 }

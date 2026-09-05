@@ -4,6 +4,7 @@
  */
 
 import { api } from "@/services/api";
+import type { UserId } from "@/types/api-user";
 
 /**
  * Mirrors the leave_types row, which GET /leaves/:restaurantId/types returns
@@ -43,7 +44,7 @@ export interface CreateLeaveTypeInput {
 
 export interface LeaveBalance {
   id: number;
-  employeeId: number;
+  employeeId: UserId;
   leaveTypeId: number;
   leaveTypeName: string;
   totalDays: number;
@@ -56,7 +57,7 @@ export interface LeaveBalance {
 
 export interface LeaveRequest {
   id: number;
-  employeeId: number;
+  employeeId: UserId;
   employeeName?: string;
   leaveTypeId: number;
   leaveTypeName?: string;
@@ -66,7 +67,7 @@ export interface LeaveRequest {
   days: number;
   reason?: string;
   status: "pending" | "approved" | "rejected" | "cancelled";
-  approvedBy?: number;
+  approvedBy?: UserId;
   approverName?: string;
   rejectionReason?: string;
   createdAt: string;
@@ -95,7 +96,7 @@ class LeavesService {
    */
   async getBalances(params: {
     restaurantId?: string;
-    employeeId?: number;
+    employeeId?: UserId;
     year?: number;
   }): Promise<LeaveBalance[]> {
     const response = await this.api.get<LeaveBalance[]>(
@@ -126,7 +127,7 @@ class LeavesService {
   async getRequests(
     restaurantId: string,
     params?: {
-      employeeId?: number;
+      employeeId?: UserId;
       status?: string;
       startDate?: string;
       endDate?: string;

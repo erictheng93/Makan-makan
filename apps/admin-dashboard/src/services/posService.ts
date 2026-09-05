@@ -1,3 +1,4 @@
+import type { UserId } from "@/types/api-user";
 import { apiClient, unwrapApiData } from "./api";
 
 // 型別定義
@@ -35,7 +36,7 @@ export interface CashRegister {
 export interface CashShift {
   id: string;
   registerId: string;
-  operatorId: number;
+  operatorId: UserId;
   startTime: string;
   endTime?: string;
   startingCash: number;
@@ -51,7 +52,7 @@ export interface CashMovement {
   type: "cash_in" | "cash_out" | "drawer_count" | "refund";
   amount: number;
   description: string;
-  operatorId: number;
+  operatorId: UserId;
   createdAt: string;
 }
 
@@ -128,7 +129,7 @@ export const posService = {
   async startShift(data: {
     registerId: string;
     startingCash: number;
-    operatorId: number;
+    operatorId: UserId;
   }): Promise<CashShift> {
     const response = await apiClient.post("/pos/shifts/start", data);
     return unwrapApiData<CashShift>(response);
@@ -162,7 +163,7 @@ export const posService = {
     type: CashMovement["type"];
     amount: number;
     description: string;
-    operatorId: number;
+    operatorId: UserId;
   }): Promise<CashMovement> {
     const response = await apiClient.post("/pos/cash-movements", data);
     return unwrapApiData<CashMovement>(response);
@@ -245,7 +246,7 @@ export const posService = {
     registerId: string;
     amount: number;
     reason: string;
-    operatorId: number;
+    operatorId: UserId;
     notes?: string;
   }): Promise<unknown> {
     const response = await apiClient.post("/pos/refunds/create", data);
@@ -326,7 +327,7 @@ export const posService = {
     registerId: string;
     amount: number;
     paymentMethod: string;
-    operatorId: number;
+    operatorId: UserId;
   }): Promise<unknown> {
     const response = await apiClient.post("/pos/quick-payment", data);
     return unwrapApiData<unknown>(response);

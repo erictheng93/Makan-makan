@@ -256,6 +256,7 @@ import { toLocalDateStr } from "@/utils/dateUtils";
 import { schedulingService } from "@/services/schedulingService";
 import { leavesService } from "@/services/leavesService";
 import type { Employee } from "@/types/employee";
+import type { UserId } from "@/types/api-user";
 import type { ShiftTemplate, EmployeeSchedule } from "@/types/scheduling";
 import type { LeaveRequest } from "@/services/leavesService";
 import SchedulingCalendarGrid from "@/components/scheduling/SchedulingCalendarGrid.vue";
@@ -436,8 +437,8 @@ const unassignedEmployees = computed(() => {
 });
 
 // ── Computed: weekly hours per employee ──────────────────
-const weeklyHoursMap = computed<Record<number, number>>(() => {
-  const map: Record<number, number> = {};
+const weeklyHoursMap = computed<Record<UserId, number>>(() => {
+  const map: Record<UserId, number> = {};
   for (const s of schedules.value) {
     if (s.scheduledHours) {
       map[s.employeeId] = (map[s.employeeId] ?? 0) + s.scheduledHours;
@@ -458,7 +459,7 @@ const conflicts = computed(() => {
   const endStr = toLocalDateStr(dateRange.value.end);
 
   // Compute scheduled days per employee
-  const daysPerEmployee: Record<number, Set<string>> = {};
+  const daysPerEmployee: Record<UserId, Set<string>> = {};
   for (const s of schedules.value) {
     if (s.workDate >= startStr && s.workDate <= endStr) {
       if (!daysPerEmployee[s.employeeId])
@@ -470,7 +471,7 @@ const conflicts = computed(() => {
   // Check for employees scheduled 6+ days
   for (const [empId, days] of Object.entries(daysPerEmployee)) {
     if (days.size >= 6) {
-      const emp = users.value.find((u) => u.id === Number(empId));
+      const emp = users.value.find((u) => u.id === empId);
       const name =
         emp?.fullName ||
         emp?.username ||
@@ -526,7 +527,7 @@ interface PendingAssignment {
   templateId: number;
   templateName: string;
   date: string;
-  employeeId: number;
+  employeeId: UserId;
   employeeName: string;
 }
 
@@ -550,7 +551,7 @@ const availableForCell = computed(() => {
     .map((u) => ({ id: u.id, name: u.fullName || u.username, role: u.role }));
 });
 
-function handleAssign(templateId: number, date: string, employeeId: number) {
+function handleAssign(templateId: number, date: string, employeeId: UserId) {
   const template = shiftTemplates.value.find((t) => t.id === templateId);
   const employee = users.value.find((u) => u.id === employeeId);
   if (!template || !employee) return;
@@ -629,7 +630,7 @@ function handleCellClick(templateId: number, date: string) {
   cellClickTarget.value = { templateId, dateStr: date };
 }
 
-function selectEmployeeForCell(employeeId: number, employeeName: string) {
+function selectEmployeeForCell(employeeId: UserId, employeeName: string) {
   if (!cellClickTarget.value) return;
   const { templateId, dateStr } = cellClickTarget.value;
   const template = shiftTemplates.value.find((t) => t.id === templateId);
@@ -644,7 +645,7 @@ function selectEmployeeForCell(employeeId: number, employeeName: string) {
   cellClickTarget.value = null;
 }
 
-function onEmployeeDragStart(_employeeId: number) {
+function onEmployeeDragStart(_employeeId: UserId) {
   // handled by dataTransfer in UnassignedSidebar
 }
 

@@ -3,6 +3,7 @@
  * API client for employee scheduling and shift management
  */
 
+import type { UserId } from "@/types/api-user";
 import { api } from "@/services/api";
 import type {
   ShiftTemplate,
@@ -217,12 +218,12 @@ class SchedulingService {
     restaurantId: string,
     startDate: string,
     endDate: string,
-    employeeId?: number,
+    employeeId?: UserId,
   ): Promise<ApiResponse<unknown>> {
     const params: {
       startDate: string;
       endDate: string;
-      employeeId?: number;
+      employeeId?: UserId;
     } = { startDate, endDate };
     if (employeeId) {
       params.employeeId = employeeId;
@@ -305,7 +306,7 @@ class SchedulingService {
    */
   async resolveConflict(
     id: number,
-    userId: number,
+    userId: UserId,
     resolutionNotes: string,
   ): Promise<SchedulingConflict> {
     const response = await this.api.post<SchedulingConflict>(
@@ -352,7 +353,7 @@ class SchedulingService {
    */
   async approveSwapRequest(
     id: number,
-    managerId: number,
+    managerId: UserId,
   ): Promise<SwapRequest> {
     const response = await this.api.post<SwapRequest>(
       `/scheduling/swap-requests/${id}/approve`,
@@ -366,7 +367,7 @@ class SchedulingService {
    */
   async acceptSwapRequest(
     id: number,
-    employeeId: number,
+    employeeId: UserId,
   ): Promise<SwapRequest> {
     const response = await this.api.post<SwapRequest>(
       `/scheduling/swap-requests/${id}/accept`,
@@ -380,7 +381,7 @@ class SchedulingService {
    */
   async rejectSwapRequest(
     id: number,
-    managerId: number,
+    managerId: UserId,
     reason: string,
   ): Promise<SwapRequest> {
     const response = await this.api.post<SwapRequest>(

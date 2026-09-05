@@ -135,6 +135,7 @@
 import { computed, ref } from "vue";
 import { X, Plus } from "lucide-vue-next";
 import type { ShiftTemplate, EmployeeSchedule } from "@/types/scheduling";
+import type { UserId } from "@/types/api-user";
 import { toLocalDateStr } from "@/utils/dateUtils";
 
 const props = defineProps<{
@@ -145,7 +146,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: "assign", templateId: number, date: string, employeeId: number): void;
+  (e: "assign", templateId: number, date: string, employeeId: UserId): void;
   (e: "remove", scheduleId: number): void;
   (e: "cell-click", templateId: number, date: string): void;
 }>();
@@ -219,9 +220,6 @@ function onDrop(templateId: number, dateStr: string, event: DragEvent) {
   dragOverCell.value = null;
   const employeeIdStr = event.dataTransfer?.getData("employeeId");
   if (!employeeIdStr) return;
-  const employeeId = parseInt(employeeIdStr, 10);
-  if (!isNaN(employeeId)) {
-    emit("assign", templateId, dateStr, employeeId);
-  }
+  emit("assign", templateId, dateStr, employeeIdStr);
 }
 </script>

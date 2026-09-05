@@ -1,5 +1,17 @@
+/**
+ * `users.id` is a TEXT UUID v7 in D1, and every column that references it
+ * (`employee_schedules.employee_id`, `created_by`, `leave_requests.employee_id`,
+ * …) is TEXT too. Never do arithmetic, sorting or `Number()`/`parseInt()` on
+ * one — `parseInt` in particular returns a truncated number rather than NaN.
+ *
+ * Sibling PKs such as `employee_schedules.id` are still
+ * `integer autoincrement`, so those stay `number`. Only user references are
+ * `UserId`. (#331)
+ */
+export type UserId = string;
+
 export interface ApiUser {
-  id: number;
+  id: UserId;
   username: string;
   fullName?: string | null;
   email?: string | null;

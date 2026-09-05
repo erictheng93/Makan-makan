@@ -387,6 +387,7 @@ import { Paperclip, Pencil, Trash2, MessageCircle } from "lucide-vue-next";
 import { useI18n } from "@/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { UserRole } from "@/types";
+import type { UserId } from "@/types/api-user";
 import { useFeedback } from "@/composables/useFeedback";
 import { safeExternalHref } from "@/utils/safeExternalHref";
 import type {
@@ -520,7 +521,7 @@ const safeAttachmentUrls = computed(() =>
   }),
 );
 
-function isAdminUser(userId: number) {
+function isAdminUser(userId: UserId) {
   // A heuristic — admin responses are those from non-restaurant users
   return userId !== props.feedback.userId;
 }

@@ -3,11 +3,12 @@ import { api } from "@/services/api";
 import { useToast } from "vue-toastification";
 import { useI18n } from "@/i18n";
 import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
+import type { UserId } from "@/types/api-user";
 
 export interface FeedbackItem {
   id: number;
   restaurantId: string;
-  userId: number;
+  userId: UserId;
   category: string;
   priority: string;
   status: string;
@@ -18,8 +19,8 @@ export interface FeedbackItem {
   createdAt: string;
   updatedAt: string;
   resolvedAt: string | null;
-  resolvedBy: number | null;
-  user?: { id: number; username: string; fullName?: string } | null;
+  resolvedBy: UserId | null;
+  user?: { id: UserId; username: string; fullName?: string } | null;
   restaurant?: { id: string; name: string } | null;
   responses?: FeedbackResponseItem[];
 }
@@ -27,11 +28,11 @@ export interface FeedbackItem {
 export interface FeedbackResponseItem {
   id: number;
   feedbackId: number;
-  userId: number;
+  userId: UserId;
   message: string;
   isInternal: boolean;
   createdAt: string;
-  user?: { id: number; username: string; fullName?: string } | null;
+  user?: { id: UserId; username: string; fullName?: string } | null;
 }
 
 export interface FeedbackStats {

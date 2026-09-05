@@ -955,6 +955,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, type Component } from "vue";
+import type { UserId } from "@/types/api-user";
 import {
   BanknotesIcon,
   ShoppingCartIcon,
@@ -1016,7 +1017,7 @@ interface CashShift {
   startTime: string;
   endTime?: string;
   registerId: string;
-  operatorId: number;
+  operatorId: UserId;
   startingCash: number;
   totalRevenue: number;
   processedOrders: number;
@@ -1036,7 +1037,7 @@ interface Transaction {
   amount: number;
   description: string;
   createdAt: string;
-  operatorId: number;
+  operatorId: UserId;
 }
 
 interface Promotion {
@@ -1267,7 +1268,7 @@ const confirmStartShift = async () => {
     const response = await api.post("/pos/shifts/start", {
       registerId: currentRegister.value.id,
       startAmount: amount,
-      operatorId: authStore.user?.id ?? 0,
+      operatorId: authStore.user?.id ?? "",
     });
     if (response.data.success && response.data.data) {
       const shiftData = unwrapApiPayload<Partial<CashShift>>(
@@ -1278,7 +1279,7 @@ const confirmStartShift = async () => {
         name: shiftData.name || t("pos.defaults.morningShift"),
         startTime: shiftData.startTime || new Date().toISOString(),
         registerId: currentRegister.value.id,
-        operatorId: authStore.user?.id ?? 0,
+        operatorId: authStore.user?.id ?? "",
         startingCash: amount,
         totalRevenue: 0,
         processedOrders: 0,
@@ -1333,7 +1334,7 @@ const processQuickPayment = async () => {
       registerId: currentRegister.value!.id,
       amount: quickPayment.value.amount,
       paymentMethod: quickPayment.value.paymentMethod,
-      operatorId: authStore.user?.id ?? 0,
+      operatorId: authStore.user?.id ?? "",
     });
 
     if (response.data.success) {
@@ -1604,7 +1605,7 @@ const loadCurrentShift = async (registerId: string) => {
         startTime: shiftData.startTime || "",
         endTime: shiftData.endTime,
         registerId: shiftData.registerId || registerId,
-        operatorId: shiftData.operatorId || 0,
+        operatorId: shiftData.operatorId || "",
         startingCash: shiftData.startingCash || 0,
         totalRevenue: shiftData.totalSales || 0,
         processedOrders: shiftData.processedOrders || 0,

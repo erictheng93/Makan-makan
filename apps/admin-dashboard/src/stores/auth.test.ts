@@ -67,7 +67,7 @@ function axiosResponse<T>(response: {
 }
 
 const user = (overrides: Partial<User> = {}): User => ({
-  id: 1,
+  id: "019469a1-0001-7000-8000-000000000001",
   username: "owner",
   email: "owner@example.com",
   role: UserRole.OWNER,

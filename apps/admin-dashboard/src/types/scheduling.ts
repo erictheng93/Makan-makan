@@ -1,7 +1,12 @@
 /**
  * Employee Scheduling TypeScript Type Definitions
  * Matches backend API responses and database schema
+ *
+ * Own PKs (`id`, `shiftTemplateId`, `scheduleId`, …) are
+ * `integer autoincrement`. Everything that references `users.id` is a
+ * `UserId` (TEXT UUID v7) — see ./api-user.
  */
+import type { UserId } from "./api-user";
 
 // ========================================
 // Shift Template Types
@@ -34,8 +39,8 @@ export interface ShiftTemplate {
   assignedCount?: number; // Distinct non-cancelled employees scheduled on this template
   createdAt: string;
   updatedAt: string;
-  createdBy: number;
-  updatedBy: number | null;
+  createdBy: UserId;
+  updatedBy: UserId | null;
 }
 
 export interface CreateShiftTemplateData {
@@ -66,9 +71,9 @@ export interface CreateShiftTemplateData {
 export interface EmployeeSchedule {
   id: number;
   restaurantId: string;
-  employeeId: number;
+  employeeId: UserId;
   employeeName?: string; // Joined from users table
-  employee?: { id: number; fullName?: string }; // Enriched employee data
+  employee?: { id: UserId; fullName?: string }; // Enriched employee data
   shiftTemplateId: number | null;
   shiftTemplate?: ShiftTemplate;
   workDate: string; // YYYY-MM-DD
@@ -90,12 +95,12 @@ export interface EmployeeSchedule {
   managerNotes: string | null;
   createdAt: string;
   updatedAt: string;
-  createdBy: number;
-  updatedBy: number | null;
+  createdBy: UserId;
+  updatedBy: UserId | null;
 }
 
 export interface CreateScheduleData {
-  employeeId: number;
+  employeeId: UserId;
   shiftTemplateId?: number;
   workDate: string;
   startTime: string;
@@ -120,7 +125,7 @@ export interface UpdateScheduleData {
 
 export interface BulkCreateSchedulesData {
   shiftTemplateId: number;
-  employeeIds: number[];
+  employeeIds: UserId[];
   dateRange: {
     startDate: string;
     endDate: string;
@@ -133,7 +138,7 @@ export interface BulkCreateSchedulesData {
 // ========================================
 
 export interface AvailableEmployee {
-  id: number;
+  id: UserId;
   fullName: string;
   role: number;
   availability: "available" | "on_leave" | "scheduled";
@@ -148,7 +153,7 @@ export interface SchedulingConflict {
   id: number;
   restaurantId: string;
   scheduleId: number;
-  employeeId: number;
+  employeeId: UserId;
   conflictType:
     | "overlapping_shifts"
     | "insufficient_rest"
@@ -161,7 +166,7 @@ export interface SchedulingConflict {
   message: string;
   conflictDetails: string; // JSON
   status: "unresolved" | "acknowledged" | "resolved" | "ignored";
-  resolvedBy: number | null;
+  resolvedBy: UserId | null;
   resolvedAt: string | null;
   resolutionNotes: string | null;
   createdAt: string;
@@ -175,12 +180,12 @@ export interface SchedulingConflict {
 export interface SwapRequest {
   id: number;
   restaurantId: string;
-  requesterEmployeeId: number;
+  requesterEmployeeId: UserId;
   requesterEmployeeName?: string;
   requesterName?: string; // Alias for requesterEmployeeName
   requesterRole?: string; // Added for UI
   requesterScheduleId: number;
-  targetEmployeeId: number | null;
+  targetEmployeeId: UserId | null;
   targetEmployeeName?: string;
   targetEmployeeRole?: string; // Added for UI
   targetScheduleId: number | null;
@@ -204,14 +209,14 @@ export interface SwapRequest {
   targetStartTime?: string;
   targetEndTime?: string;
   // Acceptance/Response details
-  acceptedBy: number | null;
+  acceptedBy: UserId | null;
   acceptedAt: string | null;
-  approvedBy: number | null;
+  approvedBy: UserId | null;
   approvedAt: string | null;
-  rejectedBy: number | null;
+  rejectedBy: UserId | null;
   rejectedAt: string | null;
   rejectionReason: string | null;
-  respondedBy?: number | null; // Alias for approvedBy/rejectedBy
+  respondedBy?: UserId | null; // Alias for approvedBy/rejectedBy
   respondedAt?: string | null; // Alias for approvedAt/rejectedAt
   responseNote?: string | null; // Alias for rejectionReason
   expiresAt: string | null;
@@ -221,7 +226,7 @@ export interface SwapRequest {
 
 export interface CreateSwapRequestData {
   requesterScheduleId: number;
-  targetEmployeeId?: number;
+  targetEmployeeId?: UserId;
   targetScheduleId?: number;
   requestType: "swap" | "cover" | "drop";
   reason: string;
@@ -235,13 +240,13 @@ export interface CreateSwapRequestData {
 
 export interface ClockInData {
   scheduleId: number;
-  employeeId: number;
+  employeeId: UserId;
   notes?: string;
 }
 
 export interface ClockOutData {
   scheduleId: number;
-  employeeId: number;
+  employeeId: UserId;
   notes?: string;
 }
 
@@ -251,7 +256,7 @@ export interface ClockOutData {
 
 export interface ScheduleFilters {
   restaurantId?: string;
-  employeeId?: number;
+  employeeId?: UserId;
   shiftTemplateId?: number;
   startDate?: string;
   endDate?: string;
@@ -265,7 +270,7 @@ export interface ConflictFilters {
   conflictType?: SchedulingConflict["conflictType"];
   severity?: SchedulingConflict["severity"];
   status?: SchedulingConflict["status"];
-  employeeId?: number;
+  employeeId?: UserId;
   startDate?: string;
   endDate?: string;
   page?: number;
@@ -274,8 +279,8 @@ export interface ConflictFilters {
 
 export interface SwapRequestFilters {
   restaurantId?: string;
-  requesterEmployeeId?: number;
-  targetEmployeeId?: number;
+  requesterEmployeeId?: UserId;
+  targetEmployeeId?: UserId;
   status?: SwapRequest["status"];
   requestType?: SwapRequest["requestType"];
   page?: number;
@@ -342,7 +347,7 @@ export interface WeeklySummary {
   totalHours: number;
   averageHoursPerDay: number;
   employeeStats: Array<{
-    employeeId: number;
+    employeeId: UserId;
     employeeName: string;
     totalHours: number;
     scheduleCount: number;

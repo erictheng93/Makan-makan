@@ -201,9 +201,10 @@ import { schedulingService } from "@/services/schedulingService";
 
 const { t } = useI18n();
 import type { EmployeeSchedule } from "@/types/scheduling";
+import type { UserId } from "@/types/api-user";
 
 interface Props {
-  employeeId?: number;
+  employeeId?: UserId;
   restaurantId: string;
 }
 

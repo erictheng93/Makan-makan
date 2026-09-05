@@ -469,7 +469,7 @@ import { api } from "@/services/api";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 import { useAuthStore } from "@/stores/auth";
 import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
-import { mapApiUser, type ApiUser } from "@/types/api-user";
+import { mapApiUser, type ApiUser, type UserId } from "@/types/api-user";
 
 import {
   PlusIcon,
@@ -495,7 +495,7 @@ const authStore = useAuthStore();
 
 // Type definitions
 interface User {
-  id: number;
+  id: UserId;
   username: string;
   fullName: string;
   email: string;

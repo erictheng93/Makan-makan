@@ -5,7 +5,7 @@ describe("mapApiUser", () => {
   it("treats an omitted isActive flag as active", () => {
     expect(
       mapApiUser({
-        id: 1,
+        id: "019469a1-0001-7000-8000-000000000001",
         username: "ada",
         role: 1,
         createdAt: "2026-01-01T00:00:00.000Z",
@@ -16,7 +16,7 @@ describe("mapApiUser", () => {
   it("preserves an explicitly inactive user", () => {
     expect(
       mapApiUser({
-        id: 2,
+        id: "019469a1-0002-7000-8000-000000000002",
         username: "grace",
         role: 2,
         isActive: false,

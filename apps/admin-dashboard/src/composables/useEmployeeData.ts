@@ -1,3 +1,4 @@
+import type { UserId } from "@/types/api-user";
 import { ref, watch } from "vue";
 import { api, unwrapApiList, unwrapApiPayload } from "@/services/api";
 import { schedulingService } from "@/services/schedulingService";
@@ -8,7 +9,7 @@ import { t } from "@/i18n";
 import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 import { mapApiUser, type ApiUser } from "@/types/api-user";
 
-export function useEmployeeData(employeeId: () => number | undefined) {
+export function useEmployeeData(employeeId: () => UserId | undefined) {
   const authStore = useAuthStore();
 
   const employee = ref<Employee | null>(null);
@@ -21,7 +22,7 @@ export function useEmployeeData(employeeId: () => number | undefined) {
   const leavesLoading = ref(false);
   const error = ref<string | null>(null);
 
-  const fetchEmployee = async (id: number) => {
+  const fetchEmployee = async (id: UserId) => {
     employeeLoading.value = true;
     error.value = null;
     try {
@@ -37,7 +38,7 @@ export function useEmployeeData(employeeId: () => number | undefined) {
     }
   };
 
-  const fetchSchedules = async (id: number) => {
+  const fetchSchedules = async (id: UserId) => {
     const restaurantId = authStore.restaurantId;
     if (!restaurantId) return;
     schedulesLoading.value = true;
@@ -64,7 +65,7 @@ export function useEmployeeData(employeeId: () => number | undefined) {
     }
   };
 
-  const fetchLeaveData = async (id: number) => {
+  const fetchLeaveData = async (id: UserId) => {
     const restaurantId = authStore.restaurantId;
     if (!restaurantId) return;
     leavesLoading.value = true;

@@ -91,10 +91,11 @@
 import { computed } from "vue";
 import { BarChart3 } from "lucide-vue-next";
 import type { LeaveBalance } from "@/services/leavesService";
+import type { UserId } from "@/types/api-user";
 
 interface Props {
   balances: LeaveBalance[];
-  employees: Array<{ id: number; name: string }>;
+  employees: Array<{ id: UserId; name: string }>;
 }
 
 const props = defineProps<Props>();
@@ -107,7 +108,7 @@ const employeeMap = computed(
   () => new Map(props.employees.map((e) => [e.id, e.name])),
 );
 
-const getEmployeeName = (employeeId: number): string =>
+const getEmployeeName = (employeeId: UserId): string =>
   employeeMap.value.get(employeeId) ?? `員工 #${employeeId}`;
 
 const usagePct = (b: LeaveBalance): number => {

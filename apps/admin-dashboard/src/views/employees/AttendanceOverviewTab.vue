@@ -180,6 +180,7 @@ import { getInitials } from "@/composables/useEmployeeDisplay";
 import { useDateFormatter } from "@/composables/useDateFormatter";
 import { Clock, CalendarOff } from "lucide-vue-next";
 import type { EmployeeWithStatus } from "@/types/employee";
+import type { UserId } from "@/types/api-user";
 
 interface AttendanceSchedule {
   employeeName?: string;
@@ -207,15 +208,13 @@ const clockableEmployees = computed(() =>
 // another employee is one select away. POST /schedules/:id/clock-in accepts a
 // body employeeId only from a manager, and resolves the schedule within the
 // caller's restaurant, so the selector cannot reach another tenant.
-const clockTargetId = ref<number | undefined>(undefined);
+const clockTargetId = ref<UserId | undefined>(undefined);
 
 watch(
   clockableEmployees,
   (list) => {
     if (clockTargetId.value !== undefined) return;
-    const self = list.find(
-      (u) => String(u.id) === String(authStore.user?.id ?? ""),
-    );
+    const self = list.find((u) => u.id === authStore.user?.id);
     clockTargetId.value = self?.id ?? list[0]?.id;
   },
   { immediate: true },
@@ -261,21 +260,21 @@ const attendanceStats = computed(() => {
   const rostered = employeeList.todaySchedules.value.filter(
     (schedule) => schedule.status !== "cancelled",
   );
-  const rosteredIds = new Set(rostered.map((s) => String(s.employeeId)));
+  const rosteredIds = new Set(rostered.map((s) => s.employeeId));
   const scheduled = rosteredIds.size;
 
   // Present for the day means "clocked in at some point", so someone who has
   // already clocked out still counts. That is the difference from the
   // currently-working list rendered below.
   const presentIds = new Set(
-    rostered.filter((s) => s.clockInTime).map((s) => String(s.employeeId)),
+    rostered.filter((s) => s.clockInTime).map((s) => s.employeeId),
   );
   const present = presentIds.size;
 
   const onLeaveIds = new Set(
     employeeList.usersWithStatus.value
       .filter((u) => u.leaveStatus?.isOnLeave)
-      .map((u) => String(u.id)),
+      .map((u) => u.id),
   );
 
   // Absent means "was due in and did not come". Approved leave is not absence,
@@ -330,7 +329,7 @@ const attendanceStats = computed(() => {
 const getEmployeeInitials = (schedule: AttendanceSchedule) =>
   getInitials(schedule.employeeName || "");
 
-const getEmployeeName = (employeeId: number) => {
+const getEmployeeName = (employeeId: UserId) => {
   const user = employeeList.users.value.find((u) => u.id === employeeId);
   return user?.fullName || user?.username;
 };
@@ -345,7 +344,7 @@ const formatClockTime = (time: string) => {
   }
 };
 
-const navigateToDetail = (employeeId: number) => {
+const navigateToDetail = (employeeId: UserId) => {
   router.push(`/dashboard/employees/${employeeId}`);
 };
 

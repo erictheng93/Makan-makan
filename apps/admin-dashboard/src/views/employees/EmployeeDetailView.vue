@@ -141,7 +141,7 @@ const { formatDate, formatDateTime } = useDateFormatter();
 
 const employeeId = () => {
   const id = route.params.id;
-  return id ? Number(id) : undefined;
+  return typeof id === "string" && id ? id : undefined;
 };
 
 const {

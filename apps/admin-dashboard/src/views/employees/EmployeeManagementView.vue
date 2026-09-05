@@ -106,6 +106,7 @@ import { useAuthStore } from "@/stores/auth";
 import { leavesService } from "@/services/leavesService";
 import EmployeeFormModal from "@/components/employees/EmployeeFormModal.vue";
 import type { Employee, EmployeeFormData } from "@/types/employee";
+import type { UserId } from "@/types/api-user";
 import { isRecord } from "@makanmasak/shared/utils/unknown";
 import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
 import {
@@ -279,7 +280,7 @@ const handleSave = async (form: EmployeeFormData, isEdit: boolean) => {
   }
 };
 
-const handleResetPassword = async (userId: number) => {
+const handleResetPassword = async (userId: UserId) => {
   try {
     await employeeList.resetPassword(userId);
     toast.success(t("users.confirm.resetPasswordSuccess"));

@@ -11,14 +11,14 @@ import type {
 import type { EmployeeSchedule } from "@/types/scheduling";
 import { t } from "@/i18n";
 import { resolveUserFacingError } from "@makanmasak/shared/utils/user-facing-error";
-import { mapApiUser, type ApiUser } from "@/types/api-user";
+import { mapApiUser, type ApiUser, type UserId } from "@/types/api-user";
 
 // Module-level shared state — all callers share the same data
 const users = ref<Employee[]>([]);
 const clockedInList = ref<EmployeeSchedule[]>([]);
 const todaySchedules = ref<EmployeeSchedule[]>([]);
 const todayLeaveRequests = ref<
-  Array<{ employeeId: number; leaveTypeName: string; endDate: string }>
+  Array<{ employeeId: UserId; leaveTypeName: string; endDate: string }>
 >([]);
 const isLoading = ref(false);
 const clockedInLoading = ref(false);
@@ -27,7 +27,7 @@ const leaveLoading = ref(false);
 const error = ref<string | null>(null);
 
 interface TodayLeaveRequest {
-  employeeId: number;
+  employeeId: UserId;
   leaveType?: { name?: string };
   leaveTypeName?: string;
   endDate: string;
@@ -52,7 +52,7 @@ export function useEmployeeList() {
   // Lookup maps
   const clockedInMap = computed(() => {
     const map = new Map<
-      number,
+      UserId,
       { isClockedIn: boolean; clockInTime?: string; scheduleId?: number }
     >();
     for (const schedule of clockedInList.value) {
@@ -67,7 +67,7 @@ export function useEmployeeList() {
 
   const onLeaveMap = computed(() => {
     const map = new Map<
-      number,
+      UserId,
       { isOnLeave: boolean; leaveType?: string; endDate?: string }
     >();
     for (const req of todayLeaveRequests.value) {
@@ -242,7 +242,7 @@ export function useEmployeeList() {
     }
   };
 
-  const updateUser = async (id: number, form: EmployeeFormData) => {
+  const updateUser = async (id: UserId, form: EmployeeFormData) => {
     await api.put(`/users/${id}`, {
       fullName: form.fullName,
       email: form.email,
@@ -257,7 +257,7 @@ export function useEmployeeList() {
     await fetchUsers();
   };
 
-  const resetPassword = async (userId: number) => {
+  const resetPassword = async (userId: UserId) => {
     const tempPassword = `Reset${Date.now().toString(36)}!`;
     await api.post(`/users/${userId}/reset-password`, {
       newPassword: tempPassword,

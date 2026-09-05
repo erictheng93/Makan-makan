@@ -1,7 +1,8 @@
+import type { UserId } from "./api-user";
 import type { EmployeeSchedule } from "./scheduling";
 
 export interface Employee {
-  id: number;
+  id: UserId;
   username: string;
   fullName: string;
   email: string;
@@ -38,7 +39,7 @@ export interface EmployeeFormData {
 
 export interface LeaveBalance {
   id: number;
-  employeeId: number;
+  employeeId: UserId;
   leaveTypeId: number;
   year: number;
   totalDays: number;
@@ -57,7 +58,7 @@ export interface LeaveBalance {
 
 export interface LeaveRequest {
   id: number;
-  employeeId: number;
+  employeeId: UserId;
   leaveTypeId: number;
   startDate: string;
   endDate: string;
@@ -75,7 +76,7 @@ export interface LeaveRequest {
 }
 
 export interface AttendanceRecord {
-  employeeId: number;
+  employeeId: UserId;
   employeeName: string;
   workDate: string;
   startTime: string;

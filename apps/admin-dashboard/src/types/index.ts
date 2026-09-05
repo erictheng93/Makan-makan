@@ -1,11 +1,13 @@
 // Re-export canonical OrderStatus from shared-types (string union, not enum).
 // Use string literals directly: "pending", "confirmed", etc. — not OrderStatus.PENDING.
 import type { OrderStatus } from "@makanmasak/shared-types";
+import type { UserId } from "./api-user";
+export type { UserId } from "./api-user";
 export type { OrderStatus } from "@makanmasak/shared-types";
 export { ORDER_STATUSES } from "@makanmasak/shared-types";
 
 export interface User {
-  id: number;
+  id: UserId;
   username: string;
   email: string;
   role: UserRole;

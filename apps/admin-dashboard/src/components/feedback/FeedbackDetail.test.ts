@@ -33,7 +33,7 @@ vi.mock("@/composables/useFeedback", () => ({
 const baseFeedback: FeedbackItem = {
   id: 5,
   restaurantId: "restaurant-1",
-  userId: 10,
+  userId: "019469a1-0010-7000-8000-000000000010",
   category: "bug_report",
   priority: "high",
   status: "open",
@@ -45,7 +45,11 @@ const baseFeedback: FeedbackItem = {
   updatedAt: "2026-06-07T00:00:00.000Z",
   resolvedAt: null,
   resolvedBy: null,
-  user: { id: 10, username: "owner", fullName: "Shop Owner" },
+  user: {
+    id: "019469a1-0010-7000-8000-000000000010",
+    username: "owner",
+    fullName: "Shop Owner",
+  },
   restaurant: { id: "restaurant-1", name: "Test Restaurant" },
   responses: [],
 };
