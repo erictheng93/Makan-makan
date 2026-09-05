@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository is a `pnpm` workspace monorepo. Application code lives in `apps/`: the Vue front-ends `customer-app`, `admin-dashboard`, `kitchen-display`, `management-portal`, and `onboarding-app`; the Cloudflare Workers `api`, `management-api`, `realtime`, `image-processor`, and `backup-scheduler`; and the local Node daemon `print-agent`. Shared code lives in `packages/` (`shared`, `shared-types`, `database`, `utils`, `testing-utils`, `auth-client`, `ai-analytics`, `queue-core`, `queue-service`). Cross-project tests and fixtures live in `tests/` with `unit`, `integration`, `e2e`, `visual`, `performance`, and `security` subfolders. Longer design and operational docs belong in `docs/`.
+This repository is a `pnpm` workspace monorepo (Node >=22.13 and pnpm 10). Application code lives in `apps/`: the Vue front-ends `customer-app`, `admin-dashboard`, `kitchen-display`, `management-portal`, and `onboarding-app`; the Cloudflare Workers `api`, `management-api`, `realtime`, `image-processor`, and `backup-scheduler`; and the local Node daemon `print-agent`. Shared code lives in `packages/` (`shared`, `shared-types`, `database`, `utils`, `auth-client`, `ai-analytics`, `queue-core`, `queue-service`); `packages/shared/src/i18n` is also a workspace package. Cross-project tests and fixtures live in `tests/` with `unit`, `integration`, `e2e`, `visual`, `performance`, and `security` subfolders. Longer design and operational docs belong in `docs/`.
 
 ## Codebase Memory MCP Notes
 
@@ -17,21 +17,23 @@ Use `pnpm` only. Key commands:
 - `pnpm dev`: run the full Turbo dev graph.
 - `pnpm dev:customer` / `pnpm dev:api`: run one app locally.
 - `pnpm build`: build all workspaces.
-- `pnpm lint` and `pnpm typecheck`: required before opening a PR.
-- `pnpm test`, `pnpm test:coverage`, `pnpm test:e2e`: unit/integration, coverage, and Playwright suites.
+- `pnpm test`, `pnpm test:coverage`, `pnpm test:e2e`: Vitest workspace, coverage, and Playwright suites. `pnpm test:real-integration` runs the real-service integration set.
+- `pnpm verify`: run the affected-package inner-loop gate; `pnpm verify:push`: run the complete local pre-push gate (lint, typecheck, formatting, guard scripts, package/root tests, and real integration tests).
 - `pnpm db:migrate:local`: apply local D1 migrations.
 
 ## Coding Style & Naming Conventions
 
 The codebase is TypeScript-first with Vue 3 and Cloudflare Workers. Prettier enforces 2-space indentation, semicolons, double quotes, trailing commas, and 80-column wrapping. Run `pnpm lint:fix` before submitting. Use `PascalCase` for Vue components and types, `camelCase` for variables/functions, `UPPER_SNAKE_CASE` for constants, and `kebab-case` for filenames such as `order-service.ts`.
 
+For user-facing work, follow `DESIGN.md` and use the shared palette tokens in `design-tokens.js`; `pnpm run check:design-palette` enforces this across the Vue apps.
+
 ## Testing Guidelines
 
-Vitest is the primary test runner; Playwright covers end-to-end and visual flows. Name tests `*.test.ts` and keep them near the owning app/package or under `tests/`. Global coverage thresholds are 85%; `apps/api/src/features/**/*.ts` is held to 90%. Add or update tests with every behavior change, especially for API routes, realtime flows, and database logic.
+Vitest is the primary test runner; Playwright covers end-to-end and visual flows. Name tests `*.test.ts` and keep them near the owning app/package or under `tests/`. Global coverage thresholds are 85%; `apps/api/src/features/**/*.ts` requires 90% functions, lines, and statements, with an interim 78% branch threshold. Add or update tests with every behavior change, especially for API routes, realtime flows, and database logic.
 
 ## Database Schema & Migration Guidelines
 
-Drizzle schema files in `packages/database/src/schema/` are the source of truth for tables and columns, but not for everything: 93 triggers, 15 partial indexes and a CHECK constraint live only in migration SQL. `packages/database/migrations_fresh/` is the only track wrangler applies (every `migrations_dir`, production included) and is squashed into `0000_baseline_strict.sql`; regenerate it with `node scripts/generate-strict-baseline.cjs`. `packages/database/migrations/` is referenced by no `wrangler.toml` and is applied by nothing. Any migration after the reviewed checkpoint must be paired or explicitly marked in `packages/database/migration-dual-track.json`; verify with `pnpm run check:migration-dual-track`.
+Drizzle schema files in `packages/database/src/schema/` are the source of truth for tables and columns, but triggers, partial indexes, and CHECK constraints can exist only in migration SQL. The platform D1 migration track is `packages/database/migrations_fresh/`, squashed into `0000_baseline_strict.sql`; regenerate it with `node scripts/generate-strict-baseline.cjs`. It is used by the API and realtime workers and by the management API's `PLATFORM_DB` binding. The management API's separate `MANAGEMENT_DB` uses `apps/management-api/migrations/`. `packages/database/migrations/` is a legacy track referenced by no `wrangler.toml`; `migrations_v2/` is likewise not a Wrangler migration directory. For changes after the reviewed checkpoint, record a pair or explicit exception in `packages/database/migration-dual-track.json` and run `pnpm run check:migration-dual-track`.
 
 Use `INTEGER` Unix milliseconds with Drizzle `{ mode: "timestamp_ms" }` for new or migrated timestamp columns. Avoid new `TEXT` timestamp columns unless there is a documented interoperability reason.
 
