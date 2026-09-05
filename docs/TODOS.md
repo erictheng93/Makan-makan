@@ -57,28 +57,36 @@ components.
 
 **What was wrong:** the same defect #330 fixed in `LeaveType`, in its two
 siblings. `LeaveRequest` declared 11 fields with no column and omitted 10
-that exist; `LeaveBalance` declared 3 and omitted 3. Neither was live only
-in theory:
+that exist; `LeaveBalance` declared 3 and omitted 3.
 
-- `LeaveRequestList.vue` and `LeaveApprovalList.vue` rendered
-  `request.daysCount`; the column is `total_days`, so the day count was an
-  empty span.
+**Reachable through `LeavesTab.vue` at `/dashboard/employees/leaves`, so
+these were on a real screen:**
+
 - `LeaveHistoryList.vue` and `LeaveDecisionCard.vue` rendered
-  `request.days`, `request.leaveTypeName` and `request.employeeName` — a
-  third, fourth and fifth spelling, none of them columns.
+  `request.days`, `request.leaveTypeName` and `request.employeeName` —
+  three spellings, none of them columns, all blank.
 - `LeaveBalanceOverview.vue` rendered `balance.leaveTypeName` and
   `balance.color`; both live under the joined `leaveType` projection.
-- `LeaveApprovalList.vue` read an `attachments` array through a cast. The
-  column is a single `attachment_url`, so the attachment row never rendered.
-- `LeaveRequestList.vue` validated approval-chain steps against
-  `{approverId, approverName, status}`. `buildApprovalChain` writes
-  `{level, approverRole, required}`, so every step was filtered out and the
-  progress strip rendered for nobody.
 - `LeavesTab.vue` posted `period` to an endpoint whose schema takes
   `startPeriod`/`endPeriod`. Zod stripped it, so every half-day request was
   filed as a full day.
-- `LEAVE_STATUSES` carried a `draft` value and `HALF_DAY_TYPES` a
-  morning/afternoon enum; no column has ever accepted either.
+
+**In `LeaveView.vue`'s components, which no route reaches
+([#344](https://github.com/erictheng93/Makan-Masak/issues/344)), so nobody
+ever saw them.** They were fixed anyway — the types are shared, and leaving
+them wrong would have kept the pin from compiling:
+
+- `LeaveRequestList.vue` and `LeaveApprovalList.vue` rendered
+  `request.daysCount`; the column is `total_days`.
+- `LeaveApprovalList.vue` read an `attachments` array through a cast. The
+  column is a single `attachment_url`.
+- `LeaveRequestList.vue` validated approval-chain steps against
+  `{approverId, approverName, status}`. `buildApprovalChain` writes
+  `{level, approverRole, required}`, so every step was filtered out.
+
+**Neither reachable nor not:** `LEAVE_STATUSES` carried a `draft` value and
+`HALF_DAY_TYPES` a morning/afternoon enum; no column has ever accepted
+either.
 
 **How it was fixed:** all three entities are now the wire shape of their row,
 pinned by `LeavesWireConformance` in LeaveService.ts — twelve assertions

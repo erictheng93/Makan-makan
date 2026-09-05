@@ -14,13 +14,25 @@ import {
 // Entity Schemas
 // ---------------------------------------------------------------------------
 
+// The three schemas below name the columns the endpoints actually return.
+// They used to name `maxDays`, `userId`, `balance` and `used`, none of
+// which is a column on leave_types, employee_leave_balances or leave_requests
+// — the same drift #330 fixed in shared-types, on the contract surface. It has
+// never had teeth (these are `.loose()`, nothing validates a live response
+// against them, and check-api-contracts.cjs only snapshots the envelope's
+// top-level keys), so this is a documentation fix, not a behaviour change.
+// The pinned definitions live in packages/shared-types/src/leaves.ts.
+
 export const LeaveTypeSchema = z
   .object({
     id: z.union([z.number(), z.string()]),
-    restaurantId: z.string(),
+    restaurantId: z.string().nullable(), // null for system-wide types
+    code: z.string(),
     name: z.string(),
-    maxDays: z.number().optional(),
+    accrualType: z.string(),
+    accrualAmount: z.number(),
     isPaid: z.union([z.boolean(), z.number()]).optional(),
+    isActive: z.union([z.boolean(), z.number()]).optional(),
     ...TimestampFields,
   })
   .loose();
@@ -28,10 +40,13 @@ export const LeaveTypeSchema = z
 export const LeaveBalanceSchema = z
   .object({
     id: z.union([z.number(), z.string()]).optional(),
-    userId: z.union([z.number(), z.string()]),
+    employeeId: z.string(),
     leaveTypeId: z.union([z.number(), z.string()]),
-    balance: z.number(),
-    used: z.number().optional(),
+    year: z.number(),
+    totalDays: z.number(),
+    usedDays: z.number(),
+    pendingDays: z.number(),
+    remainingDays: z.number(), // computed by the service, not a column
     ...TimestampFields,
   })
   .loose();
@@ -39,12 +54,14 @@ export const LeaveBalanceSchema = z
 export const LeaveRequestSchema = z
   .object({
     id: z.union([z.number(), z.string()]),
-    userId: z.union([z.number(), z.string()]),
+    employeeId: z.string(),
     leaveTypeId: z.union([z.number(), z.string()]),
     startDate: z.union([z.string(), z.number(), z.date()]),
     endDate: z.union([z.string(), z.number(), z.date()]),
+    totalDays: z.number(),
     status: z.string(),
-    reason: z.string().optional().nullable(),
+    reason: z.string(),
+    rejectionReason: z.string().optional().nullable(),
     ...TimestampFields,
   })
   .loose();
