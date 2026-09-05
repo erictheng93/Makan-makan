@@ -24,6 +24,7 @@ import {
 } from "./middleware/edge-cache";
 import { advancedAnalyticsMiddleware } from "./middleware/analytics";
 import { geoIntelligentRateLimitMiddleware } from "./middleware/geo-rate-limiting";
+import type { CustomRateLimit } from "./middleware/geo-rate-limiting";
 import {
   metricsMiddleware,
   errorMonitoringMiddleware,
@@ -237,6 +238,107 @@ function featureGate(key: UnlaunchedFeatureKey) {
   };
 }
 
+/**
+ * Per-endpoint rate limits layered over `calculateDynamicRateLimit`'s generic
+ * tiers.
+ *
+ * Two things to know before editing (both learned the hard way in #339):
+ *
+ * 1. **A key is compared exactly unless it says `match: "prefix"`.** A key
+ *    naming a mount point that has no route of its own — `/api/v1/system`,
+ *    which only ever registers `/health`, `/errors`, … — matches nothing and
+ *    silently does nothing. `API_CUSTOM_RATE_LIMITS` is covered by a test that
+ *    fails if an `exact` key names no registered route; keep it passing rather
+ *    than adding a key that reads plausible and never fires.
+ * 2. **In production these mostly set headers, not enforcement.** The
+ *    middleware only enforces these values on its KV path, which
+ *    `SENSITIVE_KV_RATE_LIMIT_PATHS` restricts to the credential endpoints.
+ *    Every other path is enforced by the `GLOBAL_RATE_LIMITER` binding at its
+ *    own configured 100 req/60s (`wrangler.toml`), and the value here only
+ *    fills `X-RateLimit-Limit` / `Retry-After`. Tightening a number below does
+ *    not tighten production for a non-sensitive path.
+ */
+export const API_CUSTOM_RATE_LIMITS = {
+  "/api/v1/auth/login": {
+    requests: 100,
+    windowSeconds: 60,
+    burstMultiplier: 1.2,
+    blockDuration: 60,
+  }, // Increased for testing
+  "/api/v1/auth/register": {
+    requests: 50,
+    windowSeconds: 60,
+    burstMultiplier: 1.0,
+    blockDuration: 60,
+  },
+  "/api/v1/auth/me": {
+    requests: 30,
+    windowSeconds: 60,
+    burstMultiplier: 2.0,
+    blockDuration: 60,
+  },
+  "/api/v1/auth/refresh": {
+    requests: 20,
+    windowSeconds: 60,
+    burstMultiplier: 1.5,
+    blockDuration: 60,
+  },
+  "/api/v1/realtime/auth/token": {
+    requests: 20,
+    windowSeconds: 60,
+    burstMultiplier: 2.0,
+    blockDuration: 60,
+  },
+  // Deliberately the collection endpoint only — that is the POST that creates
+  // an order. Sub-paths (`/:id/status`, `/:id/receipt`, …) are read/update
+  // traffic the admin and kitchen UIs poll, and they keep the generic tier.
+  // Do not promote this to `prefix` without re-picking the numbers for them.
+  "/api/v1/orders": {
+    requests: 30,
+    windowSeconds: 60,
+    burstMultiplier: 2.0,
+    blockDuration: 120,
+  },
+  // Collection endpoint only, same reasoning as `/api/v1/orders`.
+  "/api/v1/guest-orders": {
+    requests: 60,
+    windowSeconds: 60,
+    burstMultiplier: 2.0,
+    blockDuration: 60,
+  },
+  // Whole subtree: every child is an unauthenticated delivery-platform webhook
+  // (`/uber-eats`, `/foodpanda`, and whatever platform is added next), so a new
+  // one should inherit this rather than silently fall back to the generic tier.
+  "/api/v1/integrations/webhooks": {
+    requests: 100,
+    windowSeconds: 60,
+    burstMultiplier: 1.5,
+    blockDuration: 120,
+    match: "prefix",
+  },
+  // Both payment-creation routes; they share one handler, so they share limits.
+  // `/status/:transactionId` is excluded on purpose: it is a polling endpoint
+  // and 10 req/min with a 5 minute block would break checkout.
+  "/api/v1/payments": {
+    requests: 10,
+    windowSeconds: 60,
+    burstMultiplier: 1.0,
+    blockDuration: 300,
+  },
+  "/api/v1/payments/create": {
+    requests: 10,
+    windowSeconds: 60,
+    burstMultiplier: 1.0,
+    blockDuration: 300,
+  },
+  // Removed in #339: `/api/v1/admin` and `/api/v1/system` were mount prefixes
+  // with no route of their own, so neither ever applied. They are not
+  // reinstated as prefixes because `calculateDynamicRateLimit` already has a
+  // dedicated tier for paths containing `/admin/` or `/system/` (20 req/60s,
+  // 600s block) which covers every real sub-path at an equal-or-longer block
+  // than these entries specified.
+} satisfies Record<string, CustomRateLimit>;
+
 export function createApp(
   _env?: Env,
   options: AppRuntimeOptions = {},
@@ -255,74 +357,7 @@ export function createApp(
     "*",
     geoIntelligentRateLimitMiddleware({
       skipPaths: ["/health", "/info"],
-      customLimits: {
-        "/api/v1/auth/login": {
-          requests: 100,
-          windowSeconds: 60,
-          burstMultiplier: 1.2,
-          blockDuration: 60,
-        }, // Increased for testing
-        "/api/v1/auth/register": {
-          requests: 50,
-          windowSeconds: 60,
-          burstMultiplier: 1.0,
-          blockDuration: 60,
-        },
-        "/api/v1/auth/me": {
-          requests: 30,
-          windowSeconds: 60,
-          burstMultiplier: 2.0,
-          blockDuration: 60,
-        },
-        "/api/v1/auth/refresh": {
-          requests: 20,
-          windowSeconds: 60,
-          burstMultiplier: 1.5,
-          blockDuration: 60,
-        },
-        "/api/v1/realtime/auth/token": {
-          requests: 20,
-          windowSeconds: 60,
-          burstMultiplier: 2.0,
-          blockDuration: 60,
-        },
-        "/api/v1/admin": {
-          requests: 20,
-          windowSeconds: 60,
-          burstMultiplier: 1.5,
-          blockDuration: 300,
-        },
-        "/api/v1/system": {
-          requests: 10,
-          windowSeconds: 60,
-          burstMultiplier: 1.2,
-          blockDuration: 600,
-        },
-        "/api/v1/orders": {
-          requests: 30,
-          windowSeconds: 60,
-          burstMultiplier: 2.0,
-          blockDuration: 120,
-        },
-        "/api/v1/guest-orders": {
-          requests: 60,
-          windowSeconds: 60,
-          burstMultiplier: 2.0,
-          blockDuration: 60,
-        },
-        "/api/v1/integrations/webhooks": {
-          requests: 100,
-          windowSeconds: 60,
-          burstMultiplier: 1.5,
-          blockDuration: 120,
-        },
-        "/api/v1/payments": {
-          requests: 10,
-          windowSeconds: 60,
-          burstMultiplier: 1.0,
-          blockDuration: 300,
-        },
-      },
+      customLimits: API_CUSTOM_RATE_LIMITS,
     }),
   );
 
