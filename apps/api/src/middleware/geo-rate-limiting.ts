@@ -786,13 +786,61 @@ export class GeoIntelligentRateLimiter {
   }
 }
 
+export type CustomRateLimit = Partial<RateLimitConfig> & {
+  /**
+   * How the `customLimits` key is compared against the request path.
+   *
+   * Defaults to `"exact"`, which is the historical behaviour: the entry only
+   * applies to the one endpoint it names. Use `"prefix"` when the key names a
+   * mount point whose whole subtree should share the same limits — without it
+   * such a key silently never fires, which is what #339 recorded.
+   */
+  match?: "exact" | "prefix";
+};
+
+/**
+ * Resolve the `customLimits` entry that governs `path`.
+ *
+ * An exact key always wins. Otherwise the longest `match: "prefix"` key that
+ * covers the path wins, so a tighter `/api/v1/orders/group` entry is not
+ * shadowed by a broader `/api/v1/orders` one. Prefix matching stops at a path
+ * segment boundary, so `/api/v1/orders` cannot capture `/api/v1/orders-archive`.
+ *
+ * Note this shares *limits*, not *counters*: the rate limit key is
+ * `${identifier}:${path}`, so each sub-path still gets its own bucket.
+ */
+function resolveCustomLimit(
+  customLimits: Record<string, CustomRateLimit> | undefined,
+  path: string,
+): Partial<RateLimitConfig> | undefined {
+  if (!customLimits) return undefined;
+
+  let matched = customLimits[path];
+  if (!matched) {
+    let matchedKeyLength = -1;
+    for (const [key, limit] of Object.entries(customLimits)) {
+      if (limit.match !== "prefix") continue;
+      if (!path.startsWith(`${key}/`)) continue;
+      if (key.length <= matchedKeyLength) continue;
+      matched = limit;
+      matchedKeyLength = key.length;
+    }
+  }
+  if (!matched) return undefined;
+
+  // `match` is config metadata, not a RateLimitConfig field — drop it before
+  // it gets merged into the resolved limit.
+  const { match: _match, ...config } = matched;
+  return config;
+}
+
 /**
  * Geo-Intelligent Rate Limiting Middleware
  */
 export function geoIntelligentRateLimitMiddleware(
   options: {
     skipPaths?: string[];
-    customLimits?: Record<string, Partial<RateLimitConfig>>;
+    customLimits?: Record<string, CustomRateLimit>;
   } = {},
 ) {
   return async (c: Context<{ Bindings: Env }>, next: Next) => {
@@ -870,7 +918,7 @@ export function geoIntelligentRateLimitMiddleware(
     );
 
     // Apply custom limits if configured
-    const customLimit = options.customLimits?.[path];
+    const customLimit = resolveCustomLimit(options.customLimits, path);
     if (customLimit) {
       Object.assign(rateLimit, customLimit);
     }

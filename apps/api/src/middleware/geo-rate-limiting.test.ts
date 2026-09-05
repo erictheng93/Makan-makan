@@ -5,6 +5,7 @@ import {
   GeoIntelligentRateLimiter,
   geoIntelligentRateLimitMiddleware,
 } from "./geo-rate-limiting";
+import type { CustomRateLimit } from "./geo-rate-limiting";
 import type { Env } from "../types/env";
 
 const JWT_SECRET = "test-secret-for-rate-limit-identity-32b";
@@ -352,5 +353,140 @@ describe("geoIntelligentRateLimitMiddleware", () => {
     expect(
       (await post(app, env, "/api/v1/auth/register-staff", token)).status,
     ).toBe(200);
+  });
+});
+
+// #339: `customLimits` was a plain object lookup keyed by the full request
+// path, so any key naming a mount prefix rather than a registered route could
+// never fire. These pin the resolution rules that replaced it.
+describe("geoIntelligentRateLimitMiddleware custom limit resolution", () => {
+  const window = { windowSeconds: 60, burstMultiplier: 1, blockDuration: 60 };
+
+  /**
+   * `X-RateLimit-Limit` carries `rateLimit.requests` verbatim once a custom
+   * limit is applied, so it is the observable for "which entry won". The
+   * generic tier multiplies its base by geo/endpoint risk, hence the odd
+   * request counts below — they cannot collide with a computed fallback.
+   */
+  async function limitHeaderFor(
+    customLimits: Record<string, CustomRateLimit>,
+    path: string,
+    skipPaths?: string[],
+  ): Promise<string | null> {
+    const env = createEnv({
+      GLOBAL_RATE_LIMITER: {
+        limit: vi.fn(async () => ({ success: true })),
+      } as unknown as RateLimit,
+    });
+    const app = new Hono<{ Bindings: Env }>();
+    app.use(
+      "*",
+      geoIntelligentRateLimitMiddleware({ customLimits, skipPaths }),
+    );
+    app.all("*", (c) => c.json({ ok: true }));
+
+    const response = await fetchWithContext(app, env, path, {
+      headers: { "CF-Connecting-IP": "203.0.113.10" },
+    });
+    expect(response.status).toBe(200);
+    return response.headers.get("X-RateLimit-Limit");
+  }
+
+  it("keeps an exact entry off sub-paths", async () => {
+    const limits = { "/api/v1/orders": { requests: 37, ...window } };
+
+    expect(await limitHeaderFor(limits, "/api/v1/orders")).toBe("37");
+    expect(await limitHeaderFor(limits, "/api/v1/orders/o-1/status")).not.toBe(
+      "37",
+    );
+  });
+
+  it("applies a prefix entry to sub-paths", async () => {
+    const limits = {
+      "/api/v1/integrations/webhooks": {
+        requests: 41,
+        ...window,
+        match: "prefix" as const,
+      },
+    };
+
+    expect(
+      await limitHeaderFor(limits, "/api/v1/integrations/webhooks/uber-eats"),
+    ).toBe("41");
+    expect(
+      await limitHeaderFor(limits, "/api/v1/integrations/webhooks/foodpanda"),
+    ).toBe("41");
+    expect(await limitHeaderFor(limits, "/api/v1/integrations/webhooks")).toBe(
+      "41",
+    );
+  });
+
+  it("prefers the longest prefix key", async () => {
+    const limits = {
+      "/api/v1/orders": { requests: 37, ...window, match: "prefix" as const },
+      "/api/v1/orders/group": {
+        requests: 43,
+        ...window,
+        match: "prefix" as const,
+      },
+    };
+
+    expect(await limitHeaderFor(limits, "/api/v1/orders/group/g-1")).toBe("43");
+    expect(await limitHeaderFor(limits, "/api/v1/orders/o-1")).toBe("37");
+  });
+
+  it("prefers an exact entry over a covering prefix entry", async () => {
+    const limits = {
+      "/api/v1/orders": { requests: 37, ...window, match: "prefix" as const },
+      "/api/v1/orders/stats": { requests: 43, ...window },
+    };
+
+    expect(await limitHeaderFor(limits, "/api/v1/orders/stats")).toBe("43");
+  });
+
+  it("matches a prefix only on a path-segment boundary", async () => {
+    const limits = {
+      "/api/v1/orders": { requests: 37, ...window, match: "prefix" as const },
+    };
+
+    expect(await limitHeaderFor(limits, "/api/v1/orders-archive")).not.toBe(
+      "37",
+    );
+  });
+
+  // The one the issue asked to pin hardest: health endpoints are polled by
+  // dashboards and alerting, so nothing under /api/v1/system may inherit a
+  // tight bucket. `skipPaths` is what guarantees it — the substring match on
+  // "/health" short-circuits before the custom limit lookup runs.
+  it("never rate limits health paths, even under a covering prefix entry", async () => {
+    const env = createEnv({
+      GLOBAL_RATE_LIMITER: {
+        limit: vi.fn(async () => ({ success: true })),
+      } as unknown as RateLimit,
+    });
+    const app = new Hono<{ Bindings: Env }>();
+    app.use(
+      "*",
+      geoIntelligentRateLimitMiddleware({
+        skipPaths: ["/health", "/info"],
+        customLimits: {
+          "/api/v1/system": { requests: 1, ...window, match: "prefix" },
+        },
+      }),
+    );
+    app.all("*", (c) => c.json({ ok: true }));
+
+    for (const path of [
+      "/api/v1/system/health",
+      "/api/v1/system/health/ready",
+      "/api/v1/monitoring/health",
+    ]) {
+      const response = await fetchWithContext(app, env, path, {
+        headers: { "CF-Connecting-IP": "203.0.113.10" },
+      });
+      expect(response.status).toBe(200);
+      expect(response.headers.get("X-RateLimit-Limit")).toBeNull();
+    }
+    expect(env.GLOBAL_RATE_LIMITER?.limit).not.toHaveBeenCalled();
   });
 });

@@ -422,6 +422,19 @@ largest genuinely-unbuilt item in this file.
 - Vendor membership approval queue (vendor requests → operator approves/rejects)
 - Per-market analytics dashboard in management-portal
 
+## security / rate limiting
+
+### Per-endpoint rate limits are advertised but not enforced in production
+
+**Priority:** P3 **Status:** Open — found while fixing [#339](https://github.com/erictheng93/Makan-Masak/issues/339) (2026-09-05). **Files:** `apps/api/src/app-factory.ts`, `apps/api/src/middleware/geo-rate-limiting.ts`, `apps/api/wrangler.toml`
+
+**Context:** `API_CUSTOM_RATE_LIMITS` reads as ten per-endpoint limits, but the middleware only enforces them on its KV path. `shouldUseKvRateLimiter` takes that path only for `SENSITIVE_KV_RATE_LIMIT_PATHS` — the six credential endpoints — and everything else goes to the `GLOBAL_RATE_LIMITER` binding, which enforces its own `wrangler.toml` value (100 req/60s, `[env.production.ratelimits.simple]`) no matter what the entry says. For a non-sensitive path the configured numbers only fill `X-RateLimit-Limit` and `Retry-After`, so `/api/v1/payments` advertises a limit of 10 while 100 is what actually holds. #339 fixed which entries *match* a request; it did not change which ones *enforce*.
+
+**Scope:**
+
+- Decide per entry whether it needs real enforcement. If it does, either add its path to `SENSITIVE_KV_RATE_LIMIT_PATHS` (durable counter, costs one extra KV read per request) or provision a second native binding at the tighter limit.
+- Stop advertising a limit the caller is not held to. `X-RateLimit-Remaining` is misleading on the native path too: it is computed as `requests - 1` on every allowed request, so it never decrements.
+
 ## authentication
 
 ### Account security and auth statistics are stubs that report zeros
