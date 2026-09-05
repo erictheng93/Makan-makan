@@ -212,6 +212,14 @@ jobs:
       - name: 🛑 No destructive wrangler commands in automation
         run: pnpm run check:no-automated-destructive-wrangler
 
+      # verify.sh runs this in its push tier, but that tier is local and
+      # therefore skippable -- which is the whole reason #319's 1,507
+      # arbitrary-colour classes accumulated. The guard lived only in
+      # .husky/pre-commit, and there it crashed on Windows instead of running.
+      # A palette rule that no unskippable gate enforces decays back to advice.
+      - name: 🎨 Design palette guard
+        run: pnpm run check:design-palette
+
       - name: 🧪 守門腳本回歸測試
         if: needs.changes.outputs.guard_tests == 'true'
         run: pnpm run test:ci-guards
