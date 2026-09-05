@@ -115,8 +115,8 @@ app.onError((err, c) => {
  * This is a route file: a harness throw does NOT show up as a thrown error
  * in the assertion diff — it shows up as an unexpected status code or body.
  * Most `/health*` handlers wrap their db work in their own local try/catch
- * (`runBasicHealthCheck` in ../index.ts:373-393, `/health/ready` at
- * index.ts:828-872) before `app.onError` (wired above) ever gets a chance,
+ * (`runBasicHealthCheck` in ../index.ts, and the `/health/ready` handler in
+ * index.ts) before `app.onError` (wired above) ever gets a chance,
  * and those catch blocks put `error.message` straight into the response —
  * `services[].error` for the basic health check, `body.error` for
  * `/health/ready`. Routes that don't catch locally fall through to
@@ -876,30 +876,48 @@ describe("system routes", () => {
     await expect(response.json()).resolves.toMatchObject({
       success: false,
       status: "not_ready",
+      // The readiness probe covers two dependencies; saying which one is down
+      // is the difference between an actionable page and a log dig (#332).
+      checks: { database: true, cache: false },
       error: "readiness kv unavailable",
     });
   });
 
-  it("returns not_ready when readiness KV fallback fails", async () => {
+  it("names the failing dependency when the KV binding is missing", async () => {
     mockSelectResults({ users: [[{ test: 1 }]] });
-    const kv = {
-      get: vi.fn(async () => undefined),
-      put: vi.fn(async () => undefined),
-      delete: vi.fn(),
-    };
 
     const response = await request("/health/ready", "GET", undefined, {
-      CACHE_KV: kv,
+      CACHE_KV: undefined,
     }).res;
 
     expect(response.status).toBe(503);
     await expect(response.json()).resolves.toMatchObject({
       success: false,
       status: "not_ready",
+      checks: { database: true, cache: false },
+      error: "KV binding not configured",
     });
-    expect(kv.put).toHaveBeenCalledWith("ready-test", "ok", {
-      expirationTtl: 60,
+  });
+
+  // KV `get()` resolves `null` on a miss and never `undefined`, so the old
+  // `!== undefined` test never distinguished anything: the sentinel key does
+  // not exist, and a successful round trip is the whole signal. Reading is
+  // also the entire budget this probe gets — a KV write costs ~420ms against a
+  // 60s cadence (#324), so the vanished `put("ready-test", ...)` fallback must
+  // not come back.
+  it("stays ready on a KV miss and spends no KV write", async () => {
+    mockSelectResults({ users: [[{ test: 1 }]] });
+
+    const { res, kv } = request("/health/ready");
+    const response = await res;
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      status: "ready",
     });
+    expect(kv.get).toHaveBeenCalledWith("_health_probe");
+    expect(kv.put).not.toHaveBeenCalled();
   });
 
   it("scopes error stats for owners and cleans reports for admins", async () => {

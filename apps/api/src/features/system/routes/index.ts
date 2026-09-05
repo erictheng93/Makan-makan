@@ -975,31 +975,31 @@ routes.get("/health/ready", async (c) => {
       .from(users)
       .limit(1);
     const dbReady = readyResult[0]?.test === 1;
-    const kvReady =
-      (await c.env.CACHE_KV.get("health-check")) !== undefined
-        ? true
-        : (await c.env.CACHE_KV.put("ready-test", "ok", {
-            expirationTtl: 60,
-          })) !== undefined;
+    // Same read-only probe as /monitoring/health and /system/health. This used
+    // to compare `get()` against `undefined`, which KV never returns — `kvReady`
+    // was a constant and the `put` fallback behind it was dead code (#332).
+    const kvProbe = await probeCache(c.env.CACHE_KV);
 
-    const isReady = !!dbReady && kvReady;
-
-    if (isReady) {
+    if (dbReady && kvProbe.healthy) {
       return c.json({
         success: true,
         status: "ready",
         timestamp: new Date().toISOString(),
       });
-    } else {
-      return c.json(
-        {
-          success: false,
-          status: "not_ready",
-          timestamp: new Date().toISOString(),
-        },
-        503,
-      );
     }
+
+    return c.json(
+      {
+        success: false,
+        status: "not_ready",
+        // Which dependency failed. A 60s critical probe that only says
+        // "not_ready" makes the on-call read logs to find out which one.
+        checks: { database: dbReady, cache: kvProbe.healthy },
+        ...(kvProbe.error ? { error: kvProbe.error } : {}),
+        timestamp: new Date().toISOString(),
+      },
+      503,
+    );
   } catch (error) {
     return c.json(
       {
