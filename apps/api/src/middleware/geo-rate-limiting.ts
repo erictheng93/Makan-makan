@@ -921,15 +921,23 @@ export function geoIntelligentRateLimitMiddleware(
 
     // Calculate dynamic rate limit.
     //
-    // `rateLimit` decides nothing on the native branch below -- it only fills
-    // `resetTime` / `remaining` / `retryAfter`. `API_CUSTOM_RATE_LIMITS` in
-    // app-factory.ts documents that for its own entries; the same is true of
-    // everything `calculateDynamicRateLimit` just computed, which is easier to
-    // miss from in here. The geo risk, threat score, ASN and role weighting
-    // change what production *reports*, not who gets turned away: that answer
-    // comes from `nativeLimiter.limit()` and wrangler.toml. Tuning those
-    // weights is not a security change unless the path is one of the six in
-    // SENSITIVE_KV_RATE_LIMIT_PATHS.
+    // On the native branch below, everything computed here is discarded.
+    //
+    // `API_CUSTOM_RATE_LIMITS` in app-factory.ts documents that for its own
+    // entries; the same is true of the geo risk, threat score, ASN and role
+    // weighting `calculateDynamicRateLimit` applies, which is easier to miss
+    // from in here. Since #342 the native branch takes its window from
+    // `NATIVE_RATE_LIMIT_WINDOW_SECONDS`, reports no remaining count, and
+    // emits the two counter headers only when `useKvRateLimiter` -- so on that
+    // branch `rateLimit` reaches neither the decision nor the response. Who
+    // gets turned away comes from `nativeLimiter.limit()` and wrangler.toml.
+    //
+    // Two consequences. Tuning these weights is not a security change unless
+    // the path is one of the six in SENSITIVE_KV_RATE_LIMIT_PATHS. And this
+    // whole computation is dead work on every other request -- cheap, but if
+    // it ever stops being cheap, skipping it when `!useKvRateLimiter` is safe.
+    // Whether these endpoints should get real per-endpoint enforcement, and at
+    // what latency, is #341.
     //
     // Moving a path onto the KV branch to buy enforcement costs more than it
     // looks: `isBlocked` reads once, then `applyRateLimit` reads both window
