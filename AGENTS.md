@@ -6,9 +6,7 @@ This repository is a `pnpm` workspace monorepo (Node >=22.13 and pnpm 10). Appli
 
 ## Codebase Memory MCP Notes
 
-Treat `get_architecture().packages[].fan_in` and `fan_out` as unreliable in this repo. The values have been observed as all zero even while `get_architecture().boundaries` reports real cross-app/package calls. Do not interpret zero package fan-in or fan-out as "no dependencies"; it is a false negative risk in the current MCP output.
-
-Also do not use `get_architecture().packages[]` as the complete workspace package inventory. It appears to be a truncated/high-node-count summary and can omit important low-node-count packages such as `shared-types`, `backup-scheduler`, and `onboarding-app`. For cross-package dependency questions, prefer `get_architecture().boundaries`, targeted graph queries over `IMPORTS`, and the workspace metadata in `pnpm-workspace.yaml`, `package.json`, and `tsconfig*.json`.
+Two `get_architecture` fields lie: `packages[].fan_in` / `fan_out` are always zero regardless of the real dependencies, and `packages[]` is a truncated summary rather than the package inventory. Use `boundaries` or an `IMPORTS` graph query for cross-package questions. `CLAUDE.md` ("codebase-memory MCP: `get_architecture` gotchas") is the single source for this, including the working Cypher and the literal-only restriction on its `WHERE` clause.
 
 ## Build, Test, and Development Commands
 
@@ -33,13 +31,9 @@ Vitest is the primary test runner; Playwright covers end-to-end and visual flows
 
 ## Database Schema & Migration Guidelines
 
-Drizzle schema files in `packages/database/src/schema/` are the source of truth for tables and columns, but triggers, partial indexes, and CHECK constraints can exist only in migration SQL. The platform D1 migration track is `packages/database/migrations_fresh/`, squashed into `0000_baseline_strict.sql`; regenerate it with `node scripts/generate-strict-baseline.cjs`. It is used by the API and realtime workers and by the management API's `PLATFORM_DB` binding. The management API's separate `MANAGEMENT_DB` uses `apps/management-api/migrations/`. `packages/database/migrations/` is a legacy track referenced by no `wrangler.toml`; `migrations_v2/` is likewise not a Wrangler migration directory. For changes after the reviewed checkpoint, record a pair or explicit exception in `packages/database/migration-dual-track.json` and run `pnpm run check:migration-dual-track`.
+Drizzle schema files in `packages/database/src/schema/` are the source of truth for tables and columns, but triggers, partial indexes, and CHECK constraints can exist only in migration SQL. Two migration directories are applied by wrangler, against two different databases: `packages/database/migrations_fresh/` (platform) and `apps/management-api/migrations/` (control plane). Two more, `packages/database/migrations/` and `packages/database/migrations_v2/`, are applied by nothing.
 
-Use `INTEGER` Unix milliseconds with Drizzle `{ mode: "timestamp_ms" }` for new or migrated timestamp columns. Avoid new `TEXT` timestamp columns unless there is a documented interoperability reason.
-
-For nullable idempotency keys or external event IDs, enforce DB-level deduplication with a partial unique index, for example `WHERE idempotency_key IS NOT NULL`. A plain non-unique index is not sufficient for payment, webhook, or billing write paths.
-
-Do not store OAuth tokens, client secrets, webhook secrets, or provider credentials as plaintext JSON. Persist secrets only in encrypted payload fields; configuration JSON may contain non-secret flags and preferences.
+**Read `CLAUDE.md`, "Database (Cloudflare D1)", before writing any migration.** It is the single source for which binding reaches which track and which command ships it, why `pnpm db:generate` is not the workflow, the STRICT-table rule, the `timestamp_ms` and partial-unique-index requirements, the secret-storage rule, and the procedure for touching production D1 by hand. Keep it there: the last time this file restated those rules, the two copies drifted apart, and CLAUDE.md went on describing a single migration track long after that stopped being true.
 
 ## Commit & Pull Request Guidelines
 
@@ -49,9 +43,4 @@ Unless the user explicitly asks to create a new branch or open a pull request, m
 
 ## Multi-Role Access System
 
-- **0: Admin (平台管理員)** - 全域管理（監控、系統設定、跨店操作）
-- **1: Shop Owner / 店長** - 餐廳權限管理與營運操作（可作為單日 Manager 的授權載體）
-- **2: Chef (廚師)** - 廚房接單與出餐
-- **3: Service Crew (送菜員)** - 送餐與服務流程
-- **4: Cashier (收銀)** - 收銀機、班次與交易處理
-- **5: Customer (顧客)** - 客戶端點餐與客戶資源查詢（`/api/v1/customers/*`）
+Roles are the integers 0–5, defined in `apps/api/src/shared/constants/index.ts` and listed with their scopes in `CLAUDE.md`, "Multi-Role Access System".

@@ -75,7 +75,10 @@ MakanMasak is a modern, serverless restaurant management system built on Cloudfl
   That ledger row is **not** a claim that the live schema equals the baseline:
   production has 126 tables against the baseline's 117, and the two lineages
   still differ. Never use it as evidence that they match — a rebuild-from-
-  baseline or a schema diff has to establish that separately.
+  baseline or a schema diff has to establish that separately. (126 counts
+  everything but `sqlite_%` and `d1_%`; the 120 in the STRICT bullet below drops
+  the fts5 shadow tables as well. The two figures describe the same database
+  under different exclusions, and both were re-measured 2026-09-06.)
 - **Before applying anything to production D1 by hand**: `wrangler d1 export`
   fails on this database (`cannot export databases with Virtual Tables (fts5)`),
   so build the schema copy by pulling `sql` out of `sqlite_master` instead.
@@ -97,11 +100,13 @@ MakanMasak is a modern, serverless restaurant management system built on Cloudfl
   live in `packages/database/strict-table-policy.json`; `pnpm check:strict-tables`
   enforces both rules for migrations, not the live schema. All 117 tables in the
   baseline are already STRICT, but production was built from the legacy track and
-  is almost entirely non-STRICT: **4 of 120** non-shadow tables (2026-09-02,
-  after `0016` shipped — `ingredient_stock_movements`, `print_agents`,
-  `receipts`, `restaurant_customers`). Every new table arrives STRICT, so this
-  ratio only moves as tables are added; the 116 legacy ones stay unprotected
-  until something recreates them.
+  is almost entirely non-STRICT: **4 of 120** non-shadow tables
+  (`ingredient_stock_movements`, `print_agents`, `receipts`,
+  `restaurant_customers`) — first measured 2026-09-02 after `0016` shipped, and
+  unchanged when re-measured against production on 2026-09-06, since `0017` and
+  `0018` are both `ALTER TABLE` and add no tables. Every new table arrives
+  STRICT, so this ratio only moves as tables are added; the 116 legacy ones stay
+  unprotected until something recreates them.
 
   The "15 of 119" this file and issue #297 previously recorded was an artifact of
   the query, not a real count. `sql LIKE '%STRICT%'` is a substring match, so it
@@ -204,11 +209,11 @@ To override for your personal setup (port collision, remote API, etc.), create `
 ## Multi-Role Access System
 
 - **0: Admin** - Full system access
-- **1: Shop Owner (店主)** - Restaurant management
+- **1: Shop Owner (店主)** - Restaurant management. Day managers currently share this role rather than having one of their own (`features/manager/routes/actions.ts`)
 - **2: Chef (廚師)** - Kitchen display system
 - **3: Service Crew (送菜員)** - Order fulfillment
 - **4: Cashier (收銀)** - Payment processing
-- **5: Customer** - Customer registration and ordering (shop QR mode)
+- **5: Customer** - Customer registration and ordering (shop QR mode), and the customer-facing resources under `/api/v1/customers/*`
 
 ## Development Commands
 
