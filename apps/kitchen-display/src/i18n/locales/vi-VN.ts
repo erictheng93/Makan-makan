@@ -1,6 +1,56 @@
 import type { Messages } from "../types";
 
 const viVN: Messages = {
+  myShifts: {
+    title: "Ca của tôi",
+    subtitle: "Xem ca làm của bạn và gửi yêu cầu đổi ca",
+    upcomingTitle: "Ca sắp tới",
+    requestsTitle: "Yêu cầu đổi ca của tôi",
+    loading: "Đang tải…",
+    retry: "Thử lại",
+    noShifts: "Chưa có ca làm nào được xếp",
+    noShiftsHint: "Ca làm sẽ hiển thị ở đây sau khi quản lý xếp lịch",
+    noRequests: "Bạn chưa gửi yêu cầu đổi ca nào",
+    noRestaurant: "Không tìm thấy nhà hàng của bạn — vui lòng đăng nhập lại",
+    requestSwap: "Yêu cầu đổi ca",
+    alreadyRequested: "Đã gửi yêu cầu",
+    cancelRequest: "Huỷ yêu cầu",
+    cancelConfirm: "Huỷ yêu cầu đổi ca này?",
+    cancelSuccess: "Đã huỷ yêu cầu đổi ca",
+    cancelFailed: "Không thể huỷ yêu cầu đổi ca",
+    rejectionReason: "Lý do từ chối",
+    formTitle: "Yêu cầu đổi ca",
+    typeLabel: "Loại yêu cầu",
+    urgencyLabel: "Mức độ khẩn",
+    reasonLabel: "Lý do",
+    reasonPlaceholder: "Giải thích vì sao bạn cần đổi ca này",
+    reasonRequired: "Vui lòng nhập lý do",
+    cancel: "Huỷ",
+    submit: "Gửi yêu cầu",
+    submitting: "Đang gửi…",
+    submitSuccess: "Đã gửi yêu cầu đổi ca — chờ quản lý duyệt",
+    submitFailed: "Không thể gửi yêu cầu đổi ca",
+    loadFailed: "Không thể tải ca làm của bạn",
+    type: {
+      swap: "Đổi ca",
+      cover: "Tìm người thay",
+      drop: "Bỏ ca",
+    },
+    urgency: {
+      low: "Thấp",
+      normal: "Bình thường",
+      high: "Cao",
+      urgent: "Khẩn cấp",
+    },
+    status: {
+      pending: "Chờ duyệt",
+      accepted: "Đã có người nhận",
+      approved: "Đã duyệt",
+      rejected: "Bị từ chối",
+      cancelled: "Đã huỷ",
+      expired: "Hết hạn",
+    },
+  },
   audio: {
     adaptiveVolume: "Âm lượng thích ứng",
     advanced: "Cài đặt nâng cao",
@@ -279,6 +329,7 @@ const viVN: Messages = {
   // Nội dung resolveUserFacingError chọn theo mã HTTP hoặc lỗi truyền tải.
 
   header: {
+    myShifts: "Ca của tôi",
     boardView: "Ban",
     connected: "Đã kết nối",
     disconnected: "Ngoại tuyến",

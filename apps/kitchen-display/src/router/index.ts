@@ -28,6 +28,18 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    // Role 2 is logged out of admin-dashboard on sight, so the employee shift
+    // swap entry has to live here as well (#320).
+    path: "/my-shifts",
+    name: "MyShifts",
+    component: () => import("../views/MyShiftsView.vue"),
+    meta: {
+      requiresAuth: true,
+      requiredRole: 2,
+      title: "我的班表",
+    },
+  },
+  {
     path: "/settings",
     name: "Settings",
     component: () => import("../views/SettingsView.vue"),

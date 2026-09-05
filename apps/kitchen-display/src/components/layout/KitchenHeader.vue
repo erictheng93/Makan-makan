@@ -145,6 +145,16 @@
             />
           </div>
 
+          <!-- My Shifts Button — the employee swap entry (#320) -->
+          <button
+            data-testid="open-my-shifts"
+            class="w-11 h-11 rounded-full bg-ios-bg flex items-center justify-center transition-all duration-200 ease-out hover:bg-ios-separator active:scale-95"
+            :title="t('header.myShifts')"
+            @click="$emit('open-my-shifts')"
+          >
+            <CalendarClock class="w-5 h-5 text-ios-secondary" />
+          </button>
+
           <!-- Settings Button -->
           <button
             class="w-11 h-11 rounded-full bg-ios-bg flex items-center justify-center transition-all duration-200 ease-out hover:bg-ios-separator active:scale-95"
@@ -216,6 +226,7 @@ import {
   Maximize2,
   Minimize2,
   Bell,
+  CalendarClock,
   Settings,
   LogOut,
   AlertTriangle,
@@ -249,6 +260,7 @@ const emit = defineEmits<{
   refresh: [];
   reconnect: [];
   "toggle-fullscreen": [];
+  "open-my-shifts": [];
   "open-settings": [];
   "update:viewMode": ["kanban" | "grid"];
 }>();

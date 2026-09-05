@@ -1,6 +1,56 @@
 import type { Messages } from "../types";
 
 const zhCN: Messages = {
+  myShifts: {
+    title: "我的班表",
+    subtitle: "查看自己的班次并提出换班申请",
+    upcomingTitle: "即将到来的班次",
+    requestsTitle: "我的换班申请",
+    loading: "加载中…",
+    retry: "重试",
+    noShifts: "目前没有排定的班次",
+    noShiftsHint: "店长排班后会显示在这里",
+    noRequests: "尚未提交任何换班申请",
+    noRestaurant: "找不到所属餐厅，请重新登录",
+    requestSwap: "申请换班",
+    alreadyRequested: "已提交申请",
+    cancelRequest: "取消申请",
+    cancelConfirm: "确定要取消这笔换班申请吗？",
+    cancelSuccess: "已取消换班申请",
+    cancelFailed: "取消换班申请失败",
+    rejectionReason: "驳回原因",
+    formTitle: "申请换班",
+    typeLabel: "申请类型",
+    urgencyLabel: "紧急程度",
+    reasonLabel: "申请原因",
+    reasonPlaceholder: "请说明需要换班的原因",
+    reasonRequired: "请填写申请原因",
+    cancel: "取消",
+    submit: "提交申请",
+    submitting: "提交中…",
+    submitSuccess: "换班申请已提交，等待店长审核",
+    submitFailed: "提交换班申请失败",
+    loadFailed: "加载班表失败",
+    type: {
+      swap: "换班",
+      cover: "找人代班",
+      drop: "取消班次",
+    },
+    urgency: {
+      low: "低",
+      normal: "一般",
+      high: "高",
+      urgent: "紧急",
+    },
+    status: {
+      pending: "待审核",
+      accepted: "已有人接受",
+      approved: "已批准",
+      rejected: "已驳回",
+      cancelled: "已取消",
+      expired: "已过期",
+    },
+  },
   audio: {
     adaptiveVolume: "自适应音量",
     advanced: "进阶设定",
@@ -277,6 +327,7 @@ const zhCN: Messages = {
   // resolveUserFacingError 根据 HTTP 状态／传输错误选用的文案。
 
   header: {
+    myShifts: "我的班表",
     boardView: "看板",
     connected: "已连线",
     disconnected: "离线",

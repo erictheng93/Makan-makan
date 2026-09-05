@@ -1,6 +1,56 @@
 import type { Messages } from "../types";
 
 const idID: Messages = {
+  myShifts: {
+    title: "Shift Saya",
+    subtitle: "Lihat shift Anda dan ajukan permintaan tukar shift",
+    upcomingTitle: "Shift mendatang",
+    requestsTitle: "Permintaan tukar shift saya",
+    loading: "Memuat…",
+    retry: "Coba lagi",
+    noShifts: "Belum ada shift yang dijadwalkan",
+    noShiftsHint: "Shift muncul di sini setelah manajer menjadwalkannya",
+    noRequests: "Anda belum mengirim permintaan tukar shift",
+    noRestaurant: "Restoran Anda tidak ditemukan — silakan masuk kembali",
+    requestSwap: "Ajukan tukar shift",
+    alreadyRequested: "Permintaan terkirim",
+    cancelRequest: "Batalkan permintaan",
+    cancelConfirm: "Batalkan permintaan tukar shift ini?",
+    cancelSuccess: "Permintaan tukar shift dibatalkan",
+    cancelFailed: "Tidak dapat membatalkan permintaan tukar shift",
+    rejectionReason: "Alasan penolakan",
+    formTitle: "Ajukan tukar shift",
+    typeLabel: "Jenis permintaan",
+    urgencyLabel: "Tingkat urgensi",
+    reasonLabel: "Alasan",
+    reasonPlaceholder: "Jelaskan mengapa shift ini perlu ditukar",
+    reasonRequired: "Mohon isi alasannya",
+    cancel: "Batal",
+    submit: "Kirim permintaan",
+    submitting: "Mengirim…",
+    submitSuccess: "Permintaan tukar shift terkirim — menunggu persetujuan",
+    submitFailed: "Tidak dapat mengirim permintaan tukar shift",
+    loadFailed: "Tidak dapat memuat shift Anda",
+    type: {
+      swap: "Tukar",
+      cover: "Cari pengganti",
+      drop: "Lepas shift",
+    },
+    urgency: {
+      low: "Rendah",
+      normal: "Normal",
+      high: "Tinggi",
+      urgent: "Mendesak",
+    },
+    status: {
+      pending: "Menunggu",
+      accepted: "Sudah diterima",
+      approved: "Disetujui",
+      rejected: "Ditolak",
+      cancelled: "Dibatalkan",
+      expired: "Kedaluwarsa",
+    },
+  },
   audio: {
     adaptiveVolume: "Volume Adaptif",
     advanced: "Pengaturan Lanjutan",
@@ -280,6 +330,7 @@ const idID: Messages = {
   // Teks yang dipilih resolveUserFacingError dari status HTTP atau galat transport.
 
   header: {
+    myShifts: "Shift Saya",
     boardView: "Papan",
     connected: "Terhubung",
     disconnected: "Luring",

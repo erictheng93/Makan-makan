@@ -12,6 +12,7 @@
       @refresh="handleRefresh"
       @reconnect="reconnectRealtime"
       @toggle-fullscreen="toggleFullscreen"
+      @open-my-shifts="handleOpenMyShifts"
       @open-settings="handleOpenSettings"
       @update:view-mode="setViewMode"
     />
@@ -385,6 +386,10 @@ const handleRefresh = async () => {
 const reconnectRealtime = async () => {
   kitchenRealtime.disconnect();
   await kitchenRealtime.connect(restaurantIdNum.value);
+};
+
+const handleOpenMyShifts = async () => {
+  await router.push("/my-shifts");
 };
 
 const handleOpenSettings = async () => {

@@ -1,6 +1,56 @@
 import type { Messages } from "../types";
 
 const msMY: Messages = {
+  myShifts: {
+    title: "Syif Saya",
+    subtitle: "Lihat syif anda dan hantar permohonan tukar syif",
+    upcomingTitle: "Syif akan datang",
+    requestsTitle: "Permohonan tukar syif saya",
+    loading: "Memuatkan…",
+    retry: "Cuba lagi",
+    noShifts: "Tiada syif dijadualkan",
+    noShiftsHint: "Syif akan dipaparkan di sini selepas pengurus menjadualkan",
+    noRequests: "Anda belum menghantar sebarang permohonan tukar syif",
+    noRestaurant: "Restoran anda tidak dijumpai — sila log masuk semula",
+    requestSwap: "Mohon tukar syif",
+    alreadyRequested: "Permohonan dihantar",
+    cancelRequest: "Batalkan permohonan",
+    cancelConfirm: "Batalkan permohonan tukar syif ini?",
+    cancelSuccess: "Permohonan tukar syif dibatalkan",
+    cancelFailed: "Tidak dapat membatalkan permohonan tukar syif",
+    rejectionReason: "Sebab penolakan",
+    formTitle: "Mohon tukar syif",
+    typeLabel: "Jenis permohonan",
+    urgencyLabel: "Tahap segera",
+    reasonLabel: "Sebab",
+    reasonPlaceholder: "Terangkan mengapa syif ini perlu ditukar",
+    reasonRequired: "Sila isi sebab",
+    cancel: "Batal",
+    submit: "Hantar permohonan",
+    submitting: "Menghantar…",
+    submitSuccess: "Permohonan tukar syif dihantar — menunggu kelulusan",
+    submitFailed: "Tidak dapat menghantar permohonan tukar syif",
+    loadFailed: "Tidak dapat memuatkan syif anda",
+    type: {
+      swap: "Tukar",
+      cover: "Cari ganti",
+      drop: "Lepas syif",
+    },
+    urgency: {
+      low: "Rendah",
+      normal: "Biasa",
+      high: "Tinggi",
+      urgent: "Segera",
+    },
+    status: {
+      pending: "Menunggu",
+      accepted: "Telah diterima",
+      approved: "Diluluskan",
+      rejected: "Ditolak",
+      cancelled: "Dibatalkan",
+      expired: "Tamat tempoh",
+    },
+  },
   audio: {
     adaptiveVolume: "Kelantangan Adaptif",
     advanced: "Tetapan Lanjutan",
@@ -279,6 +329,7 @@ const msMY: Messages = {
   // Teks yang dipilih resolveUserFacingError daripada status HTTP atau ralat penghantaran.
 
   header: {
+    myShifts: "Syif Saya",
     boardView: "Papan",
     connected: "Bersambung",
     disconnected: "Luar talian",

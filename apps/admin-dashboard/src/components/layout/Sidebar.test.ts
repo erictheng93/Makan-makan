@@ -203,6 +203,26 @@ describe("Sidebar", () => {
     expect(entry.element.tagName).not.toBe("SPAN");
   });
 
+  // #320: the swap entry is the one restaurant item a cashier or service crew
+  // must see. Every other one here is gated on canAccessAdminFeatures, so a
+  // future "tidy up the sidebar" pass would fold this in by reflex.
+  it("shows my-shifts to staff who cannot access admin features", () => {
+    authState.user = { username: "cashier", role: 4 };
+    authState.isAdminRole = false;
+    authState.hasRestaurantContext = true;
+    authState.canAccessAdminFeatures = false;
+    authState.canManageMenu = false;
+
+    const wrapper = mountSidebar();
+
+    expect(wrapper.find('[data-testid="nav-item-my-shifts"]').exists()).toBe(
+      true,
+    );
+    expect(wrapper.find('[data-testid="nav-item-employees"]').exists()).toBe(
+      false,
+    );
+  });
+
   it("leaves other entries untouched when one feature is off", () => {
     disabledFeatures.value = new Set(["marketCheckouts"]);
 

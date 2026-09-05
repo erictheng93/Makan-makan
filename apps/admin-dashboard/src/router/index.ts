@@ -162,6 +162,23 @@ const routes: RouteRecordRaw[] = [
         },
       },
       { path: "tables", redirect: { name: "SeatingTableSetup" } },
+      {
+        // Employee-facing, unlike everything under /employees: it shows the
+        // signed-in user's own shifts and lets them raise a swap request (#320).
+        path: "my-shifts",
+        name: "MyShifts",
+        component: () => import("@/views/MyShiftsView.vue"),
+        meta: {
+          titleKey: "pages.myShifts",
+          roles: [
+            UserRole.ADMIN,
+            UserRole.OWNER,
+            UserRole.CHEF,
+            UserRole.SERVICE,
+            UserRole.CASHIER,
+          ],
+        },
+      },
       // Employee Management (replaces old /users route)
       {
         path: "employees",

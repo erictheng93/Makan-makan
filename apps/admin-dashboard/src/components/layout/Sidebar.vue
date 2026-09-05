@@ -152,6 +152,7 @@ import {
   Crown,
   MessageSquare,
   CalendarCheck,
+  CalendarClock,
   Printer,
   Carrot,
   TrendingUp,
@@ -316,6 +317,17 @@ const navigationItems = computed(() => {
         UserRole.SERVICE,
         UserRole.CASHIER,
       ]),
+      section: "restaurant",
+    },
+    {
+      // Every staff role, not just managers — it only ever shows the signed-in
+      // user's own shifts. Gated on the same module as the API (#320).
+      name: "my-shifts",
+      path: "/dashboard/my-shifts",
+      label: t("nav.myShifts"),
+      icon: CalendarClock,
+      visible: true,
+      module: "staff_management",
       section: "restaurant",
     },
     {

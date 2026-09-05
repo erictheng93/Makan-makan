@@ -254,6 +254,14 @@ export const useAuthStore = defineStore("auth", () => {
       EmployeeSchedule: [UserRole.ADMIN, UserRole.OWNER],
       EmployeeLeave: [UserRole.ADMIN, UserRole.OWNER],
       Scheduling: [UserRole.ADMIN, UserRole.OWNER],
+      // Own shifts + own swap requests, so every staff role reaches it (#320).
+      MyShifts: [
+        UserRole.ADMIN,
+        UserRole.OWNER,
+        UserRole.CHEF,
+        UserRole.SERVICE,
+        UserRole.CASHIER,
+      ],
       Analytics: [UserRole.ADMIN, UserRole.OWNER],
       Settings: [UserRole.ADMIN, UserRole.OWNER],
       Service: [UserRole.ADMIN, UserRole.OWNER, UserRole.SERVICE],
