@@ -2138,7 +2138,7 @@ const idID: Messages = {
     kpi: {
       todayRevenue: "Pendapatan Hari Ini",
       todayOrders: "Pesanan Hari Ini",
-      onlineStaff: "Staf Online",
+      onShift: "Sedang Bertugas",
       overallEfficiency: "Efisiensi Keseluruhan",
       normal: "Normal",
       available: "tersedia",

@@ -2122,7 +2122,7 @@ const enUS: Messages = {
     kpi: {
       todayRevenue: "Today's Revenue",
       todayOrders: "Today's Orders",
-      onlineStaff: "Online Staff",
+      onShift: "On Shift",
       overallEfficiency: "Overall Efficiency",
       normal: "Normal",
       tableUtilization: "Table Utilization",

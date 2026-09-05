@@ -1991,7 +1991,7 @@ const zhCN: Messages = {
     kpi: {
       todayRevenue: "今日营收",
       todayOrders: "今日订单",
-      onlineStaff: "在线员工",
+      onShift: "目前在班",
       overallEfficiency: "整体效率",
       normal: "正常",
       available: "空闲",

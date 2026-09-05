@@ -2192,7 +2192,7 @@ const zhTWCore = {
     kpi: {
       todayRevenue: "今日營收",
       todayOrders: "今日訂單",
-      onlineStaff: "在線員工",
+      onShift: "目前在班",
       overallEfficiency: "整體效率",
       normal: "正常",
       tableUtilization: "桌位使用率",

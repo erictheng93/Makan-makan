@@ -2027,7 +2027,7 @@ const viVN: Messages = {
     kpi: {
       todayRevenue: "Doanh thu hôm nay",
       todayOrders: "Đơn hàng hôm nay",
-      onlineStaff: "Nhân viên trực tuyến",
+      onShift: "Đang trong ca",
       overallEfficiency: "Hiệu suất tổng thể",
       normal: "Bình thường",
       available: "có sẵn",

@@ -412,7 +412,12 @@ import { useCurrency } from "@/composables/useCurrency";
 import { api, unwrapApiList } from "@/services/api";
 import { useAuthStore } from "@/stores/auth";
 import { ownerService } from "@/services/ownerService";
-import { hasRequestFailure } from "@/utils/ownerDashboard";
+import { schedulingService } from "@/services/schedulingService";
+import {
+  hasRequestFailure,
+  staffPresence,
+  toOnShiftIds,
+} from "@/utils/ownerDashboard";
 import {
   resolveOwnerSystemHealth,
   type OwnerHealthStatusPayload,
@@ -489,6 +494,11 @@ const userStatsData = ref<{
   summary: { total_users: 0, active_users: 0, inactive_users: 0 },
 });
 
+// Employee ids clocked in and not yet out, from
+// GET /scheduling/:restaurantId/clocked-in. This is the only presence signal
+// the system has — there is no session/heartbeat notion of "online".
+const onShiftIds = ref<Set<string>>(new Set());
+
 const staffListData = ref<
   Array<{
     id: number;
@@ -529,7 +539,7 @@ const kpiMetrics = computed(() => {
   const revenueGrowth = summary.growthRates?.revenueGrowth ?? 0;
   const orderGrowth = summary.growthRates?.orderGrowth ?? 0;
   const activeStaff = userStatsData.value.summary.active_users;
-  const totalStaff = userStatsData.value.summary.total_users;
+  const onShift = onShiftIds.value.size;
 
   return [
     {
@@ -566,8 +576,12 @@ const kpiMetrics = computed(() => {
     },
     {
       key: "staff",
-      label: t("owner.kpi.onlineStaff"),
-      value: isLoading.value ? "--" : `${activeStaff}/${totalStaff}`,
+      // Was labelled "online staff" while showing active_users/total_users,
+      // i.e. COUNT(*) WHERE is_active = 1 — enabled accounts, which reads N/N
+      // until somebody is disabled. Report the shift instead, from the same
+      // clock-in signal the staff list below uses, so the two cannot disagree.
+      label: t("owner.kpi.onShift"),
+      value: isLoading.value ? "--" : `${onShift}/${activeStaff}`,
       change: t("owner.kpi.normal"),
       trend: "stable" as const,
       trendIcon: MinusIcon,
@@ -612,7 +626,7 @@ const staffActivity = computed(() => {
     id: user.id,
     name: user.fullName || user.username,
     role: ROLE_NAMES[user.role] ?? t("owner.roles.staff"),
-    status: (user.status === "active" ? "online" : "offline") as
+    status: staffPresence(user.id, onShiftIds.value) as
       | "online"
       | "busy"
       | "offline",
@@ -707,14 +721,27 @@ async function fetchAllData() {
   error.value = null;
 
   try {
-    const [dashboardRes, activeOrdersRes, userStatsRes, usersRes, healthRes] =
-      await Promise.allSettled([
-        api.get(buildScopedUrl("/analytics/dashboard", { period: "today" })),
-        api.get(buildScopedUrl("/orders/active")),
-        api.get(buildScopedUrl("/users/stats")),
-        api.get(buildScopedUrl("/users", { limit: 10 })),
-        api.get("/monitoring/health"),
-      ]);
+    const restaurantId = authStore.restaurantId
+      ? String(authStore.restaurantId)
+      : null;
+
+    const [
+      dashboardRes,
+      activeOrdersRes,
+      userStatsRes,
+      usersRes,
+      healthRes,
+      onShiftRes,
+    ] = await Promise.allSettled([
+      api.get(buildScopedUrl("/analytics/dashboard", { period: "today" })),
+      api.get(buildScopedUrl("/orders/active")),
+      api.get(buildScopedUrl("/users/stats")),
+      api.get(buildScopedUrl("/users", { limit: 10 })),
+      api.get("/monitoring/health"),
+      restaurantId
+        ? schedulingService.getClockedInEmployees(restaurantId)
+        : Promise.resolve([]),
+    ]);
 
     // Dashboard summary + top items + table status
     if (
@@ -770,6 +797,11 @@ async function fetchAllData() {
         | { data: typeof staffListData.value };
       staffListData.value =
         unwrapApiList<(typeof staffListData.value)[number]>(usersPayload);
+    }
+
+    // On shift now
+    if (onShiftRes.status === "fulfilled") {
+      onShiftIds.value = toOnShiftIds(onShiftRes.value);
     }
 
     // Health check

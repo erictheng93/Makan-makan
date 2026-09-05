@@ -2024,7 +2024,7 @@ const jaJP: Messages = {
     kpi: {
       todayRevenue: "本日の売上",
       todayOrders: "本日の注文数",
-      onlineStaff: "オンラインスタッフ",
+      onShift: "勤務中",
       overallEfficiency: "全体効率",
       normal: "正常",
       available: "利用可能",
