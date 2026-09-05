@@ -3433,10 +3433,15 @@ const jaJP: Messages = {
       resetPassword: "パスワードリセット",
       disable: "無効化",
       enable: "有効化",
+      archive: "削除",
+      restore: "復帰",
     },
     empty: {
       title: "従業員がいません",
       description: "最初の従業員を追加してください",
+      archivedTitle: "退職者はいません",
+      archivedDescription:
+        "削除した従業員はここに表示され、いつでも復帰させられます。",
     },
     modal: {
       editTitle: "従業員編集",
@@ -3469,11 +3474,25 @@ const jaJP: Messages = {
         "{username}のパスワードをリセットしてもよろしいですか？新しいパスワードがメールで送信されます。",
       resetPasswordSuccess: "パスワードリセットメールが送信されました",
       toggleStatus: "ユーザー{username}を{action}してもよろしいですか？",
+      archive:
+        "{username} を名簿から削除しますか？在籍リストから消えログインできなくなりますが、過去のシフトやレポートには氏名が残ります。",
+      restore:
+        "{username} を復帰させますか？在籍リストに戻り、再びログインできます。",
+    },
+    roster: {
+      current: "在籍",
+      archived: "退職済み",
+    },
+    success: {
+      archived: "{username} を削除しました",
+      restored: "{username} を復帰させました",
     },
     errors: {
       saveFailed: "保存に失敗しました",
       resetFailed: "パスワードリセットに失敗しました",
       toggleFailed: "ステータスの切り替えに失敗しました",
+      archiveFailed: "従業員の削除に失敗しました",
+      restoreFailed: "復帰に失敗しました",
     },
   },
   members: {

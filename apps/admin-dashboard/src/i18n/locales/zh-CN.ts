@@ -3366,10 +3366,14 @@ const zhCN: Messages = {
       resetPassword: "重置密码",
       disable: "停用",
       enable: "启用",
+      archive: "移除",
+      restore: "恢复",
     },
     empty: {
       title: "暂无员工",
       description: "开始添加您的第一位员工",
+      archivedTitle: "尚无离职员工",
+      archivedDescription: "移除员工后会出现在这里，可随时恢复。",
     },
     modal: {
       editTitle: "编辑员工",
@@ -3402,11 +3406,24 @@ const zhCN: Messages = {
         "确定要重置 {username} 的密码吗？新密码将会发送到用户 Email。",
       resetPasswordSuccess: "密码重置邮件已发送！",
       toggleStatus: "确定要{action}用户 {username} 吗？",
+      archive:
+        "确定要移除员工 {username} 吗？他将从在职名单消失、无法登录，但过往排班与报表仍会保留姓名。",
+      restore: "确定要让 {username} 复职吗？他将回到在职名单并可重新登录。",
+    },
+    roster: {
+      current: "在职",
+      archived: "已离职",
+    },
+    success: {
+      archived: "已移除 {username}",
+      restored: "已复职 {username}",
     },
     errors: {
       saveFailed: "保存失败",
       resetFailed: "重置密码失败",
       toggleFailed: "状态切换失败",
+      archiveFailed: "移除员工失败",
+      restoreFailed: "复职失败",
     },
   },
   members: {

@@ -18,6 +18,8 @@ export interface ApiUser {
   phone?: string | null;
   role: number;
   isActive?: boolean;
+  isArchived?: boolean;
+  archivedAt?: string | null;
   lastLoginAt?: string | null;
   createdAt: string;
   profileImageUrl?: string | null;
@@ -35,6 +37,8 @@ export function mapApiUser(user: ApiUser) {
     role: user.role,
     status: isActive ? ("active" as const) : ("inactive" as const),
     isActive,
+    isArchived: user.isArchived === true,
+    archivedAt: user.archivedAt ?? null,
     lastLoginAt: user.lastLoginAt ?? null,
     createdAt: user.createdAt,
     profileImageUrl: user.profileImageUrl ?? undefined,

@@ -411,7 +411,7 @@ watch(dateRange, () => {
  * shown with a green dot, and assignable.
  */
 const isSchedulable = (employee: Employee): boolean =>
-  employee.isActive && employee.status !== "suspended";
+  employee.isActive && employee.status !== "suspended" && !employee.isArchived;
 
 // ── Computed: unassigned employees ───────────────────────
 const unassignedEmployees = computed(() => {

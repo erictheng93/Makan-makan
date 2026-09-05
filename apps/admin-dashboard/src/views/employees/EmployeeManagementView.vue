@@ -77,11 +77,16 @@
       <div class="p-6">
         <router-view
           :users-with-status="employeeList.usersWithStatus.value"
+          :archived-users="employeeList.archivedUsers.value"
           :is-loading="employeeList.isLoading.value"
+          :archived-loading="employeeList.archivedLoading.value"
           @edit-user="editUser"
           @refresh="employeeList.fetchAll"
           @reset-password="handleResetPassword"
           @toggle-status="handleToggleStatus"
+          @load-archived="employeeList.fetchArchivedUsers"
+          @archive-user="handleArchiveUser"
+          @restore-user="handleRestoreUser"
         />
       </div>
     </div>
@@ -288,6 +293,32 @@ const handleResetPassword = async (userId: UserId) => {
     toast.error(
       resolveUserFacingError(error, t, {
         fallbackKey: "users.errors.resetFailed",
+      }).message,
+    );
+  }
+};
+
+const handleArchiveUser = async (user: Employee) => {
+  try {
+    await employeeList.archiveUser(user.id);
+    toast.success(t("users.success.archived", { username: user.username }));
+  } catch (error: unknown) {
+    toast.error(
+      resolveUserFacingError(error, t, {
+        fallbackKey: "users.errors.archiveFailed",
+      }).message,
+    );
+  }
+};
+
+const handleRestoreUser = async (user: Employee) => {
+  try {
+    await employeeList.restoreUser(user.id);
+    toast.success(t("users.success.restored", { username: user.username }));
+  } catch (error: unknown) {
+    toast.error(
+      resolveUserFacingError(error, t, {
+        fallbackKey: "users.errors.restoreFailed",
       }).message,
     );
   }

@@ -10,6 +10,9 @@ export interface Employee {
   role: number;
   status: "active" | "inactive" | "suspended";
   isActive: boolean;
+  /** Departed staff: off the roster, still named on past records (#337). */
+  isArchived?: boolean;
+  archivedAt?: string | null;
   lastLoginAt: string | null;
   createdAt: string;
   profileImageUrl?: string;

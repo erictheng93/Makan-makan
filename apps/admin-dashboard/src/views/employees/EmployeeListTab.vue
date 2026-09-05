@@ -1,5 +1,22 @@
 <template>
   <div class="space-y-4">
+    <!-- Current staff vs departed -->
+    <div class="inline-flex gap-1 p-1 bg-ios-bg rounded-full">
+      <button
+        v-for="option in rosterOptions"
+        :key="option.value"
+        class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
+        :class="
+          roster === option.value
+            ? 'bg-white text-ios-text shadow-sm'
+            : 'text-ios-text/60 hover:text-ios-text'
+        "
+        @click="roster = option.value"
+      >
+        {{ option.label }}
+      </button>
+    </div>
+
     <!-- Search & Filters -->
     <div class="flex flex-col sm:flex-row gap-3">
       <div class="relative flex-1">
@@ -35,7 +52,7 @@
     </div>
 
     <!-- Employee Table -->
-    <div v-if="isLoading" class="flex items-center justify-center py-16">
+    <div v-if="rosterLoading" class="flex items-center justify-center py-16">
       <div
         class="w-8 h-8 border-2 border-ios-blue border-t-transparent rounded-full animate-spin"
       />
@@ -44,10 +61,18 @@
     <div v-else-if="filteredUsers.length === 0" class="text-center py-16">
       <Users class="mx-auto w-12 h-12 text-ios-text/20 mb-3" />
       <h3 class="text-sm font-medium text-ios-text/60">
-        {{ t("users.empty.title") }}
+        {{
+          isArchivedRoster
+            ? t("users.empty.archivedTitle")
+            : t("users.empty.title")
+        }}
       </h3>
       <p class="text-xs text-ios-text/40 mt-1">
-        {{ t("users.empty.description") }}
+        {{
+          isArchivedRoster
+            ? t("users.empty.archivedDescription")
+            : t("users.empty.description")
+        }}
       </p>
     </div>
 
@@ -201,6 +226,7 @@
                   <KeyRound class="w-4 h-4" />
                 </button>
                 <button
+                  v-if="!isArchivedRoster"
                   class="p-1.5 rounded-lg transition-colors"
                   :class="
                     user.status === 'active'
@@ -216,6 +242,22 @@
                 >
                   <UserX v-if="user.status === 'active'" class="w-4 h-4" />
                   <UserCheck v-else class="w-4 h-4" />
+                </button>
+                <button
+                  v-if="!isArchivedRoster"
+                  class="p-1.5 rounded-lg text-ios-red hover:bg-ios-red/10 transition-colors"
+                  :title="t('users.actions.archive')"
+                  @click="handleArchive(user)"
+                >
+                  <UserMinus class="w-4 h-4" />
+                </button>
+                <button
+                  v-else
+                  class="p-1.5 rounded-lg text-ios-green hover:bg-ios-green/10 transition-colors"
+                  :title="t('users.actions.restore')"
+                  @click="handleRestore(user)"
+                >
+                  <UserRoundPlus class="w-4 h-4" />
                 </button>
               </div>
             </td>
@@ -281,12 +323,16 @@ import {
   KeyRound,
   UserX,
   UserCheck,
+  UserMinus,
+  UserRoundPlus,
 } from "lucide-vue-next";
 import { useConfirmModal } from "@/composables/useConfirmModal";
 
 const props = defineProps<{
   usersWithStatus?: EmployeeWithStatus[];
+  archivedUsers?: EmployeeWithStatus[];
   isLoading?: boolean;
+  archivedLoading?: boolean;
 }>();
 
 const router = useRouter();
@@ -299,9 +345,29 @@ const searchQuery = ref("");
 const roleFilter = ref("");
 const statusFilter = ref("");
 
+type Roster = "current" | "archived";
+const roster = ref<Roster>("current");
+const isArchivedRoster = computed(() => roster.value === "archived");
+const rosterLoading = computed(() =>
+  isArchivedRoster.value ? props.archivedLoading : props.isLoading,
+);
+const rosterOptions = computed<Array<{ value: Roster; label: string }>>(() => [
+  { value: "current", label: t("users.roster.current") },
+  { value: "archived", label: t("users.roster.archived") },
+]);
+
+// The departed list is a separate request, so it is only fetched when someone
+// actually opens that side -- the roster and its counts stay the default.
+watch(roster, (value) => {
+  if (value === "archived") emit("loadArchived");
+});
+
 const filteredUsers = computed(() => {
-  if (!props.usersWithStatus) return [];
-  let filtered = props.usersWithStatus;
+  const source = isArchivedRoster.value
+    ? props.archivedUsers
+    : props.usersWithStatus;
+  if (!source) return [];
+  let filtered = source;
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase();
     filtered = filtered.filter(
@@ -334,7 +400,7 @@ const paginatedUsers = computed(() => {
 });
 
 // Reset to page 1 when filters change
-watch([searchQuery, roleFilter, statusFilter], () => {
+watch([searchQuery, roleFilter, statusFilter, roster], () => {
   currentPage.value = 1;
 });
 
@@ -350,9 +416,34 @@ const emit = defineEmits<{
   refresh: [];
   resetPassword: [userId: UserId];
   toggleStatus: [user: EmployeeWithStatus];
+  archiveUser: [user: EmployeeWithStatus];
+  restoreUser: [user: EmployeeWithStatus];
+  loadArchived: [];
 }>();
 
 const { confirm: confirmModal } = useConfirmModal();
+
+const handleArchive = async (user: EmployeeWithStatus) => {
+  const confirmed = await confirmModal({
+    type: "danger",
+    title: t("users.actions.archive"),
+    message: t("users.confirm.archive", { username: user.username }),
+    confirmLabel: t("users.actions.archive"),
+  });
+  if (!confirmed) return;
+  emit("archiveUser", user);
+};
+
+const handleRestore = async (user: EmployeeWithStatus) => {
+  const confirmed = await confirmModal({
+    type: "warning",
+    title: t("users.actions.restore"),
+    message: t("users.confirm.restore", { username: user.username }),
+    confirmLabel: t("users.actions.restore"),
+  });
+  if (!confirmed) return;
+  emit("restoreUser", user);
+};
 
 const handleResetPassword = async (user: EmployeeWithStatus) => {
   const confirmed = await confirmModal({

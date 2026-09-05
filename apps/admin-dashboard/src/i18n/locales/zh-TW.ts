@@ -3485,10 +3485,14 @@ const zhTWCore = {
       resetPassword: "重置密碼",
       disable: "停用",
       enable: "啟用",
+      archive: "移除",
+      restore: "復原",
     },
     empty: {
       title: "暫無員工",
       description: "開始添加您的第一位員工",
+      archivedTitle: "尚無離職員工",
+      archivedDescription: "移除員工後會出現在這裡，可隨時復原。",
     },
     modal: {
       editTitle: "編輯員工",
@@ -3521,11 +3525,24 @@ const zhTWCore = {
         "確定要重置 {username} 的密碼嗎？新密碼將會發送到用戶 Email。",
       resetPasswordSuccess: "密碼重置郵件已發送！",
       toggleStatus: "確定要{action}用戶 {username} 嗎？",
+      archive:
+        "確定要移除員工 {username} 嗎？他將從在職名單消失、無法登入，但過往排班與報表仍會保留姓名。",
+      restore: "確定要讓 {username} 復職嗎？他將回到在職名單並可重新登入。",
+    },
+    roster: {
+      current: "在職",
+      archived: "已離職",
+    },
+    success: {
+      archived: "已移除 {username}",
+      restored: "已復職 {username}",
     },
     errors: {
       saveFailed: "儲存失敗",
       resetFailed: "重置密碼失敗",
       toggleFailed: "狀態切換失敗",
+      archiveFailed: "移除員工失敗",
+      restoreFailed: "復職失敗",
     },
   },
   members: {

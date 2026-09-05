@@ -3425,10 +3425,15 @@ const enUS: Messages = {
       resetPassword: "Reset Password",
       disable: "Disable",
       enable: "Enable",
+      archive: "Remove",
+      restore: "Restore",
     },
     empty: {
       title: "No Employees",
       description: "Start adding your first employee",
+      archivedTitle: "No departed staff",
+      archivedDescription:
+        "Employees you remove appear here and can be restored at any time.",
     },
     modal: {
       editTitle: "Edit Employee",
@@ -3461,11 +3466,25 @@ const enUS: Messages = {
         "Are you sure you want to reset {username}'s password? A new password will be sent to their email.",
       resetPasswordSuccess: "Password reset email sent!",
       toggleStatus: "Are you sure you want to {action} user {username}?",
+      archive:
+        "Remove {username} from the roster? They disappear from the staff list and can no longer sign in, but past rosters and reports keep their name.",
+      restore:
+        "Restore {username}? They return to the roster and can sign in again.",
+    },
+    roster: {
+      current: "Current",
+      archived: "Departed",
+    },
+    success: {
+      archived: "{username} removed",
+      restored: "{username} restored",
     },
     errors: {
       saveFailed: "Save failed",
       resetFailed: "Password reset failed",
       toggleFailed: "Status toggle failed",
+      archiveFailed: "Failed to remove employee",
+      restoreFailed: "Failed to restore employee",
     },
   },
   members: {

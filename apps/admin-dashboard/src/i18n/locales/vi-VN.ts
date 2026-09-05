@@ -3433,10 +3433,15 @@ const viVN: Messages = {
       resetPassword: "Đặt lại mật khẩu",
       disable: "Vô hiệu hóa",
       enable: "Kích hoạt",
+      archive: "Gỡ bỏ",
+      restore: "Khôi phục",
     },
     empty: {
       title: "Chưa có nhân viên",
       description: "Bắt đầu thêm nhân viên đầu tiên",
+      archivedTitle: "Chưa có nhân viên đã nghỉ",
+      archivedDescription:
+        "Nhân viên bị gỡ sẽ xuất hiện ở đây và có thể khôi phục bất cứ lúc nào.",
     },
     modal: {
       editTitle: "Chỉnh sửa nhân viên",
@@ -3469,11 +3474,25 @@ const viVN: Messages = {
         "Bạn có chắc muốn đặt lại mật khẩu cho {username}? Mật khẩu mới sẽ được gửi qua email.",
       resetPasswordSuccess: "Đã gửi email đặt lại mật khẩu!",
       toggleStatus: "Bạn có chắc muốn {action} người dùng {username}?",
+      archive:
+        "Gỡ {username} khỏi danh sách? Nhân viên sẽ biến mất khỏi danh sách đang làm và không đăng nhập được, nhưng lịch làm và báo cáo cũ vẫn giữ tên.",
+      restore:
+        "Khôi phục {username}? Nhân viên trở lại danh sách và đăng nhập được.",
+    },
+    roster: {
+      current: "Đang làm",
+      archived: "Đã nghỉ",
+    },
+    success: {
+      archived: "Đã gỡ {username}",
+      restored: "Đã khôi phục {username}",
     },
     errors: {
       saveFailed: "Lưu thất bại",
       resetFailed: "Đặt lại mật khẩu thất bại",
       toggleFailed: "Chuyển đổi trạng thái thất bại",
+      archiveFailed: "Gỡ nhân viên thất bại",
+      restoreFailed: "Khôi phục thất bại",
     },
   },
   members: {

@@ -15,12 +15,14 @@ import { mapApiUser, type ApiUser, type UserId } from "@/types/api-user";
 
 // Module-level shared state — all callers share the same data
 const users = ref<Employee[]>([]);
+const archivedUsers = ref<Employee[]>([]);
 const clockedInList = ref<EmployeeSchedule[]>([]);
 const todaySchedules = ref<EmployeeSchedule[]>([]);
 const todayLeaveRequests = ref<
   Array<{ employeeId: UserId; leaveTypeName: string; endDate: string }>
 >([]);
 const isLoading = ref(false);
+const archivedLoading = ref(false);
 const clockedInLoading = ref(false);
 const schedulesLoading = ref(false);
 const leaveLoading = ref(false);
@@ -33,14 +35,18 @@ interface TodayLeaveRequest {
   endDate: string;
 }
 
-function buildUsersUrl(restaurantId: string | number | null | undefined) {
-  if (!restaurantId) return "/users";
+function buildUsersUrl(
+  restaurantId: string | number | null | undefined,
+  archived?: "only",
+) {
+  const params = new URLSearchParams();
+  if (restaurantId) params.set("restaurantId", String(restaurantId));
+  // Omitted means current staff. The API defaults the same way, so the roster
+  // and every count derived from it exclude departed employees (#337).
+  if (archived) params.set("archived", archived);
 
-  const params = new URLSearchParams({
-    restaurantId: String(restaurantId),
-  });
-
-  return `/users?${params.toString()}`;
+  const query = params.toString();
+  return query ? `/users?${query}` : "/users";
 }
 
 export function useEmployeeList() {
@@ -257,6 +263,40 @@ export function useEmployeeList() {
     await fetchUsers();
   };
 
+  const fetchArchivedUsers = async () => {
+    archivedLoading.value = true;
+    try {
+      const response = await api.get(
+        buildUsersUrl(authStore.restaurantId, "only"),
+      );
+      const payload = response.data?.success
+        ? response.data.data
+        : response.data;
+      archivedUsers.value = (Array.isArray(payload) ? payload : []).map(
+        (user) => mapApiUser(user as ApiUser),
+      );
+    } catch (e: unknown) {
+      error.value = resolveUserFacingError(e, t, {
+        fallbackKey: "errors.loadUsersFailed",
+      }).message;
+      console.error("Failed to fetch archived users:", e);
+    } finally {
+      archivedLoading.value = false;
+    }
+  };
+
+  /** Remove a departed employee from the roster; the row survives for history. */
+  const archiveUser = async (userId: UserId) => {
+    await api.delete(`/users/${userId}`);
+    await Promise.all([fetchUsers(), fetchArchivedUsers()]);
+  };
+
+  /** Rehire: put an archived employee back on the active roster. */
+  const restoreUser = async (userId: UserId) => {
+    await api.post(`/users/${userId}/restore`);
+    await Promise.all([fetchUsers(), fetchArchivedUsers()]);
+  };
+
   const resetPassword = async (userId: UserId) => {
     const tempPassword = `Reset${Date.now().toString(36)}!`;
     await api.post(`/users/${userId}/reset-password`, {
@@ -268,6 +308,8 @@ export function useEmployeeList() {
   return {
     // State
     users,
+    archivedUsers,
+    archivedLoading,
     usersWithStatus,
     stats,
     clockedInList,
@@ -287,6 +329,9 @@ export function useEmployeeList() {
     createUser,
     updateUser,
     toggleUserStatus,
+    fetchArchivedUsers,
+    archiveUser,
+    restoreUser,
     resetPassword,
   };
 }

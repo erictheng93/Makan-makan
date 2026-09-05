@@ -3447,10 +3447,15 @@ const idID: Messages = {
       resetPassword: "Reset Kata Sandi",
       disable: "Nonaktifkan",
       enable: "Aktifkan",
+      archive: "Hapus",
+      restore: "Pulihkan",
     },
     empty: {
       title: "Belum Ada Karyawan",
       description: "Mulai tambahkan karyawan pertama Anda",
+      archivedTitle: "Belum ada karyawan keluar",
+      archivedDescription:
+        "Karyawan yang dihapus muncul di sini dan bisa dipulihkan kapan saja.",
     },
     modal: {
       editTitle: "Edit Karyawan",
@@ -3483,11 +3488,25 @@ const idID: Messages = {
         "Apakah Anda yakin ingin mereset kata sandi {username}? Kata sandi baru akan dikirim ke email mereka.",
       resetPasswordSuccess: "Email reset kata sandi terkirim!",
       toggleStatus: "Apakah Anda yakin ingin {action} pengguna {username}?",
+      archive:
+        "Hapus {username} dari daftar? Karyawan hilang dari daftar aktif dan tidak bisa masuk, tetapi jadwal dan laporan lama tetap menyimpan namanya.",
+      restore:
+        "Pulihkan {username}? Karyawan kembali ke daftar aktif dan bisa masuk lagi.",
+    },
+    roster: {
+      current: "Aktif",
+      archived: "Sudah keluar",
+    },
+    success: {
+      archived: "{username} dihapus",
+      restored: "{username} dipulihkan",
     },
     errors: {
       saveFailed: "Gagal menyimpan",
       resetFailed: "Gagal mereset kata sandi",
       toggleFailed: "Gagal mengubah status",
+      archiveFailed: "Gagal menghapus karyawan",
+      restoreFailed: "Gagal memulihkan karyawan",
     },
   },
   members: {
