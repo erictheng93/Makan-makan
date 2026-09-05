@@ -35,28 +35,28 @@
       <div class="flex items-center space-x-2">
         <button
           v-if="!currentShift"
-          class="px-4 py-2 bg-[#34C759] text-white rounded-full hover:bg-green-600 transition-colors text-sm"
+          class="px-4 py-2 bg-ios-green text-white rounded-full hover:bg-green-600 transition-colors text-sm"
           @click="startShift"
         >
           {{ t("pos.startShift") }}
         </button>
         <button
           v-else
-          class="px-4 py-2 bg-[#FF3B30] text-white rounded-full hover:bg-red-600 transition-colors text-sm"
+          class="px-4 py-2 bg-ios-red text-white rounded-full hover:bg-red-600 transition-colors text-sm"
           @click="endShift"
         >
           {{ t("pos.endShift") }}
         </button>
 
         <button
-          class="px-3 py-2 bg-[#007AFF] text-white rounded-full hover:bg-blue-600 transition-colors text-sm"
+          class="px-3 py-2 bg-ios-blue text-white rounded-full hover:bg-blue-600 transition-colors text-sm"
           @click="openRegisterManagement"
         >
           {{ t("pos.registerManagement") }}
         </button>
 
         <button
-          class="px-3 py-2 bg-[#FF9500] text-white rounded-full hover:bg-orange-600 transition-colors text-sm"
+          class="px-3 py-2 bg-ios-orange text-white rounded-full hover:bg-orange-600 transition-colors text-sm"
           @click="openPromotionsDialog"
         >
           {{ t("pos.promotionManagement") }}
@@ -747,7 +747,7 @@
           class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
         >
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold text-[#1C1C1E]">
+            <h3 class="text-xl font-semibold text-ios-text">
               {{ t("pos.createRegister") || "新增收銀櫃" }}
             </h3>
             <button
@@ -764,7 +764,7 @@
             <input
               v-model="newRegisterName"
               type="text"
-              class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#007AFF] focus:border-[#007AFF]"
+              class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-ios-blue focus:border-ios-blue"
               :placeholder="
                 t('pos.prompts.registerNamePlaceholder') || '例如: 一號收銀櫃'
               "
@@ -780,7 +780,7 @@
             </button>
             <button
               :disabled="!newRegisterName.trim()"
-              class="px-4 py-2 bg-[#007AFF] text-white rounded-full hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-ios-blue text-white rounded-full hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               @click="confirmCreateRegister"
             >
               {{ t("common.confirm") || "確認" }}
@@ -801,7 +801,7 @@
           class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
         >
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold text-[#1C1C1E]">
+            <h3 class="text-xl font-semibold text-ios-text">
               {{ t("pos.startShift") || "開始班次" }}
             </h3>
             <button
@@ -824,7 +824,7 @@
                 type="number"
                 step="0.01"
                 min="0"
-                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#007AFF] focus:border-[#007AFF]"
+                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-ios-blue focus:border-ios-blue"
                 placeholder="0.00"
                 @keyup.enter="confirmStartShift"
               />
@@ -839,7 +839,7 @@
             </button>
             <button
               :disabled="startingCashAmount < 0"
-              class="px-4 py-2 bg-[#34C759] text-white rounded-full hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-ios-green text-white rounded-full hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               @click="confirmStartShift"
             >
               {{ t("pos.startShift") || "開始班次" }}
@@ -860,7 +860,7 @@
           class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
         >
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold text-[#1C1C1E]">
+            <h3 class="text-xl font-semibold text-ios-text">
               {{ t("pos.endShift") || "結束班次" }}
             </h3>
             <button
@@ -884,7 +884,7 @@
               {{ t("common.cancel") || "取消" }}
             </button>
             <button
-              class="px-4 py-2 bg-[#FF3B30] text-white rounded-full hover:bg-red-600 transition-colors"
+              class="px-4 py-2 bg-ios-red text-white rounded-full hover:bg-red-600 transition-colors"
               @click="confirmEndShift"
             >
               {{ t("pos.endShift") || "結束班次" }}
@@ -908,7 +908,7 @@
           class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
         >
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold text-[#1C1C1E]">
+            <h3 class="text-xl font-semibold text-ios-text">
               {{ t("pos.createPromotion") || "新增促銷活動" }}
             </h3>
             <button
@@ -925,7 +925,7 @@
             <input
               v-model="newPromotionName"
               type="text"
-              class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#007AFF] focus:border-[#007AFF]"
+              class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-ios-blue focus:border-ios-blue"
               :placeholder="
                 t('pos.prompts.promotionNamePlaceholder') || '例如: 週末特惠'
               "
@@ -941,7 +941,7 @@
             </button>
             <button
               :disabled="!newPromotionName.trim()"
-              class="px-4 py-2 bg-[#FF9500] text-white rounded-full hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-ios-orange text-white rounded-full hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               @click="confirmCreatePromotion"
             >
               {{ t("common.confirm") || "確認" }}

@@ -1,15 +1,15 @@
 <template>
   <div class="bg-white rounded-2xl p-6 shadow-sm">
-    <h3 class="text-lg font-semibold text-[#1C1C1E] mb-5">
+    <h3 class="text-lg font-semibold text-ios-text mb-5">
       {{ t("feedback.form.title") }}
     </h3>
 
     <form class="space-y-5" @submit.prevent="handleSubmit">
       <!-- Category -->
       <div>
-        <label class="block text-sm font-medium text-[#1C1C1E] mb-2">
+        <label class="block text-sm font-medium text-ios-text mb-2">
           {{ t("feedback.form.category") }}
-          <span class="text-[#FF3B30]">*</span>
+          <span class="text-ios-red">*</span>
         </label>
         <div class="flex flex-wrap gap-2">
           <button
@@ -19,8 +19,8 @@
             class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200"
             :class="
               form.category === cat.value
-                ? 'bg-[#007AFF] text-white shadow-sm'
-                : 'bg-gray-100 text-[#3C3C43] hover:bg-gray-200'
+                ? 'bg-ios-blue text-white shadow-sm'
+                : 'bg-gray-100 text-ios-text/85 hover:bg-gray-200'
             "
             @click="form.category = cat.value"
           >
@@ -33,7 +33,7 @@
       <!-- Priority & Module row -->
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-[#1C1C1E] mb-2">
+          <label class="block text-sm font-medium text-ios-text mb-2">
             {{ t("feedback.form.priority") }}
           </label>
           <div class="flex items-center gap-5">
@@ -60,8 +60,8 @@
                 class="text-[10px] font-medium transition-colors duration-200"
                 :class="
                   form.priority === p.value
-                    ? 'text-[#1C1C1E]'
-                    : 'text-[#8E8E93]'
+                    ? 'text-ios-text'
+                    : 'text-ios-secondary'
                 "
               >
                 {{ t(`feedback.priorities.${p.value}`) }}
@@ -71,12 +71,12 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-[#1C1C1E] mb-2">
+          <label class="block text-sm font-medium text-ios-text mb-2">
             {{ t("feedback.form.relatedModule") }}
           </label>
           <select
             v-model="form.relatedModule"
-            class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white transition-all"
+            class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30 focus:bg-white transition-all"
           >
             <option v-for="mod in modules" :key="mod" :value="mod">
               {{ t(`feedback.modules.${mod}`) }}
@@ -87,36 +87,36 @@
 
       <!-- Subject -->
       <div>
-        <label class="block text-sm font-medium text-[#1C1C1E] mb-2">
+        <label class="block text-sm font-medium text-ios-text mb-2">
           {{ t("feedback.form.subject") }}
-          <span class="text-[#FF3B30]">*</span>
+          <span class="text-ios-red">*</span>
         </label>
         <input
           v-model="form.subject"
           type="text"
           :placeholder="t('feedback.form.subjectPlaceholder')"
           maxlength="200"
-          class="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] placeholder-[#8E8E93] focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white transition-all"
+          class="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm text-ios-text placeholder-ios-secondary focus:ring-2 focus:ring-ios-blue/30 focus:bg-white transition-all"
         />
-        <p class="mt-1 text-xs text-[#8E8E93] text-right">
+        <p class="mt-1 text-xs text-ios-secondary text-right">
           {{ form.subject.length }}/200
         </p>
       </div>
 
       <!-- Description -->
       <div>
-        <label class="block text-sm font-medium text-[#1C1C1E] mb-2">
+        <label class="block text-sm font-medium text-ios-text mb-2">
           {{ t("feedback.form.description") }}
-          <span class="text-[#FF3B30]">*</span>
+          <span class="text-ios-red">*</span>
         </label>
         <textarea
           v-model="form.description"
           :placeholder="t('feedback.form.descriptionPlaceholder')"
           rows="5"
           maxlength="5000"
-          class="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] placeholder-[#8E8E93] focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white transition-all resize-none"
+          class="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm text-ios-text placeholder-ios-secondary focus:ring-2 focus:ring-ios-blue/30 focus:bg-white transition-all resize-none"
         />
-        <p class="mt-1 text-xs text-[#8E8E93] text-right">
+        <p class="mt-1 text-xs text-ios-secondary text-right">
           {{ form.description.length }}/5000
         </p>
       </div>
@@ -125,7 +125,7 @@
       <div class="flex gap-3 pt-1">
         <button
           type="button"
-          class="flex-1 py-2.5 rounded-full text-sm font-medium bg-gray-100 text-[#3C3C43] hover:bg-gray-200 transition-all duration-200"
+          class="flex-1 py-2.5 rounded-full text-sm font-medium bg-gray-100 text-ios-text/85 hover:bg-gray-200 transition-all duration-200"
           @click="$emit('cancel')"
         >
           {{ t("common.cancel") }}
@@ -133,7 +133,7 @@
         <button
           type="submit"
           :disabled="isSubmitting || !isValid"
-          class="flex-1 py-2.5 rounded-full text-sm font-semibold bg-[#007AFF] text-white hover:bg-[#0071E3] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          class="flex-1 py-2.5 rounded-full text-sm font-semibold bg-ios-blue text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         >
           <span v-if="isSubmitting">{{ t("common.submitting") }}</span>
           <span v-else>{{ t("feedback.form.submit") }}</span>

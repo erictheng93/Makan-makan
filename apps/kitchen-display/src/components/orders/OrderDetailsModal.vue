@@ -131,10 +131,14 @@
           <!-- Order Notes -->
           <div
             v-if="order.notes"
-            class="bg-[#FFF3E0] rounded-xl p-3 flex items-start gap-2"
+            class="bg-ios-orange-soft rounded-xl p-3 flex items-start gap-2"
           >
-            <ZapIcon class="w-4 h-4 text-[#E65100] flex-shrink-0 mt-0.5" />
-            <p class="text-[#E65100] text-sm font-medium">{{ order.notes }}</p>
+            <ZapIcon
+              class="w-4 h-4 text-ios-orange-deep flex-shrink-0 mt-0.5"
+            />
+            <p class="text-ios-orange-deep text-sm font-medium">
+              {{ order.notes }}
+            </p>
           </div>
         </div>
 

@@ -50,7 +50,7 @@
           'rounded-full px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap cursor-pointer transition-all duration-200',
           selectedStatuses.includes('confirmed')
             ? 'bg-ios-blue text-white shadow-sm'
-            : 'bg-[#FFF3E0] text-ios-orange hover:opacity-80',
+            : 'bg-ios-orange-soft text-ios-orange hover:opacity-80',
         ]"
         @click="toggleStatusFilter('confirmed')"
       >
@@ -63,7 +63,7 @@
           'rounded-full px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap cursor-pointer transition-all duration-200',
           selectedStatuses.includes('preparing')
             ? 'bg-ios-blue text-white shadow-sm'
-            : 'bg-[#E3F2FD] text-ios-blue hover:opacity-80',
+            : 'bg-ios-blue-soft text-ios-blue hover:opacity-80',
         ]"
         @click="toggleStatusFilter('preparing')"
       >
@@ -76,7 +76,7 @@
           'rounded-full px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap cursor-pointer transition-all duration-200',
           selectedStatuses.includes('ready')
             ? 'bg-ios-blue text-white shadow-sm'
-            : 'bg-[#E8F5E9] text-ios-green hover:opacity-80',
+            : 'bg-ios-green-soft text-ios-green hover:opacity-80',
         ]"
         @click="toggleStatusFilter('ready')"
       >
@@ -89,7 +89,7 @@
           'rounded-full px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap cursor-pointer transition-all duration-200',
           selectedPriorities.includes('urgent')
             ? 'bg-ios-red text-white shadow-sm'
-            : 'bg-[#FFEBEE] text-ios-red hover:opacity-80',
+            : 'bg-ios-red-soft text-ios-red hover:opacity-80',
         ]"
         @click="toggleUrgentFilter"
       >
@@ -121,7 +121,7 @@
           'rounded-full px-3.5 py-1.5 text-sm font-semibold whitespace-nowrap cursor-pointer transition-all duration-200',
           isTakeawayDeliveryActive
             ? 'bg-ios-orange text-white shadow-sm'
-            : 'bg-[#FFF3E0] text-ios-orange hover:opacity-80',
+            : 'bg-ios-orange-soft text-ios-orange hover:opacity-80',
         ]"
         @click="toggleTakeawayDeliveryFilter"
       >
@@ -426,7 +426,7 @@ const orderTypeOptions = computed(() => [
     value: "dine_in",
     label: t("orderType.dineIn"),
     emoji: "🪑",
-    activeClass: "bg-[#E3F2FD] text-ios-blue",
+    activeClass: "bg-ios-blue-soft text-ios-blue",
   },
   {
     value: "takeaway",
@@ -447,7 +447,7 @@ const orderSourceOptions = computed(() => [
     value: "direct",
     label: t("filters.sourceSelf"),
     emoji: "\uD83C\uDFE0",
-    activeClass: "bg-[#E3F2FD] text-ios-blue",
+    activeClass: "bg-ios-blue-soft text-ios-blue",
   },
   {
     value: "market_checkout",
@@ -512,21 +512,21 @@ const statusOptions = computed(() => [
     label: t("filters.confirmed"),
     count: props.orders.filter((o) => o.status === "confirmed").length,
     badgeClass:
-      "px-2 py-0.5 bg-[#FFF3E0] text-ios-orange rounded-full text-xs font-medium",
+      "px-2 py-0.5 bg-ios-orange-soft text-ios-orange rounded-full text-xs font-medium",
   },
   {
     value: "preparing" as OrderStatus,
     label: t("filters.preparing"),
     count: props.orders.filter((o) => o.status === "preparing").length,
     badgeClass:
-      "px-2 py-0.5 bg-[#E3F2FD] text-ios-blue rounded-full text-xs font-medium",
+      "px-2 py-0.5 bg-ios-blue-soft text-ios-blue rounded-full text-xs font-medium",
   },
   {
     value: "ready" as OrderStatus,
     label: t("filters.readyStatus"),
     count: props.orders.filter((o) => o.status === "ready").length,
     badgeClass:
-      "px-2 py-0.5 bg-[#E8F5E9] text-ios-green rounded-full text-xs font-medium",
+      "px-2 py-0.5 bg-ios-green-soft text-ios-green rounded-full text-xs font-medium",
   },
 ]);
 
@@ -543,14 +543,14 @@ const priorityOptions = computed(() => [
     label: t("filters.priorityImportant"),
     count: props.orders.filter((o) => o.priority === "high").length,
     badgeClass:
-      "px-2 py-0.5 bg-[#FFF3E0] text-ios-orange rounded-full text-xs font-medium",
+      "px-2 py-0.5 bg-ios-orange-soft text-ios-orange rounded-full text-xs font-medium",
   },
   {
     value: "urgent",
     label: t("filters.priorityUrgent"),
     count: props.orders.filter((o) => o.priority === "urgent").length,
     badgeClass:
-      "px-2 py-0.5 bg-[#FFEBEE] text-ios-red rounded-full text-xs font-medium",
+      "px-2 py-0.5 bg-ios-red-soft text-ios-red rounded-full text-xs font-medium",
   },
 ]);
 

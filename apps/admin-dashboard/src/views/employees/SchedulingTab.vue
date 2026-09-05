@@ -8,19 +8,19 @@
       >
         <button
           data-testid="nav-prev"
-          class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#F2F2F7] transition-colors text-[#1C1C1E]/60 hover:text-[#1C1C1E]"
+          class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-ios-bg transition-colors text-ios-text/60 hover:text-ios-text"
           @click="shiftRange(-1)"
         >
           <ChevronLeft class="w-4 h-4" />
         </button>
         <span
-          class="text-sm font-semibold text-[#1C1C1E] min-w-[120px] text-center px-1"
+          class="text-sm font-semibold text-ios-text min-w-[120px] text-center px-1"
         >
           {{ rangeLabel }}
         </span>
         <button
           data-testid="nav-next"
-          class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#F2F2F7] transition-colors text-[#1C1C1E]/60 hover:text-[#1C1C1E]"
+          class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-ios-bg transition-colors text-ios-text/60 hover:text-ios-text"
           @click="shiftRange(1)"
         >
           <ChevronRight class="w-4 h-4" />
@@ -30,22 +30,22 @@
       <!-- Today shortcut -->
       <button
         v-if="!isCurrentPeriod"
-        class="px-3 py-1.5 text-xs font-medium rounded-full bg-[#007AFF]/10 text-[#007AFF] hover:bg-[#007AFF]/20 transition-colors"
+        class="px-3 py-1.5 text-xs font-medium rounded-full bg-ios-blue/10 text-ios-blue hover:bg-ios-blue/20 transition-colors"
         @click="goToToday"
       >
         {{ t("employees.scheduling.today") }}
       </button>
 
       <!-- View mode toggle -->
-      <div class="flex bg-[#F2F2F7] rounded-full p-0.5">
+      <div class="flex bg-ios-bg rounded-full p-0.5">
         <button
           v-for="mode in ['week', 'month'] as const"
           :key="mode"
           class="px-3 py-1 text-xs font-semibold rounded-full transition-all"
           :class="
             viewMode === mode
-              ? 'bg-white text-[#1C1C1E] shadow-sm'
-              : 'text-[#1C1C1E]/50 hover:text-[#1C1C1E]/70'
+              ? 'bg-white text-ios-text shadow-sm'
+              : 'text-ios-text/50 hover:text-ios-text/70'
           "
           :data-active="viewMode === mode"
           @click="viewMode = mode"
@@ -61,14 +61,14 @@
       <RouterLink
         :to="{ name: 'AdvancedScheduling' }"
         data-testid="advanced-scheduling-link"
-        class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-white text-[#007AFF] border border-[#007AFF]/20 hover:bg-[#007AFF]/10 transition-colors"
+        class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-white text-ios-blue border border-ios-blue/20 hover:bg-ios-blue/10 transition-colors"
       >
         {{ t("employees.scheduling.advancedScheduling") }}
       </RouterLink>
 
       <!-- Manage templates button -->
       <button
-        class="ml-auto flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors shadow-sm"
+        class="ml-auto flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-ios-blue text-white hover:bg-blue-600 transition-colors shadow-sm"
         @click="showTemplateManager = true"
       >
         <Settings class="w-3.5 h-3.5" />
@@ -79,11 +79,11 @@
     <!-- Loading skeleton -->
     <div
       v-if="loading"
-      class="flex items-center justify-center py-16 text-[#1C1C1E]/40"
+      class="flex items-center justify-center py-16 text-ios-text/40"
     >
       <div class="flex flex-col items-center gap-3">
         <div
-          class="w-8 h-8 border-2 border-[#007AFF]/30 border-t-[#007AFF] rounded-full animate-spin"
+          class="w-8 h-8 border-2 border-ios-blue/30 border-t-ios-blue rounded-full animate-spin"
         />
         <p class="text-sm">{{ t("employees.scheduling.loading") }}</p>
       </div>
@@ -92,11 +92,11 @@
     <!-- Error state -->
     <div
       v-else-if="loadError"
-      class="bg-[#FF3B30]/5 border border-[#FF3B30]/20 rounded-2xl p-6 text-center"
+      class="bg-ios-red/5 border border-ios-red/20 rounded-2xl p-6 text-center"
     >
-      <p class="text-sm text-[#FF3B30]">{{ loadError }}</p>
+      <p class="text-sm text-ios-red">{{ loadError }}</p>
       <button
-        class="mt-3 px-4 py-1.5 text-sm font-medium rounded-full bg-[#FF3B30]/10 text-[#FF3B30] hover:bg-[#FF3B30]/20 transition-colors"
+        class="mt-3 px-4 py-1.5 text-sm font-medium rounded-full bg-ios-red/10 text-ios-red hover:bg-ios-red/20 transition-colors"
         @click="loadAll"
       >
         {{ t("employees.scheduling.retry") }}
@@ -155,10 +155,10 @@
           <div
             class="bg-white rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] p-6 w-72"
           >
-            <h3 class="text-base font-bold text-[#1C1C1E] mb-1">
+            <h3 class="text-base font-bold text-ios-text mb-1">
               {{ t("employees.scheduling.confirmAssign") }}
             </h3>
-            <p class="text-sm text-[#1C1C1E]/60 mb-4">
+            <p class="text-sm text-ios-text/60 mb-4">
               {{
                 t("employees.scheduling.assignMessage", {
                   name: pendingAssignment.employeeName,
@@ -169,13 +169,13 @@
             </p>
             <div class="flex gap-2">
               <button
-                class="flex-1 px-3 py-2 text-sm font-medium rounded-full bg-[#F2F2F7] text-[#1C1C1E]/60 hover:bg-[#E5E5EA] transition-colors"
+                class="flex-1 px-3 py-2 text-sm font-medium rounded-full bg-ios-bg text-ios-text/60 hover:bg-ios-separator transition-colors"
                 @click="pendingAssignment = null"
               >
                 {{ t("employees.scheduling.cancel") }}
               </button>
               <button
-                class="flex-1 px-3 py-2 text-sm font-semibold rounded-full bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors disabled:opacity-50"
+                class="flex-1 px-3 py-2 text-sm font-semibold rounded-full bg-ios-blue text-white hover:bg-blue-600 transition-colors disabled:opacity-50"
                 :disabled="assigning"
                 @click="confirmAssign"
               >
@@ -202,12 +202,12 @@
           <div
             class="bg-white rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] p-5 w-72 max-h-80 flex flex-col"
           >
-            <h3 class="text-base font-bold text-[#1C1C1E] mb-3">
+            <h3 class="text-base font-bold text-ios-text mb-3">
               {{ t("employees.scheduling.selectEmployee") }}
             </h3>
             <div
               v-if="availableForCell.length === 0"
-              class="text-sm text-[#1C1C1E]/40 text-center py-4"
+              class="text-sm text-ios-text/40 text-center py-4"
             >
               {{ t("employees.scheduling.noAvailableEmployees") }}
             </div>
@@ -215,14 +215,14 @@
               <button
                 v-for="emp in availableForCell"
                 :key="emp.id"
-                class="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-left hover:bg-[#F2F2F7] transition-colors"
+                class="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-left hover:bg-ios-bg transition-colors"
                 @click="selectEmployeeForCell(emp.id, emp.name)"
               >
-                <span class="font-medium text-[#1C1C1E]">{{ emp.name }}</span>
+                <span class="font-medium text-ios-text">{{ emp.name }}</span>
               </button>
             </div>
             <button
-              class="mt-3 px-3 py-2 text-sm font-medium rounded-full bg-[#F2F2F7] text-[#1C1C1E]/60 hover:bg-[#E5E5EA] transition-colors"
+              class="mt-3 px-3 py-2 text-sm font-medium rounded-full bg-ios-bg text-ios-text/60 hover:bg-ios-separator transition-colors"
               @click="cellClickTarget = null"
             >
               {{ t("employees.scheduling.cancel") }}

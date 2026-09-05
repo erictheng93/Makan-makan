@@ -15,7 +15,7 @@
     >
       <div class="flex items-center gap-2 mb-5">
         <span class="w-2 h-2 rounded-full bg-ios-success" />
-        <h3 class="text-[17px] font-bold text-[#1C1C1E]">
+        <h3 class="text-[17px] font-bold text-ios-text">
           {{ isEditing ? t("menu.editCategory") : t("menu.addCategory") }}
         </h3>
       </div>
@@ -24,7 +24,7 @@
         <div class="space-y-4">
           <div>
             <label
-              class="block text-xs font-semibold text-[#8E8E93] uppercase tracking-wider mb-1.5"
+              class="block text-xs font-semibold text-ios-secondary uppercase tracking-wider mb-1.5"
             >
               {{ t("menu.form.categoryName") }}
               <span class="text-ios-error">*</span>
@@ -36,14 +36,14 @@
               type="text"
               required
               :placeholder="t('menu.form.categoryNamePlaceholder')"
-              class="w-full px-3.5 py-2.5 bg-[#F2F2F7] border-none rounded-xl text-sm text-[#1C1C1E] outline-none transition-all duration-200 focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white placeholder:text-[#AEAEB2]"
+              class="w-full px-3.5 py-2.5 bg-ios-bg border-none rounded-xl text-sm text-ios-text outline-none transition-all duration-200 focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white placeholder:text-ios-tertiary"
             />
           </div>
 
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label
-                class="block text-xs font-semibold text-[#8E8E93] uppercase tracking-wider mb-1.5"
+                class="block text-xs font-semibold text-ios-secondary uppercase tracking-wider mb-1.5"
               >
                 {{ t("menu.form.nameEn") }}
               </label>
@@ -52,12 +52,12 @@
                 data-testid="admin-category-name-en-input"
                 type="text"
                 placeholder="English name"
-                class="w-full px-3.5 py-2.5 bg-[#F2F2F7] border-none rounded-xl text-sm text-[#1C1C1E] outline-none transition-all duration-200 focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white placeholder:text-[#AEAEB2]"
+                class="w-full px-3.5 py-2.5 bg-ios-bg border-none rounded-xl text-sm text-ios-text outline-none transition-all duration-200 focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white placeholder:text-ios-tertiary"
               />
             </div>
             <div>
               <label
-                class="block text-xs font-semibold text-[#8E8E93] uppercase tracking-wider mb-1.5"
+                class="block text-xs font-semibold text-ios-secondary uppercase tracking-wider mb-1.5"
               >
                 {{ t("menu.form.sortOrder") }}
               </label>
@@ -66,14 +66,14 @@
                 data-testid="admin-category-sort-order-input"
                 type="number"
                 min="0"
-                class="w-full px-3.5 py-2.5 bg-[#F2F2F7] border-none rounded-xl text-sm text-[#1C1C1E] outline-none transition-all duration-200 focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white placeholder:text-[#AEAEB2]"
+                class="w-full px-3.5 py-2.5 bg-ios-bg border-none rounded-xl text-sm text-ios-text outline-none transition-all duration-200 focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white placeholder:text-ios-tertiary"
               />
             </div>
           </div>
 
           <div>
             <label
-              class="block text-xs font-semibold text-[#8E8E93] uppercase tracking-wider mb-1.5"
+              class="block text-xs font-semibold text-ios-secondary uppercase tracking-wider mb-1.5"
             >
               {{ t("menu.form.description") }}
             </label>
@@ -82,7 +82,7 @@
               data-testid="admin-category-description-input"
               type="text"
               :placeholder="t('menu.form.descriptionPlaceholder')"
-              class="w-full px-3.5 py-2.5 bg-[#F2F2F7] border-none rounded-xl text-sm text-[#1C1C1E] outline-none transition-all duration-200 focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white placeholder:text-[#AEAEB2]"
+              class="w-full px-3.5 py-2.5 bg-ios-bg border-none rounded-xl text-sm text-ios-text outline-none transition-all duration-200 focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white placeholder:text-ios-tertiary"
             />
           </div>
 
@@ -93,13 +93,13 @@
             screen with it (#83).
           -->
           <div
-            class="flex items-center justify-between gap-4 bg-[#F2F2F7] rounded-xl px-3.5 py-3"
+            class="flex items-center justify-between gap-4 bg-ios-bg rounded-xl px-3.5 py-3"
           >
             <div class="min-w-0">
-              <div class="text-sm font-medium text-[#1C1C1E]">
+              <div class="text-sm font-medium text-ios-text">
                 {{ t("menu.form.categoryVisible") }}
               </div>
-              <div class="text-xs text-[#8E8E93] mt-0.5">
+              <div class="text-xs text-ios-secondary mt-0.5">
                 {{
                   form.isVisible
                     ? t("menu.form.categoryVisibleHint")
@@ -115,7 +115,7 @@
               :aria-label="t('menu.form.categoryVisible')"
               :class="[
                 'relative shrink-0 w-[51px] h-[31px] rounded-full transition-colors duration-200 ease-out outline-none focus-visible:shadow-[0_0_0_3px_rgba(0,122,255,0.25)]',
-                form.isVisible ? 'bg-ios-success' : 'bg-[#D8D8DC]',
+                form.isVisible ? 'bg-ios-success' : 'bg-ios-separator',
               ]"
               @click="form.isVisible = !form.isVisible"
             >
@@ -133,7 +133,7 @@
           <button
             type="button"
             data-testid="admin-category-cancel"
-            class="px-4 py-2 rounded-full text-[13px] font-medium text-[#8E8E93] hover:bg-black/[0.04] transition-colors"
+            class="px-4 py-2 rounded-full text-[13px] font-medium text-ios-secondary hover:bg-black/[0.04] transition-colors"
             @click="$emit('cancel')"
           >
             {{ t("common.cancel") }}
@@ -141,7 +141,7 @@
           <button
             type="submit"
             data-testid="admin-category-submit"
-            class="px-5 py-2 rounded-full text-[13px] font-semibold bg-ios-primary text-white hover:bg-[#0066D6] transition-colors"
+            class="px-5 py-2 rounded-full text-[13px] font-semibold bg-ios-primary text-white hover:bg-blue-600 transition-colors"
           >
             {{ isEditing ? t("menu.form.update") : t("menu.form.add") }}
           </button>

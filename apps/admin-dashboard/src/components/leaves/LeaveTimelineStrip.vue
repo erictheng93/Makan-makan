@@ -8,25 +8,25 @@
         class="flex-1 flex flex-col items-center gap-0.5 rounded-lg py-1.5 px-0.5 relative transition-all"
         :class="[
           day.isInRange
-            ? 'bg-[#FF9500]/15 ring-1 ring-[#FF9500]/40'
-            : 'bg-[#F2F2F7]',
+            ? 'bg-ios-orange/15 ring-1 ring-ios-orange/40'
+            : 'bg-ios-bg',
         ]"
       >
         <!-- Day abbreviation -->
-        <span class="text-[10px] font-medium text-[#1C1C1E]/50 leading-none">
+        <span class="text-[10px] font-medium text-ios-text/50 leading-none">
           {{ day.dayAbbr }}
         </span>
         <!-- Date number -->
         <span
           class="text-xs font-semibold leading-none"
-          :class="day.isInRange ? 'text-[#FF9500]' : 'text-[#1C1C1E]'"
+          :class="day.isInRange ? 'text-ios-orange' : 'text-ios-text'"
         >
           {{ day.dateNum }}
         </span>
         <!-- Colleague leave dot -->
         <div
           v-if="day.hasColleagueLeave"
-          class="w-1.5 h-1.5 rounded-full bg-[#FF3B30]"
+          class="w-1.5 h-1.5 rounded-full bg-ios-red"
         />
         <div v-else class="w-1.5 h-1.5" />
         <!-- Staffing count -->
@@ -35,8 +35,8 @@
           class="text-[9px] font-medium leading-none mt-0.5"
           :class="
             staffingThreshold && scheduleCount[day.dateStr] < staffingThreshold
-              ? 'text-[#FF3B30]'
-              : 'text-[#1C1C1E]/40'
+              ? 'text-ios-red'
+              : 'text-ios-text/40'
           "
         >
           {{ scheduleCount[day.dateStr] }}人
@@ -47,7 +47,7 @@
     <!-- Staffing warning if applicable -->
     <div
       v-if="staffingWarning"
-      class="flex items-start gap-1.5 text-xs text-[#FF3B30] bg-[#FF3B30]/8 rounded-lg px-2.5 py-1.5"
+      class="flex items-start gap-1.5 text-xs text-ios-red bg-ios-red/10 rounded-lg px-2.5 py-1.5"
     >
       <span class="shrink-0 mt-px">⚠</span>
       <span>{{ staffingWarning }}</span>

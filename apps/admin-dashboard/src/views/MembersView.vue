@@ -1,11 +1,13 @@
 <template>
-  <main class="min-h-full space-y-6 bg-[#F2F2F7] p-5">
+  <main class="min-h-full space-y-6 bg-ios-bg p-5">
     <header class="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-semibold text-[#1C1C1E]">
+        <h1 class="text-2xl font-semibold text-ios-text">
           {{ t("pages.members") }}
         </h1>
-        <p class="mt-1 text-sm text-[#8E8E93]">{{ t("members.subtitle") }}</p>
+        <p class="mt-1 text-sm text-ios-secondary">
+          {{ t("members.subtitle") }}
+        </p>
       </div>
     </header>
 
@@ -24,10 +26,8 @@
             <component :is="card.icon" class="h-5 w-5" />
           </span>
           <div>
-            <p class="text-xs text-[#8E8E93]">{{ card.label }}</p>
-            <p
-              class="mt-0.5 text-2xl font-semibold tabular-nums text-[#1C1C1E]"
-            >
+            <p class="text-xs text-ios-secondary">{{ card.label }}</p>
+            <p class="mt-0.5 text-2xl font-semibold tabular-nums text-ios-text">
               {{ card.value }}
             </p>
           </div>
@@ -47,8 +47,8 @@
         class="rounded-full px-4 py-2 text-sm font-medium transition-all duration-200"
         :class="
           activeQuickFilter === pill.key
-            ? 'bg-[#007AFF] text-white'
-            : 'bg-white text-[#8E8E93] shadow-ios-sm hover:text-[#1C1C1E]'
+            ? 'bg-ios-blue text-white'
+            : 'bg-white text-ios-secondary shadow-ios-sm hover:text-ios-text'
         "
         @click="applyQuickFilter(pill.key)"
       >
@@ -58,13 +58,13 @@
 
     <!-- 進階篩選 -->
     <section class="rounded-2xl bg-white p-5 shadow-ios-card">
-      <h2 class="mb-4 text-base font-semibold text-[#1C1C1E]">
+      <h2 class="mb-4 text-base font-semibold text-ios-text">
         {{ t("members.filters.title") }}
       </h2>
       <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
         <div class="md:col-span-2">
           <label
-            class="mb-2 block text-xs font-medium text-[#8E8E93]"
+            class="mb-2 block text-xs font-medium text-ios-secondary"
             for="member-search"
           >
             {{ t("members.search.label") }}
@@ -74,13 +74,13 @@
             v-model="filters.search"
             type="search"
             :placeholder="t('members.search.placeholder')"
-            class="w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2.5 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+            class="w-full rounded-xl border-0 bg-ios-bg px-3 py-2.5 text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30"
             @input="debouncedReload"
           />
         </div>
         <div>
           <label
-            class="mb-2 block text-xs font-medium text-[#8E8E93]"
+            class="mb-2 block text-xs font-medium text-ios-secondary"
             for="member-sort"
           >
             {{ t("members.filters.sort") }}
@@ -88,7 +88,7 @@
           <select
             id="member-sort"
             v-model="filters.sort"
-            class="w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2.5 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+            class="w-full rounded-xl border-0 bg-ios-bg px-3 py-2.5 text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30"
             @change="reload"
           >
             <option value="recent">
@@ -107,7 +107,7 @@
         </div>
         <div>
           <label
-            class="mb-2 block text-xs font-medium text-[#8E8E93]"
+            class="mb-2 block text-xs font-medium text-ios-secondary"
             for="member-blocked"
           >
             {{ t("members.filters.blocked") }}
@@ -115,7 +115,7 @@
           <select
             id="member-blocked"
             v-model="filters.blocked"
-            class="w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2.5 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+            class="w-full rounded-xl border-0 bg-ios-bg px-3 py-2.5 text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30"
             @change="reload"
           >
             <option value="">
@@ -131,7 +131,7 @@
         </div>
         <div>
           <label
-            class="mb-2 block text-xs font-medium text-[#8E8E93]"
+            class="mb-2 block text-xs font-medium text-ios-secondary"
             for="member-filter-tag"
           >
             {{ t("members.annotations.tagFilter") }}
@@ -142,13 +142,13 @@
             data-testid="member-filter-tag"
             type="text"
             :placeholder="t('members.annotations.tagFilterPlaceholder')"
-            class="w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2.5 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+            class="w-full rounded-xl border-0 bg-ios-bg px-3 py-2.5 text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30"
             @change="reload"
           />
         </div>
         <div>
           <label
-            class="mb-2 block text-xs font-medium text-[#8E8E93]"
+            class="mb-2 block text-xs font-medium text-ios-secondary"
             for="member-min-orders"
           >
             {{ t("members.filters.minOrders") }}
@@ -159,13 +159,13 @@
             type="number"
             min="0"
             step="1"
-            class="w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2.5 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+            class="w-full rounded-xl border-0 bg-ios-bg px-3 py-2.5 text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30"
             @change="reload"
           />
         </div>
         <div>
           <label
-            class="mb-2 block text-xs font-medium text-[#8E8E93]"
+            class="mb-2 block text-xs font-medium text-ios-secondary"
             for="member-min-spent"
           >
             {{ t("members.filters.minSpent") }}
@@ -176,13 +176,13 @@
             type="number"
             min="0"
             step="1"
-            class="w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2.5 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+            class="w-full rounded-xl border-0 bg-ios-bg px-3 py-2.5 text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30"
             @change="reload"
           />
         </div>
         <div>
           <label
-            class="mb-2 block text-xs font-medium text-[#8E8E93]"
+            class="mb-2 block text-xs font-medium text-ios-secondary"
             for="member-last-from"
           >
             {{ t("members.filters.lastOrderFrom") }}
@@ -191,14 +191,14 @@
             id="member-last-from"
             v-model="filters.lastOrderFrom"
             type="date"
-            class="w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2.5 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+            class="w-full rounded-xl border-0 bg-ios-bg px-3 py-2.5 text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30"
             @change="reload"
           />
         </div>
         <div class="flex items-end gap-3">
           <div class="flex-1">
             <label
-              class="mb-2 block text-xs font-medium text-[#8E8E93]"
+              class="mb-2 block text-xs font-medium text-ios-secondary"
               for="member-last-to"
             >
               {{ t("members.filters.lastOrderTo") }}
@@ -207,14 +207,14 @@
               id="member-last-to"
               v-model="filters.lastOrderTo"
               type="date"
-              class="w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2.5 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+              class="w-full rounded-xl border-0 bg-ios-bg px-3 py-2.5 text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30"
               @change="reload"
             />
           </div>
           <button
             type="button"
             data-testid="reset-filters"
-            class="rounded-full bg-[#F2F2F7] px-4 py-2.5 text-sm font-medium text-[#1C1C1E] transition-colors duration-200 hover:bg-gray-200"
+            class="rounded-full bg-ios-bg px-4 py-2.5 text-sm font-medium text-ios-text transition-colors duration-200 hover:bg-gray-200"
             @click="resetFilters"
           >
             {{ t("members.filters.reset") }}
@@ -229,7 +229,7 @@
         <table class="min-w-full divide-y divide-gray-100">
           <thead>
             <tr
-              class="text-left text-xs font-medium uppercase tracking-wider text-[#8E8E93]"
+              class="text-left text-xs font-medium uppercase tracking-wider text-ios-secondary"
             >
               <th class="px-6 py-3">{{ t("members.table.member") }}</th>
               <th class="px-6 py-3">{{ t("members.table.contact") }}</th>
@@ -247,7 +247,7 @@
             <tr>
               <td
                 colspan="8"
-                class="px-6 py-12 text-center text-sm text-[#8E8E93]"
+                class="px-6 py-12 text-center text-sm text-ios-secondary"
                 aria-busy="true"
               >
                 {{ t("common.loading") }}
@@ -260,11 +260,11 @@
           >
             <tr>
               <td colspan="8" class="px-6 py-12 text-center">
-                <UsersIcon class="mx-auto h-10 w-10 text-[#AEAEB2]" />
-                <p class="mt-3 text-sm font-medium text-[#1C1C1E]">
+                <UsersIcon class="mx-auto h-10 w-10 text-ios-tertiary" />
+                <p class="mt-3 text-sm font-medium text-ios-text">
                   {{ t("members.empty.title") }}
                 </p>
-                <p class="mt-1 text-sm text-[#8E8E93]">
+                <p class="mt-1 text-sm text-ios-secondary">
                   {{ t("members.empty.description") }}
                 </p>
               </td>
@@ -276,38 +276,38 @@
               :key="member.memberId"
               :data-testid="`member-row-${member.memberId}`"
               :data-status="member.status"
-              class="cursor-pointer transition-colors duration-200 hover:bg-[#F2F2F7]"
+              class="cursor-pointer transition-colors duration-200 hover:bg-ios-bg"
               @click="openMember(member)"
             >
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
                   <span
-                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-[#007AFF]"
+                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-ios-blue"
                     aria-hidden="true"
                   >
                     {{ memberInitial(member) }}
                   </span>
                   <div>
-                    <p class="text-sm font-medium text-[#1C1C1E]">
+                    <p class="text-sm font-medium text-ios-text">
                       {{ memberName(member) }}
                     </p>
                     <p
                       v-if="!member.marketingReachable"
                       data-testid="marketing-unreachable"
-                      class="mt-1 inline-block rounded-full bg-orange-50 px-2 py-0.5 text-xs text-[#FF9500]"
+                      class="mt-1 inline-block rounded-full bg-orange-50 px-2 py-0.5 text-xs text-ios-orange"
                     >
                       {{ t("members.badges.marketingUnreachable") }}
                     </p>
                   </div>
                 </div>
               </td>
-              <td class="px-6 py-4 text-sm text-[#8E8E93]">
+              <td class="px-6 py-4 text-sm text-ios-secondary">
                 <div>{{ member.maskedPhone ?? "—" }}</div>
                 <div>{{ member.maskedEmail ?? "—" }}</div>
               </td>
-              <td class="px-6 py-4 text-sm text-[#1C1C1E]">
+              <td class="px-6 py-4 text-sm text-ios-text">
                 {{ member.orderCount }}
-                <span class="ml-1 text-xs text-[#8E8E93]">
+                <span class="ml-1 text-xs text-ios-secondary">
                   {{
                     t("members.cancelledCount", {
                       count: member.cancelledOrderCount,
@@ -315,13 +315,13 @@
                   }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-sm tabular-nums text-[#1C1C1E]">
+              <td class="px-6 py-4 text-sm tabular-nums text-ios-text">
                 {{ formatCents(member.totalSpentCents) }}
               </td>
-              <td class="px-6 py-4 text-sm text-[#8E8E93]">
+              <td class="px-6 py-4 text-sm text-ios-secondary">
                 {{ formatRelative(member.lastOrderAt) }}
               </td>
-              <td class="px-6 py-4 text-sm text-[#8E8E93]">
+              <td class="px-6 py-4 text-sm text-ios-secondary">
                 {{ formatDay(member.firstOrderAt) }}
               </td>
               <td class="px-6 py-4">
@@ -336,7 +336,7 @@
                 <button
                   type="button"
                   :data-testid="`member-detail-${member.memberId}`"
-                  class="rounded-full px-3 py-1.5 text-sm font-medium text-[#007AFF] transition-colors duration-200 hover:bg-blue-50"
+                  class="rounded-full px-3 py-1.5 text-sm font-medium text-ios-blue transition-colors duration-200 hover:bg-blue-50"
                   @click.stop="openMember(member)"
                 >
                   {{ t("members.actions.detail") }}
@@ -356,7 +356,7 @@
           <button
             type="button"
             :disabled="page === 1"
-            class="rounded-full bg-[#F2F2F7] px-4 py-2 text-sm font-medium text-[#1C1C1E] disabled:opacity-40"
+            class="rounded-full bg-ios-bg px-4 py-2 text-sm font-medium text-ios-text disabled:opacity-40"
             @click="changePage(page - 1)"
           >
             {{ t("members.pagination.previous") }}
@@ -364,7 +364,7 @@
           <button
             type="button"
             :disabled="page >= pagination.pages"
-            class="rounded-full bg-[#F2F2F7] px-4 py-2 text-sm font-medium text-[#1C1C1E] disabled:opacity-40"
+            class="rounded-full bg-ios-bg px-4 py-2 text-sm font-medium text-ios-text disabled:opacity-40"
             @click="changePage(page + 1)"
           >
             {{ t("members.pagination.next") }}
@@ -374,7 +374,7 @@
           class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between"
         >
           <p
-            class="text-sm text-[#8E8E93]"
+            class="text-sm text-ios-secondary"
             data-testid="members-pagination-summary"
           >
             {{
@@ -392,7 +392,7 @@
             <button
               type="button"
               :disabled="page === 1"
-              class="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2F2F7] text-[#1C1C1E] disabled:opacity-40"
+              class="flex h-8 w-8 items-center justify-center rounded-full bg-ios-bg text-ios-text disabled:opacity-40"
               :aria-label="t('members.pagination.previous')"
               @click="changePage(page - 1)"
             >
@@ -405,8 +405,8 @@
               class="min-w-8 rounded-full px-3 py-1.5 text-sm font-medium transition-colors duration-200"
               :class="
                 visiblePage === page
-                  ? 'bg-[#007AFF] text-white'
-                  : 'bg-[#F2F2F7] text-[#1C1C1E] hover:bg-gray-200'
+                  ? 'bg-ios-blue text-white'
+                  : 'bg-ios-bg text-ios-text hover:bg-gray-200'
               "
               @click="changePage(visiblePage)"
             >
@@ -415,7 +415,7 @@
             <button
               type="button"
               :disabled="page >= pagination.pages"
-              class="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2F2F7] text-[#1C1C1E] disabled:opacity-40"
+              class="flex h-8 w-8 items-center justify-center rounded-full bg-ios-bg text-ios-text disabled:opacity-40"
               :aria-label="t('members.pagination.next')"
               @click="changePage(page + 1)"
             >
@@ -439,16 +439,16 @@
           />
           <div
             data-testid="member-detail-panel"
-            class="relative max-h-[90vh] w-full space-y-4 overflow-y-auto rounded-t-3xl bg-[#F2F2F7] p-5 sm:max-w-2xl sm:rounded-3xl"
+            class="relative max-h-[90vh] w-full space-y-4 overflow-y-auto rounded-t-3xl bg-ios-bg p-5 sm:max-w-2xl sm:rounded-3xl"
           >
             <div class="flex items-center justify-between">
-              <h2 class="text-base font-semibold text-[#1C1C1E]">
+              <h2 class="text-base font-semibold text-ios-text">
                 {{ t("members.detail.title") }}
               </h2>
               <button
                 type="button"
                 data-testid="member-detail-close"
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-[#3C3C43] transition-colors duration-200 hover:bg-gray-300"
+                class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-ios-text/85 transition-colors duration-200 hover:bg-gray-300"
                 :aria-label="t('members.detail.close')"
                 @click="closeDetail"
               >
@@ -459,7 +459,7 @@
             <p
               v-if="detailError"
               data-testid="member-detail-error"
-              class="rounded-2xl bg-[#FF3B30]/10 px-4 py-3 text-sm text-[#FF3B30]"
+              class="rounded-2xl bg-ios-red/10 px-4 py-3 text-sm text-ios-red"
             >
               {{ detailError }}
             </p>
@@ -468,7 +468,7 @@
             <article class="rounded-2xl bg-white p-4 shadow-ios-card">
               <div class="flex items-center gap-3">
                 <span
-                  class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-base font-semibold text-[#007AFF]"
+                  class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-base font-semibold text-ios-blue"
                   aria-hidden="true"
                 >
                   {{ memberInitial(selectedMember) }}
@@ -476,7 +476,7 @@
                 <div>
                   <p
                     data-testid="member-detail-name"
-                    class="text-base font-semibold text-[#1C1C1E]"
+                    class="text-base font-semibold text-ios-text"
                   >
                     {{ memberName(selectedMember) }}
                   </p>
@@ -489,7 +489,7 @@
                     </span>
                     <span
                       v-if="!selectedMember.marketingReachable"
-                      class="rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-[#FF9500]"
+                      class="rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-ios-orange"
                     >
                       {{ t("members.badges.marketingUnreachable") }}
                     </span>
@@ -497,23 +497,23 @@
                 </div>
               </div>
 
-              <h3 class="mt-4 text-xs font-medium text-[#8E8E93]">
+              <h3 class="mt-4 text-xs font-medium text-ios-secondary">
                 {{ t("members.detail.contact") }}
               </h3>
               <dl class="mt-2 space-y-1 text-sm">
                 <div class="flex gap-2">
-                  <dt class="w-16 shrink-0 text-[#8E8E93]">
+                  <dt class="w-16 shrink-0 text-ios-secondary">
                     {{ t("members.reveal.phone") }}
                   </dt>
-                  <dd data-testid="member-phone" class="text-[#1C1C1E]">
+                  <dd data-testid="member-phone" class="text-ios-text">
                     {{ displayedPhone }}
                   </dd>
                 </div>
                 <div class="flex gap-2">
-                  <dt class="w-16 shrink-0 text-[#8E8E93]">
+                  <dt class="w-16 shrink-0 text-ios-secondary">
                     {{ t("members.reveal.email") }}
                   </dt>
-                  <dd data-testid="member-email" class="text-[#1C1C1E]">
+                  <dd data-testid="member-email" class="text-ios-text">
                     {{ displayedEmail }}
                   </dd>
                 </div>
@@ -527,7 +527,7 @@
                   :disabled="
                     revealLoading || selectedMember.status === 'deleted'
                   "
-                  class="inline-flex items-center gap-1.5 rounded-full bg-[#007AFF] px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-[#0068d6] disabled:opacity-40"
+                  class="inline-flex items-center gap-1.5 rounded-full bg-ios-blue px-4 py-2 text-sm font-medium text-white transition-colors duration-200 hover:bg-blue-600 disabled:opacity-40"
                   @click="revealContact"
                 >
                   <EyeIcon class="h-4 w-4" />
@@ -541,7 +541,7 @@
                   v-else
                   type="button"
                   data-testid="mask-contact"
-                  class="inline-flex items-center gap-1.5 rounded-full bg-[#F2F2F7] px-4 py-2 text-sm font-medium text-[#1C1C1E] transition-colors duration-200 hover:bg-gray-200"
+                  class="inline-flex items-center gap-1.5 rounded-full bg-ios-bg px-4 py-2 text-sm font-medium text-ios-text transition-colors duration-200 hover:bg-gray-200"
                   @click="clearReveal"
                 >
                   <EyeSlashIcon class="h-4 w-4" />
@@ -550,7 +550,7 @@
                 <p
                   v-if="isRevealed"
                   data-testid="reveal-auto-mask-notice"
-                  class="text-xs text-[#8E8E93]"
+                  class="text-xs text-ios-secondary"
                 >
                   {{
                     t("members.reveal.autoMaskNotice", {
@@ -563,7 +563,7 @@
               <p
                 v-if="revealError"
                 data-testid="reveal-error"
-                class="mt-3 rounded-xl bg-[#FF3B30]/10 px-3 py-2 text-sm text-[#FF3B30]"
+                class="mt-3 rounded-xl bg-ios-red/10 px-3 py-2 text-sm text-ios-red"
                 role="alert"
               >
                 {{ revealError }}
@@ -572,14 +572,14 @@
 
             <!-- 本店消費摘要 -->
             <article class="rounded-2xl bg-white p-4 shadow-ios-card">
-              <h3 class="text-base font-semibold text-[#1C1C1E]">
+              <h3 class="text-base font-semibold text-ios-text">
                 {{ t("members.detail.summary") }}
               </h3>
               <dl class="mt-3 grid grid-cols-2 gap-4 md:grid-cols-3">
                 <div v-for="entry in summaryEntries" :key="entry.key">
-                  <dt class="text-xs text-[#8E8E93]">{{ entry.label }}</dt>
+                  <dt class="text-xs text-ios-secondary">{{ entry.label }}</dt>
                   <dd
-                    class="mt-0.5 text-sm font-medium tabular-nums text-[#1C1C1E]"
+                    class="mt-0.5 text-sm font-medium tabular-nums text-ios-text"
                   >
                     {{ entry.value }}
                   </dd>
@@ -589,26 +589,26 @@
 
             <!-- 本店訂單紀錄 -->
             <article class="rounded-2xl bg-white p-4 shadow-ios-card">
-              <h3 class="text-base font-semibold text-[#1C1C1E]">
+              <h3 class="text-base font-semibold text-ios-text">
                 {{ t("members.detail.orders") }}
               </h3>
               <p
                 v-if="ordersError"
                 data-testid="member-orders-error"
-                class="mt-3 rounded-xl bg-[#FF3B30]/10 px-3 py-2 text-sm text-[#FF3B30]"
+                class="mt-3 rounded-xl bg-ios-red/10 px-3 py-2 text-sm text-ios-red"
               >
                 {{ ordersError }}
               </p>
               <p
                 v-else-if="ordersLoading"
-                class="mt-3 text-sm text-[#8E8E93]"
+                class="mt-3 text-sm text-ios-secondary"
                 aria-busy="true"
               >
                 {{ t("common.loading") }}
               </p>
               <p
                 v-else-if="memberOrders.length === 0"
-                class="mt-3 text-sm text-[#8E8E93]"
+                class="mt-3 text-sm text-ios-secondary"
               >
                 {{ t("members.detail.ordersEmpty") }}
               </p>
@@ -620,21 +620,21 @@
                   class="flex items-center justify-between gap-3 py-2.5"
                 >
                   <div>
-                    <p class="text-sm font-medium text-[#1C1C1E]">
+                    <p class="text-sm font-medium text-ios-text">
                       {{ order.orderNumber }}
                     </p>
-                    <p class="text-xs text-[#8E8E93]">
+                    <p class="text-xs text-ios-secondary">
                       {{ formatDay(order.createdAt) }}
                     </p>
                   </div>
                   <div class="flex items-center gap-3">
                     <span
-                      class="rounded-full bg-[#F2F2F7] px-2.5 py-0.5 text-xs font-medium text-[#8E8E93]"
+                      class="rounded-full bg-ios-bg px-2.5 py-0.5 text-xs font-medium text-ios-secondary"
                     >
                       {{ orderStatusLabel(order.status) }}
                     </span>
                     <span
-                      class="text-sm font-medium tabular-nums text-[#1C1C1E]"
+                      class="text-sm font-medium tabular-nums text-ios-text"
                     >
                       {{ formatCents(order.totalAmountCents) }}
                     </span>
@@ -645,7 +645,7 @@
                 v-if="ordersPagination.pages > 1"
                 class="mt-3 flex items-center justify-between"
               >
-                <span class="text-xs text-[#8E8E93]">
+                <span class="text-xs text-ios-secondary">
                   {{
                     t("members.pagination.showing", {
                       start: ordersRangeStart,
@@ -659,7 +659,7 @@
                     type="button"
                     data-testid="member-orders-prev"
                     :disabled="ordersPage === 1"
-                    class="rounded-full bg-[#F2F2F7] px-3 py-1.5 text-sm text-[#1C1C1E] disabled:opacity-40"
+                    class="rounded-full bg-ios-bg px-3 py-1.5 text-sm text-ios-text disabled:opacity-40"
                     @click="changeOrdersPage(ordersPage - 1)"
                   >
                     {{ t("members.pagination.previous") }}
@@ -668,7 +668,7 @@
                     type="button"
                     data-testid="member-orders-next"
                     :disabled="ordersPage >= ordersPagination.pages"
-                    class="rounded-full bg-[#F2F2F7] px-3 py-1.5 text-sm text-[#1C1C1E] disabled:opacity-40"
+                    class="rounded-full bg-ios-bg px-3 py-1.5 text-sm text-ios-text disabled:opacity-40"
                     @click="changeOrdersPage(ordersPage + 1)"
                   >
                     {{ t("members.pagination.next") }}
@@ -679,15 +679,15 @@
 
             <!-- 本店註記：標籤與備註 -->
             <article class="rounded-2xl bg-white p-4 shadow-ios-card">
-              <h3 class="text-base font-semibold text-[#1C1C1E]">
+              <h3 class="text-base font-semibold text-ios-text">
                 {{ t("members.annotations.title") }}
               </h3>
-              <p class="mt-1 text-xs text-[#8E8E93]">
+              <p class="mt-1 text-xs text-ios-secondary">
                 {{ t("members.annotations.description") }}
               </p>
 
               <label
-                class="mt-4 block text-xs font-medium text-[#8E8E93]"
+                class="mt-4 block text-xs font-medium text-ios-secondary"
                 for="member-tag-input"
               >
                 {{ t("members.annotations.tagsLabel") }}
@@ -719,15 +719,15 @@
                 data-testid="member-tag-input"
                 type="text"
                 :placeholder="t('members.annotations.tagsPlaceholder')"
-                class="mt-2 w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+                class="mt-2 w-full rounded-xl border-0 bg-ios-bg px-3 py-2 text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30"
                 @keydown.enter.prevent="addTag"
               />
-              <p class="mt-1 text-xs text-[#AEAEB2]">
+              <p class="mt-1 text-xs text-ios-tertiary">
                 {{ t("members.annotations.tagsHint") }}
               </p>
 
               <label
-                class="mt-4 block text-xs font-medium text-[#8E8E93]"
+                class="mt-4 block text-xs font-medium text-ios-secondary"
                 for="member-note-input"
               >
                 {{ t("members.annotations.noteLabel") }}
@@ -738,7 +738,7 @@
                 data-testid="member-note-input"
                 rows="3"
                 :placeholder="t('members.annotations.notePlaceholder')"
-                class="mt-1.5 w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30"
+                class="mt-1.5 w-full rounded-xl border-0 bg-ios-bg px-3 py-2 text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30"
               ></textarea>
 
               <div class="mt-3 flex flex-wrap items-center gap-3">
@@ -802,7 +802,7 @@
                   data-testid="member-block-reason"
                   type="text"
                   :placeholder="t('members.block.reasonPlaceholder')"
-                  class="mt-1.5 w-full rounded-xl border-0 bg-white px-3 py-2 text-sm text-[#1C1C1E] focus:ring-2 focus:ring-red-500/30"
+                  class="mt-1.5 w-full rounded-xl border-0 bg-white px-3 py-2 text-sm text-ios-text focus:ring-2 focus:ring-red-500/30"
                 />
               </template>
 
@@ -970,21 +970,21 @@ const statCards = computed(() => [
     label: t("members.stats.total"),
     value: String(stats.value.totalMembers),
     icon: UsersIcon,
-    tint: "bg-blue-50 text-[#007AFF]",
+    tint: "bg-blue-50 text-ios-blue",
   },
   {
     key: "newThisMonth",
     label: t("members.stats.newThisMonth"),
     value: String(stats.value.newThisMonth),
     icon: UserPlusIcon,
-    tint: "bg-green-50 text-[#34C759]",
+    tint: "bg-green-50 text-ios-green",
   },
   {
     key: "repeatRate",
     label: t("members.stats.repeatRate"),
     value: `${Math.round(stats.value.repeatRate * 100)}%`,
     icon: ArrowPathIcon,
-    tint: "bg-orange-50 text-[#FF9500]",
+    tint: "bg-orange-50 text-ios-orange",
   },
   {
     key: "avgOrderValue",
@@ -1140,9 +1140,9 @@ function statusLabel(member: MemberListItem): string {
 }
 
 function statusTint(member: MemberListItem): string {
-  if (member.status === "deleted") return "bg-gray-100 text-[#8E8E93]";
-  if (member.isBlocked) return "bg-red-50 text-[#FF3B30]";
-  return "bg-green-50 text-[#34C759]";
+  if (member.status === "deleted") return "bg-gray-100 text-ios-secondary";
+  if (member.isBlocked) return "bg-red-50 text-ios-red";
+  return "bg-green-50 text-ios-green";
 }
 
 function dormantCutoff(): string {

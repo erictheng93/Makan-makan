@@ -6,14 +6,14 @@
       class="flex flex-col items-center justify-center py-20 text-center"
     >
       <div
-        class="w-16 h-16 rounded-full bg-[#34C759]/10 flex items-center justify-center mb-4"
+        class="w-16 h-16 rounded-full bg-ios-green/10 flex items-center justify-center mb-4"
       >
-        <CheckCircle class="w-8 h-8 text-[#34C759]" />
+        <CheckCircle class="w-8 h-8 text-ios-green" />
       </div>
-      <p class="text-sm font-semibold text-[#1C1C1E]/60">
+      <p class="text-sm font-semibold text-ios-text/60">
         目前沒有待審核的請假申請
       </p>
-      <p class="text-xs text-[#1C1C1E]/40 mt-1">所有請假申請均已處理完畢</p>
+      <p class="text-xs text-ios-text/40 mt-1">所有請假申請均已處理完畢</p>
     </div>
 
     <!-- Decision cards sorted by urgency -->

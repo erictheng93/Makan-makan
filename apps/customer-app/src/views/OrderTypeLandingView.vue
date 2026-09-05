@@ -92,7 +92,7 @@
               :class="[
                 'flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left',
                 selectedType === 'dine-in'
-                  ? 'border-[#007AFF] bg-blue-50'
+                  ? 'border-ios-blue bg-blue-50'
                   : 'border-gray-200 bg-white hover:border-gray-300',
               ]"
               @click="selectedType = 'dine-in'"
@@ -108,7 +108,7 @@
               </div>
               <svg
                 v-if="selectedType === 'dine-in'"
-                class="w-5 h-5 text-[#007AFF]"
+                class="w-5 h-5 text-ios-blue"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -126,7 +126,7 @@
               :class="[
                 'flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left',
                 selectedType === 'takeaway'
-                  ? 'border-[#007AFF] bg-blue-50'
+                  ? 'border-ios-blue bg-blue-50'
                   : 'border-gray-200 bg-white hover:border-gray-300',
               ]"
               @click="selectedType = 'takeaway'"
@@ -142,7 +142,7 @@
               </div>
               <svg
                 v-if="selectedType === 'takeaway'"
-                class="w-5 h-5 text-[#007AFF]"
+                class="w-5 h-5 text-ios-blue"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -160,7 +160,7 @@
               :class="[
                 'flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left',
                 selectedType === 'delivery'
-                  ? 'border-[#007AFF] bg-blue-50'
+                  ? 'border-ios-blue bg-blue-50'
                   : 'border-gray-200 bg-white hover:border-gray-300',
               ]"
               @click="selectedType = 'delivery'"
@@ -176,7 +176,7 @@
               </div>
               <svg
                 v-if="selectedType === 'delivery'"
-                class="w-5 h-5 text-[#007AFF]"
+                class="w-5 h-5 text-ios-blue"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -192,7 +192,7 @@
           <button
             data-testid="continue-btn"
             :disabled="!selectedType"
-            class="w-full mt-6 py-3.5 bg-[#007AFF] text-white font-semibold rounded-xl hover:bg-[#0066DD] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            class="w-full mt-6 py-3.5 bg-ios-blue text-white font-semibold rounded-xl hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             @click="handleContinue"
           >
             {{ t("orderTypeLanding.continue") }}

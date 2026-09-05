@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <!-- Quick Stats -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="bg-[#F2F2F7] rounded-2xl p-4">
+      <div class="bg-ios-bg rounded-2xl p-4">
         <div class="flex items-center gap-3">
           <div
             class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center"
@@ -10,16 +10,16 @@
             <Clock class="w-5 h-5 text-blue-600" />
           </div>
           <div>
-            <p class="text-xs text-[#1C1C1E]/40">
+            <p class="text-xs text-ios-text/40">
               {{ t("employees.profile.upcomingShifts") }}
             </p>
-            <p class="text-xl font-bold text-[#1C1C1E]">
+            <p class="text-xl font-bold text-ios-text">
               {{ upcomingShiftsCount }}
             </p>
           </div>
         </div>
       </div>
-      <div class="bg-[#F2F2F7] rounded-2xl p-4">
+      <div class="bg-ios-bg rounded-2xl p-4">
         <div class="flex items-center gap-3">
           <div
             class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center"
@@ -27,7 +27,7 @@
             <CalendarCheck class="w-5 h-5 text-emerald-600" />
           </div>
           <div>
-            <p class="text-xs text-[#1C1C1E]/40">
+            <p class="text-xs text-ios-text/40">
               {{ t("employees.profile.completedShifts") }}
             </p>
             <p class="text-xl font-bold text-emerald-600">
@@ -36,7 +36,7 @@
           </div>
         </div>
       </div>
-      <div class="bg-[#F2F2F7] rounded-2xl p-4">
+      <div class="bg-ios-bg rounded-2xl p-4">
         <div class="flex items-center gap-3">
           <div
             class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center"
@@ -44,7 +44,7 @@
             <CalendarOff class="w-5 h-5 text-amber-600" />
           </div>
           <div>
-            <p class="text-xs text-[#1C1C1E]/40">
+            <p class="text-xs text-ios-text/40">
               {{ t("employees.profile.pendingLeave") }}
             </p>
             <p class="text-xl font-bold text-amber-600">
@@ -57,45 +57,45 @@
 
     <!-- Basic Info Card -->
     <div>
-      <h3 class="text-sm font-semibold text-[#1C1C1E] mb-3">
+      <h3 class="text-sm font-semibold text-ios-text mb-3">
         {{ t("employees.profile.basicInfo") }}
       </h3>
-      <div class="bg-[#F2F2F7] rounded-2xl divide-y divide-white/80">
+      <div class="bg-ios-bg rounded-2xl divide-y divide-white/80">
         <div class="flex justify-between items-center px-4 py-3">
-          <span class="text-sm text-[#1C1C1E]/50">{{
+          <span class="text-sm text-ios-text/50">{{
             t("users.modal.usernameLabel")
           }}</span>
-          <span class="text-sm font-medium text-[#1C1C1E]">{{
+          <span class="text-sm font-medium text-ios-text">{{
             employee?.username
           }}</span>
         </div>
         <div class="flex justify-between items-center px-4 py-3">
-          <span class="text-sm text-[#1C1C1E]/50">{{
+          <span class="text-sm text-ios-text/50">{{
             t("users.modal.fullNameLabel")
           }}</span>
-          <span class="text-sm font-medium text-[#1C1C1E]">{{
+          <span class="text-sm font-medium text-ios-text">{{
             employee?.fullName || "-"
           }}</span>
         </div>
         <div class="flex justify-between items-center px-4 py-3">
-          <span class="text-sm text-[#1C1C1E]/50">Email</span>
-          <span class="text-sm font-medium text-[#1C1C1E]">{{
+          <span class="text-sm text-ios-text/50">Email</span>
+          <span class="text-sm font-medium text-ios-text">{{
             employee?.email || "-"
           }}</span>
         </div>
         <div class="flex justify-between items-center px-4 py-3">
-          <span class="text-sm text-[#1C1C1E]/50">{{
+          <span class="text-sm text-ios-text/50">{{
             t("users.table.joinDate")
           }}</span>
-          <span class="text-sm font-medium text-[#1C1C1E]">{{
+          <span class="text-sm font-medium text-ios-text">{{
             employee?.createdAt ? formatDate(employee.createdAt) : "-"
           }}</span>
         </div>
         <div class="flex justify-between items-center px-4 py-3">
-          <span class="text-sm text-[#1C1C1E]/50">{{
+          <span class="text-sm text-ios-text/50">{{
             t("users.table.lastLogin")
           }}</span>
-          <span class="text-sm font-medium text-[#1C1C1E]">{{
+          <span class="text-sm font-medium text-ios-text">{{
             employee?.lastLoginAt
               ? formatDateTime(employee.lastLoginAt)
               : t("users.table.neverLoggedIn")
@@ -106,7 +106,7 @@
 
     <!-- Recent Activity -->
     <div>
-      <h3 class="text-sm font-semibold text-[#1C1C1E] mb-3">
+      <h3 class="text-sm font-semibold text-ios-text mb-3">
         {{ t("employees.profile.recentActivity") }}
       </h3>
       <div
@@ -114,12 +114,12 @@
         class="flex items-center justify-center py-8"
       >
         <div
-          class="w-6 h-6 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin"
+          class="w-6 h-6 border-2 border-ios-blue border-t-transparent rounded-full animate-spin"
         />
       </div>
       <div v-else-if="recentActivity.length === 0" class="text-center py-8">
-        <Activity class="mx-auto w-8 h-8 text-[#1C1C1E]/15 mb-2" />
-        <p class="text-xs text-[#1C1C1E]/30">
+        <Activity class="mx-auto w-8 h-8 text-ios-text/15 mb-2" />
+        <p class="text-xs text-ios-text/30">
           {{ t("employees.profile.noActivity") }}
         </p>
       </div>
@@ -127,7 +127,7 @@
         <div
           v-for="(item, idx) in recentActivity"
           :key="idx"
-          class="flex items-center gap-3 p-3 bg-[#F2F2F7] rounded-xl"
+          class="flex items-center gap-3 p-3 bg-ios-bg rounded-xl"
         >
           <div
             class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -140,8 +140,8 @@
             />
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-sm text-[#1C1C1E]">{{ item.title }}</p>
-            <p class="text-xs text-[#1C1C1E]/40">{{ item.subtitle }}</p>
+            <p class="text-sm text-ios-text">{{ item.title }}</p>
+            <p class="text-xs text-ios-text/40">{{ item.subtitle }}</p>
           </div>
           <span
             class="px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0"

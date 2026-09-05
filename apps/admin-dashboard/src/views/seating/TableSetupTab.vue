@@ -3,14 +3,14 @@
     <!-- Action Bar -->
     <div class="flex flex-wrap justify-end gap-3 mb-0">
       <button
-        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#34C759] text-white hover:bg-[#2DB84D] transition-colors shadow-sm"
+        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-ios-green text-white hover:bg-green-600 transition-colors shadow-sm"
         @click="generateAllQRCodes"
       >
         <QrCode class="w-4 h-4 mr-1.5" />
         {{ t("tables.batchGenerateQR") }}
       </button>
       <button
-        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#0A84FF] text-white hover:bg-[#0066D6] transition-colors shadow-sm"
+        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-ios-blue text-white hover:bg-blue-600 transition-colors shadow-sm"
         @click="prepareFilteredTableQRCodes"
       >
         <QrCode class="w-4 h-4 mr-1.5" />
@@ -18,7 +18,7 @@
       </button>
       <button
         v-if="pendingTableCount > 0"
-        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#FF9500] text-white hover:bg-[#E08600] transition-colors shadow-sm"
+        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-ios-orange text-white hover:bg-orange-600 transition-colors shadow-sm"
         @click="discardAllPreparedTableQRCodes"
       >
         <XCircle class="w-4 h-4 mr-1.5" />
@@ -26,7 +26,7 @@
       </button>
       <button
         v-if="selectedPrintableCount > 0"
-        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#1C1C1E] text-white hover:bg-[#1C1C1E]/85 transition-colors shadow-sm"
+        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-ios-text text-white hover:bg-ios-text/85 transition-colors shadow-sm"
         @click="printSelectedTableQRCodes"
       >
         <QrCode class="w-4 h-4 mr-1.5" />
@@ -35,14 +35,14 @@
         }}
       </button>
       <button
-        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#1C1C1E]/10 text-[#1C1C1E] hover:bg-[#1C1C1E]/20 transition-colors"
+        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-ios-text/10 text-ios-text hover:bg-ios-text/20 transition-colors"
         @click="printAllTableQRCodes"
       >
         <QrCode class="w-4 h-4 mr-1.5" />
         {{ t("tables.qrModal.printAll") }}
       </button>
       <button
-        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors shadow-sm"
+        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-ios-blue text-white hover:bg-blue-600 transition-colors shadow-sm"
         @click="showTableModal = true"
       >
         <Plus class="w-4 h-4 mr-1.5" />
@@ -54,17 +54,17 @@
     <div class="card p-6">
       <div class="flex flex-col sm:flex-row gap-4">
         <div class="relative flex-1">
-          <Search class="absolute left-3 top-3 h-4 w-4 text-[#1C1C1E]/30" />
+          <Search class="absolute left-3 top-3 h-4 w-4 text-ios-text/30" />
           <input
             v-model="searchQuery"
             type="text"
             :placeholder="t('tables.searchPlaceholder')"
-            class="w-full pl-10 pr-4 py-2 border border-[#E5E5EA] rounded-xl focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF] bg-[#F2F2F7]/50 text-sm"
+            class="w-full pl-10 pr-4 py-2 border border-ios-separator rounded-xl focus:ring-2 focus:ring-ios-blue/30 focus:border-ios-blue bg-ios-bg/50 text-sm"
           />
         </div>
         <select
           v-model="statusFilter"
-          class="px-3 py-2 border border-[#E5E5EA] rounded-xl focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF] bg-[#F2F2F7]/50 text-sm"
+          class="px-3 py-2 border border-ios-separator rounded-xl focus:ring-2 focus:ring-ios-blue/30 focus:border-ios-blue bg-ios-bg/50 text-sm"
         >
           <option value="">{{ t("tables.filter.allStatus") }}</option>
           <option value="available">{{ t("tables.status.available") }}</option>
@@ -75,11 +75,11 @@
         </select>
         <label
           v-if="filteredTables.length > 0"
-          class="flex items-center px-3 py-2 text-sm text-[#1C1C1E]/70 cursor-pointer select-none whitespace-nowrap"
+          class="flex items-center px-3 py-2 text-sm text-ios-text/70 cursor-pointer select-none whitespace-nowrap"
         >
           <input
             type="checkbox"
-            class="h-4 w-4 mr-2 rounded border-[#E5E5EA] text-[#007AFF] focus:ring-[#007AFF]/30"
+            class="h-4 w-4 mr-2 rounded border-ios-separator text-ios-blue focus:ring-ios-blue/30"
             :checked="allFilteredSelected"
             @change="toggleSelectAllFiltered"
           />
@@ -87,7 +87,7 @@
         </label>
         <select
           v-model="capacityFilter"
-          class="px-3 py-2 border border-[#E5E5EA] rounded-xl focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF] bg-[#F2F2F7]/50 text-sm"
+          class="px-3 py-2 border border-ios-separator rounded-xl focus:ring-2 focus:ring-ios-blue/30 focus:border-ios-blue bg-ios-bg/50 text-sm"
         >
           <option value="">{{ t("tables.filter.allCapacity") }}</option>
           <option value="2">{{ t("tables.filter.seats2") }}</option>
@@ -96,11 +96,11 @@
           <option value="8">{{ t("tables.filter.seats8plus") }}</option>
         </select>
       </div>
-      <p class="mt-3 text-sm text-[#1C1C1E]/60" role="status">
+      <p class="mt-3 text-sm text-ios-text/60" role="status">
         {{ t("tables.totalCount", { count: tablePagination.total }) }}
         <span
           v-if="tablePagination.total > TABLE_FETCH_LIMIT"
-          class="ml-2 text-[#D70015]"
+          class="ml-2 text-ios-red-deep"
         >
           {{ t("tables.listTruncated", { limit: TABLE_FETCH_LIMIT }) }}
         </span>
@@ -121,7 +121,7 @@
             <div class="flex items-center">
               <input
                 type="checkbox"
-                class="h-4 w-4 mr-3 rounded border-[#E5E5EA] text-[#007AFF] focus:ring-[#007AFF]/30 cursor-pointer"
+                class="h-4 w-4 mr-3 rounded border-ios-separator text-ios-blue focus:ring-ios-blue/30 cursor-pointer"
                 :checked="isTableSelected(table.id)"
                 :aria-label="
                   t('tables.qrModal.selectForPrint', {
@@ -137,16 +137,14 @@
               />
               <!-- The badges wrap; the table number must not — it is the card's
                    identity and reads as broken when it breaks across lines. -->
-              <h3
-                class="text-lg font-semibold text-[#1C1C1E] whitespace-nowrap"
-              >
+              <h3 class="text-lg font-semibold text-ios-text whitespace-nowrap">
                 {{ t("tables.tableNumber") }} {{ table.tableNumber }}
               </h3>
             </div>
             <div class="flex flex-wrap justify-end gap-2">
               <span
                 v-if="!tableQrIsReady(table)"
-                class="px-2.5 py-1 text-xs font-medium rounded-full bg-[#FF3B30]/10 text-[#D70015]"
+                class="px-2.5 py-1 text-xs font-medium rounded-full bg-ios-red/10 text-ios-red-deep"
               >
                 {{ t("qrReadiness.notReady") }}
               </span>
@@ -160,14 +158,14 @@
           </div>
 
           <div class="space-y-2 mb-4">
-            <div class="flex items-center text-sm text-[#1C1C1E]/60">
+            <div class="flex items-center text-sm text-ios-text/60">
               <Users class="h-4 w-4 mr-2" />
               <span
                 >{{ t("tables.capacity") }}: {{ table.capacity }}
                 {{ t("tables.people") }}</span
               >
             </div>
-            <div class="flex items-center text-sm text-[#1C1C1E]/60">
+            <div class="flex items-center text-sm text-ios-text/60">
               <MapPin class="h-4 w-4 mr-2" />
               <span
                 >{{ t("tables.location") }}:
@@ -176,7 +174,7 @@
             </div>
             <div
               v-if="table.currentOrderId"
-              class="flex items-center text-sm text-[#1C1C1E]/60"
+              class="flex items-center text-sm text-ios-text/60"
             >
               <FileText class="h-4 w-4 mr-2" />
               <span>{{ t("tables.order") }}: #{{ table.currentOrderId }}</span>
@@ -187,7 +185,7 @@
           <div class="mb-4 flex flex-col items-center">
             <button
               type="button"
-              class="group relative rounded-2xl bg-[#F2F2F7] p-2 transition-all duration-200 hover:bg-[#E5E5EA] hover:scale-[1.03] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007AFF]/40"
+              class="group relative rounded-2xl bg-ios-bg p-2 transition-all duration-200 hover:bg-ios-separator hover:scale-[1.03] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-ios-blue/40"
               :aria-label="
                 t('tables.qrPreview.enlarge', { number: table.tableNumber })
               "
@@ -202,29 +200,29 @@
               />
               <div
                 v-else
-                class="w-[72px] h-[72px] flex items-center justify-center rounded-lg border border-dashed border-[#D1D1D6] bg-white"
+                class="w-[72px] h-[72px] flex items-center justify-center rounded-lg border border-dashed border-ios-tertiary bg-white"
               >
-                <QrCode class="w-8 h-8 text-[#8E8E93]" />
+                <QrCode class="w-8 h-8 text-ios-secondary" />
               </div>
               <span
-                class="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white text-[#007AFF] shadow-[0_2px_6px_rgba(0,0,0,0.14)] opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100"
+                class="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white text-ios-blue shadow-[0_2px_6px_rgba(0,0,0,0.14)] opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100"
               >
                 <Maximize2 class="h-3.5 w-3.5" />
               </span>
             </button>
             <div
               v-if="tableHasPendingQr(table)"
-              class="mt-2 text-xs font-medium text-[#FF9500]"
+              class="mt-2 text-xs font-medium text-ios-orange"
             >
               {{ t("qrRotation.pending") }}
             </div>
             <div
               v-else-if="!tableQrIsReady(table)"
-              class="mt-2 text-xs font-medium text-[#D70015]"
+              class="mt-2 text-xs font-medium text-ios-red-deep"
             >
               {{ t("qrReadiness.notReady") }}
             </div>
-            <div v-else class="mt-2 text-[11px] text-[#1C1C1E]/40">
+            <div v-else class="mt-2 text-[11px] text-ios-text/40">
               {{ t("tables.qrPreview.hint") }}
             </div>
           </div>
@@ -263,7 +261,7 @@
               </button>
             </div>
 
-            <div class="h-px bg-[#F2F2F7]" />
+            <div class="h-px bg-ios-bg" />
 
             <!-- Setup: seat layout and QR lifecycle. Wrapping is required here —
                  a nowrap pill in a nowrap row overflows the card and clips. -->
@@ -318,15 +316,15 @@
         v-if="filteredTables.length === 0"
         class="col-span-full text-center py-12"
       >
-        <TableProperties class="mx-auto h-12 w-12 text-[#1C1C1E]/30" />
-        <h3 class="mt-2 text-sm font-medium text-[#1C1C1E]">
+        <TableProperties class="mx-auto h-12 w-12 text-ios-text/30" />
+        <h3 class="mt-2 text-sm font-medium text-ios-text">
           {{ t("tables.empty.title") }}
         </h3>
-        <p class="mt-1 text-sm text-[#1C1C1E]/50">
+        <p class="mt-1 text-sm text-ios-text/50">
           {{ t("tables.empty.subtitle") }}
         </p>
         <button
-          class="mt-4 inline-flex items-center px-5 py-2.5 bg-[#007AFF] text-white rounded-full hover:bg-[#0066D6] transition-colors text-sm font-semibold"
+          class="mt-4 inline-flex items-center px-5 py-2.5 bg-ios-blue text-white rounded-full hover:bg-blue-600 transition-colors text-sm font-semibold"
           @click="showTableModal = true"
         >
           <Plus class="h-4 w-4 mr-1.5" />
@@ -343,7 +341,7 @@
           class="relative bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
         >
           <div class="p-6">
-            <h3 class="text-lg font-semibold text-[#1C1C1E] mb-4">
+            <h3 class="text-lg font-semibold text-ios-text mb-4">
               {{ editingTable ? t("tables.editTable") : t("tables.addTable") }}
             </h3>
 
@@ -351,42 +349,42 @@
               <div class="space-y-4">
                 <div>
                   <label
-                    class="block text-sm font-medium text-[#1C1C1E]/70 mb-1"
+                    class="block text-sm font-medium text-ios-text/70 mb-1"
                   >
                     {{ t("tables.form.tableNumber") }}
-                    <span class="text-[#FF3B30]">*</span>
+                    <span class="text-ios-red">*</span>
                   </label>
                   <input
                     v-model="tableForm.tableNumber"
                     type="text"
                     required
-                    class="w-full px-3 py-2 border border-[#E5E5EA] rounded-xl focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF] text-sm"
+                    class="w-full px-3 py-2 border border-ios-separator rounded-xl focus:ring-2 focus:ring-ios-blue/30 focus:border-ios-blue text-sm"
                   />
                 </div>
 
                 <div>
                   <label
-                    class="block text-sm font-medium text-[#1C1C1E]/70 mb-1"
+                    class="block text-sm font-medium text-ios-text/70 mb-1"
                     >{{ t("tables.form.tableName") }}</label
                   >
                   <input
                     v-model="tableForm.tableName"
                     type="text"
-                    class="w-full px-3 py-2 border border-[#E5E5EA] rounded-xl focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF] text-sm"
+                    class="w-full px-3 py-2 border border-ios-separator rounded-xl focus:ring-2 focus:ring-ios-blue/30 focus:border-ios-blue text-sm"
                   />
                 </div>
 
                 <div>
                   <label
-                    class="block text-sm font-medium text-[#1C1C1E]/70 mb-1"
+                    class="block text-sm font-medium text-ios-text/70 mb-1"
                   >
                     {{ t("tables.form.capacity") }}
-                    <span class="text-[#FF3B30]">*</span>
+                    <span class="text-ios-red">*</span>
                   </label>
                   <select
                     v-model.number="tableForm.capacity"
                     required
-                    class="w-full px-3 py-2 border border-[#E5E5EA] rounded-xl focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF] text-sm"
+                    class="w-full px-3 py-2 border border-ios-separator rounded-xl focus:ring-2 focus:ring-ios-blue/30 focus:border-ios-blue text-sm"
                   >
                     <option value="2">
                       {{ t("tables.form.persons", { count: 2 }) }}
@@ -408,25 +406,25 @@
 
                 <div>
                   <label
-                    class="block text-sm font-medium text-[#1C1C1E]/70 mb-1"
+                    class="block text-sm font-medium text-ios-text/70 mb-1"
                     >{{ t("tables.form.location") }}</label
                   >
                   <input
                     v-model="tableForm.location"
                     type="text"
                     :placeholder="t('tables.form.locationPlaceholder')"
-                    class="w-full px-3 py-2 border border-[#E5E5EA] rounded-xl focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF] text-sm"
+                    class="w-full px-3 py-2 border border-ios-separator rounded-xl focus:ring-2 focus:ring-ios-blue/30 focus:border-ios-blue text-sm"
                   />
                 </div>
 
                 <div>
                   <label
-                    class="block text-sm font-medium text-[#1C1C1E]/70 mb-1"
+                    class="block text-sm font-medium text-ios-text/70 mb-1"
                     >{{ t("tables.form.status") }}</label
                   >
                   <select
                     v-model="tableForm.status"
-                    class="w-full px-3 py-2 border border-[#E5E5EA] rounded-xl focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF] text-sm"
+                    class="w-full px-3 py-2 border border-ios-separator rounded-xl focus:ring-2 focus:ring-ios-blue/30 focus:border-ios-blue text-sm"
                   >
                     <option value="available">
                       {{ t("tables.status.available") }}
@@ -460,14 +458,14 @@
               <div class="flex justify-end space-x-3 mt-6">
                 <button
                   type="button"
-                  class="px-5 py-2.5 text-[#1C1C1E] bg-[#F2F2F7] rounded-full hover:bg-[#E5E5EA] transition-colors text-sm font-semibold"
+                  class="px-5 py-2.5 text-ios-text bg-ios-bg rounded-full hover:bg-ios-separator transition-colors text-sm font-semibold"
                   @click="closeTableModal"
                 >
                   {{ t("common.cancel") }}
                 </button>
                 <button
                   type="submit"
-                  class="px-5 py-2.5 bg-[#007AFF] text-white rounded-full hover:bg-[#0066D6] transition-colors text-sm font-semibold"
+                  class="px-5 py-2.5 bg-ios-blue text-white rounded-full hover:bg-blue-600 transition-colors text-sm font-semibold"
                 >
                   {{ editingTable ? t("common.update") : t("common.add") }}
                 </button>
@@ -484,7 +482,7 @@
         <div class="fixed inset-0 bg-black/30" @click="showQRModal = false" />
         <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full">
           <div class="p-6 text-center">
-            <h3 class="text-lg font-semibold text-[#1C1C1E] mb-4">
+            <h3 class="text-lg font-semibold text-ios-text mb-4">
               {{
                 t("tables.qrModal.title", {
                   number: selectedTable?.tableNumber ?? "",
@@ -493,7 +491,7 @@
             </h3>
 
             <div class="mb-6">
-              <div class="inline-block p-4 bg-[#F2F2F7] rounded-2xl">
+              <div class="inline-block p-4 bg-ios-bg rounded-2xl">
                 <QRCodeRenderer
                   v-if="selectedTable && tableQrIsReady(selectedTable)"
                   ref="qrModalRef"
@@ -506,35 +504,35 @@
                 />
                 <div
                   v-else
-                  class="w-[200px] h-[200px] flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#D1D1D6] bg-white text-[#8E8E93]"
+                  class="w-[200px] h-[200px] flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-ios-tertiary bg-white text-ios-secondary"
                 >
                   <QrCode class="w-16 h-16" />
-                  <span class="text-sm font-semibold text-[#D70015]">
+                  <span class="text-sm font-semibold text-ios-red-deep">
                     {{ t("qrReadiness.notReady") }}
                   </span>
                 </div>
               </div>
               <p
                 v-if="selectedTable && tableQrIsReady(selectedTable)"
-                class="text-xs text-[#1C1C1E]/30 mt-2 font-mono"
+                class="text-xs text-ios-text/30 mt-2 font-mono"
               >
                 {{ selectedTable ? printableTableQrCode(selectedTable) : "" }}
               </p>
-              <p v-else class="text-xs text-[#D70015] mt-2">
+              <p v-else class="text-xs text-ios-red-deep mt-2">
                 {{ t("qrReadiness.notReadyDescription") }}
               </p>
             </div>
 
             <div class="flex justify-center space-x-3">
               <button
-                class="px-5 py-2.5 bg-[#34C759] text-white rounded-full hover:bg-[#2DB84D] transition-colors text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                class="px-5 py-2.5 bg-ios-green text-white rounded-full hover:bg-green-600 transition-colors text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
                 :disabled="!selectedTable || !tableQrIsReady(selectedTable)"
                 @click="downloadQRCode"
               >
                 {{ t("tables.qrModal.download") }}
               </button>
               <button
-                class="px-5 py-2.5 bg-[#007AFF] text-white rounded-full hover:bg-[#0066D6] transition-colors text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                class="px-5 py-2.5 bg-ios-blue text-white rounded-full hover:bg-blue-600 transition-colors text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
                 :disabled="!selectedTable || !tableQrIsReady(selectedTable)"
                 @click="printQRCode"
               >
@@ -542,13 +540,13 @@
               </button>
               <button
                 v-if="selectedTable && !tableQrIsReady(selectedTable)"
-                class="px-5 py-2.5 bg-[#34C759] text-white rounded-full hover:bg-[#2DB84D] transition-colors text-sm font-semibold"
+                class="px-5 py-2.5 bg-ios-green text-white rounded-full hover:bg-green-600 transition-colors text-sm font-semibold"
                 @click="regenerateTableQRCode(selectedTable)"
               >
                 {{ t("tableDetail.qrCode.regenerate") }}
               </button>
               <button
-                class="px-5 py-2.5 text-[#1C1C1E] bg-[#F2F2F7] rounded-full hover:bg-[#E5E5EA] transition-colors text-sm font-semibold"
+                class="px-5 py-2.5 text-ios-text bg-ios-bg rounded-full hover:bg-ios-separator transition-colors text-sm font-semibold"
                 @click="showQRModal = false"
               >
                 {{ t("common.close") }}
@@ -811,9 +809,9 @@ const printSelectedTableQRCodes = async () => {
 // reserved column -- reservations live in their own table -- so offering
 // a 已預約 filter here only ever rendered the "no tables" empty state.
 const STATUS_COLORS: Record<string, string> = {
-  available: "bg-[#34C759]",
-  occupied: "bg-[#FF3B30]",
-  maintenance: "bg-[#8E8E93]",
+  available: "bg-ios-green",
+  occupied: "bg-ios-red",
+  maintenance: "bg-ios-secondary",
 };
 
 const STATUS_BADGE_CLASSES: Record<string, string> = {
@@ -823,9 +821,9 @@ const STATUS_BADGE_CLASSES: Record<string, string> = {
 };
 
 const STATUS_BUTTON_CLASSES: Record<string, string> = {
-  available: "bg-[#FF3B30] text-white hover:bg-[#E0352B]",
-  occupied: "bg-[#34C759] text-white hover:bg-[#2DB84D]",
-  maintenance: "bg-[#FF9500] text-white hover:bg-[#E08600]",
+  available: "bg-ios-red text-white hover:bg-red-600",
+  occupied: "bg-ios-green text-white hover:bg-green-600",
+  maintenance: "bg-ios-orange text-white hover:bg-orange-600",
 };
 
 /**
@@ -836,7 +834,7 @@ const STATUS_BUTTON_CLASSES: Record<string, string> = {
  * fixed slots, or the last one overflows the card and clips.
  */
 const ACTION_PILL =
-  "inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-full text-[13px] font-semibold whitespace-nowrap transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007AFF]/40 disabled:cursor-not-allowed disabled:opacity-40";
+  "inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-full text-[13px] font-semibold whitespace-nowrap transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-ios-blue/40 disabled:cursor-not-allowed disabled:opacity-40";
 
 /**
  * Only the status change and QR activation stay solid fills. Everything else is
@@ -844,13 +842,13 @@ const ACTION_PILL =
  * five competing alarms.
  */
 const TONAL = {
-  neutral: "bg-[#1C1C1E]/10 text-[#1C1C1E] hover:bg-[#1C1C1E]/20",
-  blue: "bg-[#007AFF]/10 text-[#0066D6] hover:bg-[#007AFF]/20",
-  green: "bg-[#34C759]/15 text-[#248A3D] hover:bg-[#34C759]/25",
-  red: "bg-[#FF3B30]/10 text-[#D70015] hover:bg-[#FF3B30]/20",
+  neutral: "bg-ios-text/10 text-ios-text hover:bg-ios-text/20",
+  blue: "bg-ios-blue/10 text-blue-600 hover:bg-ios-blue/20",
+  green: "bg-ios-green/15 text-ios-green-deep hover:bg-ios-green/25",
+  red: "bg-ios-red/10 text-ios-red-deep hover:bg-ios-red/20",
 };
 
-const SOLID_GREEN = "bg-[#34C759] text-white hover:bg-[#2DB84D] shadow-sm";
+const SOLID_GREEN = "bg-ios-green text-white hover:bg-green-600 shadow-sm";
 
 const getStatusColor = (status: string) =>
   STATUS_COLORS[status] || STATUS_COLORS.maintenance;
@@ -859,7 +857,8 @@ const getStatusBadgeClass = (status: string) =>
 const getStatusText = (status: string) =>
   t(`tables.status.${status}`) || status;
 const getStatusButtonClass = (status: string) =>
-  STATUS_BUTTON_CLASSES[status] || "bg-[#8E8E93] text-white hover:bg-[#7C7C80]";
+  STATUS_BUTTON_CLASSES[status] ||
+  "bg-ios-secondary text-white hover:bg-ios-text/60";
 const getStatusButtonText = (status: string) =>
   t(`tables.statusAction.${status}`) || t("tables.statusAction.change");
 

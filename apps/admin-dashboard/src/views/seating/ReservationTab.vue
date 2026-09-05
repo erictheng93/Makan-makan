@@ -3,7 +3,7 @@
     <!-- Action Bar -->
     <div class="flex justify-end mb-0">
       <button
-        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors shadow-sm"
+        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-ios-blue text-white hover:bg-blue-600 transition-colors shadow-sm"
         @click="showCreateDialog = true"
       >
         <Plus class="w-4 h-4 mr-1.5" />

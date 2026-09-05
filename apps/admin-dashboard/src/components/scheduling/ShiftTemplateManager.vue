@@ -28,14 +28,14 @@
           >
             <!-- Modal header -->
             <div
-              class="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[#F2F2F7]"
+              class="flex items-center justify-between px-6 pt-6 pb-4 border-b border-ios-bg"
             >
-              <h2 class="text-lg font-bold text-[#1C1C1E]">管理班次模板</h2>
+              <h2 class="text-lg font-bold text-ios-text">管理班次模板</h2>
               <button
-                class="w-8 h-8 flex items-center justify-center rounded-full bg-[#F2F2F7] hover:bg-[#E5E5EA] transition-colors"
+                class="w-8 h-8 flex items-center justify-center rounded-full bg-ios-bg hover:bg-ios-separator transition-colors"
                 @click="$emit('close')"
               >
-                <X class="w-4 h-4 text-[#1C1C1E]/60" />
+                <X class="w-4 h-4 text-ios-text/60" />
               </button>
             </div>
 
@@ -44,7 +44,7 @@
               <div
                 v-for="tpl in templates"
                 :key="tpl.id"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#F2F2F7] transition-colors"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-ios-bg transition-colors"
               >
                 <!-- Color dot -->
                 <span
@@ -53,24 +53,24 @@
                 />
                 <!-- Info -->
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-semibold text-[#1C1C1E]">
+                  <p class="text-sm font-semibold text-ios-text">
                     {{ tpl.name }}
                   </p>
-                  <p class="text-xs text-[#1C1C1E]/40">
+                  <p class="text-xs text-ios-text/40">
                     {{ tpl.startTime }}–{{ tpl.endTime }}
                   </p>
                 </div>
                 <!-- Actions -->
                 <div class="flex items-center gap-1 shrink-0">
                   <button
-                    class="p-1.5 rounded-full hover:bg-[#007AFF]/10 text-[#007AFF] transition-colors"
+                    class="p-1.5 rounded-full hover:bg-ios-blue/10 text-ios-blue transition-colors"
                     title="編輯"
                     @click="startEdit(tpl)"
                   >
                     <Pencil class="w-3.5 h-3.5" />
                   </button>
                   <button
-                    class="p-1.5 rounded-full hover:bg-[#FF3B30]/10 text-[#FF3B30] transition-colors"
+                    class="p-1.5 rounded-full hover:bg-ios-red/10 text-ios-red transition-colors"
                     title="刪除"
                     @click="handleDelete(tpl.id)"
                   >
@@ -81,16 +81,16 @@
 
               <div
                 v-if="templates.length === 0"
-                class="text-center py-6 text-[#1C1C1E]/40 text-sm"
+                class="text-center py-6 text-ios-text/40 text-sm"
               >
                 尚無班次模板
               </div>
             </div>
 
             <!-- Add / Edit form -->
-            <div class="px-6 pb-6 pt-2 border-t border-[#F2F2F7]">
+            <div class="px-6 pb-6 pt-2 border-t border-ios-bg">
               <p
-                class="text-xs font-semibold text-[#1C1C1E]/50 uppercase tracking-wide mb-3"
+                class="text-xs font-semibold text-ios-text/50 uppercase tracking-wide mb-3"
               >
                 {{ editingId ? "編輯班次模板" : "新增班次模板" }}
               </p>
@@ -99,24 +99,24 @@
                 <!-- Name + color row -->
                 <div class="flex gap-2">
                   <div class="flex-1">
-                    <label class="block text-xs text-[#1C1C1E]/50 mb-1"
+                    <label class="block text-xs text-ios-text/50 mb-1"
                       >名稱</label
                     >
                     <input
                       v-model="form.name"
                       type="text"
                       placeholder="例：早班"
-                      class="w-full px-3 py-2 text-sm bg-[#F2F2F7] rounded-xl border-0 outline-none focus:ring-2 focus:ring-[#007AFF]/30 text-[#1C1C1E] placeholder-[#1C1C1E]/30"
+                      class="w-full px-3 py-2 text-sm bg-ios-bg rounded-xl border-0 outline-none focus:ring-2 focus:ring-ios-blue/30 text-ios-text placeholder-ios-text/30"
                     />
                   </div>
                   <div class="w-20">
-                    <label class="block text-xs text-[#1C1C1E]/50 mb-1"
+                    <label class="block text-xs text-ios-text/50 mb-1"
                       >顏色</label
                     >
                     <input
                       v-model="form.colorCode"
                       type="color"
-                      class="w-full h-9 rounded-xl cursor-pointer border-0 bg-[#F2F2F7] p-1"
+                      class="w-full h-9 rounded-xl cursor-pointer border-0 bg-ios-bg p-1"
                     />
                   </div>
                 </div>
@@ -124,29 +124,29 @@
                 <!-- Times row -->
                 <div class="flex gap-2">
                   <div class="flex-1">
-                    <label class="block text-xs text-[#1C1C1E]/50 mb-1"
+                    <label class="block text-xs text-ios-text/50 mb-1"
                       >開始時間</label
                     >
                     <input
                       v-model="form.startTime"
                       type="time"
-                      class="w-full px-3 py-2 text-sm bg-[#F2F2F7] rounded-xl border-0 outline-none focus:ring-2 focus:ring-[#007AFF]/30 text-[#1C1C1E]"
+                      class="w-full px-3 py-2 text-sm bg-ios-bg rounded-xl border-0 outline-none focus:ring-2 focus:ring-ios-blue/30 text-ios-text"
                     />
                   </div>
                   <div class="flex-1">
-                    <label class="block text-xs text-[#1C1C1E]/50 mb-1"
+                    <label class="block text-xs text-ios-text/50 mb-1"
                       >結束時間</label
                     >
                     <input
                       v-model="form.endTime"
                       type="time"
-                      class="w-full px-3 py-2 text-sm bg-[#F2F2F7] rounded-xl border-0 outline-none focus:ring-2 focus:ring-[#007AFF]/30 text-[#1C1C1E]"
+                      class="w-full px-3 py-2 text-sm bg-ios-bg rounded-xl border-0 outline-none focus:ring-2 focus:ring-ios-blue/30 text-ios-text"
                     />
                   </div>
                 </div>
 
                 <!-- Error -->
-                <p v-if="formError" class="text-xs text-[#FF3B30]">
+                <p v-if="formError" class="text-xs text-ios-red">
                   {{ formError }}
                 </p>
 
@@ -154,13 +154,13 @@
                 <div class="flex gap-2 pt-1">
                   <button
                     v-if="editingId"
-                    class="px-3 py-2 text-xs font-medium rounded-full bg-[#F2F2F7] text-[#1C1C1E]/60 hover:bg-[#E5E5EA] transition-colors"
+                    class="px-3 py-2 text-xs font-medium rounded-full bg-ios-bg text-ios-text/60 hover:bg-ios-separator transition-colors"
                     @click="cancelEdit"
                   >
                     取消
                   </button>
                   <button
-                    class="flex-1 px-4 py-2 text-sm font-semibold rounded-full bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors disabled:opacity-50"
+                    class="flex-1 px-4 py-2 text-sm font-semibold rounded-full bg-ios-blue text-white hover:bg-blue-600 transition-colors disabled:opacity-50"
                     :disabled="saving"
                     @click="handleSave"
                   >

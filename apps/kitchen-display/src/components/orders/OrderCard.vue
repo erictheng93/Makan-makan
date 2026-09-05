@@ -4,7 +4,7 @@
     :class="[
       'relative overflow-hidden rounded-2xl transition-transform duration-150 ease-spring active:scale-[0.97]',
       isUrgent
-        ? 'bg-[#FFF5F5] border-t-[6px] border-ios-red shadow-[0_4px_20px_rgba(255,59,48,0.08)] animate-urgent-pulse'
+        ? 'bg-ios-red-soft border-t-[6px] border-ios-red shadow-[0_4px_20px_rgba(255,59,48,0.08)] animate-urgent-pulse'
         : isCancelled
           ? 'bg-white shadow-card opacity-45 ' + statusBorderClass
           : 'bg-white shadow-card ' + statusBorderClass,
@@ -145,10 +145,10 @@
           <!-- Item notes -->
           <div
             v-if="item.notes"
-            class="mt-1.5 flex items-start gap-1.5 bg-[#FFF3E0] rounded-lg px-2 py-1.5"
+            class="mt-1.5 flex items-start gap-1.5 bg-ios-orange-soft rounded-lg px-2 py-1.5"
           >
-            <ZapIcon class="w-3.5 h-3.5 text-[#E65100] shrink-0 mt-0.5" />
-            <span class="text-sm text-[#E65100]">{{ item.notes }}</span>
+            <ZapIcon class="w-3.5 h-3.5 text-ios-orange-deep shrink-0 mt-0.5" />
+            <span class="text-sm text-ios-orange-deep">{{ item.notes }}</span>
           </div>
 
           <!-- Customizations -->
@@ -165,16 +165,16 @@
       <!-- Order notes -->
       <div
         v-if="order.notes"
-        class="mb-4 flex items-start gap-2 bg-[#FFF3E0] rounded-lg p-2"
+        class="mb-4 flex items-start gap-2 bg-ios-orange-soft rounded-lg p-2"
       >
-        <ZapIcon class="w-4 h-4 text-[#E65100] shrink-0 mt-0.5" />
-        <span class="text-sm text-[#E65100]">{{ order.notes }}</span>
+        <ZapIcon class="w-4 h-4 text-ios-orange-deep shrink-0 mt-0.5" />
+        <span class="text-sm text-ios-orange-deep">{{ order.notes }}</span>
       </div>
 
       <!-- Delivery info -->
       <div
         v-if="order.deliveryInfo?.type === 'delivery'"
-        class="mb-4 p-3 bg-[#E3F2FD] rounded-xl text-sm text-[#0D47A1] space-y-1"
+        class="mb-4 p-3 bg-ios-blue-soft rounded-xl text-sm text-ios-blue-deep space-y-1"
       >
         <div class="font-semibold">{{ t("orders.deliveryInfo") }}</div>
         <div v-if="order.deliveryInfo.address">
@@ -189,7 +189,7 @@
       </div>
       <div
         v-else-if="order.deliveryInfo?.type === 'takeaway'"
-        class="mb-4 p-3 bg-[#FFF3E0] rounded-xl text-sm text-[#E65100] font-semibold"
+        class="mb-4 p-3 bg-ios-orange-soft rounded-xl text-sm text-ios-orange-deep font-semibold"
       >
         {{ t("orders.takeawayNote") }}
       </div>
@@ -315,7 +315,8 @@ const displayTableName = computed(() => {
 });
 
 const statusBorderClass = computed(() => {
-  if (props.order.status === "cancelled") return "border-t-4 border-[#8E8E93]";
+  if (props.order.status === "cancelled")
+    return "border-t-4 border-ios-secondary";
   const map: Record<string, string> = {
     pending: "border-t-4 border-ios-orange",
     preparing: "border-t-4 border-ios-blue",

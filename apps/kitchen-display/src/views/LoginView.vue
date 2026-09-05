@@ -89,7 +89,7 @@
           <!-- Error Message -->
           <div
             v-if="errorMessage"
-            class="flex items-center gap-2 bg-ios-red/8 rounded-xl px-4 py-3"
+            class="flex items-center gap-2 bg-ios-red/10 rounded-xl px-4 py-3"
           >
             <AlertTriangle class="w-4 h-4 text-ios-red flex-shrink-0" />
             <span class="text-ios-red text-sm">{{ errorMessage }}</span>

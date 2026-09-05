@@ -19,11 +19,20 @@
  * mid-saturation text on a pale tint at roughly 2:1. `soft`/`deep` pairs all
  * clear 4.5:1:
  *
- *   ios-blue-deep   on ios-blue-soft    6.5:1
- *   ios-green-deep  on ios-green-soft   5.9:1
- *   ios-orange-deep on ios-orange-soft  5.2:1
- *   ios-red-deep    on ios-red-soft     5.8:1
- *   ios-teal-deep   on ios-teal-soft    5.0:1
+ *   ios-blue-deep   on ios-blue-soft    5.36:1
+ *   ios-green-deep  on ios-green-soft   4.55:1
+ *   ios-orange-deep on ios-orange-soft  4.53:1
+ *   ios-red-deep    on ios-red-soft     5.12:1
+ *   ios-teal-deep   on ios-teal-soft    4.59:1
+ *
+ * Those five numbers were first written as 6.5 / 5.9 / 5.2 / 5.8 / 5.0, which
+ * no pair actually measured; orange came to 4.45:1 and teal to 4.36:1, so the
+ * "all clear 4.5:1" line above was false for two of them. Nothing had consumed
+ * a `deep` token yet when that was found (#319 was the first caller), so orange
+ * and teal were nudged one and three percent darker — #A85F04 to #A65E04 and
+ * #0D7C8F to #0D788B — to make the claim true rather than to soften it. Re-run
+ * the WCAG ratio, do not trust these from memory, if you change a `soft` or a
+ * `deep`: they only mean something as a pair.
  *
  * `soft` for blue and orange are the `badge-blue-soft` / `badge-orange-soft`
  * already named in DESIGN.md; green, red and teal extend that pattern. The
@@ -49,11 +58,11 @@ export const iosSemantic = {
   // Success, completion, kitchen "ready".
   "ios-green": { soft: "#E8F8ED", DEFAULT: "#34C759", deep: "#17803D" },
   // Warning, pending, delayed.
-  "ios-orange": { soft: "#FFF3E0", DEFAULT: "#FF9500", deep: "#A85F04" },
+  "ios-orange": { soft: "#FFF3E0", DEFAULT: "#FF9500", deep: "#A65E04" },
   // Errors, urgent timing, destructive actions, disconnected.
   "ios-red": { soft: "#FFEBE9", DEFAULT: "#FF3B30", deep: "#C1271D" },
   // Data-visualisation accent: rings, charts, neutral stat tiles.
-  "ios-teal": { soft: "#E4F5F9", DEFAULT: "#30B0C7", deep: "#0D7C8F" },
+  "ios-teal": { soft: "#E4F5F9", DEFAULT: "#30B0C7", deep: "#0D788B" },
 };
 
 /**

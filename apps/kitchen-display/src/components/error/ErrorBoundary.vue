@@ -2,7 +2,7 @@
   <!-- Global Error Boundary Component -->
   <div
     v-if="hasError"
-    class="min-h-screen flex items-center justify-center bg-[#F2F2F7] py-12 px-4"
+    class="min-h-screen flex items-center justify-center bg-ios-bg py-12 px-4"
   >
     <div
       class="bg-white rounded-2xl shadow-card p-6 text-center max-w-md mx-auto mt-20 w-full"

@@ -4,7 +4,7 @@
       <div class="relative sm:w-80">
         <select
           v-model="selectedRestaurantId"
-          class="w-full appearance-none rounded-xl border-0 bg-white px-4 py-3 text-sm text-[#1C1C1E] shadow-sm focus:ring-2 focus:ring-[#007AFF]/30"
+          class="w-full appearance-none rounded-xl border-0 bg-white px-4 py-3 text-sm text-ios-text shadow-sm focus:ring-2 focus:ring-ios-blue/30"
           @change="loadUsage"
         >
           <option value="">{{ t("usage.selectRestaurant") }}</option>
@@ -17,11 +17,11 @@
           </option>
         </select>
         <ChevronDown
-          class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8E8E93]"
+          class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ios-secondary"
         />
       </div>
       <button
-        class="inline-flex items-center justify-center gap-2 rounded-full bg-[#007AFF] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0071E3] disabled:opacity-50"
+        class="inline-flex items-center justify-center gap-2 rounded-full bg-ios-blue px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-600 disabled:opacity-50"
         :disabled="!selectedRestaurantId || isLoading"
         @click="loadUsage"
       >
@@ -32,7 +32,7 @@
 
     <div
       v-if="!selectedRestaurantId"
-      class="rounded-2xl bg-white p-10 text-center text-sm text-[#8E8E93] shadow-sm"
+      class="rounded-2xl bg-white p-10 text-center text-sm text-ios-secondary shadow-sm"
     >
       {{ t("usage.emptyPrompt") }}
     </div>
@@ -42,7 +42,7 @@
       class="flex items-center justify-center rounded-2xl bg-white py-16 shadow-sm"
     >
       <div
-        class="h-8 w-8 animate-spin rounded-full border-2 border-[#007AFF] border-t-transparent"
+        class="h-8 w-8 animate-spin rounded-full border-2 border-ios-blue border-t-transparent"
       />
     </div>
 
@@ -50,8 +50,8 @@
       v-else-if="errorMessage"
       class="rounded-2xl bg-white p-8 text-center shadow-sm"
     >
-      <AlertCircle class="mx-auto mb-3 h-10 w-10 text-[#FF3B30]" />
-      <p class="text-sm font-medium text-[#1C1C1E]">{{ errorMessage }}</p>
+      <AlertCircle class="mx-auto mb-3 h-10 w-10 text-ios-red" />
+      <p class="text-sm font-medium text-ios-text">{{ errorMessage }}</p>
     </div>
 
     <template v-else>
@@ -63,25 +63,25 @@
         >
           <div class="mb-3 flex items-center justify-between gap-3">
             <div>
-              <p class="text-sm font-semibold text-[#1C1C1E]">
+              <p class="text-sm font-semibold text-ios-text">
                 {{ meterLabel(meter.meterKey) }}
               </p>
-              <p class="font-mono text-xs text-[#8E8E93]">
+              <p class="font-mono text-xs text-ios-secondary">
                 {{ meter.meterKey }}
               </p>
             </div>
-            <span class="text-sm font-semibold text-[#1C1C1E]">
+            <span class="text-sm font-semibold text-ios-text">
               {{ formatQuantity(meter.meterKey, meter.total) }}
             </span>
           </div>
-          <div class="h-2 overflow-hidden rounded-full bg-[#E5E5EA]">
+          <div class="h-2 overflow-hidden rounded-full bg-ios-separator">
             <div
               class="h-full rounded-full transition-all"
               :class="barClass(meter.percentage)"
               :style="{ width: barWidth(meter.percentage) }"
             />
           </div>
-          <p class="mt-2 text-xs text-[#8E8E93]">
+          <p class="mt-2 text-xs text-ios-secondary">
             {{ limitLabel(meter) }}
           </p>
         </div>
@@ -89,17 +89,19 @@
 
       <div class="rounded-2xl bg-white p-4 shadow-sm">
         <div class="mb-3 flex items-center justify-between">
-          <h2 class="text-sm font-semibold text-[#1C1C1E]">
+          <h2 class="text-sm font-semibold text-ios-text">
             {{ t("usage.recentEvents") }}
           </h2>
-          <span class="text-xs text-[#8E8E93]">
+          <span class="text-xs text-ios-secondary">
             {{ t("usage.eventsCount", { count: eventsTotal }) }}
           </span>
         </div>
         <div class="overflow-x-auto">
           <table class="min-w-full text-left text-sm">
             <thead>
-              <tr class="border-b border-[#E5E5EA] text-xs text-[#8E8E93]">
+              <tr
+                class="border-b border-ios-separator text-xs text-ios-secondary"
+              >
                 <th class="py-2 pr-4 font-medium">
                   {{ t("usage.columnTime") }}
                 </th>
@@ -116,7 +118,7 @@
               <tr
                 v-for="event in events"
                 :key="event.id"
-                class="border-b border-[#F2F2F7] text-[#1C1C1E]"
+                class="border-b border-ios-bg text-ios-text"
               >
                 <td class="py-2 pr-4 whitespace-nowrap">
                   {{ formatDate(event.occurredAt) }}
@@ -132,8 +134,8 @@
                     class="rounded-full px-2 py-1 text-xs"
                     :class="
                       event.aggregatedAt
-                        ? 'bg-[#34C759]/10 text-[#34C759]'
-                        : 'bg-[#FF9500]/10 text-[#FF9500]'
+                        ? 'bg-ios-green/10 text-ios-green'
+                        : 'bg-ios-orange/10 text-ios-orange'
                     "
                   >
                     {{
@@ -145,7 +147,7 @@
                 </td>
               </tr>
               <tr v-if="events.length === 0">
-                <td class="py-8 text-center text-[#8E8E93]" colspan="4">
+                <td class="py-8 text-center text-ios-secondary" colspan="4">
                   {{ t("usage.noEvents") }}
                 </td>
               </tr>
@@ -256,9 +258,9 @@ function barWidth(percentage: number | null) {
 }
 
 function barClass(percentage: number | null) {
-  if (percentage !== null && percentage >= 1) return "bg-[#FF3B30]";
-  if (percentage !== null && percentage >= 0.8) return "bg-[#FF9500]";
-  return "bg-[#34C759]";
+  if (percentage !== null && percentage >= 1) return "bg-ios-red";
+  if (percentage !== null && percentage >= 0.8) return "bg-ios-orange";
+  return "bg-ios-green";
 }
 
 function formatDate(ms: number) {

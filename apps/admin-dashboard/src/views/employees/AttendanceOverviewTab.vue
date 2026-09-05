@@ -5,9 +5,9 @@
       <div
         v-for="stat in attendanceStats"
         :key="stat.label"
-        class="bg-[#F2F2F7] rounded-2xl p-4"
+        class="bg-ios-bg rounded-2xl p-4"
       >
-        <p class="text-xs text-[#1C1C1E]/40 mb-1">{{ stat.label }}</p>
+        <p class="text-xs text-ios-text/40 mb-1">{{ stat.label }}</p>
         <p class="text-2xl font-bold" :class="stat.valueClass">
           {{ stat.value }}
         </p>
@@ -17,15 +17,15 @@
     <!-- Clock In / Out -->
     <div>
       <h3
-        class="text-sm font-semibold text-[#1C1C1E] mb-3 flex items-center gap-2"
+        class="text-sm font-semibold text-ios-text mb-3 flex items-center gap-2"
       >
-        <Clock class="w-4 h-4 text-[#007AFF]" />
+        <Clock class="w-4 h-4 text-ios-blue" />
         {{ t("employees.attendance.clockPanel") }}
       </h3>
 
       <div v-if="clockableEmployees.length > 0" class="max-w-[500px] mx-auto">
         <label
-          class="block text-xs text-[#1C1C1E]/40 mb-1"
+          class="block text-xs text-ios-text/40 mb-1"
           for="clock-target-select"
         >
           {{ t("employees.attendance.clockFor") }}
@@ -34,7 +34,7 @@
           id="clock-target-select"
           v-model="clockTargetId"
           data-testid="clock-target-select"
-          class="w-full mb-4 px-3 py-2 rounded-xl bg-[#F2F2F7] text-sm text-[#1C1C1E] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
+          class="w-full mb-4 px-3 py-2 rounded-xl bg-ios-bg text-sm text-ios-text focus:outline-none focus:ring-2 focus:ring-ios-blue/30"
         >
           <option
             v-for="emp in clockableEmployees"
@@ -56,8 +56,8 @@
         />
       </div>
       <div v-else class="text-center py-8">
-        <Clock class="mx-auto w-8 h-8 text-[#1C1C1E]/15 mb-2" />
-        <p class="text-xs text-[#1C1C1E]/30">
+        <Clock class="mx-auto w-8 h-8 text-ios-text/15 mb-2" />
+        <p class="text-xs text-ios-text/30">
           {{ t("employees.attendance.noClockableStaff") }}
         </p>
       </div>
@@ -66,23 +66,23 @@
     <!-- Currently Working -->
     <div>
       <h3
-        class="text-sm font-semibold text-[#1C1C1E] mb-3 flex items-center gap-2"
+        class="text-sm font-semibold text-ios-text mb-3 flex items-center gap-2"
       >
-        <div class="w-2 h-2 rounded-full bg-[#34C759] animate-pulse" />
+        <div class="w-2 h-2 rounded-full bg-ios-green animate-pulse" />
         {{ t("employees.attendance.working") }}
-        <span class="text-[#1C1C1E]/30">({{ clockedInEmployees.length }})</span>
+        <span class="text-ios-text/30">({{ clockedInEmployees.length }})</span>
       </h3>
       <div
         v-if="clockedInLoading"
         class="flex items-center justify-center py-8"
       >
         <div
-          class="w-6 h-6 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin"
+          class="w-6 h-6 border-2 border-ios-blue border-t-transparent rounded-full animate-spin"
         />
       </div>
       <div v-else-if="clockedInEmployees.length === 0" class="text-center py-8">
-        <Clock class="mx-auto w-8 h-8 text-[#1C1C1E]/15 mb-2" />
-        <p class="text-xs text-[#1C1C1E]/30">
+        <Clock class="mx-auto w-8 h-8 text-ios-text/15 mb-2" />
+        <p class="text-xs text-ios-text/30">
           {{ t("employees.attendance.noOneWorking") }}
         </p>
       </div>
@@ -100,15 +100,15 @@
               {{ getEmployeeInitials(emp) }}
             </div>
             <span
-              class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#34C759] border-2 border-white rounded-full"
+              class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-ios-green border-2 border-white rounded-full"
             >
               <span
-                class="absolute inset-0 rounded-full bg-[#34C759] animate-ping opacity-40"
+                class="absolute inset-0 rounded-full bg-ios-green animate-ping opacity-40"
               />
             </span>
           </div>
           <div class="min-w-0 flex-1">
-            <p class="text-sm font-medium text-[#1C1C1E] truncate">
+            <p class="text-sm font-medium text-ios-text truncate">
               {{ emp.employeeName || `Employee #${emp.employeeId}` }}
             </p>
             <p class="text-xs text-emerald-600">
@@ -127,20 +127,20 @@
     <!-- On Leave Today -->
     <div>
       <h3
-        class="text-sm font-semibold text-[#1C1C1E] mb-3 flex items-center gap-2"
+        class="text-sm font-semibold text-ios-text mb-3 flex items-center gap-2"
       >
-        <div class="w-2 h-2 rounded-full bg-[#FF9500]" />
+        <div class="w-2 h-2 rounded-full bg-ios-orange" />
         {{ t("employees.attendance.onLeave") }}
-        <span class="text-[#1C1C1E]/30">({{ onLeaveEmployees.length }})</span>
+        <span class="text-ios-text/30">({{ onLeaveEmployees.length }})</span>
       </h3>
       <div v-if="leaveLoading" class="flex items-center justify-center py-8">
         <div
-          class="w-6 h-6 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin"
+          class="w-6 h-6 border-2 border-ios-blue border-t-transparent rounded-full animate-spin"
         />
       </div>
       <div v-else-if="onLeaveEmployees.length === 0" class="text-center py-8">
-        <CalendarOff class="mx-auto w-8 h-8 text-[#1C1C1E]/15 mb-2" />
-        <p class="text-xs text-[#1C1C1E]/30">
+        <CalendarOff class="mx-auto w-8 h-8 text-ios-text/15 mb-2" />
+        <p class="text-xs text-ios-text/30">
           {{ t("employees.attendance.noOneOnLeave") }}
         </p>
       </div>
@@ -156,7 +156,7 @@
             <CalendarOff class="w-4 h-4 text-amber-700" />
           </div>
           <div class="min-w-0 flex-1">
-            <p class="text-sm font-medium text-[#1C1C1E] truncate">
+            <p class="text-sm font-medium text-ios-text truncate">
               {{
                 getEmployeeName(emp.employeeId) || `Employee #${emp.employeeId}`
               }}
@@ -292,12 +292,12 @@ const attendanceStats = computed(() => {
     {
       label: t("employees.attendance.totalActive"),
       value: totalActive,
-      valueClass: "text-[#1C1C1E]",
+      valueClass: "text-ios-text",
     },
     {
       label: t("employees.attendance.scheduled"),
       value: scheduled,
-      valueClass: "text-[#1C1C1E]",
+      valueClass: "text-ios-text",
     },
     {
       label: t("employees.attendance.present"),
@@ -319,7 +319,7 @@ const attendanceStats = computed(() => {
       value: rate === null ? "—" : `${rate}%`,
       valueClass:
         rate === null
-          ? "text-[#1C1C1E]/30"
+          ? "text-ios-text/30"
           : rate >= 80
             ? "text-emerald-600"
             : "text-amber-600",

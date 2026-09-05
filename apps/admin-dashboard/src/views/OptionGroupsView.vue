@@ -1,12 +1,12 @@
 <template>
-  <div class="min-h-screen bg-[#F2F2F7] p-4 md:p-6">
+  <div class="min-h-screen bg-ios-bg p-4 md:p-6">
     <div class="mx-auto max-w-4xl">
       <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 class="text-[22px] font-bold text-[#1C1C1E]">
+          <h1 class="text-[22px] font-bold text-ios-text">
             {{ t("optionGroups.title") }}
           </h1>
-          <p class="mt-1 text-[13px] text-[#8E8E93]">
+          <p class="mt-1 text-[13px] text-ios-secondary">
             {{ t("optionGroups.description") }}
           </p>
         </div>
@@ -22,7 +22,7 @@
 
       <div
         v-if="isLoading"
-        class="rounded-2xl bg-white p-8 text-center text-[14px] text-[#8E8E93] shadow-sm"
+        class="rounded-2xl bg-white p-8 text-center text-[14px] text-ios-secondary shadow-sm"
       >
         {{ t("common.loading") }}
       </div>
@@ -32,10 +32,10 @@
         data-testid="option-groups-empty"
         class="rounded-3xl bg-white p-10 text-center shadow-sm"
       >
-        <p class="text-[15px] font-semibold text-[#1C1C1E]">
+        <p class="text-[15px] font-semibold text-ios-text">
           {{ t("optionGroups.emptyTitle") }}
         </p>
-        <p class="mt-2 text-[13px] text-[#8E8E93]">
+        <p class="mt-2 text-[13px] text-ios-secondary">
           {{ t("optionGroups.emptyHint") }}
         </p>
       </div>
@@ -50,16 +50,16 @@
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div class="flex items-center gap-2">
-                <h2 class="text-[16px] font-bold text-[#1C1C1E]">
+                <h2 class="text-[16px] font-bold text-ios-text">
                   {{ group.name }}
                 </h2>
                 <span
-                  class="rounded-full bg-[#F2F2F7] px-2.5 py-1 text-[11px] font-semibold text-[#1C1C1E]"
+                  class="rounded-full bg-ios-bg px-2.5 py-1 text-[11px] font-semibold text-ios-text"
                 >
                   {{ t(`optionGroups.kind.${group.kind}`) }}
                 </span>
               </div>
-              <p class="mt-1 text-[12px] text-[#8E8E93]">
+              <p class="mt-1 text-[12px] text-ios-secondary">
                 {{ t(`menu.form.${group.type}Choice`) }}
                 <span v-if="group.required">
                   · {{ t("menu.form.requiredOption") }}</span
@@ -81,7 +81,7 @@
               <button
                 type="button"
                 :data-testid="`edit-group-${group.id}`"
-                class="rounded-full bg-[#F2F2F7] px-3 py-1.5 text-[12px] font-semibold text-[#1C1C1E]"
+                class="rounded-full bg-ios-bg px-3 py-1.5 text-[12px] font-semibold text-ios-text"
                 @click="openEditGroup(group)"
               >
                 {{ t("common.edit") }}
@@ -94,7 +94,7 @@
                     count: group.usageCount,
                   })
                 "
-                class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
+                class="rounded-full bg-ios-red-soft px-3 py-1.5 text-[12px] font-semibold text-ios-error"
                 @click="confirmDeleteGroup(group)"
               >
                 {{ t("common.delete") }}
@@ -107,29 +107,29 @@
               v-for="choice in group.choices"
               :key="choice.id"
               :data-testid="`choice-${choice.id}`"
-              class="grid grid-cols-1 gap-2 rounded-2xl bg-[#F9F9FB] p-3 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center"
+              class="grid grid-cols-1 gap-2 rounded-2xl bg-ios-bg p-3 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center"
             >
               <div>
                 <span
                   class="text-[14px] font-medium"
                   :class="
-                    choice.isAvailable ? 'text-[#1C1C1E]' : 'text-[#8E8E93]'
+                    choice.isAvailable ? 'text-ios-text' : 'text-ios-secondary'
                   "
                   >{{ choice.name }}</span
                 >
                 <span
                   v-if="choice.isDefault"
-                  class="ml-2 text-[11px] text-[#8E8E93]"
+                  class="ml-2 text-[11px] text-ios-secondary"
                   >{{ t("menu.form.defaultOption") }}</span
                 >
                 <span
                   v-if="!choice.isAvailable"
                   :data-testid="`choice-soldout-${choice.id}`"
-                  class="ml-2 rounded-full bg-[#FFEBEE] px-2 py-0.5 text-[11px] font-semibold text-ios-error"
+                  class="ml-2 rounded-full bg-ios-red-soft px-2 py-0.5 text-[11px] font-semibold text-ios-error"
                   >{{ t("optionGroups.soldOut") }}</span
                 >
               </div>
-              <span class="text-[13px] text-[#1C1C1E]">{{
+              <span class="text-[13px] text-ios-text">{{
                 formatPrice(choice.priceAdjustment)
               }}</span>
               <button
@@ -138,8 +138,8 @@
                 class="rounded-full px-3 py-1.5 text-[12px] font-semibold"
                 :class="
                   choice.isAvailable
-                    ? 'bg-[#FFF4E5] text-ios-warning'
-                    : 'bg-[#E8F8EC] text-ios-success'
+                    ? 'bg-ios-orange-soft text-ios-warning'
+                    : 'bg-ios-green-soft text-ios-success'
                 "
                 @click="setChoiceAvailability(choice.id, !choice.isAvailable)"
               >
@@ -152,7 +152,7 @@
               <button
                 type="button"
                 :data-testid="`edit-choice-${choice.id}`"
-                class="rounded-full bg-[#F2F2F7] px-3 py-1.5 text-[12px] font-semibold text-[#1C1C1E]"
+                class="rounded-full bg-ios-bg px-3 py-1.5 text-[12px] font-semibold text-ios-text"
                 @click="openEditChoice(group, choice)"
               >
                 {{ t("common.edit") }}
@@ -160,7 +160,7 @@
               <button
                 type="button"
                 :data-testid="`delete-choice-${choice.id}`"
-                class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
+                class="rounded-full bg-ios-red-soft px-3 py-1.5 text-[12px] font-semibold text-ios-error"
                 @click="confirmDeleteChoice(choice.id)"
               >
                 {{ t("common.delete") }}
@@ -170,7 +170,7 @@
             <button
               type="button"
               :data-testid="`add-choice-${group.id}`"
-              class="rounded-full bg-[#F2F2F7] px-3 py-1.5 text-[12px] font-semibold text-[#1C1C1E]"
+              class="rounded-full bg-ios-bg px-3 py-1.5 text-[12px] font-semibold text-ios-text"
               @click="openCreateChoice(group)"
             >
               {{ t("menu.form.addChoice") }}
@@ -190,7 +190,7 @@
         class="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl"
         @submit.prevent="saveGroup"
       >
-        <h3 class="mb-4 text-[17px] font-bold text-[#1C1C1E]">
+        <h3 class="mb-4 text-[17px] font-bold text-ios-text">
           {{
             editingGroup
               ? t("optionGroups.editGroup")
@@ -198,14 +198,14 @@
           }}
         </h3>
         <div class="space-y-3">
-          <label class="block text-[13px] font-semibold text-[#1C1C1E]">
+          <label class="block text-[13px] font-semibold text-ios-text">
             {{ t("menu.form.optionGroupName") }}
             <input
               v-model="groupForm.name"
               data-testid="group-name-input"
               type="text"
               required
-              class="mt-1.5 w-full rounded-xl bg-[#F2F2F7] px-4 py-2.5 text-[14px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
+              class="mt-1.5 w-full rounded-xl bg-ios-bg px-4 py-2.5 text-[14px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
             />
           </label>
 
@@ -213,7 +213,7 @@
                refers to publicId, and kind decides the container. -->
           <label
             v-if="!editingGroup"
-            class="block text-[13px] font-semibold text-[#1C1C1E]"
+            class="block text-[13px] font-semibold text-ios-text"
           >
             {{ t("optionGroups.publicId") }}
             <input
@@ -222,22 +222,23 @@
               type="text"
               required
               pattern="[A-Za-z0-9_\-]{1,50}"
-              class="mt-1.5 w-full rounded-xl bg-[#F2F2F7] px-4 py-2.5 font-mono text-[13px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
+              class="mt-1.5 w-full rounded-xl bg-ios-bg px-4 py-2.5 font-mono text-[13px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
             />
-            <span class="mt-1 block text-[11px] font-normal text-[#8E8E93]">{{
-              t("optionGroups.publicIdHint")
-            }}</span>
+            <span
+              class="mt-1 block text-[11px] font-normal text-ios-secondary"
+              >{{ t("optionGroups.publicIdHint") }}</span
+            >
           </label>
 
           <label
             v-if="!editingGroup"
-            class="block text-[13px] font-semibold text-[#1C1C1E]"
+            class="block text-[13px] font-semibold text-ios-text"
           >
             {{ t("optionGroups.kindLabel") }}
             <select
               v-model="groupForm.kind"
               data-testid="group-kind-select"
-              class="mt-1.5 w-full rounded-xl bg-[#F2F2F7] px-4 py-2.5 text-[14px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
+              class="mt-1.5 w-full rounded-xl bg-ios-bg px-4 py-2.5 text-[14px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
             >
               <option value="choice">
                 {{ t("optionGroups.kind.choice") }}
@@ -247,12 +248,12 @@
             </select>
           </label>
 
-          <label class="block text-[13px] font-semibold text-[#1C1C1E]">
+          <label class="block text-[13px] font-semibold text-ios-text">
             {{ t("optionGroups.typeLabel") }}
             <select
               v-model="groupForm.type"
               data-testid="group-type-select"
-              class="mt-1.5 w-full rounded-xl bg-[#F2F2F7] px-4 py-2.5 text-[14px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
+              class="mt-1.5 w-full rounded-xl bg-ios-bg px-4 py-2.5 text-[14px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
             >
               <option value="single">{{ t("menu.form.singleChoice") }}</option>
               <option value="multiple">
@@ -261,19 +262,19 @@
             </select>
           </label>
 
-          <label class="flex items-center gap-2 text-[13px] text-[#1C1C1E]">
+          <label class="flex items-center gap-2 text-[13px] text-ios-text">
             <input
               v-model="groupForm.required"
               data-testid="group-required-input"
               type="checkbox"
-              class="h-4 w-4 rounded border-[#D1D1D6] text-ios-primary"
+              class="h-4 w-4 rounded border-ios-tertiary text-ios-primary"
             />
             {{ t("menu.form.requiredOption") }}
           </label>
 
           <label
             v-if="groupForm.type === 'multiple'"
-            class="block text-[13px] font-semibold text-[#1C1C1E]"
+            class="block text-[13px] font-semibold text-ios-text"
           >
             {{ t("menu.form.optionMaxSelections") }}
             <input
@@ -282,18 +283,19 @@
               type="number"
               min="1"
               step="1"
-              class="mt-1.5 w-full rounded-xl bg-[#F2F2F7] px-4 py-2.5 text-[14px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
+              class="mt-1.5 w-full rounded-xl bg-ios-bg px-4 py-2.5 text-[14px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
             />
-            <span class="mt-1 block text-[11px] font-normal text-[#8E8E93]">{{
-              t("optionGroups.blankMeansNoCap")
-            }}</span>
+            <span
+              class="mt-1 block text-[11px] font-normal text-ios-secondary"
+              >{{ t("optionGroups.blankMeansNoCap") }}</span
+            >
           </label>
         </div>
 
         <div class="mt-6 flex justify-end gap-2">
           <button
             type="button"
-            class="rounded-full bg-[#F2F2F7] px-4 py-2 text-[14px] font-semibold text-[#1C1C1E]"
+            class="rounded-full bg-ios-bg px-4 py-2 text-[14px] font-semibold text-ios-text"
             @click="showGroupModal = false"
           >
             {{ t("common.cancel") }}
@@ -319,23 +321,23 @@
         class="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl"
         @submit.prevent="saveChoice"
       >
-        <h3 class="mb-4 text-[17px] font-bold text-[#1C1C1E]">
+        <h3 class="mb-4 text-[17px] font-bold text-ios-text">
           {{ editingChoice ? t("common.edit") : t("menu.form.addChoice") }}
         </h3>
         <div class="space-y-3">
-          <label class="block text-[13px] font-semibold text-[#1C1C1E]">
+          <label class="block text-[13px] font-semibold text-ios-text">
             {{ t("menu.form.optionChoiceName") }}
             <input
               v-model="choiceForm.name"
               data-testid="choice-name-input"
               type="text"
               required
-              class="mt-1.5 w-full rounded-xl bg-[#F2F2F7] px-4 py-2.5 text-[14px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
+              class="mt-1.5 w-full rounded-xl bg-ios-bg px-4 py-2.5 text-[14px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
             />
           </label>
           <label
             v-if="!editingChoice"
-            class="block text-[13px] font-semibold text-[#1C1C1E]"
+            class="block text-[13px] font-semibold text-ios-text"
           >
             {{ t("optionGroups.publicId") }}
             <input
@@ -344,22 +346,22 @@
               type="text"
               required
               pattern="[A-Za-z0-9_\-]{1,50}"
-              class="mt-1.5 w-full rounded-xl bg-[#F2F2F7] px-4 py-2.5 font-mono text-[13px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
+              class="mt-1.5 w-full rounded-xl bg-ios-bg px-4 py-2.5 font-mono text-[13px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
             />
           </label>
-          <label class="block text-[13px] font-semibold text-[#1C1C1E]">
+          <label class="block text-[13px] font-semibold text-ios-text">
             {{ t("optionGroups.priceAdjustment") }}
             <input
               v-model="choiceForm.priceAdjustment"
               data-testid="choice-price-input"
               type="number"
               step="0.01"
-              class="mt-1.5 w-full rounded-xl bg-[#F2F2F7] px-4 py-2.5 text-[14px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
+              class="mt-1.5 w-full rounded-xl bg-ios-bg px-4 py-2.5 text-[14px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
             />
           </label>
           <label
             v-if="choiceGroupKind === 'addon'"
-            class="block text-[13px] font-semibold text-[#1C1C1E]"
+            class="block text-[13px] font-semibold text-ios-text"
           >
             {{ t("menu.form.optionMaxQuantity") }}
             <input
@@ -368,15 +370,15 @@
               type="number"
               min="1"
               step="1"
-              class="mt-1.5 w-full rounded-xl bg-[#F2F2F7] px-4 py-2.5 text-[14px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
+              class="mt-1.5 w-full rounded-xl bg-ios-bg px-4 py-2.5 text-[14px] font-normal outline-none focus:ring-2 focus:ring-ios-primary/30"
             />
           </label>
-          <label class="flex items-center gap-2 text-[13px] text-[#1C1C1E]">
+          <label class="flex items-center gap-2 text-[13px] text-ios-text">
             <input
               v-model="choiceForm.isDefault"
               data-testid="choice-default-input"
               type="checkbox"
-              class="h-4 w-4 rounded border-[#D1D1D6] text-ios-primary"
+              class="h-4 w-4 rounded border-ios-tertiary text-ios-primary"
             />
             {{ t("menu.form.defaultOption") }}
           </label>
@@ -384,7 +386,7 @@
         <div class="mt-6 flex justify-end gap-2">
           <button
             type="button"
-            class="rounded-full bg-[#F2F2F7] px-4 py-2 text-[14px] font-semibold text-[#1C1C1E]"
+            class="rounded-full bg-ios-bg px-4 py-2 text-[14px] font-semibold text-ios-text"
             @click="showChoiceModal = false"
           >
             {{ t("common.cancel") }}

@@ -1,12 +1,12 @@
 <template>
-  <div class="min-h-screen bg-[#F2F2F7] p-4 sm:p-6 space-y-6">
+  <div class="min-h-screen bg-ios-bg p-4 sm:p-6 space-y-6">
     <!-- Header -->
     <div class="flex justify-between items-center">
       <div>
-        <h1 class="text-2xl font-bold text-[#1C1C1E]">
+        <h1 class="text-2xl font-bold text-ios-text">
           {{ t("seating.title") }}
         </h1>
-        <p class="text-sm text-[#1C1C1E]/50 mt-1">
+        <p class="text-sm text-ios-text/50 mt-1">
           {{ t("seating.subtitle") }}
         </p>
       </div>
@@ -32,7 +32,7 @@
             />
           </div>
           <div class="min-w-0">
-            <p class="text-xs text-[#1C1C1E]/50 truncate">{{ stat.label }}</p>
+            <p class="text-xs text-ios-text/50 truncate">{{ stat.label }}</p>
             <p class="text-xl font-bold" :class="stat.valueClass">
               {{ stat.value }}
             </p>
@@ -43,7 +43,7 @@
 
     <!-- Tab Navigation -->
     <div class="bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-      <nav class="flex overflow-x-auto border-b border-[#F2F2F7] px-4 sm:px-6">
+      <nav class="flex overflow-x-auto border-b border-ios-bg px-4 sm:px-6">
         <router-link
           v-for="tab in tabs"
           :key="tab.name"
@@ -51,8 +51,8 @@
           class="flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-colors -mb-px"
           :class="
             isActiveTab(tab.path)
-              ? 'border-[#007AFF] text-[#007AFF]'
-              : 'border-transparent text-[#1C1C1E]/40 hover:text-[#1C1C1E]/70'
+              ? 'border-ios-blue text-ios-blue'
+              : 'border-transparent text-ios-text/40 hover:text-ios-text/70'
           "
           :data-active="isActiveTab(tab.path)"
         >
@@ -60,7 +60,7 @@
           {{ tab.label }}
           <span
             v-if="tab.badge !== undefined && tab.badge > 0"
-            class="ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#FF3B30] text-white"
+            class="ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-ios-red text-white"
           >
             {{ tab.badge }}
           </span>

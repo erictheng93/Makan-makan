@@ -7,7 +7,7 @@
       />
       <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full">
         <div class="p-6">
-          <h3 class="text-lg font-semibold text-[#1C1C1E] mb-4">
+          <h3 class="text-lg font-semibold text-ios-text mb-4">
             {{
               employee ? t("users.modal.editTitle") : t("users.modal.addTitle")
             }}
@@ -16,63 +16,63 @@
           <form @submit.prevent="handleSave">
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-[#1C1C1E]/70 mb-1">
+                <label class="block text-sm font-medium text-ios-text/70 mb-1">
                   {{ t("users.modal.usernameLabel") }}
-                  <span class="text-[#FF3B30]">*</span>
+                  <span class="text-ios-red">*</span>
                 </label>
                 <input
                   v-model="form.username"
                   type="text"
                   required
                   :disabled="!!employee"
-                  class="w-full px-3.5 py-2.5 bg-[#F2F2F7] border-none rounded-xl text-[#1C1C1E] focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white transition-all disabled:opacity-50"
+                  class="w-full px-3.5 py-2.5 bg-ios-bg border-none rounded-xl text-ios-text focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white transition-all disabled:opacity-50"
                 />
               </div>
 
               <div v-if="!employee">
-                <label class="block text-sm font-medium text-[#1C1C1E]/70 mb-1">
+                <label class="block text-sm font-medium text-ios-text/70 mb-1">
                   {{ t("users.modal.passwordLabel") }}
-                  <span class="text-[#FF3B30]">*</span>
+                  <span class="text-ios-red">*</span>
                 </label>
                 <input
                   v-model="form.password"
                   type="password"
                   required
-                  class="w-full px-3.5 py-2.5 bg-[#F2F2F7] border-none rounded-xl text-[#1C1C1E] focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white transition-all"
+                  class="w-full px-3.5 py-2.5 bg-ios-bg border-none rounded-xl text-ios-text focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white transition-all"
                 />
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-[#1C1C1E]/70 mb-1">
+                <label class="block text-sm font-medium text-ios-text/70 mb-1">
                   {{ t("users.modal.fullNameLabel") }}
                 </label>
                 <input
                   v-model="form.fullName"
                   type="text"
-                  class="w-full px-3.5 py-2.5 bg-[#F2F2F7] border-none rounded-xl text-[#1C1C1E] focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white transition-all"
+                  class="w-full px-3.5 py-2.5 bg-ios-bg border-none rounded-xl text-ios-text focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white transition-all"
                 />
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-[#1C1C1E]/70 mb-1">
+                <label class="block text-sm font-medium text-ios-text/70 mb-1">
                   Email
                 </label>
                 <input
                   v-model="form.email"
                   type="email"
-                  class="w-full px-3.5 py-2.5 bg-[#F2F2F7] border-none rounded-xl text-[#1C1C1E] focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white transition-all"
+                  class="w-full px-3.5 py-2.5 bg-ios-bg border-none rounded-xl text-ios-text focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white transition-all"
                 />
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-[#1C1C1E]/70 mb-1">
+                <label class="block text-sm font-medium text-ios-text/70 mb-1">
                   {{ t("users.modal.roleLabel") }}
-                  <span class="text-[#FF3B30]">*</span>
+                  <span class="text-ios-red">*</span>
                 </label>
                 <select
                   v-model.number="form.role"
                   required
-                  class="w-full px-3.5 py-2.5 bg-[#F2F2F7] border-none rounded-xl text-[#1C1C1E] focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white transition-all"
+                  class="w-full px-3.5 py-2.5 bg-ios-bg border-none rounded-xl text-ios-text focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white transition-all"
                 >
                   <option value="">{{ t("users.modal.selectRole") }}</option>
                   <option value="1">{{ t("users.search.ownerRole") }}</option>
@@ -83,12 +83,12 @@
               </div>
 
               <div v-if="employee">
-                <label class="block text-sm font-medium text-[#1C1C1E]/70 mb-1">
+                <label class="block text-sm font-medium text-ios-text/70 mb-1">
                   {{ t("users.modal.statusLabel") }}
                 </label>
                 <select
                   v-model="form.status"
-                  class="w-full px-3.5 py-2.5 bg-[#F2F2F7] border-none rounded-xl text-[#1C1C1E] focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white transition-all"
+                  class="w-full px-3.5 py-2.5 bg-ios-bg border-none rounded-xl text-ios-text focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white transition-all"
                 >
                   <option value="active">{{ t("users.status.active") }}</option>
                   <option value="inactive">
@@ -104,7 +104,7 @@
             <div class="flex justify-end space-x-3 mt-6">
               <button
                 type="button"
-                class="px-5 py-2 rounded-full text-[13px] font-semibold text-[#1C1C1E]/60 bg-[#F2F2F7] hover:bg-[#E5E5EA] transition-colors"
+                class="px-5 py-2 rounded-full text-[13px] font-semibold text-ios-text/60 bg-ios-bg hover:bg-ios-separator transition-colors"
                 @click="$emit('close')"
               >
                 {{ t("users.modal.cancel") }}
@@ -112,7 +112,7 @@
               <button
                 type="submit"
                 :disabled="saving"
-                class="px-5 py-2 rounded-full text-[13px] font-semibold bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors disabled:opacity-50"
+                class="px-5 py-2 rounded-full text-[13px] font-semibold bg-ios-blue text-white hover:bg-blue-600 transition-colors disabled:opacity-50"
               >
                 {{ employee ? t("users.modal.update") : t("users.modal.add") }}
               </button>

@@ -10,8 +10,8 @@
           class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all"
           :class="
             activeTab === tab.key
-              ? 'bg-[#007AFF] text-white shadow-sm'
-              : 'bg-[#F2F2F7] text-[#1C1C1E]/60 hover:text-[#1C1C1E] hover:bg-[#E5E5EA]'
+              ? 'bg-ios-blue text-white shadow-sm'
+              : 'bg-ios-bg text-ios-text/60 hover:text-ios-text hover:bg-ios-separator'
           "
           @click="activeTab = tab.key"
         >
@@ -23,7 +23,7 @@
             :class="
               activeTab === 'queue'
                 ? 'bg-white/25 text-white'
-                : 'bg-[#FF3B30] text-white'
+                : 'bg-ios-red text-white'
             "
           >
             {{ pendingCount }}
@@ -35,7 +35,7 @@
            never enable and the dialog gave no clue why (#307). -->
       <button
         data-testid="leaves-apply"
-        class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+        class="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold bg-ios-blue text-white hover:bg-blue-600 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
         :disabled="leaveTypes.length === 0"
         :title="leaveTypes.length === 0 ? t('leaves.manage.noTypesHint') : ''"
         @click="showRequestDialog = true"
@@ -48,18 +48,18 @@
     <!-- Loading state -->
     <div v-if="isLoading" class="flex items-center justify-center py-20">
       <div
-        class="w-8 h-8 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin"
+        class="w-8 h-8 border-2 border-ios-blue border-t-transparent rounded-full animate-spin"
       />
     </div>
 
     <!-- Error state -->
     <div
       v-else-if="error"
-      class="bg-[#FF3B30]/8 rounded-2xl px-4 py-3 text-sm text-[#FF3B30]"
+      class="bg-ios-red/10 rounded-2xl px-4 py-3 text-sm text-ios-red"
     >
       {{ error }}
       <button
-        class="ml-2 underline text-[#FF3B30]/70 hover:text-[#FF3B30]"
+        class="ml-2 underline text-ios-red/70 hover:text-ios-red"
         @click="loadData"
       >
         {{ t("leaves.manage.retry") }}
@@ -102,17 +102,17 @@
           data-testid="leaves-no-types"
           class="bg-white rounded-2xl shadow-sm px-5 py-6 text-center"
         >
-          <p class="text-[#1C1C1E] font-semibold">
+          <p class="text-ios-text font-semibold">
             {{ t("leaves.manage.noTypes") }}
           </p>
-          <p class="text-sm text-[#1C1C1E]/60 mt-1">
+          <p class="text-sm text-ios-text/60 mt-1">
             {{ t("leaves.manage.noTypesHint") }}
           </p>
         </div>
 
         <div
           v-else
-          class="bg-white rounded-2xl shadow-sm divide-y divide-[#E5E5EA]"
+          class="bg-white rounded-2xl shadow-sm divide-y divide-ios-separator"
         >
           <div
             v-for="type in leaveTypes"
@@ -121,13 +121,13 @@
             class="flex items-center justify-between px-5 py-3"
           >
             <div>
-              <p class="text-sm font-semibold text-[#1C1C1E]">
+              <p class="text-sm font-semibold text-ios-text">
                 {{ type.name }}
-                <span class="ml-2 text-xs font-normal text-[#1C1C1E]/40">{{
+                <span class="ml-2 text-xs font-normal text-ios-text/40">{{
                   type.code
                 }}</span>
               </p>
-              <p class="text-xs text-[#1C1C1E]/60 mt-0.5">
+              <p class="text-xs text-ios-text/60 mt-0.5">
                 {{
                   t(`leaves.manage.accrual${accrualLabel(type.accrualType)}`)
                 }}
@@ -136,7 +136,7 @@
             </div>
             <button
               :data-testid="`leave-type-delete-${type.id}`"
-              class="text-xs text-[#FF3B30] hover:underline"
+              class="text-xs text-ios-red hover:underline"
               @click="handleDeleteType(type)"
             >
               {{ t("common.delete") }}
@@ -148,12 +148,12 @@
           class="bg-white rounded-2xl shadow-sm px-5 py-4 space-y-3"
           @submit.prevent="handleCreateType"
         >
-          <p class="text-sm font-semibold text-[#1C1C1E]">
+          <p class="text-sm font-semibold text-ios-text">
             {{ t("leaves.manage.createType") }}
           </p>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs text-[#1C1C1E]/60 mb-1">{{
+              <label class="block text-xs text-ios-text/60 mb-1">{{
                 t("leaves.manage.code")
               }}</label>
               <input
@@ -161,14 +161,14 @@
                 data-testid="leave-type-code"
                 required
                 maxlength="20"
-                class="w-full px-3 py-2 rounded-xl bg-[#F2F2F7] text-sm"
+                class="w-full px-3 py-2 rounded-xl bg-ios-bg text-sm"
               />
-              <p class="text-xs text-[#1C1C1E]/40 mt-1">
+              <p class="text-xs text-ios-text/40 mt-1">
                 {{ t("leaves.manage.codeHint") }}
               </p>
             </div>
             <div>
-              <label class="block text-xs text-[#1C1C1E]/60 mb-1">{{
+              <label class="block text-xs text-ios-text/60 mb-1">{{
                 t("leaves.manage.name")
               }}</label>
               <input
@@ -176,17 +176,17 @@
                 data-testid="leave-type-name"
                 required
                 maxlength="50"
-                class="w-full px-3 py-2 rounded-xl bg-[#F2F2F7] text-sm"
+                class="w-full px-3 py-2 rounded-xl bg-ios-bg text-sm"
               />
             </div>
             <div>
-              <label class="block text-xs text-[#1C1C1E]/60 mb-1">{{
+              <label class="block text-xs text-ios-text/60 mb-1">{{
                 t("leaves.manage.accrualType")
               }}</label>
               <select
                 v-model="typeForm.accrualType"
                 data-testid="leave-type-accrual"
-                class="w-full px-3 py-2 rounded-xl bg-[#F2F2F7] text-sm"
+                class="w-full px-3 py-2 rounded-xl bg-ios-bg text-sm"
               >
                 <option value="yearly">
                   {{ t("leaves.manage.accrualYearly") }}
@@ -200,7 +200,7 @@
               </select>
             </div>
             <div>
-              <label class="block text-xs text-[#1C1C1E]/60 mb-1">{{
+              <label class="block text-xs text-ios-text/60 mb-1">{{
                 t("leaves.manage.accrualAmount")
               }}</label>
               <input
@@ -209,11 +209,11 @@
                 type="number"
                 min="0"
                 step="0.5"
-                class="w-full px-3 py-2 rounded-xl bg-[#F2F2F7] text-sm"
+                class="w-full px-3 py-2 rounded-xl bg-ios-bg text-sm"
               />
             </div>
           </div>
-          <label class="flex items-center gap-2 text-sm text-[#1C1C1E]">
+          <label class="flex items-center gap-2 text-sm text-ios-text">
             <input
               v-model="typeForm.requiresApproval"
               data-testid="leave-type-requires-approval"
@@ -225,7 +225,7 @@
             type="submit"
             data-testid="leave-type-save"
             :disabled="isSavingType"
-            class="px-4 py-2 rounded-full text-sm font-semibold bg-[#007AFF] text-white disabled:opacity-40"
+            class="px-4 py-2 rounded-full text-sm font-semibold bg-ios-blue text-white disabled:opacity-40"
           >
             {{ t("leaves.manage.save") }}
           </button>

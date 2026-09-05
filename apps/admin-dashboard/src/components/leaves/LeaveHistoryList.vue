@@ -4,7 +4,7 @@
     <div class="flex flex-wrap gap-2">
       <select
         v-model="statusFilter"
-        class="px-3 py-2 text-sm bg-white border-none rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] text-[#1C1C1E] focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:outline-none transition-all"
+        class="px-3 py-2 text-sm bg-white border-none rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] text-ios-text focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:outline-none transition-all"
       >
         <option value="">全部狀態</option>
         <option value="pending">待審核</option>
@@ -14,7 +14,7 @@
       </select>
       <select
         v-model="typeFilter"
-        class="px-3 py-2 text-sm bg-white border-none rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] text-[#1C1C1E] focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:outline-none transition-all"
+        class="px-3 py-2 text-sm bg-white border-none rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] text-ios-text focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:outline-none transition-all"
       >
         <option value="">全部假別</option>
         <option v-for="lt in leaveTypes" :key="lt.id" :value="lt.id">
@@ -29,11 +29,11 @@
       class="flex flex-col items-center justify-center py-16 text-center"
     >
       <div
-        class="w-12 h-12 rounded-full bg-[#F2F2F7] flex items-center justify-center mb-3"
+        class="w-12 h-12 rounded-full bg-ios-bg flex items-center justify-center mb-3"
       >
-        <CalendarX class="w-6 h-6 text-[#1C1C1E]/30" />
+        <CalendarX class="w-6 h-6 text-ios-text/30" />
       </div>
-      <p class="text-sm font-semibold text-[#1C1C1E]/60">
+      <p class="text-sm font-semibold text-ios-text/60">
         沒有符合條件的請假紀錄
       </p>
     </div>
@@ -41,7 +41,7 @@
     <!-- List -->
     <div
       v-else
-      class="bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] overflow-hidden divide-y divide-[#F2F2F7]"
+      class="bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] overflow-hidden divide-y divide-ios-bg"
     >
       <div
         v-for="request in filteredRequests"
@@ -57,7 +57,7 @@
         <!-- Content -->
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
-            <span class="text-sm font-semibold text-[#1C1C1E]">
+            <span class="text-sm font-semibold text-ios-text">
               {{ request.employeeName || `員工${request.employeeId}` }}
             </span>
             <span
@@ -68,7 +68,7 @@
             </span>
           </div>
           <div
-            class="mt-0.5 flex items-center gap-2 text-xs text-[#1C1C1E]/50 flex-wrap"
+            class="mt-0.5 flex items-center gap-2 text-xs text-ios-text/50 flex-wrap"
           >
             <span>{{ request.leaveTypeName || "請假" }}</span>
             <span>·</span>
@@ -80,14 +80,14 @@
           </div>
           <div
             v-if="request.rejectionReason"
-            class="mt-1 text-xs text-[#FF3B30]/70 italic"
+            class="mt-1 text-xs text-ios-red/70 italic"
           >
             原因：{{ request.rejectionReason }}
           </div>
         </div>
 
         <!-- Applied date -->
-        <span class="text-xs text-[#1C1C1E]/30 shrink-0 mt-0.5">
+        <span class="text-xs text-ios-text/30 shrink-0 mt-0.5">
           {{ formatAppliedDate(request.createdAt) }}
         </span>
       </div>
@@ -127,26 +127,26 @@ const filteredRequests = computed(() => {
 const statusDotColor = (status: string): string => {
   switch (status) {
     case "approved":
-      return "bg-[#34C759]";
+      return "bg-ios-green";
     case "rejected":
-      return "bg-[#FF3B30]";
+      return "bg-ios-red";
     case "pending":
-      return "bg-[#FF9500]";
+      return "bg-ios-orange";
     default:
-      return "bg-[#8E8E93]";
+      return "bg-ios-secondary";
   }
 };
 
 const statusBadgeClass = (status: string): string => {
   switch (status) {
     case "approved":
-      return "bg-[#34C759]/10 text-[#34C759]";
+      return "bg-ios-green/10 text-ios-green";
     case "rejected":
-      return "bg-[#FF3B30]/10 text-[#FF3B30]";
+      return "bg-ios-red/10 text-ios-red";
     case "pending":
-      return "bg-[#FF9500]/10 text-[#FF9500]";
+      return "bg-ios-orange/10 text-ios-orange";
     default:
-      return "bg-[#8E8E93]/10 text-[#8E8E93]";
+      return "bg-ios-secondary/10 text-ios-secondary";
   }
 };
 

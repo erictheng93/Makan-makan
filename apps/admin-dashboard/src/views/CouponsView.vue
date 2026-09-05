@@ -493,17 +493,17 @@
             >
               <ExclamationTriangleIcon class="h-6 w-6 text-red-600" />
             </div>
-            <h3 class="text-[17px] font-bold text-[#1C1C1E] mb-2">
+            <h3 class="text-[17px] font-bold text-ios-text mb-2">
               {{ t("coupons.messages.deleteConfirmTitle") }}
             </h3>
-            <p class="text-[14px] text-[#8E8E93] mb-6">
+            <p class="text-[14px] text-ios-secondary mb-6">
               {{
                 t("coupons.messages.deleteConfirm", { name: deleteTarget.name })
               }}
             </p>
             <div class="flex gap-2.5 justify-center">
               <button
-                class="px-5 py-2.5 text-[14px] font-semibold text-[#1C1C1E] bg-[#F2F2F7] rounded-full hover:bg-[#E5E5EA] transition-colors"
+                class="px-5 py-2.5 text-[14px] font-semibold text-ios-text bg-ios-bg rounded-full hover:bg-ios-separator transition-colors"
                 @click="deleteTarget = null"
               >
                 {{ t("common.cancel") }}

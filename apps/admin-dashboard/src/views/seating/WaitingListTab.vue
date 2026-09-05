@@ -3,7 +3,7 @@
     <!-- Action Bar -->
     <div class="flex items-center justify-end gap-3">
       <button
-        class="flex items-center px-4 py-2.5 rounded-full text-[13px] font-semibold bg-[#FF9500] text-white hover:bg-[#E68600] transition-colors shadow-sm"
+        class="flex items-center px-4 py-2.5 rounded-full text-[13px] font-semibold bg-ios-orange text-white hover:bg-orange-600 transition-colors shadow-sm"
         :disabled="batchCalling"
         @click="batchCallNext"
       >
@@ -11,7 +11,7 @@
         {{ t("waitingList.callNext") }}
       </button>
       <button
-        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors shadow-sm"
+        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-ios-blue text-white hover:bg-blue-600 transition-colors shadow-sm"
         @click="showAddDialog = true"
       >
         <Plus class="w-4 h-4 mr-1.5" />

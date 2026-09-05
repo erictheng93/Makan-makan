@@ -81,7 +81,7 @@
               type="text"
               data-testid="admin-orders-search"
               :placeholder="t('orders.searchPlaceholder')"
-              class="w-full pl-10 pr-4 py-2 bg-white border-0 rounded-xl shadow-ios-sm focus:ring-2 focus:ring-[#007AFF] focus:ring-opacity-30 transition-colors"
+              class="w-full pl-10 pr-4 py-2 bg-white border-0 rounded-xl shadow-ios-sm focus:ring-2 focus:ring-ios-blue focus:ring-opacity-30 transition-colors"
             />
           </div>
 
@@ -90,7 +90,7 @@
             <select
               v-model="statusFilter"
               data-testid="admin-orders-status-filter"
-              class="flex-1 min-w-[120px] px-3 py-2 bg-white border-0 rounded-xl shadow-ios-sm text-sm focus:ring-2 focus:ring-[#007AFF] focus:ring-opacity-30 transition-colors"
+              class="flex-1 min-w-[120px] px-3 py-2 bg-white border-0 rounded-xl shadow-ios-sm text-sm focus:ring-2 focus:ring-ios-blue focus:ring-opacity-30 transition-colors"
             >
               <option value="">{{ t("orders.filter.allStatus") }}</option>
               <option value="pending">{{ t("orders.status.pending") }}</option>
@@ -116,7 +116,7 @@
             <select
               v-model="typeFilter"
               data-testid="admin-orders-type-filter"
-              class="flex-1 min-w-[120px] px-3 py-2 bg-white border-0 rounded-xl shadow-ios-sm text-sm focus:ring-2 focus:ring-[#007AFF] focus:ring-opacity-30 transition-colors"
+              class="flex-1 min-w-[120px] px-3 py-2 bg-white border-0 rounded-xl shadow-ios-sm text-sm focus:ring-2 focus:ring-ios-blue focus:ring-opacity-30 transition-colors"
             >
               <option value="">{{ t("orders.filter.allTypes") }}</option>
               <option value="dine_in">{{ t("orders.type.dineIn") }}</option>
@@ -127,7 +127,7 @@
             <select
               v-model="sourceFilter"
               data-testid="admin-orders-source-filter"
-              class="flex-1 min-w-[120px] px-3 py-2 bg-white border-0 rounded-xl shadow-ios-sm text-sm focus:ring-2 focus:ring-[#007AFF] focus:ring-opacity-30 transition-colors"
+              class="flex-1 min-w-[120px] px-3 py-2 bg-white border-0 rounded-xl shadow-ios-sm text-sm focus:ring-2 focus:ring-ios-blue focus:ring-opacity-30 transition-colors"
             >
               <option value="">{{ t("orders.filter.allSources") }}</option>
               <option value="direct">{{ t("orders.source.direct") }}</option>
@@ -589,13 +589,13 @@
                   <div
                     v-for="item in selectedOrder.items"
                     :key="item.id"
-                    class="p-3 hover:bg-[#F2F2F7] transition-colors rounded-lg cursor-pointer group/item"
+                    class="p-3 hover:bg-ios-bg transition-colors rounded-lg cursor-pointer group/item"
                     @click="navigateToMenuItem(item)"
                   >
                     <div class="flex justify-between items-start">
                       <div class="flex-1 min-w-0">
                         <p
-                          class="font-medium text-[#007AFF] group-hover/item:underline flex items-center gap-1"
+                          class="font-medium text-ios-blue group-hover/item:underline flex items-center gap-1"
                         >
                           {{ getMenuItemName(item) }}
                           <ArrowTopRightOnSquareIcon

@@ -11,15 +11,13 @@
       v-if="visibleConflicts.length > 0"
       class="bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] overflow-hidden"
     >
-      <div
-        class="flex items-center gap-2 px-4 py-2.5 border-b border-[#F2F2F7]"
-      >
-        <AlertTriangle class="w-4 h-4 text-[#FF9500] shrink-0" />
-        <span class="text-xs font-semibold text-[#1C1C1E]">
+      <div class="flex items-center gap-2 px-4 py-2.5 border-b border-ios-bg">
+        <AlertTriangle class="w-4 h-4 text-ios-orange shrink-0" />
+        <span class="text-xs font-semibold text-ios-text">
           排班警告 ({{ visibleConflicts.length }})
         </span>
         <button
-          class="ml-auto text-xs text-[#1C1C1E]/40 hover:text-[#1C1C1E]/70 transition-colors"
+          class="ml-auto text-xs text-ios-text/40 hover:text-ios-text/70 transition-colors"
           @click="dismissAll"
         >
           全部關閉
@@ -33,8 +31,8 @@
           class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
           :class="
             conflict.severity === 'error'
-              ? 'bg-[#FF3B30]/10 text-[#FF3B30]'
-              : 'bg-[#FF9500]/10 text-[#FF9500]'
+              ? 'bg-ios-red/10 text-ios-red'
+              : 'bg-ios-orange/10 text-ios-orange'
           "
         >
           <component

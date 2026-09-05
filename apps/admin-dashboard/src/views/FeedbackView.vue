@@ -1,12 +1,12 @@
 <template>
-  <div class="min-h-screen bg-[#F2F2F7] p-5 space-y-5">
+  <div class="min-h-screen bg-ios-bg p-5 space-y-5">
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-[#1C1C1E]">
+        <h1 class="text-3xl font-bold text-ios-text">
           {{ t("feedback.title") }}
         </h1>
-        <p class="text-sm text-[#8E8E93] mt-0.5">
+        <p class="text-sm text-ios-secondary mt-0.5">
           {{
             isAdmin ? t("feedback.adminSubtitle") : t("feedback.ownerSubtitle")
           }}
@@ -14,7 +14,7 @@
       </div>
       <button
         v-if="!isAdmin && !showForm"
-        class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#007AFF] text-white text-sm font-semibold hover:bg-[#0071E3] transition-all duration-200 shadow-sm"
+        class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-ios-blue text-white text-sm font-semibold hover:bg-blue-600 transition-all duration-200 shadow-sm"
         @click="showForm = true"
       >
         <Plus class="w-4 h-4" />
@@ -41,12 +41,12 @@
           v-model="filters.search"
           type="text"
           :placeholder="t('feedback.searchPlaceholder')"
-          class="flex-1 min-w-48 px-4 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] placeholder-[#8E8E93] focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white transition-all"
+          class="flex-1 min-w-48 px-4 py-2 bg-gray-50 border-0 rounded-xl text-sm text-ios-text placeholder-ios-secondary focus:ring-2 focus:ring-ios-blue/30 focus:bg-white transition-all"
           @input="debouncedFetch"
         />
         <select
           v-model="filters.status"
-          class="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
+          class="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30 transition-all"
           @change="applyFilters"
         >
           <option value="">{{ t("feedback.allStatuses") }}</option>
@@ -56,7 +56,7 @@
         </select>
         <select
           v-model="filters.category"
-          class="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
+          class="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30 transition-all"
           @change="applyFilters"
         >
           <option value="">{{ t("feedback.allCategories") }}</option>
@@ -66,7 +66,7 @@
         </select>
         <select
           v-model="filters.priority"
-          class="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
+          class="px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30 transition-all"
           @change="applyFilters"
         >
           <option value="">{{ t("feedback.allPriorities") }}</option>
@@ -80,7 +80,7 @@
     <!-- Feedback list -->
     <div v-if="isLoading" class="flex items-center justify-center py-12">
       <div
-        class="w-8 h-8 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin"
+        class="w-8 h-8 border-2 border-ios-blue border-t-transparent rounded-full animate-spin"
       />
     </div>
 
@@ -88,11 +88,11 @@
       v-else-if="feedbackList.length === 0"
       class="bg-white rounded-2xl p-12 shadow-sm text-center"
     >
-      <MessageSquare class="w-12 h-12 text-[#C7C7CC] mx-auto mb-3" />
-      <p class="text-[#8E8E93] text-sm">{{ t("feedback.noFeedback") }}</p>
+      <MessageSquare class="w-12 h-12 text-ios-tertiary mx-auto mb-3" />
+      <p class="text-ios-secondary text-sm">{{ t("feedback.noFeedback") }}</p>
       <button
         v-if="!isAdmin && !showForm"
-        class="mt-4 px-5 py-2.5 rounded-full bg-[#007AFF] text-white text-sm font-semibold hover:bg-[#0071E3] transition-all"
+        class="mt-4 px-5 py-2.5 rounded-full bg-ios-blue text-white text-sm font-semibold hover:bg-blue-600 transition-all"
         @click="showForm = true"
       >
         {{ t("feedback.submit") }}
@@ -128,20 +128,22 @@
                 {{ t(`feedback.priorities.${item.priority}`) }}
               </span>
             </div>
-            <h3 class="text-sm font-semibold text-[#1C1C1E] truncate">
+            <h3 class="text-sm font-semibold text-ios-text truncate">
               {{ item.subject }}
             </h3>
-            <p class="text-xs text-[#8E8E93] mt-1 line-clamp-2">
+            <p class="text-xs text-ios-secondary mt-1 line-clamp-2">
               {{ item.description }}
             </p>
-            <div class="flex items-center gap-3 mt-2 text-xs text-[#8E8E93]">
+            <div
+              class="flex items-center gap-3 mt-2 text-xs text-ios-secondary"
+            >
               <span v-if="isAdmin && item.restaurant"
                 >🏪 {{ item.restaurant.name }}</span
               >
               <span>{{ formatDate(item.createdAt) }}</span>
             </div>
           </div>
-          <ChevronRight class="w-4 h-4 text-[#C7C7CC] flex-shrink-0 mt-1" />
+          <ChevronRight class="w-4 h-4 text-ios-tertiary flex-shrink-0 mt-1" />
         </div>
       </div>
     </div>
@@ -153,17 +155,17 @@
     >
       <button
         :disabled="pagination.page <= 1"
-        class="px-4 py-2 rounded-full text-sm font-medium bg-white shadow-sm text-[#007AFF] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-all"
+        class="px-4 py-2 rounded-full text-sm font-medium bg-white shadow-sm text-ios-blue disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-all"
         @click="changePage(pagination.page - 1)"
       >
         {{ t("common.previous") }}
       </button>
-      <span class="text-sm text-[#8E8E93]">
+      <span class="text-sm text-ios-secondary">
         {{ pagination.page }} / {{ pagination.totalPages }}
       </span>
       <button
         :disabled="pagination.page >= pagination.totalPages"
-        class="px-4 py-2 rounded-full text-sm font-medium bg-white shadow-sm text-[#007AFF] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-all"
+        class="px-4 py-2 rounded-full text-sm font-medium bg-white shadow-sm text-ios-blue disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-all"
         @click="changePage(pagination.page + 1)"
       >
         {{ t("common.next") }}
@@ -182,14 +184,14 @@
             @click="selectedFeedback = null"
           />
           <div
-            class="relative w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-[#F2F2F7] rounded-t-3xl sm:rounded-3xl p-5 space-y-4"
+            class="relative w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-ios-bg rounded-t-3xl sm:rounded-3xl p-5 space-y-4"
           >
             <div class="flex items-center justify-between mb-2">
-              <h2 class="text-base font-semibold text-[#1C1C1E]">
+              <h2 class="text-base font-semibold text-ios-text">
                 {{ t("feedback.detailTitle") }}
               </h2>
               <button
-                class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-[#3C3C43] hover:bg-gray-300 transition-colors"
+                class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-ios-text/85 hover:bg-gray-300 transition-colors"
                 @click="selectedFeedback = null"
               >
                 <X class="w-4 h-4" />
@@ -361,34 +363,34 @@ function formatDate(ts: string | number): string {
 
 function categoryClass(cat: string): string {
   const map: Record<string, string> = {
-    bug_report: "bg-[#FF3B30]/10 text-[#FF3B30]",
-    feature_request: "bg-[#34C759]/10 text-[#34C759]",
-    usability: "bg-[#007AFF]/10 text-[#007AFF]",
-    performance: "bg-[#FF9500]/10 text-[#FF9500]",
+    bug_report: "bg-ios-red/10 text-ios-red",
+    feature_request: "bg-ios-green/10 text-ios-green",
+    usability: "bg-ios-blue/10 text-ios-blue",
+    performance: "bg-ios-orange/10 text-ios-orange",
     billing: "bg-teal-100 text-teal-700",
-    other: "bg-gray-100 text-[#3C3C43]",
+    other: "bg-gray-100 text-ios-text/85",
   };
-  return map[cat] ?? "bg-gray-100 text-[#3C3C43]";
+  return map[cat] ?? "bg-gray-100 text-ios-text/85";
 }
 
 function priorityClass(p: string): string {
   const map: Record<string, string> = {
-    low: "bg-gray-100 text-[#8E8E93]",
-    medium: "bg-[#007AFF]/10 text-[#007AFF]",
-    high: "bg-[#FF9500]/10 text-[#FF9500]",
-    urgent: "bg-[#FF3B30]/10 text-[#FF3B30]",
+    low: "bg-gray-100 text-ios-secondary",
+    medium: "bg-ios-blue/10 text-ios-blue",
+    high: "bg-ios-orange/10 text-ios-orange",
+    urgent: "bg-ios-red/10 text-ios-red",
   };
-  return map[p] ?? "bg-gray-100 text-[#3C3C43]";
+  return map[p] ?? "bg-gray-100 text-ios-text/85";
 }
 
 function statusClass(s: string): string {
   const map: Record<string, string> = {
-    open: "bg-[#007AFF]/10 text-[#007AFF]",
-    in_progress: "bg-[#FF9500]/10 text-[#FF9500]",
-    resolved: "bg-[#34C759]/10 text-[#34C759]",
-    closed: "bg-gray-100 text-[#8E8E93]",
+    open: "bg-ios-blue/10 text-ios-blue",
+    in_progress: "bg-ios-orange/10 text-ios-orange",
+    resolved: "bg-ios-green/10 text-ios-green",
+    closed: "bg-gray-100 text-ios-secondary",
   };
-  return map[s] ?? "bg-gray-100 text-[#3C3C43]";
+  return map[s] ?? "bg-gray-100 text-ios-text/85";
 }
 
 onMounted(() => {

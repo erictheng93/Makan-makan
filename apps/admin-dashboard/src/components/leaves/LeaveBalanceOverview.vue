@@ -8,13 +8,13 @@
       class="flex flex-col items-center justify-center py-16 text-center"
     >
       <div
-        class="w-12 h-12 rounded-full bg-[#007AFF]/10 flex items-center justify-center mb-3"
+        class="w-12 h-12 rounded-full bg-ios-blue/10 flex items-center justify-center mb-3"
       >
-        <BarChart3 class="w-6 h-6 text-[#007AFF]" />
+        <BarChart3 class="w-6 h-6 text-ios-blue" />
       </div>
-      <p class="text-sm font-semibold text-[#1C1C1E]/60">暫無假期餘額資料</p>
+      <p class="text-sm font-semibold text-ios-text/60">暫無假期餘額資料</p>
       <button
-        class="mt-3 px-4 py-2 rounded-full text-sm font-semibold bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors"
+        class="mt-3 px-4 py-2 rounded-full text-sm font-semibold bg-ios-blue text-white hover:bg-blue-600 transition-colors"
         @click="$emit('accrue')"
       >
         初始化假期餘額
@@ -24,7 +24,7 @@
     <div v-else>
       <!-- Table header -->
       <div
-        class="grid grid-cols-[1fr_1fr_auto_auto_auto_auto_120px] gap-x-3 px-4 py-2.5 border-b border-[#F2F2F7] text-xs font-semibold text-[#1C1C1E]/40 uppercase tracking-wider"
+        class="grid grid-cols-[1fr_1fr_auto_auto_auto_auto_120px] gap-x-3 px-4 py-2.5 border-b border-ios-bg text-xs font-semibold text-ios-text/40 uppercase tracking-wider"
       >
         <span>員工</span>
         <span>假別</span>
@@ -40,9 +40,9 @@
         v-for="(balance, index) in sortedBalances"
         :key="balance.id"
         class="grid grid-cols-[1fr_1fr_auto_auto_auto_auto_120px] gap-x-3 px-4 py-3 text-sm items-center"
-        :class="index % 2 === 1 ? 'bg-[#F2F2F7]/40' : ''"
+        :class="index % 2 === 1 ? 'bg-ios-bg/40' : ''"
       >
-        <span class="font-medium text-[#1C1C1E] truncate">
+        <span class="font-medium text-ios-text truncate">
           {{ getEmployeeName(balance.employeeId) }}
         </span>
         <div class="flex items-center gap-1.5 min-w-0">
@@ -51,26 +51,24 @@
             class="w-2 h-2 rounded-full shrink-0"
             :style="{ backgroundColor: balance.color }"
           />
-          <span class="text-[#1C1C1E]/70 truncate">{{
+          <span class="text-ios-text/70 truncate">{{
             balance.leaveTypeName
           }}</span>
         </div>
-        <span class="text-right text-[#1C1C1E]/50">{{
-          balance.totalDays
+        <span class="text-right text-ios-text/50">{{ balance.totalDays }}</span>
+        <span class="text-right text-ios-text/50">{{ balance.usedDays }}</span>
+        <span class="text-right text-ios-orange">{{
+          balance.pendingDays
         }}</span>
-        <span class="text-right text-[#1C1C1E]/50">{{ balance.usedDays }}</span>
-        <span class="text-right text-[#FF9500]">{{ balance.pendingDays }}</span>
         <span
           class="text-right font-semibold"
-          :class="
-            balance.remainingDays > 0 ? 'text-[#34C759]' : 'text-[#FF3B30]'
-          "
+          :class="balance.remainingDays > 0 ? 'text-ios-green' : 'text-ios-red'"
         >
           {{ balance.remainingDays }}
         </span>
         <!-- Usage progress bar -->
         <div class="flex items-center gap-1.5 justify-end">
-          <div class="w-16 h-1.5 bg-[#F2F2F7] rounded-full overflow-hidden">
+          <div class="w-16 h-1.5 bg-ios-bg rounded-full overflow-hidden">
             <div
               class="h-full rounded-full transition-all"
               :class="usageBarColor(balance)"
@@ -119,16 +117,16 @@ const usagePct = (b: LeaveBalance): number => {
 
 const usageBarColor = (b: LeaveBalance): string => {
   const pct = usagePct(b);
-  if (pct >= 90) return "bg-[#FF3B30]";
-  if (pct >= 70) return "bg-[#FF9500]";
-  return "bg-[#34C759]";
+  if (pct >= 90) return "bg-ios-red";
+  if (pct >= 70) return "bg-ios-orange";
+  return "bg-ios-green";
 };
 
 const usageTextColor = (b: LeaveBalance): string => {
   const pct = usagePct(b);
-  if (pct >= 90) return "text-[#FF3B30]";
-  if (pct >= 70) return "text-[#FF9500]";
-  return "text-[#34C759]";
+  if (pct >= 90) return "text-ios-red";
+  if (pct >= 70) return "text-ios-orange";
+  return "text-ios-green";
 };
 
 const sortedBalances = computed(() =>

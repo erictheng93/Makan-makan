@@ -14,7 +14,7 @@
         <!-- Main info -->
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
-            <span class="font-semibold text-[#1C1C1E] text-sm">
+            <span class="font-semibold text-ios-text text-sm">
               {{ employeeName }}
             </span>
             <span
@@ -23,21 +23,21 @@
             >
               {{ request.leaveTypeName || "請假" }}
             </span>
-            <span class="text-xs text-[#1C1C1E]/50">
+            <span class="text-xs text-ios-text/50">
               {{ formatDateRange(request.startDate, request.endDate) }}
               ({{ request.days }}天)
             </span>
           </div>
 
           <!-- Balance snapshot -->
-          <div v-if="balance" class="mt-1 text-xs text-[#1C1C1E]/50">
+          <div v-if="balance" class="mt-1 text-xs text-ios-text/50">
             餘額：{{ balance.leaveTypeName }}剩
             <span
               class="font-medium"
               :class="
                 balance.remainingDays >= request.days
-                  ? 'text-[#34C759]'
-                  : 'text-[#FF3B30]'
+                  ? 'text-ios-green'
+                  : 'text-ios-red'
               "
             >
               {{ balance.remainingDays }}天
@@ -48,21 +48,21 @@
           <!-- Conflict warning (collapsed) -->
           <div
             v-if="conflictLevel === 'understaffed'"
-            class="mt-1.5 flex items-center gap-1 text-xs text-[#FF3B30]"
+            class="mt-1.5 flex items-center gap-1 text-xs text-ios-red"
           >
             <span>⚠</span>
             <span>當天人力低於門檻</span>
           </div>
           <div
             v-else-if="conflictLevel === 'has_colleagues'"
-            class="mt-1.5 flex items-center gap-1 text-xs text-[#FF9500]"
+            class="mt-1.5 flex items-center gap-1 text-xs text-ios-orange"
           >
             <span>⚠</span>
             <span>當天已有{{ sameDayColleagues.length }}人請假</span>
           </div>
           <div
             v-else
-            class="mt-1.5 flex items-center gap-1 text-xs text-[#34C759]"
+            class="mt-1.5 flex items-center gap-1 text-xs text-ios-green"
           >
             <span>✓</span>
             <span>該時段人力充足</span>
@@ -71,7 +71,7 @@
 
         <!-- Expand toggle -->
         <button
-          class="shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#F2F2F7] transition-colors text-[#1C1C1E]/40"
+          class="shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-ios-bg transition-colors text-ios-text/40"
           @click="toggleExpanded"
         >
           <ChevronDown
@@ -84,7 +84,7 @@
       <!-- Action buttons -->
       <div v-if="!showRejectInput" class="flex gap-2 mt-3">
         <button
-          class="flex-1 py-2 rounded-full text-sm font-semibold bg-[#34C759] text-white hover:bg-[#2DB34A] transition-colors"
+          class="flex-1 py-2 rounded-full text-sm font-semibold bg-ios-green text-white hover:bg-green-600 transition-colors"
           :disabled="isProcessing"
           @click="handleApprove"
         >
@@ -100,7 +100,7 @@
           <span v-else>批准</span>
         </button>
         <button
-          class="flex-1 py-2 rounded-full text-sm font-semibold border border-[#FF3B30] text-[#FF3B30] hover:bg-[#FF3B30]/8 transition-colors"
+          class="flex-1 py-2 rounded-full text-sm font-semibold border border-ios-red text-ios-red hover:bg-ios-red/10 transition-colors"
           :disabled="isProcessing"
           @click="showRejectInput = true"
         >
@@ -114,13 +114,13 @@
           v-model="rejectReason"
           type="text"
           placeholder="拒絕原因（可選）"
-          class="w-full px-3 py-2 text-sm bg-[#F2F2F7] rounded-xl border-none focus:shadow-[0_0_0_2px_rgba(255,59,48,0.25)] focus:bg-white transition-all text-[#1C1C1E] placeholder-[#1C1C1E]/30"
+          class="w-full px-3 py-2 text-sm bg-ios-bg rounded-xl border-none focus:shadow-[0_0_0_2px_rgba(255,59,48,0.25)] focus:bg-white transition-all text-ios-text placeholder-ios-text/30"
           @keydown.enter="handleReject"
           @keydown.esc="showRejectInput = false"
         />
         <div class="flex gap-2">
           <button
-            class="flex-1 py-2 rounded-full text-sm font-semibold bg-[#FF3B30] text-white hover:bg-[#D63027] transition-colors"
+            class="flex-1 py-2 rounded-full text-sm font-semibold bg-ios-red text-white hover:bg-red-600 transition-colors"
             :disabled="isProcessing"
             @click="handleReject"
           >
@@ -136,7 +136,7 @@
             <span v-else>確認拒絕</span>
           </button>
           <button
-            class="px-4 py-2 rounded-full text-sm font-semibold text-[#1C1C1E]/60 hover:bg-[#F2F2F7] transition-colors"
+            class="px-4 py-2 rounded-full text-sm font-semibold text-ios-text/60 hover:bg-ios-bg transition-colors"
             @click="
               showRejectInput = false;
               rejectReason = '';
@@ -152,10 +152,10 @@
     <Transition name="accordion">
       <div
         v-if="isExpanded"
-        class="border-t border-[#F2F2F7] px-4 py-3 bg-[#F2F2F7]/40"
+        class="border-t border-ios-bg px-4 py-3 bg-ios-bg/40"
       >
         <p
-          class="text-xs font-semibold text-[#1C1C1E]/50 mb-2 uppercase tracking-wider"
+          class="text-xs font-semibold text-ios-text/50 mb-2 uppercase tracking-wider"
         >
           排班概覽
         </p>
@@ -169,14 +169,14 @@
 
         <!-- Same-day colleagues list -->
         <div v-if="sameDayColleagues.length > 0" class="mt-3">
-          <p class="text-xs font-semibold text-[#1C1C1E]/50 mb-1.5">
+          <p class="text-xs font-semibold text-ios-text/50 mb-1.5">
             同日請假同事
           </p>
           <div class="flex flex-wrap gap-1.5">
             <span
               v-for="col in sameDayColleagues"
               :key="col.id"
-              class="text-xs px-2 py-0.5 bg-[#FF3B30]/10 text-[#FF3B30] rounded-full font-medium"
+              class="text-xs px-2 py-0.5 bg-ios-red/10 text-ios-red rounded-full font-medium"
             >
               {{ col.employeeName || `員工${col.employeeId}` }}
             </span>
@@ -185,8 +185,8 @@
 
         <!-- Reason -->
         <div v-if="request.reason" class="mt-3">
-          <p class="text-xs font-semibold text-[#1C1C1E]/50 mb-1">請假原因</p>
-          <p class="text-sm text-[#1C1C1E]/70">{{ request.reason }}</p>
+          <p class="text-xs font-semibold text-ios-text/50 mb-1">請假原因</p>
+          <p class="text-sm text-ios-text/70">{{ request.reason }}</p>
         </div>
       </div>
     </Transition>
@@ -239,9 +239,9 @@ const { sameDayColleagues, urgencyLevel } = useLeaveConflict(
 const conflictLevel = urgencyLevel;
 
 const urgencyColor = computed(() => {
-  if (conflictLevel.value === "understaffed") return "bg-[#FF3B30]";
-  if (conflictLevel.value === "has_colleagues") return "bg-[#FF9500]";
-  return "bg-[#34C759]";
+  if (conflictLevel.value === "understaffed") return "bg-ios-red";
+  if (conflictLevel.value === "has_colleagues") return "bg-ios-orange";
+  return "bg-ios-green";
 });
 
 const leaveTypeBadgeStyle = computed(() => {

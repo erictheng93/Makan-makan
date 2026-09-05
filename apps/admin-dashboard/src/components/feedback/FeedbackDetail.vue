@@ -6,27 +6,28 @@
       <template v-if="isEditingFeedback">
         <div class="space-y-4">
           <div>
-            <label class="block text-xs font-medium text-[#8E8E93] mb-1">{{
+            <label class="block text-xs font-medium text-ios-secondary mb-1">{{
               t("feedback.subjectLabel")
             }}</label>
             <input
               v-model="editForm.subject"
               type="text"
               maxlength="200"
-              class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white transition-all"
+              class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30 focus:bg-white transition-all"
             />
-            <span class="text-[10px] text-[#8E8E93] mt-0.5 block text-right"
+            <span class="text-[10px] text-ios-secondary mt-0.5 block text-right"
               >{{ editForm.subject.length }}/200</span
             >
           </div>
           <div class="flex flex-wrap gap-3">
             <div class="flex-1 min-w-[120px]">
-              <label class="block text-xs font-medium text-[#8E8E93] mb-1">{{
-                t("feedback.typeLabel")
-              }}</label>
+              <label
+                class="block text-xs font-medium text-ios-secondary mb-1"
+                >{{ t("feedback.typeLabel") }}</label
+              >
               <select
                 v-model="editForm.category"
-                class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
+                class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30 transition-all"
               >
                 <option
                   v-for="cat in feedbackCategories"
@@ -38,12 +39,13 @@
               </select>
             </div>
             <div class="flex-1 min-w-[120px]">
-              <label class="block text-xs font-medium text-[#8E8E93] mb-1">{{
-                t("feedback.priorityLabel")
-              }}</label>
+              <label
+                class="block text-xs font-medium text-ios-secondary mb-1"
+                >{{ t("feedback.priorityLabel") }}</label
+              >
               <select
                 v-model="editForm.priority"
-                class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
+                class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30 transition-all"
               >
                 <option v-for="p in feedbackPriorities" :key="p" :value="p">
                   {{ t(`feedback.priorities.${p}`) }}
@@ -51,12 +53,13 @@
               </select>
             </div>
             <div class="flex-1 min-w-[120px]">
-              <label class="block text-xs font-medium text-[#8E8E93] mb-1">{{
-                t("feedback.moduleLabel")
-              }}</label>
+              <label
+                class="block text-xs font-medium text-ios-secondary mb-1"
+                >{{ t("feedback.moduleLabel") }}</label
+              >
               <select
                 v-model="editForm.relatedModule"
-                class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
+                class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30 transition-all"
               >
                 <option v-for="m in feedbackModules" :key="m" :value="m">
                   {{ t(`feedback.modules.${m}`) }}
@@ -65,29 +68,29 @@
             </div>
           </div>
           <div>
-            <label class="block text-xs font-medium text-[#8E8E93] mb-1">{{
+            <label class="block text-xs font-medium text-ios-secondary mb-1">{{
               t("feedback.descriptionLabel")
             }}</label>
             <textarea
               v-model="editForm.description"
               rows="4"
               maxlength="5000"
-              class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white transition-all resize-none"
+              class="w-full px-3 py-2 bg-gray-50 border-0 rounded-xl text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30 focus:bg-white transition-all resize-none"
             />
-            <span class="text-[10px] text-[#8E8E93] mt-0.5 block text-right"
+            <span class="text-[10px] text-ios-secondary mt-0.5 block text-right"
               >{{ editForm.description.length }}/5000</span
             >
           </div>
           <div class="flex items-center gap-2">
             <button
               :disabled="!isEditFormValid"
-              class="px-4 py-1.5 rounded-full text-xs font-semibold bg-[#007AFF] text-white hover:bg-[#0071E3] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              class="px-4 py-1.5 rounded-full text-xs font-semibold bg-ios-blue text-white hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               @click="handleSaveFeedback"
             >
               {{ t("feedback.saveEdit") }}
             </button>
             <button
-              class="px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-[#3C3C43] hover:bg-gray-200 transition-all"
+              class="px-4 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-ios-text/85 hover:bg-gray-200 transition-all"
               @click="cancelFeedbackEdit"
             >
               {{ t("feedback.cancelEdit") }}
@@ -100,7 +103,7 @@
       <template v-else>
         <div class="flex items-start justify-between gap-3 mb-4">
           <div class="flex-1">
-            <h2 class="text-lg font-semibold text-[#1C1C1E] mb-1">
+            <h2 class="text-lg font-semibold text-ios-text mb-1">
               {{ feedback.subject }}
             </h2>
             <div class="flex flex-wrap items-center gap-2 mt-2">
@@ -123,7 +126,7 @@
                 {{ t(`feedback.statuses.${feedback.status}`) }}
               </span>
               <span
-                class="px-2.5 py-0.5 rounded-full text-xs bg-gray-100 text-[#3C3C43]"
+                class="px-2.5 py-0.5 rounded-full text-xs bg-gray-100 text-ios-text/85"
               >
                 {{ t(`feedback.modules.${feedback.relatedModule}`) }}
               </span>
@@ -134,14 +137,14 @@
             <!-- Edit / Delete feedback buttons -->
             <template v-if="canEditFeedback">
               <button
-                class="p-1.5 rounded-xl text-[#8E8E93] hover:text-[#007AFF] hover:bg-[#007AFF]/10 transition-colors"
+                class="p-1.5 rounded-xl text-ios-secondary hover:text-ios-blue hover:bg-ios-blue/10 transition-colors"
                 :title="t('feedback.editFeedback')"
                 @click="startFeedbackEdit"
               >
                 <Pencil class="w-4 h-4" />
               </button>
               <button
-                class="p-1.5 rounded-xl text-[#8E8E93] hover:text-[#FF3B30] hover:bg-[#FF3B30]/10 transition-colors"
+                class="p-1.5 rounded-xl text-ios-secondary hover:text-ios-red hover:bg-ios-red/10 transition-colors"
                 :title="t('feedback.deleteFeedback')"
                 @click="isDeletingFeedback = true"
               >
@@ -152,7 +155,7 @@
             <select
               v-if="isAdmin"
               :value="feedback.status"
-              class="px-3 py-1.5 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
+              class="px-3 py-1.5 bg-gray-50 border-0 rounded-xl text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30 transition-all"
               @change="handleStatusChange"
             >
               <option value="open">{{ t("feedback.statuses.open") }}</option>
@@ -169,27 +172,27 @@
           </div>
         </div>
 
-        <p class="text-sm text-[#3C3C43] leading-relaxed whitespace-pre-wrap">
+        <p class="text-sm text-ios-text/85 leading-relaxed whitespace-pre-wrap">
           {{ feedback.description }}
         </p>
 
         <!-- Delete confirmation -->
         <div
           v-if="isDeletingFeedback"
-          class="mt-3 p-3 bg-[#FF3B30]/5 rounded-xl flex items-center justify-between gap-3"
+          class="mt-3 p-3 bg-ios-red/5 rounded-xl flex items-center justify-between gap-3"
         >
-          <p class="text-sm text-[#FF3B30] font-medium">
+          <p class="text-sm text-ios-red font-medium">
             {{ t("feedback.deleteConfirm") }}
           </p>
           <div class="flex gap-2 flex-shrink-0">
             <button
-              class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-[#3C3C43] hover:bg-gray-200 transition-all"
+              class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-ios-text/85 hover:bg-gray-200 transition-all"
               @click="isDeletingFeedback = false"
             >
               {{ t("feedback.cancelEdit") }}
             </button>
             <button
-              class="px-3 py-1 rounded-full text-xs font-semibold bg-[#FF3B30] text-white hover:bg-[#D63027] transition-all"
+              class="px-3 py-1 rounded-full text-xs font-semibold bg-ios-red text-white hover:bg-red-600 transition-all"
               @click="handleDeleteFeedback"
             >
               {{ t("feedback.confirmDelete") }}
@@ -200,7 +203,7 @@
 
       <!-- Metadata footer -->
       <div
-        class="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#8E8E93]"
+        class="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ios-secondary"
       >
         <span v-if="feedback.restaurant">
           🏪 {{ feedback.restaurant.name }}
@@ -209,7 +212,7 @@
           👤 {{ feedback.user.fullName || feedback.user.username }}
         </span>
         <span>{{ formatDate(feedback.createdAt) }}</span>
-        <span v-if="feedback.resolvedAt" class="text-[#34C759]">
+        <span v-if="feedback.resolvedAt" class="text-ios-green">
           ✓ {{ t("feedback.resolvedAt") }} {{ formatDate(feedback.resolvedAt) }}
         </span>
       </div>
@@ -226,7 +229,7 @@
           :href="url"
           target="_blank"
           rel="noopener noreferrer"
-          class="flex items-center gap-1.5 px-3 py-1.5 bg-[#007AFF]/10 text-[#007AFF] rounded-lg text-xs font-medium hover:bg-[#007AFF]/20 transition-colors"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-ios-blue/10 text-ios-blue rounded-lg text-xs font-medium hover:bg-ios-blue/20 transition-colors"
         >
           <Paperclip class="w-3 h-3" />
           {{ t("feedback.attachment") }} {{ i + 1 }}
@@ -237,9 +240,9 @@
     <!-- Responses thread -->
     <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
       <div class="px-5 py-4 border-b border-gray-100">
-        <h3 class="text-sm font-semibold text-[#1C1C1E]">
+        <h3 class="text-sm font-semibold text-ios-text">
           {{ t("feedback.replies") }}
-          <span class="ml-1 text-[#8E8E93] font-normal">
+          <span class="ml-1 text-ios-secondary font-normal">
             ({{ visibleResponses.length }})
           </span>
         </h3>
@@ -259,15 +262,15 @@
                 response.isInternal
                   ? 'bg-amber-100 text-amber-700'
                   : isAdminUser(response.userId)
-                    ? 'bg-[#007AFF]/10 text-[#007AFF]'
-                    : 'bg-gray-100 text-[#3C3C43]'
+                    ? 'bg-ios-blue/10 text-ios-blue'
+                    : 'bg-gray-100 text-ios-text/85'
               "
             >
               {{ getInitials(response.user) }}
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1">
-                <span class="text-xs font-semibold text-[#1C1C1E]">
+                <span class="text-xs font-semibold text-ios-text">
                   {{
                     response.user?.fullName || response.user?.username || "—"
                   }}
@@ -278,21 +281,21 @@
                 >
                   {{ t("feedback.internalNote") }}
                 </span>
-                <span class="text-[10px] text-[#8E8E93] ml-auto">
+                <span class="text-[10px] text-ios-secondary ml-auto">
                   {{ formatDate(response.createdAt) }}
                 </span>
                 <!-- Edit / Delete actions (own reply or admin) -->
                 <template v-if="canEditResponse(response)">
                   <button
                     v-if="editingResponseId !== response.id"
-                    class="p-1 rounded-lg text-[#8E8E93] hover:text-[#007AFF] hover:bg-[#007AFF]/10 transition-colors"
+                    class="p-1 rounded-lg text-ios-secondary hover:text-ios-blue hover:bg-ios-blue/10 transition-colors"
                     :title="t('feedback.editReply')"
                     @click="startEdit(response)"
                   >
                     <Pencil class="w-3.5 h-3.5" />
                   </button>
                   <button
-                    class="p-1 rounded-lg text-[#8E8E93] hover:text-[#FF3B30] hover:bg-[#FF3B30]/10 transition-colors"
+                    class="p-1 rounded-lg text-ios-secondary hover:text-ios-red hover:bg-ios-red/10 transition-colors"
                     :title="t('feedback.deleteReply')"
                     @click="handleDeleteResponse(response.id)"
                   >
@@ -307,7 +310,7 @@
                   v-model="editingMessage"
                   rows="3"
                   maxlength="2000"
-                  class="w-full px-3 py-2 bg-gray-50 border border-[#007AFF]/30 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white transition-all resize-none"
+                  class="w-full px-3 py-2 bg-gray-50 border border-ios-blue/30 rounded-xl text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30 focus:bg-white transition-all resize-none"
                 />
                 <div class="flex items-center gap-2 mt-2">
                   <button
@@ -315,13 +318,13 @@
                       !editingMessage.trim() ||
                       editingMessage === response.message
                     "
-                    class="px-3 py-1 rounded-full text-xs font-semibold bg-[#007AFF] text-white hover:bg-[#0071E3] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    class="px-3 py-1 rounded-full text-xs font-semibold bg-ios-blue text-white hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                     @click="handleUpdateResponse(response.id)"
                   >
                     {{ t("feedback.saveEdit") }}
                   </button>
                   <button
-                    class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-[#3C3C43] hover:bg-gray-200 transition-all"
+                    class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-ios-text/85 hover:bg-gray-200 transition-all"
                     @click="cancelEdit"
                   >
                     {{ t("feedback.cancelEdit") }}
@@ -330,7 +333,7 @@
               </template>
               <p
                 v-else
-                class="text-sm text-[#3C3C43] leading-relaxed whitespace-pre-wrap"
+                class="text-sm text-ios-text/85 leading-relaxed whitespace-pre-wrap"
               >
                 {{ response.message }}
               </p>
@@ -340,8 +343,8 @@
       </div>
 
       <div v-else class="px-5 py-10 text-center">
-        <MessageCircle class="w-10 h-10 text-[#C7C7CC] mx-auto mb-2" />
-        <p class="text-sm text-[#8E8E93]">{{ t("feedback.noReplies") }}</p>
+        <MessageCircle class="w-10 h-10 text-ios-tertiary mx-auto mb-2" />
+        <p class="text-sm text-ios-secondary">{{ t("feedback.noReplies") }}</p>
       </div>
 
       <!-- Reply input -->
@@ -351,7 +354,7 @@
           :placeholder="t('feedback.replyPlaceholder')"
           rows="3"
           maxlength="2000"
-          class="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm text-[#1C1C1E] placeholder-[#8E8E93] focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white transition-all resize-none"
+          class="w-full px-4 py-2.5 bg-gray-50 border-0 rounded-xl text-sm text-ios-text placeholder-ios-secondary focus:ring-2 focus:ring-ios-blue/30 focus:bg-white transition-all resize-none"
         />
         <div class="flex items-center justify-between gap-3">
           <label v-if="isAdmin" class="flex items-center gap-2 cursor-pointer">
@@ -360,14 +363,14 @@
               type="checkbox"
               class="w-4 h-4 rounded text-amber-500 focus:ring-amber-400"
             />
-            <span class="text-xs text-[#3C3C43]">{{
+            <span class="text-xs text-ios-text/85">{{
               t("feedback.markInternal")
             }}</span>
           </label>
           <div v-else />
           <button
             :disabled="!replyMessage.trim()"
-            class="px-5 py-2 rounded-full text-sm font-semibold bg-[#007AFF] text-white hover:bg-[#0071E3] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+            class="px-5 py-2 rounded-full text-sm font-semibold bg-ios-blue text-white hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
             @click="handleReply"
           >
             {{ t("feedback.sendReply") }}
@@ -568,34 +571,34 @@ function formatDate(ts: string | number | null): string {
 
 function categoryClass(cat: string): string {
   const map: Record<string, string> = {
-    bug_report: "bg-[#FF3B30]/10 text-[#FF3B30]",
-    feature_request: "bg-[#34C759]/10 text-[#34C759]",
-    usability: "bg-[#007AFF]/10 text-[#007AFF]",
-    performance: "bg-[#FF9500]/10 text-[#FF9500]",
+    bug_report: "bg-ios-red/10 text-ios-red",
+    feature_request: "bg-ios-green/10 text-ios-green",
+    usability: "bg-ios-blue/10 text-ios-blue",
+    performance: "bg-ios-orange/10 text-ios-orange",
     billing: "bg-teal-100 text-teal-700",
-    other: "bg-gray-100 text-[#3C3C43]",
+    other: "bg-gray-100 text-ios-text/85",
   };
-  return map[cat] ?? "bg-gray-100 text-[#3C3C43]";
+  return map[cat] ?? "bg-gray-100 text-ios-text/85";
 }
 
 function priorityClass(p: string): string {
   const map: Record<string, string> = {
-    low: "bg-gray-100 text-[#8E8E93]",
-    medium: "bg-[#007AFF]/10 text-[#007AFF]",
-    high: "bg-[#FF9500]/10 text-[#FF9500]",
-    urgent: "bg-[#FF3B30]/10 text-[#FF3B30]",
+    low: "bg-gray-100 text-ios-secondary",
+    medium: "bg-ios-blue/10 text-ios-blue",
+    high: "bg-ios-orange/10 text-ios-orange",
+    urgent: "bg-ios-red/10 text-ios-red",
   };
-  return map[p] ?? "bg-gray-100 text-[#3C3C43]";
+  return map[p] ?? "bg-gray-100 text-ios-text/85";
 }
 
 function statusClass(s: string): string {
   const map: Record<string, string> = {
-    open: "bg-[#007AFF]/10 text-[#007AFF]",
-    in_progress: "bg-[#FF9500]/10 text-[#FF9500]",
-    resolved: "bg-[#34C759]/10 text-[#34C759]",
-    closed: "bg-gray-100 text-[#8E8E93]",
+    open: "bg-ios-blue/10 text-ios-blue",
+    in_progress: "bg-ios-orange/10 text-ios-orange",
+    resolved: "bg-ios-green/10 text-ios-green",
+    closed: "bg-gray-100 text-ios-secondary",
   };
-  return map[s] ?? "bg-gray-100 text-[#3C3C43]";
+  return map[s] ?? "bg-gray-100 text-ios-text/85";
 }
 
 async function handleStatusChange(e: Event) {

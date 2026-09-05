@@ -1,12 +1,12 @@
 <template>
-  <div class="menu-view p-6 bg-[#F2F2F7] min-h-screen">
+  <div class="menu-view p-6 bg-ios-bg min-h-screen">
     <!-- Page header -->
     <div
       class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6"
     >
       <div>
-        <h1 class="text-2xl font-bold text-[#1C1C1E]">{{ t("menu.title") }}</h1>
-        <p class="text-[15px] text-[#8E8E93] mt-0.5">
+        <h1 class="text-2xl font-bold text-ios-text">{{ t("menu.title") }}</h1>
+        <p class="text-[15px] text-ios-secondary mt-0.5">
           {{ t("menu.subtitle") }}
         </p>
       </div>
@@ -15,10 +15,10 @@
         <div
           class="flex items-center gap-1.5 px-3.5 py-2 bg-white rounded-full shadow-[0_1px_6px_rgba(0,0,0,0.06)]"
         >
-          <span class="text-[13px] font-semibold text-[#1C1C1E]">{{
+          <span class="text-[13px] font-semibold text-ios-text">{{
             categories.length
           }}</span>
-          <span class="text-[12px] text-[#8E8E93]">{{
+          <span class="text-[12px] text-ios-secondary">{{
             t("menu.stats.categories")
           }}</span>
         </div>
@@ -26,21 +26,21 @@
         <div
           class="flex items-center gap-1.5 px-3.5 py-2 bg-white rounded-full shadow-[0_1px_6px_rgba(0,0,0,0.06)]"
         >
-          <span class="text-[13px] font-semibold text-[#1C1C1E]">{{
+          <span class="text-[13px] font-semibold text-ios-text">{{
             menuItems.length
           }}</span>
-          <span class="text-[12px] text-[#8E8E93]">{{
+          <span class="text-[12px] text-ios-secondary">{{
             t("menu.stats.items")
           }}</span>
         </div>
         <!-- Available stat chip -->
         <div
-          class="flex items-center gap-1.5 px-3.5 py-2 bg-[#E8F5E9] rounded-full"
+          class="flex items-center gap-1.5 px-3.5 py-2 bg-ios-green-soft rounded-full"
         >
-          <span class="text-[13px] font-semibold text-[#2D8E47]">{{
+          <span class="text-[13px] font-semibold text-ios-green-deep">{{
             availableCount
           }}</span>
-          <span class="text-[12px] text-[#2D8E47]">{{
+          <span class="text-[12px] text-ios-green-deep">{{
             t("menu.stats.available")
           }}</span>
         </div>
@@ -68,11 +68,11 @@
           class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 bg-white rounded-2xl px-5 py-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
         >
           <div class="flex items-center gap-3">
-            <h2 class="text-[17px] font-bold text-[#1C1C1E]">
+            <h2 class="text-[17px] font-bold text-ios-text">
               {{ currentCategoryName }}
             </h2>
             <span
-              class="px-2.5 py-0.5 bg-[#F2F2F7] rounded-full text-[12px] font-semibold text-[#8E8E93]"
+              class="px-2.5 py-0.5 bg-ios-bg rounded-full text-[12px] font-semibold text-ios-secondary"
             >
               {{
                 t("menu.itemsHeader.itemCount", { count: filteredItems.length })
@@ -83,27 +83,27 @@
             <!-- Search input -->
             <div class="relative">
               <MagnifyingGlassIcon
-                class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#AEAEB2]"
+                class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ios-tertiary"
               />
               <input
                 v-model="searchQuery"
                 data-testid="admin-menu-search"
                 type="text"
                 :placeholder="t('menu.searchPlaceholder')"
-                class="pl-9 pr-4 py-2 bg-[#F2F2F7] rounded-full text-[13px] text-[#1C1C1E] placeholder-[#AEAEB2] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 w-44 transition-all"
+                class="pl-9 pr-4 py-2 bg-ios-bg rounded-full text-[13px] text-ios-text placeholder-ios-tertiary border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 w-44 transition-all"
               />
             </div>
 
             <!-- Status filter pills -->
-            <div class="flex items-center bg-[#F2F2F7] rounded-full p-0.5">
+            <div class="flex items-center bg-ios-bg rounded-full p-0.5">
               <button
                 v-for="filter in statusFilters"
                 :key="filter.value"
                 :class="[
                   'px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all',
                   statusFilter === filter.value
-                    ? 'bg-white text-[#1C1C1E] shadow-[0_1px_4px_rgba(0,0,0,0.1)]'
-                    : 'text-[#8E8E93] hover:text-[#1C1C1E]',
+                    ? 'bg-white text-ios-text shadow-[0_1px_4px_rgba(0,0,0,0.1)]'
+                    : 'text-ios-secondary hover:text-ios-text',
                 ]"
                 @click="statusFilter = filter.value"
               >
@@ -114,7 +114,7 @@
             <!-- Add item button -->
             <button
               data-testid="admin-menu-add-item"
-              class="flex items-center gap-1.5 px-[18px] py-[9px] bg-[#0066D6] text-white rounded-full text-[13px] font-semibold -translate-y-px shadow-[0_4px_14px_rgba(0,122,255,0.3)]"
+              class="flex items-center gap-1.5 px-[18px] py-[9px] bg-blue-600 text-white rounded-full text-[13px] font-semibold -translate-y-px shadow-[0_4px_14px_rgba(0,122,255,0.3)]"
               @click="openAddItemModal"
             >
               <PlusIcon class="h-4 w-4" />
@@ -139,16 +139,16 @@
           </div>
           <div class="flex flex-col gap-3 sm:flex-row sm:justify-between">
             <div>
-              <h3 class="text-[15px] font-bold text-[#1C1C1E]">
+              <h3 class="text-[15px] font-bold text-ios-text">
                 {{ t("menu.import.title") }}
               </h3>
-              <p class="mt-1 text-[13px] text-[#8E8E93]">
+              <p class="mt-1 text-[13px] text-ios-secondary">
                 {{ t("menu.import.description") }}
               </p>
             </div>
             <button
               type="button"
-              class="w-fit rounded-full bg-[#F2F2F7] px-3.5 py-2 text-[13px] font-semibold text-[#1C1C1E] hover:bg-[#E5E5EA]"
+              class="w-fit rounded-full bg-ios-bg px-3.5 py-2 text-[13px] font-semibold text-ios-text hover:bg-ios-separator"
               @click="loadMenuItemImportExample"
             >
               {{ t("menu.import.loadExample") }}
@@ -159,7 +159,7 @@
             v-model="menuItemImportText"
             rows="6"
             data-testid="menu-item-import-csv"
-            class="mt-3 w-full rounded-xl border-0 bg-[#F2F2F7] px-3 py-2 font-mono text-[13px] text-[#1C1C1E] outline-none focus:ring-2 focus:ring-ios-primary/30"
+            class="mt-3 w-full rounded-xl border-0 bg-ios-bg px-3 py-2 font-mono text-[13px] text-ios-text outline-none focus:ring-2 focus:ring-ios-primary/30"
             placeholder="name,category,price,description,imageUrl,isFeatured,isAvailable,sortOrder,catalogType,tags,keywords"
           />
 
@@ -223,7 +223,7 @@
             <button
               type="button"
               data-testid="menu-item-import-submit"
-              class="rounded-full bg-[#0066D6] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_4px_14px_rgba(0,122,255,0.25)] disabled:opacity-50"
+              class="rounded-full bg-blue-600 px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_4px_14px_rgba(0,122,255,0.25)] disabled:opacity-50"
               :disabled="
                 isImportingMenuItems ||
                 !menuItemImportText.trim() ||
@@ -280,16 +280,16 @@
           v-if="filteredItems.length === 0 && !isLoading"
           class="flex flex-col items-center justify-center py-20 bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
         >
-          <CakeIcon class="h-14 w-14 text-[#AEAEB2] mb-3" />
-          <h3 class="text-[17px] font-semibold text-[#1C1C1E] mb-1">
+          <CakeIcon class="h-14 w-14 text-ios-tertiary mb-3" />
+          <h3 class="text-[17px] font-semibold text-ios-text mb-1">
             {{ t("menu.empty.title") }}
           </h3>
-          <p class="text-[14px] text-[#8E8E93] mb-5">
+          <p class="text-[14px] text-ios-secondary mb-5">
             {{ t("menu.empty.subtitle") }}
           </p>
           <button
             data-testid="admin-menu-add-item-empty"
-            class="flex items-center gap-1.5 px-5 py-2.5 bg-[#0066D6] text-white rounded-full text-[14px] font-semibold -translate-y-px shadow-[0_4px_14px_rgba(0,122,255,0.3)]"
+            class="flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 text-white rounded-full text-[14px] font-semibold -translate-y-px shadow-[0_4px_14px_rgba(0,122,255,0.3)]"
             @click="openAddItemModal"
           >
             <PlusIcon class="h-4 w-4" />
@@ -331,16 +331,16 @@
             >
               <ExclamationTriangleIcon class="h-6 w-6 text-ios-error" />
             </div>
-            <h3 class="text-[17px] font-bold text-[#1C1C1E] mb-2">
+            <h3 class="text-[17px] font-bold text-ios-text mb-2">
               {{ deleteConfirmTitle }}
             </h3>
-            <p class="text-[14px] text-[#8E8E93] mb-6">
+            <p class="text-[14px] text-ios-secondary mb-6">
               {{ deleteConfirmMessage }}
             </p>
             <div class="flex gap-2.5 justify-center">
               <button
                 data-testid="admin-delete-cancel"
-                class="px-5 py-2.5 text-[14px] font-semibold text-[#1C1C1E] bg-[#F2F2F7] rounded-full hover:bg-[#E5E5EA] transition-colors"
+                class="px-5 py-2.5 text-[14px] font-semibold text-ios-text bg-ios-bg rounded-full hover:bg-ios-separator transition-colors"
                 @click="cancelDelete"
               >
                 {{ t("common.cancel") }}
@@ -370,7 +370,7 @@
           data-testid="item-modal"
         >
           <div class="p-6">
-            <h3 class="text-[18px] font-bold text-[#1C1C1E] mb-5">
+            <h3 class="text-[18px] font-bold text-ios-text mb-5">
               {{ editingMenuItem ? t("menu.editItem") : t("menu.addItem") }}
             </h3>
 
@@ -382,17 +382,17 @@
               data-status="conflict"
               role="alert"
               aria-live="assertive"
-              class="mb-5 rounded-2xl bg-[#FFF6E5] px-4 py-3.5 shadow-ios-sm transition-all duration-300 ease-out"
+              class="mb-5 rounded-2xl bg-ios-orange-soft px-4 py-3.5 shadow-ios-sm transition-all duration-300 ease-out"
             >
               <div class="flex items-start gap-2.5">
                 <ExclamationTriangleIcon
                   class="mt-0.5 h-5 w-5 shrink-0 text-ios-warning"
                 />
                 <div class="flex-1">
-                  <p class="text-[14px] font-semibold text-[#1C1C1E]">
+                  <p class="text-[14px] font-semibold text-ios-text">
                     {{ t("menu.conflict.title") }}
                   </p>
-                  <p class="mt-1 text-[13px] leading-5 text-[#8E8E93]">
+                  <p class="mt-1 text-[13px] leading-5 text-ios-secondary">
                     {{
                       menuItemConflict.removed
                         ? t("menu.conflict.removed")
@@ -414,7 +414,7 @@
                     <button
                       type="button"
                       data-testid="menu-item-conflict-dismiss"
-                      class="rounded-full bg-white/70 px-4 py-2 text-[13px] font-semibold text-[#1C1C1E] transition-colors hover:bg-white"
+                      class="rounded-full bg-white/70 px-4 py-2 text-[13px] font-semibold text-ios-text transition-colors hover:bg-white"
                       @click="
                         menuItemConflict.removed
                           ? closeMenuItemModal()
@@ -439,16 +439,18 @@
               data-status="merged"
               role="status"
               aria-live="polite"
-              class="mb-5 rounded-2xl bg-[#EAF4FF] px-4 py-3.5 shadow-ios-sm transition-all duration-300 ease-out"
+              class="mb-5 rounded-2xl bg-ios-blue-soft px-4 py-3.5 shadow-ios-sm transition-all duration-300 ease-out"
             >
-              <p class="text-[14px] font-semibold text-[#1C1C1E]">
+              <p class="text-[14px] font-semibold text-ios-text">
                 {{ t("menu.conflict.mergedTitle") }}
               </p>
-              <ul class="mt-1.5 space-y-1 text-[13px] leading-5 text-[#8E8E93]">
+              <ul
+                class="mt-1.5 space-y-1 text-[13px] leading-5 text-ios-secondary"
+              >
                 <li
                   v-if="menuItemMergeSummary.overridden.length"
                   data-testid="menu-item-merge-overridden"
-                  class="text-[#B25E00]"
+                  class="text-ios-orange-deep"
                 >
                   {{
                     t("menu.conflict.mergedOverridden", {
@@ -494,7 +496,7 @@
                 <!-- Item name -->
                 <div class="md:col-span-2">
                   <label
-                    class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
+                    class="block text-[13px] font-semibold text-ios-text mb-1.5"
                   >
                     {{ t("menu.form.itemName") }}
                     <span class="text-ios-error ml-0.5">*</span>
@@ -504,28 +506,28 @@
                     data-testid="menu-item-name-input"
                     type="text"
                     required
-                    class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
+                    class="w-full px-4 py-2.5 bg-ios-bg rounded-xl text-[14px] text-ios-text border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
                   />
                 </div>
 
                 <!-- Name (English) -->
                 <div>
                   <label
-                    class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
+                    class="block text-[13px] font-semibold text-ios-text mb-1.5"
                   >
                     {{ t("menu.form.nameEn") }}
                   </label>
                   <input
                     v-model="menuItemForm.nameEn"
                     type="text"
-                    class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
+                    class="w-full px-4 py-2.5 bg-ios-bg rounded-xl text-[14px] text-ios-text border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
                   />
                 </div>
 
                 <!-- Original price -->
                 <div>
                   <label
-                    class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
+                    class="block text-[13px] font-semibold text-ios-text mb-1.5"
                   >
                     {{ t("menu.form.originalPrice") }}
                   </label>
@@ -534,14 +536,14 @@
                     type="number"
                     step="0.01"
                     min="0"
-                    class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
+                    class="w-full px-4 py-2.5 bg-ios-bg rounded-xl text-[14px] text-ios-text border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
                   />
                 </div>
 
                 <!-- Price -->
                 <div>
                   <label
-                    class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
+                    class="block text-[13px] font-semibold text-ios-text mb-1.5"
                   >
                     {{ t("menu.form.price") }}
                     <span class="text-ios-error ml-0.5">*</span>
@@ -553,14 +555,14 @@
                     step="0.01"
                     min="1"
                     required
-                    class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
+                    class="w-full px-4 py-2.5 bg-ios-bg rounded-xl text-[14px] text-ios-text border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
                   />
                 </div>
 
                 <!-- Category -->
                 <div>
                   <label
-                    class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
+                    class="block text-[13px] font-semibold text-ios-text mb-1.5"
                   >
                     {{ t("menu.form.category") }}
                     <span class="text-ios-error ml-0.5">*</span>
@@ -569,7 +571,7 @@
                     v-model="menuItemForm.categoryId"
                     data-testid="menu-item-category-select"
                     required
-                    class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
+                    class="w-full px-4 py-2.5 bg-ios-bg rounded-xl text-[14px] text-ios-text border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
                   >
                     <option value="">
                       {{ t("menu.form.selectCategory") }}
@@ -587,13 +589,13 @@
                 <!-- Catalog type -->
                 <div>
                   <label
-                    class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
+                    class="block text-[13px] font-semibold text-ios-text mb-1.5"
                   >
                     類型
                   </label>
                   <select
                     v-model="menuItemForm.catalogType"
-                    class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
+                    class="w-full px-4 py-2.5 bg-ios-bg rounded-xl text-[14px] text-ios-text border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
                   >
                     <option value="menu_item">餐點</option>
                     <option value="product">商品</option>
@@ -603,7 +605,7 @@
                 <!-- Image upload -->
                 <div class="md:col-span-2" data-status="image-upload">
                   <label
-                    class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
+                    class="block text-[13px] font-semibold text-ios-text mb-1.5"
                   >
                     {{ t("menu.form.image") }}
                   </label>
@@ -638,7 +640,7 @@
                       <span
                         v-if="imageUploadState === 'uploading'"
                         data-status="uploading"
-                        class="inline-flex items-center gap-2 rounded-full bg-[#E3F2FD] px-3 py-1.5 text-[12px] font-semibold text-ios-primary"
+                        class="inline-flex items-center gap-2 rounded-full bg-ios-blue-soft px-3 py-1.5 text-[12px] font-semibold text-ios-primary"
                       >
                         <span
                           class="h-3 w-3 animate-spin rounded-full border-2 border-ios-primary/25 border-t-ios-primary"
@@ -648,14 +650,14 @@
                       <span
                         v-else-if="imageUploadState === 'success'"
                         data-status="success"
-                        class="inline-flex items-center gap-1.5 rounded-full bg-[#E8F5E9] px-3 py-1.5 text-[12px] font-semibold text-[#2D8E47]"
+                        class="inline-flex items-center gap-1.5 rounded-full bg-ios-green-soft px-3 py-1.5 text-[12px] font-semibold text-ios-green-deep"
                       >
                         ✓ {{ t("menu.upload.uploaded") }}
                       </span>
                       <span
                         v-else-if="imageUploadState === 'error'"
                         data-status="error"
-                        class="inline-flex items-center gap-1.5 rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-red"
+                        class="inline-flex items-center gap-1.5 rounded-full bg-ios-red-soft px-3 py-1.5 text-[12px] font-semibold text-ios-red"
                       >
                         ✗ {{ t("menu.upload.failed") }}
                       </span>
@@ -672,24 +674,24 @@
                 <!-- Description -->
                 <div class="md:col-span-2">
                   <label
-                    class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
+                    class="block text-[13px] font-semibold text-ios-text mb-1.5"
                   >
                     {{ t("menu.form.description") }}
                   </label>
                   <textarea
                     v-model="menuItemForm.description"
                     rows="3"
-                    class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all resize-none"
+                    class="w-full px-4 py-2.5 bg-ios-bg rounded-xl text-[14px] text-ios-text border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all resize-none"
                   />
                 </div>
 
                 <!-- Product details -->
-                <div class="md:col-span-2 rounded-xl bg-[#F9F9FB] p-4">
-                  <h4 class="mb-3 text-[14px] font-bold text-[#1C1C1E]">
+                <div class="md:col-span-2 rounded-xl bg-ios-bg p-4">
+                  <h4 class="mb-3 text-[14px] font-bold text-ios-text">
                     {{ t("menu.form.productDetails") }}
                   </h4>
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <label class="text-[13px] font-semibold text-[#1C1C1E]">
+                    <label class="text-[13px] font-semibold text-ios-text">
                       {{ t("menu.form.spiceLevel") }}
                       <input
                         v-model.number="menuItemForm.spiceLevel"
@@ -699,7 +701,7 @@
                         class="mt-1.5 w-full px-4 py-2.5 bg-white rounded-xl text-[14px] font-normal border-0 outline-none focus:ring-2 focus:ring-ios-primary/30"
                       />
                     </label>
-                    <label class="text-[13px] font-semibold text-[#1C1C1E]">
+                    <label class="text-[13px] font-semibold text-ios-text">
                       {{ t("menu.form.preparationTime") }}
                       <input
                         v-model.number="menuItemForm.preparationTime"
@@ -708,7 +710,7 @@
                         class="mt-1.5 w-full px-4 py-2.5 bg-white rounded-xl text-[14px] font-normal border-0 outline-none focus:ring-2 focus:ring-ios-primary/30"
                       />
                     </label>
-                    <label class="text-[13px] font-semibold text-[#1C1C1E]">
+                    <label class="text-[13px] font-semibold text-ios-text">
                       {{ t("menu.form.calories") }}
                       <input
                         v-model.number="menuItemForm.calories"
@@ -718,7 +720,7 @@
                       />
                     </label>
                     <label
-                      class="md:col-span-3 text-[13px] font-semibold text-[#1C1C1E]"
+                      class="md:col-span-3 text-[13px] font-semibold text-ios-text"
                     >
                       {{ t("menu.form.ingredients") }}
                       <input
@@ -728,7 +730,7 @@
                       />
                     </label>
                     <label
-                      class="md:col-span-3 text-[13px] font-semibold text-[#1C1C1E]"
+                      class="md:col-span-3 text-[13px] font-semibold text-ios-text"
                     >
                       {{ t("menu.form.tags") }}
                       <input
@@ -739,7 +741,7 @@
                       />
                     </label>
                     <label
-                      class="md:col-span-3 text-[13px] font-semibold text-[#1C1C1E]"
+                      class="md:col-span-3 text-[13px] font-semibold text-ios-text"
                     >
                       {{ t("menu.form.keywords") }}
                       <input
@@ -752,26 +754,26 @@
                 </div>
 
                 <!-- Dietary information -->
-                <div class="md:col-span-2 rounded-xl bg-[#F9F9FB] p-4">
-                  <h4 class="mb-3 text-[14px] font-bold text-[#1C1C1E]">
+                <div class="md:col-span-2 rounded-xl bg-ios-bg p-4">
+                  <h4 class="mb-3 text-[14px] font-bold text-ios-text">
                     {{ t("menu.form.dietaryInfo") }}
                   </h4>
                   <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     <label
                       v-for="diet in dietaryFields"
                       :key="diet.key"
-                      class="flex items-center gap-2 text-[13px] text-[#1C1C1E]"
+                      class="flex items-center gap-2 text-[13px] text-ios-text"
                     >
                       <input
                         v-model="menuItemForm.dietaryInfo[diet.key]"
                         type="checkbox"
-                        class="h-4 w-4 rounded border-[#D1D1D6] text-ios-primary focus:ring-ios-primary/30"
+                        class="h-4 w-4 rounded border-ios-tertiary text-ios-primary focus:ring-ios-primary/30"
                       />
                       {{ t(diet.label) }}
                     </label>
                   </div>
                   <label
-                    class="mt-3 block text-[13px] font-semibold text-[#1C1C1E]"
+                    class="mt-3 block text-[13px] font-semibold text-ios-text"
                   >
                     {{ t("menu.form.allergens") }}
                     <input
@@ -784,11 +786,11 @@
                 </div>
 
                 <!-- Customization options -->
-                <div class="md:col-span-2 rounded-xl bg-[#F9F9FB] p-4">
+                <div class="md:col-span-2 rounded-xl bg-ios-bg p-4">
                   <div
                     class="mb-3 flex flex-wrap items-center justify-between gap-2"
                   >
-                    <h4 class="text-[14px] font-bold text-[#1C1C1E]">
+                    <h4 class="text-[14px] font-bold text-ios-text">
                       {{ t("menu.form.options") }}
                     </h4>
                     <div
@@ -798,7 +800,7 @@
                       <select
                         v-model="optionSourceId"
                         data-testid="option-source-select"
-                        class="rounded-full bg-white px-3 py-1.5 text-[12px] text-[#1C1C1E] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                        class="rounded-full bg-white px-3 py-1.5 text-[12px] text-ios-text outline-none focus:ring-2 focus:ring-ios-primary/30"
                       >
                         <option value="">
                           {{ t("menu.form.copyOptionsFrom") }}
@@ -829,7 +831,7 @@
                   />
                   <div v-else class="space-y-4">
                     <div v-if="editingMenuItem" class="rounded-xl bg-white p-3">
-                      <p class="text-[12px] text-[#8E8E93]">
+                      <p class="text-[12px] text-ios-secondary">
                         {{ t("menu.form.switchToSharedHint") }}
                       </p>
                       <button
@@ -843,13 +845,13 @@
                     </div>
                     <section class="rounded-xl bg-white p-3">
                       <div class="mb-3 flex items-center justify-between gap-3">
-                        <h5 class="text-[13px] font-semibold text-[#1C1C1E]">
+                        <h5 class="text-[13px] font-semibold text-ios-text">
                           {{ t("menu.form.optionSizes") }}
                         </h5>
                         <button
                           type="button"
                           data-testid="add-size-option"
-                          class="rounded-full bg-[#F2F2F7] px-3 py-1.5 text-[12px] font-semibold text-[#1C1C1E] hover:bg-[#E5E5EA]"
+                          class="rounded-full bg-ios-bg px-3 py-1.5 text-[12px] font-semibold text-ios-text hover:bg-ios-separator"
                           @click="addSizeOption"
                         >
                           {{ t("common.add") }}
@@ -864,21 +866,21 @@
                           v-model="size.name"
                           type="text"
                           :placeholder="t('menu.form.optionName')"
-                          class="rounded-xl bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                          class="rounded-xl bg-ios-bg px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
                         />
                         <input
                           v-model.number="size.priceAdjustment"
                           type="number"
                           step="0.01"
-                          class="rounded-xl bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                          class="rounded-xl bg-ios-bg px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
                         />
                         <label
-                          class="flex items-center gap-1.5 text-[12px] text-[#1C1C1E]"
+                          class="flex items-center gap-1.5 text-[12px] text-ios-text"
                         >
                           <input
                             v-model="size.isDefault"
                             type="checkbox"
-                            class="h-4 w-4 rounded border-[#D1D1D6] text-ios-primary focus:ring-ios-primary/30"
+                            class="h-4 w-4 rounded border-ios-tertiary text-ios-primary focus:ring-ios-primary/30"
                           />
                           {{ t("menu.form.defaultOption") }}
                         </label>
@@ -888,7 +890,7 @@
                             :data-testid="`move-size-up-${index}`"
                             :aria-label="t('menu.form.moveUp')"
                             :disabled="index === 0"
-                            class="rounded-full bg-[#F2F2F7] px-2.5 py-1.5 text-[12px] font-semibold text-[#1C1C1E] disabled:opacity-30"
+                            class="rounded-full bg-ios-bg px-2.5 py-1.5 text-[12px] font-semibold text-ios-text disabled:opacity-30"
                             @click="moveSizeOption(index, -1)"
                           >
                             ↑
@@ -898,14 +900,14 @@
                             :data-testid="`move-size-down-${index}`"
                             :aria-label="t('menu.form.moveDown')"
                             :disabled="index === menuItemForm.sizes.length - 1"
-                            class="rounded-full bg-[#F2F2F7] px-2.5 py-1.5 text-[12px] font-semibold text-[#1C1C1E] disabled:opacity-30"
+                            class="rounded-full bg-ios-bg px-2.5 py-1.5 text-[12px] font-semibold text-ios-text disabled:opacity-30"
                             @click="moveSizeOption(index, 1)"
                           >
                             ↓
                           </button>
                           <button
                             type="button"
-                            class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
+                            class="rounded-full bg-ios-red-soft px-3 py-1.5 text-[12px] font-semibold text-ios-error"
                             @click="removeSizeOption(index)"
                           >
                             {{ t("common.delete") }}
@@ -916,13 +918,13 @@
 
                     <section class="rounded-xl bg-white p-3">
                       <div class="mb-3 flex items-center justify-between gap-3">
-                        <h5 class="text-[13px] font-semibold text-[#1C1C1E]">
+                        <h5 class="text-[13px] font-semibold text-ios-text">
                           {{ t("menu.form.optionAddOns") }}
                         </h5>
                         <button
                           type="button"
                           data-testid="add-addon-option"
-                          class="rounded-full bg-[#F2F2F7] px-3 py-1.5 text-[12px] font-semibold text-[#1C1C1E] hover:bg-[#E5E5EA]"
+                          class="rounded-full bg-ios-bg px-3 py-1.5 text-[12px] font-semibold text-ios-text hover:bg-ios-separator"
                           @click="addAddOnOption"
                         >
                           {{ t("common.add") }}
@@ -937,14 +939,14 @@
                           v-model="addOn.name"
                           type="text"
                           :placeholder="t('menu.form.optionName')"
-                          class="rounded-xl bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                          class="rounded-xl bg-ios-bg px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
                         />
                         <input
                           v-model.number="addOn.price"
                           type="number"
                           step="0.01"
                           min="0"
-                          class="rounded-xl bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                          class="rounded-xl bg-ios-bg px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
                         />
                         <input
                           v-model.number="addOn.maxQuantity"
@@ -954,15 +956,15 @@
                           type="number"
                           min="1"
                           step="1"
-                          class="rounded-xl bg-[#F2F2F7] px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
+                          class="rounded-xl bg-ios-bg px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
                         />
                         <label
-                          class="flex items-center gap-1.5 text-[12px] text-[#1C1C1E]"
+                          class="flex items-center gap-1.5 text-[12px] text-ios-text"
                         >
                           <input
                             v-model="addOn.available"
                             type="checkbox"
-                            class="h-4 w-4 rounded border-[#D1D1D6] text-ios-primary focus:ring-ios-primary/30"
+                            class="h-4 w-4 rounded border-ios-tertiary text-ios-primary focus:ring-ios-primary/30"
                           />
                           {{ t("menu.form.isAvailable") }}
                         </label>
@@ -972,7 +974,7 @@
                             :data-testid="`move-addon-up-${index}`"
                             :aria-label="t('menu.form.moveUp')"
                             :disabled="index === 0"
-                            class="rounded-full bg-[#F2F2F7] px-2.5 py-1.5 text-[12px] font-semibold text-[#1C1C1E] disabled:opacity-30"
+                            class="rounded-full bg-ios-bg px-2.5 py-1.5 text-[12px] font-semibold text-ios-text disabled:opacity-30"
                             @click="moveAddOnOption(index, -1)"
                           >
                             ↑
@@ -982,14 +984,14 @@
                             :data-testid="`move-addon-down-${index}`"
                             :aria-label="t('menu.form.moveDown')"
                             :disabled="index === menuItemForm.addOns.length - 1"
-                            class="rounded-full bg-[#F2F2F7] px-2.5 py-1.5 text-[12px] font-semibold text-[#1C1C1E] disabled:opacity-30"
+                            class="rounded-full bg-ios-bg px-2.5 py-1.5 text-[12px] font-semibold text-ios-text disabled:opacity-30"
                             @click="moveAddOnOption(index, 1)"
                           >
                             ↓
                           </button>
                           <button
                             type="button"
-                            class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
+                            class="rounded-full bg-ios-red-soft px-3 py-1.5 text-[12px] font-semibold text-ios-error"
                             @click="removeAddOnOption(index)"
                           >
                             {{ t("common.delete") }}
@@ -1000,13 +1002,13 @@
 
                     <section class="rounded-xl bg-white p-3">
                       <div class="mb-3 flex items-center justify-between gap-3">
-                        <h5 class="text-[13px] font-semibold text-[#1C1C1E]">
+                        <h5 class="text-[13px] font-semibold text-ios-text">
                           {{ t("menu.form.optionGroups") }}
                         </h5>
                         <button
                           type="button"
                           data-testid="add-customization-group"
-                          class="rounded-full bg-[#F2F2F7] px-3 py-1.5 text-[12px] font-semibold text-[#1C1C1E] hover:bg-[#E5E5EA]"
+                          class="rounded-full bg-ios-bg px-3 py-1.5 text-[12px] font-semibold text-ios-text hover:bg-ios-separator"
                           @click="addCustomizationGroup"
                         >
                           {{ t("common.add") }}
@@ -1017,7 +1019,7 @@
                           group, groupIndex
                         ) in menuItemForm.customizations"
                         :key="group.id"
-                        class="mb-3 rounded-xl bg-[#F9F9FB] p-3 last:mb-0"
+                        class="mb-3 rounded-xl bg-ios-bg p-3 last:mb-0"
                       >
                         <div
                           class="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_120px_120px_auto_auto] sm:items-center"
@@ -1053,12 +1055,12 @@
                           <span v-else />
 
                           <label
-                            class="flex items-center gap-1.5 text-[12px] text-[#1C1C1E]"
+                            class="flex items-center gap-1.5 text-[12px] text-ios-text"
                           >
                             <input
                               v-model="group.required"
                               type="checkbox"
-                              class="h-4 w-4 rounded border-[#D1D1D6] text-ios-primary focus:ring-ios-primary/30"
+                              class="h-4 w-4 rounded border-ios-tertiary text-ios-primary focus:ring-ios-primary/30"
                             />
                             {{ t("menu.form.requiredOption") }}
                           </label>
@@ -1068,7 +1070,7 @@
                               :data-testid="`move-group-up-${groupIndex}`"
                               :aria-label="t('menu.form.moveUp')"
                               :disabled="groupIndex === 0"
-                              class="rounded-full bg-white px-2.5 py-1.5 text-[12px] font-semibold text-[#1C1C1E] disabled:opacity-30"
+                              class="rounded-full bg-white px-2.5 py-1.5 text-[12px] font-semibold text-ios-text disabled:opacity-30"
                               @click="moveCustomizationGroup(groupIndex, -1)"
                             >
                               ↑
@@ -1081,14 +1083,14 @@
                                 groupIndex ===
                                 menuItemForm.customizations.length - 1
                               "
-                              class="rounded-full bg-white px-2.5 py-1.5 text-[12px] font-semibold text-[#1C1C1E] disabled:opacity-30"
+                              class="rounded-full bg-white px-2.5 py-1.5 text-[12px] font-semibold text-ios-text disabled:opacity-30"
                               @click="moveCustomizationGroup(groupIndex, 1)"
                             >
                               ↓
                             </button>
                             <button
                               type="button"
-                              class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
+                              class="rounded-full bg-ios-red-soft px-3 py-1.5 text-[12px] font-semibold text-ios-error"
                               @click="removeCustomizationGroup(groupIndex)"
                             >
                               {{ t("common.delete") }}
@@ -1114,12 +1116,12 @@
                               class="rounded-xl bg-white px-3 py-2 text-[13px] outline-none focus:ring-2 focus:ring-ios-primary/30"
                             />
                             <label
-                              class="flex items-center gap-1.5 text-[12px] text-[#1C1C1E]"
+                              class="flex items-center gap-1.5 text-[12px] text-ios-text"
                             >
                               <input
                                 v-model="choice.isDefault"
                                 type="checkbox"
-                                class="h-4 w-4 rounded border-[#D1D1D6] text-ios-primary focus:ring-ios-primary/30"
+                                class="h-4 w-4 rounded border-ios-tertiary text-ios-primary focus:ring-ios-primary/30"
                               />
                               {{ t("menu.form.defaultOption") }}
                             </label>
@@ -1129,7 +1131,7 @@
                                 :data-testid="`move-choice-up-${groupIndex}-${choiceIndex}`"
                                 :aria-label="t('menu.form.moveUp')"
                                 :disabled="choiceIndex === 0"
-                                class="rounded-full bg-[#F2F2F7] px-2.5 py-1.5 text-[12px] font-semibold text-[#1C1C1E] disabled:opacity-30"
+                                class="rounded-full bg-ios-bg px-2.5 py-1.5 text-[12px] font-semibold text-ios-text disabled:opacity-30"
                                 @click="
                                   moveCustomizationChoice(
                                     groupIndex,
@@ -1147,7 +1149,7 @@
                                 :disabled="
                                   choiceIndex === group.choices.length - 1
                                 "
-                                class="rounded-full bg-[#F2F2F7] px-2.5 py-1.5 text-[12px] font-semibold text-[#1C1C1E] disabled:opacity-30"
+                                class="rounded-full bg-ios-bg px-2.5 py-1.5 text-[12px] font-semibold text-ios-text disabled:opacity-30"
                                 @click="
                                   moveCustomizationChoice(
                                     groupIndex,
@@ -1160,7 +1162,7 @@
                               </button>
                               <button
                                 type="button"
-                                class="rounded-full bg-[#FFEBEE] px-3 py-1.5 text-[12px] font-semibold text-ios-error"
+                                class="rounded-full bg-ios-red-soft px-3 py-1.5 text-[12px] font-semibold text-ios-error"
                                 @click="
                                   removeCustomizationChoice(
                                     groupIndex,
@@ -1174,7 +1176,7 @@
                           </div>
                           <button
                             type="button"
-                            class="rounded-full bg-[#F2F2F7] px-3 py-1.5 text-[12px] font-semibold text-[#1C1C1E] hover:bg-[#E5E5EA]"
+                            class="rounded-full bg-ios-bg px-3 py-1.5 text-[12px] font-semibold text-ios-text hover:bg-ios-separator"
                             @click="addCustomizationChoice(groupIndex)"
                           >
                             {{ t("menu.form.addChoice") }}
@@ -1194,7 +1196,7 @@
                 <!-- Sort order -->
                 <div>
                   <label
-                    class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5"
+                    class="block text-[13px] font-semibold text-ios-text mb-1.5"
                   >
                     {{ t("menu.form.sortOrder") }}
                   </label>
@@ -1202,17 +1204,17 @@
                     v-model.number="menuItemForm.sortOrder"
                     type="number"
                     min="0"
-                    class="w-full px-4 py-2.5 bg-[#F2F2F7] rounded-xl text-[14px] text-[#1C1C1E] border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
+                    class="w-full px-4 py-2.5 bg-ios-bg rounded-xl text-[14px] text-ios-text border-0 outline-none focus:ring-2 focus:ring-ios-primary/30 transition-all"
                   />
                 </div>
 
                 <!-- Inventory -->
-                <div class="md:col-span-2 rounded-xl bg-[#F9F9FB] p-4">
-                  <h4 class="mb-3 text-[14px] font-bold text-[#1C1C1E]">
+                <div class="md:col-span-2 rounded-xl bg-ios-bg p-4">
+                  <h4 class="mb-3 text-[14px] font-bold text-ios-text">
                     {{ t("menu.form.inventory") }}
                   </h4>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <label class="text-[13px] font-semibold text-[#1C1C1E]">
+                    <label class="text-[13px] font-semibold text-ios-text">
                       {{ t("menu.form.inventoryCount") }}
                       <input
                         v-model.number="menuItemForm.inventoryCount"
@@ -1222,7 +1224,7 @@
                         class="mt-1.5 w-full px-4 py-2.5 bg-white rounded-xl text-[14px] font-normal border-0 outline-none focus:ring-2 focus:ring-ios-primary/30"
                       />
                     </label>
-                    <label class="text-[13px] font-semibold text-[#1C1C1E]">
+                    <label class="text-[13px] font-semibold text-ios-text">
                       {{ t("menu.form.minInventoryAlert") }}
                       <input
                         v-model.number="menuItemForm.minInventoryAlert"
@@ -1241,9 +1243,9 @@
                     <input
                       v-model="menuItemForm.isFeatured"
                       type="checkbox"
-                      class="w-4 h-4 rounded border-[#D1D1D6] text-ios-primary focus:ring-ios-primary/30"
+                      class="w-4 h-4 rounded border-ios-tertiary text-ios-primary focus:ring-ios-primary/30"
                     />
-                    <span class="text-[13px] text-[#1C1C1E]">{{
+                    <span class="text-[13px] text-ios-text">{{
                       t("menu.form.featuredItem")
                     }}</span>
                   </label>
@@ -1251,9 +1253,9 @@
                     <input
                       v-model="menuItemForm.isAvailable"
                       type="checkbox"
-                      class="w-4 h-4 rounded border-[#D1D1D6] text-ios-primary focus:ring-ios-primary/30"
+                      class="w-4 h-4 rounded border-ios-tertiary text-ios-primary focus:ring-ios-primary/30"
                     />
-                    <span class="text-[13px] text-[#1C1C1E]">{{
+                    <span class="text-[13px] text-ios-text">{{
                       t("menu.form.isAvailable")
                     }}</span>
                   </label>
@@ -1266,7 +1268,7 @@
               >
                 <button
                   type="button"
-                  class="px-5 py-2.5 text-[14px] font-semibold text-[#1C1C1E] bg-[#F2F2F7] rounded-full hover:bg-[#E5E5EA] transition-colors"
+                  class="px-5 py-2.5 text-[14px] font-semibold text-ios-text bg-ios-bg rounded-full hover:bg-ios-separator transition-colors"
                   @click="closeMenuItemModal"
                 >
                   {{ t("common.cancel") }}

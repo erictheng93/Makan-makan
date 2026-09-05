@@ -1,17 +1,17 @@
 <template>
-  <div class="min-h-screen bg-[#F2F2F7] p-5 space-y-5">
+  <div class="min-h-screen bg-ios-bg p-5 space-y-5">
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-[#1C1C1E]">
+        <h1 class="text-3xl font-bold text-ios-text">
           {{ t("subscriptions.title") }}
         </h1>
-        <p class="text-sm text-[#8E8E93] mt-0.5">
+        <p class="text-sm text-ios-secondary mt-0.5">
           {{ t("subscriptions.subtitle") }}
         </p>
       </div>
       <button
-        class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#007AFF] text-white text-sm font-semibold hover:bg-[#0071E3] transition-all duration-200 shadow-sm"
+        class="flex items-center gap-2 px-5 py-2.5 rounded-full bg-ios-blue text-white text-sm font-semibold hover:bg-blue-600 transition-all duration-200 shadow-sm"
         @click="showCreateModal = true"
       >
         <Plus class="w-4 h-4" />
@@ -24,8 +24,8 @@
         class="rounded-full px-4 py-2 text-sm font-semibold transition"
         :class="
           activeTab === 'subscriptions'
-            ? 'bg-[#007AFF] text-white'
-            : 'text-[#3C3C43] hover:bg-[#F2F2F7]'
+            ? 'bg-ios-blue text-white'
+            : 'text-ios-text/85 hover:bg-ios-bg'
         "
         @click="activeTab = 'subscriptions'"
       >
@@ -35,8 +35,8 @@
         class="rounded-full px-4 py-2 text-sm font-semibold transition"
         :class="
           activeTab === 'usage'
-            ? 'bg-[#007AFF] text-white'
-            : 'text-[#3C3C43] hover:bg-[#F2F2F7]'
+            ? 'bg-ios-blue text-white'
+            : 'text-ios-text/85 hover:bg-ios-bg'
         "
         @click="activeTab = 'usage'"
       >
@@ -49,7 +49,7 @@
     <!-- Loading state -->
     <div v-else-if="isLoading" class="flex items-center justify-center py-16">
       <div
-        class="w-8 h-8 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin"
+        class="w-8 h-8 border-2 border-ios-blue border-t-transparent rounded-full animate-spin"
       />
     </div>
 
@@ -58,10 +58,10 @@
       v-else-if="errorMessage"
       class="bg-white rounded-2xl p-8 shadow-sm text-center"
     >
-      <AlertCircle class="w-10 h-10 text-[#FF3B30] mx-auto mb-3" />
-      <p class="text-[#1C1C1E] font-medium">{{ errorMessage }}</p>
+      <AlertCircle class="w-10 h-10 text-ios-red mx-auto mb-3" />
+      <p class="text-ios-text font-medium">{{ errorMessage }}</p>
       <button
-        class="mt-4 px-5 py-2.5 rounded-full bg-[#007AFF] text-white text-sm font-semibold hover:bg-[#0071E3] transition-all"
+        class="mt-4 px-5 py-2.5 rounded-full bg-ios-blue text-white text-sm font-semibold hover:bg-blue-600 transition-all"
         @click="loadSubscriptions"
       >
         {{ t("common.retry") }}
@@ -73,8 +73,8 @@
       v-else-if="subscriptions.length === 0"
       class="bg-white rounded-2xl p-12 shadow-sm text-center"
     >
-      <CreditCard class="w-12 h-12 text-[#C7C7CC] mx-auto mb-3" />
-      <p class="text-[#8E8E93] text-sm">{{ t("subscriptions.empty") }}</p>
+      <CreditCard class="w-12 h-12 text-ios-tertiary mx-auto mb-3" />
+      <p class="text-ios-secondary text-sm">{{ t("subscriptions.empty") }}</p>
     </div>
 
     <!-- Subscription cards -->
@@ -91,7 +91,7 @@
             <!-- Left: restaurant info + plan badge -->
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2.5 flex-wrap">
-                <span class="text-base font-semibold text-[#1C1C1E] font-mono">
+                <span class="text-base font-semibold text-ios-text font-mono">
                   {{ truncateId(sub.restaurantId) }}
                 </span>
                 <!-- Plan badge -->
@@ -105,14 +105,14 @@
               <!-- Trial end date -->
               <p
                 v-if="sub.planTier === 'trial' && sub.trialEndsAt"
-                class="text-xs text-[#FF9500] mt-1"
+                class="text-xs text-ios-orange mt-1"
               >
                 {{ t("subscriptions.trialEndsAt") }}
                 {{ formatDate(sub.trialEndsAt) }}
               </p>
               <p
                 v-else-if="sub.billingCycleEndAt"
-                class="text-xs text-[#8E8E93] mt-1"
+                class="text-xs text-ios-secondary mt-1"
               >
                 {{ t("subscriptions.billingUntil") }}
                 {{ formatDate(sub.billingCycleEndAt) }}
@@ -125,7 +125,7 @@
               <div class="relative">
                 <select
                   :value="sub.planTier"
-                  class="appearance-none pl-3 pr-8 py-2 bg-[#F2F2F7] border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all cursor-pointer"
+                  class="appearance-none pl-3 pr-8 py-2 bg-ios-bg border-0 rounded-xl text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30 transition-all cursor-pointer"
                   :disabled="updatingPlan[sub.restaurantId]"
                   @change="
                     onPlanChange(
@@ -139,7 +139,7 @@
                   </option>
                 </select>
                 <ChevronDown
-                  class="w-3.5 h-3.5 text-[#8E8E93] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                  class="w-3.5 h-3.5 text-ios-secondary absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
                 />
               </div>
 
@@ -148,8 +148,8 @@
                 class="flex items-center gap-2 px-3 py-2 rounded-full text-xs font-semibold transition-all duration-200"
                 :class="
                   sub.isActive
-                    ? 'bg-[#34C759]/10 text-[#34C759] hover:bg-[#34C759]/20'
-                    : 'bg-[#FF3B30]/10 text-[#FF3B30] hover:bg-[#FF3B30]/20'
+                    ? 'bg-ios-green/10 text-ios-green hover:bg-ios-green/20'
+                    : 'bg-ios-red/10 text-ios-red hover:bg-ios-red/20'
                 "
                 :disabled="updatingStatus[sub.restaurantId]"
                 @click="onToggleActive(sub)"
@@ -175,7 +175,7 @@
         <!-- Module toggles grid -->
         <div class="px-5 pb-5">
           <p
-            class="text-xs font-semibold text-[#8E8E93] uppercase tracking-wide mb-3"
+            class="text-xs font-semibold text-ios-secondary uppercase tracking-wide mb-3"
           >
             {{ t("subscriptions.modules") }}
           </p>
@@ -212,15 +212,15 @@
             @click="closeCreateModal"
           />
           <div
-            class="relative w-full sm:max-w-lg bg-[#F2F2F7] rounded-t-3xl sm:rounded-3xl p-5 space-y-4"
+            class="relative w-full sm:max-w-lg bg-ios-bg rounded-t-3xl sm:rounded-3xl p-5 space-y-4"
           >
             <!-- Modal header -->
             <div class="flex items-center justify-between">
-              <h2 class="text-base font-semibold text-[#1C1C1E]">
+              <h2 class="text-base font-semibold text-ios-text">
                 {{ t("subscriptions.addSubscription") }}
               </h2>
               <button
-                class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-[#3C3C43] hover:bg-gray-300 transition-colors"
+                class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 text-ios-text/85 hover:bg-gray-300 transition-colors"
                 @click="closeCreateModal"
               >
                 <X class="w-4 h-4" />
@@ -232,38 +232,38 @@
               <!-- Restaurant ID -->
               <div>
                 <label
-                  class="block text-xs font-semibold text-[#8E8E93] uppercase tracking-wide mb-1.5"
+                  class="block text-xs font-semibold text-ios-secondary uppercase tracking-wide mb-1.5"
                 >
                   {{ t("subscriptions.form.restaurantId") }}
-                  <span class="text-[#FF3B30]">*</span>
+                  <span class="text-ios-red">*</span>
                 </label>
                 <input
                   v-model="createForm.restaurantId"
                   type="text"
                   :placeholder="t('subscriptions.form.restaurantIdPlaceholder')"
-                  class="w-full px-4 py-2.5 bg-[#F2F2F7] border-0 rounded-xl text-sm text-[#1C1C1E] placeholder-[#8E8E93] focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white transition-all"
+                  class="w-full px-4 py-2.5 bg-ios-bg border-0 rounded-xl text-sm text-ios-text placeholder-ios-secondary focus:ring-2 focus:ring-ios-blue/30 focus:bg-white transition-all"
                 />
               </div>
 
               <!-- Plan tier -->
               <div>
                 <label
-                  class="block text-xs font-semibold text-[#8E8E93] uppercase tracking-wide mb-1.5"
+                  class="block text-xs font-semibold text-ios-secondary uppercase tracking-wide mb-1.5"
                 >
                   {{ t("subscriptions.form.planTier") }}
-                  <span class="text-[#FF3B30]">*</span>
+                  <span class="text-ios-red">*</span>
                 </label>
                 <div class="relative">
                   <select
                     v-model="createForm.planTier"
-                    class="w-full appearance-none pl-4 pr-8 py-2.5 bg-[#F2F2F7] border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 transition-all"
+                    class="w-full appearance-none pl-4 pr-8 py-2.5 bg-ios-bg border-0 rounded-xl text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30 transition-all"
                   >
                     <option v-for="tier in planTiers" :key="tier" :value="tier">
                       {{ t(`subscriptions.plans.${tier}`) }}
                     </option>
                   </select>
                   <ChevronDown
-                    class="w-3.5 h-3.5 text-[#8E8E93] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                    class="w-3.5 h-3.5 text-ios-secondary absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
                   />
                 </div>
               </div>
@@ -272,34 +272,34 @@
               <Transition name="fade-slide">
                 <div v-if="createForm.planTier === 'trial'">
                   <label
-                    class="block text-xs font-semibold text-[#8E8E93] uppercase tracking-wide mb-1.5"
+                    class="block text-xs font-semibold text-ios-secondary uppercase tracking-wide mb-1.5"
                   >
                     {{ t("subscriptions.form.trialEndsAt") }}
                   </label>
                   <input
                     v-model="createForm.trialEndsAt"
                     type="date"
-                    class="w-full px-4 py-2.5 bg-[#F2F2F7] border-0 rounded-xl text-sm text-[#1C1C1E] focus:ring-2 focus:ring-[#007AFF]/30 focus:bg-white transition-all"
+                    class="w-full px-4 py-2.5 bg-ios-bg border-0 rounded-xl text-sm text-ios-text focus:ring-2 focus:ring-ios-blue/30 focus:bg-white transition-all"
                   />
                 </div>
               </Transition>
             </div>
 
             <!-- Error message -->
-            <p v-if="createError" class="text-sm text-[#FF3B30] px-1">
+            <p v-if="createError" class="text-sm text-ios-red px-1">
               {{ createError }}
             </p>
 
             <!-- Actions -->
             <div class="flex gap-3">
               <button
-                class="flex-1 py-3 rounded-full bg-[#F2F2F7] text-[#1C1C1E] text-sm font-semibold hover:bg-gray-200 transition-all duration-200"
+                class="flex-1 py-3 rounded-full bg-ios-bg text-ios-text text-sm font-semibold hover:bg-gray-200 transition-all duration-200"
                 @click="closeCreateModal"
               >
                 {{ t("common.cancel") }}
               </button>
               <button
-                class="flex-1 py-3 rounded-full bg-[#007AFF] text-white text-sm font-semibold hover:bg-[#0071E3] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex-1 py-3 rounded-full bg-ios-blue text-white text-sm font-semibold hover:bg-blue-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 :disabled="isCreating"
                 @click="onCreateSubscription"
               >
@@ -327,33 +327,33 @@
             @click="confirmDeactivate = null"
           />
           <div
-            class="relative w-full sm:max-w-sm bg-[#F2F2F7] rounded-t-3xl sm:rounded-3xl p-5 space-y-4"
+            class="relative w-full sm:max-w-sm bg-ios-bg rounded-t-3xl sm:rounded-3xl p-5 space-y-4"
           >
             <div class="text-center space-y-2">
               <div
-                class="w-12 h-12 rounded-full bg-[#FF3B30]/10 flex items-center justify-center mx-auto"
+                class="w-12 h-12 rounded-full bg-ios-red/10 flex items-center justify-center mx-auto"
               >
-                <AlertCircle class="w-6 h-6 text-[#FF3B30]" />
+                <AlertCircle class="w-6 h-6 text-ios-red" />
               </div>
-              <h2 class="text-base font-semibold text-[#1C1C1E]">
+              <h2 class="text-base font-semibold text-ios-text">
                 {{ t("subscriptions.confirmDeactivateTitle") }}
               </h2>
-              <p class="text-sm text-[#8E8E93]">
+              <p class="text-sm text-ios-secondary">
                 {{ t("subscriptions.confirmDeactivateMessage") }}
-                <span class="font-mono font-medium text-[#1C1C1E]">{{
+                <span class="font-mono font-medium text-ios-text">{{
                   truncateId(confirmDeactivate)
                 }}</span>
               </p>
             </div>
             <div class="flex gap-3">
               <button
-                class="flex-1 py-3 rounded-full bg-[#F2F2F7] text-[#1C1C1E] text-sm font-semibold hover:bg-gray-200 transition-all duration-200"
+                class="flex-1 py-3 rounded-full bg-ios-bg text-ios-text text-sm font-semibold hover:bg-gray-200 transition-all duration-200"
                 @click="confirmDeactivate = null"
               >
                 {{ t("common.cancel") }}
               </button>
               <button
-                class="flex-1 py-3 rounded-full bg-[#FF3B30] text-white text-sm font-semibold hover:bg-[#E0352B] transition-all duration-200"
+                class="flex-1 py-3 rounded-full bg-ios-red text-white text-sm font-semibold hover:bg-red-600 transition-all duration-200"
                 @click="executeDeactivate"
               >
                 {{ t("subscriptions.deactivate") }}
@@ -598,12 +598,12 @@ function truncateId(id: string): string {
 
 function planBadgeClass(tier: PlanTier): string {
   const map: Record<PlanTier, string> = {
-    trial: "bg-gray-100 text-[#3C3C43]",
-    basic: "bg-[#007AFF]/10 text-[#007AFF]",
-    pro: "bg-[#FF9500]/10 text-[#FF9500]",
+    trial: "bg-gray-100 text-ios-text/85",
+    basic: "bg-ios-blue/10 text-ios-blue",
+    pro: "bg-ios-orange/10 text-ios-orange",
     enterprise: "bg-teal-100 text-teal-700",
   };
-  return map[tier] ?? "bg-gray-100 text-[#3C3C43]";
+  return map[tier] ?? "bg-gray-100 text-ios-text/85";
 }
 
 function moduleToggleClass(sub: Subscription, moduleKey: string): string {
@@ -612,10 +612,10 @@ function moduleToggleClass(sub: Subscription, moduleKey: string): string {
 
   if (isEnabled) {
     return isOverridden
-      ? "bg-[#007AFF] text-white shadow-sm"
-      : "bg-[#34C759]/15 text-[#34C759]";
+      ? "bg-ios-blue text-white shadow-sm"
+      : "bg-ios-green/15 text-ios-green";
   }
-  return "bg-[#F2F2F7] text-[#8E8E93] hover:bg-gray-200";
+  return "bg-ios-bg text-ios-secondary hover:bg-gray-200";
 }
 
 // ─── Lifecycle ────────────────────────────────────────────────────────────────

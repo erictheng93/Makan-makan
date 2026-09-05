@@ -236,11 +236,11 @@ watch(
             >
               <div class="flex items-center gap-3">
                 <div
-                  class="w-10 h-10 rounded-xl bg-[#007AFF]/10 flex items-center justify-center"
+                  class="w-10 h-10 rounded-xl bg-ios-blue/10 flex items-center justify-center"
                 >
-                  <BellAlertIcon class="w-5 h-5 text-[#007AFF]" />
+                  <BellAlertIcon class="w-5 h-5 text-ios-blue" />
                 </div>
-                <h2 class="text-lg font-semibold text-[#1C1C1E]">
+                <h2 class="text-lg font-semibold text-ios-text">
                   {{ t("monitoring.createRule.title") }}
                 </h2>
               </div>
@@ -265,7 +265,7 @@ watch(
                   type="text"
                   maxlength="100"
                   :placeholder="t('monitoring.createRule.namePlaceholder')"
-                  class="w-full rounded-xl border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-[#007AFF] bg-white px-4 py-2.5 text-sm text-[#1C1C1E] placeholder-gray-400 outline-none transition-shadow duration-200"
+                  class="w-full rounded-xl border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-ios-blue bg-white px-4 py-2.5 text-sm text-ios-text placeholder-gray-400 outline-none transition-shadow duration-200"
                 />
               </div>
 
@@ -278,7 +278,7 @@ watch(
                   </label>
                   <select
                     v-model="form.metric"
-                    class="w-full rounded-xl border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-[#007AFF] bg-white px-4 py-2.5 text-sm text-[#1C1C1E] outline-none transition-shadow duration-200 appearance-none"
+                    class="w-full rounded-xl border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-ios-blue bg-white px-4 py-2.5 text-sm text-ios-text outline-none transition-shadow duration-200 appearance-none"
                   >
                     <option value="" disabled>
                       {{ t("monitoring.createRule.selectMetric") }}
@@ -308,7 +308,7 @@ watch(
                   </label>
                   <select
                     v-model="form.operator"
-                    class="w-full rounded-xl border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-[#007AFF] bg-white px-4 py-2.5 text-sm text-[#1C1C1E] outline-none transition-shadow duration-200 appearance-none"
+                    class="w-full rounded-xl border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-ios-blue bg-white px-4 py-2.5 text-sm text-ios-text outline-none transition-shadow duration-200 appearance-none"
                   >
                     <option
                       v-for="op in OPERATOR_OPTIONS"
@@ -331,7 +331,7 @@ watch(
                     :placeholder="
                       t('monitoring.createRule.thresholdPlaceholder')
                     "
-                    class="w-full rounded-xl border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-[#007AFF] bg-white px-4 py-2.5 text-sm text-[#1C1C1E] placeholder-gray-400 outline-none transition-shadow duration-200"
+                    class="w-full rounded-xl border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-ios-blue bg-white px-4 py-2.5 text-sm text-ios-text placeholder-gray-400 outline-none transition-shadow duration-200"
                   />
                 </div>
               </div>
@@ -341,7 +341,7 @@ watch(
                 <p class="text-xs font-medium text-gray-500 mb-1">
                   {{ t("monitoring.createRule.conditionPreview") }}
                 </p>
-                <p class="font-mono text-sm text-[#1C1C1E]">
+                <p class="font-mono text-sm text-ios-text">
                   {{ conditionString }}
                 </p>
               </div>
@@ -357,7 +357,7 @@ watch(
                   min="1"
                   max="3600"
                   step="1"
-                  class="w-full rounded-xl border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-[#007AFF] bg-white px-4 py-2.5 text-sm text-[#1C1C1E] outline-none transition-shadow duration-200"
+                  class="w-full rounded-xl border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-ios-blue bg-white px-4 py-2.5 text-sm text-ios-text outline-none transition-shadow duration-200"
                 />
                 <p class="mt-1 text-xs text-gray-400">
                   {{ t("monitoring.createRule.durationHint") }}
@@ -373,7 +373,7 @@ watch(
                   </label>
                   <select
                     v-model="form.configType"
-                    class="w-full rounded-xl border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-[#007AFF] bg-white px-4 py-2.5 text-sm text-[#1C1C1E] outline-none transition-shadow duration-200 appearance-none"
+                    class="w-full rounded-xl border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-ios-blue bg-white px-4 py-2.5 text-sm text-ios-text outline-none transition-shadow duration-200 appearance-none"
                   >
                     <option value="email">
                       {{ t("monitoring.createRule.alertTypes.email") }}
@@ -397,7 +397,7 @@ watch(
                   </label>
                   <select
                     v-model="form.configSeverity"
-                    class="w-full rounded-xl border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-[#007AFF] bg-white px-4 py-2.5 text-sm text-[#1C1C1E] outline-none transition-shadow duration-200 appearance-none"
+                    class="w-full rounded-xl border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-ios-blue bg-white px-4 py-2.5 text-sm text-ios-text outline-none transition-shadow duration-200 appearance-none"
                   >
                     <option
                       v-for="sev in SEVERITY_OPTIONS"
@@ -427,7 +427,7 @@ watch(
                     v-model="form.configWebhookUrl"
                     type="url"
                     placeholder="https://hooks.slack.com/services/..."
-                    class="w-full rounded-xl border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-[#007AFF] bg-white px-4 py-2.5 text-sm text-[#1C1C1E] placeholder-gray-400 outline-none transition-shadow duration-200"
+                    class="w-full rounded-xl border-0 ring-1 ring-gray-200 focus:ring-2 focus:ring-ios-blue bg-white px-4 py-2.5 text-sm text-ios-text placeholder-gray-400 outline-none transition-shadow duration-200"
                   />
                 </div>
               </Transition>
@@ -435,7 +435,7 @@ watch(
               <!-- Enabled Toggle -->
               <div class="flex items-center justify-between">
                 <div>
-                  <p class="text-sm font-medium text-[#1C1C1E]">
+                  <p class="text-sm font-medium text-ios-text">
                     {{ t("monitoring.createRule.enabled") }}
                   </p>
                 </div>
@@ -445,7 +445,7 @@ watch(
                   :aria-checked="form.configEnabled"
                   :class="[
                     'relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out',
-                    form.configEnabled ? 'bg-[#34C759]' : 'bg-gray-200',
+                    form.configEnabled ? 'bg-ios-green' : 'bg-gray-200',
                   ]"
                   @click="form.configEnabled = !form.configEnabled"
                 >
@@ -459,7 +459,7 @@ watch(
                   >
                     <CheckIcon
                       v-if="form.configEnabled"
-                      class="h-3 w-3 text-[#34C759]"
+                      class="h-3 w-3 text-ios-green"
                     />
                   </span>
                 </button>
@@ -472,7 +472,7 @@ watch(
             >
               <button
                 :disabled="submitting"
-                class="rounded-full bg-gray-100 hover:bg-gray-200 text-[#1C1C1E] px-6 py-2.5 text-sm font-medium transition-colors duration-200 disabled:opacity-50"
+                class="rounded-full bg-gray-100 hover:bg-gray-200 text-ios-text px-6 py-2.5 text-sm font-medium transition-colors duration-200 disabled:opacity-50"
                 @click="handleClose"
               >
                 {{ t("monitoring.createRule.cancel") }}
@@ -482,7 +482,7 @@ watch(
                 :class="[
                   'rounded-full px-6 py-2.5 text-sm font-medium text-white transition-colors duration-200 flex items-center gap-2',
                   isFormValid && !submitting
-                    ? 'bg-[#007AFF] hover:bg-[#0056CC]'
+                    ? 'bg-ios-blue hover:bg-blue-600'
                     : 'bg-gray-300 cursor-not-allowed',
                 ]"
                 @click="handleSubmit"

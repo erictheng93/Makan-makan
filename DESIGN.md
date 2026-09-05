@@ -229,6 +229,24 @@ Do not let a single accent dominate every app. Use the accent that matches the w
 
 For text, use the 700 step on white or on a 50/100 tint (all five clear 4.5:1); 500 and 600 are fill steps for buttons, bars and dots. Multi-series charts use `CHART_SERIES_COLORS` from `@makanmasak/shared/utils/chart-palette`, never per-chart hexes.
 
+**Never write a hex into a class name.** `bg-[#007AFF]` is not a slightly worse spelling of `bg-ios-blue` — Tailwind's arbitrary-value syntax compiles the hex straight into CSS without consulting the theme, so `design-tokens.js` has no say over it at all. Retune a hue and every `bg-blue-500` follows while every `bg-[#007AFF]` silently stays behind, which is the same drift this section exists to prevent, wearing the right colour. `scripts/check-design-palette.cjs` rejects the syntax outright.
+
+The vocabulary that replaces it:
+
+| Need | Token |
+| --- | --- |
+| Surfaces | `bg-ios-bg` (#F2F2F7), `bg-ios-card` (#FFFFFF) |
+| Text | `text-ios-text` (#1C1C1E), `text-ios-secondary` (#8E8E93), `text-ios-tertiary` (#AEAEB2) |
+| Hairlines | `border-ios-separator` (#E5E5EA) |
+| Hue fill | `bg-ios-blue`, `-green`, `-orange`, `-red`, `-teal` |
+| Badge/tile tint | `bg-ios-blue-soft` and the matching `-green/-orange/-red/-teal` |
+| Text on that tint | `text-ios-blue-deep` — the paired ink, contrast-checked in `design-tokens.js` |
+| Hover / pressed | the next ramp step: `bg-ios-blue hover:bg-blue-600` |
+
+A text weight between `ios-text` and `ios-secondary` is an opacity step on the token — `text-ios-text/85`, `/70`, `/60` — not a fourth grey. Opacity modifiers must land on Tailwind's scale, which is multiples of 5: `/8` and `/3` are silently dropped and render nothing at all.
+
+A colour genuinely outside all of the above belongs in `design-tokens.js` and in this file first, and only then in a class name.
+
 ## Typography
 
 Use **Inter** as the primary UI typeface with system fallbacks (`-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto`). Keep text clear and compact because the product is task-heavy. Headings are direct and readable, not decorative. Labels use medium weight (500) to make forms and controls scannable.

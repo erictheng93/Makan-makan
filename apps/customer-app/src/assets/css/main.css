@@ -1,17 +1,17 @@
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
 
 /* 基礎樣式重置 */
 @layer base {
   html {
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     font-variation-settings: normal;
   }
 
   body {
-    @apply font-sans text-gray-900 antialiased bg-[#F2F2F7];
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    @apply font-sans text-gray-900 antialiased bg-ios-bg;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
   /* 移除移動端點擊高亮 */
@@ -20,7 +20,8 @@
   }
 
   /* 修復移動端滾動 */
-  html, body {
+  html,
+  body {
     overscroll-behavior: none;
     -webkit-overflow-scrolling: touch;
   }
@@ -183,7 +184,6 @@
   .glass-dark {
     @apply backdrop-blur-md bg-black/80 border border-white/10;
   }
-
 }
 
 /* PWA 相關樣式 */

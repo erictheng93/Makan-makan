@@ -6,11 +6,11 @@
     >
       <!-- Header -->
       <div class="flex justify-between items-center px-5 pt-5 pb-4">
-        <h2 class="text-[17px] font-bold text-[#1C1C1E]">
+        <h2 class="text-[17px] font-bold text-ios-text">
           {{ t("menu.categoryPanel.title") }}
         </h2>
         <button
-          class="flex items-center gap-1 px-3.5 py-1.5 bg-[#E8F5E9] text-[#2D8E47] rounded-full text-[13px] font-semibold hover:bg-[#D4EDDA] transition-colors"
+          class="flex items-center gap-1 px-3.5 py-1.5 bg-ios-green-soft text-ios-green-deep rounded-full text-[13px] font-semibold hover:bg-green-200 transition-colors"
           data-testid="add-category-btn"
           @click="$emit('add-category')"
         >
@@ -30,15 +30,15 @@
         @click="$emit('select', null)"
       >
         <div
-          class="w-9 h-9 rounded-[10px] bg-[#F2F2F7] flex items-center justify-center text-[#8E8E93]"
+          class="w-9 h-9 rounded-[10px] bg-ios-bg flex items-center justify-center text-ios-secondary"
         >
           <Squares2X2Icon class="h-[18px] w-[18px]" />
         </div>
         <div>
-          <div class="text-sm font-medium text-[#8E8E93]">
+          <div class="text-sm font-medium text-ios-secondary">
             {{ t("menu.categoryPanel.allItems") }}
           </div>
-          <div class="text-xs text-[#AEAEB2]">
+          <div class="text-xs text-ios-tertiary">
             {{ t("menu.categoryPanel.totalItems", { count: totalItems }) }}
           </div>
         </div>
@@ -74,7 +74,7 @@
 
           <!-- Drag handle (visible on hover) -->
           <div
-            class="drag-handle w-4 flex-shrink-0 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity text-[#AEAEB2]"
+            class="drag-handle w-4 flex-shrink-0 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity text-ios-tertiary"
           >
             <svg viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
               <circle cx="9" cy="6" r="1.5" />
@@ -99,13 +99,13 @@
                   'text-sm font-semibold',
                   selectedCategoryId === category.id
                     ? 'text-ios-primary'
-                    : 'text-[#1C1C1E]',
+                    : 'text-ios-text',
                 ]"
               >
                 {{ category.name }}
               </span>
               <span
-                class="text-[11px] font-medium text-[#8E8E93] bg-[#F2F2F7] px-1.5 py-px rounded-full"
+                class="text-[11px] font-medium text-ios-secondary bg-ios-bg px-1.5 py-px rounded-full"
               >
                 {{ getItemsInCategory(category.id).length }}
               </span>
@@ -115,13 +115,13 @@
               <span
                 v-if="isHidden(category)"
                 data-testid="category-hidden-badge"
-                class="inline-flex items-center gap-1 text-[11px] font-semibold text-[#B25E00] bg-[#FFF4E5] px-2 py-px rounded-full"
+                class="inline-flex items-center gap-1 text-[11px] font-semibold text-ios-orange-deep bg-ios-orange-soft px-2 py-px rounded-full"
               >
                 <EyeSlashIcon class="h-3 w-3" />
                 {{ t("menu.categoryPanel.hidden") }}
               </span>
             </div>
-            <div class="text-xs text-[#8E8E93] mt-0.5">
+            <div class="text-xs text-ios-secondary mt-0.5">
               {{ getCategoryMeta(category) }}
             </div>
           </div>
@@ -131,7 +131,7 @@
             class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <button
-              class="w-7 h-7 flex items-center justify-center rounded-lg text-[#8E8E93] hover:bg-black/5 hover:text-[#1C1C1E] transition-colors"
+              class="w-7 h-7 flex items-center justify-center rounded-lg text-ios-secondary hover:bg-black/5 hover:text-ios-text transition-colors"
               :data-testid="`admin-category-edit-${category.id}`"
               :title="t('common.edit')"
               @click.stop="emit('edit-category', category)"
@@ -139,7 +139,7 @@
               <PencilIcon class="h-3.5 w-3.5" />
             </button>
             <button
-              class="w-7 h-7 flex items-center justify-center rounded-lg text-[#8E8E93] hover:bg-[#FFEBEE] hover:text-ios-error transition-colors"
+              class="w-7 h-7 flex items-center justify-center rounded-lg text-ios-secondary hover:bg-ios-red-soft hover:text-ios-error transition-colors"
               :data-testid="`admin-category-delete-${category.id}`"
               :title="t('common.delete')"
               @click.stop="emit('delete-category', category)"

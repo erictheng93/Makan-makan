@@ -2,30 +2,30 @@
   <div class="space-y-6">
     <!-- Schedule Summary Stats -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-      <div class="bg-[#F2F2F7] rounded-2xl p-4">
-        <p class="text-xs text-[#1C1C1E]/40">
+      <div class="bg-ios-bg rounded-2xl p-4">
+        <p class="text-xs text-ios-text/40">
           {{ t("employees.schedule.totalHours") }}
         </p>
-        <p class="text-xl font-bold text-[#1C1C1E]">
+        <p class="text-xl font-bold text-ios-text">
           {{ totalHours.toFixed(1) }}h
         </p>
       </div>
-      <div class="bg-[#F2F2F7] rounded-2xl p-4">
-        <p class="text-xs text-[#1C1C1E]/40">
+      <div class="bg-ios-bg rounded-2xl p-4">
+        <p class="text-xs text-ios-text/40">
           {{ t("employees.schedule.overtime") }}
         </p>
         <p class="text-xl font-bold text-amber-600">
           {{ overtimeHours.toFixed(1) }}h
         </p>
       </div>
-      <div class="bg-[#F2F2F7] rounded-2xl p-4">
-        <p class="text-xs text-[#1C1C1E]/40">
+      <div class="bg-ios-bg rounded-2xl p-4">
+        <p class="text-xs text-ios-text/40">
           {{ t("employees.schedule.completed") }}
         </p>
         <p class="text-xl font-bold text-emerald-600">{{ completedCount }}</p>
       </div>
-      <div class="bg-[#F2F2F7] rounded-2xl p-4">
-        <p class="text-xs text-[#1C1C1E]/40">
+      <div class="bg-ios-bg rounded-2xl p-4">
+        <p class="text-xs text-ios-text/40">
           {{ t("employees.schedule.upcoming") }}
         </p>
         <p class="text-xl font-bold text-blue-600">{{ upcomingCount }}</p>
@@ -34,7 +34,7 @@
 
     <!-- Schedule List -->
     <div>
-      <h3 class="text-sm font-semibold text-[#1C1C1E] mb-3">
+      <h3 class="text-sm font-semibold text-ios-text mb-3">
         {{ t("employees.schedule.shifts") }}
       </h3>
 
@@ -43,7 +43,7 @@
         class="flex items-center justify-center py-12"
       >
         <div
-          class="w-6 h-6 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin"
+          class="w-6 h-6 border-2 border-ios-blue border-t-transparent rounded-full animate-spin"
         />
       </div>
 
@@ -51,8 +51,8 @@
         v-else-if="!schedules || schedules.length === 0"
         class="text-center py-12"
       >
-        <Calendar class="mx-auto w-8 h-8 text-[#1C1C1E]/15 mb-2" />
-        <p class="text-xs text-[#1C1C1E]/30">
+        <Calendar class="mx-auto w-8 h-8 text-ios-text/15 mb-2" />
+        <p class="text-xs text-ios-text/30">
           {{ t("employees.schedule.noShifts") }}
         </p>
       </div>
@@ -61,29 +61,29 @@
         <div
           v-for="schedule in sortedSchedules"
           :key="schedule.id"
-          class="flex items-center gap-4 p-4 bg-[#F2F2F7] rounded-xl"
+          class="flex items-center gap-4 p-4 bg-ios-bg rounded-xl"
         >
           <!-- Date -->
           <div class="flex flex-col items-center w-14 flex-shrink-0">
-            <span class="text-xs text-[#1C1C1E]/40">{{
+            <span class="text-xs text-ios-text/40">{{
               getWeekday(schedule.workDate)
             }}</span>
-            <span class="text-lg font-bold text-[#1C1C1E]">{{
+            <span class="text-lg font-bold text-ios-text">{{
               getDay(schedule.workDate)
             }}</span>
-            <span class="text-[10px] text-[#1C1C1E]/30">{{
+            <span class="text-[10px] text-ios-text/30">{{
               getMonth(schedule.workDate)
             }}</span>
           </div>
 
           <!-- Divider -->
-          <div class="w-px h-10 bg-[#1C1C1E]/10" />
+          <div class="w-px h-10 bg-ios-text/10" />
 
           <!-- Details -->
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
-              <Clock class="w-3.5 h-3.5 text-[#1C1C1E]/40" />
-              <span class="text-sm font-medium text-[#1C1C1E]">
+              <Clock class="w-3.5 h-3.5 text-ios-text/40" />
+              <span class="text-sm font-medium text-ios-text">
                 {{ schedule.startTime || "?" }} - {{ schedule.endTime || "?" }}
               </span>
             </div>
@@ -91,8 +91,8 @@
               v-if="schedule.actualHours"
               class="flex items-center gap-2 mt-1"
             >
-              <Timer class="w-3.5 h-3.5 text-[#1C1C1E]/30" />
-              <span class="text-xs text-[#1C1C1E]/40">
+              <Timer class="w-3.5 h-3.5 text-ios-text/30" />
+              <span class="text-xs text-ios-text/40">
                 {{ t("employees.schedule.worked") }}
                 {{ schedule.actualHours.toFixed(1) }}h
                 <span v-if="schedule.overtimeHours" class="text-amber-600">

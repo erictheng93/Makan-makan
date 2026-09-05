@@ -52,7 +52,7 @@ const features = computed(() => [
     <!-- Hero Section -->
     <section class="pt-16 pb-20 text-center sm:pt-20 sm:pb-24">
       <h1
-        class="text-4xl font-semibold tracking-tight text-[#1C1C1E] sm:text-5xl"
+        class="text-4xl font-semibold tracking-tight text-ios-text sm:text-5xl"
       >
         {{ t("home.hero.titleLine1") }}<br />
         <span class="text-primary-600">{{ t("home.hero.titleLine2") }}</span>
@@ -97,7 +97,7 @@ const features = computed(() => [
             aria-hidden="true"
           />
         </div>
-        <h3 class="mt-5 text-lg font-semibold text-[#1C1C1E]">
+        <h3 class="mt-5 text-lg font-semibold text-ios-text">
           {{ feature.title }}
         </h3>
         <p class="mt-2 text-sm leading-relaxed text-gray-500">
@@ -111,7 +111,7 @@ const features = computed(() => [
       class="mt-16 flex flex-col items-center justify-between gap-5 rounded-3xl bg-white p-8 shadow-card sm:flex-row sm:gap-6 sm:p-10"
     >
       <div class="text-center sm:text-left">
-        <h2 class="text-lg font-semibold text-[#1C1C1E] sm:text-xl">
+        <h2 class="text-lg font-semibold text-ios-text sm:text-xl">
           {{ t("home.cta.title") }}
         </h2>
         <p class="mt-1 text-sm text-gray-500">

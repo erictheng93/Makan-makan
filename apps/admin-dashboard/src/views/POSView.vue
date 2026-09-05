@@ -3,7 +3,7 @@
     <!-- POS 系統標題 -->
     <div class="flex justify-between items-center mb-6">
       <div>
-        <h1 class="text-3xl font-bold text-[#1C1C1E]">
+        <h1 class="text-3xl font-bold text-ios-text">
           {{ t("pos.systemTitle") }}
         </h1>
         <p class="text-gray-500 mt-1">{{ t("pos.systemSubtitle") }}</p>
@@ -12,7 +12,7 @@
         <!-- 現在時間 -->
         <div class="text-right">
           <p class="text-sm text-gray-500">{{ t("cashier.currentTime") }}</p>
-          <p class="text-lg font-semibold text-[#1C1C1E]">{{ currentTime }}</p>
+          <p class="text-lg font-semibold text-ios-text">{{ currentTime }}</p>
         </div>
       </div>
     </div>
@@ -26,7 +26,7 @@
         :class="[
           'flex items-center justify-center px-6 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
           isActiveTab(tab.path)
-            ? 'bg-white text-[#007AFF] shadow-sm'
+            ? 'bg-white text-ios-blue shadow-sm'
             : 'text-gray-500 hover:text-gray-700',
         ]"
       >

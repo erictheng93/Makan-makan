@@ -3,14 +3,14 @@
     <!-- Action Bar -->
     <div class="flex items-center justify-end gap-3 mb-6">
       <button
-        class="flex items-center px-4 py-2.5 rounded-full text-[13px] font-semibold bg-white text-[#1C1C1E]/70 border border-[#F2F2F7] hover:bg-[#F2F2F7] transition-colors"
+        class="flex items-center px-4 py-2.5 rounded-full text-[13px] font-semibold bg-white text-ios-text/70 border border-ios-bg hover:bg-ios-bg transition-colors"
         @click="showSettings = true"
       >
         <Settings class="w-4 h-4 mr-1.5" />
         {{ t("queue.queueSettings") }}
       </button>
       <button
-        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors shadow-sm"
+        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-ios-blue text-white hover:bg-blue-600 transition-colors shadow-sm"
         @click="callNextCustomer"
       >
         <Bell class="w-4 h-4 mr-1.5" />

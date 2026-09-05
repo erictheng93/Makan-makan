@@ -18,7 +18,7 @@
           <p class="text-sm text-gray-500">
             {{ t("cashier.todayPerformance") }}
           </p>
-          <p class="text-lg font-semibold text-[#34C759]">
+          <p class="text-lg font-semibold text-ios-green">
             {{ formatPrice(todayRevenue) }}
           </p>
         </div>
@@ -27,14 +27,14 @@
       <!-- 功能按鈕 -->
       <div class="flex items-center space-x-2">
         <button
-          class="px-3 py-2 bg-[#007AFF] text-white rounded-full hover:bg-blue-600 transition-colors text-sm"
+          class="px-3 py-2 bg-ios-blue text-white rounded-full hover:bg-blue-600 transition-colors text-sm"
           @click="openShiftReport"
         >
           {{ t("cashier.shiftReport") }}
         </button>
         <button
           data-testid="cashier-open-refund"
-          class="px-3 py-2 bg-[#FF9500] text-white rounded-full hover:bg-orange-600 transition-colors text-sm"
+          class="px-3 py-2 bg-ios-orange text-white rounded-full hover:bg-orange-600 transition-colors text-sm"
           @click="openRefundDialog"
         >
           {{ t("cashier.refundProcess") }}
@@ -762,7 +762,7 @@
           class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
         >
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold text-[#1C1C1E]">
+            <h3 class="text-xl font-semibold text-ios-text">
               {{ t("cashier.applyDiscount") || "套用折扣" }}
             </h3>
             <button
@@ -783,7 +783,7 @@
                 step="1"
                 min="0"
                 max="100"
-                class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#007AFF] focus:border-[#007AFF]"
+                class="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-ios-blue focus:border-ios-blue"
                 placeholder="0"
                 @keyup.enter="confirmApplyDiscount"
               />
@@ -803,7 +803,7 @@
                 discountPercentInput <= 0 ||
                 discountPercentInput > 100
               "
-              class="px-4 py-2 bg-[#007AFF] text-white rounded-full hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-ios-blue text-white rounded-full hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               @click="confirmApplyDiscount"
             >
               {{ t("common.confirm") || "確認" }}
@@ -824,7 +824,7 @@
           class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6"
         >
           <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold text-[#1C1C1E]">
+            <h3 class="text-xl font-semibold text-ios-text">
               {{ t("cashier.endShift") || "結束班次" }}
             </h3>
             <button
@@ -845,7 +845,7 @@
               {{ t("common.cancel") || "取消" }}
             </button>
             <button
-              class="px-4 py-2 bg-[#FF3B30] text-white rounded-full hover:bg-red-600 transition-colors"
+              class="px-4 py-2 bg-ios-red text-white rounded-full hover:bg-red-600 transition-colors"
               @click="confirmEndShift"
             >
               {{ t("cashier.endShift") || "結束班次" }}

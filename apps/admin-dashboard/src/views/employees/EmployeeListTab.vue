@@ -4,18 +4,18 @@
     <div class="flex flex-col sm:flex-row gap-3">
       <div class="relative flex-1">
         <Search
-          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#1C1C1E]/30"
+          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ios-text/30"
         />
         <input
           v-model="searchQuery"
           type="text"
           :placeholder="t('users.search.placeholder')"
-          class="w-full pl-10 pr-4 py-2.5 bg-[#F2F2F7] border-none rounded-xl text-sm text-[#1C1C1E] placeholder-[#1C1C1E]/30 focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white transition-all"
+          class="w-full pl-10 pr-4 py-2.5 bg-ios-bg border-none rounded-xl text-sm text-ios-text placeholder-ios-text/30 focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white transition-all"
         />
       </div>
       <select
         v-model="roleFilter"
-        class="px-3.5 py-2.5 bg-[#F2F2F7] border-none rounded-xl text-sm text-[#1C1C1E] focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white transition-all"
+        class="px-3.5 py-2.5 bg-ios-bg border-none rounded-xl text-sm text-ios-text focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white transition-all"
       >
         <option value="">{{ t("users.search.allRoles") }}</option>
         <option value="1">{{ t("users.search.ownerRole") }}</option>
@@ -25,7 +25,7 @@
       </select>
       <select
         v-model="statusFilter"
-        class="px-3.5 py-2.5 bg-[#F2F2F7] border-none rounded-xl text-sm text-[#1C1C1E] focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white transition-all"
+        class="px-3.5 py-2.5 bg-ios-bg border-none rounded-xl text-sm text-ios-text focus:shadow-[0_0_0_2px_rgba(0,122,255,0.25)] focus:bg-white transition-all"
       >
         <option value="">{{ t("users.search.allStatuses") }}</option>
         <option value="active">{{ t("users.status.active") }}</option>
@@ -37,16 +37,16 @@
     <!-- Employee Table -->
     <div v-if="isLoading" class="flex items-center justify-center py-16">
       <div
-        class="w-8 h-8 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin"
+        class="w-8 h-8 border-2 border-ios-blue border-t-transparent rounded-full animate-spin"
       />
     </div>
 
     <div v-else-if="filteredUsers.length === 0" class="text-center py-16">
-      <Users class="mx-auto w-12 h-12 text-[#1C1C1E]/20 mb-3" />
-      <h3 class="text-sm font-medium text-[#1C1C1E]/60">
+      <Users class="mx-auto w-12 h-12 text-ios-text/20 mb-3" />
+      <h3 class="text-sm font-medium text-ios-text/60">
         {{ t("users.empty.title") }}
       </h3>
-      <p class="text-xs text-[#1C1C1E]/40 mt-1">
+      <p class="text-xs text-ios-text/40 mt-1">
         {{ t("users.empty.description") }}
       </p>
     </div>
@@ -54,44 +54,44 @@
     <div v-else class="overflow-x-auto">
       <table class="min-w-full">
         <thead>
-          <tr class="border-b border-[#F2F2F7]">
+          <tr class="border-b border-ios-bg">
             <th
-              class="px-4 py-3 text-left text-xs font-medium text-[#1C1C1E]/40 uppercase tracking-wider"
+              class="px-4 py-3 text-left text-xs font-medium text-ios-text/40 uppercase tracking-wider"
             >
               {{ t("users.table.info") }}
             </th>
             <th
-              class="px-4 py-3 text-left text-xs font-medium text-[#1C1C1E]/40 uppercase tracking-wider"
+              class="px-4 py-3 text-left text-xs font-medium text-ios-text/40 uppercase tracking-wider"
             >
               {{ t("users.table.role") }}
             </th>
             <th
-              class="px-4 py-3 text-left text-xs font-medium text-[#1C1C1E]/40 uppercase tracking-wider"
+              class="px-4 py-3 text-left text-xs font-medium text-ios-text/40 uppercase tracking-wider"
             >
               {{ t("users.table.status") }}
             </th>
             <th
-              class="px-4 py-3 text-left text-xs font-medium text-[#1C1C1E]/40 uppercase tracking-wider"
+              class="px-4 py-3 text-left text-xs font-medium text-ios-text/40 uppercase tracking-wider"
             >
               {{ t("employees.table.workStatus") }}
             </th>
             <th
-              class="px-4 py-3 text-left text-xs font-medium text-[#1C1C1E]/40 uppercase tracking-wider"
+              class="px-4 py-3 text-left text-xs font-medium text-ios-text/40 uppercase tracking-wider"
             >
               {{ t("users.table.lastLogin") }}
             </th>
             <th
-              class="px-4 py-3 text-left text-xs font-medium text-[#1C1C1E]/40 uppercase tracking-wider"
+              class="px-4 py-3 text-left text-xs font-medium text-ios-text/40 uppercase tracking-wider"
             >
               {{ t("users.table.actions") }}
             </th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-[#F2F2F7]">
+        <tbody class="divide-y divide-ios-bg">
           <tr
             v-for="user in paginatedUsers"
             :key="user.id"
-            class="hover:bg-[#F2F2F7]/50 cursor-pointer transition-colors"
+            class="hover:bg-ios-bg/50 cursor-pointer transition-colors"
             @click="navigateToDetail(user.id)"
           >
             <!-- Employee Info -->
@@ -107,23 +107,23 @@
                   <!-- Clock-in dot -->
                   <span
                     v-if="user.clockInStatus?.isClockedIn"
-                    class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#34C759] border-2 border-white rounded-full"
+                    class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-ios-green border-2 border-white rounded-full"
                   >
                     <span
-                      class="absolute inset-0 rounded-full bg-[#34C759] animate-ping opacity-40"
+                      class="absolute inset-0 rounded-full bg-ios-green animate-ping opacity-40"
                     />
                   </span>
                   <!-- On leave dot -->
                   <span
                     v-else-if="user.leaveStatus?.isOnLeave"
-                    class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#FF9500] border-2 border-white rounded-full"
+                    class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-ios-orange border-2 border-white rounded-full"
                   />
                 </div>
                 <div class="min-w-0">
-                  <div class="text-sm font-medium text-[#1C1C1E] truncate">
+                  <div class="text-sm font-medium text-ios-text truncate">
                     {{ user.fullName || user.username }}
                   </div>
-                  <div class="text-xs text-[#1C1C1E]/40 truncate">
+                  <div class="text-xs text-ios-text/40 truncate">
                     {{ user.email || user.username }}
                   </div>
                 </div>
@@ -169,13 +169,13 @@
                   user.leaveStatus.leaveType || t("employees.clockIn.onLeave")
                 }}
               </span>
-              <span v-else class="text-xs text-[#1C1C1E]/30">
+              <span v-else class="text-xs text-ios-text/30">
                 {{ t("employees.clockIn.off") }}
               </span>
             </td>
 
             <!-- Last Login -->
-            <td class="px-4 py-3.5 text-xs text-[#1C1C1E]/50">
+            <td class="px-4 py-3.5 text-xs text-ios-text/50">
               {{
                 user.lastLoginAt
                   ? formatDateTime(user.lastLoginAt)
@@ -187,14 +187,14 @@
             <td class="px-4 py-3.5" @click.stop>
               <div class="flex items-center gap-2">
                 <button
-                  class="p-1.5 rounded-lg text-[#007AFF] hover:bg-[#007AFF]/10 transition-colors"
+                  class="p-1.5 rounded-lg text-ios-blue hover:bg-ios-blue/10 transition-colors"
                   :title="t('users.actions.edit')"
                   @click="$emit('editUser', user)"
                 >
                   <Pencil class="w-4 h-4" />
                 </button>
                 <button
-                  class="p-1.5 rounded-lg text-[#FF9500] hover:bg-[#FF9500]/10 transition-colors"
+                  class="p-1.5 rounded-lg text-ios-orange hover:bg-ios-orange/10 transition-colors"
                   :title="t('users.actions.resetPassword')"
                   @click="handleResetPassword(user)"
                 >
@@ -204,8 +204,8 @@
                   class="p-1.5 rounded-lg transition-colors"
                   :class="
                     user.status === 'active'
-                      ? 'text-[#FF3B30] hover:bg-[#FF3B30]/10'
-                      : 'text-[#34C759] hover:bg-[#34C759]/10'
+                      ? 'text-ios-red hover:bg-ios-red/10'
+                      : 'text-ios-green hover:bg-ios-green/10'
                   "
                   :title="
                     user.status === 'active'
@@ -226,9 +226,9 @@
       <!-- Pagination -->
       <div
         v-if="totalPages > 1"
-        class="flex items-center justify-between pt-4 border-t border-[#F2F2F7]"
+        class="flex items-center justify-between pt-4 border-t border-ios-bg"
       >
-        <p class="text-xs text-[#1C1C1E]/40">
+        <p class="text-xs text-ios-text/40">
           {{
             t("employees.pagination.showing", {
               from: (currentPage - 1) * pageSize + 1,
@@ -244,8 +244,8 @@
             class="w-8 h-8 rounded-lg text-xs font-medium transition-colors"
             :class="
               page === currentPage
-                ? 'bg-[#007AFF] text-white'
-                : 'text-[#1C1C1E]/50 hover:bg-[#F2F2F7]'
+                ? 'bg-ios-blue text-white'
+                : 'text-ios-text/50 hover:bg-ios-bg'
             "
             @click="currentPage = page"
           >

@@ -1,17 +1,17 @@
 <template>
-  <div class="min-h-screen bg-[#F2F2F7] p-6 space-y-6">
+  <div class="min-h-screen bg-ios-bg p-6 space-y-6">
     <!-- Header -->
     <div class="flex justify-between items-center">
       <div>
-        <h1 class="text-2xl font-bold text-[#1C1C1E]">
+        <h1 class="text-2xl font-bold text-ios-text">
           {{ t("employees.title") }}
         </h1>
-        <p class="text-sm text-[#1C1C1E]/50 mt-1">
+        <p class="text-sm text-ios-text/50 mt-1">
           {{ t("employees.subtitle") }}
         </p>
       </div>
       <button
-        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-[#007AFF] text-white hover:bg-[#0066D6] transition-colors shadow-sm"
+        class="flex items-center px-5 py-2.5 rounded-full text-[13px] font-semibold bg-ios-blue text-white hover:bg-blue-600 transition-colors shadow-sm"
         @click="showModal = true"
       >
         <Plus class="w-4 h-4 mr-1.5" />
@@ -38,7 +38,7 @@
             />
           </div>
           <div class="min-w-0">
-            <p class="text-xs text-[#1C1C1E]/50 truncate">{{ stat.label }}</p>
+            <p class="text-xs text-ios-text/50 truncate">{{ stat.label }}</p>
             <p class="text-xl font-bold" :class="stat.valueClass">
               {{ stat.value }}
             </p>
@@ -49,7 +49,7 @@
 
     <!-- Tab Navigation -->
     <div class="bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-      <nav class="flex border-b border-[#F2F2F7] px-6">
+      <nav class="flex border-b border-ios-bg px-6">
         <router-link
           v-for="tab in tabs"
           :key="tab.name"
@@ -57,8 +57,8 @@
           class="flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-colors -mb-px"
           :class="
             isActiveTab(tab.path)
-              ? 'border-[#007AFF] text-[#007AFF]'
-              : 'border-transparent text-[#1C1C1E]/40 hover:text-[#1C1C1E]/70'
+              ? 'border-ios-blue text-ios-blue'
+              : 'border-transparent text-ios-text/40 hover:text-ios-text/70'
           "
           :data-active="isActiveTab(tab.path)"
         >
@@ -66,7 +66,7 @@
           {{ tab.label }}
           <span
             v-if="tab.badge !== undefined && tab.badge > 0"
-            class="ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-[#FF3B30] text-white"
+            class="ml-1 px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-ios-red text-white"
           >
             {{ tab.badge }}
           </span>
@@ -171,8 +171,8 @@ const statCards = computed(() => [
     value: employeeList.stats.value.total,
     icon: Users,
     bgClass: "bg-gray-100",
-    iconClass: "text-[#1C1C1E]/60",
-    valueClass: "text-[#1C1C1E]",
+    iconClass: "text-ios-text/60",
+    valueClass: "text-ios-text",
   },
   {
     label: t("employees.stats.currentlyWorking"),

@@ -5,7 +5,7 @@
   >
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
       <div class="flex items-center justify-between mb-1">
-        <h3 class="text-lg font-semibold text-[#1C1C1E]">
+        <h3 class="text-lg font-semibold text-ios-text">
           {{ t("ingredients.adjustStock") }}
         </h3>
         <button
@@ -23,7 +23,7 @@
 
       <form class="space-y-4" @submit.prevent="submit">
         <div>
-          <span class="block text-[13px] font-semibold text-[#1C1C1E] mb-1.5">
+          <span class="block text-[13px] font-semibold text-ios-text mb-1.5">
             {{ t("ingredients.movementDirection") }}
           </span>
           <div class="flex gap-2">
@@ -35,8 +35,8 @@
               class="flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-colors"
               :class="
                 direction === option.value
-                  ? 'bg-[#007AFF] text-white'
-                  : 'bg-[#F2F2F7] text-[#1C1C1E] hover:bg-[#E5E5EA]'
+                  ? 'bg-ios-blue text-white'
+                  : 'bg-ios-bg text-ios-text hover:bg-ios-separator'
               "
               @click="direction = option.value"
             >
@@ -45,7 +45,7 @@
           </div>
         </div>
 
-        <label class="block text-[13px] font-semibold text-[#1C1C1E]">
+        <label class="block text-[13px] font-semibold text-ios-text">
           {{ t("ingredients.movementQuantity") }}
           <div class="mt-1.5 flex items-center gap-2">
             <input
@@ -55,18 +55,18 @@
               min="0"
               required
               data-testid="movement-quantity"
-              class="flex-1 rounded-xl bg-[#F2F2F7] px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#007AFF]/30"
+              class="flex-1 rounded-xl bg-ios-bg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ios-blue/30"
             />
             <span class="text-sm text-gray-500">{{ ingredient.unit }}</span>
           </div>
         </label>
 
-        <label class="block text-[13px] font-semibold text-[#1C1C1E]">
+        <label class="block text-[13px] font-semibold text-ios-text">
           {{ t("ingredients.movementReason") }}
           <select
             v-model="reason"
             data-testid="movement-reason"
-            class="mt-1.5 w-full rounded-xl bg-[#F2F2F7] px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#007AFF]/30"
+            class="mt-1.5 w-full rounded-xl bg-ios-bg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ios-blue/30"
           >
             <option
               v-for="value in reasonsForDirection"
@@ -78,14 +78,14 @@
           </select>
         </label>
 
-        <label class="block text-[13px] font-semibold text-[#1C1C1E]">
+        <label class="block text-[13px] font-semibold text-ios-text">
           {{ t("ingredients.movementNote") }}
           <input
             v-model="note"
             type="text"
             maxlength="500"
             data-testid="movement-note"
-            class="mt-1.5 w-full rounded-xl bg-[#F2F2F7] px-4 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-[#007AFF]/30"
+            class="mt-1.5 w-full rounded-xl bg-ios-bg px-4 py-2.5 text-sm font-normal outline-none focus:ring-2 focus:ring-ios-blue/30"
           />
         </label>
 
@@ -95,7 +95,7 @@
           {{ t("ingredients.movementResult") }}
           <span
             class="font-semibold"
-            :class="resultsNegative ? 'text-ios-error' : 'text-[#1C1C1E]'"
+            :class="resultsNegative ? 'text-ios-error' : 'text-ios-text'"
           >
             {{ resultingStock }} {{ ingredient.unit }}
           </span>
@@ -116,7 +116,7 @@
         <div class="flex justify-end gap-2 pt-2">
           <button
             type="button"
-            class="px-5 py-2.5 text-[14px] font-semibold text-[#1C1C1E] bg-[#F2F2F7] rounded-full hover:bg-[#E5E5EA]"
+            class="px-5 py-2.5 text-[14px] font-semibold text-ios-text bg-ios-bg rounded-full hover:bg-ios-separator"
             @click="$emit('close')"
           >
             {{ t("common.cancel") }}
@@ -125,7 +125,7 @@
             type="submit"
             :disabled="submitting || !quantity"
             data-testid="movement-submit"
-            class="px-5 py-2.5 text-[14px] font-semibold text-white bg-[#007AFF] rounded-full hover:bg-[#0066D6] disabled:opacity-50"
+            class="px-5 py-2.5 text-[14px] font-semibold text-white bg-ios-blue rounded-full hover:bg-blue-600 disabled:opacity-50"
           >
             {{ submitting ? t("common.submitting") : t("common.confirm") }}
           </button>

@@ -1,8 +1,8 @@
 <template>
-  <div class="min-h-screen bg-[#F2F2F7] p-6 space-y-6">
+  <div class="min-h-screen bg-ios-bg p-6 space-y-6">
     <!-- Back Button -->
     <button
-      class="flex items-center gap-1.5 text-sm text-[#007AFF] hover:text-[#0066D6] transition-colors"
+      class="flex items-center gap-1.5 text-sm text-ios-blue hover:text-blue-600 transition-colors"
       @click="router.push('/dashboard/employees')"
     >
       <ChevronLeft class="w-4 h-4" />
@@ -13,7 +13,7 @@
     <div class="bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-6">
       <div v-if="employeeLoading" class="flex items-center justify-center py-8">
         <div
-          class="w-8 h-8 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin"
+          class="w-8 h-8 border-2 border-ios-blue border-t-transparent rounded-full animate-spin"
         />
       </div>
       <div
@@ -32,10 +32,10 @@
 
         <!-- Info -->
         <div class="flex-1 min-w-0">
-          <h1 class="text-xl font-bold text-[#1C1C1E]">
+          <h1 class="text-xl font-bold text-ios-text">
             {{ employee.fullName || employee.username }}
           </h1>
-          <p class="text-sm text-[#1C1C1E]/50 mt-0.5">
+          <p class="text-sm text-ios-text/50 mt-0.5">
             @{{ employee.username }}
           </p>
           <div class="flex flex-wrap items-center gap-2 mt-2">
@@ -56,7 +56,7 @@
         </div>
 
         <!-- Quick Info -->
-        <div class="flex flex-col gap-1.5 text-xs text-[#1C1C1E]/40">
+        <div class="flex flex-col gap-1.5 text-xs text-ios-text/40">
           <div v-if="employee.email" class="flex items-center gap-1.5">
             <Mail class="w-3.5 h-3.5" />
             {{ employee.email }}
@@ -77,7 +77,7 @@
 
     <!-- Sub-tab Navigation -->
     <div class="bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-      <nav class="flex border-b border-[#F2F2F7] px-6">
+      <nav class="flex border-b border-ios-bg px-6">
         <router-link
           v-for="tab in subTabs"
           :key="tab.name"
@@ -85,8 +85,8 @@
           class="flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-colors -mb-px"
           :class="
             isActiveTab(tab.path)
-              ? 'border-[#007AFF] text-[#007AFF]'
-              : 'border-transparent text-[#1C1C1E]/40 hover:text-[#1C1C1E]/70'
+              ? 'border-ios-blue text-ios-blue'
+              : 'border-transparent text-ios-text/40 hover:text-ios-text/70'
           "
           :data-active="isActiveTab(tab.path)"
         >

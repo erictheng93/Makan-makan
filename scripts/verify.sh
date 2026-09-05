@@ -98,6 +98,12 @@ else
   step "migration dual-track" pnpm run check:migration-dual-track
   step "STRICT tables" pnpm run check:strict-tables
   step "no destructive wrangler" pnpm run check:no-automated-destructive-wrangler
+  # The palette guard used to run only from .husky/pre-commit, and it crashed
+  # on Windows rather than running, so nothing enforced the palette on the
+  # platform this team develops on. That is how #319's arbitrary-colour classes
+  # went from 1,297 to 1,498 in the three days after they were counted. A hook
+  # is skippable and platform-dependent; this tier is neither.
+  step "design palette" pnpm run check:design-palette
   step "guard script regressions" pnpm run test:ci-guards
   step "package tests" pnpm exec turbo run test --concurrency="$TURBO_CONCURRENCY"
   step "root tests" pnpm exec vitest run --project root

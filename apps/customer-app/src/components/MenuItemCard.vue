@@ -450,7 +450,7 @@ const dietaryTags = computed(() => {
     tags.push({
       key: "vegetarian",
       label: t("menu.vegetarian"),
-      class: "bg-[#E8F5E9] text-[#4E7C5F]",
+      class: "bg-ios-green-soft text-ios-green-deep",
     });
   }
 
@@ -458,7 +458,7 @@ const dietaryTags = computed(() => {
     tags.push({
       key: "vegan",
       label: t("menu.vegan"),
-      class: "bg-[#E8F5E9] text-[#4E7C5F]",
+      class: "bg-ios-green-soft text-ios-green-deep",
     });
   }
 
@@ -466,7 +466,7 @@ const dietaryTags = computed(() => {
     tags.push({
       key: "halal",
       label: t("menu.halal"),
-      class: "bg-[#E3F2FD] text-[#4A6E8C]",
+      class: "bg-ios-blue-soft text-ios-blue-deep",
     });
   }
 
@@ -474,7 +474,7 @@ const dietaryTags = computed(() => {
     tags.push({
       key: "gluten-free",
       label: t("menu.glutenFree"),
-      class: "bg-[#FFF3E0] text-[#8D6E4C]",
+      class: "bg-ios-orange-soft text-ios-orange-deep",
     });
   }
 

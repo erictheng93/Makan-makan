@@ -4,7 +4,7 @@
     :class="[
       'bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.07)] transition-all duration-[280ms] cursor-pointer group',
       highlighted &&
-        'ring-2 ring-[#007AFF] shadow-[0_0_20px_rgba(0,122,255,0.15)]',
+        'ring-2 ring-ios-blue shadow-[0_0_20px_rgba(0,122,255,0.15)]',
     ]"
   >
     <!-- Image -->
@@ -47,7 +47,7 @@
     <!-- Body -->
     <div class="p-3.5 pb-4">
       <div class="flex justify-between items-start mb-1.5">
-        <h3 class="text-[15px] font-bold text-[#1C1C1E] line-clamp-1">
+        <h3 class="text-[15px] font-bold text-ios-text line-clamp-1">
           {{ item.name }}
         </h3>
         <span
@@ -57,13 +57,13 @@
         </span>
       </div>
 
-      <p class="text-xs text-[#8E8E93] leading-relaxed line-clamp-2 mb-2.5">
+      <p class="text-xs text-ios-secondary leading-relaxed line-clamp-2 mb-2.5">
         {{ item.description }}
       </p>
       <p
         v-if="item.inventoryCount != null"
         data-testid="inventory-count"
-        class="mb-2.5 text-[11px] text-[#8E8E93]"
+        class="mb-2.5 text-[11px] text-ios-secondary"
       >
         {{ t("menu.form.inventoryCount") }}: {{ item.inventoryCount }}
       </p>
@@ -73,13 +73,13 @@
         v-if="item.orderCount && item.orderCount > 0"
         class="flex items-center gap-3 mb-2.5"
       >
-        <span class="flex items-center gap-1 text-[11px] text-[#8E8E93]">
+        <span class="flex items-center gap-1 text-[11px] text-ios-secondary">
           <ShoppingBagIcon class="h-3 w-3" />
           {{ item.orderCount }} {{ t("menu.metrics.sold") }}
         </span>
         <span
           v-if="item.rating && item.rating > 0"
-          class="flex items-center gap-1 text-[11px] text-[#FF9500]"
+          class="flex items-center gap-1 text-[11px] text-ios-orange"
         >
           <StarIcon class="h-3 w-3 fill-current" />
           {{ item.rating.toFixed(1) }}
@@ -90,7 +90,7 @@
         <div class="flex gap-1">
           <span
             v-if="categoryName"
-            class="px-2 py-0.5 bg-[#F2F2F7] rounded-full text-[11px] text-[#8E8E93] font-medium"
+            class="px-2 py-0.5 bg-ios-bg rounded-full text-[11px] text-ios-secondary font-medium"
           >
             {{ categoryName }}
           </span>
@@ -101,7 +101,7 @@
         >
           <button
             :data-testid="`admin-menu-item-edit-${item.id}`"
-            class="w-[30px] h-[30px] flex items-center justify-center rounded-lg text-[#8E8E93] hover:bg-black/5 hover:text-[#1C1C1E] transition-colors"
+            class="w-[30px] h-[30px] flex items-center justify-center rounded-lg text-ios-secondary hover:bg-black/5 hover:text-ios-text transition-colors"
             :title="t('common.edit')"
             @click.stop="$emit('edit', item)"
           >
@@ -112,7 +112,7 @@
                item's state rather than as what the click will do. -->
           <button
             :data-testid="`admin-menu-item-toggle-${item.id}`"
-            class="w-[30px] h-[30px] flex items-center justify-center rounded-lg text-[#8E8E93] hover:bg-black/5 hover:text-[#1C1C1E] transition-colors"
+            class="w-[30px] h-[30px] flex items-center justify-center rounded-lg text-ios-secondary hover:bg-black/5 hover:text-ios-text transition-colors"
             :title="
               item.isAvailable
                 ? t('menu.actionUnpublish')
@@ -127,7 +127,7 @@
           </button>
           <button
             :data-testid="`admin-menu-item-delete-${item.id}`"
-            class="w-[30px] h-[30px] flex items-center justify-center rounded-lg text-[#8E8E93] hover:bg-[#FFEBEE] hover:text-ios-error transition-colors"
+            class="w-[30px] h-[30px] flex items-center justify-center rounded-lg text-ios-secondary hover:bg-ios-red-soft hover:text-ios-error transition-colors"
             :title="t('common.delete')"
             @click.stop="$emit('delete', item)"
           >

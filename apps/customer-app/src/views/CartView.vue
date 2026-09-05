@@ -1062,8 +1062,8 @@ const formatCouponExpiry = (dateString: string | number | Date) => {
 
 const getCouponTypeClass = (discountType: CustomerCoupon["discountType"]) => {
   return discountType === "percentage"
-    ? "bg-[#E3F2FD] text-[#4A6E8C]"
-    : "bg-[#E8F5E9] text-[#4E7C5F]";
+    ? "bg-ios-blue-soft text-ios-blue-deep"
+    : "bg-ios-green-soft text-ios-green-deep";
 };
 
 const getCouponTypeText = (discountType: CustomerCoupon["discountType"]) => {

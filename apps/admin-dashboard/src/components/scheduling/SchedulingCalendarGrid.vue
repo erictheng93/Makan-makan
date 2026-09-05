@@ -6,10 +6,10 @@
     <div class="overflow-x-auto">
       <table class="w-full border-collapse min-w-[600px]">
         <thead>
-          <tr class="border-b border-[#F2F2F7]">
+          <tr class="border-b border-ios-bg">
             <!-- Shift name column header -->
             <th
-              class="w-28 px-4 py-3 text-left text-xs font-semibold text-[#1C1C1E]/40 uppercase tracking-wide bg-[#F2F2F7]/50"
+              class="w-28 px-4 py-3 text-left text-xs font-semibold text-ios-text/40 uppercase tracking-wide bg-ios-bg/50"
             >
               班次
             </th>
@@ -20,8 +20,8 @@
               class="px-3 py-3 text-center text-xs font-semibold min-w-[100px]"
               :class="
                 col.isToday
-                  ? 'text-[#007AFF] bg-[#007AFF]/5'
-                  : 'text-[#1C1C1E]/50 bg-transparent'
+                  ? 'text-ios-blue bg-ios-blue/5'
+                  : 'text-ios-text/50 bg-transparent'
               "
             >
               <div class="flex flex-col items-center gap-0.5">
@@ -31,7 +31,7 @@
                 <span
                   class="w-7 h-7 flex items-center justify-center rounded-full text-sm font-bold"
                   :class="
-                    col.isToday ? 'bg-[#007AFF] text-white' : 'text-[#1C1C1E]'
+                    col.isToday ? 'bg-ios-blue text-white' : 'text-ios-text'
                   "
                 >
                   {{ col.day }}
@@ -45,15 +45,15 @@
           <tr
             v-for="template in shiftTemplates"
             :key="template.id"
-            class="border-b border-[#F2F2F7] last:border-0"
+            class="border-b border-ios-bg last:border-0"
           >
             <!-- Shift template name -->
-            <td class="px-4 py-3 bg-[#F2F2F7]/30">
+            <td class="px-4 py-3 bg-ios-bg/30">
               <div class="flex flex-col gap-0.5">
-                <span class="text-xs font-semibold text-[#1C1C1E]">{{
+                <span class="text-xs font-semibold text-ios-text">{{
                   template.name
                 }}</span>
-                <span class="text-[10px] text-[#1C1C1E]/40">
+                <span class="text-[10px] text-ios-text/40">
                   {{ template.startTime }}–{{ template.endTime }}
                 </span>
               </div>
@@ -64,8 +64,8 @@
               :key="col.dateStr"
               class="px-2 py-2 align-top transition-colors"
               :class="[
-                col.isToday ? 'bg-[#007AFF]/3' : '',
-                isDragOver(template.id, col.dateStr) ? 'bg-[#34C759]/10' : '',
+                col.isToday ? 'bg-ios-blue/5' : '',
+                isDragOver(template.id, col.dateStr) ? 'bg-ios-green/10' : '',
               ]"
               @dragover.prevent="onDragOver(template.id, col.dateStr)"
               @dragleave="onDragLeave"
@@ -107,10 +107,10 @@
                 <!-- Empty cell placeholder -->
                 <div
                   v-else
-                  class="h-[32px] rounded-lg border-2 border-dashed border-[#1C1C1E]/10 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+                  class="h-[32px] rounded-lg border-2 border-dashed border-ios-text/10 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
                   @click.stop="$emit('cell-click', template.id, col.dateStr)"
                 >
-                  <Plus class="w-3 h-3 text-[#1C1C1E]/30" />
+                  <Plus class="w-3 h-3 text-ios-text/30" />
                 </div>
               </div>
             </td>
@@ -120,7 +120,7 @@
           <tr v-if="shiftTemplates.length === 0">
             <td
               :colspan="dateColumns.length + 1"
-              class="py-12 text-center text-[#1C1C1E]/40 text-sm"
+              class="py-12 text-center text-ios-text/40 text-sm"
             >
               尚無班次範本，請先新增班次範本
             </td>

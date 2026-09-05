@@ -2,11 +2,11 @@
   <div class="flex flex-col gap-4">
     <!-- Unassigned employees section -->
     <div class="bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-4">
-      <h3 class="text-sm font-semibold text-[#1C1C1E] mb-3">未分配員工</h3>
+      <h3 class="text-sm font-semibold text-ios-text mb-3">未分配員工</h3>
 
       <div
         v-if="employees.length === 0"
-        class="text-center py-4 text-[#1C1C1E]/40 text-xs"
+        class="text-center py-4 text-ios-text/40 text-xs"
       >
         所有員工已排班
       </div>
@@ -16,7 +16,7 @@
           v-for="emp in employeesWithStatus"
           :key="emp.id"
           draggable="true"
-          class="flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-grab active:cursor-grabbing transition-all hover:bg-[#F2F2F7] select-none"
+          class="flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-grab active:cursor-grabbing transition-all hover:bg-ios-bg select-none"
           :class="emp.isOnLeave ? 'opacity-60' : ''"
           @dragstart="onDragStart($event, emp.id)"
         >
@@ -27,12 +27,12 @@
 
           <!-- Name + info -->
           <div class="min-w-0 flex-1">
-            <p class="text-xs font-medium text-[#1C1C1E] truncate">
+            <p class="text-xs font-medium text-ios-text truncate">
               {{ emp.fullName || emp.name }}
             </p>
             <p
               v-if="emp.statusLabel"
-              class="text-[10px] text-[#1C1C1E]/40 truncate"
+              class="text-[10px] text-ios-text/40 truncate"
             >
               {{ emp.statusLabel }}
             </p>
@@ -51,11 +51,11 @@
 
     <!-- Shift templates legend -->
     <div class="bg-white rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.06)] p-4">
-      <h3 class="text-sm font-semibold text-[#1C1C1E] mb-3">班次模板</h3>
+      <h3 class="text-sm font-semibold text-ios-text mb-3">班次模板</h3>
 
       <div
         v-if="!shiftTemplates || shiftTemplates.length === 0"
-        class="text-center py-2 text-[#1C1C1E]/40 text-xs"
+        class="text-center py-2 text-ios-text/40 text-xs"
       >
         尚無班次模板
       </div>
@@ -71,8 +71,8 @@
             :style="{ backgroundColor: tpl.colorCode || '#007AFF' }"
           />
           <div class="min-w-0 flex-1">
-            <p class="text-xs font-medium text-[#1C1C1E]">{{ tpl.name }}</p>
-            <p class="text-[10px] text-[#1C1C1E]/40">
+            <p class="text-xs font-medium text-ios-text">{{ tpl.name }}</p>
+            <p class="text-[10px] text-ios-text/40">
               {{ tpl.startTime }}–{{ tpl.endTime }}
             </p>
           </div>
@@ -173,6 +173,6 @@ function roleLabel(role: number): string {
 }
 
 function roleClass(role: number): string {
-  return ROLE_CLASSES[role] ?? "bg-[#F2F2F7] text-[#1C1C1E]/60";
+  return ROLE_CLASSES[role] ?? "bg-ios-bg text-ios-text/60";
 }
 </script>

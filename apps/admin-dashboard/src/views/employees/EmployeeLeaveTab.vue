@@ -2,13 +2,13 @@
   <div class="space-y-6">
     <!-- Leave Balances -->
     <div>
-      <h3 class="text-sm font-semibold text-[#1C1C1E] mb-3">
+      <h3 class="text-sm font-semibold text-ios-text mb-3">
         {{ t("employees.leave.balances") }}
       </h3>
 
       <div v-if="leavesLoading" class="flex items-center justify-center py-8">
         <div
-          class="w-6 h-6 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin"
+          class="w-6 h-6 border-2 border-ios-blue border-t-transparent rounded-full animate-spin"
         />
       </div>
 
@@ -16,8 +16,8 @@
         v-else-if="!leaveBalances || leaveBalances.length === 0"
         class="text-center py-8"
       >
-        <CalendarOff class="mx-auto w-8 h-8 text-[#1C1C1E]/15 mb-2" />
-        <p class="text-xs text-[#1C1C1E]/30">
+        <CalendarOff class="mx-auto w-8 h-8 text-ios-text/15 mb-2" />
+        <p class="text-xs text-ios-text/30">
           {{ t("employees.leave.noBalances") }}
         </p>
       </div>
@@ -26,7 +26,7 @@
         <div
           v-for="balance in leaveBalances"
           :key="balance.id"
-          class="bg-[#F2F2F7] rounded-2xl p-4"
+          class="bg-ios-bg rounded-2xl p-4"
         >
           <div class="flex items-center gap-2 mb-3">
             <div
@@ -35,7 +35,7 @@
                 backgroundColor: balance.leaveType?.color || '#007AFF',
               }"
             />
-            <span class="text-sm font-medium text-[#1C1C1E]">
+            <span class="text-sm font-medium text-ios-text">
               {{ balance.leaveType?.name || t("employees.leave.unknown") }}
             </span>
             <span
@@ -48,10 +48,10 @@
 
           <!-- Balance Display -->
           <div class="flex items-baseline gap-1 mb-2">
-            <span class="text-2xl font-bold text-[#007AFF]">{{
+            <span class="text-2xl font-bold text-ios-blue">{{
               balance.remainingDays
             }}</span>
-            <span class="text-sm text-[#1C1C1E]/40"
+            <span class="text-sm text-ios-text/40"
               >/ {{ balance.totalDays }} {{ t("employees.leave.days") }}</span
             >
           </div>
@@ -66,7 +66,7 @@
           </div>
 
           <!-- Details -->
-          <div class="flex justify-between text-xs text-[#1C1C1E]/40">
+          <div class="flex justify-between text-xs text-ios-text/40">
             <span>{{ t("employees.leave.used") }}: {{ balance.usedDays }}</span>
             <span v-if="balance.pendingDays > 0" class="text-amber-600">
               {{ t("employees.leave.pending") }}: {{ balance.pendingDays }}
@@ -78,13 +78,13 @@
 
     <!-- Leave Requests -->
     <div>
-      <h3 class="text-sm font-semibold text-[#1C1C1E] mb-3">
+      <h3 class="text-sm font-semibold text-ios-text mb-3">
         {{ t("employees.leave.requests") }}
       </h3>
 
       <div v-if="leavesLoading" class="flex items-center justify-center py-8">
         <div
-          class="w-6 h-6 border-2 border-[#007AFF] border-t-transparent rounded-full animate-spin"
+          class="w-6 h-6 border-2 border-ios-blue border-t-transparent rounded-full animate-spin"
         />
       </div>
 
@@ -92,8 +92,8 @@
         v-else-if="!leaveRequests || leaveRequests.length === 0"
         class="text-center py-8"
       >
-        <FileText class="mx-auto w-8 h-8 text-[#1C1C1E]/15 mb-2" />
-        <p class="text-xs text-[#1C1C1E]/30">
+        <FileText class="mx-auto w-8 h-8 text-ios-text/15 mb-2" />
+        <p class="text-xs text-ios-text/30">
           {{ t("employees.leave.noRequests") }}
         </p>
       </div>
@@ -102,7 +102,7 @@
         <div
           v-for="request in leaveRequests"
           :key="request.id"
-          class="flex items-center gap-4 p-4 bg-[#F2F2F7] rounded-xl"
+          class="flex items-center gap-4 p-4 bg-ios-bg rounded-xl"
         >
           <!-- Type Indicator -->
           <div
@@ -113,11 +113,11 @@
           <!-- Details -->
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
-              <span class="text-sm font-medium text-[#1C1C1E]">
+              <span class="text-sm font-medium text-ios-text">
                 {{ request.leaveType?.name || t("employees.leave.unknown") }}
               </span>
             </div>
-            <p class="text-xs text-[#1C1C1E]/40 mt-0.5">
+            <p class="text-xs text-ios-text/40 mt-0.5">
               {{ formatDate(request.startDate) }} -
               {{ formatDate(request.endDate) }}
               <span
@@ -132,7 +132,7 @@
             </p>
             <p
               v-if="request.reason"
-              class="text-xs text-[#1C1C1E]/30 mt-0.5 truncate"
+              class="text-xs text-ios-text/30 mt-0.5 truncate"
             >
               {{ request.reason }}
             </p>
@@ -179,9 +179,9 @@ const usagePercent = (balance: LeaveBalance) => {
 };
 
 const progressColor = (percent: number) => {
-  if (percent >= 90) return "bg-[#FF3B30]";
-  if (percent >= 70) return "bg-[#FF9500]";
-  return "bg-[#34C759]";
+  if (percent >= 90) return "bg-ios-red";
+  if (percent >= 70) return "bg-ios-orange";
+  return "bg-ios-green";
 };
 
 const periodText = (period: string) => {
