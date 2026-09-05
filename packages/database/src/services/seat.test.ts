@@ -65,16 +65,27 @@ describe("SeatService.createSeatsForTable", () => {
     tableId = table.id;
   });
 
-  it("rejects a second batch when the table already has seats", async () => {
+  it("appends a second batch onto the numbers already in use", async () => {
     const service = createService(testDb);
     await service.createSeatsForTable(tableId, 2);
 
-    await expect(service.createSeatsForTable(tableId, 2)).rejects.toThrow(
-      "Table already has seats",
-    );
+    const appended = await service.createSeatsForTable(tableId, 2);
+
+    expect(appended.map((seat) => seat.seatNumber)).toEqual(["03", "04"]);
+    const all = await testDb.drizzle
+      .select({ seatNumber: seats.seatNumber })
+      .from(seats)
+      .where(eq(seats.tableId, tableId))
+      .orderBy(asc(seats.seatNumber));
+    expect(all.map((seat) => seat.seatNumber)).toEqual([
+      "01",
+      "02",
+      "03",
+      "04",
+    ]);
   });
 
-  it("allows a replacement batch after every prior seat is soft-deleted", async () => {
+  it("keeps counting past a soft-deleted seat instead of reusing its number", async () => {
     const service = createService(testDb);
     await service.createSeatsForTable(tableId, 2);
     await testDb.drizzle
@@ -82,9 +93,29 @@ describe("SeatService.createSeatsForTable", () => {
       .set({ deletedAt: new Date(), isActive: false })
       .where(eq(seats.tableId, tableId));
 
-    await expect(service.createSeatsForTable(tableId, 2)).resolves.toHaveLength(
-      2,
-    );
+    const replacement = await service.createSeatsForTable(tableId, 2);
+
+    // seats(table_id, seat_number) is UNIQUE and does not exclude soft-deleted
+    // rows, so re-minting 01/02 would fail the insert outright. It would also
+    // hand two different seats the same label a customer reads off a sticker.
+    expect(replacement.map((seat) => seat.seatNumber)).toEqual(["03", "04"]);
+  });
+
+  it("rewrites the table's seat count as seats are added and retired", async () => {
+    const service = createService(testDb);
+    const seatCountNow = async () => {
+      const [row] = await testDb.drizzle
+        .select({ seatCount: tables.seatCount })
+        .from(tables)
+        .where(eq(tables.id, tableId));
+      return row.seatCount;
+    };
+
+    const created = await service.createSeatsForTable(tableId, 3);
+    expect(await seatCountNow()).toBe(3);
+
+    await service.deleteSeat(created[0].id);
+    expect(await seatCountNow()).toBe(2);
   });
 
   it("requires one unique custom number per requested seat", async () => {

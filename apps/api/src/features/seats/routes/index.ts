@@ -22,6 +22,7 @@ import {
   notFound,
   badRequest,
   forbidden,
+  conflict,
 } from "../../../shared/utils/api-error";
 import {
   batchCreateSeatsSchema,
@@ -276,11 +277,26 @@ routes.post(
       );
     }
 
-    const seats = await seatService.createSeatsForTable(tableId, seatCount, {
-      numberingStyle,
-      customNumbers,
-      prefix,
-    });
+    let seats;
+    try {
+      seats = await seatService.createSeatsForTable(tableId, seatCount, {
+        numberingStyle,
+        customNumbers,
+        prefix,
+      });
+    } catch (error) {
+      // The service flattens everything through BaseService.handleError, which
+      // rebuilds a plain Error, so the message is all that survives to map on.
+      // Without this a caller reusing a number they can see on the table gets a
+      // 500 that reads like an outage instead of "pick another number".
+      if (
+        error instanceof Error &&
+        error.message.includes("Seat number already used on this table")
+      ) {
+        throw conflict(error.message, "SEAT_NUMBER_TAKEN");
+      }
+      throw error;
+    }
 
     return c.json(
       {

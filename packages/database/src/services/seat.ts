@@ -77,18 +77,30 @@ export class SeatService extends BaseService {
         throw new Error("Seat count must be a positive integer");
       }
 
-      const existingSeat = await this.db
-        .select({ id: seats.id })
+      // Every seat number this table has ever used, soft-deleted rows
+      // included. `seats(table_id, seat_number)` is UNIQUE with no deletedAt
+      // predicate, so a retired number stays claimed and reusing it fails the
+      // insert. Skipping past it is also what the printed stickers want: an
+      // old "03" sticker is still out in the room pointing at the retired
+      // seat, and a new seat wearing that number would collide with it in the
+      // one place the QR cannot disambiguate -- the label a customer reads.
+      //
+      // This method appends. It used to refuse outright once a table had any
+      // seat, which left an owner no way to add a chair: seat management threw
+      // "Table already has seats" while `PUT /tables/:id` answered
+      // SEAT_COUNT_VIA_SEAT_MANAGEMENT and sent them back here.
+      const takenRows = await this.db
+        .select({ seatNumber: seats.seatNumber })
         .from(seats)
-        .where(and(eq(seats.tableId, tableId), isNull(seats.deletedAt)))
-        .get();
-
-      if (existingSeat) {
-        throw new Error("Table already has seats");
-      }
+        .where(eq(seats.tableId, tableId));
+      const takenNumbers = new Set(takenRows.map((row) => row.seatNumber));
 
       // 生成座位編號
-      const seatNumbers = this.generateSeatNumbers(seatCount, options);
+      const seatNumbers = this.generateSeatNumbers(
+        seatCount,
+        options,
+        takenNumbers,
+      );
 
       // 並行生成所有 QR codes
       const qrCodes = await Promise.all(
@@ -113,10 +125,37 @@ export class SeatService extends BaseService {
         .values(seatValues)
         .returning();
 
+      await this.syncTableSeatCount(tableId);
+
       return createdSeats;
     } catch (error) {
       this.handleError(error, "createSeatsForTable");
     }
+  }
+
+  /**
+   * Rewrite `tables.seat_count` from the seats that actually exist.
+   *
+   * The column is denormalised, and `PUT /tables/:id` compares an incoming
+   * seatCount against it to decide whether the caller is trying to resize the
+   * table from the wrong endpoint. Leaving it behind after a seat was added or
+   * retired makes that guard fire on a request that changed nothing, so every
+   * write that moves the seat population calls this.
+   */
+  private async syncTableSeatCount(tableId: number): Promise<void> {
+    const [row] = await this.db
+      .select({ total: count() })
+      .from(seats)
+      // Not-deleted, not "active": a seat parked as unavailable is still a
+      // chair at the table, still shown in the grid, and still counts against
+      // capacity in the batch-create route. Counting it here too keeps the
+      // column agreeing with the check that gates writes to it.
+      .where(and(eq(seats.tableId, tableId), isNull(seats.deletedAt)));
+
+    await this.db
+      .update(tables)
+      .set({ seatCount: row?.total ?? 0, updatedAt: new Date() })
+      .where(eq(tables.id, tableId));
   }
 
   /**
@@ -319,7 +358,11 @@ export class SeatService extends BaseService {
           updatedAt: deletedAt,
         })
         .where(and(eq(seats.id, seatId), isNull(seats.deletedAt)))
-        .returning({ id: seats.id });
+        .returning({ id: seats.id, tableId: seats.tableId });
+
+      if (result.length > 0) {
+        await this.syncTableSeatCount(result[0].tableId);
+      }
 
       return result.length > 0;
     } catch (error) {
@@ -832,9 +875,14 @@ export class SeatService extends BaseService {
   /**
    * 生成座位編號
    */
+  /**
+   * @param takenNumbers numbers this table already claims, so an append picks
+   *   up past them instead of colliding with the UNIQUE index.
+   */
   private generateSeatNumbers(
     count: number,
     options: SeatNumberingOptions = {},
+    takenNumbers: ReadonlySet<string> = new Set(),
   ): string[] {
     const { numberingStyle = "numeric", customNumbers, prefix = "" } = options;
 
@@ -850,23 +898,39 @@ export class SeatService extends BaseService {
       if (new Set(normalizedNumbers).size !== normalizedNumbers.length) {
         throw new Error("Custom seat numbers must be unique");
       }
+      const clash = normalizedNumbers.find((number) =>
+        takenNumbers.has(number),
+      );
+      if (clash) {
+        throw new Error(`Seat number already used on this table: ${clash}`);
+      }
 
       return normalizedNumbers;
     }
 
     const numbers: string[] = [];
+    // Walk the sequence from the top and keep whatever is still free, rather
+    // than starting at the current seat count: with 01/02/04 in place and 03
+    // retired, an append must land on 05, not re-mint 03.
+    const ceiling = count + takenNumbers.size;
 
-    if (numberingStyle === "numeric") {
-      // 數字編號：01, 02, 03...
-      for (let i = 1; i <= count; i++) {
-        numbers.push(`${prefix}${String(i).padStart(2, "0")}`);
-      }
-    } else if (numberingStyle === "alphabetic") {
-      // 字母編號：A, B, C...
-      for (let i = 0; i < count; i++) {
+    for (let i = 0; i < ceiling && numbers.length < count; i++) {
+      let candidate: string;
+
+      if (numberingStyle === "numeric") {
+        // 數字編號：01, 02, 03...
+        candidate = `${prefix}${String(i + 1).padStart(2, "0")}`;
+      } else if (numberingStyle === "alphabetic") {
+        // 字母編號：A, B, C...
         const letter = String.fromCharCode(65 + (i % 26)); // A-Z
         const repeat = Math.floor(i / 26) + 1;
-        numbers.push(`${prefix}${letter.repeat(repeat)}`);
+        candidate = `${prefix}${letter.repeat(repeat)}`;
+      } else {
+        break;
+      }
+
+      if (!takenNumbers.has(candidate)) {
+        numbers.push(candidate);
       }
     }
 
