@@ -1,5 +1,18 @@
 import * as bcrypt from "bcryptjs";
-import { and, asc, count, desc, eq, gte, like, ne, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  isNotNull,
+  isNull,
+  like,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import { USER_ROLES, users, type UserRole } from "../schema";
 import type { UserPreferences } from "@makanmasak/shared-types";
 import { BaseService } from "./base";
@@ -52,6 +65,23 @@ export interface UserFilters {
   search?: string; // 搜尋用戶名或全名
   page?: number;
   limit?: number;
+  /**
+   * Which side of the archive to list. Omitted means current staff only, so
+   * every existing caller keeps departed employees out without being changed.
+   */
+  archived?: "exclude" | "only" | "include";
+}
+
+/**
+ * Restrict a staff query to one side of the archive.
+ *
+ * `users.deleted_at_ms` existed long before anything read it, which is why the
+ * column has to be applied deliberately at each call site rather than trusted
+ * to be handled upstream (#337).
+ */
+function archiveCondition(mode: UserFilters["archived"] = "exclude") {
+  if (mode === "include") return undefined;
+  return mode === "only" ? isNotNull(users.deletedAt) : isNull(users.deletedAt);
 }
 
 export interface UserStats {
@@ -169,8 +199,11 @@ export class UserService extends BaseService {
           lastLoginAt: users.lastLoginAt,
           createdAt: users.createdAt,
           updatedAt: users.updatedAt,
+          deletedAt: users.deletedAt,
         })
         .from(users)
+        // Archived staff are still resolvable by id on purpose: an old roster
+        // or shift report has to be able to render the name behind it (#337).
         .where(eq(users.id, id))
         .get();
 
@@ -198,6 +231,8 @@ export class UserService extends BaseService {
         lastLoginAt: isoOrNull(user.lastLoginAt),
         createdAt: isoOrNull(user.createdAt),
         updatedAt: isoOrNull(user.updatedAt),
+        archivedAt: isoOrNull(user.deletedAt),
+        isArchived: user.deletedAt !== null,
       };
     } catch (error) {
       this.handleError(error, "getUserById");
@@ -296,22 +331,58 @@ export class UserService extends BaseService {
     }
   }
 
-  // 刪除用戶（軟刪除 - 設為不活躍）
-  async deleteUser(id: string): Promise<boolean> {
+  /**
+   * Archive a departed employee.
+   *
+   * Not a row delete, and it cannot be one: 34 tables carry a foreign key to
+   * `users.id`, and the audit and cash ones (`audit_logs`, `cash_shifts`,
+   * `shift_reports`, `refunds`, `cash_movements`) are ON DELETE NO ACTION, so
+   * the statement is refused for anyone who has actually worked a shift. Where
+   * it is not refused, the CASCADE side (`employee_schedules`,
+   * `leave_requests`, `employee_leave_balances`) would take their history with
+   * it. Archiving keeps the row so old rosters and reports still resolve a
+   * name, and the read paths hide it from the staff pickers instead (#337).
+   *
+   * Bumps tokenVersion so any session the departing employee still holds stops
+   * validating -- `isActive` alone only closes the next login.
+   */
+  async archiveUser(id: string): Promise<boolean> {
     try {
+      const now = new Date();
       const result = await this.db
         .update(users)
         .set({
           isActive: false,
+          deletedAt: now,
           tokenVersion: sql`${users.tokenVersion} + 1`,
-          updatedAt: new Date(),
+          updatedAt: now,
         })
-        .where(eq(users.id, id))
+        .where(and(eq(users.id, id), isNull(users.deletedAt)))
         .returning({ id: users.id });
 
       return result.length > 0;
     } catch (error) {
-      console.error("Delete user error:", error);
+      console.error("Archive user error:", error);
+      return false;
+    }
+  }
+
+  /** Bring an archived employee back; rehiring the same person is common. */
+  async restoreUser(id: string): Promise<boolean> {
+    try {
+      const result = await this.db
+        .update(users)
+        .set({
+          isActive: true,
+          deletedAt: null,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(users.id, id), isNotNull(users.deletedAt)))
+        .returning({ id: users.id });
+
+      return result.length > 0;
+    } catch (error) {
+      console.error("Restore user error:", error);
       return false;
     }
   }
@@ -329,11 +400,14 @@ export class UserService extends BaseService {
         isActive,
         isVerified,
         search,
+        archived,
       } = filters;
       const { offset } = this.createPagination(page, limit);
 
       // 建構查詢條件
       const conditions = [eq(users.restaurantId, restaurantId)];
+      const archiveScope = archiveCondition(archived);
+      if (archiveScope) conditions.push(archiveScope);
 
       if (role !== undefined) {
         conditions.push(eq(users.role, role));
@@ -374,6 +448,7 @@ export class UserService extends BaseService {
           lastLoginAt: users.lastLoginAt,
           createdAt: users.createdAt,
           updatedAt: users.updatedAt,
+          deletedAt: users.deletedAt,
         })
         .from(users)
         .where(and(...conditions))
@@ -406,6 +481,8 @@ export class UserService extends BaseService {
         lastLoginAt: isoOrNull(user.lastLoginAt),
         createdAt: isoOrNull(user.createdAt),
         updatedAt: isoOrNull(user.updatedAt),
+        archivedAt: isoOrNull(user.deletedAt),
+        isArchived: user.deletedAt !== null,
       }));
 
       return {
@@ -434,6 +511,8 @@ export class UserService extends BaseService {
 
       // 建構查詢條件
       const conditions = [];
+      const archiveScope = archiveCondition(filters.archived);
+      if (archiveScope) conditions.push(archiveScope);
 
       if (restaurantId) {
         conditions.push(eq(users.restaurantId, restaurantId));
@@ -619,11 +698,13 @@ export class UserService extends BaseService {
   // 取得用戶統計資訊
   async getUserStats(restaurantId?: string): Promise<UserStats> {
     try {
+      // "Total staff" means people who currently work here, so archived
+      // employees are excluded from every figure rather than only from the
+      // active one (#337).
       const conditions = restaurantId
-        ? [eq(users.restaurantId, restaurantId)]
-        : [];
-      const whereClause =
-        conditions.length > 0 ? and(...conditions) : undefined;
+        ? [eq(users.restaurantId, restaurantId), isNull(users.deletedAt)]
+        : [isNull(users.deletedAt)];
+      const whereClause = and(...conditions);
 
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -680,6 +761,7 @@ export class UserService extends BaseService {
           like(users.fullName, `%${query}%`),
           like(users.email, `%${query}%`),
         ),
+        isNull(users.deletedAt),
       ];
 
       if (restaurantId) {
@@ -732,7 +814,11 @@ export class UserService extends BaseService {
   // 取得特定角色的用戶
   async getUsersByRole(role: number, restaurantId?: string) {
     try {
-      const conditions = [eq(users.role, role), eq(users.isActive, true)];
+      const conditions = [
+        eq(users.role, role),
+        eq(users.isActive, true),
+        isNull(users.deletedAt),
+      ];
 
       if (restaurantId) {
         conditions.push(eq(users.restaurantId, restaurantId));

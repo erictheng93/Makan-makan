@@ -384,6 +384,50 @@ app.patch(
 );
 
 /**
+ * DELETE /api/v1/users/:id
+ *
+ * Removes a departed employee from the roster. Archival, not a row delete --
+ * see UserService.archiveUser for the foreign keys that make a real delete
+ * either impossible or destructive (#337).
+ */
+app.delete(
+  "/:id",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(userIdParamSchema),
+  async (c) => {
+    const { id } = c.get("validatedParams") as IdParamInput;
+    const currentUser = c.get("user");
+    const usersService = new UsersService(c.env);
+
+    const message = await usersService.archiveUser(currentUser, id);
+
+    return c.json({ success: true, message });
+  },
+);
+
+/**
+ * POST /api/v1/users/:id/restore
+ *
+ * Rehire: puts an archived employee back on the active roster.
+ */
+app.post(
+  "/:id/restore",
+  authMiddleware,
+  requireRole([USER_ROLES.ADMIN, USER_ROLES.OWNER]),
+  validateParams(userIdParamSchema),
+  async (c) => {
+    const { id } = c.get("validatedParams") as IdParamInput;
+    const currentUser = c.get("user");
+    const usersService = new UsersService(c.env);
+
+    const message = await usersService.restoreUser(currentUser, id);
+
+    return c.json({ success: true, message });
+  },
+);
+
+/**
  * PATCH /api/v1/users/:id/verify
  */
 app.patch(

@@ -65,6 +65,8 @@ export interface UserFilters {
   search?: string;
   page?: number;
   limit?: number;
+  /** Omitted lists current staff; "only" is the departed tab. */
+  archived?: "exclude" | "only" | "include";
 }
 
 /**
@@ -115,6 +117,9 @@ export interface FormattedUser {
   dateOfBirth?: string | null;
   profileImageUrl?: string | null;
   isActive: boolean;
+  /** Departed staff: hidden from the roster, still named on old records. */
+  isArchived: boolean;
+  archivedAt?: string | null;
   isVerified: boolean;
   preferences?: UserPreferences | string | null;
   totalOrders?: number | null;

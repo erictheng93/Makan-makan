@@ -364,6 +364,9 @@ export class SchedulingService extends BaseService {
           inArray(users.id, uniqueIds),
           eq(users.restaurantId, restaurantId),
           eq(users.isActive, true),
+          // Archived staff have left; a shift must not be assignable to them
+          // even if a stale client still lists the id (#337).
+          isNull(users.deletedAt),
         ),
       );
 
@@ -992,6 +995,11 @@ export class SchedulingService extends BaseService {
    * Resolve display names for a set of employee ids.
    * Returns a map of employeeId -> display name (fullName, falling back to
    * username). Missing ids are simply absent from the map.
+   *
+   * Archived employees are deliberately still resolved: a past roster or an
+   * attendance export has to name the person who worked the shift. They carry
+   * a suffix so the reader can tell the name belongs to someone who has since
+   * left (#337).
    */
   async getEmployeeNames(employeeIds: string[]): Promise<Map<string, string>> {
     const map = new Map<string, string>();
@@ -1003,12 +1011,14 @@ export class SchedulingService extends BaseService {
         id: users.id,
         fullName: users.fullName,
         username: users.username,
+        deletedAt: users.deletedAt,
       })
       .from(users)
       .where(inArray(users.id, uniqueIds));
 
     for (const row of rows) {
-      const name = row.fullName || row.username;
+      const base = row.fullName || row.username;
+      const name = base && row.deletedAt ? `${base}（已離職）` : base;
       if (name) map.set(row.id, name);
     }
     return map;

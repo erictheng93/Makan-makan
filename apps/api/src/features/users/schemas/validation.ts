@@ -87,6 +87,9 @@ export const userFilterSchema = commonSchemas.paginationQuery.extend({
     .string()
     .transform((val) => val === "true")
     .optional(),
+  // Omitted means current staff, so an existing caller keeps departed
+  // employees out of its list without being changed (#337).
+  archived: z.enum(["exclude", "only", "include"]).optional(),
 });
 
 /**

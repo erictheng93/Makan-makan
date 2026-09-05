@@ -25,6 +25,7 @@ import {
   updateUserRoute,
   changePasswordRoute,
   deleteUserRoute,
+  restoreUserRoute,
 } from "./schemas/users";
 
 import {
@@ -480,6 +481,7 @@ export const OpenAPIRoutes = {
     update: updateUserRoute,
     changePassword: changePasswordRoute,
     delete: deleteUserRoute,
+    restore: restoreUserRoute,
   },
   restaurants: {
     getAll: getRestaurantsRoute,

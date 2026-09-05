@@ -239,8 +239,10 @@ export const deleteUserRoute = createRoute({
   method: "delete",
   path: "/api/v1/users/:userId",
   tags: ["users"],
-  summary: "刪除用戶",
-  description: "刪除指定的用戶帳號（軟刪除）",
+  summary: "移除員工",
+  description:
+    "將員工移出在職名單（封存）。不是刪除資料列 —— 過往排班與報表仍需解析姓名，" +
+    "且稽核與金流表的外鍵不允許刪除。可用 restore 復原。",
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({
@@ -250,6 +252,34 @@ export const deleteUserRoute = createRoute({
   responses: {
     200: {
       description: "用戶刪除成功",
+      content: {
+        "application/json": {
+          schema: z.object({
+            success: z.boolean(),
+            message: z.string(),
+          }),
+        },
+      },
+    },
+    ...errorResponses(401, 403, 404),
+  },
+});
+
+export const restoreUserRoute = createRoute({
+  method: "post",
+  path: "/api/v1/users/:userId/restore",
+  tags: ["users"],
+  summary: "復原已離職員工",
+  description: "將已封存的員工放回在職名單，使其可重新登入。",
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({
+      userId: z.uuid(),
+    }),
+  },
+  responses: {
+    200: {
+      description: "員工復原成功",
       content: {
         "application/json": {
           schema: z.object({

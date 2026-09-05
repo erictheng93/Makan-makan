@@ -5,6 +5,7 @@ import {
   notFound,
   forbidden,
   badRequest,
+  conflict,
 } from "../../../shared/utils/api-error";
 import { ApiError } from "../../../shared/utils/api-error";
 import {
@@ -45,6 +46,9 @@ interface UserRecord {
   dateOfBirth?: string | null;
   profileImageUrl?: string | null;
   isActive: boolean;
+  /** Present only on the read paths; the write paths do not project it. */
+  isArchived?: boolean;
+  archivedAt?: string | null;
   isVerified: boolean;
   preferences?: UserPreferences | string | null;
   totalOrders?: number | null;
@@ -132,6 +136,8 @@ export class UsersService {
       dateOfBirth: user.dateOfBirth,
       profileImageUrl: user.profileImageUrl,
       isActive: user.isActive,
+      isArchived: Boolean(user.isArchived),
+      archivedAt: user.archivedAt ?? null,
       isVerified: user.isVerified,
       preferences: user.preferences,
       totalOrders: user.totalOrders,
@@ -321,6 +327,36 @@ export class UsersService {
 
     await this.userService.updateUser(userId, { isActive });
     return `User ${isActive ? "activated" : "deactivated"} successfully`;
+  }
+
+  /**
+   * Archive a departed employee: gone from the staff list and every picker,
+   * but the row survives so old rosters and shift reports still resolve a name.
+   * See UserService.archiveUser for why this cannot be a row delete (#337).
+   */
+  async archiveUser(currentUser: CurrentUser, userId: string): Promise<string> {
+    await this.requireManagedUser(currentUser, userId);
+
+    if (currentUser.id === userId) {
+      throw badRequest("Cannot remove your own account");
+    }
+
+    const archived = await this.userService.archiveUser(userId);
+    if (!archived) {
+      throw conflict("Employee is already archived", "USER_ALREADY_ARCHIVED");
+    }
+    return "Employee archived successfully";
+  }
+
+  /** Rehire: bring an archived employee back to the active roster. */
+  async restoreUser(currentUser: CurrentUser, userId: string): Promise<string> {
+    await this.requireManagedUser(currentUser, userId);
+
+    const restored = await this.userService.restoreUser(userId);
+    if (!restored) {
+      throw conflict("Employee is not archived", "USER_NOT_ARCHIVED");
+    }
+    return "Employee restored successfully";
   }
 
   async verifyUser(currentUser: CurrentUser, userId: string): Promise<void> {

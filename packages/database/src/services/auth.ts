@@ -1,5 +1,5 @@
 import * as bcrypt from "bcryptjs";
-import { and, desc, eq, gt, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, lt, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import type { JwtPayload } from "jsonwebtoken";
 import { sign, verify } from "jsonwebtoken";
@@ -209,7 +209,16 @@ export class AuthService extends BaseService {
           tokenVersion: users.tokenVersion,
         })
         .from(users)
-        .where(and(eq(users.username, data.username), eq(users.isActive, true)))
+        // Archived staff are barred here as well as by isActive: the two are
+        // set together on departure, but a login must not turn on one of them
+        // staying in step with the other (#337).
+        .where(
+          and(
+            eq(users.username, data.username),
+            eq(users.isActive, true),
+            isNull(users.deletedAt),
+          ),
+        )
         .get();
 
       if (!user) {
@@ -553,7 +562,7 @@ export class AuthService extends BaseService {
         tokenVersion: users.tokenVersion,
       })
       .from(users)
-      .where(and(where, eq(users.isActive, true)))
+      .where(and(where, eq(users.isActive, true), isNull(users.deletedAt)))
       .get();
   }
 
@@ -661,7 +670,13 @@ export class AuthService extends BaseService {
           tokenVersion: users.tokenVersion,
         })
         .from(users)
-        .where(and(eq(users.id, session.userId), eq(users.isActive, true)))
+        .where(
+          and(
+            eq(users.id, session.userId),
+            eq(users.isActive, true),
+            isNull(users.deletedAt),
+          ),
+        )
         .get();
 
       if (!user) {
