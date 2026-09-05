@@ -67,12 +67,12 @@
         </div>
 
         <!-- 分類導航 -->
-        <div v-if="categories.length > 0" class="px-4 py-3">
+        <div v-if="visibleCategories.length > 0" class="px-4 py-3">
           <div
             class="flex space-x-2 overflow-x-auto scrollbar-hide md:flex-wrap md:overflow-x-visible md:gap-2 md:space-x-0"
           >
             <button
-              v-for="category in categories"
+              v-for="category in visibleCategories"
               :key="category.id"
               :class="[
                 'flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors',
@@ -319,7 +319,7 @@
           >
             <div
               class="sticky bg-ios-bg/95 backdrop-blur-sm py-3 z-10 -mx-5 px-5"
-              :class="categories.length > 0 ? 'top-32' : 'top-16'"
+              :class="visibleCategories.length > 0 ? 'top-32' : 'top-16'"
             >
               <h2 class="text-xl font-semibold text-ios-text">
                 {{ getLocalizedMenuName(category, currentLanguage) }}
@@ -673,11 +673,27 @@ const featuredItems = computed(() =>
   ),
 );
 
+/**
+ * Categories a customer can actually order from.
+ *
+ * The chip strip and the sticky offset that depends on it have to agree with
+ * the sections rendered below, and only the sections were filtered. A category
+ * the owner created before adding dishes -- or one whose items are all sold
+ * out -- got a chip that scrolls nowhere: `scrollToCategory` still marks it
+ * active, so it looks selected while the page does not move.
+ *
+ * Search deliberately does not narrow this. The chips stay put while results
+ * filter underneath, matching ShopMenuView.
+ */
+const visibleCategories = computed(() =>
+  categories.value.filter(
+    (category) => getItemsByCategory(category.id).length > 0,
+  ),
+);
+
 const filteredCategories = computed(() => {
   if (!searchQuery.value.trim()) {
-    return categories.value.filter(
-      (category) => getItemsByCategory(category.id).length > 0,
-    );
+    return visibleCategories.value;
   }
 
   const query = searchQuery.value.toLowerCase().trim();
@@ -909,7 +925,7 @@ const handleViewDetails = (item: MenuItem) => {
 
 // 監聽滾動位置更新活躍分類
 const updateActiveCategoryOnScroll = () => {
-  const sections = categories.value.map((category: MenuCategory) => ({
+  const sections = visibleCategories.value.map((category: MenuCategory) => ({
     id: category.id,
     element: document.getElementById(`category-${category.id}`),
   }));
