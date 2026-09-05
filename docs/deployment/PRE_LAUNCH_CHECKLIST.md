@@ -16,7 +16,7 @@
 ### 2. Payment Audit Trail
 
 - [ ] ~~補齊 `PaymentOrchestrator.ts` 的日誌記錄（目前有 2 個 TODO 標記）~~ —— **更正（2026-07-05）**：`PaymentOrchestrator.ts` 不存在於現行生產程式碼（只殘留在 `apps/api/src/examples/*.disabled`）。現行支付程式碼是 `apps/api/src/features/payments/services/{PaymentService,refundPayment}.ts`，已呼叫 `PaymentAuditService.buildAppendQuery`，功能目錄下 0 個 TODO
-- [ ] 每一筆支付操作（建立、完成、退款、失敗）都必須寫入 audit log table —— **注意**：`PaymentService.ts` 目前只發送 `ATTEMPT`/`SUCCESS` 事件，`FAILURE` 是定義了但從未觸發的 dead enum（見 `docs/TECHNICAL_DEBT_TODO.md` Payment Audit Trail 章節）
+- [ ] 每一筆支付操作（建立、完成、退款、失敗）都必須寫入 audit log table —— **注意**：`PaymentService.ts` 目前只發送 `ATTEMPT`/`SUCCESS` 事件，`FAILURE` 是定義了但從未觸發的 dead enum（見 `docs/TODOS.md` §「known stubs returning fixed values」）
 - [ ] 退款操作的日誌記錄完整實作
 - [ ] 確認 audit log 不可被刪除（append-only）
 

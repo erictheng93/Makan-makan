@@ -118,7 +118,7 @@ Each app's `wrangler.toml` declares its own D1/KV/R2/Queue bindings — see
 `apps/api/wrangler.toml` for the primary API's `DB`, `CACHE_KV`,
 `RATE_LIMIT_KV`, `BACKUP_KV`, `TOKEN_BLACKLIST`, and `BACKUP_STORAGE`
 bindings. Resource IDs are real (no `REPLACE_ME__PRODUCTION` placeholders
-remain as of 2026-07-05) — see `docs/TECHNICAL_DEBT_TODO.md`.
+remain as of 2026-09-05) — see `docs/TODOS.md` § authentication.
 
 ## 🔍 Security Monitoring
 
@@ -130,7 +130,7 @@ remain as of 2026-07-05) — see `docs/TECHNICAL_DEBT_TODO.md`.
 - Monitor for unusual login patterns via `apps/api/src/features/auth`'s
   auth statistics endpoints — note that `AuthService.checkAccountSecurity()`
   currently hardcodes `failedLoginAttempts: 0` and `getSecurityEvents()`
-  returns `[]` (see `docs/TECHNICAL_DEBT_TODO.md`'s Authentication Flows
+  returns `[]` (see `docs/TODOS.md` § authentication, formerly the Authentication Flows
   section) — these specific stats are **not yet real data**, don't rely on
   them for actual monitoring today.
 

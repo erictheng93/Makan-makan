@@ -1,4 +1,48 @@
-# Technical Debt & TODO Backlog
+# Technical Debt Scan — 2026-05-02 (SUPERSEDED, archived 2026-09-05)
+
+> ## ⚠️ This is a historical scan report, not a backlog.
+>
+> It was a point-in-time repository scan, last substantively reviewed
+> **2026-05-02** and last corrected 2026-07-05/07-17. It lived at
+> `docs/TECHNICAL_DEBT_TODO.md` and once declared itself "the primary working
+> list". It never became one — every deliberate backlog edit after 2026-07-17
+> went to `TODOS.md` instead, and the four commits that touched this file
+> afterwards were incidental sweeps (an npm-scope rename, an rtk-reference
+> removal, the `multi_branch` module removal, the staging retirement).
+>
+> **The live backlog is [`docs/TODOS.md`](../../TODOS.md).** Everything here
+> that was still open on 2026-09-05 was verified against the tree and moved
+> there, as: auth account-security stubs, QR pdf/jpeg substitution, E2E skips
+> and mock-heavy API tests, twelve stale `.disabled`/`.old` files, seven
+> admin-dashboard TODOs, four hardcoded response fields, and the deploy
+> auto-chain (folded into the existing deployment item).
+>
+> ### Its headline numbers were wrong by an order of magnitude
+>
+> Measured 2026-09-05 against the claims in Review Notes below:
+>
+> | Claimed 2026-05-02 | Actual 2026-09-05 |
+> | --- | --- |
+> | 16 `REPLACE_ME__PRODUCTION` placeholders | **0** |
+> | 172 `// TODO` lines across 35 files | **27 lines across 21 files** |
+> | 65 unchecked backlog items | most of the sections are resolution records |
+>
+> ### Two specific things in here are actively wrong — do not act on them
+>
+> - **"Money REAL Columns"** states `migrations_fresh/0070_money_cents_cutover.sql`
+>   and `0071_...` exist. They were deleted by the fresh-track squash. The
+>   surviving copies are `migrations/0087`/`0088` on the legacy track, which no
+>   `wrangler.toml` reads. Tracked as
+>   [#334](https://github.com/erictheng93/Makan-Masak/issues/334).
+> - **"Cloudflare Resource IDs"** says `pnpm check:prod-config` "only runs
+>   manually". It has since been wired into CI at
+>   `.github/workflows/test.yml:202`.
+>
+> Kept because the resolution records — what was broken, what fixed it, which
+> commit — are genuinely useful history, and several sections are the only
+> written account of decisions like the `multi_branch` removal.
+
+---
 
 Last reviewed: 2026-05-02
 

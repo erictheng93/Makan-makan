@@ -222,7 +222,7 @@ the rewrite should land on Drizzle, not another template string.)
 
 ### i18n edge cases in displayTableName regex
 
-**Priority:** P4 **Status:** Completed 2026-05-25 **File:** `apps/kitchen-display/src/components/orders/OrderCard.vue` **Context:** `displayTableName` stripped `^(Table|桌)[\s-]*` to prevent prefix duplication. Edge cases were not currently in production data:
+**Priority:** P4 **Status:** ⚠️ Partially completed 2026-05-25 **File:** `apps/kitchen-display/src/components/orders/OrderCard.vue:314`. The regex was tightened to `^(Table|桌)[\s-]+/i` as planned, so the `桌子` case is fixed. The prefix list was never extended, and the condition for extending it has since been met: `vi-VN` and `ms-MY` locales were filled 2026-05-26, so `Bàn 4` and `Meja 4` now reach this code and are not stripped. **Context:** `displayTableName` stripped `^(Table|桌)[\s-]*` to prevent prefix duplication. Edge cases were not currently in production data:
 
 - Vietnamese `Bàn 4` → would not be stripped (expected Vietnamese locale also translates `orders.table` → `Bàn`)
 - Malay `Meja 4` → same
@@ -238,7 +238,7 @@ the rewrite should land on Drizzle, not another template string.)
 
 ### Standardize toLocaleTimeString/DateString to use active locale
 
-**Priority:** P4 **Status:** Completed 2026-05-25 **Context:** 10 kitchen-display files still pass hardcoded `"zh-TW"` to `toLocaleTimeString`/`toLocaleDateString`. Most use 24-hour format which renders identically across locales, so the bug is invisible today. Should be cleaned up so future changes (e.g. adding seconds or switching to 12-hour) stay locale-aware.
+**Priority:** P4 **Status:** ⚠️ Completed 2026-05-25 **for the 10 files listed below, but not fully** — a 2026-07-05 check found an eleventh that was never on the list, and it is still there today: `apps/kitchen-display/src/components/performance/PerformanceDashboard.vue:707` hardcodes `.toLocaleString("zh-TW")`. **Context:** 10 kitchen-display files still pass hardcoded `"zh-TW"` to `toLocaleTimeString`/`toLocaleDateString`. Most use 24-hour format which renders identically across locales, so the bug is invisible today. Should be cleaned up so future changes (e.g. adding seconds or switching to 12-hour) stay locale-aware.
 
 **Files:** OrderCard.vue, OrderDetailsModal.vue, ConnectionStatus.vue, HistoryView.vue, SystemHealthDashboard.vue, ErrorReportsDashboard.vue, EnhancedShortcutsPanel.vue, InteractiveAudioPanel.vue, InteractiveStatsPanel.vue, kitchenStatisticsService.ts
 
@@ -380,7 +380,154 @@ largest genuinely-unbuilt item in this file.
 - Vendor membership approval queue (vendor requests → operator approves/rejects)
 - Per-market analytics dashboard in management-portal
 
+## authentication
+
+### Account security and auth statistics are stubs that report zeros
+
+**Priority:** P2 **Status:** Open (absorbed 2026-09-05 from the archived 2026-05-02 debt scan, which had it corrected-to-open on 2026-07-05; re-verified against the tree today) **File:** `apps/api/src/features/authentication/services/AuthService.ts`
+
+**Context:** The 2026-04-21 auth work landed password reset, email verification,
+profile read/update and session termination on real database paths. Two
+surfaces were reported as done in the same breath and are not:
+
+- `getSecurityEvents()` unconditionally `return []` after logging
+  `"getSecurityEvents not fully implemented"` (`:1019`).
+- `checkAccountSecurity()` hardcodes `failedLoginAttempts: 0` (`:1036`) and
+  `twoFactorAdoptionRate: 0` (`:1085`).
+
+**Why it matters more than a normal stub:** these are not empty screens, they
+are *reassuring* ones. An account-security panel that always reports zero
+failed logins reads as "nothing suspicious has happened", which is the opposite
+of unknown. 2FA is intentionally unsupported today, so a zero adoption rate is
+technically true but says nothing.
+
+**Scope:**
+
+- Decide whether the surface should report real data or be removed until it
+  can. Removing it is a legitimate answer and cheaper than half-filling it.
+- If kept: source failed-login counts from a real store (there is no
+  login-attempt table today — that is the actual work), and drop the 2FA metric
+  entirely until 2FA exists rather than reporting 0.
+
+## qr codes
+
+### Requesting a PDF or JPEG QR silently returns an SVG
+
+**Priority:** P3 **Status:** Open (absorbed 2026-09-05 from the archived 2026-05-02 debt scan; verified today) **File:** `apps/api/src/features/qr-codes/services/QrCodesService.ts:487`
+
+**Context:** The 2026-04-22 fix replaced placeholder buffers with real QR
+artifacts, which was the P1. What it left behind is narrower but is still a
+response that does not match its request:
+
+```ts
+if (format === "svg" || format === "pdf" || format === "jpeg") {
+  const svg = await QRCode.toString(content, { ...options, type: "svg" });
+  return { data: ..., contentType: "image/svg+xml", extension: "svg" };
+}
+```
+
+A caller asking for `pdf` gets an SVG, labelled `image/svg+xml`, named `.svg`.
+No error, no warning. The old debt note framed this as "add true PDF/JPEG
+renderers"; the cheaper half is that until they exist, an unsupported format
+should 400 rather than substitute.
+
+**Scope:** Either render the requested format, or reject unsupported formats
+explicitly. Do not keep silently substituting.
+
+## repository cleanup
+
+### Twelve stale `.disabled` / `.old` / scratch files are still tracked
+
+**Priority:** P3 **Status:** Open (absorbed 2026-09-05; count re-verified today — the original list of 18 is down to 12, and `WaitingListView.vue.old` has gone since the 2026-07-05 pass)
+
+**Files:**
+
+- `apps/api/src/examples/StripeIntegrationExample.ts.disabled`, `PaymentSystemUsage.ts.disabled`
+- `packages/database/migrations/` — `0010_index_optimization.sql.disabled`, `0039_9_cleanup_new_tables.sql.disabled`, `0040_comprehensive_restaurant_id_migration.sql.disabled`, `0041_remaining_tables_structure.sql.disabled`, `0042_migrate_data_part1.sql.disabled`, `0043_migrate_data_part2.sql.disabled`, `0044_cleanup_and_rename.sql.old`
+- `apps/admin-dashboard/src/views/ReservationView.vue.old`
+- `apps/kitchen-display/priority3-final-status.txt`, `order-workflow-errors.txt`
+
+**Note before deleting the migration ones:** they sit on
+`packages/database/migrations/`, the legacy track that no `wrangler.toml`
+reads — so they are inert twice over. That also means deleting them is safe in
+a way it would not be on the fresh track.
+
+**Scope:** decide keep/delete per file (git history preserves them either way),
+then add a pre-commit or CI check that blocks new `.old` / `.disabled` /
+scratch `.txt` outside approved directories, since this list regrew after the
+last cleanup.
+
+## admin-dashboard
+
+### Seven unimplemented TODOs across scheduling, POS, queue and backup
+
+**Priority:** P3 **Status:** Open (absorbed 2026-09-05; per-file counts verified today)
+
+**Files and counts:** `components/scheduling/SchedulingConflicts.vue` (2),
+`views/POSManagementView.vue` (2), `views/scheduling/SchedulingView.vue` (1),
+`services/queueService.ts` (1), `components/backup/CreateBackupModal.vue` (1).
+`components/backup/BackupListItem.vue` is now clean.
+
+**Scope:** scheduling conflict ignore/details behaviour; schedule date
+filtering / create modal; promotion edit dialog; shift report dialog; backup
+component local types replaced with shared types; queue capacity forecast once
+an API exists.
+
+**Related:** several of these overlap issues already filed from the admin QA
+runs (#307, #308, #320). Check those before starting — the panel may be dead
+for a bigger reason than a missing handler.
+
+## known stubs returning fixed values
+
+### Four fields exist in responses but are hardcoded or never populated
+
+**Priority:** P3 **Status:** Open (absorbed 2026-09-05; all four re-verified today)
+
+Grouped because they share a failure mode: the field is in the response
+contract, so a consumer can read it and believe it.
+
+| Field | Location | Current value |
+| --- | --- | --- |
+| `repeatCustomerRate` | `packages/ai-analytics/src/services/AIInsightsService.ts:278` | `0`, with its own `// TODO: Calculate from user order history` |
+| `served_by_name` | `packages/queue-service/src/services/QueueService.ts:546-548` | `undefined`; needs a cross-package user lookup |
+| `PAYMENT_AUDIT_EVENT_TYPES.FAILURE` | payments / billing | defined but emitted nowhere — no failure path writes an audit row |
+| device uptime / busy hours | `packages/queue-core/src/print/services/PrinterService.ts` | not tracked |
+
+**Scope:** for each, either populate it or remove it from the response.
+`FAILURE` is the one with real consequence: the payment audit log records
+attempts and successes, so a reader cannot distinguish "no failures" from
+"failures are not recorded".
+
 ## testing / fixture harnesses
+
+### E2E skips and mock-heavy API tests
+
+**Priority:** P2 **Status:** Open (absorbed 2026-09-05 from the archived 2026-05-02 debt scan; both counts re-measured today)
+
+**E2E: 11 unconditional skips, unchanged since 2026-07-05.** Across
+`tests/e2e/smoke/` (owner-overview, smoke, admin-realtime-websocket,
+kitchen-display, owner-pos-usage-state, owner-order-management,
+owner-menu-management, owner-backoffice-pages) and
+`tests/e2e/integration/real-workflows.spec.ts`. A skipped journey is
+indistinguishable from a passing one in the run summary.
+
+**Mocks: 159 of 288 API test files call `vi.mock`** — up from the 132 of 213
+recorded 2026-07-05. The ratio held at 55% while the suite grew, so the
+mock-first habit is being reproduced, not worked off. 54 files are
+`*.real.integration.test.ts`. This is the same shape as the tenancy-guard
+finding: a hand-written auth mock silently swallows the middleware, so a test
+can pass against a route that has no guard at all.
+
+**Scope:**
+
+- Replace unconditional skips with feature flags or fixtures, or delete the
+  test if the journey does not exist. Each remaining skip needs a stated
+  unblock condition.
+- Add a CI check that fails when a new unconditional skip appears — without it
+  this count only goes up.
+- Pick the ten highest-risk mocked feature tests (start with anything
+  tenant-scoped) and convert them to real-D1 suites. Keep unit mocks for pure
+  business rules; require at least one real route test per exposed feature.
 
 ### Unify GroupOrdersService's file-local select harness with `createSelectFixtureDb`
 
@@ -441,6 +588,20 @@ The step does pass `CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}`, 
 | `PRODUCTION_URL` | `https://api.makanmasak.com` — the **API** origin | no |
 | `PRODUCTION_CUSTOMER_URL` | `https://makanmasak.com` | no |
 | `PRODUCTION_KITCHEN_URL` | `https://kitchen.makanmasak.com` | no |
+
+**The auto-deploy chain is a second, separate blocker** (absorbed 2026-09-05
+from the archived 2026-05-02 debt scan). Even with the secrets set, the workflow only
+ever runs by hand: the `workflow_run:` trigger at
+`.github/workflows/deploy-production.yml:16` is still commented out, with a
+note at line 12 saying it stays disabled until the repository has an
+environment approval gate. So there are two things to finish, and setting the
+secrets only clears the first:
+
+1. Secrets, so a dispatch can actually reach Cloudflare — the wizard below.
+2. Required reviewers plus a main-only branch restriction on the `production`
+   environment, then uncomment the `workflow_run` trigger, then delete the
+   stale comments that still cite fixed smoke-test and missing
+   `tests/e2e/smoke/` blockers (both resolved).
 
 **There is now a wizard for this: `scripts/setup-production-deploy.sh`.** It
 checks the `production` environment exists, walks the Cloudflare token form

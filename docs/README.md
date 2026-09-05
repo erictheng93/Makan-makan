@@ -14,7 +14,6 @@
 | [requirements.md](./requirements.md) | Product requirements                                                                    |
 | [CHANGELOG](./archive/CHANGELOG.md)  | Development history and milestones                                                      |
 | [TODOS.md](./TODOS.md)               | **Active backlog** — open work by skill/component, P0→P4, with per-item context and scope |
-| [TECHNICAL_DEBT_TODO.md](./TECHNICAL_DEBT_TODO.md) | Dated repo-wide debt scan (last reviewed 2026-05-02) — a snapshot, not the live backlog |
 
 ### Architecture & Technical
 

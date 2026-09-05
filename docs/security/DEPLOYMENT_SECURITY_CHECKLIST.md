@@ -166,7 +166,7 @@ curl -H "Origin: https://admin.yourdomain.com" \
       check `packages/database/src/schema/` for the relevant one)
 - [ ] Check failed authentication attempts (note: `AuthService`'s built-in
       account-security stats are currently hardcoded stubs, not real data —
-      see `docs/TECHNICAL_DEBT_TODO.md`)
+      see `docs/TODOS.md`)
 - [ ] Monitor `TOKEN_BLACKLIST` KV size
 
 #### Monthly Security Review

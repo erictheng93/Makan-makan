@@ -69,7 +69,7 @@ The original 4-week timeline is 6 months past its paper deadline, but substantia
 
 | Task                          | Original | 2026-05-25 Actual                                                              |
 | ----------------------------- | -------- | ------------------------------------------------------------------------------ |
-| Production deploy             | ⏳       | ❌ Still manual-only per `docs/TECHNICAL_DEBT_TODO.md` 2026-05-01 follow-up    |
+| Production deploy             | ⏳       | ❌ Still manual-only — see `docs/TODOS.md` § deployment    |
 | 7-day stability observation   | ⏳       | ❌ Not yet — depends on production cutover + metrics being wired                |
 
 ### Work outside the original plan
