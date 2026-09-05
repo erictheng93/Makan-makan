@@ -1729,6 +1729,7 @@ const viVN: Messages = {
     feedback: "Phản hồi",
     printAgents: "Tác nhân in",
     members: "Quản lý thành viên",
+    platformCustomers: "Khách hàng nền tảng",
     accountManagement: "Tài khoản",
     waitingManagement: "Quản lý chờ đợi",
     waitingTabs: {
@@ -1783,6 +1784,7 @@ const viVN: Messages = {
     subscriptions: "Đăng ký",
     waitingManagement: "Quản lý chờ đợi",
     platformMarketCheckouts: "Kiểm tra thị trường",
+    platformCustomers: "Khách hàng nền tảng",
   },
   platform: {
     title: "Tổng quan nền tảng",
@@ -3495,6 +3497,99 @@ const viVN: Messages = {
       restoreFailed: "Khôi phục thất bại",
     },
   },
+  // 平台顧客目錄（#299 A4，規格 §7.2／§12.3）。跨店視角，只有 role 0 看得到；
+  // 各店自己的標籤與備註不在這裡，那是租戶私有資料。
+  platformCustomers: {
+    subtitle:
+      "Khách hàng và chi tiêu trên toàn bộ cửa hàng (chỉ quản trị nền tảng)",
+    deletedCustomer: "Khách hàng đã xóa",
+    unnamedCustomer: "Chưa có tên",
+    empty: {
+      title: "Chưa có khách hàng",
+      description: "Khách hàng sẽ xuất hiện ở đây sau đơn hàng đầu tiên.",
+    },
+    search: {
+      label: "Tìm khách hàng",
+      placeholder: "Tìm theo tên; số điện thoại và email phải nhập đầy đủ",
+    },
+    filters: {
+      title: "Bộ lọc",
+      status: "Trạng thái tài khoản",
+      statusOptions: {
+        all: "Tất cả",
+        active: "Hoạt động",
+        deleted: "Đã xóa",
+      },
+      sort: "Sắp xếp theo",
+      sortOptions: {
+        recent: "Mới tham gia",
+        spent: "Tổng chi tiêu",
+        orders: "Số đơn hàng",
+        restaurants: "Số cửa hàng",
+        name: "Tên",
+      },
+      reset: "Đặt lại bộ lọc",
+    },
+    table: {
+      customer: "Khách hàng",
+      contact: "Liên hệ",
+      restaurants: "Cửa hàng",
+      orders: "Đơn hàng",
+      spent: "Chi tiêu",
+      lastOrder: "Đơn gần nhất",
+      status: "Trạng thái",
+      actions: "Thao tác",
+    },
+    status: {
+      active: "Hoạt động",
+      deleted: "Đã xóa",
+    },
+    actions: {
+      detail: "Chi tiết",
+    },
+    pagination: {
+      previous: "Trước",
+      next: "Sau",
+      showing: "Hiển thị {start} đến {end} trong tổng số {total}",
+      label: "Phân trang",
+    },
+    detail: {
+      title: "Chi tiết khách hàng",
+      close: "Đóng",
+      identity: "Thông tin khách hàng",
+      perRestaurant: "Chi tiêu theo cửa hàng",
+      perRestaurantHint:
+        "Chỉ hiển thị số tiền — không bao gồm thẻ và ghi chú riêng của từng cửa hàng.",
+      perRestaurantEmpty: "Khách hàng này chưa chi tiêu ở cửa hàng nào.",
+      perRestaurantFailed:
+        "Không tải được chi tiêu theo cửa hàng. Vui lòng thử lại.",
+      unknownRestaurant: "Cửa hàng không xác định",
+      sliceOrders: "{count} đơn, hủy {cancelled} đơn",
+    },
+    reveal: {
+      action: "Hiện đầy đủ thông tin liên hệ",
+      confirmTitle: "Hiện đầy đủ thông tin liên hệ",
+      confirmMessage:
+        "Thao tác này được ghi vào nhật ký kiểm toán. Số điện thoại và email đầy đủ chỉ hiển thị trong bảng này và sẽ được che lại sau 5 phút.",
+      confirmLabel: "Hiện",
+      hide: "Che ngay",
+      revealing: "Đang tải…",
+      phone: "Điện thoại",
+      email: "Email",
+      none: "Chưa cung cấp",
+      autoMaskNotice:
+        "Thông tin sẽ được che lại sau {minutes} phút và không được lưu.",
+      errors: {
+        notFound: "Không tìm thấy khách hàng này; dữ liệu có thể đã bị xóa.",
+        rateLimited:
+          "Bạn đã đạt giới hạn của giờ này (30 lần/giờ). Vui lòng thử lại sau.",
+        forbidden:
+          "Khách hàng này đã bị xóa nên không xem được thông tin liên hệ.",
+        failed: "Không hiển thị được thông tin liên hệ. Vui lòng thử lại.",
+      },
+    },
+  },
+
   members: {
     subtitle: "Xem những khách hàng đã mua tại cửa hàng này",
     deletedCustomer: "Khách hàng đã xoá",
@@ -3516,9 +3611,15 @@ const viVN: Messages = {
       repeatRate: "Tỷ lệ quay lại",
       avgOrderValue: "Giá trị đơn trung bình",
     },
+    export: {
+      action: "Xuất CSV",
+      busy: "Đang xuất…",
+      failed: "Xuất thất bại. Vui lòng thử lại sau.",
+    },
     quickFilters: {
       all: "Tất cả",
       frequent: "Khách quen (từ 5 đơn)",
+      new: "Khách mới (1 đơn)",
       dormant: "30 ngày chưa quay lại",
       blocked: "Đã chặn",
     },

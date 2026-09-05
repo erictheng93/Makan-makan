@@ -9,7 +9,25 @@
           {{ t("members.subtitle") }}
         </p>
       </div>
+      <button
+        type="button"
+        data-testid="member-export"
+        :disabled="exporting || !restaurantId"
+        class="rounded-full bg-white px-5 py-2.5 text-sm font-medium text-ios-text shadow-ios-sm transition-all duration-200 hover:shadow-ios-card disabled:opacity-50"
+        @click="exportCsv"
+      >
+        {{ exporting ? t("members.export.busy") : t("members.export.action") }}
+      </button>
     </header>
+
+    <p
+      v-if="exportError"
+      data-testid="member-export-error"
+      class="rounded-2xl bg-white px-4 py-3 text-sm text-red-700 shadow-ios-sm"
+      role="alert"
+    >
+      {{ exportError }}
+    </p>
 
     <!-- 統計卡列 -->
     <section class="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -865,6 +883,11 @@ import {
 const PAGE_SIZE = 20;
 const ORDERS_PAGE_SIZE = 20;
 const FREQUENT_MIN_ORDERS = 5;
+/**
+ * The "first-time customer" pill. Needs an upper bound, which is why the API
+ * gained `maxOrders` -- `minOrders` alone cannot express "exactly one order".
+ */
+const NEW_MAX_ORDERS = 1;
 const DORMANT_DAYS = 30;
 /**
  * §9.2: revealed PII is re-masked on a pure client-side timer so a panel left
@@ -886,7 +909,7 @@ const KNOWN_ORDER_STATUSES = [
   "cancelled",
 ] as const;
 
-type QuickFilter = "all" | "frequent" | "dormant" | "blocked";
+type QuickFilter = "all" | "frequent" | "new" | "dormant" | "blocked";
 
 const { t } = useI18n();
 const authStore = useAuthStore();
@@ -918,6 +941,9 @@ const filters = reactive({
   // v-model on <input type="number"> applies the .number modifier implicitly,
   // so these arrive as numbers once typed into and as "" while empty.
   minOrders: "" as string | number,
+  // Written only by the "first-time customer" pill; the advanced filter card
+  // has no input for it (spec §12.2 does not list one).
+  maxOrders: "" as string | number,
   minSpent: "" as string | number,
   lastOrderFrom: "",
   lastOrderTo: "",
@@ -935,6 +961,9 @@ const ordersPagination = ref<Pagination>({
 const ordersPage = ref(1);
 const ordersLoading = ref(false);
 const ordersError = ref<string | null>(null);
+
+const exporting = ref(false);
+const exportError = ref<string | null>(null);
 
 const revealed = ref<(MemberContactReveal & { memberId: string }) | null>(null);
 const revealLoading = ref(false);
@@ -998,6 +1027,7 @@ const statCards = computed(() => [
 const quickFilterPills = computed<{ key: QuickFilter; label: string }[]>(() => [
   { key: "all", label: t("members.quickFilters.all") },
   { key: "frequent", label: t("members.quickFilters.frequent") },
+  { key: "new", label: t("members.quickFilters.new") },
   { key: "dormant", label: t("members.quickFilters.dormant") },
   { key: "blocked", label: t("members.quickFilters.blocked") },
 ]);
@@ -1008,6 +1038,7 @@ const activeQuickFilter = computed<QuickFilter>(() => {
   if (filters.blocked === "true") return "blocked";
   if (toOptionalNumber(filters.minOrders) === FREQUENT_MIN_ORDERS)
     return "frequent";
+  if (toOptionalNumber(filters.maxOrders) === NEW_MAX_ORDERS) return "new";
   if (filters.lastOrderTo && filters.lastOrderTo === dormantCutoff())
     return "dormant";
   return "all";
@@ -1161,6 +1192,7 @@ function toOptionalNumber(value: string | number): number | undefined {
 
 function buildListParams(): MemberListParams {
   const minOrders = toOptionalNumber(filters.minOrders);
+  const maxOrders = toOptionalNumber(filters.maxOrders);
   const minSpent = toOptionalNumber(filters.minSpent);
   return {
     page: page.value,
@@ -1171,6 +1203,7 @@ function buildListParams(): MemberListParams {
     tag: filters.tag.trim() || undefined,
     sort: filters.sort,
     minOrders: minOrders === undefined ? undefined : Math.floor(minOrders),
+    maxOrders: maxOrders === undefined ? undefined : Math.floor(maxOrders),
     // The filter is entered in major currency units; the API speaks cents.
     minSpentCents:
       minSpent === undefined ? undefined : Math.round(minSpent * 100),
@@ -1202,6 +1235,35 @@ function reload(): void {
   void load();
 }
 
+/**
+ * §7.1 export. Exports what the operator is looking at, not the whole
+ * directory: the same filters the list is showing, minus paging, which the
+ * API rejects outright.
+ *
+ * The server writes an audit row for this, so it is bound to a click and
+ * nothing else -- never a watcher, never a retry.
+ */
+async function exportCsv(): Promise<void> {
+  const id = restaurantId.value;
+  if (!id || exporting.value) return;
+  exporting.value = true;
+  exportError.value = null;
+  try {
+    const { page: _page, limit: _limit, ...filterParams } = buildListParams();
+    const blob = await membersService.exportCsv(id, filterParams);
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `members-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  } catch {
+    exportError.value = t("members.export.failed");
+  } finally {
+    exporting.value = false;
+  }
+}
+
 function debouncedReload(): void {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(reload, 300);
@@ -1209,9 +1271,11 @@ function debouncedReload(): void {
 
 function applyQuickFilter(kind: QuickFilter): void {
   filters.minOrders = "";
+  filters.maxOrders = "";
   filters.blocked = "";
   filters.lastOrderTo = "";
   if (kind === "frequent") filters.minOrders = FREQUENT_MIN_ORDERS;
+  if (kind === "new") filters.maxOrders = NEW_MAX_ORDERS;
   if (kind === "blocked") filters.blocked = "true";
   if (kind === "dormant") filters.lastOrderTo = dormantCutoff();
   reload();
@@ -1223,6 +1287,7 @@ function resetFilters(): void {
   filters.blocked = "";
   filters.tag = "";
   filters.minOrders = "";
+  filters.maxOrders = "";
   filters.minSpent = "";
   filters.lastOrderFrom = "";
   filters.lastOrderTo = "";

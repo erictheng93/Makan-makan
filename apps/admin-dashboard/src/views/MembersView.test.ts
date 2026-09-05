@@ -19,6 +19,7 @@ const getMember = vi.hoisted(() => vi.fn());
 const listOrders = vi.hoisted(() => vi.fn());
 const revealContact = vi.hoisted(() => vi.fn());
 const update = vi.hoisted(() => vi.fn());
+const exportCsv = vi.hoisted(() => vi.fn());
 const confirmModal = vi.hoisted(() => vi.fn());
 
 // `@/i18n` is deliberately NOT mocked. A `t: (key) => key` stub makes a missing
@@ -41,6 +42,7 @@ vi.mock("@/services/membersService", () => ({
     listOrders,
     revealContact,
     update,
+    exportCsv,
   },
 }));
 
@@ -64,6 +66,9 @@ const TEXT = {
   blockExplain:
     "封鎖只是本店自己的標記，不會阻止對方下單 —— 訪客點餐沒有會員身分，擋不到。",
   blockNotFound: "找不到這位會員，可能已被移除。",
+  quickFilterNew: "新客（1 單）",
+  exportAction: "匯出 CSV",
+  exportFailed: "匯出失敗，請稍後再試。",
 } as const;
 
 let MembersView: Component;
@@ -151,6 +156,7 @@ describe("MembersView", () => {
       member({ memberId, ...patch }),
     );
     confirmModal.mockResolvedValue(true);
+    exportCsv.mockResolvedValue(new Blob(["member_id"]));
   });
 
   afterEach(() => {
@@ -710,5 +716,95 @@ describe("MembersView", () => {
     expect(wrapper.get('[data-testid="reveal-contact"]').text()).toContain(
       TEXT.revealAction,
     );
+  });
+  it("filters to first-time customers with an upper bound, not a lower one", async () => {
+    const wrapper = await mountView();
+    list.mockClear();
+
+    const pill = wrapper.get('[data-testid="quick-filter-new"]');
+    expect(pill.text()).toBe(TEXT.quickFilterNew);
+    await pill.trigger("click");
+    await flushPromises();
+
+    // `minOrders` cannot express "exactly one order", which is why the API
+    // gained `maxOrders`; asserting on both keeps a future refactor from
+    // quietly swapping one for the other.
+    expect(list).toHaveBeenCalledWith(
+      "shop-a",
+      expect.objectContaining({ maxOrders: 1, minOrders: undefined }),
+    );
+    expect(pill.attributes("data-active")).toBe("true");
+  });
+
+  describe("CSV export", () => {
+    let createObjectURL: ReturnType<typeof vi.spyOn>;
+    let revokeObjectURL: ReturnType<typeof vi.spyOn>;
+    let clicks: number;
+
+    beforeEach(() => {
+      clicks = 0;
+      // jsdom implements neither, and an <a download> click is a no-op there,
+      // so both are stubbed rather than exercised.
+      createObjectURL = vi
+        .spyOn(URL, "createObjectURL")
+        .mockReturnValue("blob:members");
+      revokeObjectURL = vi
+        .spyOn(URL, "revokeObjectURL")
+        .mockImplementation(() => undefined);
+      vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(
+        function (this: HTMLAnchorElement) {
+          clicks += 1;
+        },
+      );
+    });
+
+    afterEach(() => {
+      createObjectURL.mockRestore();
+      revokeObjectURL.mockRestore();
+      vi.restoreAllMocks();
+    });
+
+    it("exports the filters the operator is looking at, minus paging", async () => {
+      const wrapper = await mountView();
+      await wrapper.get("#member-sort").setValue("spent");
+      await flushPromises();
+
+      const button = wrapper.get('[data-testid="member-export"]');
+      expect(button.text()).toBe(TEXT.exportAction);
+      await button.trigger("click");
+      await flushPromises();
+
+      expect(exportCsv).toHaveBeenCalledOnce();
+      const [restaurantId, params] = exportCsv.mock.calls[0]!;
+      expect(restaurantId).toBe("shop-a");
+      expect(params).toEqual(expect.objectContaining({ sort: "spent" }));
+      // The API rejects these outright; sending them would 400 the export.
+      expect(params).not.toHaveProperty("page");
+      expect(params).not.toHaveProperty("limit");
+      expect(clicks).toBe(1);
+      expect(revokeObjectURL).toHaveBeenCalledWith("blob:members");
+    });
+
+    it("never exports on mount or on a filter change", async () => {
+      const wrapper = await mountView();
+      await wrapper.get("#member-sort").setValue("orders");
+      await flushPromises();
+
+      // The server writes an audit row for every call, so anything other than
+      // a deliberate click would forge a trail of reads nobody performed.
+      expect(exportCsv).not.toHaveBeenCalled();
+    });
+
+    it("surfaces a failed export instead of failing silently", async () => {
+      exportCsv.mockRejectedValue(new Error("boom"));
+      const wrapper = await mountView();
+
+      await wrapper.get('[data-testid="member-export"]').trigger("click");
+      await flushPromises();
+
+      expect(wrapper.get('[data-testid="member-export-error"]').text()).toBe(
+        TEXT.exportFailed,
+      );
+    });
   });
 });

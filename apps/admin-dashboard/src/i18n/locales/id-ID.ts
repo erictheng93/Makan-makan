@@ -1843,6 +1843,7 @@ const idID: Messages = {
     feedback: "Umpan Balik",
     printAgents: "Agen cetak",
     members: "Manajemen Anggota",
+    platformCustomers: "Pelanggan Platform",
     accountManagement: "Akun",
     waitingTabs: {
       list: "Daftar tunggu",
@@ -1897,6 +1898,7 @@ const idID: Messages = {
     waitingManagement: "Manajemen Menunggu",
     subscriptions: "Langganan",
     platformMarketCheckouts: "Pembayaran Pasar",
+    platformCustomers: "Pelanggan Platform",
   },
   platform: {
     title: "Ikhtisar Platform",
@@ -3509,6 +3511,98 @@ const idID: Messages = {
       restoreFailed: "Gagal memulihkan karyawan",
     },
   },
+  // 平台顧客目錄（#299 A4，規格 §7.2／§12.3）。跨店視角，只有 role 0 看得到；
+  // 各店自己的標籤與備註不在這裡，那是租戶私有資料。
+  platformCustomers: {
+    subtitle:
+      "Pelanggan dan pembelanjaan di seluruh toko (khusus admin platform)",
+    deletedCustomer: "Pelanggan terhapus",
+    unnamedCustomer: "Tanpa nama",
+    empty: {
+      title: "Belum ada pelanggan",
+      description:
+        "Pelanggan muncul di sini setelah menyelesaikan pesanan pertama.",
+    },
+    search: {
+      label: "Cari pelanggan",
+      placeholder: "Cari berdasarkan nama; telepon dan email harus lengkap",
+    },
+    filters: {
+      title: "Filter",
+      status: "Status akun",
+      statusOptions: {
+        all: "Semua",
+        active: "Aktif",
+        deleted: "Terhapus",
+      },
+      sort: "Urutkan",
+      sortOptions: {
+        recent: "Terbaru bergabung",
+        spent: "Total belanja",
+        orders: "Jumlah pesanan",
+        restaurants: "Jumlah toko",
+        name: "Nama",
+      },
+      reset: "Atur ulang filter",
+    },
+    table: {
+      customer: "Pelanggan",
+      contact: "Kontak",
+      restaurants: "Toko",
+      orders: "Pesanan",
+      spent: "Belanja",
+      lastOrder: "Pesanan terakhir",
+      status: "Status",
+      actions: "Tindakan",
+    },
+    status: {
+      active: "Aktif",
+      deleted: "Terhapus",
+    },
+    actions: {
+      detail: "Detail",
+    },
+    pagination: {
+      previous: "Sebelumnya",
+      next: "Berikutnya",
+      showing: "Menampilkan {start} sampai {end} dari {total}",
+      label: "Paginasi",
+    },
+    detail: {
+      title: "Detail pelanggan",
+      close: "Tutup",
+      identity: "Identitas",
+      perRestaurant: "Belanja per toko",
+      perRestaurantHint:
+        "Hanya nominal — tag dan catatan milik masing-masing toko tidak ditampilkan.",
+      perRestaurantEmpty: "Pelanggan ini belum berbelanja di toko mana pun.",
+      perRestaurantFailed: "Gagal memuat belanja per toko. Silakan coba lagi.",
+      unknownRestaurant: "Toko tidak dikenal",
+      sliceOrders: "{count} pesanan, {cancelled} dibatalkan",
+    },
+    reveal: {
+      action: "Tampilkan kontak lengkap",
+      confirmTitle: "Tampilkan kontak lengkap",
+      confirmMessage:
+        "Akses ini dicatat di log audit. Telepon dan email lengkap hanya muncul di panel ini dan disamarkan kembali setelah 5 menit.",
+      confirmLabel: "Tampilkan",
+      hide: "Samarkan sekarang",
+      revealing: "Memuat…",
+      phone: "Telepon",
+      email: "Email",
+      none: "Tidak tersedia",
+      autoMaskNotice:
+        "Nilai ini disamarkan kembali dalam {minutes} menit dan tidak pernah disimpan.",
+      errors: {
+        notFound: "Pelanggan tidak ditemukan; datanya mungkin sudah dihapus.",
+        rateLimited:
+          "Batas jam ini sudah tercapai (30 per jam). Silakan coba lagi nanti.",
+        forbidden: "Pelanggan ini terhapus, sehingga kontaknya tidak tersedia.",
+        failed: "Gagal menampilkan kontak. Silakan coba lagi.",
+      },
+    },
+  },
+
   members: {
     subtitle: "Lihat pelanggan yang pernah berbelanja di toko ini",
     deletedCustomer: "Pelanggan yang dihapus",
@@ -3530,9 +3624,15 @@ const idID: Messages = {
       repeatRate: "Rasio pelanggan kembali",
       avgOrderValue: "Rata-rata nilai pesanan",
     },
+    export: {
+      action: "Ekspor CSV",
+      busy: "Mengekspor…",
+      failed: "Ekspor gagal. Silakan coba lagi.",
+    },
     quickFilters: {
       all: "Semua",
       frequent: "Pelanggan tetap (5+ pesanan)",
+      new: "Baru (1 pesanan)",
       dormant: "30 hari tidak kembali",
       blocked: "Diblokir",
     },

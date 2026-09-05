@@ -1888,6 +1888,7 @@ const zhTWCore = {
     feedback: "意見反饋",
     printAgents: "列印代理",
     members: "會員管理",
+    platformCustomers: "平台顧客",
   },
 
   // 頁面標題
@@ -1932,6 +1933,7 @@ const zhTWCore = {
     notFound: "頁面不存在",
     platformOverview: "平台總覽",
     platformMarketCheckouts: "市場結帳紀錄",
+    platformCustomers: "平台顧客",
     adminSuffix: "管理後台",
     forecast: "需求預測",
     ingredients: "食材管理",
@@ -3545,6 +3547,93 @@ const zhTWCore = {
       restoreFailed: "復職失敗",
     },
   },
+  // 平台顧客目錄（#299 A4，規格 §7.2／§12.3）。跨店視角，只有 role 0 看得到；
+  // 各店自己的標籤與備註不在這裡，那是租戶私有資料。
+  platformCustomers: {
+    subtitle: "跨店查看顧客與消費彙總（僅平台管理員）",
+    deletedCustomer: "已刪除的顧客",
+    unnamedCustomer: "未留姓名",
+    empty: {
+      title: "尚無顧客資料",
+      description: "顧客完成第一筆訂單後就會出現在這裡。",
+    },
+    search: {
+      label: "搜尋顧客",
+      placeholder: "搜尋姓名；手機與 Email 需輸入完整值",
+    },
+    filters: {
+      title: "篩選條件",
+      status: "帳號狀態",
+      statusOptions: {
+        all: "全部",
+        active: "正常",
+        deleted: "已刪除",
+      },
+      sort: "排序方式",
+      sortOptions: {
+        recent: "最新加入",
+        spent: "累計消費",
+        orders: "訂單數",
+        restaurants: "消費店家數",
+        name: "姓名",
+      },
+      reset: "重設條件",
+    },
+    table: {
+      customer: "顧客",
+      contact: "聯絡方式",
+      restaurants: "消費店家數",
+      orders: "總訂單",
+      spent: "總消費",
+      lastOrder: "最後消費",
+      status: "狀態",
+      actions: "操作",
+    },
+    status: {
+      active: "正常",
+      deleted: "已刪除",
+    },
+    actions: {
+      detail: "詳情",
+    },
+    pagination: {
+      previous: "上一頁",
+      next: "下一頁",
+      showing: "顯示第 {start} 到 {end} 筆，共 {total} 筆",
+      label: "分頁",
+    },
+    detail: {
+      title: "顧客詳情",
+      close: "關閉",
+      identity: "顧客資料",
+      perRestaurant: "各店消費",
+      perRestaurantHint: "只顯示消費金額，不包含各店自己的標籤與備註。",
+      perRestaurantEmpty: "這位顧客尚未在任何店家消費。",
+      perRestaurantFailed: "載入各店消費失敗，請稍後再試。",
+      unknownRestaurant: "未知店家",
+      sliceOrders: "{count} 筆訂單，取消 {cancelled} 筆",
+    },
+    reveal: {
+      action: "顯示完整聯絡方式",
+      confirmTitle: "顯示完整聯絡方式",
+      confirmMessage:
+        "此操作會被記錄在稽核日誌中。完整電話與 Email 只會顯示在這個面板，並於 5 分鐘後自動遮蔽。",
+      confirmLabel: "顯示",
+      hide: "立即遮蔽",
+      revealing: "讀取中…",
+      phone: "電話",
+      email: "Email",
+      none: "未提供",
+      autoMaskNotice: "完整資料將於 {minutes} 分鐘後自動遮蔽，且不會被儲存。",
+      errors: {
+        notFound: "找不到這位顧客，資料可能已被移除。",
+        rateLimited: "本小時的查看次數已達上限（每小時 30 次），請稍後再試。",
+        forbidden: "此顧客已刪除，無法查看完整聯絡方式。",
+        failed: "查看失敗，請稍後再試。",
+      },
+    },
+  },
+
   members: {
     subtitle: "查看在本店有消費紀錄的顧客",
     deletedCustomer: "已刪除的顧客",
@@ -3564,9 +3653,15 @@ const zhTWCore = {
       repeatRate: "回頭客比例",
       avgOrderValue: "平均客單價",
     },
+    export: {
+      action: "匯出 CSV",
+      busy: "匯出中…",
+      failed: "匯出失敗，請稍後再試。",
+    },
     quickFilters: {
       all: "全部",
       frequent: "常客（5 單以上）",
+      new: "新客（1 單）",
       dormant: "30 天未回",
       blocked: "已封鎖",
     },

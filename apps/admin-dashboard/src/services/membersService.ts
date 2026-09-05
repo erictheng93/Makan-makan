@@ -72,6 +72,8 @@ export interface MemberListParams {
   limit?: number;
   search?: string;
   minOrders?: number;
+  /** Inclusive upper bound. The "first-time customer" pill is `maxOrders: 1`. */
+  maxOrders?: number;
   minSpentCents?: number;
   /** ISO date (YYYY-MM-DD); the API coerces it to a Date. */
   lastOrderFrom?: string;
@@ -110,6 +112,13 @@ function toPagination(raw: unknown): Pagination {
     pages: value.pages ?? value.totalPages ?? 1,
   };
 }
+
+/**
+ * The export takes the list filters minus paging -- the API rejects `page` and
+ * `limit` outright, so this type is what stops a caller posting the object it
+ * built for the list without trimming it first.
+ */
+export type MemberExportParams = Omit<MemberListParams, "page" | "limit">;
 
 export const membersService = {
   async list(
@@ -171,6 +180,27 @@ export const membersService = {
       data: unwrapApiPayload<MemberOrderItem[]>(response.data),
       pagination: toPagination(response.data.pagination),
     };
+  },
+
+  /**
+   * A2/§7.1: masked CSV of the current filter set. POST, because the server
+   * writes an audit row for the bulk read -- so this must only ever run from a
+   * deliberate click, never on mount or on a filter change.
+   *
+   * The response is the file itself, not an envelope, and the server already
+   * prefixes the UTF-8 BOM. Do not add a second one here: Excel renders a
+   * double BOM as a stray character in the first header cell.
+   */
+  async exportCsv(
+    restaurantId: string,
+    params: MemberExportParams = {},
+  ): Promise<Blob> {
+    const response = await api.post<Blob>(
+      `/restaurants/${restaurantId}/members/export`,
+      params,
+      { responseType: "blob" },
+    );
+    return response.data as unknown as Blob;
   },
 
   /**

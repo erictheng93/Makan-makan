@@ -1832,6 +1832,7 @@ const enUS: Messages = {
     feedback: "Feedback",
     printAgents: "Print Agents",
     members: "Members",
+    platformCustomers: "Platform Customers",
   },
   pages: {
     myShifts: "My Shifts",
@@ -1874,6 +1875,7 @@ const enUS: Messages = {
     notFound: "Page Not Found",
     platformOverview: "Platform Overview",
     platformMarketCheckouts: "Market Checkouts",
+    platformCustomers: "Platform Customers",
     adminSuffix: "Admin Dashboard",
     forecast: "Demand Forecast",
     ingredients: "Ingredients",
@@ -3487,6 +3489,99 @@ const enUS: Messages = {
       restoreFailed: "Failed to restore employee",
     },
   },
+  // 平台顧客目錄（#299 A4，規格 §7.2／§12.3）。跨店視角，只有 role 0 看得到；
+  // 各店自己的標籤與備註不在這裡，那是租戶私有資料。
+  platformCustomers: {
+    subtitle: "Customers and spending across every shop (platform admins only)",
+    deletedCustomer: "Deleted customer",
+    unnamedCustomer: "No name given",
+    empty: {
+      title: "No customers yet",
+      description:
+        "A customer appears here once they complete their first order.",
+    },
+    search: {
+      label: "Search customers",
+      placeholder: "Search by name; phone and email must be complete values",
+    },
+    filters: {
+      title: "Filters",
+      status: "Account status",
+      statusOptions: {
+        all: "All",
+        active: "Active",
+        deleted: "Deleted",
+      },
+      sort: "Sort by",
+      sortOptions: {
+        recent: "Recently joined",
+        spent: "Total spent",
+        orders: "Order count",
+        restaurants: "Shops visited",
+        name: "Name",
+      },
+      reset: "Reset filters",
+    },
+    table: {
+      customer: "Customer",
+      contact: "Contact",
+      restaurants: "Shops",
+      orders: "Orders",
+      spent: "Spent",
+      lastOrder: "Last order",
+      status: "Status",
+      actions: "Actions",
+    },
+    status: {
+      active: "Active",
+      deleted: "Deleted",
+    },
+    actions: {
+      detail: "Details",
+    },
+    pagination: {
+      previous: "Previous",
+      next: "Next",
+      showing: "Showing {start} to {end} of {total}",
+      label: "Pagination",
+    },
+    detail: {
+      title: "Customer details",
+      close: "Close",
+      identity: "Identity",
+      perRestaurant: "Spending by shop",
+      perRestaurantHint:
+        "Spending only — a shop's own tags and notes are not shown here.",
+      perRestaurantEmpty: "This customer has not spent at any shop yet.",
+      perRestaurantFailed: "Could not load spending by shop. Please try again.",
+      unknownRestaurant: "Unknown shop",
+      sliceOrders: "{count} orders, {cancelled} cancelled",
+    },
+    reveal: {
+      action: "Show full contact details",
+      confirmTitle: "Show full contact details",
+      confirmMessage:
+        "This access is written to the audit log. The full phone and email appear only in this panel and are re-masked after 5 minutes.",
+      confirmLabel: "Show",
+      hide: "Mask now",
+      revealing: "Loading…",
+      phone: "Phone",
+      email: "Email",
+      none: "Not provided",
+      autoMaskNotice:
+        "These values are re-masked in {minutes} minutes and are never stored.",
+      errors: {
+        notFound:
+          "That customer could not be found; the record may have been removed.",
+        rateLimited:
+          "You have reached this hour's limit (30 per hour). Please try again later.",
+        forbidden:
+          "This customer is deleted, so their contact details are unavailable.",
+        failed: "Could not reveal the contact details. Please try again.",
+      },
+    },
+  },
+
   members: {
     subtitle: "Customers who have ordered at this restaurant",
     deletedCustomer: "Deleted customer",
@@ -3507,9 +3602,15 @@ const enUS: Messages = {
       repeatRate: "Repeat rate",
       avgOrderValue: "Average order value",
     },
+    export: {
+      action: "Export CSV",
+      busy: "Exporting…",
+      failed: "Export failed. Please try again.",
+    },
     quickFilters: {
       all: "All",
       frequent: "Regulars (5+ orders)",
+      new: "First-time (1 order)",
       dormant: "No order in 30 days",
       blocked: "Blocked",
     },

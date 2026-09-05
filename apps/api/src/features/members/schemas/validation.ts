@@ -33,6 +33,9 @@ export const memberListQuerySchema = z.object({
   // column compared with LIKE would let "vip" match "vip-lapsed".
   tag: z.string().trim().min(1).max(MEMBER_TAG_MAX_LENGTH).optional(),
   minOrders: z.coerce.number().int().min(0).optional(),
+  // Upper bound, inclusive. The "first-time customer" pill needs `maxOrders: 1`
+  // and there is no way to express that with a lower bound.
+  maxOrders: z.coerce.number().int().min(0).optional(),
   minSpentCents: z.coerce.number().int().min(0).optional(),
   lastOrderFrom: z.coerce.date().optional(),
   lastOrderTo: z.coerce.date().optional(),
@@ -87,3 +90,37 @@ export const memberPatchBodySchema = z
   .refine((body) => Object.keys(body).length > 0, {
     message: "At least one field must be provided",
   });
+
+/**
+ * The export body is the list filter set minus paging: one export is one file,
+ * and `MEMBER_EXPORT_MAX_ROWS` in the service is what bounds it. Deliberately
+ * the *same* field names and the same `"true" | "false"` shape as the list
+ * query, so a client can post back the object it already built for the list
+ * rather than translating it -- and so a filter added to one is a type error
+ * in the other rather than a silently wider export.
+ *
+ * A bodyless POST is valid and exports the whole (masked) directory.
+ */
+export const memberExportBodySchema = memberListQuerySchema
+  .omit({ page: true, limit: true })
+  .strict();
+
+/**
+ * Platform side (spec §7.2, stage A4). Keyed on the platform `customers.id`,
+ * which is legitimate here and only here: every route using these schemas is
+ * `requireRole([0])`. See `PlatformCustomerDirectoryService` for why the
+ * tenant-side schemas above must never gain a `customerId` field.
+ */
+export const platformCustomerParamSchema = z.object({
+  customerId: z.string().min(1),
+});
+
+export const platformCustomerListQuerySchema = z.object({
+  page: boundedPageQuery(),
+  limit: boundedLimitQuery("100"),
+  // Same rule as the tenant list: full-value equality for phone and email,
+  // substring only for the display name.
+  search: z.string().trim().max(200).optional(),
+  status: z.enum(["active", "deleted"]).optional(),
+  sort: z.enum(["recent", "spent", "orders", "restaurants", "name"]).optional(),
+});

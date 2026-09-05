@@ -101,6 +101,18 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        // Platform-side customer directory (#299 A4). Role 0 only: it is the
+        // one page keyed on the platform customers.id, and the tenant-facing
+        // MembersView deliberately cannot reach one.
+        path: "platform/customers",
+        name: "PlatformCustomers",
+        component: () => import("@/views/PlatformCustomersView.vue"),
+        meta: {
+          titleKey: "pages.platformCustomers",
+          roles: [UserRole.ADMIN],
+        },
+      },
+      {
         path: "platform/onboarding",
         name: "PlatformOnboardingApplications",
         component: () =>
@@ -539,6 +551,7 @@ export const adminRestaurantOptionalRoutes = [
   "PlatformMarkets",
   "PlatformMarketCheckouts",
   "PlatformOnboardingApplications",
+  "PlatformCustomers",
   "Monitoring",
   "Settings",
   "AccountManagement",

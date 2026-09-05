@@ -1726,6 +1726,7 @@ const jaJP: Messages = {
     feedback: "フィードバック",
     printAgents: "プリントエージェント",
     members: "会員管理",
+    platformCustomers: "プラットフォーム顧客",
     waitingTabs: {
       dashboard: "ライブダッシュボード",
       list: "待機リスト",
@@ -1780,6 +1781,7 @@ const jaJP: Messages = {
     subscriptions: "定期購入",
     waitingManagement: "待機管理",
     platformMarketCheckouts: "マーケットチェックアウト",
+    platformCustomers: "プラットフォーム顧客",
   },
   platform: {
     title: "プラットフォーム概要",
@@ -3495,6 +3497,97 @@ const jaJP: Messages = {
       restoreFailed: "復帰に失敗しました",
     },
   },
+  // 平台顧客目錄（#299 A4，規格 §7.2／§12.3）。跨店視角，只有 role 0 看得到；
+  // 各店自己的標籤與備註不在這裡，那是租戶私有資料。
+  platformCustomers: {
+    subtitle: "全店舗をまたいだ顧客と利用実績（プラットフォーム管理者のみ）",
+    deletedCustomer: "削除済みの顧客",
+    unnamedCustomer: "名前未登録",
+    empty: {
+      title: "顧客データはまだありません",
+      description: "顧客が最初の注文を完了するとここに表示されます。",
+    },
+    search: {
+      label: "顧客を検索",
+      placeholder: "名前で検索。電話番号とメールは完全一致のみ",
+    },
+    filters: {
+      title: "絞り込み",
+      status: "アカウント状態",
+      statusOptions: {
+        all: "すべて",
+        active: "有効",
+        deleted: "削除済み",
+      },
+      sort: "並び替え",
+      sortOptions: {
+        recent: "登録が新しい順",
+        spent: "利用金額",
+        orders: "注文数",
+        restaurants: "利用店舗数",
+        name: "名前",
+      },
+      reset: "条件をリセット",
+    },
+    table: {
+      customer: "顧客",
+      contact: "連絡先",
+      restaurants: "利用店舗数",
+      orders: "注文数",
+      spent: "利用金額",
+      lastOrder: "最終注文",
+      status: "状態",
+      actions: "操作",
+    },
+    status: {
+      active: "有効",
+      deleted: "削除済み",
+    },
+    actions: {
+      detail: "詳細",
+    },
+    pagination: {
+      previous: "前へ",
+      next: "次へ",
+      showing: "{total} 件中 {start} 〜 {end} 件を表示",
+      label: "ページネーション",
+    },
+    detail: {
+      title: "顧客詳細",
+      close: "閉じる",
+      identity: "顧客情報",
+      perRestaurant: "店舗別の利用",
+      perRestaurantHint:
+        "金額のみを表示します。各店舗のタグやメモは含まれません。",
+      perRestaurantEmpty: "この顧客はまだどの店舗でも利用していません。",
+      perRestaurantFailed:
+        "店舗別の利用状況を読み込めませんでした。後でもう一度お試しください。",
+      unknownRestaurant: "不明な店舗",
+      sliceOrders: "注文 {count} 件、キャンセル {cancelled} 件",
+    },
+    reveal: {
+      action: "連絡先をすべて表示",
+      confirmTitle: "連絡先をすべて表示",
+      confirmMessage:
+        "この操作は監査ログに記録されます。完全な電話番号とメールはこのパネルにのみ表示され、5 分後に自動で再マスクされます。",
+      confirmLabel: "表示",
+      hide: "今すぐマスク",
+      revealing: "読み込み中…",
+      phone: "電話番号",
+      email: "メール",
+      none: "未登録",
+      autoMaskNotice: "{minutes} 分後に自動で再マスクされ、保存はされません。",
+      errors: {
+        notFound:
+          "この顧客が見つかりません。データが削除された可能性があります。",
+        rateLimited:
+          "この 1 時間の上限（30 回）に達しました。後でもう一度お試しください。",
+        forbidden: "この顧客は削除済みのため、連絡先を表示できません。",
+        failed: "表示に失敗しました。後でもう一度お試しください。",
+      },
+    },
+  },
+
   members: {
     subtitle: "当店で購入履歴のあるお客様を確認できます",
     deletedCustomer: "削除された顧客",
@@ -3514,9 +3607,15 @@ const jaJP: Messages = {
       repeatRate: "リピート率",
       avgOrderValue: "平均客単価",
     },
+    export: {
+      action: "CSV エクスポート",
+      busy: "エクスポート中…",
+      failed: "エクスポートに失敗しました。後でもう一度お試しください。",
+    },
     quickFilters: {
       all: "すべて",
       frequent: "常連（5 件以上）",
+      new: "新規（1 件）",
       dormant: "30 日間来店なし",
       blocked: "ブロック中",
     },

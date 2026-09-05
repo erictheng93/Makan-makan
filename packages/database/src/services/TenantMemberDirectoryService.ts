@@ -1,6 +1,7 @@
 import {
   and,
   asc,
+  type Column,
   count,
   desc,
   eq,
@@ -8,6 +9,7 @@ import {
   like,
   lte,
   or,
+  type SQL,
   sql,
 } from "drizzle-orm";
 import type { CustomerConsentType } from "@makanmasak/shared-types";
@@ -36,6 +38,12 @@ export interface MemberListFilters {
   search?: string;
   tag?: string;
   minOrders?: number;
+  /**
+   * Upper bound on `order_count`, inclusive. Exists so the UI can ask for
+   * "first-time customers" (`maxOrders: 1`) — a range the min-only filter set
+   * could not express at all.
+   */
+  maxOrders?: number;
   minSpentCents?: number;
   lastOrderFrom?: Date;
   lastOrderTo?: Date;
@@ -133,6 +141,57 @@ const MARKETING_CONSENT: CustomerConsentType = "marketing";
  * against stored numbers.
  */
 const LOOKS_LIKE_PHONE = /^\+?[\d\s\-().]{6,}$/;
+
+/**
+ * The rollup terms, defined once. `recomputeForCustomer` selects them for a
+ * single customer; `recomputeAll` splices the same fragments into a set-based
+ * INSERT ... SELECT. Keeping one definition is what stops the two from
+ * drifting -- `restaurant-customer-backfill.ts` carries a third copy for the
+ * CLI and says the same thing about why they must agree term for term.
+ */
+const ROLLUP = {
+  orderCount: sql<number>`sum(case when ${orders.status} != 'cancelled' then 1 else 0 end)`,
+  cancelledOrderCount: sql<number>`sum(case when ${orders.status} = 'cancelled' then 1 else 0 end)`,
+  totalSpentCents: sql<number>`coalesce(sum(case when ${orders.status} != 'cancelled' then coalesce(${orders.totalAmountCents}, 0) else 0 end), 0)`,
+  firstOrderAt: sql<
+    number | null
+  >`min(case when ${orders.status} != 'cancelled' then ${orders.createdAt} end)`,
+  lastOrderAt: sql<
+    number | null
+  >`max(case when ${orders.status} != 'cancelled' then ${orders.createdAt} end)`,
+} as const;
+
+/**
+ * The unqualified SQL name of a column, for an INSERT column list -- splicing
+ * the Column itself renders it qualified (`"t"."c"`), which is not valid
+ * there. Read off the schema object so a rename still tracks.
+ */
+function columnName(column: Column): SQL {
+  return sql.raw(column.name);
+}
+
+/**
+ * One export is a single unpaginated query, so it needs a ceiling. 5,000 rows
+ * is far above any directory this product has today and still small enough to
+ * serialize inside a Worker's memory and CPU budget. A tenant at the cap gets
+ * a truncated file rather than a failed one, and the response says so -- a
+ * silent truncation of a reconciliation export is worse than a visible one.
+ */
+export const MEMBER_EXPORT_MAX_ROWS = 5000;
+
+export interface MemberExportResult {
+  members: TenantMemberListItem[];
+  /** Rows matching the filter, which may exceed what the file contains. */
+  total: number;
+  truncated: boolean;
+}
+
+export interface MemberRecomputeResult {
+  /** Member rows this restaurant holds once the recompute settled. */
+  members: number;
+  /** Rows dropped because no live order justifies them any more. */
+  removed: number;
+}
 
 /**
  * Read-only tenant projection for member administration. No method accepts a
@@ -447,6 +506,8 @@ export class TenantMemberDirectoryService extends BaseService {
     ];
     if (filters.minOrders != null)
       conditions.push(gte(restaurantCustomers.orderCount, filters.minOrders));
+    if (filters.maxOrders != null)
+      conditions.push(lte(restaurantCustomers.orderCount, filters.maxOrders));
     if (filters.minSpentCents != null)
       conditions.push(
         gte(restaurantCustomers.totalSpentCents, filters.minSpentCents),
@@ -573,20 +634,171 @@ export class TenantMemberDirectoryService extends BaseService {
     };
   }
 
+  /**
+   * Bulk read of the directory for a CSV export (spec §7.1).
+   *
+   * **Masked only.** The rows are exactly what `list()` returns, so a phone
+   * still leaves as `0912***678`. A full-PII export is Q-3 in the spec and is
+   * deliberately not implemented here: an unmasked file lands on a laptop and
+   * outlives every control this codebase has, and nothing in the reconciliation
+   * use case needs one.
+   *
+   * The audit row is written here rather than by the caller, and the rows are
+   * returned only if that write succeeded -- the same discipline, and the same
+   * reason, as `revealContact`. A bulk read of the directory is exactly the
+   * event an investigation would look for, and splitting the two would leave a
+   * read a second call site could reuse without auditing.
+   */
+  async exportMembers(
+    scope: TenantScope,
+    filters: Omit<MemberListFilters, "page" | "limit">,
+    actor: AuditActor,
+  ): Promise<MemberExportResult> {
+    const result = await this.list(scope, {
+      ...filters,
+      page: 1,
+      limit: MEMBER_EXPORT_MAX_ROWS,
+    });
+    const truncated = result.total > result.members.length;
+    await this.writeExportAudit(
+      scope,
+      actor,
+      result.members.length,
+      result.total,
+      truncated,
+    );
+    return { members: result.members, total: result.total, truncated };
+  }
+
+  /**
+   * Records that a bulk read happened, how much of the directory it covered,
+   * and nothing that was in it. No member ids, no names, no contact values --
+   * an audit row that copies the export would be a second, unmasked copy of
+   * the thing being audited.
+   */
+  private async writeExportAudit(
+    scope: TenantScope,
+    actor: AuditActor,
+    exported: number,
+    matched: number,
+    truncated: boolean,
+  ) {
+    await this.db.insert(auditLogs).values({
+      userId: actor.userId,
+      restaurantId: scope.restaurantId,
+      action: AUDIT_ACTIONS.CUSTOMER_DATA_EXPORT,
+      resource: "restaurant_customers",
+      resourceId: scope.restaurantId,
+      description: `Exported ${exported} member rows (masked)`,
+      changes: { metadata: { exported, matched, truncated, masked: true } },
+      ipAddress: actor.ipAddress ?? null,
+      userAgent: actor.userAgent ?? null,
+      success: true,
+    });
+  }
+
+  /**
+   * Rebuild every projection this restaurant holds, from order facts (spec
+   * §7.1 `POST /members/recompute`). For reconciliation: the live path
+   * recomputes one member per order event, so a projection can only be wrong
+   * if one of those recomputes was lost, and nothing else repairs it.
+   *
+   * Set-based on purpose. The obvious implementation -- read the distinct
+   * customer ids and call `recomputeForCustomer` for each -- issues one D1
+   * query per member, which walks straight into the Worker subrequest limit
+   * for any tenant with a real directory. Two statements have no such ceiling.
+   *
+   * The delete is the same policy `recomputeForCustomer` already applies when
+   * a customer's last live order goes away: no live order, no membership row.
+   * That does discard the tenant's own tags and note for that member, but the
+   * live cancel path has always done so, and a reconciliation that left rows
+   * the live path would have removed would not be reconciling anything.
+   */
+  async recomputeAll(scope: TenantScope): Promise<MemberRecomputeResult> {
+    const rc = restaurantCustomers;
+    const nowMs = sql`unixepoch('now') * 1000`;
+
+    await this.db.run(sql`
+      insert into ${rc} (
+        ${columnName(rc.id)},
+        ${columnName(rc.restaurantId)},
+        ${columnName(rc.customerId)},
+        ${columnName(rc.orderCount)},
+        ${columnName(rc.cancelledOrderCount)},
+        ${columnName(rc.totalSpentCents)},
+        ${columnName(rc.firstOrderAt)},
+        ${columnName(rc.lastOrderAt)},
+        ${columnName(rc.recomputedAt)},
+        ${columnName(rc.createdAt)},
+        ${columnName(rc.updatedAt)}
+      )
+      select
+        -- Only ever used for a row this statement is inserting; an existing
+        -- row keeps its own id through the DO UPDATE below, so a member's
+        -- identifier survives a recompute. Random rather than UUID v7 for the
+        -- reason the backfill gives: SQLite cannot generate a v7, and nothing
+        -- sorts or time-ranges these handles.
+        lower(hex(randomblob(16))),
+        ${orders.restaurantId},
+        ${orders.customerId},
+        ${ROLLUP.orderCount},
+        ${ROLLUP.cancelledOrderCount},
+        ${ROLLUP.totalSpentCents},
+        ${ROLLUP.firstOrderAt},
+        ${ROLLUP.lastOrderAt},
+        ${nowMs},
+        ${nowMs},
+        ${nowMs}
+      from ${orders}
+      where ${orders.restaurantId} = ${scope.restaurantId}
+        and ${orders.customerId} is not null
+        -- An orphaned order would abort the whole statement on the foreign key
+        -- (and on the restaurant guard trigger), taking the reconciliation of
+        -- every other member with it.
+        and exists (
+          select 1 from ${customers} where ${customers.id} = ${orders.customerId}
+        )
+      group by ${orders.customerId}
+      having ${ROLLUP.orderCount} > 0
+      on conflict (${columnName(rc.restaurantId)}, ${columnName(rc.customerId)})
+      do update set
+        ${columnName(rc.orderCount)} = excluded.${columnName(rc.orderCount)},
+        ${columnName(rc.cancelledOrderCount)} = excluded.${columnName(rc.cancelledOrderCount)},
+        ${columnName(rc.totalSpentCents)} = excluded.${columnName(rc.totalSpentCents)},
+        ${columnName(rc.firstOrderAt)} = excluded.${columnName(rc.firstOrderAt)},
+        ${columnName(rc.lastOrderAt)} = excluded.${columnName(rc.lastOrderAt)},
+        ${columnName(rc.recomputedAt)} = excluded.${columnName(rc.recomputedAt)},
+        ${columnName(rc.updatedAt)} = excluded.${columnName(rc.updatedAt)}
+    `);
+
+    const stale = and(
+      eq(rc.restaurantId, scope.restaurantId),
+      sql`not exists (
+        select 1 from ${orders}
+        where ${orders.restaurantId} = ${rc.restaurantId}
+          and ${orders.customerId} = ${rc.customerId}
+          and ${orders.status} != 'cancelled'
+      )`,
+    );
+    const [staleRows] = await this.db
+      .select({ total: count() })
+      .from(rc)
+      .where(stale);
+    const removed = staleRows?.total ?? 0;
+    if (removed > 0) await this.db.delete(rc).where(stale);
+
+    const [remaining] = await this.db
+      .select({ total: count() })
+      .from(rc)
+      .where(eq(rc.restaurantId, scope.restaurantId));
+
+    return { members: remaining?.total ?? 0, removed };
+  }
+
   /** Rebuild one projection from order facts; safe to retry after any write. */
   async recomputeForCustomer(scope: TenantScope, customerId: string) {
     const [rollup] = await this.db
-      .select({
-        orderCount: sql<number>`sum(case when ${orders.status} != 'cancelled' then 1 else 0 end)`,
-        cancelledOrderCount: sql<number>`sum(case when ${orders.status} = 'cancelled' then 1 else 0 end)`,
-        totalSpentCents: sql<number>`coalesce(sum(case when ${orders.status} != 'cancelled' then coalesce(${orders.totalAmountCents}, 0) else 0 end), 0)`,
-        firstOrderAt: sql<
-          number | null
-        >`min(case when ${orders.status} != 'cancelled' then ${orders.createdAt} end)`,
-        lastOrderAt: sql<
-          number | null
-        >`max(case when ${orders.status} != 'cancelled' then ${orders.createdAt} end)`,
-      })
+      .select(ROLLUP)
       .from(orders)
       .where(
         and(

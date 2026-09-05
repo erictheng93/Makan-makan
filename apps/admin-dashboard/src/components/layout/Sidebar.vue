@@ -149,6 +149,7 @@ import {
   ReceiptText,
   UserPlus,
   UserRound,
+  UsersRound,
   Crown,
   MessageSquare,
   CalendarCheck,
@@ -233,6 +234,14 @@ const navigationItems = computed(() => {
       visible: authStore.isAdminRole,
       section: "platform",
       feature: "marketCheckouts",
+    },
+    {
+      name: "platform-customers",
+      path: "/dashboard/platform/customers",
+      label: t("nav.platformCustomers"),
+      icon: UsersRound,
+      visible: authStore.isAdminRole,
+      section: "platform",
     },
     {
       name: "platform-onboarding",

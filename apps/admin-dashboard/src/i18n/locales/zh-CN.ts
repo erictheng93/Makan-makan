@@ -1707,6 +1707,7 @@ const zhCN: Messages = {
     feedback: "意见反馈",
     printAgents: "打印代理",
     members: "会员管理",
+    platformCustomers: "平台顾客",
     accountManagement: "帐号管理",
   },
   pages: {
@@ -1755,6 +1756,7 @@ const zhCN: Messages = {
     feedbackDetail: "反馈详情",
     accountManagement: "帐号管理",
     platformMarketCheckouts: "市场结帐纪录",
+    platformCustomers: "平台顾客",
     subscriptions: "订阅管理",
   },
   platform: {
@@ -3426,6 +3428,93 @@ const zhCN: Messages = {
       restoreFailed: "复职失败",
     },
   },
+  // 平台顧客目錄（#299 A4，規格 §7.2／§12.3）。跨店視角，只有 role 0 看得到；
+  // 各店自己的標籤與備註不在這裡，那是租戶私有資料。
+  platformCustomers: {
+    subtitle: "跨店查看顾客与消费汇总（仅平台管理员）",
+    deletedCustomer: "已删除的顾客",
+    unnamedCustomer: "未留姓名",
+    empty: {
+      title: "尚无顾客资料",
+      description: "顾客完成第一笔订单后就会出现在这里。",
+    },
+    search: {
+      label: "搜索顾客",
+      placeholder: "搜索姓名；手机与 Email 需输入完整值",
+    },
+    filters: {
+      title: "筛选条件",
+      status: "账号状态",
+      statusOptions: {
+        all: "全部",
+        active: "正常",
+        deleted: "已删除",
+      },
+      sort: "排序方式",
+      sortOptions: {
+        recent: "最新加入",
+        spent: "累计消费",
+        orders: "订单数",
+        restaurants: "消费店家数",
+        name: "姓名",
+      },
+      reset: "重置条件",
+    },
+    table: {
+      customer: "顾客",
+      contact: "联系方式",
+      restaurants: "消费店家数",
+      orders: "总订单",
+      spent: "总消费",
+      lastOrder: "最后消费",
+      status: "状态",
+      actions: "操作",
+    },
+    status: {
+      active: "正常",
+      deleted: "已删除",
+    },
+    actions: {
+      detail: "详情",
+    },
+    pagination: {
+      previous: "上一页",
+      next: "下一页",
+      showing: "显示第 {start} 到 {end} 笔，共 {total} 笔",
+      label: "分页",
+    },
+    detail: {
+      title: "顾客详情",
+      close: "关闭",
+      identity: "顾客资料",
+      perRestaurant: "各店消费",
+      perRestaurantHint: "只显示消费金额，不包含各店自己的标签与备注。",
+      perRestaurantEmpty: "这位顾客尚未在任何店家消费。",
+      perRestaurantFailed: "加载各店消费失败，请稍后再试。",
+      unknownRestaurant: "未知店家",
+      sliceOrders: "{count} 笔订单，取消 {cancelled} 笔",
+    },
+    reveal: {
+      action: "显示完整联系方式",
+      confirmTitle: "显示完整联系方式",
+      confirmMessage:
+        "此操作会被记录在审计日志中。完整电话与 Email 只会显示在这个面板，并于 5 分钟后自动遮蔽。",
+      confirmLabel: "显示",
+      hide: "立即遮蔽",
+      revealing: "读取中…",
+      phone: "电话",
+      email: "Email",
+      none: "未提供",
+      autoMaskNotice: "完整资料将于 {minutes} 分钟后自动遮蔽，且不会被保存。",
+      errors: {
+        notFound: "找不到这位顾客，资料可能已被移除。",
+        rateLimited: "本小时的查看次数已达上限（每小时 30 次），请稍后再试。",
+        forbidden: "此顾客已删除，无法查看完整联系方式。",
+        failed: "查看失败，请稍后再试。",
+      },
+    },
+  },
+
   members: {
     subtitle: "查看在本店有消费记录的顾客",
     deletedCustomer: "已删除的顾客",
@@ -3445,9 +3534,15 @@ const zhCN: Messages = {
       repeatRate: "回头客比例",
       avgOrderValue: "平均客单价",
     },
+    export: {
+      action: "导出 CSV",
+      busy: "导出中…",
+      failed: "导出失败，请稍后再试。",
+    },
     quickFilters: {
       all: "全部",
       frequent: "常客（5 单以上）",
+      new: "新客（1 单）",
       dormant: "30 天未回",
       blocked: "已屏蔽",
     },

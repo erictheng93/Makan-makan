@@ -788,6 +788,10 @@ export function createApp(
   apiV1.use("/admin/*", authMiddleware);
   apiV1.route("/admin", adminSettingsRoutes);
   apiV1.route("/admin/markets", marketsFeature.adminRoutes);
+  // Platform-side customer directory (#299 A4). Keyed on customers.id, which
+  // only role 0 may ever see — the tenant router mounted on /restaurants above
+  // deliberately cannot produce one.
+  apiV1.route("/admin/customers", membersFeature.adminRoutes);
   apiV1.route("/admin/subscriptions", subscriptionsFeature.routes);
 
   // 掛載 API 路由

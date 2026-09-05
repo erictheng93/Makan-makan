@@ -83,7 +83,19 @@ export {
   type TenantMemberContact,
   type MemberPatch,
   type MemberUpdateOutcome,
+  type MemberExportResult,
+  type MemberRecomputeResult,
+  MEMBER_EXPORT_MAX_ROWS,
 } from "./TenantMemberDirectoryService";
+export {
+  PlatformCustomerDirectoryService,
+  type PlatformCustomerListFilters,
+  type PlatformCustomerListItem,
+  type PlatformCustomerListResult,
+  type PlatformCustomerRestaurantSlice,
+  type PlatformCustomerContact,
+  type PlatformContactRevealOutcome,
+} from "./PlatformCustomerDirectoryService";
 export { maskEmail, maskPhone } from "./pii-masking";
 export {
   backfillCandidateOrderCountStatement,

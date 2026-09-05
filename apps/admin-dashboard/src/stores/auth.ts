@@ -271,6 +271,7 @@ export const useAuthStore = defineStore("auth", () => {
       OwnerOverview: [UserRole.ADMIN, UserRole.OWNER],
       Feedback: [UserRole.ADMIN, UserRole.OWNER],
       Members: [UserRole.ADMIN, UserRole.OWNER],
+      PlatformCustomers: [UserRole.ADMIN],
     };
 
     const requiredRoles = routePermissions[routeName];

@@ -930,4 +930,659 @@ describe("Members API — tenant isolation", () => {
       expect(after[0]!.id).toBe(first!.id);
     });
   });
+
+  describe("masked CSV export (spec §7.1)", () => {
+    function exportCsv(
+      restaurantId: string,
+      token: string,
+      filters?: Record<string, unknown>,
+    ) {
+      return post(
+        `/restaurants/${restaurantId}/members/export`,
+        token,
+        filters,
+      );
+    }
+
+    it("exports only the caller's members, masked, and audits the bulk read", async () => {
+      const a = await shop("export-a");
+      const b = await shop("export-b");
+      const mine = await member(a.restaurantId, "Alice");
+      const theirs = await member(b.restaurantId, "Bob");
+
+      const res = await exportCsv(a.restaurantId, a.token);
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toContain("text/csv");
+      expect(res.headers.get("content-disposition")).toContain("attachment");
+      expect(res.headers.get("x-export-truncated")).toBe("false");
+
+      // Read the bytes, not the text: `Response.text()` runs the WHATWG UTF-8
+      // decoder, which strips a leading BOM -- so a text assertion here would
+      // pass whether the BOM was sent or not.
+      const bytes = new Uint8Array(await res.clone().arrayBuffer());
+      // Excel on Windows reads a BOM-less UTF-8 file as the system codepage,
+      // which turns every Chinese display name in it into mojibake.
+      expect([bytes[0], bytes[1], bytes[2]]).toEqual([0xef, 0xbb, 0xbf]);
+
+      const csv = await res.text();
+      expect(csv).toContain(mine.memberId);
+      expect(csv).toContain("Alice");
+
+      // The victim's every identifier and value, absent bit for bit.
+      expect(csv).not.toContain(theirs.memberId);
+      expect(csv).not.toContain("Bob");
+      expect(csv).not.toContain(theirs.phone);
+      expect(csv).not.toContain(theirs.email);
+
+      // The caller's own row is masked too: an export is not a reveal.
+      expect(csv).not.toContain(mine.phone);
+      expect(csv).not.toContain(mine.email);
+      // And the platform identifier never leaves the service here either.
+      expect(csv).not.toContain(mine.customerId);
+
+      const rows = await auditRows();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        action: "customer_data_export",
+        resource: "restaurant_customers",
+        resourceId: a.restaurantId,
+        restaurantId: a.restaurantId,
+        success: true,
+      });
+      // The audit records that a bulk read happened, never a second copy of
+      // what it contained.
+      const changes = rows[0]!.changes as {
+        metadata?: Record<string, unknown>;
+      };
+      expect(changes.metadata).toMatchObject({ exported: 1, masked: true });
+      expect(JSON.stringify(changes)).not.toContain(mine.memberId);
+    });
+
+    it("carries a header row that does not change with the caller's language", async () => {
+      const a = await shop("export-headers");
+      await member(a.restaurantId, "Header");
+
+      const csv = await (await exportCsv(a.restaurantId, a.token)).text();
+      const header = csv.replace(/^\ufeff/, "").split("\n")[0];
+      expect(header).toBe(
+        [
+          "member_id",
+          "display_name",
+          "masked_phone",
+          "masked_email",
+          "locale",
+          "order_count",
+          "cancelled_order_count",
+          "total_spent_cents",
+          "avg_order_value_cents",
+          "first_order_at_ms",
+          "last_order_at_ms",
+          "tags",
+          "note",
+          "is_blocked",
+          "blocked_reason",
+          "marketing_reachable",
+          "status",
+        ].join(","),
+      );
+    });
+
+    it("applies the same filters the list does", async () => {
+      const a = await shop("export-filters");
+      const blocked = await member(
+        a.restaurantId,
+        "Blocked",
+        {},
+        { isBlocked: 1 },
+      );
+      const active = await member(a.restaurantId, "Active");
+
+      const csv = await (
+        await exportCsv(a.restaurantId, a.token, { blocked: "true" })
+      ).text();
+      expect(csv).toContain(blocked.memberId);
+      expect(csv).not.toContain(active.memberId);
+    });
+
+    it("rejects an unknown filter key rather than exporting more than asked", async () => {
+      const a = await shop("export-strict");
+      const res = await exportCsv(a.restaurantId, a.token, {
+        // A `customers` column — the shape the PATCH schema also refuses.
+        primaryPhone: "+886912345678",
+      });
+      expect(res.status).toBe(400);
+      expect(await auditRows()).toEqual([]);
+    });
+
+    it.each([
+      [2, "chef"],
+      [3, "service crew"],
+      [4, "cashier"],
+    ] as const)("refuses a role-%i (%s) token", async (role, label) => {
+      const a = await shop(`export-role-${role}`);
+      const staff = await seed.user({
+        username: `export-${label.replace(/\s+/g, "-")}`,
+        role,
+        restaurantId: a.restaurantId,
+      });
+      const token = await testApp.authHelper.staffToken(
+        staff.id,
+        role,
+        a.restaurantId,
+      );
+      await member(a.restaurantId, `ExportRole${role}`);
+
+      const res = await exportCsv(a.restaurantId, token);
+      expect(res.status).toBe(403);
+      expect(await auditRows()).toEqual([]);
+    });
+
+    it("refuses another tenant's restaurant id outright", async () => {
+      const a = await shop("export-scope-a");
+      const b = await shop("export-scope-b");
+      const theirs = await member(b.restaurantId, "Victim");
+
+      const res = await exportCsv(b.restaurantId, a.token);
+      expect(res.status).toBe(403);
+      expect(await auditRows()).toEqual([]);
+
+      const [row] = await testApp.testDb.drizzle
+        .select()
+        .from(restaurantCustomers)
+        .where(eq(restaurantCustomers.id, theirs.memberId));
+      expect(row).toMatchObject({ restaurantId: b.restaurantId });
+    });
+  });
+
+  describe("maxOrders filter", () => {
+    it("selects first-time customers, which no lower bound can express", async () => {
+      const a = await shop("maxorders");
+      const once = await member(
+        a.restaurantId,
+        "FirstTimer",
+        {},
+        { orderCount: 1 },
+      );
+      const regular = await member(
+        a.restaurantId,
+        "Regular",
+        {},
+        { orderCount: 7 },
+      );
+
+      const res = await get(
+        `/restaurants/${a.restaurantId}/members?maxOrders=1`,
+        a.token,
+      );
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { data: Array<{ memberId: string }> };
+      expect(body.data.map((row) => row.memberId)).toEqual([once.memberId]);
+      expect(body.data.map((row) => row.memberId)).not.toContain(
+        regular.memberId,
+      );
+    });
+  });
+
+  describe("manual rollup recompute (spec §7.1)", () => {
+    it("is refused to the tenant that owns the directory", async () => {
+      const a = await shop("recompute-owner");
+      const res = await post(
+        `/restaurants/${a.restaurantId}/members/recompute`,
+        a.token,
+      );
+      // requireRole([0]) — this endpoint can delete a membership row, so it is
+      // deliberately not a button a shop owner has.
+      expect(res.status).toBe(403);
+    });
+
+    it("repairs a drifted projection, drops a dead one, and leaves other tenants alone", async () => {
+      const a = await shop("recompute-a");
+      const b = await shop("recompute-b");
+      const adminToken = await testApp.authHelper.adminToken();
+
+      // Drifted: the row says one thing, the orders say another.
+      const drifted = await member(
+        a.restaurantId,
+        "Drifted",
+        {},
+        { orderCount: 99, totalSpentCents: 999_999 },
+      );
+      await seed.order(a.restaurantId, {
+        customerId: drifted.customerId,
+        status: "paid",
+        totalAmountCents: 1500,
+        createdAt: new Date("2026-08-10T00:00:00Z"),
+      });
+
+      // Dead: a membership row whose only order was cancelled. The live path
+      // deletes such a row on cancel; a reconciliation that left it would not
+      // be reconciling anything.
+      const dead = await member(a.restaurantId, "Dead");
+      await seed.order(a.restaurantId, {
+        customerId: dead.customerId,
+        status: "cancelled",
+        totalAmountCents: 800,
+      });
+
+      // Another tenant, given exactly the two shapes this recompute acts on:
+      // a drifted row with real orders behind it (which an unscoped UPSERT
+      // would "repair"), and a dead row (which an unscoped DELETE would
+      // remove). A neighbour with no orders at all proves nothing here --
+      // there would be no rows for the statement to find either way.
+      const driftedOther = await member(
+        b.restaurantId,
+        "DriftedOther",
+        {},
+        { orderCount: 42, cancelledOrderCount: 3, totalSpentCents: 424_242 },
+      );
+      await seed.order(b.restaurantId, {
+        customerId: driftedOther.customerId,
+        status: "paid",
+        totalAmountCents: 700,
+      });
+      const deadOther = await member(b.restaurantId, "DeadOther");
+      await seed.order(b.restaurantId, {
+        customerId: deadOther.customerId,
+        status: "cancelled",
+        totalAmountCents: 900,
+      });
+      const otherRowsBefore = await testApp.testDb.drizzle
+        .select()
+        .from(restaurantCustomers)
+        .where(eq(restaurantCustomers.restaurantId, b.restaurantId));
+      expect(otherRowsBefore).toHaveLength(2);
+
+      const res = await post(
+        `/restaurants/${a.restaurantId}/members/recompute`,
+        adminToken,
+      );
+      expect(res.status).toBe(200);
+      expect(await res.json()).toMatchObject({
+        success: true,
+        data: { members: 1, removed: 1 },
+      });
+
+      const [repaired] = await testApp.testDb.drizzle
+        .select()
+        .from(restaurantCustomers)
+        .where(eq(restaurantCustomers.id, drifted.memberId));
+      expect(repaired).toMatchObject({
+        orderCount: 1,
+        cancelledOrderCount: 0,
+        totalSpentCents: 1500,
+      });
+      // The member id survives a recompute: an upsert that replaced it would
+      // break every audit row, bookmark and tag the tenant holds.
+      expect(repaired!.id).toBe(drifted.memberId);
+
+      const deadRows = await testApp.testDb.drizzle
+        .select()
+        .from(restaurantCustomers)
+        .where(eq(restaurantCustomers.id, dead.memberId));
+      expect(deadRows).toEqual([]);
+
+      const otherRowsAfter = await testApp.testDb.drizzle
+        .select()
+        .from(restaurantCustomers)
+        .where(eq(restaurantCustomers.restaurantId, b.restaurantId));
+      // Bit for bit: the drift is still there and the dead row is still there.
+      // Drop the tenant predicate from either statement in `recomputeAll` and
+      // this assertion is what turns red.
+      expect(otherRowsAfter).toEqual(otherRowsBefore);
+    });
+
+    it("creates the projection a lost recompute never wrote", async () => {
+      const a = await shop("recompute-missing");
+      const adminToken = await testApp.authHelper.adminToken();
+      const person = await customer("Orphan");
+      await seed.order(a.restaurantId, {
+        customerId: person.id,
+        status: "paid",
+        totalAmountCents: 2500,
+      });
+
+      const res = await post(
+        `/restaurants/${a.restaurantId}/members/recompute`,
+        adminToken,
+      );
+      expect(res.status).toBe(200);
+
+      const rows = await testApp.testDb.drizzle
+        .select()
+        .from(restaurantCustomers);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        restaurantId: a.restaurantId,
+        customerId: person.id,
+        orderCount: 1,
+        totalSpentCents: 2500,
+      });
+    });
+
+    it("agrees with recomputeForCustomer term for term", async () => {
+      const a = await shop("recompute-agreement");
+      const adminToken = await testApp.authHelper.adminToken();
+      const person = await customer("Agreeing");
+      await seed.order(a.restaurantId, {
+        customerId: person.id,
+        status: "paid",
+        totalAmountCents: 1000,
+        createdAt: new Date("2026-07-01T00:00:00Z"),
+      });
+      await seed.order(a.restaurantId, {
+        customerId: person.id,
+        status: "cancelled",
+        totalAmountCents: 400,
+        createdAt: new Date("2026-07-05T00:00:00Z"),
+      });
+      await seed.order(a.restaurantId, {
+        customerId: person.id,
+        status: "completed",
+        totalAmountCents: 250,
+        createdAt: new Date("2026-08-02T00:00:00Z"),
+      });
+
+      await new TenantMemberDirectoryService(
+        testApp.env.DB,
+        testApp.env,
+      ).recomputeForCustomer({ restaurantId: a.restaurantId }, person.id);
+      const [perCustomer] = await testApp.testDb.drizzle
+        .select()
+        .from(restaurantCustomers);
+
+      const res = await post(
+        `/restaurants/${a.restaurantId}/members/recompute`,
+        adminToken,
+      );
+      expect(res.status).toBe(200);
+      const [setBased] = await testApp.testDb.drizzle
+        .select()
+        .from(restaurantCustomers);
+
+      // Only the recompute timestamps may differ; every fact must match, or a
+      // reconciliation silently rewrites the directory it was meant to repair.
+      expect({
+        orderCount: setBased!.orderCount,
+        cancelledOrderCount: setBased!.cancelledOrderCount,
+        totalSpentCents: setBased!.totalSpentCents,
+        firstOrderAt: setBased!.firstOrderAt,
+        lastOrderAt: setBased!.lastOrderAt,
+      }).toEqual({
+        orderCount: perCustomer!.orderCount,
+        cancelledOrderCount: perCustomer!.cancelledOrderCount,
+        totalSpentCents: perCustomer!.totalSpentCents,
+        firstOrderAt: perCustomer!.firstOrderAt,
+        lastOrderAt: perCustomer!.lastOrderAt,
+      });
+    });
+  });
+
+  /**
+   * Stage A4 — the platform side. Everything above exists to keep a tenant
+   * away from `customers.id`; this block exists to prove that the one router
+   * that does speak in it is reachable by role 0 and nobody else.
+   */
+  describe("platform customer directory (spec §7.2)", () => {
+    it.each([
+      [1, "owner"],
+      [2, "chef"],
+      [3, "service crew"],
+      [4, "cashier"],
+    ] as const)(
+      "refuses a role-%i (%s) token on every platform route",
+      async (role, label) => {
+        const a = await shop(`platform-role-${role}`);
+        const token =
+          role === 1
+            ? a.token
+            : await testApp.authHelper.staffToken(
+                (
+                  await seed.user({
+                    username: `platform-${label.replace(/\s+/g, "-")}`,
+                    role,
+                    restaurantId: a.restaurantId,
+                  })
+                ).id,
+                role,
+                a.restaurantId,
+              );
+        const target = await member(a.restaurantId, `PlatformRole${role}`);
+
+        // Each route is a separate registration with its own chain, so a
+        // copy-paste that dropped the role guard on one of them specifically
+        // would not be caught by asserting on any other.
+        for (const path of [
+          "/admin/customers",
+          `/admin/customers/${target.customerId}`,
+          `/admin/customers/${target.customerId}/restaurants`,
+        ]) {
+          expect((await get(path, token)).status).toBe(403);
+        }
+        const reveal = await post(
+          `/admin/customers/${target.customerId}/reveal-contact`,
+          token,
+        );
+        expect(reveal.status).toBe(403);
+        expect(await auditRows()).toEqual([]);
+      },
+    );
+
+    it("lists customers masked, with a cross-shop rollup and no raw contact keys", async () => {
+      const a = await shop("platform-list-a");
+      const b = await shop("platform-list-b");
+      const adminToken = await testApp.authHelper.adminToken();
+
+      const person = await customer("Wanderer");
+      await testApp.testDb.drizzle.insert(restaurantCustomers).values([
+        {
+          restaurantId: a.restaurantId,
+          customerId: person.id,
+          orderCount: 3,
+          cancelledOrderCount: 1,
+          totalSpentCents: 3000,
+          firstOrderAt: new Date("2026-07-01T00:00:00Z"),
+          lastOrderAt: new Date("2026-08-01T00:00:00Z"),
+        },
+        {
+          restaurantId: b.restaurantId,
+          customerId: person.id,
+          orderCount: 2,
+          cancelledOrderCount: 0,
+          totalSpentCents: 1500,
+          firstOrderAt: new Date("2026-07-15T00:00:00Z"),
+          lastOrderAt: new Date("2026-08-20T00:00:00Z"),
+        },
+      ] as never);
+
+      const res = await get("/admin/customers", adminToken);
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as {
+        data: Array<Record<string, unknown>>;
+      };
+      const row = body.data.find((item) => item.customerId === person.id)!;
+      expect(row).toMatchObject({
+        displayName: "Wanderer",
+        status: "active",
+        // The one figure no tenant-scoped endpoint may produce.
+        restaurantCount: 2,
+        orderCount: 5,
+        totalSpentCents: 4500,
+      });
+
+      // Response key allow-list. A column added to `customers` must be named
+      // in the projection before it can reach a response, so this assertion
+      // turns red the day someone reaches for a spread instead.
+      expect(Object.keys(row).sort()).toEqual(
+        [
+          "createdAt",
+          "customerId",
+          "displayName",
+          "lastOrderAt",
+          "locale",
+          "maskedEmail",
+          "maskedPhone",
+          "orderCount",
+          "restaurantCount",
+          "status",
+          "totalSpentCents",
+        ].sort(),
+      );
+      // Masked by default here too: the platform list is not a reveal either.
+      expect(JSON.stringify(row)).not.toContain(person.phone);
+      expect(JSON.stringify(row)).not.toContain(person.email);
+    });
+
+    it("searches a phone by full value only, never by prefix", async () => {
+      const adminToken = await testApp.authHelper.adminToken();
+      const person = await customer("Findable");
+
+      const exact = await get(
+        `/admin/customers?search=${encodeURIComponent(person.phone!)}`,
+        adminToken,
+      );
+      expect(exact.status).toBe(200);
+      expect(
+        ((await exact.json()) as { data: Array<{ customerId: string }> }).data,
+      ).toHaveLength(1);
+
+      // A prefix would turn this endpoint into an enumeration tool, which is
+      // exactly what role 0 must not be handed either.
+      const prefix = await get(
+        `/admin/customers?search=${encodeURIComponent(person.phone!.slice(0, 8))}`,
+        adminToken,
+      );
+      expect(prefix.status).toBe(200);
+      expect(
+        ((await prefix.json()) as { data: Array<{ customerId: string }> }).data,
+      ).toEqual([]);
+    });
+
+    it("breaks a customer down by shop, spend only", async () => {
+      const a = await shop("platform-slices-a");
+      const b = await shop("platform-slices-b");
+      const adminToken = await testApp.authHelper.adminToken();
+      const person = await customer("Split");
+
+      await testApp.testDb.drizzle.insert(restaurantCustomers).values([
+        {
+          restaurantId: a.restaurantId,
+          customerId: person.id,
+          orderCount: 1,
+          totalSpentCents: 500,
+          note: "tenant A private note",
+          tags: ["vip"],
+        },
+        {
+          restaurantId: b.restaurantId,
+          customerId: person.id,
+          orderCount: 4,
+          totalSpentCents: 9000,
+        },
+      ] as never);
+
+      const res = await get(
+        `/admin/customers/${person.id}/restaurants`,
+        adminToken,
+      );
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as {
+        data: Array<Record<string, unknown>>;
+      };
+      // Ordered by spend, so the busiest shop reads first.
+      expect(body.data.map((row) => row.restaurantId)).toEqual([
+        b.restaurantId,
+        a.restaurantId,
+      ]);
+      expect(body.data[0]).toMatchObject({
+        orderCount: 4,
+        totalSpentCents: 9000,
+      });
+
+      // A shop's private CRM annotations are not platform data. Nothing in
+      // support needs one tenant's free-text opinion of a customer, and this
+      // route would show it to every role-0 account.
+      const serialized = JSON.stringify(body.data);
+      expect(serialized).not.toContain("tenant A private note");
+      expect(serialized).not.toContain("vip");
+    });
+
+    it("404s an unknown customer on both read routes", async () => {
+      const adminToken = await testApp.authHelper.adminToken();
+      expect(
+        (await get("/admin/customers/does-not-exist", adminToken)).status,
+      ).toBe(404);
+      expect(
+        (await get("/admin/customers/does-not-exist/restaurants", adminToken))
+          .status,
+      ).toBe(404);
+    });
+
+    it("reveals contact details and files the audit row at platform scope", async () => {
+      const adminToken = await testApp.authHelper.adminToken();
+      const person = await customer("Revealed");
+
+      const res = await post(
+        `/admin/customers/${person.id}/reveal-contact`,
+        adminToken,
+        { reason: "support callback" },
+      );
+      expect(res.status).toBe(200);
+      expect(await res.json()).toMatchObject({
+        success: true,
+        data: {
+          customerId: person.id,
+          phone: person.phone,
+          email: person.email,
+        },
+      });
+
+      const rows = await auditRows();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        action: "customer_pii_reveal",
+        resource: "customers",
+        resourceId: person.id,
+        // No tenant performed this. A restaurant id here would file a platform
+        // action inside some shop's audit trail.
+        restaurantId: null,
+        success: true,
+      });
+      // Records that a disclosure happened, never a second copy of the values.
+      const serialized = JSON.stringify(rows[0]!.changes);
+      expect(serialized).not.toContain(person.phone);
+      expect(serialized).not.toContain(person.email);
+    });
+
+    it("refuses a deleted customer's details but still audits the attempt", async () => {
+      const adminToken = await testApp.authHelper.adminToken();
+      const person = await customer("Gone", { status: "deleted" });
+
+      const res = await post(
+        `/admin/customers/${person.id}/reveal-contact`,
+        adminToken,
+      );
+      expect(res.status).toBe(403);
+
+      const rows = await auditRows();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        action: "customer_pii_reveal",
+        resourceId: person.id,
+        success: false,
+        errorMessage: "CUSTOMER_DELETED",
+      });
+
+      // A deleted customer's masked details are gone from the read path too.
+      const detail = await get(`/admin/customers/${person.id}`, adminToken);
+      expect(detail.status).toBe(200);
+      expect((await detail.json()) as unknown).toMatchObject({
+        data: {
+          status: "deleted",
+          displayName: null,
+          maskedPhone: null,
+          maskedEmail: null,
+        },
+      });
+    });
+  });
 });
