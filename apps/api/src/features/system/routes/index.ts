@@ -373,15 +373,37 @@ async function storeUptimeEvidence(
   }
 }
 
-async function runBasicHealthCheck(c: Context<{ Bindings: Env }>): Promise<{
-  overallStatus: HealthStatus["status"];
-  dbStatus: ServiceCheck;
-  kvStatus: ServiceCheck;
-  responseTimeMs: number;
-}> {
-  const startTime = Date.now();
+/**
+ * Hands `work` to the runtime to finish after the response, and otherwise lets
+ * it run unobserved. Only optional cleanup belongs here — nothing reads the
+ * result, and without an execution context nothing keeps the isolate alive for
+ * it either.
+ *
+ * The try/catch mirrors `middleware/quotaGate.ts`: `executionCtx` throws rather
+ * than returning undefined when there is no execution context, which is what
+ * `app.request()` gives you in tests.
+ */
+function runAfterResponse(
+  c: Context<{ Bindings: Env }>,
+  work: Promise<unknown>,
+): void {
+  const settled = work.catch(() => undefined);
 
-  let dbStatus: ServiceCheck;
+  let waitUntil: ((promise: Promise<unknown>) => void) | undefined;
+  try {
+    waitUntil = c.executionCtx?.waitUntil?.bind(c.executionCtx);
+  } catch {
+    waitUntil = undefined;
+  }
+
+  waitUntil?.(settled);
+}
+
+async function checkDatabase(
+  c: Context<{ Bindings: Env }>,
+): Promise<ServiceCheck> {
+  const startedAt = Date.now();
+
   try {
     // Deliberately the raw binding rather than the Drizzle builder this used to
     // call: `meta` is where served_by_primary/served_by_region live, and the
@@ -399,46 +421,80 @@ async function runBasicHealthCheck(c: Context<{ Bindings: Env }>): Promise<{
       served_by_region?: string;
     };
 
-    dbStatus = {
+    return {
       name: "database",
       status: probe.results?.[0]?.test === 1 ? "healthy" : "degraded",
-      responseTime: Date.now() - startTime,
+      responseTime: Date.now() - startedAt,
       lastCheck: new Date().toISOString(),
       servedByPrimary: meta?.served_by_primary,
       servedByRegion: meta?.served_by_region,
     };
   } catch (error) {
-    dbStatus = {
+    return {
       name: "database",
       status: "unhealthy",
+      responseTime: Date.now() - startedAt,
       error: error instanceof Error ? error.message : "Unknown error",
       lastCheck: new Date().toISOString(),
     };
   }
+}
 
-  let kvStatus: ServiceCheck;
+async function checkCache(
+  c: Context<{ Bindings: Env }>,
+): Promise<ServiceCheck> {
+  const startedAt = Date.now();
+
   try {
     const testKey = `health-check-${Date.now()}`;
     await c.env.CACHE_KV.put(testKey, "test", { expirationTtl: 60 });
     const testValue = await c.env.CACHE_KV.get(testKey);
-    const responseTime = Date.now() - startTime;
+    const responseTime = Date.now() - startedAt;
 
-    kvStatus = {
+    // The cleanup delete is a third write-class round trip (~420ms in
+    // production) whose result nothing reads, and the key already carries a
+    // 60s TTL, so KV reclaims it with or without this. Off the response path
+    // it stays tidy without being paid for.
+    runAfterResponse(c, c.env.CACHE_KV.delete(testKey));
+
+    return {
       name: "kv_storage",
       status: testValue === "test" ? "healthy" : "degraded",
       responseTime,
       lastCheck: new Date().toISOString(),
     };
-
-    await c.env.CACHE_KV.delete(testKey);
   } catch (error) {
-    kvStatus = {
+    return {
       name: "kv_storage",
       status: "unhealthy",
+      responseTime: Date.now() - startedAt,
       error: error instanceof Error ? error.message : "Unknown error",
       lastCheck: new Date().toISOString(),
     };
   }
+}
+
+async function runBasicHealthCheck(c: Context<{ Bindings: Env }>): Promise<{
+  overallStatus: HealthStatus["status"];
+  dbStatus: ServiceCheck;
+  kvStatus: ServiceCheck;
+  responseTimeMs: number;
+}> {
+  const startTime = Date.now();
+
+  // Concurrent, and each probe times itself from its own start. Both matter.
+  //
+  // Sequentially, the two round trips added up: on the public endpoint that
+  // was the D1 probe plus a three-round-trip KV probe, one after another. And
+  // because both checks reported `Date.now() - startTime` against a single
+  // clock started before the D1 query, whatever D1 had just spent was counted
+  // a second time inside the KV number. That is what #324 measured as "KV is
+  // three times D1" — of the 356-421ms it recorded for KV, 115-169ms of it was
+  // the D1 probe, reported twice.
+  const [dbStatus, kvStatus] = await Promise.all([
+    checkDatabase(c),
+    checkCache(c),
+  ]);
 
   const services = [dbStatus, kvStatus];
   const unhealthyServices = services.filter((s) => s.status === "unhealthy");

@@ -150,6 +150,9 @@ type SelectFixtureName = keyof typeof fixtureTables | "healthProbe";
 let probeQueue: unknown[][] = [];
 let probeError: unknown = null;
 let probeMeta: Record<string, unknown> = {};
+// How long the D1 probe takes to answer. Only the timing test sets it; it is
+// how that test tells a KV number that includes D1's from one that does not.
+let probeDelayMs = 0;
 
 function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName> = {}) {
   const { healthProbe, ...tableFixtures } = fixtures as Record<
@@ -159,6 +162,7 @@ function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName> = {}) {
   probeQueue = healthProbe ? [...healthProbe] : [];
   probeError = null;
   probeMeta = {};
+  probeDelayMs = 0;
 
   const fixtureDb = createSelectFixtureDb(
     fixtureTables,
@@ -172,6 +176,9 @@ function mockSelectResults(fixtures: SelectFixtures<SelectFixtureName> = {}) {
 
 function createProbeD1() {
   const all = vi.fn(async () => {
+    if (probeDelayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, probeDelayMs));
+    }
     if (probeError) throw probeError;
     const rows = probeQueue.shift();
     if (!rows) {
@@ -707,6 +714,25 @@ describe("system routes", () => {
         expect.objectContaining({ name: "kv_storage", status: "degraded" }),
       ],
     });
+  });
+
+  it("times the KV probe from its own start rather than the request's", async () => {
+    mockSelectResults({ healthProbe: [[{ test: 1 }]] });
+    probeDelayMs = 150;
+
+    const response = await request("/health").res;
+    const body = await response.json<{
+      services: { name: string; responseTime: number }[];
+    }>();
+    const database = body.services.find((s) => s.name === "database");
+    const cache = body.services.find((s) => s.name === "kv_storage");
+
+    // #324 read the KV probe as three times the cost of D1. Both checks shared
+    // one clock started before the D1 query, so every millisecond D1 spent was
+    // counted again inside the KV number. The two probes are also concurrent
+    // now, so a slow D1 must not show up in the KV figure at all.
+    expect(database?.responseTime).toBeGreaterThanOrEqual(100);
+    expect(cache?.responseTime).toBeLessThan(100);
   });
 
   it("reports database health check errors", async () => {
