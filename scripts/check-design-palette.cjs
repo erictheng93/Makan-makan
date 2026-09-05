@@ -72,7 +72,13 @@ const failures = [];
 
 // 1. Tailwind classes in a banned hue, including directional utilities
 //    (border-l-purple-500) and arbitrary variants (hover:, dark:, focus:).
-const hueClassPattern = `[a-z-]+-(${BANNED_HUES.join("|")})-[0-9]{2,3}`;
+// No brace quantifier here on purpose. Node is a native Windows process, so
+// spawning Git-for-Windows' grep.exe hands the MSYS runtime the raw command
+// line, and it brace-expands `{2,3}` into two arguments — the second lands on
+// grep as a filename, which exits 2 and escapes the status===1 guard in grep()
+// below. That crashed this hook on every Windows commit. `[0-9][0-9][0-9]?` is
+// the same 2-or-3 digits in ERE without a brace.
+const hueClassPattern = `[a-z-]+-(${BANNED_HUES.join("|")})-[0-9][0-9][0-9]?`;
 for (const line of grep(hueClassPattern)) {
   failures.push({
     line,
