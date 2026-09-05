@@ -44,14 +44,20 @@ MakanMasak is a modern, serverless restaurant management system built on Cloudfl
 ### Schema & Migrations
 
 - **Source of Truth**: Drizzle schema files in `packages/database/src/schema/` (includes subdirectories)
-- **Migration Tracks**: `packages/database/migrations_fresh/` is the only track
-  wrangler applies — every `migrations_dir` in `apps/api`, `apps/management-api`
-  and `apps/realtime` points at it, production included. It was squashed into a
-  single `0000_baseline_strict.sql`, regenerable with
-  `node scripts/generate-strict-baseline.cjs`. `packages/database/migrations/` is
-  **not** referenced by any `wrangler.toml`; despite the "deployment track" name it
-  is applied by nothing, and replaying it from empty fails 107 statements. Do not
-  add migrations there expecting them to ship.
+- **Migration Tracks**: wrangler applies two of them, against two different
+  databases. `packages/database/migrations_fresh/` is the **platform** track —
+  `apps/api`, `apps/realtime` and `apps/management-api`'s `PLATFORM_DB` binding
+  all point at it, production included. It was squashed into a single
+  `0000_baseline_strict.sql`, regenerable with
+  `node scripts/generate-strict-baseline.cjs`. `apps/management-api/migrations/`
+  is the **control-plane** track, reached only through that app's
+  `MANAGEMENT_DB` binding (`makanmasak-management-prod` in production); it ships
+  with `pnpm db:migrate:prod:mgmt`, which is a different command from
+  `pnpm db:migrate:prod`. Two more directories look like tracks and are not:
+  neither `packages/database/migrations/` nor `packages/database/migrations_v2/`
+  is referenced by any `wrangler.toml`. Despite the "deployment track" name,
+  `migrations/` is applied by nothing, and replaying it from empty fails 107
+  statements. Do not add migrations to either expecting them to ship.
 - **Production's schema did not come from the baseline.** That `migrations_dir`
   points at the fresh track says where wrangler reads from; it says nothing about
   how the live database was built. `makanmasak-prod` was migrated off the legacy
@@ -67,7 +73,7 @@ MakanMasak is a modern, serverless restaurant management system built on Cloudfl
   `pnpm db:migrate:prod` is safe for 0006 onward.
 
   That ledger row is **not** a claim that the live schema equals the baseline:
-  production has 126 tables against the baseline's 118, and the two lineages
+  production has 126 tables against the baseline's 117, and the two lineages
   still differ. Never use it as evidence that they match — a rebuild-from-
   baseline or a schema diff has to establish that separately.
 - **Before applying anything to production D1 by hand**: `wrangler d1 export`
@@ -84,10 +90,10 @@ MakanMasak is a modern, serverless restaurant management system built on Cloudfl
 - **Idempotency Strategy**: nullable idempotency/event keys on payment, webhook, billing, or retryable write paths require a DB-level partial unique index such as `WHERE idempotency_key IS NOT NULL`.
 - **STRICT Tables**: D1 supports `CREATE TABLE ... ) STRICT`, and without it SQLite's
   flexible typing silently stores TEXT in an `INTEGER NOT NULL` column. New tables
-  must be created `STRICT`. drizzle-kit cannot emit the keyword, so after
-  `pnpm db:generate` you add it by hand — including to the `__new_*` staging table
-  in its recreate-table dance, which otherwise renames a non-STRICT table over a
-  STRICT one and drops the constraint with no visible diff. Policy and checkpoints
+  must be created `STRICT`. drizzle-kit cannot emit the keyword, so you write it
+  by hand — including on the `__new_*` staging table in the recreate-table dance,
+  which otherwise renames a non-STRICT table over a STRICT one and drops the
+  constraint with no visible diff. Policy and checkpoints
   live in `packages/database/strict-table-policy.json`; `pnpm check:strict-tables`
   enforces both rules for migrations, not the live schema. All 117 tables in the
   baseline are already STRICT, but production was built from the legacy track and
@@ -128,13 +134,24 @@ MakanMasak is a modern, serverless restaurant management system built on Cloudfl
 - **Secret Storage**: OAuth credentials, access/refresh tokens, client secrets, and webhook secrets must be stored only in encrypted payload fields. JSON config columns are for non-secret flags and preferences.
 
 ```bash
-pnpm db:generate        # Generate migration from schema changes
-pnpm db:migrate:local   # Apply migrations locally
+pnpm db:migrate:local   # Apply migrations locally (platform + management D1)
 pnpm db:reset:local     # Reset local database (clears all data)
 pnpm db:seed:local      # Seed local database (scripts/seed-local.sql)
 ```
 
-**Adding New Tables**: Create schema in `packages/database/src/schema/`, export from `index.ts`, run `pnpm db:generate`, add/validate the paired migration-track entry when applicable, then run `pnpm db:migrate:local`.
+**Adding New Tables**: write the Drizzle schema in `packages/database/src/schema/`,
+export it from `index.ts`, **hand-write** the migration SQL as the next sequential
+file in `packages/database/migrations_fresh/`, add the migration-track entry when
+applicable, then run `pnpm db:migrate:local`.
+
+`pnpm db:generate` exists as a script but is not the workflow here, and running it
+is not a safe default. Its snapshot state under `migrations_fresh/meta/` still
+describes the pre-squash lineage — a nine-entry journal tagged `0000_loose_skin` …
+`0014_feedback-schema`, with snapshots stopping at `0006` — so drizzle-kit would
+diff the schema against a state that has not existed since the squash and write
+the result straight into the live track (`out: "./migrations_fresh"`). Every
+migration from `0001_print_agents.sql` onward was written by hand, and none of
+them has a snapshot.
 
 ## Development Setup
 
@@ -448,7 +465,9 @@ Consequences, in order of how often they get forgotten:
 
 ### UI/UX Design System (Enforced)
 
-All frontend UI design and implementation MUST follow the **Apple-Native Soft Minimalism** design system defined in `docs/UIUX-design-system.md`.
+All frontend UI design and implementation MUST follow the **Apple-Native Soft Minimalism** design system. It is written in two places: `docs/UIUX-design-system.md` is the long-form spec, and `DESIGN.md` at the repo root is the current statement of the palette, which is defined once in `design-tokens.js` and shared by all five Vue apps.
+
+`pnpm check:design-palette` enforces the palette — from `.husky/pre-commit`, from `pnpm verify:push`, and from CI. It rejects the hues the system does not have (purple, indigo, violet, fuchsia, pink) and raw hex duplicates of a token, so reach for a token rather than a literal colour.
 
 **Key rules:**
 
@@ -631,15 +650,18 @@ beforeAll(async () => {
 
 **5. Pre-commit checks:** `lint-staged` itself runs ESLint and Prettier only,
 but it is not the whole hook. Husky invokes `.husky/pre-commit` with `sh -e`,
-so the first non-zero exit aborts the commit, and three more scripts run after
+so the first non-zero exit aborts the commit, and four more scripts run after
 lint-staged:
 
 - `scripts/check-visual-baselines.cjs` — rejects `*-darwin.png` /
   `*-win32.png` baselines; CI only accepts `*-linux.png`
 - `scripts/audit-module-gates.cjs`
 - `scripts/check-no-automated-destructive-wrangler.cjs`
+- `scripts/check-design-palette.cjs` — rejects the hues the design system does
+  not have and raw hex duplicates of a token. A hook is skippable and used to
+  crash on Windows, so this one also runs in `pnpm verify:push` and in CI
 
-A fourth check is inline in the hook rather than a script: when a staged
+A fifth check is inline in the hook rather than a script: when a staged
 `*.test.ts` / `*.spec.ts` uses `Factory.build` or `Factory.buildList` without
 `resetAllFactories()`, it prints `⚠️ 警告`. It only warns — it never fails the
 commit, so treat it as advice, not a gate. There is no
@@ -654,7 +676,7 @@ what "the factory check" refers to.
 2. **KV Cache Misses**: Verify namespace configuration
 3. **Image Upload Failures**: Check R2 bucket permissions
 4. **WebSocket Disconnections**: Monitor Durable Objects health
-5. **Windows: `pnpm dev` fails with `*** std::terminate() called with no exception` followed by `MiniflareCoreError [ERR_RUNTIME_FAILURE]`**: This is a wrangler 4.84.x regression on Windows triggered by **any** `inspector_port = N` line inside the `[dev]` block of a `wrangler.toml`. It reproduces on every port value (9229/9230/9500, etc.), on both Node 22 and Node 24, and on every installed workerd binary — port availability is not the factor; the toml field itself crashes the InspectorProxyWorker. **All 4 Workers apps in this repo already have `inspector_port` commented out** in their `wrangler.toml` with an inline note — do not reintroduce it. If you need a pinned DevTools port, pass it via CLI flag (`wrangler dev --inspector-port N`) instead, which does not crash. Debug hint: first line to run if you see `std::terminate` in a future wrangler bump is `grep -rn "^inspector_port" apps/`.
+5. **Windows: `pnpm dev` fails with `*** std::terminate() called with no exception` followed by `MiniflareCoreError [ERR_RUNTIME_FAILURE]`**: First seen on wrangler 4.84.x (the repo now pins `^4.127.1`), this is a Windows regression triggered by **any** `inspector_port = N` line inside the `[dev]` block of a `wrangler.toml`. It reproduces on every port value (9229/9230/9500, etc.), on both Node 22 and Node 24, and on every installed workerd binary — port availability is not the factor; the toml field itself crashes the InspectorProxyWorker. **Every Workers app that has a `[dev]` block — `api`, `management-api`, `realtime`, `image-processor` — already has `inspector_port` commented out** in its `wrangler.toml` with an inline note (`backup-scheduler` is cron-only and has no `[dev]` block). Do not reintroduce it. If you need a pinned DevTools port, pass it via CLI flag (`wrangler dev --inspector-port N`) instead, which does not crash. Debug hint: first line to run if you see `std::terminate` in a future wrangler bump is `grep -rn "^inspector_port" apps/`.
 
 ### Debug Tools
 
@@ -743,7 +765,7 @@ comparison after the rows come back.
 
 See `docs/README.md` for full documentation navigation, and `docs/archive/CHANGELOG.md` for detailed changelog.
 
-Key reference: `docs/UIUX-design-system.md` — mandatory for all UI work.
+Key references: `docs/UIUX-design-system.md` and `DESIGN.md` — mandatory for all UI work.
 
 ---
 
