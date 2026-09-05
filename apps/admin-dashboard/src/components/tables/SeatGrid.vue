@@ -79,7 +79,7 @@
       v-if="seats.length === 0"
       class="text-center py-12 bg-gray-50 rounded-lg"
     >
-      <ChairIcon class="mx-auto h-12 w-12 text-gray-400" />
+      <Squares2X2Icon class="mx-auto h-12 w-12 text-gray-400" />
       <h3 class="mt-2 text-sm font-medium text-gray-900">
         {{ t("seatGrid.noSeats") }}
       </h3>
@@ -115,7 +115,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "@/i18n";
-import { XMarkIcon } from "@heroicons/vue/24/outline";
+import { Squares2X2Icon, XMarkIcon } from "@heroicons/vue/24/outline";
 
 const { t } = useI18n();
 
