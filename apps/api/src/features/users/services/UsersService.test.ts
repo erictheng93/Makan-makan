@@ -172,10 +172,32 @@ describe("UsersService", () => {
       lastLoginAt: "2026-06-07T01:00:00.000Z",
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-06-07T00:00:00.000Z",
+      // Archive state is part of the response shape now. A user the fixture
+      // says nothing about is not archived -- `formatUser` normalises the
+      // absent flag to `false` and the absent timestamp to `null` rather than
+      // letting `undefined` reach the client.
+      isArchived: false,
+      archivedAt: null,
     });
     expect(createService().formatUser(user({ role: 99 })).role_name).toBe(
       "Unknown",
     );
+  });
+
+  it("reports the archive state of a departed employee", () => {
+    // The removal/rehire feature added these two fields to `formatUser` but
+    // nothing asserted them, so the only signal that they existed was this
+    // suite's exact-match failing on two unexpected keys. Pin the populated
+    // direction too: normalising an absent flag to `false` is worthless if a
+    // present one does not survive.
+    const archived = createService().formatUser(
+      user({ isArchived: true, archivedAt: "2026-09-01T00:00:00.000Z" }),
+    );
+
+    expect(archived).toMatchObject({
+      isArchived: true,
+      archivedAt: "2026-09-01T00:00:00.000Z",
+    });
   });
 
   it("lists all users for admins and constrains owners to their restaurant", async () => {
