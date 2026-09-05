@@ -432,6 +432,35 @@ export const orderItemIdParamSchema = z.object({
   itemId: z.string().regex(/^\d+$/).transform(Number),
 });
 
+// The staff item-edit routes are mounted under `/:id/items/:itemId`, matching
+// every other order route's `:id`. orderItemIdParamSchema above names it
+// `orderId` and belongs to a different path shape.
+export const orderItemPathParamSchema = z.object({
+  id: z.string().trim().min(1),
+  itemId: z.string().regex(/^\d+$/).transform(Number),
+});
+
+// `expectedVersion` carries the `orders.version` the client last saw. Optional
+// so a client that does not track it still works, but supplying it is what
+// turns two staff editing one order into a 409 instead of a silent overwrite.
+const expectedVersionSchema = z.number().int().nonnegative().optional();
+
+export const addOrderItemsSchema = z.object({
+  items: z.array(createOrderItemSchema).min(1).max(50),
+  expectedVersion: expectedVersionSchema,
+});
+
+// Quantity 0 is not accepted here; removal is DELETE on the item.
+export const changeOrderItemQuantitySchema = z.object({
+  quantity: z.number().int().min(1).max(99),
+  expectedVersion: expectedVersionSchema,
+});
+
+// DELETE carries no body, so the version travels as a query parameter.
+export const removeOrderItemQuerySchema = z.object({
+  expectedVersion: z.string().regex(/^\d+$/).transform(Number).optional(),
+});
+
 // Review and rating schema
 export const addOrderReviewSchema = z.object({
   rating: z.number().int().min(1).max(5),
@@ -649,6 +678,10 @@ export const orderSchemas = {
   popularItemsQuery: popularItemsQuerySchema,
   params: orderIdParamSchema, // For parameter validation
   export: exportOrdersSchema, // For export validation
+  itemParams: orderItemPathParamSchema,
+  addItems: addOrderItemsSchema,
+  changeItemQuantity: changeOrderItemQuantitySchema,
+  removeItemQuery: removeOrderItemQuerySchema,
 };
 
 // Export delivery-related schemas
@@ -664,3 +697,7 @@ export type BulkOrderOperationInput = z.infer<typeof bulkOrderOperationSchema>;
 export type AnalyticsQueryInput = z.infer<typeof orderStatsQuerySchema>;
 export type StatsQueryInput = z.infer<typeof orderStatsQuerySchema>;
 export type DeliveryInfoInput = z.infer<typeof deliveryInfoSchema>;
+export type AddOrderItemsInput = z.infer<typeof addOrderItemsSchema>;
+export type ChangeOrderItemQuantityInput = z.infer<
+  typeof changeOrderItemQuantitySchema
+>;

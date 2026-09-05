@@ -955,6 +955,37 @@ describe("OrderService createOrder atomicity", () => {
     expect(persistedItems).toHaveLength(1);
   });
 
+  it("rejects a stale expectedVersion when adding items", async () => {
+    const service = new OrderService(testDb.bindings.DB, {
+      JWT_SECRET: "test",
+    });
+    const order = await service.createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+    });
+    // Another actor advances the order between the client reading it and
+    // sending its edit.
+    await service.updateOrderStatus(order.id, { status: "confirmed" });
+
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    try {
+      await expect(
+        service.addItemsToOrder(
+          order.id,
+          [{ menuItemId, quantity: 1 }],
+          order.version,
+        ),
+      ).rejects.toThrow("Order version conflict");
+    } finally {
+      consoleError.mockRestore();
+    }
+
+    const persistedItems = await testDb.drizzle.select().from(orderItems);
+    expect(persistedItems).toHaveLength(1);
+  });
+
   it("rejects duplicate menu item lines that exceed available inventory together", async () => {
     const service = new OrderService(testDb.bindings.DB, {
       JWT_SECRET: "test",
@@ -1157,6 +1188,303 @@ async function seedCoupon(testDb: TestDatabase) {
     isVisible: true,
   });
 }
+
+describe("OrderService changeOrderItemQuantity", () => {
+  let testDb: TestDatabase;
+
+  beforeAll(async () => {
+    testDb = await createTestDatabase();
+  }, REAL_D1_SETUP_TIMEOUT_MS);
+
+  afterAll(async () => {
+    await testDb?.dispose();
+  });
+
+  beforeEach(async () => {
+    await testDb.truncateAll();
+    await seedMenuItem(testDb);
+  });
+
+  const service = () =>
+    new OrderService(testDb.bindings.DB, { JWT_SECRET: "test" });
+
+  async function menuItemRow() {
+    const [row] = await testDb.drizzle
+      .select()
+      .from(menuItems)
+      .where(eq(menuItems.id, menuItemId));
+    return row;
+  }
+
+  function silenceServiceErrors() {
+    return vi.spyOn(console, "error").mockImplementation(() => undefined);
+  }
+
+  it("reduces a line, restores its stock, and recomputes the total", async () => {
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 3 }],
+    });
+    expect((await menuItemRow()).inventoryCount).toBe(7);
+
+    const lineId = order.items![0].id;
+    const updated = await service().changeOrderItemQuantity(
+      order.id,
+      lineId,
+      1,
+    );
+
+    expect(updated.items).toHaveLength(1);
+    expect(updated.items![0]).toMatchObject({ quantity: 1, totalPrice: 10 });
+    expect(updated.subtotal).toBe(10);
+    expect(updated.totalAmount).toBe(10);
+    // The two the kitchen no longer needs go back on the shelf.
+    expect((await menuItemRow()).inventoryCount).toBe(9);
+    expect(updated.version).toBe(order.version + 1);
+  });
+
+  it("increases a line and takes the extra stock", async () => {
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+    });
+
+    const updated = await service().changeOrderItemQuantity(
+      order.id,
+      order.items![0].id,
+      4,
+    );
+
+    expect(updated.items![0]).toMatchObject({ quantity: 4, totalPrice: 40 });
+    expect(updated.subtotal).toBe(40);
+    expect((await menuItemRow()).inventoryCount).toBe(6);
+  });
+
+  it("removes a line entirely when the quantity is 0", async () => {
+    const order = await service().createOrder({
+      restaurantId,
+      items: [
+        { menuItemId, quantity: 2 },
+        { menuItemId, quantity: 1, notes: "no chilli" },
+      ],
+    });
+    expect((await menuItemRow()).inventoryCount).toBe(7);
+
+    const updated = await service().changeOrderItemQuantity(
+      order.id,
+      order.items![0].id,
+      0,
+    );
+
+    expect(updated.items).toHaveLength(1);
+    expect(updated.items![0].notes).toBe("no chilli");
+    expect(updated.subtotal).toBe(10);
+    expect((await menuItemRow()).inventoryCount).toBe(9);
+
+    const persisted = await testDb.drizzle
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.orderId, order.id));
+    expect(persisted).toHaveLength(1);
+  });
+
+  it("refuses to remove the last line, so an empty order cannot exist", async () => {
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+    });
+
+    const consoleError = silenceServiceErrors();
+    try {
+      await expect(
+        service().changeOrderItemQuantity(order.id, order.items![0].id, 0),
+      ).rejects.toThrow("Cannot remove the last item");
+    } finally {
+      consoleError.mockRestore();
+    }
+
+    const persisted = await testDb.drizzle
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.orderId, order.id));
+    expect(persisted).toHaveLength(1);
+  });
+
+  it("refuses to edit an order the kitchen has already started", async () => {
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 2 }],
+    });
+    await service().updateOrderStatus(order.id, { status: "preparing" });
+
+    const consoleError = silenceServiceErrors();
+    try {
+      await expect(
+        service().changeOrderItemQuantity(order.id, order.items![0].id, 1),
+      ).rejects.toThrow(
+        "Cannot modify items on an order with status: preparing",
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
+
+    // Nothing moved: not the line, not the shelf.
+    const [line] = await testDb.drizzle
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.orderId, order.id));
+    expect(line.quantity).toBe(2);
+    expect((await menuItemRow()).inventoryCount).toBe(8);
+  });
+
+  it("rejects a stale expectedVersion before anything moves", async () => {
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 3 }],
+    });
+    // Someone else advances the order first.
+    await service().updateOrderStatus(order.id, { status: "confirmed" });
+
+    const consoleError = silenceServiceErrors();
+    try {
+      await expect(
+        service().changeOrderItemQuantity(
+          order.id,
+          order.items![0].id,
+          1,
+          order.version,
+        ),
+      ).rejects.toThrow("Order version conflict");
+    } finally {
+      consoleError.mockRestore();
+    }
+
+    const [line] = await testDb.drizzle
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.orderId, order.id));
+    expect(line.quantity).toBe(3);
+    expect((await menuItemRow()).inventoryCount).toBe(7);
+  });
+
+  it("refuses an increase the shelf cannot cover, leaving the order untouched", async () => {
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+    });
+
+    const consoleError = silenceServiceErrors();
+    try {
+      await expect(
+        service().changeOrderItemQuantity(order.id, order.items![0].id, 20),
+      ).rejects.toThrow("Insufficient inventory");
+    } finally {
+      consoleError.mockRestore();
+    }
+
+    const [line] = await testDb.drizzle
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.orderId, order.id));
+    expect(line.quantity).toBe(1);
+    expect((await menuItemRow()).inventoryCount).toBe(9);
+    // The order row must not have advanced either -- a version bump with no
+    // change is how a client's next optimistic write gets rejected for nothing.
+    const refreshed = await service().getOrder(order.id);
+    expect(refreshed!.version).toBe(order.version);
+  });
+
+  it("refuses an item id that belongs to a different order", async () => {
+    const mine = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+    });
+    const theirs = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 1 }],
+    });
+
+    const consoleError = silenceServiceErrors();
+    try {
+      await expect(
+        service().changeOrderItemQuantity(mine.id, theirs.items![0].id, 0),
+      ).rejects.toThrow("Order item not found");
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("restores ingredient stock proportionally when a line shrinks", async () => {
+    const [ingredient] = await testDb.drizzle
+      .insert(ingredientDefinitions)
+      .values({
+        restaurantId,
+        name: "Rice",
+        unit: "kg",
+        currentStock: 20,
+        isActive: true,
+      } as never)
+      .returning({ id: ingredientDefinitions.id });
+    await testDb.drizzle.insert(menuItemIngredients).values({
+      menuItemId,
+      ingredientId: ingredient.id,
+      quantityPerServing: 0.25,
+      unit: "kg",
+      isOptional: false,
+    } as never);
+
+    const order = await service().createOrder({
+      restaurantId,
+      items: [{ menuItemId, quantity: 4 }],
+    });
+    const [afterOrder] = await testDb.drizzle
+      .select({ currentStock: ingredientDefinitions.currentStock })
+      .from(ingredientDefinitions)
+      .where(eq(ingredientDefinitions.id, ingredient.id));
+    expect(afterOrder.currentStock).toBeCloseTo(19);
+
+    await service().changeOrderItemQuantity(order.id, order.items![0].id, 1);
+
+    const [afterShrink] = await testDb.drizzle
+      .select({ currentStock: ingredientDefinitions.currentStock })
+      .from(ingredientDefinitions)
+      .where(eq(ingredientDefinitions.id, ingredient.id));
+    expect(afterShrink.currentStock).toBeCloseTo(19.75);
+
+    const ledger = await testDb.drizzle
+      .select({
+        delta: ingredientStockMovements.delta,
+        reason: ingredientStockMovements.reason,
+      })
+      .from(ingredientStockMovements)
+      .where(eq(ingredientStockMovements.orderId, order.id));
+    expect(ledger).toEqual([
+      expect.objectContaining({ delta: -1, reason: "order_consumption" }),
+      expect.objectContaining({ delta: 0.75, reason: "order_item_removal" }),
+    ]);
+  });
+
+  it("keeps a coupon-discounted order from going negative when it shrinks", async () => {
+    // A 5-off coupon on a 30 order. Shrinking to a single 10 item leaves 5 due,
+    // and shrinking further would drive the arithmetic below zero.
+    await seedCoupon(testDb);
+    const order = await service().createOrder({
+      restaurantId,
+      couponCode: "SAVE5",
+      items: [{ menuItemId, quantity: 3 }],
+    });
+    expect(order.totalAmount).toBe(25);
+
+    const halved = await service().changeOrderItemQuantity(
+      order.id,
+      order.items![0].id,
+      1,
+    );
+    expect(halved.subtotal).toBe(10);
+    expect(halved.totalAmount).toBe(5);
+    expect(halved.totalAmount).toBeGreaterThanOrEqual(0);
+  });
+});
 
 /**
  * #278. The acceptance criteria are lifecycle properties, so they are checked

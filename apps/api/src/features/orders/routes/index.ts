@@ -203,6 +203,8 @@ import {
   BulkOrderOperationInput,
   AnalyticsQueryInput,
   StatsQueryInput,
+  AddOrderItemsInput,
+  ChangeOrderItemQuantityInput,
 } from "../schemas/validation";
 
 // Create router
@@ -789,6 +791,141 @@ app.delete(
     return c.json({
       success: true,
       message: "Order cancelled successfully",
+    });
+  },
+);
+
+/**
+ * Staff-side order modification (#273).
+ *
+ * The engine for this already existed and was already in production -- it was
+ * only ever wired to the guest door (POST /api/v1/guest-orders/:id/items).
+ * These three routes are the staff door onto the same code, plus the reverse
+ * gear it never had.
+ *
+ * Role 0/1 only, matching cancel and refund: changing what a customer is
+ * charged is an owner-level action, not a service-crew one. The base service
+ * refuses anything past `confirmed`, so a dish already in the pan cannot be
+ * edited out from under the kitchen.
+ */
+
+/**
+ * Add items to an existing order
+ * POST /api/v1/orders/:id/items
+ */
+app.post(
+  "/:id/items",
+  customerAuthMiddleware,
+  requireRole([0, 1]),
+  moduleGate("online_ordering"),
+  validateParams(orderSchemas.params),
+  validateBody(orderSchemas.addItems),
+  async (c) => {
+    const { id } = c.get("validatedParams");
+    const data: AddOrderItemsInput = c.get("validatedBody");
+    const user: AuthUser = c.get("user");
+    const ordersService = new OrdersService(c.env);
+
+    const order = await ordersService.getOrder(id);
+    if (!order) {
+      throw notFound("Order not found");
+    }
+    if (user.role !== 0 && user.restaurantId !== order.restaurantId) {
+      throw forbidden("Access denied");
+    }
+    // expectedVersion is deliberately NOT compared here. It is enforced inside
+    // the base service, against the same read that feeds its compare-and-swap;
+    // a check at this layer would leave a window between its read and that one
+    // in which another writer could land unnoticed.
+
+    logger.info("Adding items to order", {
+      orderId: id,
+      itemCount: data.items.length,
+      userId: user.id,
+    });
+
+    const updatedOrder = await ordersService.addItemsToOrder(
+      id,
+      data.items,
+      user.id,
+      data.expectedVersion,
+    );
+
+    return c.json({
+      success: true,
+      data: serializeOrderForWire(updatedOrder),
+    });
+  },
+);
+
+/**
+ * Change one line's quantity
+ * PATCH /api/v1/orders/:id/items/:itemId
+ */
+app.patch(
+  "/:id/items/:itemId",
+  customerAuthMiddleware,
+  requireRole([0, 1]),
+  moduleGate("online_ordering"),
+  validateParams(orderSchemas.itemParams),
+  validateBody(orderSchemas.changeItemQuantity),
+  async (c) => {
+    const { id, itemId } = c.get("validatedParams");
+    const data: ChangeOrderItemQuantityInput = c.get("validatedBody");
+    const user: AuthUser = c.get("user");
+    const ordersService = new OrdersService(c.env);
+
+    const updatedOrder = await ordersService.changeOrderItemQuantity(
+      id,
+      itemId,
+      data.quantity,
+      {
+        userId: user.id,
+        expectedVersion: data.expectedVersion,
+        caller: toCallerContext(user),
+      },
+    );
+
+    return c.json({
+      success: true,
+      data: serializeOrderForWire(updatedOrder),
+    });
+  },
+);
+
+/**
+ * Remove one line from an order
+ * DELETE /api/v1/orders/:id/items/:itemId
+ */
+app.delete(
+  "/:id/items/:itemId",
+  customerAuthMiddleware,
+  requireRole([0, 1]),
+  moduleGate("online_ordering"),
+  validateParams(orderSchemas.itemParams),
+  validateQuery(orderSchemas.removeItemQuery),
+  async (c) => {
+    const { id, itemId } = c.get("validatedParams");
+    const { expectedVersion } = c.get("validatedQuery");
+    const user: AuthUser = c.get("user");
+    const ordersService = new OrdersService(c.env);
+
+    // Quantity 0 is the removal signal the service takes; the HTTP surface
+    // keeps DELETE because that is what removing a line is.
+    const updatedOrder = await ordersService.changeOrderItemQuantity(
+      id,
+      itemId,
+      0,
+      {
+        userId: user.id,
+        expectedVersion,
+        caller: toCallerContext(user),
+      },
+    );
+
+    return c.json({
+      success: true,
+      data: serializeOrderForWire(updatedOrder),
     });
   },
 );

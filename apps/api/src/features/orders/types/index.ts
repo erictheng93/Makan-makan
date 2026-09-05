@@ -387,6 +387,18 @@ export interface IOrdersService {
     id: string,
     items: CreateOrderData["items"],
     userId?: string,
+    expectedVersion?: number,
+  ): Promise<Order>;
+  /** #273. quantity 0 removes the line; see OrdersService for the rationale. */
+  changeOrderItemQuantity(
+    id: string,
+    orderItemId: number,
+    newQuantity: number,
+    options?: {
+      userId?: string;
+      expectedVersion?: number;
+      caller?: CallerContext;
+    },
   ): Promise<Order>;
   deleteOrder(id: string, userId?: string): Promise<boolean>;
 

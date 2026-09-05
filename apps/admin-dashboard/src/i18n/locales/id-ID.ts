@@ -414,6 +414,22 @@ const idID: Messages = {
       quantity: "Jumlah",
       totalAmount: "Total",
     },
+    edit: {
+      title: "Ubah item",
+      done: "Selesai",
+      addItem: "Tambah item",
+      browseMenu: "Lihat menu",
+      searchPlaceholder: "Cari menu…",
+      noMatches: "Tidak ada item yang cocok",
+      add: "Tambah",
+      remove: "Hapus",
+      increase: "Tambah jumlah",
+      decrease: "Kurangi jumlah",
+      lastItemHint:
+        "Pesanan harus menyisakan minimal satu item. Batalkan pesanan untuk membatalkan seluruhnya.",
+      failed: "Gagal mengubah pesanan",
+      menuLoadFailed: "Gagal memuat menu",
+    },
     actions: {
       view: "Lihat",
       update: "Perbarui",
@@ -4723,6 +4739,9 @@ const idID: Messages = {
     },
   },
   orderStore: {
+    addItemsFailed: "Gagal menambah item",
+    changeItemFailed: "Gagal mengubah jumlah",
+    removeItemFailed: "Gagal menghapus item",
     fetchFailed: "Gagal mengambil pesanan",
     updateStatusFailed: "Gagal memperbarui status pesanan",
     cancelFailed: "Gagal membatalkan pesanan",

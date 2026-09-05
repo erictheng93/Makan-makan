@@ -582,10 +582,31 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">{{
-                  t("orders.detail.orderItems")
-                }}</label>
-                <div class="border rounded-lg divide-y">
+                <div class="flex items-center justify-between mb-2">
+                  <label class="block text-sm font-medium text-gray-700">{{
+                    t("orders.detail.orderItems")
+                  }}</label>
+                  <button
+                    v-if="canEditItems(selectedOrder)"
+                    type="button"
+                    class="text-sm font-medium text-ios-blue hover:underline"
+                    data-testid="toggle-item-edit"
+                    @click="isEditingItems = !isEditingItems"
+                  >
+                    {{
+                      isEditingItems
+                        ? t("orders.edit.done")
+                        : t("orders.edit.title")
+                    }}
+                  </button>
+                </div>
+
+                <OrderItemsEditor
+                  v-if="isEditingItems && canEditItems(selectedOrder)"
+                  :order="selectedOrder"
+                  @updated="onOrderItemsUpdated"
+                />
+                <div v-else class="border rounded-lg divide-y">
                   <div
                     v-for="item in selectedOrder.items"
                     :key="item.id"
@@ -654,6 +675,7 @@ import { useDateFormatter } from "@/composables/useDateFormatter";
 import { useOrderStore } from "@/stores/order";
 import { useVirtualScroll } from "@/composables/useVirtualScroll";
 import { useConfirmModal } from "@/composables/useConfirmModal";
+import OrderItemsEditor from "@/components/orders/OrderItemsEditor.vue";
 import type { Order, OrderItem, OrderStatus } from "@/types";
 import {
   ClockIcon,
@@ -683,6 +705,28 @@ const typeFilter = ref("");
 const sourceFilter = ref("");
 const selectedOrder = ref<Order | null>(null);
 const isLoading = ref(false);
+const isEditingItems = ref(false);
+
+/**
+ * #273. Editing is offered on exactly the statuses the API will accept, so the
+ * button never opens an editor whose every action 400s. Roles 0 and 1 match the
+ * route's requireRole: changing what a customer is charged is an owner-level
+ * action, like cancel and refund beside it.
+ */
+const MODIFIABLE_ORDER_STATUSES: OrderStatus[] = ["pending", "confirmed"];
+
+const canEditItems = (order: Order | null): boolean =>
+  !!order &&
+  MODIFIABLE_ORDER_STATUSES.includes(order.status) &&
+  (authStore.user?.role === 0 || authStore.user?.role === 1);
+
+/**
+ * The server owns the recomputed totals and the new version, so the modal is
+ * re-pointed at what it returned rather than patched field by field.
+ */
+const onOrderItemsUpdated = (order: Order) => {
+  selectedOrder.value = order;
+};
 
 const getOrderNumber = (order: Order) => order.orderNumber ?? order.id;
 const getTableNumber = (order: Order) =>
@@ -892,6 +936,8 @@ watch([searchQuery, statusFilter, typeFilter, sourceFilter], () => {
 
 const viewOrderDetails = (order: Order) => {
   selectedOrder.value = order;
+  // Opening a different order must not inherit the previous one's edit mode.
+  isEditingItems.value = false;
 };
 
 const updateOrderStatus = async (order: Order) => {

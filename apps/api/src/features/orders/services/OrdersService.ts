@@ -4,6 +4,9 @@
  */
 
 import {
+  AUDIT_ACTIONS,
+  auditLogs,
+  createDatabase,
   OrderService as BaseOrderService,
   CouponService,
   INVALID_CUSTOMIZATION_PREFIX,
@@ -16,6 +19,7 @@ import {
   RealtimeEventType,
 } from "@makanmasak/shared-types";
 import {
+  ApiError,
   badRequest,
   notFound,
   forbidden,
@@ -69,6 +73,62 @@ interface KVLike {
   ): Promise<unknown>;
   delete(key: string): Promise<unknown>;
 }
+
+/**
+ * Turn the base service's plain Errors into the unified ApiError shape.
+ *
+ * `handleError` in the database package rethrows Errors carrying a message and
+ * nothing else, so the message is the only signal available here. Each arm
+ * maps to the status the admin UI has to distinguish: 409 means "reload and
+ * try again", 400 means "this order will never accept the edit".
+ */
+function mapOrderItemMutationError(error: unknown): unknown {
+  if (!(error instanceof Error)) return error;
+  // Already an ApiError from the guards above; passing it through a second
+  // mapping would relabel a 403 as a 400.
+  if (error instanceof ApiError) return error;
+
+  const message = error.message;
+  if (message.includes("Order version conflict")) {
+    return conflict(
+      "Order was updated by another actor. Reload before retrying.",
+      "ORDER_VERSION_CONFLICT",
+    );
+  }
+  if (message.includes("Insufficient inventory")) {
+    return conflict(
+      "Not enough stock for the requested quantity",
+      "INSUFFICIENT_INVENTORY",
+    );
+  }
+  if (message.includes("Cannot modify items")) {
+    return badRequest(message, "ORDER_NOT_MODIFIABLE");
+  }
+  if (message.includes("Cannot remove the last item")) {
+    return badRequest(message, "ORDER_LAST_ITEM");
+  }
+  if (message.includes("Order item not found")) {
+    return notFound("Order item not found", "ORDER_ITEM_NOT_FOUND");
+  }
+  if (message.includes("Order not found")) {
+    return notFound("Order not found", "ORDER_NOT_FOUND");
+  }
+  return error;
+}
+
+/**
+ * The indexed `audit_logs.action` value for each order event this service
+ * emits. Anything unmapped falls back to OTHER rather than inventing a value,
+ * and the exact event is preserved in `changes.metadata.event` either way.
+ */
+const ORDER_AUDIT_ACTIONS: Readonly<Record<string, string>> = {
+  ORDER_CREATED: AUDIT_ACTIONS.ORDER_CREATE,
+  ORDER_ITEMS_ADDED: AUDIT_ACTIONS.ORDER_UPDATE,
+  ORDER_ITEM_QUANTITY_CHANGED: AUDIT_ACTIONS.ORDER_UPDATE,
+  ORDER_ITEM_REMOVED: AUDIT_ACTIONS.ORDER_UPDATE,
+  ORDER_CANCELLED: AUDIT_ACTIONS.ORDER_CANCEL,
+  ORDER_DELETED: AUDIT_ACTIONS.ORDER_CANCEL,
+};
 
 export class OrdersService implements IOrdersService {
   private baseOrderService: BaseOrderService;
@@ -199,11 +259,16 @@ export class OrdersService implements IOrdersService {
       // Cache the order
       await Promise.all([
         this.cacheOrder(order),
-        this.logOrderActivity(order.id, "ORDER_CREATED", userId, {
-          restaurantId: data.restaurantId,
-          itemCount: data.items.length,
-          total: order.totalAmount,
-        }),
+        this.logOrderActivity(
+          order.id,
+          "ORDER_CREATED",
+          userId,
+          {
+            itemCount: data.items.length,
+            total: order.totalAmount,
+          },
+          data.restaurantId,
+        ),
         data.waitingListId ? Promise.resolve() : this.broadcastNewOrder(order),
         data.waitingListId ? Promise.resolve() : this.notifyNewOrderPush(order),
       ]);
@@ -377,6 +442,7 @@ export class OrdersService implements IOrdersService {
     id: string,
     items: CreateOrderData["items"],
     userId?: string,
+    expectedVersion?: number,
   ): Promise<Order> {
     try {
       this.logger.info("Adding items to order", {
@@ -395,13 +461,25 @@ export class OrdersService implements IOrdersService {
             | undefined,
           notes: item.notes,
         })),
+        expectedVersion,
       );
 
       await Promise.all([
         this.invalidateOrderCache(id),
-        this.logOrderActivity(id, "ORDER_ITEMS_ADDED", userId, {
-          itemCount: items.length,
-        }),
+        this.logOrderActivity(
+          id,
+          "ORDER_ITEMS_ADDED",
+          userId,
+          {
+            itemCount: items.length,
+            addedItems: items.map((item) => ({
+              menuItemId: item.menuItemId,
+              quantity: item.quantity,
+            })),
+            totalAfter: updatedOrder.totalAmount,
+          },
+          updatedOrder.restaurantId,
+        ),
         this.broadcastNewOrder(updatedOrder),
       ]);
 
@@ -412,7 +490,90 @@ export class OrdersService implements IOrdersService {
         error instanceof Error ? error : undefined,
         { orderId: id, itemCount: items.length },
       );
-      throw error;
+      throw mapOrderItemMutationError(error);
+    }
+  }
+
+  /**
+   * Change one line's quantity, or remove it when `newQuantity` is 0.
+   *
+   * The realtime side deliberately reuses `broadcastNewOrder`. The kitchen
+   * display's handler upserts by order id (`stores/orders.ts` handleNewOrder),
+   * so the full, corrected item list replaces what the screen was holding --
+   * and the accompanying chime is wanted here, because a modified order is
+   * exactly the thing the kitchen must re-read.
+   * ponytail: reuses the existing event rather than adding an ORDER_MODIFIED
+   * type nothing subscribes to yet. Add one when a client needs to tell a
+   * modification from an arrival.
+   */
+  async changeOrderItemQuantity(
+    id: string,
+    orderItemId: number,
+    newQuantity: number,
+    options: {
+      userId?: string;
+      expectedVersion?: number;
+      caller?: CallerContext;
+    } = {},
+  ): Promise<Order> {
+    const { userId, expectedVersion, caller } = options;
+    try {
+      const existing = await this.getOrder(id);
+      if (!existing) {
+        throw notFound("Order not found", "ORDER_NOT_FOUND");
+      }
+      this.assertRestaurantAccess(existing, caller);
+
+      const before = existing.items?.find((item) => item.id === orderItemId);
+      if (!before) {
+        throw notFound("Order item not found", "ORDER_ITEM_NOT_FOUND");
+      }
+
+      this.logger.info("Changing order item quantity", {
+        orderId: id,
+        orderItemId,
+        from: before.quantity,
+        to: newQuantity,
+        userId,
+      });
+
+      const updatedOrder = await this.baseOrderService.changeOrderItemQuantity(
+        id,
+        orderItemId,
+        newQuantity,
+        expectedVersion,
+      );
+
+      await Promise.all([
+        this.invalidateOrderCache(id),
+        this.logOrderActivity(
+          id,
+          newQuantity === 0
+            ? "ORDER_ITEM_REMOVED"
+            : "ORDER_ITEM_QUANTITY_CHANGED",
+          userId,
+          {
+            orderItemId,
+            menuItemId: before.menuItemId,
+            menuItemName: before.name ?? before.menuItem?.name,
+            quantityBefore: before.quantity,
+            quantityAfter: newQuantity,
+            totalBefore: existing.totalAmount,
+            totalAfter: updatedOrder.totalAmount,
+          },
+          updatedOrder.restaurantId,
+        ),
+        this.broadcastNewOrder(updatedOrder),
+      ]);
+
+      return updatedOrder;
+    } catch (error) {
+      this.logger.error(
+        "Failed to change order item quantity",
+        error instanceof Error ? error : undefined,
+        { orderId: id, orderItemId, newQuantity },
+      );
+      throw mapOrderItemMutationError(error);
     }
   }
 
@@ -436,7 +597,13 @@ export class OrdersService implements IOrdersService {
       await this.invalidateOrderCache(id);
 
       // Log activity
-      await this.logOrderActivity(id, "ORDER_DELETED", userId);
+      await this.logOrderActivity(
+        id,
+        "ORDER_DELETED",
+        userId,
+        undefined,
+        order.restaurantId,
+      );
 
       return true;
     } catch (error) {
@@ -585,7 +752,13 @@ export class OrdersService implements IOrdersService {
           this.couponService.releaseUsageForCancelledOrder(id),
           this.invalidateOrderCache(id),
           clearGuestActiveOrderLock(this.cacheKV, id),
-          this.logOrderActivity(id, "ORDER_CANCELLED", userId, { reason }),
+          this.logOrderActivity(
+            id,
+            "ORDER_CANCELLED",
+            userId,
+            { reason },
+            cancelledOrder.restaurantId,
+          ),
           this.broadcastOrderCancelled(
             cancelledOrder,
             reason,
@@ -1329,19 +1502,61 @@ export class OrdersService implements IOrdersService {
     await invalidateOrderCacheKeys(this.cacheKV, orderId);
   }
 
+  /**
+   * Write one row to `audit_logs`.
+   *
+   * This used to be a stub that only console-logged, which meant orders had
+   * never written a single audit row -- creates and cancellations included,
+   * not just the item edits that #273 asked for. The `action` column is the
+   * indexed one, so it takes a coarse value from AUDIT_ACTIONS; the precise
+   * event name survives in `changes.metadata.event` so a query can still tell
+   * an item removal from a quantity change.
+   *
+   * A failure here is logged, never rethrown. The mutation it describes has
+   * already committed, and turning a committed order edit into a 500 invites
+   * the caller to retry and apply it twice. An unwritten audit row is the
+   * lesser of those two.
+   */
   private async logOrderActivity(
     orderId: string,
     action: string,
     userId?: string,
     metadata?: unknown,
+    restaurantId?: string,
   ): Promise<void> {
-    // Implementation would log to audit system
     this.logger.info("Order activity logged", {
       orderId,
       action,
       userId,
       metadata,
     });
+
+    try {
+      const db = createDatabase(this.env.DB);
+      await db.insert(auditLogs).values({
+        userId: userId ?? null,
+        restaurantId: restaurantId ?? null,
+        action: ORDER_AUDIT_ACTIONS[action] ?? AUDIT_ACTIONS.OTHER,
+        resource: "orders",
+        resourceId: orderId,
+        description: `${action} on order ${orderId}`,
+        changes: {
+          metadata: {
+            event: action,
+            ...(metadata && typeof metadata === "object"
+              ? (metadata as Record<string, unknown>)
+              : {}),
+          },
+        },
+        success: true,
+      });
+    } catch (error) {
+      this.logger.error(
+        "Failed to write order audit log",
+        error instanceof Error ? error : undefined,
+        { orderId, action, userId },
+      );
+    }
   }
 
   /**

@@ -8,6 +8,9 @@ const getBaseOrder = vi.hoisted(() => vi.fn());
 const getBaseOrders = vi.hoisted(() => vi.fn());
 const updateBaseOrderStatus = vi.hoisted(() => vi.fn());
 const addBaseOrderItems = vi.hoisted(() => vi.fn());
+const changeBaseOrderItemQuantity = vi.hoisted(() => vi.fn());
+const auditValues = vi.hoisted(() => vi.fn());
+const auditInsert = vi.hoisted(() => vi.fn(() => ({ values: auditValues })));
 const cancelBaseOrder = vi.hoisted(() => vi.fn());
 const updateBaseOrderItemStatus = vi.hoisted(() => vi.fn());
 const getDailyOrderStats = vi.hoisted(() => vi.fn());
@@ -27,6 +30,17 @@ vi.mock("../../pos/services/ReceiptService", () => ({
 }));
 
 vi.mock("@makanmasak/database", () => ({
+  // #273 made logOrderActivity a real audit write instead of a console log, so
+  // every OrdersService mutation now reaches these three. auditValues is the
+  // assertion point: it receives the row that would have been inserted.
+  AUDIT_ACTIONS: {
+    ORDER_CREATE: "order_create",
+    ORDER_UPDATE: "order_update",
+    ORDER_CANCEL: "order_cancel",
+    OTHER: "other",
+  },
+  auditLogs: { __table: "audit_logs" },
+  createDatabase: () => ({ insert: auditInsert }),
   // Must mirror the real export: the service matches base-service errors
   // against this prefix, so a missing one turns every mapping test red.
   INVALID_CUSTOMIZATION_PREFIX: "Invalid customization:",
@@ -42,6 +56,7 @@ vi.mock("@makanmasak/database", () => ({
       getOrders: getBaseOrders,
       updateOrderStatus: updateBaseOrderStatus,
       addItemsToOrder: addBaseOrderItems,
+      changeOrderItemQuantity: changeBaseOrderItemQuantity,
       cancelOrder: cancelBaseOrder,
       updateOrderItemStatus: updateBaseOrderItemStatus,
       getDailyOrderStats,
@@ -119,6 +134,9 @@ describe("OrdersService realtime broadcasts", () => {
     getBaseOrders.mockReset();
     updateBaseOrderStatus.mockReset();
     addBaseOrderItems.mockReset();
+    changeBaseOrderItemQuantity.mockReset();
+    auditValues.mockReset();
+    auditInsert.mockClear();
     cancelBaseOrder.mockReset();
     updateBaseOrderItemStatus.mockReset();
     getDailyOrderStats.mockReset();
@@ -415,6 +433,9 @@ describe("OrdersService workflows", () => {
     getBaseOrders.mockReset();
     updateBaseOrderStatus.mockReset();
     addBaseOrderItems.mockReset();
+    changeBaseOrderItemQuantity.mockReset();
+    auditValues.mockReset();
+    auditInsert.mockClear();
     cancelBaseOrder.mockReset();
     updateBaseOrderItemStatus.mockReset();
     getDailyOrderStats.mockReset();
@@ -1568,7 +1589,7 @@ describe("OrdersService workflows", () => {
     const result = await service.addItemsToOrder("42", items as never);
 
     expect(result).toBe(updated);
-    expect(addBaseOrderItems).toHaveBeenCalledWith("42", items);
+    expect(addBaseOrderItems).toHaveBeenCalledWith("42", items, undefined);
     expect(broadcastNewOrder).toHaveBeenCalledWith(
       expect.objectContaining({
         type: RealtimeEventType.NEW_ORDER,
@@ -1577,6 +1598,224 @@ describe("OrdersService workflows", () => {
     );
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith("order:42:full");
     expect(env.CACHE_KV.delete).toHaveBeenCalledWith("order:42:basic");
+  });
+
+  /**
+   * #273. logOrderActivity was a stub that only console-logged, so orders had
+   * never written an audit row at all. These pin the write down: without them
+   * the method can quietly become a no-op again and every other test still
+   * passes.
+   */
+  it("writes an audit row when items are added", async () => {
+    const updated = createOrder({ id: "42", status: "confirmed" });
+    addBaseOrderItems.mockResolvedValue(updated);
+    const service = new OrdersService(createEnv() as never);
+
+    await service.addItemsToOrder(
+      "42",
+      [{ menuItemId: 101, quantity: 2 }] as never,
+      "user-7",
+    );
+
+    expect(auditValues).toHaveBeenCalledOnce();
+    expect(auditValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user-7",
+        action: "order_update",
+        resource: "orders",
+        resourceId: "42",
+        restaurantId: updated.restaurantId,
+        changes: expect.objectContaining({
+          metadata: expect.objectContaining({ event: "ORDER_ITEMS_ADDED" }),
+        }),
+      }),
+    );
+  });
+
+  it("records the before and after quantity when a line changes", async () => {
+    const before = createOrder({
+      id: "42",
+      status: "confirmed",
+      items: [buildOrderItem({ id: 7, menuItemId: 101, quantity: 3 })],
+    });
+    getBaseOrder.mockResolvedValue(before);
+    changeBaseOrderItemQuantity.mockResolvedValue(
+      createOrder({
+        id: "42",
+        status: "confirmed",
+        items: [buildOrderItem({ id: 7, menuItemId: 101, quantity: 1 })],
+      }),
+    );
+    const service = new OrdersService(createEnv() as never);
+
+    await service.changeOrderItemQuantity("42", 7, 1, { userId: "user-7" });
+
+    expect(changeBaseOrderItemQuantity).toHaveBeenCalledWith(
+      "42",
+      7,
+      1,
+      undefined,
+    );
+    expect(auditValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "order_update",
+        changes: expect.objectContaining({
+          metadata: expect.objectContaining({
+            event: "ORDER_ITEM_QUANTITY_CHANGED",
+            orderItemId: 7,
+            quantityBefore: 3,
+            quantityAfter: 1,
+          }),
+        }),
+      }),
+    );
+  });
+
+  it("labels a removal distinctly from a quantity change", async () => {
+    const before = createOrder({
+      id: "42",
+      status: "confirmed",
+      items: [
+        buildOrderItem({ id: 7, menuItemId: 101, quantity: 1 }),
+        buildOrderItem({ id: 8, menuItemId: 102, quantity: 1 }),
+      ],
+    });
+    getBaseOrder.mockResolvedValue(before);
+    changeBaseOrderItemQuantity.mockResolvedValue(
+      createOrder({
+        id: "42",
+        status: "confirmed",
+        items: [buildOrderItem({ id: 8, menuItemId: 102, quantity: 1 })],
+      }),
+    );
+    const service = new OrdersService(createEnv() as never);
+
+    await service.changeOrderItemQuantity("42", 7, 0, { userId: "user-7" });
+
+    expect(auditValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        changes: expect.objectContaining({
+          metadata: expect.objectContaining({
+            event: "ORDER_ITEM_REMOVED",
+            quantityAfter: 0,
+          }),
+        }),
+      }),
+    );
+  });
+
+  it("does not fail the mutation when the audit write throws", async () => {
+    const before = createOrder({
+      id: "42",
+      status: "confirmed",
+      items: [
+        buildOrderItem({ id: 7, menuItemId: 101, quantity: 2 }),
+        buildOrderItem({ id: 8, menuItemId: 102, quantity: 1 }),
+      ],
+    });
+    const after = createOrder({ id: "42", status: "confirmed" });
+    getBaseOrder.mockResolvedValue(before);
+    changeBaseOrderItemQuantity.mockResolvedValue(after);
+    auditValues.mockRejectedValue(new Error("audit_logs unavailable"));
+    const service = new OrdersService(createEnv() as never);
+
+    // The order edit already committed; turning it into a 500 would invite a
+    // retry that applies the change twice.
+    await expect(
+      service.changeOrderItemQuantity("42", 7, 1, { userId: "user-7" }),
+    ).resolves.toBe(after);
+  });
+
+  it("broadcasts the corrected order so the kitchen screen re-reads it", async () => {
+    const before = createOrder({
+      id: "42",
+      status: "confirmed",
+      items: [
+        buildOrderItem({ id: 7, menuItemId: 101, quantity: 3 }),
+        buildOrderItem({ id: 8, menuItemId: 102, quantity: 1 }),
+      ],
+    });
+    const after = createOrder({
+      id: "42",
+      status: "confirmed",
+      items: [buildOrderItem({ id: 8, menuItemId: 102, quantity: 1 })],
+    });
+    getBaseOrder.mockResolvedValue(before);
+    changeBaseOrderItemQuantity.mockResolvedValue(after);
+    const env = createEnv();
+    const service = new OrdersService(env as never);
+
+    await service.changeOrderItemQuantity("42", 7, 0, { userId: "user-7" });
+
+    // NEW_ORDER rather than a bespoke type: the kitchen store upserts by order
+    // id, so the corrected item list replaces what the screen was holding.
+    expect(broadcastNewOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: RealtimeEventType.NEW_ORDER,
+        data: expect.objectContaining({
+          orderId: "42",
+          items: [expect.objectContaining({ orderItemId: 8 })],
+        }),
+      }),
+    );
+    expect(env.CACHE_KV.delete).toHaveBeenCalledWith("order:42:full");
+  });
+
+  it("refuses a caller from another restaurant before touching the order", async () => {
+    getBaseOrder.mockResolvedValue(
+      createOrder({
+        id: "42",
+        restaurantId: "restaurant-1",
+        status: "confirmed",
+        items: [buildOrderItem({ id: 7, menuItemId: 101, quantity: 2 })],
+      }),
+    );
+    const service = new OrdersService(createEnv() as never);
+
+    await expect(
+      service.changeOrderItemQuantity("42", 7, 1, {
+        caller: {
+          userId: "user-9",
+          userRole: 1,
+          userRestaurantId: "restaurant-2",
+        },
+      }),
+    ).rejects.toMatchObject({ status: 403 });
+    expect(changeBaseOrderItemQuantity).not.toHaveBeenCalled();
+  });
+
+  it("refuses an item id the order does not contain, before touching the base service", async () => {
+    getBaseOrder.mockResolvedValue(
+      createOrder({
+        id: "42",
+        status: "confirmed",
+        items: [buildOrderItem({ id: 7, menuItemId: 101, quantity: 1 })],
+      }),
+    );
+    const service = new OrdersService(createEnv() as never);
+
+    await expect(
+      service.changeOrderItemQuantity("42", 999, 1, { userId: "user-7" }),
+    ).rejects.toMatchObject({ code: "ORDER_ITEM_NOT_FOUND" });
+    expect(changeBaseOrderItemQuantity).not.toHaveBeenCalled();
+  });
+
+  it("maps the base service's version conflict to a 409, not a 500", async () => {
+    getBaseOrder.mockResolvedValue(
+      createOrder({
+        id: "42",
+        status: "confirmed",
+        items: [buildOrderItem({ id: 7, menuItemId: 101, quantity: 2 })],
+      }),
+    );
+    changeBaseOrderItemQuantity.mockRejectedValue(
+      new Error("Order version conflict"),
+    );
+    const service = new OrdersService(createEnv() as never);
+
+    await expect(
+      service.changeOrderItemQuantity("42", 7, 1, { expectedVersion: 1 }),
+    ).rejects.toMatchObject({ status: 409, code: "ORDER_VERSION_CONFLICT" });
   });
 
   it("covers status update null, mismatch, version conflict, and failed update branches", async () => {

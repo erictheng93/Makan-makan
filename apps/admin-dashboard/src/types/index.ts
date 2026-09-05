@@ -119,6 +119,13 @@ export interface Order {
   };
   orderType?: "table" | "seat" | "shop";
   status: OrderStatus;
+  /**
+   * Optimistic-lock counter. The API has always sent it (mapToOrder in
+   * packages/database/src/services/order.ts); it was simply never declared
+   * here. The item-edit endpoints echo it back so two staff editing one order
+   * get a 409 instead of silently overwriting each other.
+   */
+  version?: number;
   orderSource?:
     | "direct"
     | "market_checkout"
@@ -126,6 +133,7 @@ export interface Order {
     | "foodpanda"
     | "grabfood";
   paymentTransactionId?: string;
+  subtotal?: number;
   totalAmount: number;
   items: OrderItem[];
   notes?: string;
@@ -145,6 +153,9 @@ export interface OrderItem {
   menuItemId: number;
   quantity: number;
   unitPrice: number;
+  /** Snapshot name, so a renamed menu item does not rewrite order history. */
+  name?: string;
+  totalPrice?: number;
   customizations: OrderItemCustomization[];
   notes?: string;
   menuItem?: {

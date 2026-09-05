@@ -76,21 +76,19 @@ class OrdersModule implements FeatureModule {
     // Mount all order routes
     this.routes.route("/", routes);
 
+    // Derived from the router, not restated. The hand-written list this
+    // replaces had already drifted before #273 added to it -- it was missing
+    // POST /:id/delivery-claim and POST /batch-sync, so the one artefact that
+    // claimed to enumerate the feature's surface under-reported it. Hono keeps
+    // every middleware in the chain as its own routes entry, hence the Set.
     this.logger.debug("Orders routes mounted", {
       endpoints: [
-        "POST /",
-        "GET /",
-        "GET /:id",
-        "PUT /:id/status",
-        "DELETE /:id",
-        "GET /stats",
-        "GET /analytics",
-        "POST /bulk",
-        "POST /export",
-        "GET /:id/receipt",
-        "GET /active",
-        "POST /preview-coupon",
-      ],
+        ...new Set(
+          routes.routes
+            .filter((route) => route.method !== "ALL")
+            .map((route) => `${route.method} ${route.path}`),
+        ),
+      ].sort(),
     });
   }
 
