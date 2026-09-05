@@ -100,6 +100,11 @@ pnpm --filter @makanmasak/api test
 
 透過 Zod schema 建立 `.api-contracts-snapshot.json`，防止 API shape 意外漂移。
 
+⚠️ 快照只記**欄位名**，不記型別。欄位增刪會被擋下來，但欄位型別改變（例如
+`createdAt` 從 ISO 字串變成 Unix 毫秒數）不會——那是真實的 wire-contract
+破壞，卻會安靜通過。改欄位型別時請自行確認下游。缺口記在
+`docs/TODOS.md` §「API contracts」。
+
 ```bash
 pnpm contract:check    # 比對 snapshot（CI 使用）
 pnpm contract:update   # 修改 API 後重新產生 snapshot

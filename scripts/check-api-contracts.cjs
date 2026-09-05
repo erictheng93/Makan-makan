@@ -3,9 +3,16 @@
 /**
  * API Contract Breaking Change Detection
  *
- * This script extracts the shape of all response contract schemas and compares
- * them against a stored snapshot. Any difference (field added, removed, renamed,
- * or type changed) is flagged as a potential breaking change.
+ * This script extracts the FIELD NAMES of all response contract schemas and
+ * compares them against a stored snapshot. A field added or removed is flagged
+ * as a potential breaking change.
+ *
+ * What it does NOT detect: a field's type changing. The snapshot stores each
+ * schema as a bare array of names, so `createdAt` switching from an ISO string
+ * to a Unix-millisecond number is a real wire-contract break that passes this
+ * check silently. A rename is only ever seen as one removal plus one addition,
+ * never as a rename. Extending the extractor to persist Zod types is filed in
+ * docs/TODOS.md § "API contracts".
  *
  * Usage:
  *   node scripts/check-api-contracts.cjs              # Check for changes (CI mode)
@@ -14,9 +21,9 @@
  *
  * How it works:
  *   1. Finds all Zod schemas exported from apps/api/src/contracts/schemas/*.ts
- *   2. Extracts their JSON shape (field names + types) using static analysis
+ *   2. Extracts their field names using static analysis
  *   3. Compares against .api-contracts-snapshot.json
- *   4. Reports additions, removals, and type changes
+ *   4. Reports additions and removals
  *
  * Exit codes:
  *   0 — No breaking changes detected (or --update/--report mode)
