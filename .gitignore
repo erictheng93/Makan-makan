@@ -244,6 +244,14 @@ backups/
 # Forensic dumps taken during an incident (see docs/runbooks/backup-restore-runbook.md)
 forensics-*.json
 
+# Adversarial security audit reports. These carry working exploit steps --
+# attack requests, the file:line of each sink, and which guard is missing --
+# against a repo that is public. Findings belong in issues and in the fix's
+# own commit message, where they are scoped to one defect; the assembled
+# report is a map for whoever reads it first.
+docs/security/*-audit-*.html
+docs/security/*-audit-*.md
+
 # Staging/prod secret bundles (script-managed, never commit)
 .staging.secrets.env
 .prod.secrets.env
