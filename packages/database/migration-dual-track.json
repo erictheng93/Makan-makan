@@ -70,6 +70,10 @@
     {
       "fresh": "0017_restaurant_business_timezone.sql",
       "reason": "restaurants is a platform-API table; the management-api database has no restaurants row whose business-day boundary could be paired against."
+    },
+    {
+      "fresh": "0018_platform_integration_store_id.sql",
+      "reason": "platform_integrations exists only in the platform API database; the management API receives no third-party delivery webhooks and has no integration rows to resolve a store id against."
     }
   ],
   "legacyOnly": [
@@ -78,5 +82,5 @@
       "reason": "Legacy operational performance-index migration predates this guard and is reviewed as legacy-only."
     }
   ],
-  "note": "The fresh track was squashed into 0000_baseline_strict.sql, so per-file pairings against it no longer exist. Note that no wrangler.toml points at legacyDir \u2014 see AGENTS.md/CLAUDE.md."
+  "note": "The fresh track was squashed into 0000_baseline_strict.sql, so per-file pairings against it no longer exist. Note that no wrangler.toml points at legacyDir — see AGENTS.md/CLAUDE.md."
 }

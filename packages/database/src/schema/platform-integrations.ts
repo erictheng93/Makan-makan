@@ -57,6 +57,25 @@ export const platformIntegrations = sqliteTable(
     // Encrypted credentials payload.
     credentials: text("credentials"),
 
+    /**
+     * The platform's own identifier for this store, in plaintext and on
+     * purpose.
+     *
+     * The unauthenticated webhook route has to know which integration a
+     * delivery platform is calling about before it can check that call's
+     * signature -- and the signing secret lives inside `credentials`. While
+     * this id was only stored in there too, the only way to answer "whose
+     * webhook is this?" was to decrypt every enabled row and compare, which
+     * meant one stranger's request decrypted every tenant's credentials
+     * before anything authenticated it (#338).
+     *
+     * Safe to expose: it arrives in the untrusted webhook payload, it is a
+     * path segment in the platform's own menu API, and it identifies rather
+     * than authorises. The secrets it used to sit beside -- clientId,
+     * clientSecret, webhookSecret -- stay encrypted.
+     */
+    storeId: text("store_id"),
+
     // Configuration (JSON)
     // { autoAcceptOrders, menuSyncEnabled }
     config: text("config", { mode: "json" })
@@ -91,6 +110,12 @@ export const platformIntegrations = sqliteTable(
       table.enabled,
       table.platform,
     ),
+    // One platform store resolves to at most one integration, so an
+    // unauthenticated webhook reads a single row instead of every tenant's.
+    // Partial, so rows predating the column do not all collide on NULL.
+    platformStoreIdx: uniqueIndex("platform_integrations_platform_store_idx")
+      .on(table.platform, table.storeId)
+      .where(sql`${table.storeId} IS NOT NULL`),
   }),
 );
 
