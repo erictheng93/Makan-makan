@@ -52,8 +52,11 @@ export default {
     console.log("Scheduled event triggered:", event.cron);
 
     // Import scheduled tasks dynamically
-    const { cleanupExpiredTokens, cleanupOldLogs } =
-      await import("./scheduled/cleanup-tokens");
+    const {
+      cleanupExpiredTokens,
+      cleanupOldLogs,
+      cleanupExpiredIdempotencyKeys,
+    } = await import("./scheduled/cleanup-tokens");
 
     try {
       // Daily cleanup at 2 AM UTC: Clean expired verification tokens
@@ -61,6 +64,13 @@ export default {
         console.log("[Cron] Running daily token cleanup...");
         const result = await cleanupExpiredTokens(env);
         console.log("[Cron] Token cleanup result:", result);
+
+        // Same tick: idempotency reservations. The platform webhook route
+        // takes no authentication, so anyone can make these rows and nothing
+        // else deletes them (#338).
+        console.log("[Cron] Running idempotency key cleanup...");
+        const idempotency = await cleanupExpiredIdempotencyKeys(env);
+        console.log("[Cron] Idempotency cleanup result:", idempotency);
       }
 
       // Weekly cleanup on Sunday at 3 AM UTC: Clean old logs
