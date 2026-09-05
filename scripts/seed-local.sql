@@ -30,7 +30,7 @@ INSERT OR IGNORE INTO restaurants (
   'Taichung',
   '+886900000000',
   'demo@makanmakan.local',
-  '{"currency":"TWD","language":"zh-Hant","timezone":"Asia/Taipei","allowGuestOrders":true}',
+  '{"currency":"TWD","language":"zh-Hant","allowGuestOrders":true}',
   1,
   1,
   unixepoch('now') * 1000,
