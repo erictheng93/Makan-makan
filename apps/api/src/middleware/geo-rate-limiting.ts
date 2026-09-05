@@ -87,6 +87,15 @@ const SENSITIVE_KV_RATE_LIMIT_PATHS = [
   "/api/v1/realtime/auth/group-token",
 ];
 
+/**
+ * The `GLOBAL_RATE_LIMITER` binding enforces a limit and period declared in
+ * wrangler.toml (`[env.production.ratelimits.simple]`, currently 100 req/60s).
+ * The runtime API reports neither back to the Worker — `limit()` returns only
+ * `success` — so this mirrors the period purely to tell a throttled client when
+ * to retry. Keep it in step with wrangler.toml; nothing enforces the pairing.
+ */
+const NATIVE_RATE_LIMIT_WINDOW_SECONDS = 60;
+
 function shouldUseKvRateLimiter(path: string): boolean {
   return SENSITIVE_KV_RATE_LIMIT_PATHS.some((sensitivePath) =>
     path.includes(sensitivePath),
@@ -931,12 +940,17 @@ export function geoIntelligentRateLimitMiddleware(
         const outcome = await nativeLimiter.limit({
           key: `${identifier}:${path}`,
         });
-        const resetTime = Date.now() + rateLimit.windowSeconds * 1000;
+        // `remaining` is unknowable on this path — the binding does not report
+        // it. It used to be filled with `rateLimit.requests - 1`, a constant
+        // that never decremented, and `retryAfter` with a `blockDuration` the
+        // binding does not implement. Neither is emitted as a header now; the
+        // window below is the binding's own, not the config's (#341).
+        const resetTime = Date.now() + NATIVE_RATE_LIMIT_WINDOW_SECONDS * 1000;
         result = {
           allowed: outcome.success,
-          remaining: outcome.success ? rateLimit.requests - 1 : 0,
+          remaining: 0,
           resetTime,
-          retryAfter: rateLimit.blockDuration,
+          retryAfter: NATIVE_RATE_LIMIT_WINDOW_SECONDS,
           reason: outcome.success
             ? undefined
             : "Rate limit exceeded by edge limiter",
@@ -945,8 +959,8 @@ export function geoIntelligentRateLimitMiddleware(
         console.error("Native rate limiting error:", error);
         result = {
           allowed: true,
-          remaining: rateLimit.requests,
-          resetTime: Date.now() + rateLimit.windowSeconds * 1000,
+          remaining: 0,
+          resetTime: Date.now() + NATIVE_RATE_LIMIT_WINDOW_SECONDS * 1000,
         };
       }
     } else {
@@ -978,9 +992,14 @@ export function geoIntelligentRateLimitMiddleware(
         );
       }
 
-      // Set rate limit headers
-      c.res.headers.set("X-RateLimit-Limit", rateLimit.requests.toString());
-      c.res.headers.set("X-RateLimit-Remaining", "0");
+      // Only the KV limiter knows the real budget. On the native path the
+      // binding enforces its own wrangler.toml limit and reports it back to
+      // nobody, so stating `rateLimit.requests` here would advertise a number
+      // nothing enforces (#341).
+      if (useKvRateLimiter) {
+        c.res.headers.set("X-RateLimit-Limit", rateLimit.requests.toString());
+        c.res.headers.set("X-RateLimit-Remaining", "0");
+      }
       c.res.headers.set("X-RateLimit-Reset", result.resetTime.toString());
       c.res.headers.set("Retry-After", (result.retryAfter || 60).toString());
 
@@ -1001,9 +1020,13 @@ export function geoIntelligentRateLimitMiddleware(
       );
     }
 
-    // Set rate limit headers for successful requests
-    c.res.headers.set("X-RateLimit-Limit", rateLimit.requests.toString());
-    c.res.headers.set("X-RateLimit-Remaining", result.remaining.toString());
+    // Set rate limit headers for successful requests. Same asymmetry as the
+    // 429 branch above: counters are only reported when this request was
+    // actually counted against them.
+    if (useKvRateLimiter) {
+      c.res.headers.set("X-RateLimit-Limit", rateLimit.requests.toString());
+      c.res.headers.set("X-RateLimit-Remaining", result.remaining.toString());
+    }
     c.res.headers.set("X-RateLimit-Reset", result.resetTime.toString());
 
     await next();

@@ -373,11 +373,10 @@ describe("geoIntelligentRateLimitMiddleware custom limit resolution", () => {
     path: string,
     skipPaths?: string[],
   ): Promise<string | null> {
-    const env = createEnv({
-      GLOBAL_RATE_LIMITER: {
-        limit: vi.fn(async () => ({ success: true })),
-      } as unknown as RateLimit,
-    });
+    // No native binding on purpose: `X-RateLimit-Limit` is only emitted on the
+    // KV path, because that is the only path whose budget these values
+    // actually govern (#341). It stays the observable for "which entry won".
+    const env = createEnv();
     const app = new Hono<{ Bindings: Env }>();
     app.use(
       "*",
@@ -488,5 +487,85 @@ describe("geoIntelligentRateLimitMiddleware custom limit resolution", () => {
       expect(response.headers.get("X-RateLimit-Limit")).toBeNull();
     }
     expect(env.GLOBAL_RATE_LIMITER?.limit).not.toHaveBeenCalled();
+  });
+});
+
+// #341: on the native path the middleware used to advertise the configured
+// limit and a `requests - 1` "remaining" that never decremented, while the
+// GLOBAL_RATE_LIMITER binding quietly enforced its own wrangler.toml budget.
+// Nothing can read those real numbers back, so the honest answer is to send
+// neither rather than a number nothing enforces.
+describe("geoIntelligentRateLimitMiddleware rate limit headers", () => {
+  function nativeEnv(success = true) {
+    return createEnv({
+      GLOBAL_RATE_LIMITER: {
+        limit: vi.fn(async () => ({ success })),
+      } as unknown as RateLimit,
+    });
+  }
+
+  function appWithLimit(requests: number) {
+    const app = new Hono<{ Bindings: Env }>();
+    app.use(
+      "*",
+      geoIntelligentRateLimitMiddleware({
+        customLimits: {
+          "/api/v1/payments": {
+            requests,
+            windowSeconds: 60,
+            burstMultiplier: 1,
+            blockDuration: 300,
+          },
+        },
+      }),
+    );
+    app.all("*", (c) => c.json({ ok: true }));
+    return app;
+  }
+
+  it("omits the counters the native binding does not report", async () => {
+    const env = nativeEnv();
+    const response = await fetchWithContext(
+      appWithLimit(10),
+      env,
+      "/api/v1/payments",
+      { headers: { "CF-Connecting-IP": "203.0.113.10" } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("X-RateLimit-Limit")).toBeNull();
+    expect(response.headers.get("X-RateLimit-Remaining")).toBeNull();
+    // Reset is still derivable from the binding's own window, so it stays.
+    expect(response.headers.get("X-RateLimit-Reset")).not.toBeNull();
+  });
+
+  it("still reports counters on the KV path, where they are real", async () => {
+    const env = createEnv();
+    const response = await fetchWithContext(
+      appWithLimit(10),
+      env,
+      "/api/v1/payments",
+      { headers: { "CF-Connecting-IP": "203.0.113.10" } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("X-RateLimit-Limit")).toBe("10");
+    expect(response.headers.get("X-RateLimit-Remaining")).not.toBeNull();
+  });
+
+  it("retries against the binding's window, not the config's blockDuration", async () => {
+    const env = nativeEnv(false);
+    const response = await fetchWithContext(
+      appWithLimit(10),
+      env,
+      "/api/v1/payments",
+      { headers: { "CF-Connecting-IP": "203.0.113.10" } },
+    );
+
+    expect(response.status).toBe(429);
+    // blockDuration is 300 above; the binding's period is 60. Advertising 300
+    // would park a caller for five times longer than the limiter actually holds.
+    expect(response.headers.get("Retry-After")).toBe("60");
+    expect(response.headers.get("X-RateLimit-Limit")).toBeNull();
   });
 });
