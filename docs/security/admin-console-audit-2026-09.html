@@ -190,6 +190,7 @@ a:focus-visible,summary:focus-visible{outline:2px solid var(--accent); outline-o
       <span><b>Baseline</b> ~4fe5e2f4</span>
       <span><b>Method</b> 12 hunters → adversarial validation</span>
       <span><b>Fix status</b> re-verified against code 2026-09-05 · finding text still describes ~4fe5e2f4</span>
+      <span><b>Production</b> not yet carrying these fixes — last deployed 2026-09-03T16:17Z (checked 2026-09-05)</span>
     </div>
 
     <div class="scores">
@@ -198,6 +199,12 @@ a:focus-visible,summary:focus-visible{outline:2px solid var(--accent); outline-o
       <div class="score med"><div class="n">4</div><div class="k">Medium</div></div>
       <div class="score low"><div class="n">3</div><div class="k">Low</div></div>
       <div class="score good"><div class="n">1</div><div class="k">Rejected</div></div>
+    </div>
+
+    <div class="callout warn">
+      <h4>⚠ Fixed means committed, not deployed — production still runs the audited build</h4>
+      <p>Every status in this report was re-verified against the code on <code>main</code>, and that branch is green in CI. None of it is live yet. <code>makanmasak-api-prod</code> was last deployed <b>2026-09-03T16:17Z</b> (2026-09-04 00:17 +08), and all 19 commits closing these 15 findings landed after it — the earliest at 2026-09-04 05:58 +08. Production therefore still serves the behaviour described below, the critical cross-tenant group-order path included.</p>
+      <p>Read the exposure as narrow rather than closed. Production held 1,352 rows across its 126 tables when it was last measured on 2026-09-01, with 88 tables empty; that bounds what an attacker could reach, but it is not the same as the door being shut — and it is also what makes deploying cheap right now. Once these fixes ship, this block is what needs deleting.</p>
     </div>
   </div>
 </header>
