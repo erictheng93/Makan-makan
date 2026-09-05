@@ -13,6 +13,8 @@
 | [CLAUDE.md](../CLAUDE.md)            | **Primary reference** — architecture, API endpoints, coding conventions, project status |
 | [requirements.md](./requirements.md) | Product requirements                                                                    |
 | [CHANGELOG](./archive/CHANGELOG.md)  | Development history and milestones                                                      |
+| [TODOS.md](./TODOS.md)               | **Active backlog** — open work by skill/component, P0→P4, with per-item context and scope |
+| [TECHNICAL_DEBT_TODO.md](./TECHNICAL_DEBT_TODO.md) | Dated repo-wide debt scan (last reviewed 2026-05-02) — a snapshot, not the live backlog |
 
 ### Architecture & Technical
 
@@ -78,7 +80,7 @@ Active feature docs for in-progress or reference-worthy features:
 | ------------------------------------------------------------ | ------------------------------------------------------------------- |
 | [features/realtime-services/](./features/realtime-services/) | WebSocket/Durable Objects implementation (Phase 4 ~50% — see [STATUS](./features/realtime-services/phases/REALTIME_PHASE4_STATUS.md)) |
 
-> Customer waiting-list Phase 1 shipped 2026-05-04 (see [specs/queue-and-waiting-list.md](./specs/queue-and-waiting-list.md) for the canonical spec; Phase 2-4 backlog in root [`TODOS.md`](../TODOS.md)).
+> Customer waiting-list Phase 1 shipped 2026-05-04 (see [specs/queue-and-waiting-list.md](./specs/queue-and-waiting-list.md) for the canonical spec; Phase 2-4 backlog in [`TODOS.md`](./TODOS.md)).
 >
 > Completed feature docs (employee management, partnership, AI analytics, shop QR, seat management, security) have been moved to [archive/completed-features/](./archive/completed-features/).
 

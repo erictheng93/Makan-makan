@@ -21,7 +21,7 @@ Twelve commits, smaller in scope than the preceding six-week sprint but closing 
 
 ## 2026-05-25 to 2026-07-05: Night-Market Marketplace Platform, UUID Primary-Key Migration & Managed Onboarding
 
-**Status**: 🚧 Marketplace live (core phases), UUID PK migration shipped, several sub-phases still open — see [`TODOS.md`](../../TODOS.md)
+**Status**: 🚧 Marketplace live (core phases), UUID PK migration shipped, several sub-phases still open — see [`TODOS.md`](../TODOS.md)
 
 Six weeks, ~900 commits. The two biggest shifts: MakanMakan grew a full night-market/商圈 marketplace layer on top of the existing single-restaurant platform, and the long-deferred users/orders UUID v7 primary-key migration finally landed. A new managed onboarding + management-api/portal stack also shipped, replacing the old BYO-Cloudflare tenant setup flow.
 
@@ -40,7 +40,7 @@ Source of truth: [`night-market-vision-roadmap.md`](../night-market-vision-roadm
 ### Customer Identity (Phase 1 — complete, verified 2026-07-05)
 
 - `orders`, `waiting_list`, and `reservations` `customerId` columns migrated from `INTEGER` FK on `users.id` to `TEXT` FK on `customers.id`; five satellite tables added (`customer_preferences`, `customer_favorites`, `customer_push_subscriptions`, `customer_consents`, `customer_phone_verification_tokens`).
-- Full re-verification against the spec confirms Phase 1 is complete: phone-OTP auth with a dedicated `canonicalCustomerAuthMiddleware` (`type: "customer"` JWT discriminator, 15 min/30 day tokens), all 17 spec'd endpoints live at `/api/v1/customer/*`, real-D1 integration coverage (13 cases), and customer-app UI (login, preferences/consent, push enrollment, favorites via market engagement). Unblocks Marketplace Phase 4 (follow + broadcast push) — see [`TODOS.md`](../../TODOS.md) § customer-identity for the full verification detail.
+- Full re-verification against the spec confirms Phase 1 is complete: phone-OTP auth with a dedicated `canonicalCustomerAuthMiddleware` (`type: "customer"` JWT discriminator, 15 min/30 day tokens), all 17 spec'd endpoints live at `/api/v1/customer/*`, real-D1 integration coverage (13 cases), and customer-app UI (login, preferences/consent, push enrollment, favorites via market engagement). Unblocks Marketplace Phase 4 (follow + broadcast push) — see [`TODOS.md`](../TODOS.md) § customer-identity for the full verification detail.
 
 ### Users/Orders UUID v7 Primary-Key Migration
 
@@ -94,7 +94,7 @@ Closed the long-running gap between "tests pass locally" and "CI is trustworthy"
 
 ## 2026-05-04: Customer Waiting-List Phase 1 & Modular Billing Hardening
 
-**Status**: ✅ Phase 1 Shipped — Phase 2-4 tracked in [`TODOS.md`](../../TODOS.md)
+**Status**: ✅ Phase 1 Shipped — Phase 2-4 tracked in [`TODOS.md`](../TODOS.md)
 
 Two parallel tracks landed on the same day: the customer-facing entry to the waiting-list system, and the audit-driven hardening of modular billing.
 
@@ -102,7 +102,7 @@ Two parallel tracks landed on the same day: the customer-facing entry to the wai
 
 - Customer-side join / ticket / cancel / confirm UI in customer-app (`309c3db6`).
 - Tailwind config converted to ESM to fix dev build (`0ad8522f`).
-- Phase 2-4 backlog (push notifications, history page, pre-order from queue) recorded in [`TODOS.md`](../../TODOS.md) (`a9093421`).
+- Phase 2-4 backlog (push notifications, history page, pre-order from queue) recorded in [`TODOS.md`](../TODOS.md) (`a9093421`).
 
 > Server-side state machine + lifecycle broadcasting + phone-match confirm were already in place from the 2026-03 hardening pass — Phase 1 is the customer-app frontend.
 
