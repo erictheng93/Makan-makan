@@ -96,6 +96,37 @@ const SENSITIVE_KV_RATE_LIMIT_PATHS = [
  */
 const NATIVE_RATE_LIMIT_WINDOW_SECONDS = 60;
 
+/**
+ * Paths that get their own, tighter native bucket instead of sharing
+ * `GLOBAL_RATE_LIMITER`.
+ *
+ * `/realtime/auth/token` is a public token-issuing endpoint: unauthenticated,
+ * and every token it mints costs us Workers and Durable Object time. Its two
+ * siblings take credentials in the body and sit on the KV limiter for a durable
+ * counter; this one only needed a smaller number. A second binding buys that
+ * for no per-request cost, where the KV path would add 3 reads + 1 write
+ * (~$6.50 per million requests) and a few hundred milliseconds (#341).
+ */
+const STRICT_NATIVE_RATE_LIMIT_PATHS = ["/api/v1/realtime/auth/token"];
+
+/**
+ * Pick the native bucket for a path, falling back to the global one whenever
+ * the tighter binding is absent — only production declares it, and preview must
+ * keep rate limiting rather than silently lose it.
+ */
+function selectNativeRateLimiter(
+  env: Env,
+  path: string,
+): RateLimit | undefined {
+  const wantsStrict = STRICT_NATIVE_RATE_LIMIT_PATHS.some(
+    (strictPath) => path === strictPath,
+  );
+  if (wantsStrict && env.AUTH_TOKEN_RATE_LIMITER) {
+    return env.AUTH_TOKEN_RATE_LIMITER;
+  }
+  return env.GLOBAL_RATE_LIMITER;
+}
+
 function shouldUseKvRateLimiter(path: string): boolean {
   return SENSITIVE_KV_RATE_LIMIT_PATHS.some((sensitivePath) =>
     path.includes(sensitivePath),
@@ -894,7 +925,7 @@ export function geoIntelligentRateLimitMiddleware(
         ? `user:${user.id}`
         : (tokenIdentity?.identifier ?? `ip:${ip}`);
 
-    const nativeLimiter = c.env.GLOBAL_RATE_LIMITER;
+    const nativeLimiter = selectNativeRateLimiter(c.env, path);
     const useKvRateLimiter = !nativeLimiter || shouldUseKvRateLimiter(path);
 
     if (useKvRateLimiter) {

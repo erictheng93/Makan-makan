@@ -239,24 +239,35 @@ function featureGate(key: UnlaunchedFeatureKey) {
 }
 
 /**
- * Per-endpoint rate limits layered over `calculateDynamicRateLimit`'s generic
- * tiers.
+ * Per-endpoint rate limits for the geo middleware's **KV** path.
  *
- * Two things to know before editing (both learned the hard way in #339):
+ * Only two entries remain, and that is deliberate (#341). These values bind
+ * only when `shouldUseKvRateLimiter` sends a request down the KV path — the
+ * credential endpoints, where a durable cross-isolate counter is the point.
+ * Every other path is enforced by a native rate limit binding, which applies
+ * the limit declared in wrangler.toml and reports nothing back, so an entry
+ * here for such a path sets a limit nobody honours.
  *
- * 1. **A key is compared exactly unless it says `match: "prefix"`.** A key
- *    naming a mount point that has no route of its own — `/api/v1/system`,
- *    which only ever registers `/health`, `/errors`, … — matches nothing and
- *    silently does nothing. `API_CUSTOM_RATE_LIMITS` is covered by a test that
- *    fails if an `exact` key names no registered route; keep it passing rather
- *    than adding a key that reads plausible and never fires.
- * 2. **In production these mostly set headers, not enforcement.** The
- *    middleware only enforces these values on its KV path, which
- *    `SENSITIVE_KV_RATE_LIMIT_PATHS` restricts to the credential endpoints.
- *    Every other path is enforced by the `GLOBAL_RATE_LIMITER` binding at its
- *    own configured 100 req/60s (`wrangler.toml`), and the value here only
- *    fills `X-RateLimit-Limit` / `Retry-After`. Tightening a number below does
- *    not tighten production for a non-sensitive path.
+ * Before adding one, pick the mechanism you actually want:
+ *
+ * - **A different number on a native path** → add a `[[ratelimits]]` binding in
+ *   wrangler.toml and a path to `STRICT_NATIVE_RATE_LIMIT_PATHS`. No KV cost,
+ *   no added latency. `/realtime/auth/token` uses this.
+ * - **A per-route limit with its own key** → `rateLimitMiddleware` from
+ *   `middleware/rateLimiter`, applied on the route; eight features already do.
+ *   Costs 3 KV reads + 1 write per request (~$6.50/million) and a few hundred
+ *   ms, so it earns its place only where a durable counter is the point.
+ * - **A durable counter for a credential endpoint** → add the path to
+ *   `SENSITIVE_KV_RATE_LIMIT_PATHS` and give it an entry here.
+ *
+ * Seven entries were deleted in #341 rather than wired up: they named paths
+ * already authenticated, throttled (`enforceGuestOrderThrottle`), quota-gated,
+ * or HMAC-verified, with the native 100 req/60s as an adequate floor beneath
+ * them. The webhooks entry was itself 100/60 — the number the binding already
+ * applies — so removing it changed nothing at all.
+ *
+ * Covered by a test that fails if an entry names no registered route, or names
+ * a path the KV limiter never sees.
  */
 export const API_CUSTOM_RATE_LIMITS = {
   "/api/v1/auth/login": {
@@ -271,72 +282,6 @@ export const API_CUSTOM_RATE_LIMITS = {
     burstMultiplier: 1.0,
     blockDuration: 60,
   },
-  "/api/v1/auth/me": {
-    requests: 30,
-    windowSeconds: 60,
-    burstMultiplier: 2.0,
-    blockDuration: 60,
-  },
-  "/api/v1/auth/refresh": {
-    requests: 20,
-    windowSeconds: 60,
-    burstMultiplier: 1.5,
-    blockDuration: 60,
-  },
-  "/api/v1/realtime/auth/token": {
-    requests: 20,
-    windowSeconds: 60,
-    burstMultiplier: 2.0,
-    blockDuration: 60,
-  },
-  // Deliberately the collection endpoint only — that is the POST that creates
-  // an order. Sub-paths (`/:id/status`, `/:id/receipt`, …) are read/update
-  // traffic the admin and kitchen UIs poll, and they keep the generic tier.
-  // Do not promote this to `prefix` without re-picking the numbers for them.
-  "/api/v1/orders": {
-    requests: 30,
-    windowSeconds: 60,
-    burstMultiplier: 2.0,
-    blockDuration: 120,
-  },
-  // Collection endpoint only, same reasoning as `/api/v1/orders`.
-  "/api/v1/guest-orders": {
-    requests: 60,
-    windowSeconds: 60,
-    burstMultiplier: 2.0,
-    blockDuration: 60,
-  },
-  // Whole subtree: every child is an unauthenticated delivery-platform webhook
-  // (`/uber-eats`, `/foodpanda`, and whatever platform is added next), so a new
-  // one should inherit this rather than silently fall back to the generic tier.
-  "/api/v1/integrations/webhooks": {
-    requests: 100,
-    windowSeconds: 60,
-    burstMultiplier: 1.5,
-    blockDuration: 120,
-    match: "prefix",
-  },
-  // Both payment-creation routes; they share one handler, so they share limits.
-  // `/status/:transactionId` is excluded on purpose: it is a polling endpoint
-  // and 10 req/min with a 5 minute block would break checkout.
-  "/api/v1/payments": {
-    requests: 10,
-    windowSeconds: 60,
-    burstMultiplier: 1.0,
-    blockDuration: 300,
-  },
-  "/api/v1/payments/create": {
-    requests: 10,
-    windowSeconds: 60,
-    burstMultiplier: 1.0,
-    blockDuration: 300,
-  },
-  // Removed in #339: `/api/v1/admin` and `/api/v1/system` were mount prefixes
-  // with no route of their own, so neither ever applied. They are not
-  // reinstated as prefixes because `calculateDynamicRateLimit` already has a
-  // dedicated tier for paths containing `/admin/` or `/system/` (20 req/60s,
-  // 600s block) which covers every real sub-path at an equal-or-longer block
-  // than these entries specified.
 } satisfies Record<string, CustomRateLimit>;
 
 export function createApp(

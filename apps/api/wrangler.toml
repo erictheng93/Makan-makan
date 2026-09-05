@@ -326,6 +326,26 @@ namespace_id = "1001"
   limit = 100
   period = 60
 
+# Tighter bucket for the public WebSocket token exchange. Its siblings
+# (/realtime/auth/guest-token, /realtime/auth/group-token) sit on the KV
+# limiter because they take credentials in the body and need a durable counter;
+# /auth/token needs only a smaller number, and a second binding buys that for
+# no per-request cost. Putting it on KV instead would add 3 reads + 1 write per
+# request (~$6.50 per million) and a few hundred ms, to protect an endpoint
+# whose only real cost of abuse is Workers and Durable Object time.
+#
+# `namespace_id` is just a label that has to be unique within this Worker — it
+# provisions nothing, so adding a bucket costs a deploy and nothing else.
+# Keep `period` at 60: NATIVE_RATE_LIMIT_WINDOW_SECONDS in geo-rate-limiting.ts
+# mirrors it to fill Retry-After for every native bucket.
+[[env.production.ratelimits]]
+name = "AUTH_TOKEN_RATE_LIMITER"
+namespace_id = "1002"
+
+  [env.production.ratelimits.simple]
+  limit = 20
+  period = 60
+
 [[env.production.kv_namespaces]]
 binding = "BACKUP_KV"
 id = "0f091e2ecc254832b824794e6d6912dc"

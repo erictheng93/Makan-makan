@@ -569,3 +569,72 @@ describe("geoIntelligentRateLimitMiddleware rate limit headers", () => {
     expect(response.headers.get("X-RateLimit-Limit")).toBeNull();
   });
 });
+
+// #341: the public WebSocket token exchange gets its own, tighter native
+// bucket. A second binding costs nothing per request, where moving the path to
+// the KV limiter would cost 3 reads + 1 write and a few hundred milliseconds.
+describe("geoIntelligentRateLimitMiddleware native bucket selection", () => {
+  function createLimiters() {
+    return {
+      global: { limit: vi.fn(async () => ({ success: true })) },
+      strict: { limit: vi.fn(async () => ({ success: true })) },
+    };
+  }
+
+  async function callPath(
+    path: string,
+    limiters: ReturnType<typeof createLimiters>,
+    withStrictBinding = true,
+  ) {
+    const env = createEnv({
+      GLOBAL_RATE_LIMITER: limiters.global as unknown as RateLimit,
+      ...(withStrictBinding
+        ? { AUTH_TOKEN_RATE_LIMITER: limiters.strict as unknown as RateLimit }
+        : {}),
+    });
+    const app = new Hono<{ Bindings: Env }>();
+    app.use("*", geoIntelligentRateLimitMiddleware());
+    app.all("*", (c) => c.json({ ok: true }));
+
+    const response = await fetchWithContext(app, env, path, {
+      method: "POST",
+      headers: { "CF-Connecting-IP": "203.0.113.10" },
+    });
+    expect(response.status).toBe(200);
+  }
+
+  it("sends the public token exchange to the tighter bucket", async () => {
+    const limiters = createLimiters();
+    await callPath("/api/v1/realtime/auth/token", limiters);
+
+    expect(limiters.strict.limit).toHaveBeenCalledOnce();
+    expect(limiters.global.limit).not.toHaveBeenCalled();
+  });
+
+  it("leaves every other path on the global bucket", async () => {
+    const limiters = createLimiters();
+    await callPath("/api/v1/menu", limiters);
+
+    expect(limiters.global.limit).toHaveBeenCalledOnce();
+    expect(limiters.strict.limit).not.toHaveBeenCalled();
+  });
+
+  // Only production declares the tighter binding. Preview must keep limiting
+  // rather than silently losing it because the binding is absent.
+  it("falls back to the global bucket when the tighter one is absent", async () => {
+    const limiters = createLimiters();
+    await callPath("/api/v1/realtime/auth/token", limiters, false);
+
+    expect(limiters.global.limit).toHaveBeenCalledOnce();
+  });
+
+  // The sibling paths take credentials in the body and stay on the KV limiter,
+  // so neither native bucket should ever see them.
+  it("does not divert the KV-limited sibling endpoints", async () => {
+    const limiters = createLimiters();
+    await callPath("/api/v1/realtime/auth/guest-token", limiters);
+
+    expect(limiters.strict.limit).not.toHaveBeenCalled();
+    expect(limiters.global.limit).not.toHaveBeenCalled();
+  });
+});
