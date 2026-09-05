@@ -256,6 +256,7 @@ import LeaveApprovalQueue from "@/components/leaves/LeaveApprovalQueue.vue";
 import LeaveHistoryList from "@/components/leaves/LeaveHistoryList.vue";
 import LeaveBalanceOverview from "@/components/leaves/LeaveBalanceOverview.vue";
 import LeaveRequestDialog from "@/components/leaves/LeaveRequestDialog.vue";
+import type { LeaveRequestFormData } from "@/components/leaves/LeaveRequestDialog.vue";
 import type {
   LeaveRequest,
   LeaveBalance,
@@ -265,15 +266,6 @@ import type {
 const STAFFING_THRESHOLD = 3;
 
 type TabKey = "queue" | "history" | "balance" | "types";
-type LeavePeriod = "full" | "am" | "pm";
-
-interface LeaveRequestFormData {
-  leaveTypeId: number | string;
-  startDate: string;
-  endDate: string;
-  startPeriod: LeavePeriod;
-  reason: string;
-}
 
 const tabs = computed<Array<{ key: TabKey; label: string }>>(() => [
   { key: "queue", label: t("leaves.manage.queue") },
@@ -451,7 +443,11 @@ const handleLeaveRequest = async (formData: LeaveRequestFormData) => {
       leaveTypeId,
       startDate: formData.startDate,
       endDate: formData.endDate,
-      period: formData.startPeriod || "full",
+      // The endpoint takes a period per end of the range; a single "period"
+      // key is not in its schema, so Zod stripped it and every half-day
+      // request was filed as a full day (#330).
+      startPeriod: formData.startPeriod || "full",
+      endPeriod: formData.endPeriod || "full",
       reason: formData.reason,
     });
     showRequestDialog.value = false;

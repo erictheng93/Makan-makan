@@ -47,7 +47,7 @@
             :key="request.id"
             class="leave-indicator"
             :style="{ backgroundColor: request.leaveType?.color || '#007aff' }"
-            :title="`${request.employeeName} - ${request.leaveType?.name}`"
+            :title="`${request.employee?.fullName} - ${request.leaveType?.name}`"
           />
           <span v-if="day.leaveRequests.length > 3" class="more-indicator">
             +{{ day.leaveRequests.length - 3 }}
@@ -59,7 +59,10 @@
     <!-- 圖例 -->
     <div class="calendar-legend">
       <div v-for="type in activeLeaveTypes" :key="type.id" class="legend-item">
-        <div class="legend-color" :style="{ backgroundColor: type.color }" />
+        <div
+          class="legend-color"
+          :style="{ backgroundColor: type.color || '#007aff' }"
+        />
         <span class="legend-label">{{ type.name }}</span>
       </div>
     </div>

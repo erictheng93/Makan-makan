@@ -21,28 +21,28 @@
               class="text-xs font-medium px-2 py-0.5 rounded-full"
               :style="leaveTypeBadgeStyle"
             >
-              {{ request.leaveTypeName || "請假" }}
+              {{ request.leaveType?.name || "請假" }}
             </span>
             <span class="text-xs text-ios-text/50">
               {{ formatDateRange(request.startDate, request.endDate) }}
-              ({{ request.days }}天)
+              ({{ request.totalDays }}天)
             </span>
           </div>
 
           <!-- Balance snapshot -->
           <div v-if="balance" class="mt-1 text-xs text-ios-text/50">
-            餘額：{{ balance.leaveTypeName }}剩
+            餘額：{{ balance.leaveType?.name }}剩
             <span
               class="font-medium"
               :class="
-                balance.remainingDays >= request.days
+                balance.remainingDays >= request.totalDays
                   ? 'text-ios-green'
                   : 'text-ios-red'
               "
             >
               {{ balance.remainingDays }}天
             </span>
-            （申請{{ request.days }}天）
+            （申請{{ request.totalDays }}天）
           </div>
 
           <!-- Conflict warning (collapsed) -->
@@ -178,7 +178,7 @@
               :key="col.id"
               class="text-xs px-2 py-0.5 bg-ios-red/10 text-ios-red rounded-full font-medium"
             >
-              {{ col.employeeName || `員工${col.employeeId}` }}
+              {{ col.employee?.fullName || `員工${col.employeeId}` }}
             </span>
           </div>
         </div>
@@ -226,7 +226,7 @@ const toggleExpanded = () => {
 };
 
 const employeeName = computed(
-  () => props.request.employeeName || `員工${props.request.employeeId}`,
+  () => props.request.employee?.fullName || `員工${props.request.employeeId}`,
 );
 
 const { sameDayColleagues, urgencyLevel } = useLeaveConflict(
@@ -245,7 +245,7 @@ const urgencyColor = computed(() => {
 });
 
 const leaveTypeBadgeStyle = computed(() => {
-  const color = props.request.leaveTypeName ? "#007AFF" : "#8E8E93";
+  const color = props.request.leaveType?.color ?? "#007AFF";
   return {
     backgroundColor: `${color}15`,
     color,

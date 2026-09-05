@@ -136,7 +136,7 @@ const employeesWithStatus = computed<EmployeeWithStatus[]>(() => {
 
     if (leaveReq) {
       statusDot = "⚫";
-      statusLabel = `請假中 (${leaveReq.leaveTypeName || "假"})`;
+      statusLabel = `請假中 (${leaveReq.leaveType?.name || "假"})`;
       isOnLeave = true;
     } else if (hours >= WEEKLY_HOURS_MAX) {
       statusDot = "🔴";

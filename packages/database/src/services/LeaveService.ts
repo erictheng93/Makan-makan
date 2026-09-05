@@ -15,6 +15,14 @@ import {
   users,
   USER_ROLES,
 } from "../schema";
+import type {
+  LeaveType as LeaveTypeWire,
+  LeaveBalance as LeaveBalanceWire,
+  LeaveRequest as LeaveRequestWire,
+  LeaveTypeSummary,
+  LeaveTypeBalanceSummary,
+  LeaveRequestEmployee,
+} from "@makanmasak/shared-types";
 import { SchedulingService } from "./SchedulingService";
 import { NotificationService } from "./NotificationService";
 import { getBusinessDate } from "../utils/business-day";
@@ -30,93 +38,26 @@ type ApprovalChainEntry = {
   required: boolean;
 };
 
-export interface LeaveType {
-  id: number;
-  restaurantId: string | null;
-  code: string;
-  name: string;
-  description: string | null;
-  accrualType: "yearly" | "monthly" | "none";
-  accrualAmount: number;
-  accrualBasedOnSeniority: boolean;
-  requiresApproval: boolean;
-  requiredApprovalLevels: number;
-  minNoticeDays: number;
-  maxConsecutiveDays: number | null;
-  canCarryover: boolean;
-  carryoverMaxDays: number | null;
-  carryoverExpiryMonths: number | null;
-  requiresDocumentation: boolean;
-  documentationRequiredAfterDays: number | null;
-  isPaid: boolean;
-  paymentRate: number;
-  allowHalfDay: boolean;
-  gender: "any" | "male" | "female" | null;
-  applicableToRoles: string | null;
-  maxUsagePerYear: number | null;
-  isSystemDefined: boolean;
-  isActive: boolean;
-  sortOrder: number;
-  color: string | null;
-  icon: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  createdBy: string | null;
-  updatedBy: string | null;
+/**
+ * A leave_types row, straight off the schema.
+ *
+ * This used to be a hand-written interface, one of four copies of the same
+ * shape; three of them disagreed with the table (#330).
+ */
+export type LeaveType = typeof leaveTypes.$inferSelect;
+
+/**
+ * An employee_leave_balances row plus `remainingDays`, which this service
+ * computes rather than storing.
+ */
+type LeaveBalanceRow = typeof employeeLeaveBalances.$inferSelect;
+
+export interface LeaveBalance extends LeaveBalanceRow {
+  remainingDays: number;
 }
 
-export interface LeaveBalance {
-  id: number;
-  employeeId: string;
-  leaveTypeId: number;
-  restaurantId: string;
-  year: number;
-  totalDays: number;
-  usedDays: number;
-  pendingDays: number;
-  remainingDays: number; // Calculated
-  carryoverFromPrevious: number;
-  carryoverToNext: number;
-  carryoverExpiresAt: number | null;
-  manualAdjustment: number;
-  adjustmentReason: string | null;
-  adjustedBy: string | null;
-  adjustedAt: number | null;
-  createdAt: Date;
-  updatedAt: Date;
-  lastUpdatedBy: string | null;
-}
-
-export interface LeaveRequest {
-  id: number;
-  restaurantId: string;
-  employeeId: string;
-  leaveTypeId: number;
-  startDate: string;
-  endDate: string;
-  startPeriod: "full" | "am" | "pm";
-  endPeriod: "full" | "am" | "pm";
-  totalDays: number;
-  reason: string;
-  attachmentUrl: string | null;
-  emergencyContact: string | null;
-  status: "pending" | "approved" | "rejected" | "cancelled" | "withdrawn";
-  approvalChain: string;
-  currentApprovalLevel: number;
-  finalApproverId: string | null;
-  finalApprovedAt: number | null;
-  rejectedBy: string | null;
-  rejectedAt: number | null;
-  rejectionReason: string | null;
-  cancelledBy: string | null;
-  cancelledAt: number | null;
-  cancellationReason: string | null;
-  affectedScheduleIds: string | null;
-  replacementNotified: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  submittedAt: number | null;
-}
+/** A leave_requests row, straight off the schema. */
+export type LeaveRequest = typeof leaveRequests.$inferSelect;
 
 export interface LeaveRequestWithRelations extends LeaveRequest {
   employee: {
@@ -139,12 +80,73 @@ export interface LeaveBalanceWithType extends LeaveBalance {
     id: number;
     code: string;
     name: string;
-    accrualType: string;
+    accrualType: "yearly" | "monthly" | "none";
     isPaid: boolean;
     color: string | null;
     icon: string | null;
   };
 }
+
+// ---------------------------------------------------------------------------
+// shared-types conformance (#330)
+//
+// The frontend cannot import Drizzle, so @makanmasak/shared-types mirrors
+// these shapes by hand and the API hands them out unprojected. This block is
+// the only thing keeping the mirror honest: rename, add, drop or retype a
+// column and one of these lines stops compiling. Every NoKeys line names the
+// offending field outright.
+//
+// If one fires, fix packages/shared-types/src/leaves.ts, then chase the
+// compile errors it produces in the frontend. Those errors are the reads that
+// would otherwise have returned undefined.
+// ---------------------------------------------------------------------------
+
+/**
+ * c.json() serialises Date columns to ISO strings and changes nothing else.
+ * The helper takes V as a naked type parameter so the conditional distributes
+ * over unions -- `Date | null` has to become `string | null`, and an inline
+ * `T[K] extends Date` would leave it as `Date | null`.
+ */
+type JsonValue<V> = V extends Date ? string : V;
+type Json<T> = { [K in keyof T]: JsonValue<T[K]> };
+type Equal<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+type Assert<T extends true> = T;
+type NoKeys<K extends never> = K;
+
+/** Relations the wire types carry that are not columns. */
+type BalanceRelations = "leaveType";
+type RequestRelations = "employee" | "leaveType";
+
+/**
+ * Compile-time only, and never instantiated. Exported because
+ * apps/admin-dashboard typechecks this file through a path mapping with
+ * `noUnusedLocals` on, which would otherwise flag the whole block.
+ */
+export type LeavesWireConformance = [
+  // leave_types
+  NoKeys<Exclude<keyof LeaveTypeWire, keyof LeaveType>>,
+  NoKeys<Exclude<keyof LeaveType, keyof LeaveTypeWire>>,
+  Assert<Equal<Json<LeaveType>, LeaveTypeWire>>,
+
+  // employee_leave_balances
+  NoKeys<
+    Exclude<keyof LeaveBalanceWire, keyof LeaveBalance | BalanceRelations>
+  >,
+  NoKeys<Exclude<keyof LeaveBalance, keyof LeaveBalanceWire>>,
+  Assert<Equal<Json<LeaveBalance>, Omit<LeaveBalanceWire, BalanceRelations>>>,
+
+  // leave_requests
+  NoKeys<
+    Exclude<keyof LeaveRequestWire, keyof LeaveRequest | RequestRelations>
+  >,
+  NoKeys<Exclude<keyof LeaveRequest, keyof LeaveRequestWire>>,
+  Assert<Equal<Json<LeaveRequest>, Omit<LeaveRequestWire, RequestRelations>>>,
+
+  // join projections
+  Assert<Equal<LeaveRequestWithRelations["leaveType"], LeaveTypeSummary>>,
+  Assert<Equal<LeaveRequestWithRelations["employee"], LeaveRequestEmployee>>,
+  Assert<Equal<LeaveBalanceWithType["leaveType"], LeaveTypeBalanceSummary>>,
+];
 
 type CreateLeaveTypeBase = Omit<
   LeaveType,
@@ -198,6 +200,7 @@ export type CreateLeaveRequestData = Omit<
   | "createdAt"
   | "updatedAt"
   | "submittedAt"
+  | "deletedAt"
   | "attachmentUrl"
   | "emergencyContact"
 > & {
@@ -299,7 +302,7 @@ export class LeaveService extends BaseService {
       )
       .orderBy(asc(leaveTypes.sortOrder), asc(leaveTypes.name));
 
-    return types as LeaveType[];
+    return types;
   }
 
   /**
@@ -487,10 +490,7 @@ export class LeaveService extends BaseService {
       ...row.balance,
       remainingDays:
         row.balance.totalDays - row.balance.usedDays - row.balance.pendingDays,
-      leaveType: {
-        ...row.leaveType,
-        accrualType: row.leaveType.accrualType as string,
-      },
+      leaveType: row.leaveType,
     })) as LeaveBalanceWithType[];
   }
 
@@ -530,10 +530,7 @@ export class LeaveService extends BaseService {
       ...row.balance,
       remainingDays:
         row.balance.totalDays - row.balance.usedDays - row.balance.pendingDays,
-      leaveType: {
-        ...row.leaveType,
-        accrualType: row.leaveType.accrualType as string,
-      },
+      leaveType: row.leaveType,
     })) as LeaveBalanceWithType[];
   }
 

@@ -44,45 +44,59 @@ removals, and type changes"). Only the third scope item above has been cleared.
 
 ## shared-types wire drift
 
-### LeaveRequest and LeaveBalance still declare fields no column has
+### LeaveRequest and LeaveBalance declared fields no column has
 
-**Priority:** P2 **Status:** Open (measured 2026-09-05 while closing
-[#330](https://github.com/erictheng93/Makan-Masak/issues/330))
+**Priority:** P2 **Status:** Completed 2026-09-05, alongside
+[#330](https://github.com/erictheng93/Makan-Masak/issues/330)
 
 **Files:** `packages/shared-types/src/leaves.ts`,
-`packages/database/src/schema/leaves/leave-requests.ts`,
-`packages/database/src/schema/leaves/leave-balances.ts`,
-`apps/admin-dashboard/src/services/leavesService.ts`
+`packages/database/src/services/LeaveService.ts`,
+`apps/api/src/features/leaves/types/index.ts`,
+`apps/admin-dashboard/src/services/leavesService.ts` and eight leaves
+components.
 
-**Context:** #330 fixed `LeaveType` and pinned it with
-`LeaveTypeWireConformance` in `packages/database/src/services/LeaveService.ts`.
-Its two siblings in the same file were left alone and carry the same defect —
-the endpoints return unprojected rows, the interfaces are hand-written, and
-nothing compares them:
+**What was wrong:** the same defect #330 fixed in `LeaveType`, in its two
+siblings. `LeaveRequest` declared 11 fields with no column and omitted 10
+that exist; `LeaveBalance` declared 3 and omitted 3. Neither was live only
+in theory:
 
-- `LeaveRequest`: 11 declared fields have no column (`daysCount`,
-  `halfDayType`, `description`, `attachments`, `requiredApprovalLevels`,
-  `approvedBy`, `approvedAt`, `hasScheduleConflict`, `conflictDetails`,
-  `delegatedTo`, `delegationNotes`); 10 columns are undeclared
-  (`startPeriod`, `endPeriod`, `totalDays`, `attachmentUrl`,
-  `emergencyContact`, `finalApproverId`, `finalApprovedAt`,
-  `affectedScheduleIds`, `replacementNotified`, `deletedAt`).
-- `LeaveBalance`: 3 phantom (`accruedDays`, `lastAccrualDate`,
-  `adjustmentDays`), 3 undeclared (`restaurantId`, `manualAdjustment`,
-  `lastUpdatedBy`). `remainingDays` and `leaveType` are computed/joined and
-  correctly absent from the table.
+- `LeaveRequestList.vue` and `LeaveApprovalList.vue` rendered
+  `request.daysCount`; the column is `total_days`, so the day count was an
+  empty span.
+- `LeaveHistoryList.vue` and `LeaveDecisionCard.vue` rendered
+  `request.days`, `request.leaveTypeName` and `request.employeeName` — a
+  third, fourth and fifth spelling, none of them columns.
+- `LeaveBalanceOverview.vue` rendered `balance.leaveTypeName` and
+  `balance.color`; both live under the joined `leaveType` projection.
+- `LeaveApprovalList.vue` read an `attachments` array through a cast. The
+  column is a single `attachment_url`, so the attachment row never rendered.
+- `LeaveRequestList.vue` validated approval-chain steps against
+  `{approverId, approverName, status}`. `buildApprovalChain` writes
+  `{level, approverRole, required}`, so every step was filtered out and the
+  progress strip rendered for nobody.
+- `LeavesTab.vue` posted `period` to an endpoint whose schema takes
+  `startPeriod`/`endPeriod`. Zod stripped it, so every half-day request was
+  filed as a full day.
+- `LEAVE_STATUSES` carried a `draft` value and `HALF_DAY_TYPES` a
+  morning/afternoon enum; no column has ever accepted either.
 
-**Live consequence, not just latent:** `LeaveRequestList.vue:41` and
-`LeaveApprovalList.vue:27` both render `{{ request.daysCount }}`. The column
-is `total_days`, so both render an empty span today. A third spelling —
-`days` — is declared in `apps/admin-dashboard/src/services/leavesService.ts`
-for the same value.
+**How it was fixed:** all three entities are now the wire shape of their row,
+pinned by `LeavesWireConformance` in LeaveService.ts — twelve assertions
+covering leave_types, employee_leave_balances, leave_requests and the three
+join projections. Renaming a column fails the build and the error names the
+field. `apps/api/src/features/leaves/types/index.ts` and
+`apps/admin-dashboard/src/services/leavesService.ts` re-export instead of
+re-declaring, so there is one definition of each.
 
-**Recipe:** the one from #330, unchanged. Rewrite each interface as the wire
-shape of `$inferSelect`, add it to the `LeaveTypeWireConformance` tuple in
-LeaveService.ts, then fix the compile errors that appear in the frontend —
-those errors are the reads that return `undefined` today. Verify by renaming
-a column and checking the assertion names it.
+**Left alone, deliberately:** `LeaveConflictCheckResult`,
+`LeaveStatistics`, `EmployeeLeaveSummary` and `TeamLeaveCalendar` in
+shared-types have no consumers anywhere and no endpoint returns them;
+`LeaveApprovalRule` and `LeaveCalendarEvent` in the API feature are dead in
+the same way. `apps/api/src/openapi/schemas/leaves.ts` is fiction end to end
+(uuid ids, a `leaveType` string enum, `reviewerId`) but is imported only by
+`apps/api/src/openapi/integration.ts`, which nothing imports — the served
+OpenAPI document does not come from it. Deleting dead declarations is a
+separate decision from fixing live ones.
 
 ## database / money schema
 
@@ -771,6 +785,29 @@ which this workflow uses.
 The account is `bdddc08c066a9abc285d75fe5947a468`, which is not the one a local `wrangler login` resolves to by default — see the account-split note.
 
 **Token permissions**, derived from the bindings actually declared across the ten `wrangler.toml` files. Account: Workers Scripts Edit, Workers KV Storage Edit, Workers R2 Storage Edit, D1 Edit, Queues Edit, Vectorize Edit, Workers AI Edit, **Cloudflare Pages Edit**, Account Settings Read. Zone (`makanmasak.com`): Workers Routes Edit, DNS Edit for the four `custom_domain` entries. Pages Edit is the one most easily missed — the five frontends deploy with `wrangler pages deploy`, which Workers Scripts Edit does not cover, and `pnpm -r run deploy:prod` reaches them. Do not add a client-IP restriction: GitHub-hosted runner addresses are not stable.
+
+## health probes
+
+### `/health/ready` still hand-rolls its D1 half instead of using `probeDatabase`
+
+**Priority:** P3 **Status:** Open (identified 2026-09-05, deliberately left out
+of the #332 fix) **Files:** `apps/api/src/features/system/routes/index.ts`,
+`apps/api/src/core/health/probe.ts` **Context:** #332 replaced the KV half of
+`/health/ready` with the shared `probeCache`. The D1 half was left as it was: a
+dynamic `import("@makanmasak/database")` plus a Drizzle
+`SELECT 1 FROM users LIMIT 1`, rather than `probeDatabase`'s raw
+`SELECT 1 AS ok` on the binding. Neither cost is material on its own — the
+module graph is cached per isolate after the first call — but the asymmetry is
+the same shape as the bug #332 fixed: a probe reimplemented per endpoint drifts
+from the shared one, and nobody notices because both return a boolean.
+`UPTIME_MONITOR_TARGETS` polls this path every 60s as `critical: true`, so
+whatever semantics `probeDatabase` grows later (session constraints,
+`served_by_primary` reporting) should reach it too. **Why it was deferred:** the
+route test harness mocks D1 as `withSession(...).prepare(...).all()` for
+`runBasicHealthCheck` but feeds `/health/ready` through the Drizzle select
+fixture queue; switching probes means reworking fixtures across the whole
+`system routes` suite, which is a bigger change than the one-line bug #332 was
+filed for.
 
 ## health probes
 

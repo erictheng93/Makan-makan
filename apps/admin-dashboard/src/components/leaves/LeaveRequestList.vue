@@ -38,7 +38,7 @@
             <h3 class="leave-type">{{ request.leaveType?.name }}</h3>
             <span class="request-date">
               {{ formatShortDate(request.startDate) }} -
-              {{ formatShortDate(request.endDate) }} ({{ request.daysCount }}
+              {{ formatShortDate(request.endDate) }} ({{ request.totalDays }}
               {{ t("leaves.balance.days") }})
             </span>
           </div>
@@ -55,20 +55,15 @@
             class="approval-chain"
           >
             <div
-              v-for="(approval, index) in parseApprovalChain(
-                request.approvalChain,
-              )"
-              :key="index"
+              v-for="approval in parseApprovalChain(request.approvalChain)"
+              :key="approval.level"
               class="approval-step"
             >
-              <span class="approver">{{
-                approval.approverName || t("leaves.approval.reviewer")
-              }}</span>
-              <span :class="`approval-status ${approval.status || 'pending'}`">
-                {{
-                  t(`leaves.approval.${approval.status || "pending"}`) ||
-                  t("leaves.approval.pending")
-                }}
+              <span class="approver">
+                {{ t("leaves.approval.reviewer") }} {{ approval.level }}
+              </span>
+              <span :class="`approval-status ${stepStatus(request, approval)}`">
+                {{ t(`leaves.approval.${stepStatus(request, approval)}`) }}
               </span>
             </div>
           </div>
@@ -110,7 +105,11 @@
 import { ref, computed } from "vue";
 import { useI18n } from "@/i18n";
 import { useDateFormatter } from "@/composables/useDateFormatter";
-import type { LeaveRequest, LeaveType } from "@makanmasak/shared-types";
+import type {
+  LeaveApprovalStep,
+  LeaveRequest,
+  LeaveType,
+} from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 const { formatShortDate } = useDateFormatter();
@@ -134,22 +133,31 @@ const statusFilter = ref("");
 const typeFilter = ref<number | string>("");
 const searchQuery = ref("");
 
-type ApprovalChain = NonNullable<LeaveRequest["approvalChain"]>;
-type ApprovalStep = ApprovalChain[number];
-
-function isApprovalStep(value: unknown): value is ApprovalStep {
+// approvalChain is JSON text holding {level, approverRole, required} entries.
+// This guard used to require approverId/approverName/status, which
+// buildApprovalChain has never written, so it rejected every step and the
+// progress strip below rendered for nobody (#330).
+function isApprovalStep(value: unknown): value is LeaveApprovalStep {
   if (typeof value !== "object" || value === null) return false;
 
   const candidate = value as Record<string, unknown>;
   return (
     typeof candidate.level === "number" &&
-    typeof candidate.approverId === "number" &&
-    typeof candidate.approverName === "string" &&
-    (candidate.status === "pending" ||
-      candidate.status === "approved" ||
-      candidate.status === "rejected")
+    typeof candidate.approverRole === "number" &&
+    typeof candidate.required === "boolean"
   );
 }
+
+// The chain records which levels exist, not what happened at each one. How far
+// the request actually got lives on the request itself.
+const stepStatus = (
+  request: LeaveRequest,
+  step: LeaveApprovalStep,
+): "approved" | "rejected" | "pending" => {
+  if (step.level <= request.currentApprovalLevel) return "approved";
+  if (request.status === "rejected") return "rejected";
+  return "pending";
+};
 
 const filteredRequests = computed(() => {
   return props.requests.filter((request) => {
@@ -168,11 +176,8 @@ const filteredRequests = computed(() => {
   });
 });
 
-const parseApprovalChain = (
-  chain: string | LeaveRequest["approvalChain"],
-): ApprovalChain => {
+const parseApprovalChain = (chain: string): LeaveApprovalStep[] => {
   if (!chain) return [];
-  if (Array.isArray(chain)) return chain;
   try {
     const parsed: unknown = JSON.parse(chain);
     return Array.isArray(parsed) ? parsed.filter(isApprovalStep) : [];

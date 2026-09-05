@@ -50,10 +50,14 @@
         <span class="detail-label">{{ t("leaves.balance.pending") }}:</span>
         <span class="detail-value">{{ formatDays(balance.pendingDays) }}</span>
       </div>
-      <div v-if="balance.leaveType?.allowCarryover" class="detail-row">
+      <!-- The balance join projects seven leave_types columns and no
+           carryover flag, so this row keys off the balance's own figure.
+           It used to read leaveType.allowCarryover and balance.carryoverDays,
+           neither of which is a column: the block never rendered (#330). -->
+      <div v-if="balance.carryoverFromPrevious" class="detail-row">
         <span class="detail-label">{{ t("leaves.balance.carryover") }}:</span>
         <span class="detail-value">
-          {{ formatDays(balance.carryoverDays || 0) }}
+          {{ formatDays(balance.carryoverFromPrevious) }}
           <span v-if="balance.carryoverExpiresAt" class="expiry-note">
             ({{ t("leaves.balance.expiresOn") }}:
             {{ formatDate(balance.carryoverExpiresAt) }})

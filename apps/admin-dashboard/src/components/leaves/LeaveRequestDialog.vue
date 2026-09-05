@@ -281,25 +281,17 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { useI18n } from "@/i18n";
+import type { LeaveType } from "@makanmasak/shared-types";
 
 const { t } = useI18n();
 
-// Exactly the fields this dialog reads. It used to declare five more --
-// maxDaysPerYear, defaultDaysPerYear, colorCode, color, description -- none of
-// which it used and the first three of which are not columns on leave_types at
-// all, so anyone reaching for them would have typechecked and got undefined.
-//
-// Deliberately structural rather than a Pick of the service's LeaveType: the
-// two callers pass different shapes, because shared-types carries its own
-// LeaveType that has drifted a long way from the table (see #330). Narrowing
-// this to one of them would only move the mismatch.
-interface RequestDialogLeaveType {
-  id: number;
-  name: string;
-  minNoticeDays?: number;
-  requiresDocumentation?: boolean;
-  allowHalfDay?: boolean;
-}
+// Exactly the fields this dialog reads. Both callers now pass the same
+// LeaveType, so this is a Pick of it rather than a structural stand-in: a
+// column rename reaches this list through shared-types (#330).
+type RequestDialogLeaveType = Pick<
+  LeaveType,
+  "id" | "name" | "minNoticeDays" | "requiresDocumentation" | "allowHalfDay"
+>;
 
 interface RequestDialogLeaveBalance {
   leaveTypeId: number;

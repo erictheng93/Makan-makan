@@ -58,7 +58,7 @@
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
             <span class="text-sm font-semibold text-ios-text">
-              {{ request.employeeName || `員工${request.employeeId}` }}
+              {{ request.employee?.fullName || `員工${request.employeeId}` }}
             </span>
             <span
               class="text-xs px-2 py-0.5 rounded-full font-medium"
@@ -70,13 +70,13 @@
           <div
             class="mt-0.5 flex items-center gap-2 text-xs text-ios-text/50 flex-wrap"
           >
-            <span>{{ request.leaveTypeName || "請假" }}</span>
+            <span>{{ request.leaveType?.name || "請假" }}</span>
             <span>·</span>
             <span>{{
               formatDateRange(request.startDate, request.endDate)
             }}</span>
             <span>·</span>
-            <span>{{ request.days }}天</span>
+            <span>{{ request.totalDays }}天</span>
           </div>
           <div
             v-if="request.rejectionReason"

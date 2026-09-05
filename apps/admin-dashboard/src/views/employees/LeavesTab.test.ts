@@ -4,6 +4,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import LeavesTab from "./LeavesTab.vue";
 import { leavesService } from "@/services/leavesService";
+import type { LeaveType } from "@makanmasak/shared-types";
 
 vi.mock("@/i18n", () => ({
   t: (key: string) => key,
@@ -35,23 +36,45 @@ vi.mock("@/services/leavesService", () => ({
   },
 }));
 
-const leaveType = (overrides = {}) => ({
+// A whole leave_types row, because that is what the endpoint returns
+// unprojected. Typed as LeaveType so a column rename lands here too (#330).
+const leaveType = (overrides: Partial<LeaveType> = {}): LeaveType => ({
   id: 1,
   restaurantId: "restaurant-1",
   code: "ANNUAL",
   name: "特休",
-  accrualType: "yearly" as const,
+  description: null,
+  accrualType: "yearly",
   accrualAmount: 14,
+  accrualBasedOnSeniority: false,
   requiresApproval: true,
+  requiredApprovalLevels: 1,
   minNoticeDays: 0,
+  maxConsecutiveDays: null,
+  canCarryover: false,
+  carryoverMaxDays: null,
+  carryoverExpiryMonths: null,
   requiresDocumentation: false,
+  documentationRequiredAfterDays: null,
+  isPaid: true,
+  paymentRate: 1,
   allowHalfDay: true,
+  gender: null,
+  applicableToRoles: null,
+  maxUsagePerYear: null,
+  isSystemDefined: false,
   isActive: true,
   sortOrder: 0,
+  color: null,
+  icon: null,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
+  createdBy: null,
+  updatedBy: null,
   ...overrides,
 });
 
-async function mountTab(types: ReturnType<typeof leaveType>[]) {
+async function mountTab(types: LeaveType[]) {
   vi.mocked(leavesService.getLeaveTypes).mockResolvedValue(types);
   vi.mocked(leavesService.getRequests).mockResolvedValue([]);
   vi.mocked(leavesService.getRestaurantBalances).mockResolvedValue([]);

@@ -47,12 +47,12 @@
         </span>
         <div class="flex items-center gap-1.5 min-w-0">
           <span
-            v-if="balance.color"
+            v-if="balance.leaveType?.color"
             class="w-2 h-2 rounded-full shrink-0"
-            :style="{ backgroundColor: balance.color }"
+            :style="{ backgroundColor: balance.leaveType.color }"
           />
           <span class="text-ios-text/70 truncate">{{
-            balance.leaveTypeName
+            balance.leaveType?.name
           }}</span>
         </div>
         <span class="text-right text-ios-text/50">{{ balance.totalDays }}</span>
@@ -137,7 +137,7 @@ const sortedBalances = computed(() =>
     const nameB = getEmployeeName(b.employeeId);
     const nameCmp = nameA.localeCompare(nameB);
     if (nameCmp !== 0) return nameCmp;
-    return a.leaveTypeName.localeCompare(b.leaveTypeName);
+    return (a.leaveType?.name ?? "").localeCompare(b.leaveType?.name ?? "");
   }),
 );
 </script>

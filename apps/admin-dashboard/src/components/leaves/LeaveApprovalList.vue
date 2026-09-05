@@ -24,7 +24,7 @@
             <span class="label">{{ t("leaves.request.period") }}:</span>
             <span class="value">
               {{ formatShortDate(request.startDate) }} -
-              {{ formatShortDate(request.endDate) }} ({{ request.daysCount }}
+              {{ formatShortDate(request.endDate) }} ({{ request.totalDays }}
               {{ t("leaves.balance.days") }})
             </span>
           </div>
@@ -104,11 +104,6 @@ interface Props {
   requests: LeaveRequest[];
 }
 
-type LeaveApprovalRequest = LeaveRequest & {
-  employeeName?: string;
-  employee?: { fullName?: string; username?: string };
-};
-
 const props = defineProps<Props>();
 
 defineEmits<{
@@ -120,24 +115,19 @@ const pendingRequests = computed(() => {
   return props.requests.filter((r) => r.status === "pending");
 });
 
-const getEmployeeName = (request: LeaveApprovalRequest): string => {
-  return (
-    request.employeeName ||
-    request.employee?.fullName ||
-    request.employee?.username ||
-    t("leaves.approval.unknownEmployee")
-  );
+const getEmployeeName = (request: LeaveRequest): string => {
+  return request.employee?.fullName || t("leaves.approval.unknownEmployee");
 };
 
+// leave_requests carries a single attachment_url, not a list of files. The
+// cast that used to sit here read an "attachments" array off a row that has
+// never had one, so the block below rendered for nobody (#330).
 const safeAttachments = (request: LeaveRequest) => {
-  const attachments =
-    (request as { attachments?: Array<{ name: string; url: string }> })
-      .attachments ?? [];
-
-  return attachments.flatMap((file) => {
-    const href = safeExternalHref(file.url, { allowAnyHttpHost: true });
-    return href ? [{ ...file, url: href }] : [];
+  if (!request.attachmentUrl) return [];
+  const href = safeExternalHref(request.attachmentUrl, {
+    allowAnyHttpHost: true,
   });
+  return href ? [{ name: t("leaves.request.attachments"), url: href }] : [];
 };
 </script>
 

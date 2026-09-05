@@ -4,140 +4,42 @@
  */
 
 /**
- * Leave Type (假別類型)
- * Defines different types of leave available (annual, sick, personal, etc.)
+ * The leaves entities, re-exported from the schema rather than hand-copied.
+ *
+ * This file used to declare its own LeaveType, EmployeeLeaveBalance,
+ * LeaveRequest and their DTOs. All of them had drifted: timestamp_ms columns
+ * declared as numbers, TEXT user ids as numbers, and a join projection with
+ * an `employee.name` field the query has never selected. Nothing imported
+ * them, so nothing caught it (#330).
  */
-export interface LeaveType {
-  id: number;
-  restaurantId: string | null; // null for system-level leave types
-  code: string;
-  name: string;
-  description: string | null;
+import type {
+  LeaveType,
+  LeaveBalance,
+  LeaveRequest,
+  LeaveRequestWithRelations,
+  LeaveBalanceWithType,
+  CreateLeaveTypeData,
+  UpdateLeaveTypeData,
+  CreateLeaveRequestData,
+  LeaveRequestFilters,
+  LeaveBalanceAdjustment,
+} from "@makanmasak/database";
 
-  // Accrual Rules (計算規則)
-  accrualType: "yearly" | "monthly" | "none";
-  accrualAmount: number;
-  accrualBasedOnSeniority: boolean;
+export type {
+  LeaveType,
+  LeaveBalance,
+  LeaveRequest,
+  LeaveRequestWithRelations,
+  LeaveBalanceWithType,
+  CreateLeaveTypeData,
+  UpdateLeaveTypeData,
+  CreateLeaveRequestData,
+  LeaveRequestFilters,
+  LeaveBalanceAdjustment,
+};
 
-  // Usage Rules (使用規則)
-  requiresApproval: boolean;
-  requiredApprovalLevels: number;
-  minNoticeDays: number;
-  maxConsecutiveDays: number | null;
-  canCarryover: boolean;
-  carryoverMaxDays: number | null;
-  carryoverExpiryMonths: number | null;
-
-  // Documentation & Payment (文件與給付)
-  requiresDocumentation: boolean;
-  documentationRequiredAfterDays: number | null;
-  isPaid: boolean;
-  paymentRate: number; // 0.0 to 1.0 (e.g., 0.5 for half pay)
-
-  // Restrictions (限制條件)
-  allowHalfDay: boolean;
-  gender: "any" | "male" | "female" | null;
-  applicableToRoles: string | null; // JSON array of role IDs
-  maxUsagePerYear: number | null;
-
-  // System Fields
-  isSystemDefined: boolean;
-  isActive: boolean;
-  sortOrder: number;
-  color: string | null;
-  icon: string | null;
-
-  createdAt: number;
-  updatedAt: number;
-  createdBy: number | null;
-  updatedBy: number | null;
-}
-
-/**
- * Employee Leave Balance (員工假期餘額)
- * Tracks leave balance for each employee per year
- */
-export interface EmployeeLeaveBalance {
-  id: number;
-  employeeId: string;
-  leaveTypeId: number;
-  restaurantId: string;
-  year: number;
-
-  // Balance Tracking (餘額追蹤)
-  totalDays: number;
-  usedDays: number;
-  pendingDays: number;
-  remainingDays: number; // Generated: totalDays - usedDays - pendingDays
-
-  // Carryover Management (遞延管理)
-  carryoverFromPrevious: number;
-  carryoverToNext: number;
-  carryoverExpiresAt: number | null;
-
-  // Manual Adjustments (手動調整)
-  manualAdjustment: number;
-  adjustmentReason: string | null;
-  adjustedBy: string | null;
-  adjustedAt: number | null;
-
-  // Metadata
-  createdAt: number;
-  updatedAt: number;
-  lastUpdatedBy: number | null;
-}
-
-/**
- * Type alias for compatibility with database service
- */
-export type LeaveBalance = EmployeeLeaveBalance;
-
-/**
- * Leave Request (請假申請)
- * Employee leave request submission and approval workflow
- */
-export interface LeaveRequest {
-  id: number;
-  restaurantId: string;
-  employeeId: string;
-  leaveTypeId: number;
-
-  // Date & Duration (日期與時長)
-  startDate: string; // YYYY-MM-DD format
-  endDate: string; // YYYY-MM-DD format
-  startPeriod: "full" | "am" | "pm";
-  endPeriod: "full" | "am" | "pm";
-  totalDays: number; // Supports 0.5 for half days
-
-  // Request Details (申請內容)
-  reason: string;
-  attachmentUrl: string | null;
-  emergencyContact: string | null;
-
-  // Approval Workflow (審批流程)
-  status: "pending" | "approved" | "rejected" | "cancelled" | "withdrawn";
-  approvalChain: string; // JSON array of approval steps
-  currentApprovalLevel: number;
-  finalApproverId: number | null;
-  finalApprovedAt: number | null;
-  rejectedBy: number | null;
-  rejectedAt: number | null;
-  rejectionReason: string | null;
-
-  // Cancellation (取消)
-  cancelledBy: number | null;
-  cancelledAt: number | null;
-  cancellationReason: string | null;
-
-  // Schedule Integration (排班整合)
-  affectedScheduleIds: string | null; // JSON array of schedule IDs
-  replacementNotified: boolean;
-
-  // Metadata
-  createdAt: number;
-  updatedAt: number;
-  submittedAt: number | null;
-}
+/** Kept for the older name used by the service interface below. */
+export type EmployeeLeaveBalance = LeaveBalance;
 
 /**
  * Leave Approval Rule (審批規則)
@@ -205,114 +107,6 @@ export interface LeaveCalendarEvent {
   createdBy: number | null;
   color: string | null;
   icon: string | null;
-}
-
-/**
- * Leave Request with Relations
- * Extended leave request with employee and leave type information
- */
-export interface LeaveRequestWithRelations extends LeaveRequest {
-  employee: {
-    id: number;
-    name: string;
-    email: string;
-    role: number;
-  };
-  leaveType: {
-    id: number;
-    code: string;
-    name: string;
-    isPaid: boolean;
-    color: string | null;
-  };
-  approvers?: Array<{
-    level: number;
-    userId: string;
-    userName: string;
-    approvedAt: number | null;
-    comments: string | null;
-  }>;
-}
-
-/**
- * Leave Balance with Leave Type
- */
-export interface LeaveBalanceWithType extends EmployeeLeaveBalance {
-  leaveType: {
-    id: number;
-    code: string;
-    name: string;
-    accrualType: string;
-    isPaid: boolean;
-    color: string | null;
-    icon: string | null;
-  };
-}
-
-/**
- * Create Leave Type Data
- */
-export type CreateLeaveTypeData = Omit<
-  LeaveType,
-  "id" | "createdAt" | "updatedAt" | "createdBy" | "updatedBy"
->;
-
-/**
- * Update Leave Type Data
- */
-export type UpdateLeaveTypeData = Partial<
-  Omit<LeaveType, "id" | "createdAt" | "updatedAt">
->;
-
-/**
- * Create Leave Request Data
- */
-export type CreateLeaveRequestData = Omit<
-  LeaveRequest,
-  | "id"
-  | "status"
-  | "approvalChain"
-  | "currentApprovalLevel"
-  | "finalApproverId"
-  | "finalApprovedAt"
-  | "rejectedBy"
-  | "rejectedAt"
-  | "rejectionReason"
-  | "cancelledBy"
-  | "cancelledAt"
-  | "cancellationReason"
-  | "affectedScheduleIds"
-  | "replacementNotified"
-  | "createdAt"
-  | "updatedAt"
-  | "submittedAt"
->;
-
-/**
- * Leave Request Filters
- */
-export interface LeaveRequestFilters {
-  restaurantId?: string; // Tenant scope; undefined = platform admin (unscoped)
-  employeeId?: string;
-  leaveTypeId?: number;
-  status?: LeaveRequest["status"];
-  startDate?: string; // Filter requests that overlap with this date range
-  endDate?: string;
-  page?: number;
-  limit?: number;
-}
-
-/**
- * Leave Balance Adjustment
- */
-export interface LeaveBalanceAdjustment {
-  employeeId: string;
-  leaveTypeId: number;
-  year: number;
-  adjustment: number;
-  reason: string;
-  adjustedBy: string;
-  restaurantId?: string; // Tenant scope; target employee must belong to it
 }
 
 /**

@@ -111,6 +111,7 @@ import LeaveCalendar from "@/components/leaves/LeaveCalendar.vue";
 import type {
   LeaveBalance,
   LeaveType,
+  LeaveTypeBalanceSummary,
   LeaveRequest,
 } from "@makanmasak/shared-types";
 
@@ -226,7 +227,9 @@ const closeRequestDialog = () => {
 };
 
 // 處理請假申請
-const handleRequestLeave = (leaveType: LeaveType | undefined) => {
+// The balance card emits its balance's embedded leave type, which is the
+// join's projection rather than a whole row (#330).
+const handleRequestLeave = (leaveType: LeaveTypeBalanceSummary | undefined) => {
   if (!leaveType) return;
   preselectedTypeId.value = leaveType.id;
   isRequestDialogOpen.value = true;

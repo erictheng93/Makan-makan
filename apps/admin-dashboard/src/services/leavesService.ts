@@ -5,29 +5,21 @@
 
 import { api } from "@/services/api";
 import type { UserId } from "@/types/api-user";
+import type {
+  CreateLeaveRequestRequest,
+  LeaveBalance,
+  LeaveRequest,
+  LeaveType,
+} from "@makanmasak/shared-types";
 
 /**
- * Mirrors the leave_types row, which GET /leaves/:restaurantId/types returns
- * unprojected. `maxDaysPerYear` used to be declared here and does not exist on
- * that table -- the per-year figure is accrualAmount, interpreted through
- * accrualType.
+ * The one frontend copy of each leaves entity. This file used to declare its
+ * own LeaveType, LeaveBalance and LeaveRequest, all three narrower than and
+ * inconsistent with the rows the endpoints return; they are now the
+ * shared-types mirrors, pinned against the schema by `LeavesWireConformance`
+ * in the database package (#330).
  */
-export interface LeaveType {
-  id: number;
-  restaurantId: string | null;
-  code: string;
-  name: string;
-  description?: string | null;
-  accrualType: "yearly" | "monthly" | "none";
-  accrualAmount: number;
-  requiresApproval: boolean;
-  minNoticeDays: number;
-  requiresDocumentation: boolean;
-  allowHalfDay: boolean;
-  isActive: boolean;
-  sortOrder: number;
-  color?: string | null;
-}
+export type { LeaveType, LeaveBalance, LeaveRequest };
 
 /**
  * The four fields createLeaveTypeSchema requires. Everything else it accepts
@@ -40,38 +32,6 @@ export interface CreateLeaveTypeInput {
   accrualAmount: number;
   description?: string;
   requiresApproval?: boolean;
-}
-
-export interface LeaveBalance {
-  id: number;
-  employeeId: UserId;
-  leaveTypeId: number;
-  leaveTypeName: string;
-  totalDays: number;
-  usedDays: number;
-  pendingDays: number;
-  remainingDays: number;
-  year: number;
-  color?: string;
-}
-
-export interface LeaveRequest {
-  id: number;
-  employeeId: UserId;
-  employeeName?: string;
-  leaveTypeId: number;
-  leaveTypeName?: string;
-  startDate: string;
-  endDate: string;
-  period: "full" | "am" | "pm";
-  days: number;
-  reason?: string;
-  status: "pending" | "approved" | "rejected" | "cancelled";
-  approvedBy?: UserId;
-  approverName?: string;
-  rejectionReason?: string;
-  createdAt: string;
-  updatedAt?: string;
 }
 
 class LeavesService {
@@ -145,13 +105,7 @@ class LeavesService {
    */
   async createRequest(
     restaurantId: string,
-    data: {
-      leaveTypeId: number;
-      startDate: string;
-      endDate: string;
-      period: "full" | "am" | "pm";
-      reason?: string;
-    },
+    data: Omit<CreateLeaveRequestRequest, "restaurantId" | "employeeId">,
   ): Promise<LeaveRequest> {
     const response = await this.api.post<LeaveRequest>(
       `/leaves/${restaurantId}/requests`,
