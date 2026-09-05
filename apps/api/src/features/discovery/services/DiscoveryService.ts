@@ -233,6 +233,7 @@ export class DiscoveryService {
           restaurantName: restaurants.name,
           district: dishSearchIndex.district,
           businessHours: restaurants.businessHours,
+          timezone: restaurants.timezone,
           supportsTakeaway: dishSearchIndex.supportsTakeaway,
           supportsDelivery: dishSearchIndex.supportsDelivery,
           tags: dishSearchIndex.tags,
@@ -315,6 +316,7 @@ export class DiscoveryService {
             restaurantName: restaurants.name,
             district: dishSearchIndex.district,
             businessHours: restaurants.businessHours,
+            timezone: restaurants.timezone,
             supportsTakeaway: dishSearchIndex.supportsTakeaway,
             supportsDelivery: dishSearchIndex.supportsDelivery,
             tags: dishSearchIndex.tags,
@@ -372,7 +374,7 @@ export class DiscoveryService {
       restaurantId: row.restaurantId,
       restaurantName: row.restaurantName,
       district: row.district,
-      isOpen: isOpenNow(row.businessHours ?? null),
+      isOpen: isOpenNow(row.businessHours ?? null, row.timezone),
       supportsTakeaway: row.supportsTakeaway,
       supportsDelivery: row.supportsDelivery,
       tags: row.tags ?? [],
@@ -631,6 +633,7 @@ export class DiscoveryService {
           priceRange: restaurants.priceRange,
           rating: restaurants.rating,
           businessHours: restaurants.businessHours,
+          timezone: restaurants.timezone,
           supportsTakeaway: restaurants.supportsTakeaway,
           supportsDelivery: restaurants.supportsDelivery,
           logoUrl: restaurants.logoUrl,
@@ -670,7 +673,7 @@ export class DiscoveryService {
         city: row.city,
         priceRange: row.priceRange,
         rating: row.rating,
-        isOpen: isOpenNow(row.businessHours ?? null),
+        isOpen: isOpenNow(row.businessHours ?? null, row.timezone),
         supportsTakeaway: row.supportsTakeaway,
         supportsDelivery: row.supportsDelivery,
         imageUrl: row.logoUrl,
@@ -858,6 +861,7 @@ export class DiscoveryService {
           latitude: restaurants.latitude,
           longitude: restaurants.longitude,
           businessHours: restaurants.businessHours,
+          timezone: restaurants.timezone,
           marketVendorMarketId: this.marketVendorMarketId(filters.marketId),
           marketVendorStallNumber: this.marketVendorStallNumber(
             filters.marketId,
@@ -904,7 +908,7 @@ export class DiscoveryService {
       restaurantName: row.restaurantName,
       district: row.district,
       city: row.city,
-      isOpen: isOpenNow(row.businessHours ?? null),
+      isOpen: isOpenNow(row.businessHours ?? null, row.timezone),
       detailUrl: this.restaurantDetailUrl(row.restaurantId),
       menuUrl: this.restaurantMenuUrl(row.restaurantId),
       serviceItemsUrl: this.restaurantServiceItemsUrl(row.restaurantId),
@@ -995,6 +999,7 @@ export class DiscoveryService {
         .select({
           serviceType: restaurantServiceItems.serviceType,
           businessHours: restaurants.businessHours,
+          timezone: restaurants.timezone,
         })
         .from(restaurantServiceItems)
         .innerJoin(
@@ -1009,7 +1014,7 @@ export class DiscoveryService {
       >();
 
       for (const row of rows) {
-        if (!isOpenNow(row.businessHours ?? null)) {
+        if (!isOpenNow(row.businessHours ?? null, row.timezone)) {
           continue;
         }
 
@@ -1069,6 +1074,7 @@ export class DiscoveryService {
         restaurantName: restaurants.name,
         district: dishSearchIndex.district,
         businessHours: restaurants.businessHours,
+        timezone: restaurants.timezone,
         supportsTakeaway: dishSearchIndex.supportsTakeaway,
         supportsDelivery: dishSearchIndex.supportsDelivery,
         tags: dishSearchIndex.tags,
@@ -1098,7 +1104,7 @@ export class DiscoveryService {
       restaurantId: row.restaurantId,
       restaurantName: row.restaurantName,
       district: row.district,
-      isOpen: isOpenNow(row.businessHours ?? null),
+      isOpen: isOpenNow(row.businessHours ?? null, row.timezone),
       supportsTakeaway: row.supportsTakeaway,
       supportsDelivery: row.supportsDelivery,
       tags: row.tags ?? [],
@@ -1211,6 +1217,7 @@ export class DiscoveryService {
         enableShopMode: restaurants.enableShopMode,
         shopQrCode: restaurants.shopQrCode,
         businessHours: restaurants.businessHours,
+        timezone: restaurants.timezone,
       })
       .from(restaurants)
       .where(eq(restaurants.id, restaurantId))
@@ -1226,7 +1233,7 @@ export class DiscoveryService {
     ) {
       return { eligible: false, reason: "takeaway_disabled" };
     }
-    if (!isOpenNow(restaurant.businessHours ?? null)) {
+    if (!isOpenNow(restaurant.businessHours ?? null, restaurant.timezone)) {
       return { eligible: false, reason: "closed_now" };
     }
     return { eligible: true, shopQrCode: restaurant.shopQrCode };

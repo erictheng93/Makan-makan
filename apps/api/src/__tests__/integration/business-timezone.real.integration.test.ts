@@ -1,5 +1,15 @@
 import { AnalyticsService } from "@makanmasak/database";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+import { DiscoveryService } from "../../features/discovery/services/DiscoveryService";
 import {
   createRealIntegrationTestApp,
   type RealIntegrationTestApp,
@@ -18,8 +28,9 @@ import { buildSeedHelpers } from "./helpers/seed-helper";
  *
  * This has to run against real D1: the bucketing is SQLite date arithmetic, so
  * a mocked drizzle cannot tell an offset that is threaded through from one
- * that is ignored. Every assertion below flips if `dateFromUnixMs` goes back
- * to a constant '+8 hours'.
+ * that is ignored. The revenue assertions below flip if `dateFromUnixMs` goes
+ * back to a constant '+8 hours'; the last one flips if the discovery query
+ * stops selecting `restaurants.timezone` or stops handing it to isOpenNow.
  */
 describe("Business-day bucketing follows the restaurant's timezone", () => {
   let testApp: RealIntegrationTestApp;
@@ -121,5 +132,62 @@ describe("Business-day bucketing follows the restaurant's timezone", () => {
     });
 
     await expect(revenueBuckets(shop.id)).resolves.toEqual(["2026-01-11"]);
+  });
+
+  describe("and so does whether the shop counts as open right now", () => {
+    // The other half of #329: isOpenNow took a timezone and no call site ever
+    // passed one, so every shop's opening hours were read off Taipei's clock.
+    // A unit test on the helper cannot see that -- it proves the argument is
+    // honoured, not that the query selects the column and hands it over.
+
+    /** A Monday. 21:30 in Jakarta, 22:30 in Taipei. */
+    const MONDAY_LATE = new Date("2026-01-12T14:30:00.000Z");
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    async function takeawayEligibility(restaurantId: string) {
+      const discovery = new DiscoveryService(
+        testApp.env.DB,
+        testApp.env.CACHE_KV,
+      );
+      return discovery.getTakeawayEligibility(restaurantId);
+    }
+
+    async function openUntilTen(timezone: string) {
+      const shop = await seed.restaurant({
+        timezone,
+        businessHours: {
+          monday: { open: "09:00", close: "22:00", isOpen: true },
+        },
+        supportsTakeaway: true,
+        enableShopMode: true,
+        shopQrCode: `SHOP-${timezone}-1`,
+      });
+      return shop.id;
+    }
+
+    it("keeps a GMT+7 stall open until its own 22:00", async () => {
+      const jakarta = await openUntilTen("Asia/Jakarta");
+      const taipei = await openUntilTen("Asia/Taipei");
+
+      // Only Date is faked: the D1 client's own timers have to keep running.
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(MONDAY_LATE);
+
+      // 21:30 in Jakarta, so still trading. Under the old hardcoded Taipei
+      // clock this answered closed_now and the takeaway QR went dead an hour
+      // early, every day.
+      await expect(takeawayEligibility(jakarta)).resolves.toMatchObject({
+        eligible: true,
+      });
+
+      // The same instant is 22:30 in Taipei, where the shop really has shut.
+      await expect(takeawayEligibility(taipei)).resolves.toMatchObject({
+        eligible: false,
+        reason: "closed_now",
+      });
+    });
   });
 });

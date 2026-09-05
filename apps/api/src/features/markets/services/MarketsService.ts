@@ -1082,6 +1082,7 @@ export class MarketsService {
         priceRange: restaurants.priceRange,
         rating: restaurants.rating,
         businessHours: restaurants.businessHours,
+        timezone: restaurants.timezone,
         marketHours: restaurantMarketMemberships.marketHours,
         supportsTakeaway: restaurants.supportsTakeaway,
         supportsDelivery: restaurants.supportsDelivery,
@@ -1101,10 +1102,13 @@ export class MarketsService {
       .limit(queryLimit)
       .offset(queryOffset);
 
-    let vendors = rows.map((row) => ({
+    // `timezone` is destructured off rather than spread: it is only here to
+    // cut `isOpen` at the stall's own clock (#329), and the vendor payload
+    // does not otherwise carry it.
+    let vendors = rows.map(({ timezone, ...row }) => ({
       ...row,
       effectiveBusinessHours: row.marketHours ?? row.businessHours ?? null,
-      isOpen: isOpenNow(row.marketHours ?? row.businessHours ?? null),
+      isOpen: isOpenNow(row.marketHours ?? row.businessHours ?? null, timezone),
       ...(geoFilter
         ? {
             distanceKm: Number(

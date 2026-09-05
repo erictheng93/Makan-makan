@@ -1,12 +1,19 @@
+import { resolveBusinessTimezone } from "@makanmasak/database";
 import type { BusinessHours } from "../types";
 
 /**
  * Check if a restaurant is currently open.
  * Workers run in UTC, so we must convert to the restaurant's timezone.
+ *
+ * `timezone` is the shop's own `restaurants.timezone`. It used to default to
+ * Asia/Taipei and no caller ever passed anything, so a Jakarta stall trading
+ * until 22:00 read as closed from 21:00 local onwards (#329). It is resolved
+ * rather than used raw because an unrecognised name makes Intl throw a
+ * RangeError, and a discovery listing must not 500 over one bad row.
  */
 export function isOpenNow(
   businessHours: BusinessHours | null | undefined,
-  timezone: string = "Asia/Taipei",
+  timezone?: string | null,
   now?: Date,
 ): boolean {
   if (!businessHours) return false;
@@ -14,7 +21,7 @@ export function isOpenNow(
   const currentTime = now || new Date();
 
   const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
+    timeZone: resolveBusinessTimezone(timezone),
     weekday: "long",
     hour: "2-digit",
     minute: "2-digit",
