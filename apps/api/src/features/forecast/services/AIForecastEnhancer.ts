@@ -1,77 +1,12 @@
 import { createProvider } from "@makanmasak/ai-analytics";
 import type { LLMConfig } from "@makanmasak/ai-analytics";
 import type { IngredientForecastItem } from "@makanmasak/shared-types";
-
-// Reuse encryption utilities (same pattern as AIAnalyticsService)
-function stringToUint8Array(str: string): Uint8Array {
-  const encoder = new TextEncoder();
-  return encoder.encode(str);
-}
-
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
-
-function arrayBufferToString(buffer: ArrayBuffer): string {
-  const decoder = new TextDecoder();
-  return decoder.decode(buffer);
-}
-
-async function deriveKey(keyString: string): Promise<CryptoKey> {
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    stringToUint8Array(keyString),
-    { name: "PBKDF2" },
-    false,
-    ["deriveKey"],
-  );
-
-  const salt = stringToUint8Array("makanmakan-api-key-encryption-salt");
-
-  return crypto.subtle.deriveKey(
-    {
-      name: "PBKDF2",
-      salt,
-      iterations: 100000,
-      hash: "SHA-256",
-    },
-    keyMaterial,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"],
-  );
-}
-
-async function decryptApiKey(
-  encryptedKey: string,
-  encryptionKey: string,
-): Promise<string> {
-  if (!encryptedKey.includes(":")) {
-    return atob(encryptedKey);
-  }
-
-  const [ivBase64, encryptedBase64] = encryptedKey.split(":");
-  if (!ivBase64 || !encryptedBase64) {
-    throw new Error("Invalid encrypted key format");
-  }
-
-  const iv = new Uint8Array(base64ToArrayBuffer(ivBase64));
-  const encrypted = base64ToArrayBuffer(encryptedBase64);
-  const key = await deriveKey(encryptionKey);
-
-  const decrypted = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv, tagLength: 128 },
-    key,
-    encrypted,
-  );
-
-  return arrayBufferToString(decrypted);
-}
+import { decrypt } from "@makanmasak/utils";
+import type { EncryptionOptions } from "@makanmasak/utils";
+import {
+  AI_API_KEY_ENCRYPTION_SALT,
+  type EncryptionSettings,
+} from "../../../shared/utils/encryption";
 
 interface AIEnhancementResult {
   enhancedForecasts: IngredientForecastItem[];
@@ -91,10 +26,21 @@ interface LLMResponse {
 }
 
 export class AIForecastEnhancer {
+  private readonly encryptionKey: string;
+  private readonly cipher: EncryptionOptions;
+
   constructor(
     private db: D1Database,
-    private encryptionKey: string,
-  ) {}
+    encryption: EncryptionSettings,
+  ) {
+    this.encryptionKey = encryption.key;
+    // Same salt as AIAnalyticsService: both read
+    // `ai_configurations.api_key_encrypted`, so they must derive the same key.
+    this.cipher = {
+      salt: AI_API_KEY_ENCRYPTION_SALT,
+      requireStrongKey: encryption.requireStrongKey,
+    };
+  }
 
   async enhancePredictions(
     restaurantId: string,
@@ -174,9 +120,10 @@ export class AIForecastEnhancer {
 
     if (!result) return null;
 
-    const apiKey = await decryptApiKey(
+    const apiKey = await decrypt(
       result.api_key_encrypted,
       this.encryptionKey,
+      this.cipher,
     );
 
     return {

@@ -20,6 +20,7 @@ import {
   ingredientForecastQuerySchema,
   restaurantIdParamSchema,
 } from "../schemas/validation";
+import { encryptionSettings } from "../../../shared/utils/encryption";
 import type { Env } from "../../../shared/types";
 
 const routes = new Hono<{ Bindings: Env }>();
@@ -67,7 +68,7 @@ routes.post(
         c.env.DB,
         c.env.CACHE_KV,
         service,
-        c.env.ENCRYPTION_KEY,
+        encryptionSettings(c.env),
       );
       const forecasts = await ingredientService.generateIngredientForecast(
         restaurantId,
@@ -157,7 +158,7 @@ routes.get(
       c.env.DB,
       c.env.CACHE_KV,
       forecastService,
-      c.env.ENCRYPTION_KEY,
+      encryptionSettings(c.env),
     );
 
     const forecasts = await service.getIngredientForecast(

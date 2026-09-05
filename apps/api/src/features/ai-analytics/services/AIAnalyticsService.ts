@@ -17,7 +17,12 @@ import {
   createDatabase,
 } from "@makanmasak/database";
 import { encrypt, decrypt } from "@makanmasak/utils";
+import type { EncryptionOptions } from "@makanmasak/utils";
 import { badRequest } from "../../../shared/utils/api-error";
+import {
+  AI_API_KEY_ENCRYPTION_SALT,
+  type EncryptionSettings,
+} from "../../../shared/utils/encryption";
 import type { LLMConfig } from "@makanmasak/ai-analytics";
 import type {
   AIConfiguration,
@@ -31,17 +36,20 @@ import type {
   AIAnalyticsReport,
 } from "@makanmasak/ai-analytics";
 
-const AI_KEY_ENCRYPTION_SALT = "makanmakan-api-key-encryption-salt";
-
 export class AIAnalyticsService {
   private db;
   private d1: D1Database;
   private encryptionKey: string;
+  private cipher: EncryptionOptions;
 
-  constructor(d1: D1Database, encryptionKey: string) {
+  constructor(d1: D1Database, encryption: EncryptionSettings) {
     this.d1 = d1;
     this.db = createDatabase(d1);
-    this.encryptionKey = encryptionKey;
+    this.encryptionKey = encryption.key;
+    this.cipher = {
+      salt: AI_API_KEY_ENCRYPTION_SALT,
+      requireStrongKey: encryption.requireStrongKey,
+    };
   }
 
   async getConfig(restaurantId: string): Promise<AIConfiguration | null> {
@@ -88,7 +96,7 @@ export class AIAnalyticsService {
     const apiKey = await decrypt(
       result.apiKeyEncrypted,
       this.encryptionKey,
-      AI_KEY_ENCRYPTION_SALT,
+      this.cipher,
     );
 
     return {
@@ -104,7 +112,7 @@ export class AIAnalyticsService {
     const encryptedKey = await encrypt(
       input.apiKey,
       this.encryptionKey,
-      AI_KEY_ENCRYPTION_SALT,
+      this.cipher,
     );
 
     // Test the provider first

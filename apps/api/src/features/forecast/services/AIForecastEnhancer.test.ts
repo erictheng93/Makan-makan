@@ -9,6 +9,7 @@ import {
 } from "vitest";
 import type { IngredientForecastItem } from "@makanmasak/shared-types";
 import { AIForecastEnhancer } from "./AIForecastEnhancer";
+import type { EncryptionSettings } from "../../../shared/utils/encryption";
 import { createProvider } from "@makanmasak/ai-analytics";
 
 const chat = vi.hoisted(() => vi.fn());
@@ -32,6 +33,15 @@ function createForecast(
   };
 }
 
+/**
+ * The weak-key guard is production-only, so unit tests keep the short
+ * placeholder key and opt out explicitly. `AIForecastEnhancer.production.test.ts`
+ * covers the opted-in direction.
+ */
+function encryption(overrides: Partial<EncryptionSettings> = {}) {
+  return { key: "encryption-key", requireStrongKey: false, ...overrides };
+}
+
 function createDb(config: unknown) {
   const first = vi.fn(async () => config);
   const bind = vi.fn(() => ({ first }));
@@ -53,7 +63,7 @@ describe("AIForecastEnhancer", () => {
 
   it("returns statistical forecasts unchanged when AI is not configured", async () => {
     const { db, prepare } = createDb(null);
-    const service = new AIForecastEnhancer(db, "encryption-key");
+    const service = new AIForecastEnhancer(db, encryption());
     const forecasts = [createForecast()];
 
     await expect(
@@ -92,7 +102,7 @@ describe("AIForecastEnhancer", () => {
 }
 \`\`\``,
     });
-    const service = new AIForecastEnhancer(db, "encryption-key");
+    const service = new AIForecastEnhancer(db, encryption());
     const forecasts = [
       createForecast({
         ingredientId: 1,
@@ -168,7 +178,7 @@ describe("AIForecastEnhancer", () => {
 
     const result = await new AIForecastEnhancer(
       db,
-      "encryption-key",
+      encryption(),
     ).enhancePredictions("restaurant-1", forecasts, {
       startDate: "2026-06-08",
       endDate: "2026-06-09",
@@ -201,7 +211,7 @@ describe("AIForecastEnhancer", () => {
     const forecasts = [createForecast({ predictedQuantity: 8 })];
 
     await expect(
-      new AIForecastEnhancer(db, "encryption-key").enhancePredictions(
+      new AIForecastEnhancer(db, encryption()).enhancePredictions(
         "restaurant-1",
         forecasts,
         {
@@ -222,8 +232,59 @@ describe("AIForecastEnhancer", () => {
     consoleError.mockRestore();
   });
 
+  it("refuses to decrypt a stored API key in production without ENCRYPTION_KEY", async () => {
+    // The decrypt happens before enhancePredictions' try/catch, so the refusal
+    // surfaces instead of being swallowed by the graceful-degradation path.
+    const { db } = createDb({
+      provider: "openai",
+      api_key_encrypted: "aXYtYmFzZTY0:Y3QtYmFzZTY0",
+      model: null,
+      custom_base_url: null,
+    });
+    const service = new AIForecastEnhancer(
+      db,
+      encryption({ key: "", requireStrongKey: true }),
+    );
+
+    await expect(
+      service.enhancePredictions("restaurant-1", [createForecast()], {
+        startDate: "2026-06-08",
+        endDate: "2026-06-09",
+      }),
+    ).rejects.toThrow(/ENCRYPTION_KEY/);
+    expect(createProvider).not.toHaveBeenCalled();
+  });
+
+  it("keeps decrypting with the short fixture key outside production", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { db } = createDb({
+      provider: "openai",
+      api_key_encrypted: btoa("sk-test"),
+      model: null,
+      custom_base_url: null,
+    });
+    chat.mockResolvedValue({
+      content: JSON.stringify({ adjustments: [], recommendations: [] }),
+    });
+
+    await expect(
+      new AIForecastEnhancer(db, encryption()).enhancePredictions(
+        "restaurant-1",
+        [createForecast()],
+        { startDate: "2026-06-08", endDate: "2026-06-09" },
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({ recommendations: [], adjustmentReasons: {} }),
+    );
+    expect(createProvider).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: "openai", apiKey: "sk-test" }),
+    );
+
+    warn.mockRestore();
+  });
+
   it("builds prompts from only the top thirty forecasts", () => {
-    const service = new AIForecastEnhancer({} as D1Database, "encryption-key");
+    const service = new AIForecastEnhancer({} as D1Database, encryption());
     const forecasts = Array.from({ length: 31 }, (_, index) =>
       createForecast({
         ingredientId: index + 1,
@@ -248,7 +309,7 @@ describe("AIForecastEnhancer", () => {
   });
 
   it("adds contextual markers for weekends, fixed holidays, lunar periods, and seasons", () => {
-    const service = new AIForecastEnhancer({} as D1Database, "encryption-key");
+    const service = new AIForecastEnhancer({} as D1Database, encryption());
 
     expect(service.getHolidayContext("2026-01-01")).toHaveLength(3);
     expect(service.getHolidayContext("2026-06-13")).toHaveLength(3);
@@ -276,10 +337,7 @@ describe("AIForecastEnhancer", () => {
     });
 
     it("still reads New Year's Day as the first of January", () => {
-      const service = new AIForecastEnhancer(
-        {} as D1Database,
-        "encryption-key",
-      );
+      const service = new AIForecastEnhancer({} as D1Database, encryption());
 
       expect(service.getHolidayContext("2026-01-01")).toEqual([
         "元旦",
@@ -289,10 +347,7 @@ describe("AIForecastEnhancer", () => {
     });
 
     it("still reads a Saturday as the weekend", () => {
-      const service = new AIForecastEnhancer(
-        {} as D1Database,
-        "encryption-key",
-      );
+      const service = new AIForecastEnhancer({} as D1Database, encryption());
 
       // 2026-03-07 is a Saturday; a New York host reads it as Friday the 6th.
       expect(service.getHolidayContext("2026-03-07")).toEqual(["週末"]);

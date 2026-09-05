@@ -325,6 +325,74 @@ describe("PlatformIntegrationService", () => {
     });
   });
 
+  it("round-trips credentials with the short fixture key outside production", async () => {
+    // The weak-key guard is production-only precisely so this keeps working:
+    // "test-encryption-key" is 19 characters, well under the 32-character floor.
+    const service = new PlatformIntegrationService(env({ NODE_ENV: "test" }));
+    const encrypted = await service.encryptCredentials(
+      { clientId: "client-id", clientSecret: "client-secret" },
+      "test-encryption-key",
+    );
+
+    await expect(
+      service.decryptCredentials(encrypted, "test-encryption-key"),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        clientId: "client-id",
+        clientSecret: "client-secret",
+      }),
+    );
+  });
+
+  it("refuses to store credentials in production without ENCRYPTION_KEY", async () => {
+    // makanmasak-api-prod has no ENCRYPTION_KEY secret; the old code derived a
+    // valid AES-256 key from the empty string and wrote the row anyway (#300).
+    const mutations = mockMutations();
+    const service = new PlatformIntegrationService(
+      env({
+        NODE_ENV: "production",
+        ENCRYPTION_KEY: undefined as unknown as string,
+      }),
+    );
+
+    await expect(
+      service.connect("restaurant-1", "uber_eats", {
+        clientId: "client-id",
+        clientSecret: "client-secret",
+        storeId: "store-1",
+      }),
+    ).rejects.toThrow(/ENCRYPTION_KEY/);
+    expect(mutations.inserted).toHaveLength(0);
+    expect(mutations.updated).toHaveLength(0);
+  });
+
+  it("refuses to read stored credentials in production with a short key", async () => {
+    const lenient = new PlatformIntegrationService(env({ NODE_ENV: "test" }));
+    const encrypted = await lenient.encryptCredentials(
+      { clientId: "client-id" },
+      "test-encryption-key",
+    );
+
+    const strict = new PlatformIntegrationService(
+      env({ NODE_ENV: "production", ENCRYPTION_KEY: "short-key" }),
+    );
+
+    await expect(strict.readStoredCredentials(encrypted)).rejects.toThrow(
+      /ENCRYPTION_KEY/,
+    );
+  });
+
+  it("rejects rows written by the retired unsalted credential format", async () => {
+    // Pre-#300 rows were base64(iv||ciphertext) with no ':' separator, keyed by
+    // a bare SHA-256 of the secret. That code path is gone; say so rather than
+    // failing with an opaque AES-GCM error.
+    const service = new PlatformIntegrationService(env());
+
+    await expect(
+      service.readStoredCredentials(btoa("legacy-blob-without-separator")),
+    ).rejects.toThrow(/retired unsalted encryption format/);
+  });
+
   it("reads plaintext credentials stored by legacy JSON rows", async () => {
     const service = new PlatformIntegrationService(env());
 

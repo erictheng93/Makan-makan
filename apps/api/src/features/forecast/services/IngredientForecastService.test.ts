@@ -376,7 +376,7 @@ describe("IngredientForecastService", () => {
       {} as D1Database,
       kv,
       createForecastService([itemForecast()]) as never,
-      "encryption-key",
+      { key: "encryption-key", requireStrongKey: false },
     );
 
     await expect(

@@ -99,7 +99,12 @@ describe("AIAnalyticsService", () => {
     await seedRestaurant();
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-07T12:00:00.000Z"));
-    service = new AIAnalyticsService(testDb.bindings.DB, "encryption-key");
+    // The weak-key guard is production-only, so this suite keeps the short
+    // fixture key and states the non-production policy explicitly.
+    service = new AIAnalyticsService(testDb.bindings.DB, {
+      key: "encryption-key",
+      requireStrongKey: false,
+    });
     analyticsMocks.testProvider.mockResolvedValue({
       success: true,
       latencyMs: 42,
@@ -155,7 +160,10 @@ describe("AIAnalyticsService", () => {
     expect(cryptoMocks.decrypt).toHaveBeenCalledWith(
       "ciphertext",
       "encryption-key",
-      "makanmakan-api-key-encryption-salt",
+      expect.objectContaining({
+        salt: "makanmakan-api-key-encryption-salt",
+        requireStrongKey: false,
+      }),
     );
     expect(llmConfig).toEqual({
       provider: "custom",
@@ -186,7 +194,10 @@ describe("AIAnalyticsService", () => {
     expect(cryptoMocks.encrypt).toHaveBeenCalledWith(
       "sk-test-key",
       "encryption-key",
-      "makanmakan-api-key-encryption-salt",
+      expect.objectContaining({
+        salt: "makanmakan-api-key-encryption-salt",
+        requireStrongKey: false,
+      }),
     );
     expect(analyticsMocks.testProvider).toHaveBeenCalledWith({
       provider: "openai",

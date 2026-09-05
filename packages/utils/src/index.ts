@@ -84,7 +84,14 @@ export {
 } from "./timestamp";
 
 // Encryption utilities
-export { encrypt, decrypt } from "./encryption";
+export {
+  encrypt,
+  decrypt,
+  assertStrongEncryptionKey,
+  resetEncryptionKeyCache,
+  MIN_ENCRYPTION_KEY_LENGTH,
+  type EncryptionOptions,
+} from "./encryption";
 
 // QR code signing utilities
 export {

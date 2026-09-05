@@ -177,7 +177,14 @@ describe("forecast routes", () => {
         useAI: true,
       },
     );
-    expect(serviceFns.ingredientConstructorArgs[0]?.[3]).toBe("forecast-key");
+    // The route hands the service the key *and* the weak-key policy; this env
+    // has no NODE_ENV, so the guard stays off (production-only).
+    expect(serviceFns.ingredientConstructorArgs[0]?.[3]).toEqual(
+      expect.objectContaining({
+        key: "forecast-key",
+        requireStrongKey: false,
+      }),
+    );
   });
 
   it("maps forecast, accuracy, ingredient, and alert reads to services", async () => {

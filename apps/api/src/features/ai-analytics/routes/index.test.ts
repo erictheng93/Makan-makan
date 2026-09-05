@@ -116,9 +116,31 @@ describe("ai analytics routes", () => {
       },
     });
     expect(serviceMethods.getConfig).toHaveBeenCalledWith("restaurant-1");
+    // The route hands the service the key *and* the weak-key policy, so an
+    // absent ENCRYPTION_KEY cannot silently derive a reproducible key (#300).
+    // This env has no NODE_ENV, so the guard stays off — production-only.
+    expect(aiAnalyticsService).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ key: "test-key", requireStrongKey: false }),
+    );
     expect(meterEmit).toHaveBeenCalledWith(expect.anything(), "ai.requests", {
       metadata: { endpoint: "/config/restaurant-1" },
     });
+  });
+
+  it("arms the weak-key guard when the worker runs in production", async () => {
+    serviceMethods.getConfig.mockResolvedValue(null);
+
+    const response = await routes.fetch(
+      new Request("https://test/config/restaurant-1"),
+      { ...createEnv(), NODE_ENV: "production" } as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(aiAnalyticsService).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ requireStrongKey: true }),
+    );
   });
 
   it("returns provider choices when no AI configuration exists", async () => {

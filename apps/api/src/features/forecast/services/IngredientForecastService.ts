@@ -13,6 +13,7 @@ import type {
 } from "@makanmasak/shared-types";
 import type { ForecastService } from "./ForecastService";
 import { AIForecastEnhancer } from "./AIForecastEnhancer";
+import type { EncryptionSettings } from "../../../shared/utils/encryption";
 
 interface RecipeEntry {
   ingredientId: number;
@@ -37,11 +38,13 @@ export class IngredientForecastService {
     d1: D1Database,
     private kv: KVNamespace,
     private forecastService: ForecastService,
-    encryptionKey?: string,
+    encryption?: EncryptionSettings,
   ) {
     this.db = drizzle(d1);
-    if (encryptionKey) {
-      this.aiEnhancer = new AIForecastEnhancer(d1, encryptionKey);
+    // No key configured at all means no AI enhancement — the enhancer only ever
+    // decrypts a stored LLM key, so there is nothing for it to do.
+    if (encryption?.key) {
+      this.aiEnhancer = new AIForecastEnhancer(d1, encryption);
     }
   }
 

@@ -7,15 +7,27 @@ import type {
   ConnectPlatformRequest,
   UpdatePlatformConfigRequest,
 } from "@makanmasak/shared-types";
+import { encrypt, decrypt } from "@makanmasak/utils";
+import type { EncryptionOptions } from "@makanmasak/utils";
+import {
+  encryptionSettings,
+  PLATFORM_CREDENTIALS_ENCRYPTION_SALT,
+} from "../../../shared/utils/encryption";
 import type { Env } from "../../../types/env";
 
 export class PlatformIntegrationService {
   private db;
   private encryptionKey: string;
+  private cipher: EncryptionOptions;
 
   constructor(env: Env) {
     this.db = drizzle(env.DB);
-    this.encryptionKey = env.ENCRYPTION_KEY;
+    const encryption = encryptionSettings(env);
+    this.encryptionKey = encryption.key;
+    this.cipher = {
+      salt: PLATFORM_CREDENTIALS_ENCRYPTION_SALT,
+      requireStrongKey: encryption.requireStrongKey,
+    };
   }
 
   async getIntegrations(restaurantId: string) {
@@ -188,63 +200,39 @@ export class PlatformIntegrationService {
     return {};
   }
 
+  /**
+   * Credentials are AES-256-GCM over a PBKDF2-derived key, in the shared
+   * `base64(iv):base64(ciphertext)` framing from `@makanmasak/utils`.
+   *
+   * This replaced a local scheme that used `SHA-256(key)` directly as the AES
+   * key, with no KDF, and framed the result as one un-separated base64 blob
+   * (issue #300). Rows written by that scheme are not readable here and are not
+   * meant to be — see `decryptCredentials`.
+   */
   async encryptCredentials(
     creds: PlatformCredentials,
     key: string,
   ): Promise<string> {
-    const encoder = new TextEncoder();
-    const plaintext = encoder.encode(JSON.stringify(creds));
-
-    const keyHash = await crypto.subtle.digest("SHA-256", encoder.encode(key));
-    const cryptoKey = await crypto.subtle.importKey(
-      "raw",
-      keyHash,
-      { name: "AES-GCM" },
-      false,
-      ["encrypt"],
-    );
-
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const ciphertext = await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv },
-      cryptoKey,
-      plaintext,
-    );
-
-    const combined = new Uint8Array(iv.length + ciphertext.byteLength);
-    combined.set(iv);
-    combined.set(new Uint8Array(ciphertext), iv.length);
-
-    return btoa(String.fromCharCode(...combined));
+    return encrypt(JSON.stringify(creds), key, this.cipher);
   }
 
   async decryptCredentials(
     encrypted: string,
     key: string,
   ): Promise<PlatformCredentials> {
-    const encoder = new TextEncoder();
+    // The retired scheme produced a single base64 blob; ':' is not in the
+    // base64 alphabet, so the two formats are unambiguous. Say so plainly
+    // instead of letting AES-GCM fail with an opaque error, or — worse —
+    // keeping the no-KDF code path alive to read it.
+    if (!encrypted.includes(":")) {
+      throw new Error(
+        "Stored platform credentials use the retired unsalted encryption " +
+          "format and cannot be read. Reconnect the platform to re-encrypt " +
+          "them.",
+      );
+    }
 
-    const combined = Uint8Array.from(atob(encrypted), (c) => c.charCodeAt(0));
-
-    const iv = combined.slice(0, 12);
-    const ciphertext = combined.slice(12);
-
-    const keyHash = await crypto.subtle.digest("SHA-256", encoder.encode(key));
-    const cryptoKey = await crypto.subtle.importKey(
-      "raw",
-      keyHash,
-      { name: "AES-GCM" },
-      false,
-      ["decrypt"],
-    );
-
-    const plaintext = await crypto.subtle.decrypt(
-      { name: "AES-GCM", iv },
-      cryptoKey,
-      ciphertext,
-    );
-
-    const decoded = new TextDecoder().decode(plaintext);
-    return JSON.parse(decoded) as PlatformCredentials;
+    const plaintext = await decrypt(encrypted, key, this.cipher);
+    return JSON.parse(plaintext) as PlatformCredentials;
   }
 }

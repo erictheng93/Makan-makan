@@ -19,6 +19,7 @@ import { moduleGate } from "../../../middleware/moduleGate";
 import { quotaGate } from "../../../middleware/quotaGate";
 import { meterEmit } from "../../../shared/utils/meter";
 import { forbidden, badRequest } from "../../../shared/utils/api-error";
+import { encryptionSettings } from "../../../shared/utils/encryption";
 
 type AiAnalyticsEnv = {
   Bindings: Env;
@@ -70,7 +71,7 @@ routes.get(
     }
     assertRestaurantScope(user, restaurantId);
 
-    const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
+    const service = new AIAnalyticsService(c.env.DB, encryptionSettings(c.env));
     const config = await service.getConfig(restaurantId);
 
     if (!config) {
@@ -118,7 +119,7 @@ routes.post(
     }
     assertRestaurantScope(user, data.restaurantId);
 
-    const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
+    const service = new AIAnalyticsService(c.env.DB, encryptionSettings(c.env));
 
     // Test the provider first
     const testResult = await service.testProvider({
@@ -157,7 +158,7 @@ routes.post(
   async (c) => {
     await trackAiRequest(c);
     const data = c.get("validatedBody");
-    const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
+    const service = new AIAnalyticsService(c.env.DB, encryptionSettings(c.env));
     const result = await service.testProvider(data);
     return c.json(result);
   },
@@ -203,7 +204,7 @@ routes.post(
     }
     assertRestaurantScope(user, data.restaurantId);
 
-    const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
+    const service = new AIAnalyticsService(c.env.DB, encryptionSettings(c.env));
     const report = await service.generateReport(
       data.restaurantId,
       data.timeRange,
@@ -238,7 +239,7 @@ routes.get(
     assertRestaurantScope(c.get("user"), restaurantId);
     const { timeRange, limit } = c.get("validatedQuery");
 
-    const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
+    const service = new AIAnalyticsService(c.env.DB, encryptionSettings(c.env));
     const products = await service.getTrafficDrivers(
       restaurantId,
       {
@@ -275,7 +276,7 @@ routes.get(
     assertRestaurantScope(c.get("user"), restaurantId);
     const { timeRange, limit } = c.get("validatedQuery");
 
-    const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
+    const service = new AIAnalyticsService(c.env.DB, encryptionSettings(c.env));
     const products = await service.getBestsellers(
       restaurantId,
       {
@@ -312,7 +313,7 @@ routes.get(
     assertRestaurantScope(c.get("user"), restaurantId);
     const { timeRange, limit } = c.get("validatedQuery");
 
-    const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
+    const service = new AIAnalyticsService(c.env.DB, encryptionSettings(c.env));
     const products = await service.getProfitLeaders(
       restaurantId,
       {
@@ -349,7 +350,7 @@ routes.get(
     assertRestaurantScope(c.get("user"), restaurantId);
     const { timeRange } = c.get("validatedQuery");
 
-    const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
+    const service = new AIAnalyticsService(c.env.DB, encryptionSettings(c.env));
     const products = await service.analyzeProducts(restaurantId, {
       range: timeRange as
         | "7d"
@@ -382,7 +383,7 @@ routes.get(
     assertRestaurantScope(c.get("user"), restaurantId);
     const { startDate, endDate } = c.get("validatedQuery");
 
-    const service = new AIAnalyticsService(c.env.DB, c.env.ENCRYPTION_KEY);
+    const service = new AIAnalyticsService(c.env.DB, encryptionSettings(c.env));
     const usage = await service.getUsageStats(restaurantId, startDate, endDate);
 
     return c.json({
