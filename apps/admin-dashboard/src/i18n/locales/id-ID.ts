@@ -3775,6 +3775,8 @@ const idID: Messages = {
     title: "Manajemen Kursi",
     tableInfo: "Meja: {tableNumber} | Mode Kursi",
     batchCreate: "Buat Kursi Massal",
+    atCapacity:
+      "Meja ini sudah memiliki {capacity} kursi sesuai kapasitasnya. Naikkan kapasitas meja sebelum menambah kursi.",
     regenerateQR: "Buat Ulang QR",
     printAllQR: "Cetak Semua QR Kursi",
     printAllTitle: "Kode QR Kursi Meja {table}",

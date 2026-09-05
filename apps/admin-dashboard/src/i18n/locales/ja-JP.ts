@@ -3758,6 +3758,8 @@ const jaJP: Messages = {
     title: "座席管理",
     tableInfo: "テーブル: {tableNumber} | 座席モード",
     batchCreate: "座席一括作成",
+    atCapacity:
+      "座席数がテーブル定員 {capacity} に達しています。先にテーブル定員を増やしてください。",
     regenerateQR: "QR再生成",
     printAllQR: "全座席のQRを印刷",
     printAllTitle: "テーブル{table} 座席QRコード",

@@ -97,6 +97,7 @@
       <SeatManagement
         :table-id="table.id"
         :table-number="table.tableNumber"
+        :table-capacity="table.capacity"
         :seats="seats"
         :grid-columns="4"
         @update="loadSeats"

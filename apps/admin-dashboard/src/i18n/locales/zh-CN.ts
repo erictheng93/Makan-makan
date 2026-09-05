@@ -3688,6 +3688,7 @@ const zhCN: Messages = {
     title: "座位管理",
     tableInfo: "桌号: {tableNumber} | 座位模式",
     batchCreate: "批量新增座位",
+    atCapacity: "座位数已达桌台容量 {capacity}，请先调高桌台容量再新增座位。",
     regenerateQR: "重新生成 QR",
     printAllQR: "打印本桌全部座位 QR",
     printAllTitle: "桌号 {table} 座位 QR",

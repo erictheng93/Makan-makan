@@ -3761,6 +3761,8 @@ const viVN: Messages = {
     title: "Quản lý ghế",
     tableInfo: "Bàn: {tableNumber} | Chế độ ghế",
     batchCreate: "Tạo ghế hàng loạt",
+    atCapacity:
+      "Bàn đã đủ {capacity} ghế theo sức chứa. Hãy tăng sức chứa của bàn trước khi thêm ghế.",
     regenerateQR: "Tạo lại QR",
     printAllQR: "In tất cả QR ghế",
     printAllTitle: "Mã QR ghế bàn {table}",

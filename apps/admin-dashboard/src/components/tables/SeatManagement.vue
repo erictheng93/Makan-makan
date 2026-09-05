@@ -315,6 +315,17 @@
 
             <form @submit.prevent="batchCreateSeats">
               <div class="space-y-4">
+                <p
+                  v-if="atSeatCapacity"
+                  class="text-sm text-amber-700 bg-amber-50 rounded-lg px-3 py-2"
+                >
+                  {{
+                    t("seatManagement.atCapacity", {
+                      capacity: tableCapacityLimit,
+                    })
+                  }}
+                </p>
+
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
                     {{ t("seatManagement.seatCount") }}
@@ -325,8 +336,9 @@
                     type="number"
                     min="1"
                     :max="batchSeatLimit"
+                    :disabled="atSeatCapacity"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
                   />
                 </div>
 
@@ -376,7 +388,8 @@
                 </button>
                 <button
                   type="submit"
-                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  :disabled="atSeatCapacity"
+                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
                   {{ t("seatManagement.create") }}
                 </button>
@@ -488,9 +501,14 @@ const tableCapacityLimit = computed(() =>
 const remainingSeatCapacity = computed(() =>
   Math.max(tableCapacityLimit.value - activeSeatCount.value, 0),
 );
-const batchSeatLimit = computed(() => Math.max(remainingSeatCapacity.value, 1));
+// A full table has room for nothing, and the input has to say so. Clamping the
+// ceiling up to 1 made the field offer a seat the server then refused with a
+// 400, and typing anything above it tripped silent HTML5 validation -- the
+// submit handler never ran and the dialog just sat there.
+const atSeatCapacity = computed(() => remainingSeatCapacity.value === 0);
+const batchSeatLimit = computed(() => remainingSeatCapacity.value);
 const batchSeatDefault = computed(() =>
-  Math.min(Math.max(remainingSeatCapacity.value, 1), tableCapacityLimit.value),
+  Math.min(remainingSeatCapacity.value, tableCapacityLimit.value),
 );
 
 watch(

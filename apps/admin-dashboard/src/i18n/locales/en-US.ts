@@ -3753,6 +3753,8 @@ const enUS: Messages = {
     title: "Seat Management",
     tableInfo: "Table: {tableNumber} | Seat Mode",
     batchCreate: "Batch Create Seats",
+    atCapacity:
+      "This table already has all {capacity} seats its capacity allows. Raise the table capacity before adding more.",
     regenerateQR: "Regenerate QR",
     printAllQR: "Print All Seat QR Codes",
     printAllTitle: "Table {table} Seat QR Codes",

@@ -3804,6 +3804,7 @@ const zhTWCore = {
     title: "座位管理",
     tableInfo: "桌號: {tableNumber} | 座位模式",
     batchCreate: "批量新增座位",
+    atCapacity: "座位數已達桌台容量 {capacity}，請先調高桌台容量再新增座位。",
     regenerateQR: "重新生成 QR",
     printAllQR: "列印本桌全部座位 QR",
     printAllTitle: "桌號 {table} 座位 QR",
