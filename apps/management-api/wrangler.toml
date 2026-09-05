@@ -96,7 +96,6 @@ bucket_name = "makanmasak-management-bundles-prod"
 
 # Secrets (set via wrangler secret put):
 # - JWT_SECRET: JWT signing secret for management tokens
-# - ENCRYPTION_KEY: For encrypting stored API tokens
 # - PLATFORM_CF_API_TOKEN: Platform Cloudflare API token for managed provisioning
 # - PLATFORM_CF_ACCOUNT_ID: Platform Cloudflare account ID
 # - CF_API_TOKEN / CF_ACCOUNT_ID: Legacy fallback names for platform provisioning

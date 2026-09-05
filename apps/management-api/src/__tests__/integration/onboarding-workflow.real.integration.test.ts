@@ -193,7 +193,6 @@ function createEnv(
     LOG_LEVEL: "error",
     JWT_SECRET: "test-secret",
     INTERNAL_API_TOKEN: "internal-token",
-    ENCRYPTION_KEY: "a".repeat(32),
     CF_API_TOKEN: "test-token",
     CF_ACCOUNT_ID: "test-account",
     MANAGEMENT_DB: db as unknown as D1Database,

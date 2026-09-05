@@ -31,7 +31,6 @@ function createEnv(db: D1DatabaseAdapter): ManagementEnv {
     CORS_ORIGIN: "*",
     LOG_LEVEL: "error",
     JWT_SECRET: "test-secret",
-    ENCRYPTION_KEY: "a".repeat(32),
     CF_API_TOKEN: "test-token",
     CF_ACCOUNT_ID: "test-account",
     MANAGEMENT_DB: db as unknown as D1Database,

@@ -82,7 +82,6 @@ function buildEnv(cacheKv?: KVNamespace): ManagementEnv {
     CORS_ORIGIN: "http://localhost:5173",
     LOG_LEVEL: "error",
     JWT_SECRET: "test-secret",
-    ENCRYPTION_KEY: "a".repeat(32),
     CF_API_TOKEN: "test-token",
     CF_ACCOUNT_ID: "test-account",
     MANAGEMENT_DB: { prepare: () => noRowStatement } as unknown as D1Database,

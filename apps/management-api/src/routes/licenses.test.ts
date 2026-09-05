@@ -15,7 +15,6 @@ function createEnv(): ManagementEnv {
     CORS_ORIGIN: "http://localhost:3010",
     LOG_LEVEL: "error",
     JWT_SECRET: "test-secret",
-    ENCRYPTION_KEY: "a".repeat(32),
     CF_API_TOKEN: "test-token",
     CF_ACCOUNT_ID: "test-account",
     // Minimal D1 stub: the verify handler only needs prepare().bind().first().

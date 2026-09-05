@@ -25,7 +25,11 @@ export interface ManagementEnv {
   // Secrets (set via wrangler secret put)
   JWT_SECRET: string;
   MANAGEMENT_JWT_SECRET?: string;
-  ENCRYPTION_KEY: string;
+  // No ENCRYPTION_KEY here on purpose: nothing in this app's src encrypts or
+  // decrypts anything, so declaring it required only forced every test fixture
+  // to invent a value and implied a production secret that never needed to
+  // exist. Re-add it (and the wrangler.toml/.dev.vars.example notes) only
+  // alongside the code that actually reads it.
   CF_API_TOKEN: string;
   CF_ACCOUNT_ID: string;
   PLATFORM_CF_API_TOKEN?: string;

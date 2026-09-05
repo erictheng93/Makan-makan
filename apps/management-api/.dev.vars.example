@@ -24,6 +24,3 @@ INTERNAL_API_TOKEN=your-local-internal-api-token-min-32-chars-change-this-value
 # management auth middleware verifies with the same fallback, so setting this
 # is optional locally and does not affect the exchange-verify step above.
 # MANAGEMENT_JWT_SECRET=your-dedicated-management-secret-min-32-chars
-
-# Optional: encryption key for stored tenant API tokens
-# ENCRYPTION_KEY=your-encryption-key

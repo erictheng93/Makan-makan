@@ -123,8 +123,13 @@ allow-list (`http://localhost:5177,http://localhost:8789` in dev); prod is
 - `MANAGEMENT_JWT_SECRET` (optional) — if set, used instead of `JWT_SECRET`
   for signing/verifying management-scoped tokens (`managementJwtSecret()` in
   `middleware/auth.ts` falls back to `JWT_SECRET` if unset).
-- `ENCRYPTION_KEY` — declared in the env type but **no code in this app's `src`
-  currently reads it** (grep found no usage outside the type definition).
+- ~~`ENCRYPTION_KEY`~~ — **removed 2026-09-05.** It was declared required in
+  `ManagementEnv` but no code in this app's `src` ever read it; the only
+  references were six test fixtures inventing `"a".repeat(32)` to satisfy the
+  type. The declaration, the `wrangler.toml` comment, the `.dev.vars.example`
+  entry and those fixtures are all gone. A Rust port should not carry it. (The
+  platform API — `apps/api` — is a different story: it genuinely reads
+  `ENCRYPTION_KEY` and requires it in production, see #300.)
 - `CF_API_TOKEN` / `CF_ACCOUNT_ID` — legacy fallback names for platform
   Cloudflare credentials.
 - `PLATFORM_CF_API_TOKEN` / `PLATFORM_CF_ACCOUNT_ID` (optional, preferred) —
