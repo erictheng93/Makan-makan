@@ -34,7 +34,9 @@ export interface Restaurant {
 }
 
 export interface RestaurantSettings {
-  timezone: string;
+  // No `timezone` here: the business day is cut at `restaurants.timezone`, a
+  // column of its own since #329. A copy inside settings is a second place for
+  // the boundary to live and disagree from.
   currency: string;
   language: string;
   operatingHours: OperatingHours;
