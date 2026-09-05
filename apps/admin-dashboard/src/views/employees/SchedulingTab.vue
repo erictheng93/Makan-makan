@@ -255,6 +255,7 @@ import { useEmployeeList } from "@/composables/useEmployeeList";
 import { toLocalDateStr } from "@/utils/dateUtils";
 import { schedulingService } from "@/services/schedulingService";
 import { leavesService } from "@/services/leavesService";
+import type { Employee } from "@/types/employee";
 import type { ShiftTemplate, EmployeeSchedule } from "@/types/scheduling";
 import type { LeaveRequest } from "@/services/leavesService";
 import SchedulingCalendarGrid from "@/components/scheduling/SchedulingCalendarGrid.vue";
@@ -399,6 +400,18 @@ watch(dateRange, () => {
   loadAll();
 });
 
+/**
+ * Whether this person can still be put on a shift.
+ *
+ * A departure is recorded by deactivating the account: the row is kept for its
+ * order history, its sessions are revoked and it can no longer log in. Both
+ * staff pickers below read the same unfiltered user list the roster does, so
+ * without this they went on offering people who had left the restaurant --
+ * shown with a green dot, and assignable.
+ */
+const isSchedulable = (employee: Employee): boolean =>
+  employee.isActive && employee.status !== "suspended";
+
 // ── Computed: unassigned employees ───────────────────────
 const unassignedEmployees = computed(() => {
   const startStr = toLocalDateStr(dateRange.value.start);
@@ -412,6 +425,7 @@ const unassignedEmployees = computed(() => {
   );
 
   return users.value
+    .filter(isSchedulable)
     .filter((u) => !assignedIds.has(u.id))
     .map((u) => ({
       id: u.id,
@@ -531,6 +545,7 @@ const availableForCell = computed(() => {
       .map((s) => s.employeeId),
   );
   return users.value
+    .filter(isSchedulable)
     .filter((u) => !assignedIds.has(u.id))
     .map((u) => ({ id: u.id, name: u.fullName || u.username, role: u.role }));
 });
