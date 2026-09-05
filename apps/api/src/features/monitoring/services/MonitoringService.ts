@@ -30,13 +30,20 @@ export interface MonitoringEnv {
   DB?: D1Database;
   QR_SIGNING_KEY?: string;
   /**
-   * Comma-separated hostnames a `webhook` alert rule may be delivered to, e.g.
+   * Comma-separated hostnames an alert rule may be delivered to, e.g.
    * "hooks.example.com,ops.example.com". The URL lives in an alert rule, which
    * is data rather than deployment config, so it is checked against this list
-   * at send time. Unset means no webhook alert is sent at all -- see
-   * sendWebhookAlert.
+   * at send time, for every rule type. Unset means no rule-supplied URL is
+   * fetched at all -- see isWebhookUrlTrusted.
    */
   ALERT_WEBHOOK_ALLOWED_HOSTS?: string;
+  /**
+   * Deployment-configured Slack incoming webhook (a wrangler secret).
+   * `/alerts/test` copies it into the rule it writes when the caller supplies
+   * no webhookUrl, so the same string can arrive at the send path as either
+   * deployment config or request data -- see isWebhookUrlTrusted.
+   */
+  SLACK_WEBHOOK_URL?: string;
 }
 
 /** Aggregation window for the API metrics reported by getMetrics(). */
@@ -1111,6 +1118,8 @@ export class MonitoringService {
     message: string,
     severity: string,
   ): Promise<void> {
+    if (!this.isWebhookUrlTrusted(webhookUrl)) return;
+
     try {
       const color =
         {
@@ -1154,6 +1163,25 @@ export class MonitoringService {
     } catch (error) {
       this.logger.error("Send Slack alert error", error as Error);
     }
+  }
+
+  /**
+   * 出站前的唯一一道門，slack 與 webhook 兩個出口都走這裡。規則裡的 type
+   * 也是資料：允許清單若只掛在 webhook 那一支，攻擊者把 type 改成 "slack"
+   * 就整個繞過去，照樣讓平台帶著全平台 metrics 打去他指定的位址。判斷因此
+   * 看的是「這個 URL 從哪來」，而不是規則自稱是什麼型別。
+   *
+   * 只有部署設定寫進來的那一個位址免檢——它由 wrangler secret 決定，能寫規
+   * 則的人改不到；/alerts/test 沒收到 webhookUrl 時會把它填進規則，到這裡
+   * 已分不出來源，只能拿原值比對還原。其餘一律走允許清單。
+   */
+  private isWebhookUrlTrusted(webhookUrl: string): boolean {
+    const deploymentWebhookUrl = this.env?.SLACK_WEBHOOK_URL;
+    if (deploymentWebhookUrl && webhookUrl === deploymentWebhookUrl) {
+      return true;
+    }
+
+    return this.isWebhookUrlAllowed(webhookUrl);
   }
 
   /**
@@ -1204,7 +1232,7 @@ export class MonitoringService {
     message: string,
     severity: string,
   ): Promise<void> {
-    if (!this.isWebhookUrlAllowed(webhookUrl)) return;
+    if (!this.isWebhookUrlTrusted(webhookUrl)) return;
 
     try {
       const payload = {

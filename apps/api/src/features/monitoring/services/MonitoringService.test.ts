@@ -654,6 +654,152 @@ describe("MonitoringService", () => {
     },
   );
 
+  // 規則裡的 type 同樣是攻擊者寫的資料。允許清單一度只掛在 webhook 那一支，
+  // 於是把 type 改成 "slack" 就整條繞過去 —— 同一個 webhookUrl、同一份全平台
+  // metrics，只是換個字串就送得出去。兩個出口現在共用同一道門。
+  it.each<[string, string | undefined, string]>([
+    [
+      "no allowlist is configured",
+      undefined,
+      "https://alerts.example.test/hook",
+    ],
+    [
+      "the host is not on the allowlist",
+      "alerts.example.test",
+      "https://attacker.example.test/collect",
+    ],
+    [
+      "the URL is not https",
+      "attacker.example.test",
+      "http://attacker.example.test/collect",
+    ],
+  ])(
+    "does not send a slack-type alert when %s",
+    async (_label, allowedHosts, webhookUrl) => {
+      const { kv } = createKV();
+      const service = new MonitoringService(
+        kv,
+        allowedHosts ? { ALERT_WEBHOOK_ALLOWED_HOSTS: allowedHosts } : {},
+      );
+      await service.createAlertRule({
+        name: "Critical errors",
+        condition: "errorMetrics.criticalErrors >= 1",
+        metric: "errorMetrics.criticalErrors",
+        operator: ">=",
+        threshold: 1,
+        duration: 60,
+        config: {
+          type: "slack",
+          severity: "critical",
+          enabled: true,
+          webhookUrl,
+        },
+      });
+
+      await service.recordError("fatal_error", "Fatal failure", "fatal");
+
+      expect(fetch).not.toHaveBeenCalled();
+      await expect(service.getRecentAlerts()).resolves.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ title: "Critical errors" }),
+        ]),
+      );
+    },
+  );
+
+  it("sends a slack-type alert to an allowlisted host", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv, {
+      ALERT_WEBHOOK_ALLOWED_HOSTS: "alerts.example.test",
+    });
+    await service.createAlertRule({
+      name: "Critical errors",
+      condition: "errorMetrics.criticalErrors >= 1",
+      metric: "errorMetrics.criticalErrors",
+      operator: ">=",
+      threshold: 1,
+      duration: 60,
+      config: {
+        type: "slack",
+        severity: "critical",
+        enabled: true,
+        webhookUrl: "https://alerts.example.test/hook",
+      },
+    });
+
+    await service.recordError("fatal_error", "Fatal failure", "fatal");
+
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch).toHaveBeenCalledWith(
+      "https://alerts.example.test/hook",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          "Content-Type": "application/json",
+        }),
+      }),
+    );
+  });
+
+  // 部署設定的 SLACK_WEBHOOK_URL 是另一回事：/alerts/test 在呼叫者沒給網址時
+  // 會把它填進規則，所以它會走同一條送出路徑。它由 wrangler secret 決定、規則
+  // 寫不到，因此免受允許清單約束 —— 收緊出站不能順手把線上的 Slack 通知關掉。
+  it("sends to the deployment-configured Slack webhook without an allowlist", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv, {
+      SLACK_WEBHOOK_URL: "https://hooks.example.test/slack",
+    });
+    await service.createAlertRule({
+      name: "Critical errors",
+      condition: "errorMetrics.criticalErrors >= 1",
+      metric: "errorMetrics.criticalErrors",
+      operator: ">=",
+      threshold: 1,
+      duration: 60,
+      config: {
+        type: "slack",
+        severity: "critical",
+        enabled: true,
+        webhookUrl: "https://hooks.example.test/slack",
+      },
+    });
+
+    await service.recordError("fatal_error", "Fatal failure", "fatal");
+
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch).toHaveBeenCalledWith(
+      "https://hooks.example.test/slack",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  // 信任的是那一個位址，不是它的主機名。否則拿到 SLACK_WEBHOOK_URL 的主機就
+  // 等於拿到一張通行證，攻擊者換個路徑照樣送得出去。
+  it("does not trust another URL that merely shares the configured Slack host", async () => {
+    const { kv } = createKV();
+    const service = new MonitoringService(kv, {
+      SLACK_WEBHOOK_URL: "https://hooks.example.test/slack",
+    });
+    await service.createAlertRule({
+      name: "Critical errors",
+      condition: "errorMetrics.criticalErrors >= 1",
+      metric: "errorMetrics.criticalErrors",
+      operator: ">=",
+      threshold: 1,
+      duration: 60,
+      config: {
+        type: "slack",
+        severity: "critical",
+        enabled: true,
+        webhookUrl: "https://hooks.example.test/collect",
+      },
+    });
+
+    await service.recordError("fatal_error", "Fatal failure", "fatal");
+
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("evaluates alert operators and skips inactive, disabled, and cooling rules", async () => {
     const { kv } = createKV();
     const service = new MonitoringService(kv);
