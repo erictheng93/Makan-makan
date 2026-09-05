@@ -102,8 +102,12 @@ export interface CouponTemplateData {
 }
 
 // 分頁響應
-export interface PaginatedCouponsResponse {
-  coupons: unknown[];
+//
+// Generic so a caller that knows its row shape can say so. The default keeps
+// every existing consumer compiling unchanged; CouponsService passes the
+// formatted row type it actually produces.
+export interface PaginatedCouponsResponse<TCoupon = unknown> {
+  coupons: TCoupon[];
   total: number;
   page: number;
   limit: number;

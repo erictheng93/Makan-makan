@@ -63,6 +63,16 @@ interface FormattedCouponMoney {
   minOrderAmount: number | null;
 }
 
+/**
+ * One coupon exactly as the list endpoints return it: the row `getCoupons`
+ * selects, plus the three amounts `formatCouponMoneyFields` derives. Derived
+ * rather than restated so a schema change lands here as a compile error.
+ */
+export type FormattedCouponRow = Awaited<
+  ReturnType<BaseCouponService["getCoupons"]>
+>["coupons"][number] &
+  FormattedCouponMoney;
+
 interface CouponUsageByDay {
   date: string;
   usageCount: number;
@@ -190,7 +200,7 @@ export class CouponsService extends BaseCouponService {
     limit = 20,
     _sortBy = "createdAt",
     _sortOrder: "desc" | "asc" = "desc",
-  ): Promise<PaginatedCouponsResponse> {
+  ): Promise<PaginatedCouponsResponse<FormattedCouponRow>> {
     const result = await this.getCoupons(filters, page, limit);
     const couponList = result.coupons.map((coupon) =>
       this.formatCouponMoneyFields(coupon),
@@ -211,7 +221,9 @@ export class CouponsService extends BaseCouponService {
   /**
    * Create coupon with duplicate check and validation
    */
-  async createCouponWithValidation(data: CreateCouponData): Promise<unknown> {
+  async createCouponWithValidation(
+    data: CreateCouponData,
+  ): ReturnType<BaseCouponService["createCoupon"]> {
     // Validate date range
     const validFrom = new Date(data.validFrom);
     const validTo = new Date(data.validTo);

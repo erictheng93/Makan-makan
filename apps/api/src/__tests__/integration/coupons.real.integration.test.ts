@@ -34,7 +34,10 @@ import {
 } from "./helpers/real-test-app";
 import { buildSeedHelpers } from "./helpers/seed-helper";
 import { readData, readEnvelope, type ServiceData } from "../helpers/read-json";
-import type { CouponsService } from "../../features/coupons/services/CouponsService";
+import type {
+  CouponsService,
+  FormattedCouponRow,
+} from "../../features/coupons/services/CouponsService";
 import {
   CouponService as DatabaseCouponService,
   couponDistributions,
@@ -46,19 +49,29 @@ import {
 import { and, eq } from "drizzle-orm";
 
 /**
- * CouponsService.createCouponWithValidation is declared `Promise<unknown>` and
- * PaginatedCouponsResponse.coupons inherits that, so the coupon shape has to be
- * stated here rather than derived. Narrowing those two signatures is filed in
- * TODOS.md.
+ * A single coupon as the API returns it, derived from the service rather than
+ * restated. `createCouponWithValidation` has a concrete return type now, so a
+ * schema change reaches this file as a compile error.
+ *
+ * The interface this replaced declared `id: string`, while `coupons.id` is
+ * `integer` autoincrement — nothing caught that, because every signature behind
+ * it was `unknown`. `NonNullable` is needed because the base `createCoupon`
+ * returns `coupon[0]` unmapped when the insert yields no row, which is also why
+ * the assertions below reach through `?.`.
+ *
+ * Used for the create and deactivate responses; both hand back the same coupon
+ * row shape.
  */
-interface CouponResponse {
-  id: string;
-  code: string;
-  name: string;
-  discountType: string;
-  discountValue: number;
-  isActive?: boolean | number;
-}
+type CouponResponse = NonNullable<
+  ServiceData<CouponsService["createCouponWithValidation"]>
+>;
+
+/**
+ * What the list endpoints return: the row `getCoupons` selects plus the three
+ * amounts the API-side formatter derives. A different shape from the create
+ * response, so it gets its own name rather than borrowing that one.
+ */
+type ListedCoupon = FormattedCouponRow;
 
 type CouponValidation = ServiceData<
   CouponsService["validateCouponWithBusinessRules"]
@@ -739,7 +752,7 @@ describe("Coupons API — real integration", () => {
     );
 
     expect(res.status).toBe(200);
-    const body = await readEnvelope<CouponResponse[]>(res);
+    const body = await readEnvelope<ListedCoupon[]>(res);
     expect(body.success).toBe(true);
     // GET /coupons puts `result.coupons` straight in `data`; the pagination
     // block is a sibling of it, not a wrapper around it.
@@ -822,8 +835,12 @@ describe("Coupons API — real integration", () => {
     expect(res.status).toBe(200);
     const body = await readEnvelope<CouponResponse>(res);
     expect(body.success).toBe(true);
-    const isActive = body.data?.isActive;
-    expect(isActive === false || isActive === 0).toBe(true);
+    // `is_active` is declared integer({ mode: "boolean" }), and this response
+    // comes back through Drizzle's .returning(), so it is the JS boolean false
+    // rather than SQLite's 0. The previous assertion accepted either because
+    // the response type was `unknown` and it could not tell; now that the type
+    // is derived from the service, `=== 0` no longer compiles (TS2367).
+    expect(body.data?.isActive).toBe(false);
   });
 
   // ── Auth gate on list endpoint ────────────────────────────────────────────
@@ -1204,7 +1221,7 @@ describe("Coupons API — real integration", () => {
         headers: { authorization: `Bearer ${adminToken}` },
       }),
     );
-    const body = await readEnvelope<CouponResponse[]>(list);
+    const body = await readEnvelope<ListedCoupon[]>(list);
     expect((body.data ?? []).map((row) => row.id)).not.toContain(coupon.id);
   });
 
@@ -1320,7 +1337,7 @@ describe("Coupons API — real integration", () => {
           }),
         );
         expect(response.status).toBe(200);
-        const body = await readEnvelope<CouponResponse[]>(response);
+        const body = await readEnvelope<ListedCoupon[]>(response);
         const codes = (body.data ?? []).map((row) => row.code);
         expect(codes).toContain(expectedCode);
         expect(codes).not.toContain("SCHEDULED");
