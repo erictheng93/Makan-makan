@@ -98,6 +98,38 @@ the same way. `apps/api/src/openapi/schemas/leaves.ts` is fiction end to end
 OpenAPI document does not come from it. Deleting dead declarations is a
 separate decision from fixing live ones.
 
+## leaves
+
+### Attachment upload is a shell, and four leave components are unrouted
+
+**Priority:** P2 **Status:** → **[#343](https://github.com/erictheng93/Makan-Masak/issues/343)**,
+**[#344](https://github.com/erictheng93/Makan-Masak/issues/344)** (filed
+2026-09-05, found while closing
+[#330](https://github.com/erictheng93/Makan-Masak/issues/330))
+
+Both need a product decision, so neither was fixed in place.
+
+- **#343** — `LeaveRequestDialog` gates its submit button on
+  `attachments.length > 0` when the leave type requires documentation,
+  collects `File` objects, and neither caller sends them. The column is a
+  single `attachment_url` and no upload endpoint is wired, so a request that
+  is *required* to carry proof is always stored with none.
+- **#344** — `LeaveView.vue` has no route and no importer, which makes
+  `LeaveApprovalList`, `LeaveBalanceCard`, `LeaveCalendar` and
+  `LeaveRequestList` unreachable. The live path is `LeavesTab.vue` at
+  `/dashboard/employees/leaves`. Either delete them or route them and add the
+  `/dashboard/leaves/:id` detail page that `handleViewDetails` already
+  pushes to.
+
+**Fixed in place the same day** (small, no decision needed): the reject box in
+`LeaveDecisionCard` said 拒絕原因（可選） while `rejectLeaveRequestSchema`
+requires a non-empty reason, so rejecting with it blank returned 400; the
+request dialog was handed the whole restaurant's balances and
+`getTypeBalance()` takes the first row per leave type, so it quoted an
+arbitrary colleague's remaining days; and `leavesService.cancelRequest()`
+posted no body to an endpoint that requires `reason` — it had no callers and
+was removed.
+
 ## database / money schema
 
 ### Retire legacy REAL money columns with D1 drop-column cutover

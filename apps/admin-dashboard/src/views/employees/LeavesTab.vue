@@ -236,7 +236,7 @@
     <LeaveRequestDialog
       :is-open="showRequestDialog"
       :leave-types="leaveTypes"
-      :balances="balances"
+      :balances="myBalances"
       @close="showRequestDialog = false"
       @submit="handleLeaveRequest"
     />
@@ -285,6 +285,14 @@ const showRequestDialog = ref(false);
 const leaveTypes = ref<LeaveType[]>([]);
 const balances = ref<LeaveBalance[]>([]);
 const allRequests = ref<LeaveRequest[]>([]);
+
+// The dialog always files for the signed-in user, so it must only ever see
+// that user's balances -- `balances` holds the whole restaurant's.
+const myBalances = computed(() => {
+  const me = authStore.user?.id;
+  if (!me) return [];
+  return balances.value.filter((b) => String(b.employeeId) === String(me));
+});
 
 const pendingRequests = computed(() =>
   allRequests.value.filter((r) => r.status === "pending"),

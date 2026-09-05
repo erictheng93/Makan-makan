@@ -166,13 +166,6 @@ class LeavesService {
   async rejectRequest(requestId: number, reason?: string): Promise<void> {
     await this.api.post(`/leaves/requests/${requestId}/reject`, { reason });
   }
-
-  /**
-   * Cancel a leave request
-   */
-  async cancelRequest(requestId: number): Promise<void> {
-    await this.api.post(`/leaves/requests/${requestId}/cancel`);
-  }
 }
 
 // Export singleton instance

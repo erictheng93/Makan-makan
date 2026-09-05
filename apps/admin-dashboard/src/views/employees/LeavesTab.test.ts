@@ -3,8 +3,9 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import LeavesTab from "./LeavesTab.vue";
+import LeaveRequestDialog from "@/components/leaves/LeaveRequestDialog.vue";
 import { leavesService } from "@/services/leavesService";
-import type { LeaveType } from "@makanmasak/shared-types";
+import type { LeaveBalance, LeaveType } from "@makanmasak/shared-types";
 
 vi.mock("@/i18n", () => ({
   t: (key: string) => key,
@@ -12,7 +13,10 @@ vi.mock("@/i18n", () => ({
 }));
 
 vi.mock("@/stores/auth", () => ({
-  useAuthStore: () => ({ restaurantId: "restaurant-1" }),
+  useAuthStore: () => ({
+    restaurantId: "restaurant-1",
+    user: { id: "user-me" },
+  }),
 }));
 
 vi.mock("@/composables/useEmployeeList", () => ({
@@ -160,6 +164,62 @@ describe("LeavesTab leave types", () => {
 
     expect(wrapper.get('[data-testid="leaves-no-types"]').text()).toContain(
       "leaves.manage.noTypesHint",
+    );
+  });
+});
+
+// The request dialog always files for the signed-in user -- the create route
+// binds the employee id to the session unless a manager names someone else.
+// LeavesTab loads the whole restaurant's balances for its balance tab, and
+// getTypeBalance() takes the first row matching the leave type, so handing the
+// dialog that array made it quote an arbitrary colleague's remaining days.
+function balance(overrides: Partial<LeaveBalance> = {}): LeaveBalance {
+  return {
+    id: 1,
+    employeeId: "user-me",
+    leaveTypeId: 1,
+    restaurantId: "restaurant-1",
+    year: 2026,
+    totalDays: 14,
+    usedDays: 0,
+    pendingDays: 0,
+    remainingDays: 14,
+    carryoverFromPrevious: 0,
+    carryoverToNext: 0,
+    carryoverExpiresAt: null,
+    manualAdjustment: 0,
+    adjustmentReason: null,
+    adjustedBy: null,
+    adjustedAt: null,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    lastUpdatedBy: null,
+    ...overrides,
+  };
+}
+
+describe("LeavesTab request dialog balances", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("shows the dialog only the signed-in user's balances", async () => {
+    vi.mocked(leavesService.getLeaveTypes).mockResolvedValue([leaveType()]);
+    vi.mocked(leavesService.getRequests).mockResolvedValue([]);
+    vi.mocked(leavesService.getRestaurantBalances).mockResolvedValue([
+      // A colleague's row comes first, which is exactly the one the dialog
+      // used to pick up.
+      balance({ id: 2, employeeId: "user-someone-else", remainingDays: 3 }),
+      balance({ id: 1, employeeId: "user-me", remainingDays: 14 }),
+    ]);
+
+    const wrapper = mount(LeavesTab);
+    await flushPromises();
+
+    const dialog = wrapper.findComponent(LeaveRequestDialog);
+    const passed = dialog.props("balances") as LeaveBalance[];
+
+    expect(passed).toHaveLength(1);
+    expect(passed[0]).toEqual(
+      expect.objectContaining({ employeeId: "user-me", remainingDays: 14 }),
     );
   });
 });

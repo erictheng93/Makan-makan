@@ -102,6 +102,7 @@
         <button
           class="flex-1 py-2 rounded-full text-sm font-semibold border border-ios-red text-ios-red hover:bg-ios-red/10 transition-colors"
           :disabled="isProcessing"
+          data-testid="leave-reject-open"
           @click="showRejectInput = true"
         >
           拒絕
@@ -113,15 +114,17 @@
         <input
           v-model="rejectReason"
           type="text"
-          placeholder="拒絕原因（可選）"
+          data-testid="leave-reject-reason"
+          placeholder="拒絕原因（必填）"
           class="w-full px-3 py-2 text-sm bg-ios-bg rounded-xl border-none focus:shadow-[0_0_0_2px_rgba(255,59,48,0.25)] focus:bg-white transition-all text-ios-text placeholder-ios-text/30"
-          @keydown.enter="handleReject"
+          @keydown.enter="rejectReason.trim() && handleReject()"
           @keydown.esc="showRejectInput = false"
         />
         <div class="flex gap-2">
           <button
-            class="flex-1 py-2 rounded-full text-sm font-semibold bg-ios-red text-white hover:bg-red-600 transition-colors"
-            :disabled="isProcessing"
+            class="flex-1 py-2 rounded-full text-sm font-semibold bg-ios-red text-white hover:bg-red-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            :disabled="isProcessing || !rejectReason.trim()"
+            data-testid="leave-reject-confirm"
             @click="handleReject"
           >
             <span
@@ -277,7 +280,7 @@ const handleReject = async () => {
   isProcessing.value = true;
   processingAction.value = "reject";
   try {
-    emit("reject", props.request.id, rejectReason.value || undefined);
+    emit("reject", props.request.id, rejectReason.value.trim());
   } finally {
     isProcessing.value = false;
     processingAction.value = null;
