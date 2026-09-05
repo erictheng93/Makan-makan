@@ -919,7 +919,26 @@ export function geoIntelligentRateLimitMiddleware(
       }
     }
 
-    // Calculate dynamic rate limit
+    // Calculate dynamic rate limit.
+    //
+    // `rateLimit` decides nothing on the native branch below -- it only fills
+    // `resetTime` / `remaining` / `retryAfter`. `API_CUSTOM_RATE_LIMITS` in
+    // app-factory.ts documents that for its own entries; the same is true of
+    // everything `calculateDynamicRateLimit` just computed, which is easier to
+    // miss from in here. The geo risk, threat score, ASN and role weighting
+    // change what production *reports*, not who gets turned away: that answer
+    // comes from `nativeLimiter.limit()` and wrangler.toml. Tuning those
+    // weights is not a security change unless the path is one of the six in
+    // SENSITIVE_KV_RATE_LIMIT_PATHS.
+    //
+    // Moving a path onto the KV branch to buy enforcement costs more than it
+    // looks: `isBlocked` reads once, then `applyRateLimit` reads both window
+    // counters and writes one back -- three reads and a write per request, not
+    // one read. Against the production latencies measured on 2026-09-05 from
+    // APAC (KV read ~210ms, KV write ~420ms) that is roughly 840ms added to a
+    // request, against a P99 target of 300ms. To genuinely tighten one path,
+    // provision a second `[[ratelimits]]` binding at the lower limit and
+    // select it here: edge-local, no KV round trip.
     const rateLimit = rateLimiter.calculateDynamicRateLimit(
       c.req.raw,
       path,
