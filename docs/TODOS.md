@@ -8,11 +8,24 @@ the working tree, the GitHub API, and `contract:check` on that date; each carrie
 its own verification note. Two entries were materially wrong and have been
 corrected in place (money-schema migration paths, API-contract seats delta).
 
+**Triaged the same day.** Eleven items were open; each is now in one of three
+places, and this file says which:
+
+| Disposition | Items |
+| --- | --- |
+| **Done** — shipped 2026-09-05 | safeTransaction removal (`1dd7a164`), coupons return type (`719e54f7`), contract-script header (`ac7043de`) |
+| **Moved to issues** — needs design, touches billing, or is multi-week | [#333](https://github.com/erictheng93/Makan-Masak/issues/333) usage meter, [#334](https://github.com/erictheng93/Makan-Masak/issues/334) money cutover, [#335](https://github.com/erictheng93/Makan-Masak/issues/335) marketplace Phase 4, [#336](https://github.com/erictheng93/Makan-Masak/issues/336) contract types |
+| **Stays here** — no actionable next step | RealtimeSession (blocked on Cloudflare), payment acquirer (product decision), marketplace Phase 5 (post-MVP), GroupOrders harness (cost exceeds benefit), production deploy (needs credentials only) |
+
+Deliberately not filed as issues: the four "stays here" items have no action
+anyone could pick up today. Adding them to a thirty-issue backlog dilutes it
+rather than tracking anything.
+
 ## API contracts
 
 ### Record field types in the API contract snapshot
 
-**Priority:** P2 **Status:** Open (identified 2026-08-13) **Files:** `scripts/check-api-contracts.cjs`, `.api-contracts-snapshot.json`
+**Priority:** P2 **Status:** → **[#336](https://github.com/erictheng93/Makan-Masak/issues/336)** (filed 2026-09-05). The half that needed no design shipped in `ac7043de`: the script no longer claims to detect type changes, and `docs/testing/guides/TESTING_GUIDE.md` §2.5 carries the same caveat. The extractor work moved to the issue because changing the snapshot format invalidates the whole baseline. **Files:** `scripts/check-api-contracts.cjs`, `.api-contracts-snapshot.json`
 
 **Context:** `contract:check` reports schema-field additions/removals, but its static extractor stores only field names. Consequently, a wire-contract change such as menu/category `createdAt` and `updatedAt` changing from ISO strings to Unix-millisecond numbers produces no contract warning. The script's header currently overstates this capability by saying type changes are detected.
 
@@ -33,7 +46,7 @@ removals, and type changes"). Only the third scope item above has been cleared.
 
 ### Retire legacy REAL money columns with D1 drop-column cutover
 
-**Priority:** P3 **Status (corrected 2026-09-05 — the previous 2026-07-05 note, replaced here, was materially wrong):** The Drizzle schema end state is real: `packages/database/src/schema/` has **zero remaining legacy `REAL` money columns** — every `real()` column left is non-monetary (lat/lng, stock levels, ratings, `quantityPerServing`). But the executable cutover is no longer where the previous note said it was.
+**Priority:** P3 → raised to P2 **Status:** → **[#334](https://github.com/erictheng93/Makan-Masak/issues/334)** (filed 2026-09-05). Detail below kept because the issue references it. **Corrected 2026-09-05 — the previous 2026-07-05 note, replaced here, was materially wrong:** The Drizzle schema end state is real: `packages/database/src/schema/` has **zero remaining legacy `REAL` money columns** — every `real()` column left is non-monetary (lat/lng, stock levels, ratings, `quantityPerServing`). But the executable cutover is no longer where the previous note said it was.
 
 **What the 2026-07-05 note claimed, and what is actually true:**
 
@@ -76,7 +89,7 @@ squash and its two consequences. No action needed there.
 
 ### Migrate remaining safeTransaction callers to D1 batch
 
-**Priority:** P4 (was P1 — caller migration is done, only cleanup remains) **Status (verified 2026-07-05):** Caller migration is COMPLETE. Repo-wide search (`grep -rln "safeTransaction" --include="*.ts" .`) finds `safeTransaction` used ONLY in its own definition (`packages/database/src/services/base.ts:154`, now `:228`) and its dedicated test (`base.test.ts`) — zero remaining callers anywhere in `apps/` or `packages/`. `FeedbackService.ts`, `LeaveService.ts`, and `SchedulingService.ts` (the three listed below) are all fully on `db.batch()` now (verified via git log: `5c2be3be`, `1f16fe22`, `b2f40b7b` and others).
+**Priority:** P4 **Status: ✅ DONE 2026-09-05** (`1dd7a164`). The stub is gone; a comment at the same spot records why there is deliberately no transaction helper, so reaching for one is now a compile error rather than a runtime throw. Kept here for one release as traceability. **Earlier note (verified 2026-07-05):** Caller migration is COMPLETE. Repo-wide search (`grep -rln "safeTransaction" --include="*.ts" .`) finds `safeTransaction` used ONLY in its own definition (`packages/database/src/services/base.ts:154`, now `:228`) and its dedicated test (`base.test.ts`) — zero remaining callers anywhere in `apps/` or `packages/`. `FeedbackService.ts`, `LeaveService.ts`, and `SchedulingService.ts` (the three listed below) are all fully on `db.batch()` now (verified via git log: `5c2be3be`, `1f16fe22`, `b2f40b7b` and others).
 
 **Remaining scope (the only thing left):**
 
@@ -93,7 +106,7 @@ a local subclass. The only other hits are build output (`packages/database/dist`
 
 ### Stop writing one D1 row per API request for the `api.requests` meter
 
-**Priority:** P2 **Status:** Open (identified 2026-08-21) **Files:** `apps/api/src/middleware/usageTracker.ts`, `apps/api/src/shared/utils/meter.ts`, `apps/api/src/workers/usage-aggregator.ts`
+**Priority:** P2 **Status:** → **[#333](https://github.com/erictheng93/Makan-Masak/issues/333)** (filed 2026-09-05, carrying the full design and the rejected alternatives below). **Files:** `apps/api/src/middleware/usageTracker.ts`, `apps/api/src/shared/utils/meter.ts`, `apps/api/src/workers/usage-aggregator.ts`
 
 **Context:** `usageTracker` is mounted on `apiV1.use("*")` and emits `api.requests` through `meterEmit`, which does one `INSERT INTO usage_events` per request. `usage_events` carries two indexes that a fresh insert touches (`usage_events_restaurant_meter_time_idx`, and `usage_events_pending_idx`, which is partial on `aggregated_at_ms IS NULL` — exactly the state a new row is in), so each request costs roughly 3 D1 rows written, and the hourly aggregator's `UPDATE` of `aggregated_at_ms` adds more. D1 bills rows written at $1.00/M over 50M/month included. At the `pro` tier's own hard cap of 1,000,000 `api.requests` per cycle, 50 pro tenants is ~150M rows written/month.
 
@@ -336,7 +349,7 @@ the rewrite should land on Drizzle, not another template string.)
 
 **Why deferred:** Hard prerequisite — customer-identity work above must land first because "follow" rows live in `customer_favorites` and "broadcast targets" live in `customer_push_subscriptions`. Without those tables, this feature has nowhere to attach.
 
-**Status (re-verified 2026-09-05 — still unblocked, still unbuilt):** No
+**Status:** → **[#335](https://github.com/erictheng93/Makan-Masak/issues/335)** (filed 2026-09-05, `needs-planning`). **Re-verified 2026-09-05 — still unblocked, still unbuilt:** No
 market- or restaurant-scoped broadcast endpoint and no "Following" UI exist.
 Note for future searches: `RealtimeBroadcastService` **does** exist and matches a
 naive grep for "Broadcast", but it is the group-order/realtime fan-out in
@@ -386,7 +399,7 @@ routed at :139, one fixture at :3784); writes are already on the shared
 
 ### Narrow `CouponsService.createCouponWithValidation`'s return type
 
-**Priority:** P4 **Status:** Open (identified 2026-08-20, deferred from #207) **Files:** `apps/api/src/features/coupons/services/CouponsService.ts`, `apps/api/src/__tests__/integration/coupons.real.integration.test.ts`
+**Priority:** P4 **Status: ✅ DONE 2026-09-05** (`719e54f7`). Narrowing it surfaced two wrong assumptions the `unknown` had been hiding: the test declared `id: string` against an `integer` column, and asserted `isActive === false || isActive === 0` — a hedge whose second branch can never run, since `is_active` is `integer({ mode: "boolean" })` read back through Drizzle `.returning()`. **Files:** `apps/api/src/features/coupons/services/CouponsService.ts`, `apps/api/src/__tests__/integration/coupons.real.integration.test.ts`
 
 **Context:** `createCouponWithValidation` is declared `Promise<unknown>`, and `PaginatedCouponsResponse.coupons` inherits that looseness. Because of it the coupons integration suite has to state the coupon shape locally (`CouponResponse`) rather than derive it from the service the way the other suites do.
 
@@ -428,6 +441,13 @@ The step does pass `CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}`, 
 | `PRODUCTION_URL` | `https://api.makanmasak.com` — the **API** origin | no |
 | `PRODUCTION_CUSTOMER_URL` | `https://makanmasak.com` | no |
 | `PRODUCTION_KITCHEN_URL` | `https://kitchen.makanmasak.com` | no |
+
+**There is now a wizard for this: `scripts/setup-production-deploy.sh`.** It
+checks the `production` environment exists, walks the Cloudflare token form
+permission by permission, **verifies the token against the account before
+storing it** (the check that would have caught the 2026-07-24 failure), and sets
+all six values as environment secrets. It never writes the token to disk. The
+one thing it cannot do for you is create the token — that needs the dashboard.
 
 **Re-verified 2026-09-05 — nothing has changed, and this is the highest-priority
 open item in the file.** `gh run list --workflow=deploy-production.yml` still
