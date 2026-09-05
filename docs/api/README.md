@@ -693,8 +693,8 @@ so a token can never be replayed against a different room.
 | DELETE | `/system/error-reports/cleanup` | 清理錯誤報告 | Admin     |
 | GET    | `/system/health/detailed`       | 詳細健康檢查 | Admin     |
 | GET    | `/system/health/metrics`        | 健康指標     | Admin     |
-| GET    | `/system/health/ready`          | 就緒檢查     | Public    |
-| GET    | `/system/health/live`           | 存活檢查     | Public    |
+| GET    | `/system/health/ready`          | 就緒檢查     | Protected |
+| GET    | `/system/health/live`           | 存活檢查     | Protected |
 
 ### Monitoring (`/monitoring`) — 13 routes
 

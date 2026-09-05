@@ -42,6 +42,48 @@ no type information, and `scripts/check-api-contracts.cjs` still claims
 otherwise in its header (lines 8 and 19: "or type changed", "Reports additions,
 removals, and type changes"). Only the third scope item above has been cleared.
 
+## shared-types wire drift
+
+### LeaveRequest and LeaveBalance still declare fields no column has
+
+**Priority:** P2 **Status:** Open (measured 2026-09-05 while closing
+[#330](https://github.com/erictheng93/Makan-Masak/issues/330))
+
+**Files:** `packages/shared-types/src/leaves.ts`,
+`packages/database/src/schema/leaves/leave-requests.ts`,
+`packages/database/src/schema/leaves/leave-balances.ts`,
+`apps/admin-dashboard/src/services/leavesService.ts`
+
+**Context:** #330 fixed `LeaveType` and pinned it with
+`LeaveTypeWireConformance` in `packages/database/src/services/LeaveService.ts`.
+Its two siblings in the same file were left alone and carry the same defect —
+the endpoints return unprojected rows, the interfaces are hand-written, and
+nothing compares them:
+
+- `LeaveRequest`: 11 declared fields have no column (`daysCount`,
+  `halfDayType`, `description`, `attachments`, `requiredApprovalLevels`,
+  `approvedBy`, `approvedAt`, `hasScheduleConflict`, `conflictDetails`,
+  `delegatedTo`, `delegationNotes`); 10 columns are undeclared
+  (`startPeriod`, `endPeriod`, `totalDays`, `attachmentUrl`,
+  `emergencyContact`, `finalApproverId`, `finalApprovedAt`,
+  `affectedScheduleIds`, `replacementNotified`, `deletedAt`).
+- `LeaveBalance`: 3 phantom (`accruedDays`, `lastAccrualDate`,
+  `adjustmentDays`), 3 undeclared (`restaurantId`, `manualAdjustment`,
+  `lastUpdatedBy`). `remainingDays` and `leaveType` are computed/joined and
+  correctly absent from the table.
+
+**Live consequence, not just latent:** `LeaveRequestList.vue:41` and
+`LeaveApprovalList.vue:27` both render `{{ request.daysCount }}`. The column
+is `total_days`, so both render an empty span today. A third spelling —
+`days` — is declared in `apps/admin-dashboard/src/services/leavesService.ts`
+for the same value.
+
+**Recipe:** the one from #330, unchanged. Rewrite each interface as the wire
+shape of `$inferSelect`, add it to the `LeaveTypeWireConformance` tuple in
+LeaveService.ts, then fix the compile errors that appear in the frontend —
+those errors are the reads that return `undefined` today. Verify by renaming
+a column and checking the assertion names it.
+
 ## database / money schema
 
 ### Retire legacy REAL money columns with D1 drop-column cutover
@@ -621,6 +663,29 @@ which this workflow uses.
 The account is `bdddc08c066a9abc285d75fe5947a468`, which is not the one a local `wrangler login` resolves to by default — see the account-split note.
 
 **Token permissions**, derived from the bindings actually declared across the ten `wrangler.toml` files. Account: Workers Scripts Edit, Workers KV Storage Edit, Workers R2 Storage Edit, D1 Edit, Queues Edit, Vectorize Edit, Workers AI Edit, **Cloudflare Pages Edit**, Account Settings Read. Zone (`makanmasak.com`): Workers Routes Edit, DNS Edit for the four `custom_domain` entries. Pages Edit is the one most easily missed — the five frontends deploy with `wrangler pages deploy`, which Workers Scripts Edit does not cover, and `pnpm -r run deploy:prod` reaches them. Do not add a client-IP restriction: GitHub-hosted runner addresses are not stable.
+
+## health probes
+
+### `/health/ready` still hand-rolls its D1 half instead of using `probeDatabase`
+
+**Priority:** P3 **Status:** Open (identified 2026-09-05, deliberately left out
+of the #332 fix) **Files:** `apps/api/src/features/system/routes/index.ts`,
+`apps/api/src/core/health/probe.ts` **Context:** #332 replaced the KV half of
+`/health/ready` with the shared `probeCache`. The D1 half was left as it was: a
+dynamic `import("@makanmasak/database")` plus a Drizzle
+`SELECT 1 FROM users LIMIT 1`, rather than `probeDatabase`'s raw
+`SELECT 1 AS ok` on the binding. Neither cost is material on its own — the
+module graph is cached per isolate after the first call — but the asymmetry is
+the same shape as the bug #332 fixed: a probe reimplemented per endpoint drifts
+from the shared one, and nobody notices because both return a boolean.
+`UPTIME_MONITOR_TARGETS` polls this path every 60s as `critical: true`, so
+whatever semantics `probeDatabase` grows later (session constraints,
+`served_by_primary` reporting) should reach it too. **Why it was deferred:** the
+route test harness mocks D1 as `withSession(...).prepare(...).all()` for
+`runBasicHealthCheck` but feeds `/health/ready` through the Drizzle select
+fixture queue; switching probes means reworking fixtures across the whole
+`system routes` suite, which is a bigger change than the one-line bug #332 was
+filed for.
 
 ## Completed
 
