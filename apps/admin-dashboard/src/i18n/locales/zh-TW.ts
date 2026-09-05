@@ -408,6 +408,21 @@ const zhTWCore = {
       quantity: "數量",
       totalAmount: "總金額",
     },
+    edit: {
+      title: "編輯品項",
+      done: "完成",
+      addItem: "加點",
+      browseMenu: "瀏覽菜單",
+      searchPlaceholder: "搜尋菜名…",
+      noMatches: "沒有符合的菜品",
+      add: "加入",
+      remove: "移除",
+      increase: "增加數量",
+      decrease: "減少數量",
+      lastItemHint: "訂單至少要保留一個品項，若要整張作廢請改用取消訂單",
+      failed: "訂單修改失敗",
+      menuLoadFailed: "菜單載入失敗",
+    },
     actions: {
       view: "查看",
       update: "更新",
@@ -4725,6 +4740,9 @@ const zhTWCore = {
 
   // 訂單 Store
   orderStore: {
+    addItemsFailed: "加點失敗",
+    changeItemFailed: "數量修改失敗",
+    removeItemFailed: "移除品項失敗",
     fetchFailed: "獲取訂單失敗",
     updateStatusFailed: "更新訂單狀態失敗",
     cancelFailed: "取消訂單失敗",

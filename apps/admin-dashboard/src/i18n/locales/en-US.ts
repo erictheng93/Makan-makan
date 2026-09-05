@@ -413,6 +413,22 @@ const enUS: Messages = {
       quantity: "Quantity",
       totalAmount: "Total Amount",
     },
+    edit: {
+      title: "Edit items",
+      done: "Done",
+      addItem: "Add an item",
+      browseMenu: "Browse menu",
+      searchPlaceholder: "Search the menu…",
+      noMatches: "No matching items",
+      add: "Add",
+      remove: "Remove",
+      increase: "Increase quantity",
+      decrease: "Decrease quantity",
+      lastItemHint:
+        "An order must keep at least one item. Cancel the order to void it entirely.",
+      failed: "Could not modify the order",
+      menuLoadFailed: "Could not load the menu",
+    },
     actions: {
       view: "View",
       update: "Update",
@@ -4699,6 +4715,9 @@ const enUS: Messages = {
     },
   },
   orderStore: {
+    addItemsFailed: "Could not add the items",
+    changeItemFailed: "Could not change the quantity",
+    removeItemFailed: "Could not remove the item",
     fetchFailed: "Failed to fetch orders",
     updateStatusFailed: "Failed to update order status",
     cancelFailed: "Failed to cancel order",

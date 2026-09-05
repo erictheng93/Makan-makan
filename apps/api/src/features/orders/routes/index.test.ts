@@ -16,6 +16,8 @@ const serviceMocks = vi.hoisted(() => ({
   getOrderAnalytics: vi.fn(),
   getActiveOrders: vi.fn(),
   previewCoupon: vi.fn(),
+  addItemsToOrder: vi.fn(),
+  changeOrderItemQuantity: vi.fn(),
 }));
 const platformOrderServiceMocks = vi.hoisted(() => ({
   syncStatusToPlatform: vi.fn(),
@@ -1238,5 +1240,281 @@ describe("orders routes", () => {
     );
     expect(staffForbiddenResponse.status).toBe(403);
     expect(serviceMocks.generateReceipt).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * #273. The engine for these was already live behind the guest door; what is
+ * tested here is the staff door itself -- who may open it, that the version
+ * the client saw is carried through, and that a removal reaches the service as
+ * quantity 0.
+ */
+describe("orders item modification routes", () => {
+  const openOrder = {
+    id: "order-1",
+    restaurantId: "restaurant-1",
+    status: "confirmed",
+    version: 3,
+    items: [{ id: 11, menuItemId: 101, quantity: 2 }],
+  };
+
+  beforeEach(() => {
+    for (const mock of Object.values(serviceMocks)) {
+      mock.mockReset();
+    }
+    authState.user = { id: "user-42", role: 1, restaurantId: "restaurant-1" };
+  });
+
+  describe("POST /:id/items", () => {
+    it("adds items and returns the updated order", async () => {
+      serviceMocks.getOrder.mockResolvedValue(openOrder);
+      serviceMocks.addItemsToOrder.mockResolvedValue({
+        ...openOrder,
+        version: 4,
+      });
+
+      const res = await routes.fetch(
+        jsonRequest("/order-1/items", {
+          items: [{ menuItemId: 101, quantity: 1 }],
+          expectedVersion: 3,
+        }),
+        createEnv(),
+      );
+
+      expect(res.status).toBe(200);
+      expect(serviceMocks.addItemsToOrder).toHaveBeenCalledOnce();
+      expect(serviceMocks.addItemsToOrder).toHaveBeenCalledWith(
+        "order-1",
+        expect.arrayContaining([
+          expect.objectContaining({ menuItemId: 101, quantity: 1 }),
+        ]),
+        "user-42",
+        3,
+      );
+    });
+
+    it("hands expectedVersion to the service rather than checking it here", async () => {
+      // The check lives beside the read that feeds the CAS, one layer down.
+      // Doing it here as well would look safe and leave a race open.
+      serviceMocks.getOrder.mockResolvedValue(openOrder);
+      serviceMocks.addItemsToOrder.mockRejectedValue(
+        new ApiError(
+          "ORDER_VERSION_CONFLICT",
+          "Order was updated by another actor. Reload before retrying.",
+          409,
+        ),
+      );
+
+      const res = await withSilencedRouteError(() =>
+        routes.fetch(
+          jsonRequest("/order-1/items", {
+            items: [{ menuItemId: 101, quantity: 1 }],
+            expectedVersion: 2,
+          }),
+          createEnv(),
+        ),
+      );
+
+      expect(res.status).toBe(409);
+      await expect(res.json()).resolves.toMatchObject({
+        error: { code: "ORDER_VERSION_CONFLICT" },
+      });
+      expect(serviceMocks.addItemsToOrder).toHaveBeenCalledWith(
+        "order-1",
+        expect.any(Array),
+        "user-42",
+        2,
+      );
+    });
+
+    it("refuses a caller from another restaurant", async () => {
+      authState.user = { id: "user-9", role: 1, restaurantId: "restaurant-2" };
+      serviceMocks.getOrder.mockResolvedValue(openOrder);
+
+      const res = await withSilencedRouteError(() =>
+        routes.fetch(
+          jsonRequest("/order-1/items", {
+            items: [{ menuItemId: 101, quantity: 1 }],
+          }),
+          createEnv(),
+        ),
+      );
+
+      expect(res.status).toBe(403);
+      expect(serviceMocks.addItemsToOrder).not.toHaveBeenCalled();
+    });
+
+    it("refuses a chef, who may advance a ticket but not reprice it", async () => {
+      authState.user = { id: "chef-1", role: 2, restaurantId: "restaurant-1" };
+
+      const res = await withSilencedRouteError(() =>
+        routes.fetch(
+          jsonRequest("/order-1/items", {
+            items: [{ menuItemId: 101, quantity: 1 }],
+          }),
+          createEnv(),
+        ),
+      );
+
+      expect(res.status).toBe(403);
+      expect(serviceMocks.addItemsToOrder).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("PATCH /:id/items/:itemId", () => {
+    it("passes the new quantity, the version and the caller through", async () => {
+      serviceMocks.changeOrderItemQuantity.mockResolvedValue({
+        ...openOrder,
+        version: 4,
+      });
+
+      const res = await routes.fetch(
+        jsonRequest(
+          "/order-1/items/11",
+          { quantity: 5, expectedVersion: 3 },
+          "PATCH",
+        ),
+        createEnv(),
+      );
+
+      expect(res.status).toBe(200);
+      expect(serviceMocks.changeOrderItemQuantity).toHaveBeenCalledWith(
+        "order-1",
+        11,
+        5,
+        expect.objectContaining({
+          userId: "user-42",
+          expectedVersion: 3,
+          caller: expect.objectContaining({
+            userId: "user-42",
+            userRestaurantId: "restaurant-1",
+          }),
+        }),
+      );
+    });
+
+    it("rejects quantity 0 — removal is DELETE, not a zero PATCH", async () => {
+      const res = await withSilencedRouteError(() =>
+        routes.fetch(
+          jsonRequest("/order-1/items/11", { quantity: 0 }, "PATCH"),
+          createEnv(),
+        ),
+      );
+
+      expect(res.status).toBe(400);
+      expect(serviceMocks.changeOrderItemQuantity).not.toHaveBeenCalled();
+    });
+
+    it("rejects a non-numeric item id", async () => {
+      const res = await withSilencedRouteError(() =>
+        routes.fetch(
+          jsonRequest("/order-1/items/abc", { quantity: 2 }, "PATCH"),
+          createEnv(),
+        ),
+      );
+
+      expect(res.status).toBe(400);
+      expect(serviceMocks.changeOrderItemQuantity).not.toHaveBeenCalled();
+    });
+
+    it("surfaces the service's 409 rather than flattening it to a 500", async () => {
+      serviceMocks.changeOrderItemQuantity.mockRejectedValue(
+        new ApiError(
+          "ORDER_VERSION_CONFLICT",
+          "Order was updated by another actor. Reload before retrying.",
+          409,
+        ),
+      );
+
+      const res = await withSilencedRouteError(() =>
+        routes.fetch(
+          jsonRequest(
+            "/order-1/items/11",
+            { quantity: 1, expectedVersion: 1 },
+            "PATCH",
+          ),
+          createEnv(),
+        ),
+      );
+
+      expect(res.status).toBe(409);
+      await expect(res.json()).resolves.toMatchObject({
+        error: { code: "ORDER_VERSION_CONFLICT" },
+      });
+    });
+  });
+
+  describe("DELETE /:id/items/:itemId", () => {
+    it("reaches the service as quantity 0, with the version from the query", async () => {
+      serviceMocks.changeOrderItemQuantity.mockResolvedValue({
+        ...openOrder,
+        version: 4,
+        items: [],
+      });
+
+      const res = await routes.fetch(
+        new Request("https://orders.test/order-1/items/11?expectedVersion=3", {
+          method: "DELETE",
+        }),
+        createEnv(),
+      );
+
+      expect(res.status).toBe(200);
+      expect(serviceMocks.changeOrderItemQuantity).toHaveBeenCalledWith(
+        "order-1",
+        11,
+        0,
+        expect.objectContaining({ userId: "user-42", expectedVersion: 3 }),
+      );
+    });
+
+    it("works without a version, for clients that do not track one", async () => {
+      serviceMocks.changeOrderItemQuantity.mockResolvedValue(openOrder);
+
+      const res = await routes.fetch(
+        new Request("https://orders.test/order-1/items/11", {
+          method: "DELETE",
+        }),
+        createEnv(),
+      );
+
+      expect(res.status).toBe(200);
+      expect(serviceMocks.changeOrderItemQuantity).toHaveBeenCalledWith(
+        "order-1",
+        11,
+        0,
+        expect.objectContaining({ expectedVersion: undefined }),
+      );
+    });
+
+    it("refuses a cashier", async () => {
+      authState.user = {
+        id: "cashier-1",
+        role: 4,
+        restaurantId: "restaurant-1",
+      };
+
+      const res = await withSilencedRouteError(() =>
+        routes.fetch(
+          new Request("https://orders.test/order-1/items/11", {
+            method: "DELETE",
+          }),
+          createEnv(),
+        ),
+      );
+
+      expect(res.status).toBe(403);
+      expect(serviceMocks.changeOrderItemQuantity).not.toHaveBeenCalled();
+    });
+  });
+
+  it("gates all three routes behind the online_ordering module", () => {
+    expect(moduleGatesFor("POST", "/:id/items")).toContain("online_ordering");
+    expect(moduleGatesFor("PATCH", "/:id/items/:itemId")).toContain(
+      "online_ordering",
+    );
+    expect(moduleGatesFor("DELETE", "/:id/items/:itemId")).toContain(
+      "online_ordering",
+    );
   });
 });

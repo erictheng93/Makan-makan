@@ -83,6 +83,41 @@ export class IngredientConsumptionService {
   }
 
   /**
+   * Put back what a shrinking or removed order line took.
+   *
+   * Unlike `buildRestoreWritesForOrder` this re-derives the amount from the
+   * recipe rather than netting the ledger, because the ledger only records an
+   * `order_id` -- there is no per-order-item reference to net against. A BOM
+   * edited between the order and the change therefore returns today's figure,
+   * not the one deducted. That is the accepted cost of not adding an
+   * `order_item_id` column; the whole-order restore still nets correctly
+   * afterwards, because the positive rows written here reduce the outstanding
+   * sum the same way the negative ones raised it.
+   *
+   * ponytail: recipe-derived, not ledger-derived. Add
+   * `ingredient_stock_movements.order_item_id` and net per item if BOM churn
+   * during an open order ever produces a real drift complaint.
+   */
+  async buildRestoreWritesForItems(
+    restaurantId: string,
+    items: OrderedItem[],
+    context: { orderId?: string; userId?: string } = {},
+  ): Promise<MovementInsert[]> {
+    const required = await this.resolveRequirements(restaurantId, items);
+    if (required.size === 0) return [];
+
+    return this.buildDeltaWrites(
+      restaurantId,
+      [...required].map(([ingredientId, quantity]) => ({
+        ingredientId,
+        delta: quantity,
+      })),
+      "order_item_removal",
+      context,
+    );
+  }
+
+  /**
    * Put back exactly what an order took.
    *
    * The amounts come from the ledger, not from the recipe: a BOM edited
@@ -207,7 +242,7 @@ export class IngredientConsumptionService {
   private async buildDeltaWrites(
     restaurantId: string,
     deltas: { ingredientId: number; delta: number }[],
-    reason: "order_consumption" | "order_cancellation",
+    reason: "order_consumption" | "order_cancellation" | "order_item_removal",
     context: { orderId?: string | SQL<string>; userId?: string },
   ): Promise<MovementInsert[]> {
     const now = new Date();

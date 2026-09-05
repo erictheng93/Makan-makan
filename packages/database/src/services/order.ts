@@ -1025,7 +1025,11 @@ export class OrderService extends BaseService {
     }
   }
 
-  async addItemsToOrder(id: string, items: AddOrderItemsData): Promise<Order> {
+  async addItemsToOrder(
+    id: string,
+    items: AddOrderItemsData,
+    expectedVersion?: number,
+  ): Promise<Order> {
     try {
       if (!items.length) {
         throw new Error("Order must contain at least one item");
@@ -1044,6 +1048,17 @@ export class OrderService extends BaseService {
         throw new Error(
           `Cannot add items to an order with status: ${existingOrder.status}`,
         );
+      }
+      // Compared here rather than at the route, and that placement is the
+      // whole point: this read is the one that feeds the CAS below, so
+      // "caller's version == this read" plus "this read == write-time version"
+      // together mean the caller's version held for the entire operation. The
+      // same check one layer up leaves a window between its read and this one.
+      if (
+        expectedVersion != null &&
+        existingOrder.version !== expectedVersion
+      ) {
+        throw new Error("Order version conflict");
       }
 
       const { subtotalCents: addedSubtotalCents, orderItemsData } =
@@ -1095,7 +1110,7 @@ export class OrderService extends BaseService {
       // reach the same version. The immediate assertion below converts a
       // zero-row state UPDATE into a SQLite constraint error, which aborts the
       // D1 batch before any dependent write can execute.
-      const expectedVersion = existingOrder.version;
+      const observedVersion = existingOrder.version;
       const ingredientConsumption = new IngredientConsumptionService(this.db);
       const writeStatements: BatchItem<"sqlite">[] = [
         this.db
@@ -1115,7 +1130,7 @@ export class OrderService extends BaseService {
           .where(
             and(
               eq(orders.id, id),
-              eq(orders.version, expectedVersion),
+              eq(orders.version, observedVersion),
               inArray(orders.status, [
                 ORDER_STATUS.PENDING,
                 ORDER_STATUS.CONFIRMED,
@@ -1202,6 +1217,273 @@ export class OrderService extends BaseService {
       return updatedOrder;
     } catch (error) {
       this.handleError(error, "addItemsToOrder");
+    }
+  }
+
+  /**
+   * Change one existing line's quantity, or remove the line entirely.
+   *
+   * The inverse of `addItemsToOrder`, and deliberately the same shape: one
+   * conditional UPDATE on `orders` guarded by `version` and status, an
+   * immediate `changes()` sentinel that turns a lost race into a constraint
+   * failure so D1 rolls the whole batch back, then every dependent write.
+   * Nothing here is compensatable after the fact -- stock and the ingredient
+   * ledger must move with the order row or not at all.
+   *
+   * `newQuantity === 0` deletes the row rather than marking it cancelled.
+   * `order_items.status` does carry a `cancelled` value, but ReceiptService
+   * and the POS read `order_items` with no status predicate, so a soft-
+   * cancelled line would print on the customer's bill at full price. The
+   * history lives in `audit_logs.changes` instead, which is what an
+   * amount-affecting operation is supposed to leave behind (#273 section 6).
+   */
+  async changeOrderItemQuantity(
+    orderId: string,
+    orderItemId: number,
+    newQuantity: number,
+    expectedVersion?: number,
+  ): Promise<Order> {
+    try {
+      if (!Number.isInteger(newQuantity) || newQuantity < 0) {
+        throw new Error("Quantity must be a non-negative integer");
+      }
+
+      const existingOrder = await this.db.query.orders.findFirst({
+        where: eq(orders.id, orderId),
+      });
+      if (!existingOrder) {
+        throw new Error("Order not found");
+      }
+      const modifiable = [ORDER_STATUS.PENDING, ORDER_STATUS.CONFIRMED].some(
+        (status) => status === existingOrder.status,
+      );
+      if (!modifiable) {
+        throw new Error(
+          `Cannot modify items on an order with status: ${existingOrder.status}`,
+        );
+      }
+      if (
+        expectedVersion != null &&
+        existingOrder.version !== expectedVersion
+      ) {
+        throw new Error("Order version conflict");
+      }
+
+      // Scope the lookup by orderId as well as by id. The route already checks
+      // the caller owns the order, but an item id belonging to a *different*
+      // order would otherwise be edited under this order's permission check.
+      const currentItems = await this.db
+        .select({
+          id: orderItems.id,
+          menuItemId: orderItems.menuItemId,
+          quantity: orderItems.quantity,
+          unitPriceCents: orderItems.unitPriceCents,
+        })
+        .from(orderItems)
+        .where(eq(orderItems.orderId, orderId));
+
+      const target = currentItems.find((item) => item.id === orderItemId);
+      if (!target) {
+        throw new Error("Order item not found");
+      }
+      if (newQuantity === 0 && currentItems.length === 1) {
+        throw new Error(
+          "Cannot remove the last item from an order. Cancel the order instead",
+        );
+      }
+
+      const delta = newQuantity - target.quantity;
+      if (delta === 0) {
+        const unchanged = await this.getOrder(orderId);
+        if (!unchanged) throw new Error("Order not found");
+        return unchanged;
+      }
+
+      const unitPriceCents = resolveMoneyCents(
+        target.unitPriceCents,
+        "Order item unit price",
+      );
+      const currentSubtotalCents = resolveMoneyCents(
+        existingOrder.subtotalCents,
+        "Order subtotal",
+      );
+      const currentTaxCents = resolveMoneyCents(
+        existingOrder.taxAmountCents,
+        "Order tax amount",
+      );
+      const currentServiceChargeCents = resolveMoneyCents(
+        existingOrder.serviceChargeCents,
+        "Order service charge",
+      );
+      const currentDiscountCents = resolveMoneyCents(
+        existingOrder.discountAmountCents,
+        "Order discount amount",
+      );
+      const taxRate =
+        currentSubtotalCents > 0 ? currentTaxCents / currentSubtotalCents : 0;
+      const serviceChargeRate =
+        currentSubtotalCents > 0
+          ? currentServiceChargeCents / currentSubtotalCents
+          : 0;
+      const nextSubtotalCents = Math.max(
+        0,
+        currentSubtotalCents + unitPriceCents * delta,
+      );
+      const totals = this.calculateOrderTotal(
+        fromCents(nextSubtotalCents),
+        taxRate,
+        serviceChargeRate,
+        fromCents(currentDiscountCents),
+      );
+      // The discount carries across untouched, exactly as addItemsToOrder
+      // carries it: a coupon is not re-validated against the new subtotal
+      // here. Shrinking an order below the coupon's minimum spend can
+      // therefore drive the arithmetic negative, so this floor is what keeps
+      // a "refund due" figure out of the till.
+      // ponytail: floor, not re-validation. Re-run coupon eligibility if
+      // shrinking-below-threshold turns out to be a real pattern.
+      const totalAmountCents = Math.max(0, totals.totalAmountCents);
+
+      const observedVersion = existingOrder.version;
+      const ingredientConsumption = new IngredientConsumptionService(this.db);
+      const changedItems = [
+        { menuItemId: target.menuItemId, quantity: Math.abs(delta) },
+      ];
+      const ingredientWrites =
+        delta > 0
+          ? await ingredientConsumption.buildConsumptionWrites(
+              existingOrder.restaurantId,
+              changedItems,
+              { orderId },
+            )
+          : await ingredientConsumption.buildRestoreWritesForItems(
+              existingOrder.restaurantId,
+              changedItems,
+              { orderId },
+            );
+
+      // Each armed guard needs its own sentinel immediately after it, because
+      // changes() only ever reports the statement directly before it.
+      const sentinel = () =>
+        this.db
+          .update(restaurants)
+          .set({
+            id: sql<string>`CASE WHEN changes() = 0 THEN NULL ELSE ${restaurants.id} END`,
+          })
+          .where(
+            eq(restaurants.id, existingOrder.restaurantId),
+          ) as BatchItem<"sqlite">;
+
+      const writeStatements: BatchItem<"sqlite">[] = [
+        this.db
+          .update(orders)
+          .set({
+            subtotalCents: totals.subtotalCents,
+            taxAmountCents: totals.taxAmountCents,
+            serviceChargeCents: totals.serviceChargeCents,
+            totalAmountCents,
+            version: sql`${orders.version} + 1`,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(orders.id, orderId),
+              eq(orders.version, observedVersion),
+              inArray(orders.status, [
+                ORDER_STATUS.PENDING,
+                ORDER_STATUS.CONFIRMED,
+              ]),
+            ),
+          )
+          .returning({ id: orders.id }),
+        sentinel(),
+      ];
+
+      writeStatements.push(
+        newQuantity === 0
+          ? (this.db
+              .delete(orderItems)
+              .where(
+                and(
+                  eq(orderItems.id, orderItemId),
+                  eq(orderItems.orderId, orderId),
+                ),
+              ) as BatchItem<"sqlite">)
+          : (this.db
+              .update(orderItems)
+              .set({
+                quantity: newQuantity,
+                totalPriceCents: unitPriceCents * newQuantity,
+                updatedAt: new Date(),
+              })
+              .where(
+                and(
+                  eq(orderItems.id, orderItemId),
+                  eq(orderItems.orderId, orderId),
+                ),
+              ) as BatchItem<"sqlite">),
+      );
+
+      // Signed, so one statement covers both directions: a positive delta
+      // consumes stock, a negative one puts it back. orderCount is floored
+      // because it is a lifetime popularity counter, not a balance.
+      writeStatements.push(
+        this.db
+          .update(menuItems)
+          .set({
+            inventoryCount: sql`CASE WHEN ${menuItems.inventoryCount} IS NULL THEN NULL ELSE ${menuItems.inventoryCount} - ${delta} END`,
+            orderCount: sql`MAX(0, ${menuItems.orderCount} + ${delta})`,
+          })
+          .where(
+            and(
+              eq(menuItems.id, target.menuItemId),
+              // Only an increase can run the shelf empty; a decrease has no
+              // stock precondition to meet.
+              delta > 0
+                ? sql`(${menuItems.inventoryCount} IS NULL OR ${menuItems.inventoryCount} >= ${delta})`
+                : undefined,
+            ),
+          ),
+      );
+      if (delta > 0) {
+        writeStatements.push(sentinel());
+      }
+
+      writeStatements.push(...ingredientWrites);
+
+      try {
+        const batchResults = await this.db.batch(
+          writeStatements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]],
+        );
+        const advanced = batchResults[0] as Array<{ id: string }>;
+        if (advanced.length === 0) {
+          throw new Error("Order version conflict");
+        }
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          /NOT NULL constraint failed: restaurants\.id/i.test(error.message)
+        ) {
+          // Two guards arm a sentinel: the CAS, and on an increase the stock
+          // predicate. Re-read to report which one actually refused.
+          const current = await this.db.query.orders.findFirst({
+            where: eq(orders.id, orderId),
+          });
+          if (!current || current.version !== observedVersion) {
+            throw new Error("Order version conflict");
+          }
+          throw new Error("Insufficient inventory for this quantity");
+        }
+        throw error;
+      }
+
+      const updatedOrder = await this.getOrder(orderId);
+      if (!updatedOrder) {
+        throw new Error("Order not found");
+      }
+      return updatedOrder;
+    } catch (error) {
+      this.handleError(error, "changeOrderItemQuantity");
     }
   }
 

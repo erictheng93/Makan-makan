@@ -411,6 +411,22 @@ const viVN: Messages = {
       quantity: "Số lượng",
       totalAmount: "Tổng cộng",
     },
+    edit: {
+      title: "Sửa món",
+      done: "Xong",
+      addItem: "Thêm món",
+      browseMenu: "Xem thực đơn",
+      searchPlaceholder: "Tìm món…",
+      noMatches: "Không có món phù hợp",
+      add: "Thêm",
+      remove: "Xoá",
+      increase: "Tăng số lượng",
+      decrease: "Giảm số lượng",
+      lastItemHint:
+        "Đơn hàng phải còn ít nhất một món. Huỷ đơn nếu muốn bỏ toàn bộ.",
+      failed: "Không thể sửa đơn hàng",
+      menuLoadFailed: "Không tải được thực đơn",
+    },
     actions: {
       view: "Xem",
       update: "Cập nhật",
@@ -4701,6 +4717,9 @@ const viVN: Messages = {
     },
   },
   orderStore: {
+    addItemsFailed: "Không thể thêm món",
+    changeItemFailed: "Không thể đổi số lượng",
+    removeItemFailed: "Không thể xoá món",
     fetchFailed: "Tải đơn hàng thất bại",
     updateStatusFailed: "Cập nhật trạng thái đơn hàng thất bại",
     cancelFailed: "Hủy đơn hàng thất bại",

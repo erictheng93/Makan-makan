@@ -258,6 +258,77 @@ export const useOrderStore = defineStore("order", () => {
     }
   };
 
+  /**
+   * Order modification (#273). All three share one shape: send the version the
+   * UI is holding, replace the local row with whatever the server returns, and
+   * surface a failure as `error` rather than a thrown exception, matching
+   * cancelOrder above.
+   *
+   * They return the updated order rather than a boolean because the caller
+   * needs the new `version` to make its next edit, and re-fetching the list to
+   * get it would race with the edit that is already in flight.
+   */
+  const applyServerOrder = (payload: unknown): Order | null => {
+    const order = payload as Order | undefined;
+    if (!order?.id) return null;
+    updateOrder(order);
+    return order;
+  };
+
+  const withOrderItemMutation = async (
+    action: () => Promise<{ data: { success?: boolean; data?: unknown } }>,
+    fallbackKey: string,
+  ): Promise<Order | null> => {
+    try {
+      const response = await action();
+      if (!response.data.success) return null;
+      return applyServerOrder(response.data.data);
+    } catch (err: unknown) {
+      console.error(fallbackKey, err);
+      error.value = resolveUserFacingError(err, t, { fallbackKey }).message;
+      return null;
+    }
+  };
+
+  const addOrderItems = async (
+    orderId: string,
+    items: Array<{ menuItemId: number; quantity: number; notes?: string }>,
+    expectedVersion?: number,
+  ) =>
+    withOrderItemMutation(
+      () => api.post(`/orders/${orderId}/items`, { items, expectedVersion }),
+      "orderStore.addItemsFailed",
+    );
+
+  const changeOrderItemQuantity = async (
+    orderId: string,
+    itemId: number,
+    quantity: number,
+    expectedVersion?: number,
+  ) =>
+    withOrderItemMutation(
+      () =>
+        api.patch(`/orders/${orderId}/items/${itemId}`, {
+          quantity,
+          expectedVersion,
+        }),
+      "orderStore.changeItemFailed",
+    );
+
+  const removeOrderItem = async (
+    orderId: string,
+    itemId: number,
+    expectedVersion?: number,
+  ) => {
+    // DELETE carries no body, so the version travels as a query parameter.
+    const query =
+      expectedVersion == null ? "" : `?expectedVersion=${expectedVersion}`;
+    return withOrderItemMutation(
+      () => api.delete(`/orders/${orderId}/items/${itemId}${query}`),
+      "orderStore.removeItemFailed",
+    );
+  };
+
   return {
     orders: readonly(orders),
     isLoading: readonly(isLoading),
@@ -285,5 +356,8 @@ export const useOrderStore = defineStore("order", () => {
     markReady,
     completeOrder,
     cancelOrder,
+    addOrderItems,
+    changeOrderItemQuantity,
+    removeOrderItem,
   };
 });

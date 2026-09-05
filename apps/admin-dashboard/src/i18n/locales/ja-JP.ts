@@ -411,6 +411,22 @@ const jaJP: Messages = {
       quantity: "数量",
       totalAmount: "合計金額",
     },
+    edit: {
+      title: "商品を編集",
+      done: "完了",
+      addItem: "商品を追加",
+      browseMenu: "メニューを見る",
+      searchPlaceholder: "メニューを検索…",
+      noMatches: "該当する商品がありません",
+      add: "追加",
+      remove: "削除",
+      increase: "数量を増やす",
+      decrease: "数量を減らす",
+      lastItemHint:
+        "注文には最低 1 品必要です。全体を取り消す場合は注文キャンセルを使用してください。",
+      failed: "注文の変更に失敗しました",
+      menuLoadFailed: "メニューの読み込みに失敗しました",
+    },
     actions: {
       view: "表示",
       update: "更新",
@@ -4696,6 +4712,9 @@ const jaJP: Messages = {
     },
   },
   orderStore: {
+    addItemsFailed: "商品の追加に失敗しました",
+    changeItemFailed: "数量の変更に失敗しました",
+    removeItemFailed: "商品の削除に失敗しました",
     fetchFailed: "注文の取得に失敗しました",
     updateStatusFailed: "注文ステータスの更新に失敗しました",
     cancelFailed: "注文のキャンセルに失敗しました",
