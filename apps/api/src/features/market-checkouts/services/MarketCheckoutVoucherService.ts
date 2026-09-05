@@ -241,12 +241,20 @@ export class MarketCheckoutVoucherService {
 
     // A shop's voucher expires at that shop's midnight; a platform voucher
     // has no single shop to belong to, so it uses the platform offset (#329).
-    const today = getBusinessDate(
+    //
+    // valid_from_ms / valid_to_ms are instants (#271), so both ends are mapped
+    // onto the shop's calendar with the same offset before comparing. The old
+    // code compared the stored ISO string against `today` directly, which only
+    // worked because a `YYYY-MM-DD...` prefix happens to sort like a date.
+    const offsetMinutes =
       coupon.restaurantId == null
         ? PLATFORM_BUSINESS_TIMEZONE_OFFSET_MINUTES
-        : await this.businessTimezone.offsetMinutes(coupon.restaurantId),
-    );
-    if (coupon.validFrom > today || coupon.validTo < today) {
+        : await this.businessTimezone.offsetMinutes(coupon.restaurantId);
+    const today = getBusinessDate(offsetMinutes);
+    if (
+      getBusinessDate(offsetMinutes, coupon.validFrom) > today ||
+      getBusinessDate(offsetMinutes, coupon.validTo) < today
+    ) {
       throw badRequest("This voucher has expired", "VOUCHER_EXPIRED");
     }
 

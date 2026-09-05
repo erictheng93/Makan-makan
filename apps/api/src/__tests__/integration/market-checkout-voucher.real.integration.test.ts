@@ -46,8 +46,8 @@ interface SeedCouponOptions {
   maxDiscountAmountCents?: number | null;
   minOrderAmountCents?: number | null;
   restaurantId?: string | null;
-  validFrom?: string;
-  validTo?: string;
+  validFrom?: Date;
+  validTo?: Date;
   isActive?: boolean;
   isVisible?: boolean;
   usageLimit?: number | null;
@@ -71,8 +71,8 @@ async function seedCoupon(options: SeedCouponOptions): Promise<number> {
         discountType === "fixed" ? (options.discountValueCents ?? 1000) : null,
       maxDiscountAmountCents: options.maxDiscountAmountCents ?? null,
       minOrderAmountCents: options.minOrderAmountCents ?? 0,
-      validFrom: options.validFrom ?? "2020-01-01",
-      validTo: options.validTo ?? "2099-12-31",
+      validFrom: options.validFrom ?? new Date("2020-01-01T00:00:00.000Z"),
+      validTo: options.validTo ?? new Date("2099-12-31T00:00:00.000Z"),
       isActive: options.isActive ?? true,
       isVisible: options.isVisible ?? true,
       usageLimit: options.usageLimit ?? null,
@@ -242,7 +242,10 @@ describe("MarketCheckoutVoucherService — validateAndPrice", () => {
   });
 
   it("rejects an expired voucher", async () => {
-    await seedCoupon({ code: "OLD", validTo: "2020-01-02" });
+    await seedCoupon({
+      code: "OLD",
+      validTo: new Date("2020-01-02T00:00:00.000Z"),
+    });
 
     await expect(
       makeService().validateAndPrice({

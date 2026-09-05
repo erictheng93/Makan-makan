@@ -74,6 +74,10 @@
     {
       "fresh": "0018_platform_integration_store_id.sql",
       "reason": "platform_integrations exists only in the platform API database; the management API receives no third-party delivery webhooks and has no integration rows to resolve a store id against."
+    },
+    {
+      "fresh": "0019_coupon_valid_period_ms.sql",
+      "reason": "coupons is a platform-API table; the management-api database has no coupons row whose validity window could be paired against."
     }
   ],
   "legacyOnly": [

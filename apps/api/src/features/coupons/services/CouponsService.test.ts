@@ -80,8 +80,8 @@ function buildStoredCoupon(
     usageLimit: null,
     usageLimitPerUser: null,
     usedCount: 0,
-    validFrom: "2026-06-01T00:00:00.000Z",
-    validTo: "2026-07-01T00:00:00.000Z",
+    validFrom: new Date("2026-06-01T00:00:00.000Z"),
+    validTo: new Date("2026-07-01T00:00:00.000Z"),
     isActive: true,
     isVisible: true,
     createdAt: new Date("2026-06-01T00:00:00.000Z"),
@@ -110,8 +110,8 @@ function buildRedeemableCoupon(overrides: Record<string, unknown> = {}) {
     usageLimit: null,
     usageLimitPerUser: null,
     usedCount: 0,
-    validFrom: "2026-01-01",
-    validTo: "2026-12-31",
+    validFrom: new Date("2026-01-01T00:00:00.000Z"),
+    validTo: new Date("2026-12-31T00:00:00.000Z"),
     isActive: true,
     isVisible: true,
     deletedAt: null,
@@ -303,8 +303,8 @@ describe("CouponsService", () => {
         restaurantId: "restaurant-1",
         discountType: "percentage",
         discountValue: 10,
-        validFrom: "2026-06-01T00:00:00.000Z",
-        validTo: "2026-07-01T00:00:00.000Z",
+        validFrom: new Date("2026-06-01T00:00:00.000Z"),
+        validTo: new Date("2026-07-01T00:00:00.000Z"),
       }),
     ).resolves.toEqual(storedCoupon);
     expect(createCoupon).toHaveBeenCalledOnce();
@@ -315,8 +315,8 @@ describe("CouponsService", () => {
         name: "Bad Date",
         discountType: "percentage",
         discountValue: 10,
-        validFrom: "2026-07-01T00:00:00.000Z",
-        validTo: "2026-06-01T00:00:00.000Z",
+        validFrom: new Date("2026-07-01T00:00:00.000Z"),
+        validTo: new Date("2026-06-01T00:00:00.000Z"),
       }),
     ).rejects.toThrow();
 
@@ -326,8 +326,8 @@ describe("CouponsService", () => {
         name: "Bad Percent",
         discountType: "percentage",
         discountValue: 101,
-        validFrom: "2026-06-01T00:00:00.000Z",
-        validTo: "2026-07-01T00:00:00.000Z",
+        validFrom: new Date("2026-06-01T00:00:00.000Z"),
+        validTo: new Date("2026-07-01T00:00:00.000Z"),
       }),
     ).rejects.toThrow();
   });
@@ -345,8 +345,8 @@ describe("CouponsService", () => {
         restaurantId: "restaurant-1",
         discountType: "percentage",
         discountValue: 10,
-        validFrom: "2026-06-01T00:00:00.000Z",
-        validTo: "2026-07-01T00:00:00.000Z",
+        validFrom: new Date("2026-06-01T00:00:00.000Z"),
+        validTo: new Date("2026-07-01T00:00:00.000Z"),
       }),
     ).rejects.toMatchObject({ code: "COUPON_CODE_EXISTS", status: 409 });
   });
@@ -365,8 +365,8 @@ describe("CouponsService", () => {
         restaurantId: "restaurant-1",
         discountType: "percentage",
         discountValue: 10,
-        validFrom: "2026-06-01T00:00:00.000Z",
-        validTo: "2026-07-01T00:00:00.000Z",
+        validFrom: new Date("2026-06-01T00:00:00.000Z"),
+        validTo: new Date("2026-07-01T00:00:00.000Z"),
       }),
     ).rejects.toMatchObject({ code: "COUPON_CODE_EXISTS", status: 409 });
   });
@@ -713,7 +713,9 @@ describe("CouponsService", () => {
 
     it("denies a coupon before its validFrom date", async () => {
       const { service, useCoupon } = setupUseCouponService({
-        coupon: buildRedeemableCoupon({ validFrom: "2026-08-01" }),
+        coupon: buildRedeemableCoupon({
+          validFrom: new Date("2026-08-01T00:00:00.000Z"),
+        }),
       });
 
       await expect(service.useCouponForOrder(input)).rejects.toMatchObject({
@@ -726,7 +728,9 @@ describe("CouponsService", () => {
 
     it("denies a coupon after its validTo date", async () => {
       const { service, useCoupon } = setupUseCouponService({
-        coupon: buildRedeemableCoupon({ validTo: "2026-06-30" }),
+        coupon: buildRedeemableCoupon({
+          validTo: new Date("2026-06-30T00:00:00.000Z"),
+        }),
       });
 
       await expect(service.useCouponForOrder(input)).rejects.toMatchObject({

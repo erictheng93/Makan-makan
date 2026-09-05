@@ -56,8 +56,30 @@ function toCouponFilters(input: CouponFiltersInput): CouponFilters {
   return filters;
 }
 
+/**
+ * The wire carries ISO-8601 strings (`z.iso.datetime()`); `coupons.valid_from_ms`
+ * is INTEGER ms. This boundary is where the two meet -- keeping the conversion
+ * here means every comparison downstream, in JS and in SQL alike, is numeric
+ * rather than lexicographic (#271).
+ */
 function toCreateCouponData(input: CreateCouponInput): CreateCouponData {
-  return { ...input };
+  const { validFrom, validTo, ...rest } = input;
+  return {
+    ...rest,
+    validFrom: new Date(validFrom),
+    validTo: new Date(validTo),
+  };
+}
+
+function toUpdateCouponData(
+  input: UpdateCouponInput,
+): Partial<CreateCouponData> {
+  const { validFrom, validTo, ...rest } = input;
+  return {
+    ...rest,
+    ...(validFrom === undefined ? {} : { validFrom: new Date(validFrom) }),
+    ...(validTo === undefined ? {} : { validTo: new Date(validTo) }),
+  };
 }
 
 /**
@@ -254,7 +276,9 @@ routes.put(
   validateBody(updateCouponSchema),
   async (c) => {
     const { id } = c.get("validatedParams") as IdParamInput;
-    const data = c.get("validatedBody") as UpdateCouponInput;
+    const data = toUpdateCouponData(
+      c.get("validatedBody") as UpdateCouponInput,
+    );
     const user = c.get("user");
     const couponsService = createCouponsService(c.env);
 

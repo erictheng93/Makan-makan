@@ -32,12 +32,8 @@ function uniqueSuffix(): string {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function formatYMD(base: Date, daysOffset: number): string {
-  const d = new Date(base.getTime() + daysOffset * 24 * 60 * 60 * 1000);
-  const yyyy = d.getUTCFullYear();
-  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(d.getUTCDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+function daysFrom(base: Date, daysOffset: number): Date {
+  return new Date(base.getTime() + daysOffset * 24 * 60 * 60 * 1000);
 }
 
 function maybeDate(value: unknown): Date | undefined {
@@ -224,8 +220,8 @@ export function buildSeedHelpers(testDb: TestDatabase): SeedHelpers {
           usageLimit: null,
           usageLimitPerUser: null,
           usedCount: 0,
-          validFrom: formatYMD(now, -1),
-          validTo: formatYMD(now, 30),
+          validFrom: daysFrom(now, -1),
+          validTo: daysFrom(now, 30),
           isActive: true,
           isVisible: true,
           createdBy: null,

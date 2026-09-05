@@ -1151,8 +1151,8 @@ async function seedCoupon(testDb: TestDatabase) {
     discountValueCents: 500,
     usageLimit: 5,
     usedCount: 0,
-    validFrom: "2020-01-01",
-    validTo: "2099-12-31",
+    validFrom: new Date("2020-01-01T00:00:00.000Z"),
+    validTo: new Date("2099-12-31T00:00:00.000Z"),
     isActive: true,
     isVisible: true,
   });

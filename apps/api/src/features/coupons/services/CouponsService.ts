@@ -225,10 +225,7 @@ export class CouponsService extends BaseCouponService {
     data: CreateCouponData,
   ): ReturnType<BaseCouponService["createCoupon"]> {
     // Validate date range
-    const validFrom = new Date(data.validFrom);
-    const validTo = new Date(data.validTo);
-
-    if (validFrom >= validTo) {
+    if (data.validFrom >= data.validTo) {
       throw badRequest("有效期結束時間必須晚於開始時間", "INVALID_DATE_RANGE");
     }
 
@@ -558,7 +555,7 @@ export class CouponsService extends BaseCouponService {
     totalSavings: number;
     usageByPeriod: CouponUsageTrendPoint[];
   }> {
-    const now = new Date().toISOString();
+    const nowMs = Date.now();
     const couponWhere = restaurantId
       ? sql`(${coupons.restaurantId} = ${restaurantId} OR ${coupons.restaurantId} IS NULL)`
       : undefined;
@@ -575,8 +572,8 @@ export class CouponsService extends BaseCouponService {
           activeCoupons: sql<number>`coalesce(sum(CASE
             WHEN ${coupons.isActive} = 1
               AND ${coupons.isVisible} = 1
-              AND ${coupons.validFrom} <= ${now}
-              AND ${coupons.validTo} >= ${now}
+              AND ${coupons.validFrom} <= ${nowMs}
+              AND ${coupons.validTo} >= ${nowMs}
               AND (${coupons.usageLimit} IS NULL OR coalesce(${coupons.usedCount}, 0) < ${coupons.usageLimit})
             THEN 1 ELSE 0 END), 0)`,
         })

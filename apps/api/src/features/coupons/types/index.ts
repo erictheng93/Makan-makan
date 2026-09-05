@@ -34,8 +34,9 @@ export interface CreateCouponData {
   applicableCategories?: number[];
   usageLimit?: number | null;
   usageLimitPerUser?: number | null;
-  validFrom: string;
-  validTo: string;
+  /** INTEGER ms 欄位；zod 收 ISO 字串，路由邊界轉成 Date（#271） */
+  validFrom: Date;
+  validTo: Date;
   isActive?: boolean;
   isVisible?: boolean;
   createdBy?: string;

@@ -481,8 +481,8 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
       deletedAt: null,
       isActive: true,
       isVisible: true,
-      validFrom: "2026-06-08",
-      validTo: "2026-06-08",
+      validFrom: new Date("2026-06-08T00:00:00.000Z"),
+      validTo: new Date("2026-06-08T00:00:00.000Z"),
       usageLimit: null,
       usedCount: null,
       minOrderAmountCents: null,
@@ -505,6 +505,45 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
     });
   });
 
+  // #271. valid_from used to be TEXT compared straight against a YYYY-MM-DD
+  // business date, so a voucher whose instant fell later on the same business
+  // day sorted *after* the bare date and read as expired for that whole day.
+  // Both ends are now mapped onto the shop's calendar before comparing.
+  it("accepts a voucher whose start instant is later on today's business day", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-07T16:30:00.000Z")); // 2026-06-08 00:30 +08
+    const service = makeValidateUnitService({
+      id: 9,
+      code: "LATER-TODAY",
+      name: "Later today",
+      restaurantId: null,
+      deletedAt: null,
+      isActive: true,
+      isVisible: true,
+      validFrom: new Date("2026-06-08T10:00:00.000Z"), // 2026-06-08 18:00 +08
+      validTo: new Date("2026-06-08T15:59:59.999Z"), // 2026-06-08 23:59 +08
+      usageLimit: null,
+      usedCount: null,
+      minOrderAmountCents: null,
+      discountType: "fixed",
+      discountValueCents: 500,
+      maxDiscountAmountCents: null,
+    });
+
+    await expect(
+      service.validateAndPrice({
+        code: "later-today",
+        subtotalCents: 1000,
+        childOrders: [
+          { orderId: "1", restaurantId: "rest-1", amountCents: 1000 },
+        ],
+      }),
+    ).resolves.toMatchObject({
+      code: "LATER-TODAY",
+      discountCents: 500,
+    });
+  });
+
   it("prices platform vouchers across all child orders", async () => {
     const service = makeValidateUnitService({
       id: 7,
@@ -514,8 +553,8 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
       deletedAt: null,
       isActive: true,
       isVisible: true,
-      validFrom: "2026-01-01",
-      validTo: "2099-12-31",
+      validFrom: new Date("2026-01-01T00:00:00.000Z"),
+      validTo: new Date("2099-12-31T00:00:00.000Z"),
       usageLimit: 10,
       usedCount: 2,
       minOrderAmountCents: 1000,
@@ -557,8 +596,8 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
       deletedAt: null,
       isActive: true,
       isVisible: true,
-      validFrom: "2026-01-01",
-      validTo: "2099-12-31",
+      validFrom: new Date("2026-01-01T00:00:00.000Z"),
+      validTo: new Date("2099-12-31T00:00:00.000Z"),
       usageLimit: null,
       usedCount: null,
       minOrderAmountCents: 1000,
@@ -615,8 +654,8 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
         deletedAt: null,
         isActive: true,
         isVisible: true,
-        validFrom: "2000-01-01",
-        validTo: "2000-12-31",
+        validFrom: new Date("2000-01-01T00:00:00.000Z"),
+        validTo: new Date("2000-12-31T00:00:00.000Z"),
         usageLimit: null,
         usedCount: null,
         minOrderAmountCents: 0,
@@ -646,8 +685,8 @@ describe("MarketCheckoutVoucherService.validateAndPrice", () => {
       deletedAt: null,
       isActive: true,
       isVisible: true,
-      validFrom: "2026-06-01",
-      validTo: "2026-06-06",
+      validFrom: new Date("2026-06-01T00:00:00.000Z"),
+      validTo: new Date("2026-06-06T00:00:00.000Z"),
       usageLimit: null,
       usedCount: null,
       minOrderAmountCents: 0,

@@ -100,8 +100,13 @@ function csrfHeaders(bearer: string) {
  * to now. Centralised so all tests use the same clock and overrides
  * cannot accidentally drift.
  */
+function offsetDate(daysOffset: number): Date {
+  return new Date(Date.now() + daysOffset * 24 * 60 * 60 * 1000);
+}
+
+/** Wire shape: the API still takes ISO-8601 strings. */
 function offsetIso(daysOffset: number): string {
-  return new Date(Date.now() + daysOffset * 24 * 60 * 60 * 1000).toISOString();
+  return offsetDate(daysOffset).toISOString();
 }
 
 describe("Coupons API — real integration", () => {
@@ -298,8 +303,8 @@ describe("Coupons API — real integration", () => {
       discountType: "fixed",
       discountValueCents: 100,
       minOrderAmountCents: 0,
-      validFrom: offsetIso(-1),
-      validTo: offsetIso(30),
+      validFrom: offsetDate(-1),
+      validTo: offsetDate(30),
       isActive: true,
       isVisible: true,
       createdAt: new Date(),
@@ -315,8 +320,8 @@ describe("Coupons API — real integration", () => {
       discountType: "fixed",
       discountValueCents: 700,
       minOrderAmountCents: 0,
-      validFrom: offsetIso(-1),
-      validTo: offsetIso(30),
+      validFrom: offsetDate(-1),
+      validTo: offsetDate(30),
       isActive: true,
       isVisible: true,
       createdAt: new Date(),
@@ -672,8 +677,8 @@ describe("Coupons API — real integration", () => {
         discountType: "fixed",
         discountValueCents: 100,
         minOrderAmountCents: 0,
-        validFrom: offsetIso(-1),
-        validTo: offsetIso(30),
+        validFrom: offsetDate(-1),
+        validTo: offsetDate(30),
         isActive: true,
         isVisible: true,
         createdAt: new Date(),
@@ -712,8 +717,8 @@ describe("Coupons API — real integration", () => {
         discountType: "fixed",
         discountValueCents: 100,
         minOrderAmountCents: 0,
-        validFrom: offsetIso(-1),
-        validTo: offsetIso(30),
+        validFrom: offsetDate(-1),
+        validTo: offsetDate(30),
         isActive: true,
         isVisible: true,
         createdAt: new Date(),
@@ -796,8 +801,8 @@ describe("Coupons API — real integration", () => {
     // Past window — seed.coupon with explicit date strings.
     const created = await seed.coupon(restaurantId, {
       code: "EXPIRED99",
-      validFrom: "2020-01-01",
-      validTo: "2020-12-31",
+      validFrom: new Date("2020-01-01T00:00:00.000Z"),
+      validTo: new Date("2020-12-31T00:00:00.000Z"),
     });
 
     const res = await testApp.app.fetch(
@@ -1295,34 +1300,34 @@ describe("Coupons API — real integration", () => {
       // freezing the clock used by the service and this boundary test.
       const frozenAdminToken =
         await testApp.authHelper.adminToken(restaurantId);
-      const now = new Date().toISOString();
+      const now = new Date();
       await seed.coupon(restaurantId, {
         code: "ACTIVE-AT-END",
-        validFrom: "2026-08-28T11:00:00.000Z",
+        validFrom: new Date("2026-08-28T11:00:00.000Z"),
         validTo: now,
       });
       await seed.coupon(restaurantId, {
         code: "EXPIRED",
-        validFrom: "2026-08-28T10:00:00.000Z",
-        validTo: "2026-08-28T11:59:59.999Z",
+        validFrom: new Date("2026-08-28T10:00:00.000Z"),
+        validTo: new Date("2026-08-28T11:59:59.999Z"),
       });
       await seed.coupon(restaurantId, {
         code: "EXHAUSTED",
-        validFrom: "2026-08-28T11:00:00.000Z",
-        validTo: "2026-08-28T13:00:00.000Z",
+        validFrom: new Date("2026-08-28T11:00:00.000Z"),
+        validTo: new Date("2026-08-28T13:00:00.000Z"),
         usageLimit: 2,
         usedCount: 2,
       });
       await seed.coupon(restaurantId, {
         code: "INACTIVE",
         isActive: false,
-        validFrom: "2026-08-28T11:00:00.000Z",
-        validTo: "2026-08-28T13:00:00.000Z",
+        validFrom: new Date("2026-08-28T11:00:00.000Z"),
+        validTo: new Date("2026-08-28T13:00:00.000Z"),
       });
       await seed.coupon(restaurantId, {
         code: "SCHEDULED",
-        validFrom: "2026-08-28T13:00:00.000Z",
-        validTo: "2026-08-29T13:00:00.000Z",
+        validFrom: new Date("2026-08-28T13:00:00.000Z"),
+        validTo: new Date("2026-08-29T13:00:00.000Z"),
       });
 
       for (const [status, expectedCode] of [

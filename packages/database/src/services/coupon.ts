@@ -160,8 +160,8 @@ export interface RedeemableCouponRow {
   deletedAt: Date | null;
   isActive: boolean | null;
   isVisible: boolean | null;
-  validFrom: string;
-  validTo: string;
+  validFrom: Date;
+  validTo: Date;
   usageLimit: number | null;
   usedCount: number | null;
   usageLimitPerUser: number | null;
@@ -197,8 +197,8 @@ export interface CreateCouponData {
   applicableCategories?: number[];
   usageLimit?: number | null;
   usageLimitPerUser?: number | null;
-  validFrom: string;
-  validTo: string;
+  validFrom: Date;
+  validTo: Date;
   isActive?: boolean;
   isVisible?: boolean;
   createdBy?: string;
@@ -424,12 +424,12 @@ export class CouponService extends BaseService {
       throw new CouponEligibilityError("COUPON_INACTIVE", "優惠券已停用");
     }
 
-    // 檢查有效期（validFrom/validTo 為 TEXT 日期字串，維持既有解析方式）
+    // 檢查有效期（validFrom/validTo 為 INTEGER ms，Drizzle 已還原成 Date）
     const now = new Date();
-    if (now < new Date(coupon.validFrom)) {
+    if (now < coupon.validFrom) {
       throw new CouponEligibilityError("COUPON_NOT_STARTED", "優惠券尚未生效");
     }
-    if (now > new Date(coupon.validTo)) {
+    if (now > coupon.validTo) {
       throw new CouponEligibilityError("COUPON_EXPIRED", "優惠券已過期");
     }
 
@@ -710,7 +710,7 @@ export class CouponService extends BaseService {
     // This mirrors the dashboard status helper, so filtering happens before
     // pagination rather than only on the records already loaded in the UI.
     if (filters.status) {
-      const now = new Date().toISOString();
+      const now = new Date();
       switch (filters.status) {
         case "inactive":
           whereConditions.push(eq(coupons.isActive, false));
@@ -747,7 +747,7 @@ export class CouponService extends BaseService {
     whereConditions.push(sql`${coupons.deletedAt} IS NULL`);
 
     if (filters.validOnly) {
-      const now = new Date().toISOString();
+      const now = new Date();
       whereConditions.push(
         and(lte(coupons.validFrom, now), gte(coupons.validTo, now)),
       );
@@ -1030,7 +1030,7 @@ export class CouponService extends BaseService {
       ? eq(coupons.restaurantId, restaurantId)
       : undefined;
 
-    const now = new Date().toISOString();
+    const nowMs = Date.now();
 
     // Total and active counts from coupons table
     const couponCounts = await this.db
@@ -1038,8 +1038,8 @@ export class CouponService extends BaseService {
         total: sql<number>`count(*)`,
         active: sql<number>`sum(CASE
           WHEN ${coupons.isActive} = 1
-            AND ${coupons.validFrom} <= ${now}
-            AND ${coupons.validTo} >= ${now}
+            AND ${coupons.validFrom} <= ${nowMs}
+            AND ${coupons.validTo} >= ${nowMs}
             AND (${coupons.usageLimit} IS NULL OR ${coupons.usedCount} < ${coupons.usageLimit})
           THEN 1 ELSE 0 END)`,
         totalUsed: sql<number>`coalesce(sum(${coupons.usedCount}), 0)`,
@@ -1080,7 +1080,7 @@ export class CouponService extends BaseService {
    * 獲取可用的優惠券 (供前端顯示)
    */
   async getAvailableCoupons(restaurantId: string, _userId?: string) {
-    const now = new Date().toISOString();
+    const now = new Date();
 
     const couponList = await this.db.query.coupons.findMany({
       where: and(

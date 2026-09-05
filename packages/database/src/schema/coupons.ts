@@ -82,9 +82,11 @@ export const coupons = sqliteTable(
     usageLimitPerUser: integer("usage_limit_per_user"), // 每用戶使用次數限制
     usedCount: integer("used_count").default(0), // 已使用次數
 
-    // 有效期設定（保持 TEXT 格式，日期字串更易讀）
-    validFrom: text("valid_from").notNull(), // 有效期開始時間 (YYYY-MM-DD)
-    validTo: text("valid_to").notNull(), // 有效期結束時間 (YYYY-MM-DD)
+    // 有效期設定 - 標準化為 INTEGER (Unix milliseconds)，與 partnership_plans
+    // 的 valid_from_ms / valid_to_ms 對齊。曾是 TEXT，靠「每一列都是 Z 結尾定寬
+    // ISO-8601」這個沒人強制的不變式撐住 SQL 的字典序比較（#271）。
+    validFrom: integer("valid_from_ms", { mode: "timestamp_ms" }).notNull(),
+    validTo: integer("valid_to_ms", { mode: "timestamp_ms" }).notNull(),
 
     // 狀態控制
     isActive: integer("is_active", { mode: "boolean" }).default(true), // 是否啟用
