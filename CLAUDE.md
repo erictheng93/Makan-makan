@@ -659,19 +659,38 @@ what "the factory check" refers to.
 ### Debug Tools
 
 - Worker logs: `pnpm wrangler tail`
-- **Health endpoints** — three public ones, and they are not interchangeable:
+- **Health endpoints** — three public ones plus an authenticated deep check, and they are not interchangeable:
 
   | Endpoint | Checks dependencies? | Use for |
   | --- | --- | --- |
   | `GET /info` | **No** — returns static metadata (version, deployment mode, endpoint list) | "Is the Worker running?" Smoke tests, LB liveness. Cheapest, no bindings touched |
   | `GET /api/v1/monitoring/health` | **Yes** — D1 `SELECT 1` + a KV read, plus API latency/error rate from Analytics Engine | "Are the dependencies healthy?" Dashboards, alerting, frequent polling |
-  | `GET /api/v1/system/health` | **Yes** — same D1 probe, but its KV probe does put + get + delete | One-off deep checks. Prefer `monitoring/health` when polling — this one spends a KV **write** per call |
+  | `GET /api/v1/system/health` | **Yes** — same D1 probe, plus the same read-only KV probe | Either is fine to poll. This one additionally reports `servedByPrimary`/`servedByRegion` for the D1 read |
+  | `GET /api/v1/system/health?deep=1` | **Yes** — D1, plus a KV put + get + background delete, plus an uptime-evidence write | Proving the KV **write** path. **Requires a bearer token** — the public exemption is path-matched and deliberately does not cover this |
 
   `/health` redirects to `/api/v1/monitoring/health`. That response is a bare
   payload (`{overall, components}`), not the unified `{success, data}` envelope.
 
   `/api/v1/system/health/ready` and `/live` are kubernetes-style probes and
   **require a bearer token**.
+
+- **KV writes are ~4x a KV read and ~4.5x the D1 probe — put none of them on a
+  public path.** Measured against production on 2026-09-05, Worker in APAC
+  (post-#322): D1 `SELECT 1` ~95ms, KV read ~210ms, each KV write ~420ms. The
+  public `/api/v1/system/health` used to spend three write-class round trips
+  per anonymous call (probe put + get + delete, then an uptime-evidence put)
+  and answered in 900–1500ms; it is now one read alongside the D1 probe,
+  concurrently. `probeCache` reads a sentinel key it never writes for exactly
+  this reason (#324).
+
+- **Every probe times its own segment.** `runBasicHealthCheck` used to report
+  `Date.now() - startTime` for both checks against one clock started before the
+  D1 query, so whatever D1 spent was counted a second time inside the KV
+  number. That is where #324's "KV is three times D1" came from: 115–169ms of
+  the 356–421ms it attributed to KV was the D1 probe, reported twice. Probes
+  are now concurrent and each times itself, and the KV check carries a
+  `probe: "read" | "read-write"` field so a latency can be read against the
+  work that produced it.
 
 - **Health must come from probes, not counters.** `MonitoringService` keeps
   per-isolate in-process counters; deriving health from them alone means an

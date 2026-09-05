@@ -48,9 +48,18 @@ Configure external uptime monitoring against these production targets:
 > without spending a KV write). Keep `/health/uptime` only if the monitor can
 > send a bearer token.
 
+> The public `GET /api/v1/system/health` is also safe to poll: since #324 its
+> KV probe reads a sentinel key instead of writing one, and it runs alongside
+> the D1 probe rather than after it. The write-path probe now lives behind
+> `?deep=1`, which requires a bearer token precisely so that polling it is a
+> deliberate choice.
+
 The API writes the latest uptime evidence to `CACHE_KV` key
-`system:uptime:last-check` with a 7-day TTL whenever `/health` or
-`/health/uptime` runs. Pull the latest production evidence with:
+`system:uptime:last-check` with a 7-day TTL on every `/health/uptime` call, and
+on `/health?deep=1`. The plain public `/health` no longer writes it: the key is
+a fixed one, so an anonymous caller writing it on every request both spent a KV
+write per request and pushed against KV's one-write-per-second-per-key ceiling.
+Pull the latest production evidence with:
 
 ```bash
 pnpm exec wrangler kv key get "system:uptime:last-check" --binding=CACHE_KV --env production --config apps/api/wrangler.toml

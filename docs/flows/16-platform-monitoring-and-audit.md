@@ -8,13 +8,31 @@
 
 系統活著嗎、相依健康嗎、誰動了什麼、資料救不救得回來。四塊：健康檢查、監控指標、稽核日誌、備份還原。
 
-## 2. 三個健康端點不可互換
+## 2. 健康端點不可互換
 
 | 端點 | 會不會碰相依？ | 用途 |
 | --- | --- | --- |
 | `GET /info` | **不會**，只回靜態中繼資料 | 「Worker 活著嗎」——冒煙測試、LB liveness，最便宜 |
 | `GET /api/v1/monitoring/health` | 會：D1 `SELECT 1` + KV **讀取**，另加 Analytics Engine 的延遲與錯誤率 | 「相依健康嗎」——儀表板、告警、頻繁輪詢 |
-| `GET /api/v1/system/health` | 會：同樣的 D1 探針，但 KV 是 put + get + delete | 一次性深度檢查。輪詢請不要用這個——**每次都花一次 KV 寫入** |
+| `GET /api/v1/system/health` | 會：同樣的 D1 探針 + 同一支唯讀 KV 探針 | 兩支都可以輪詢。這支另外會回報 D1 讀取的 `servedByPrimary`／`servedByRegion` |
+| `GET /api/v1/system/health?deep=1` | 會：D1，加上 KV put + get +（背景）delete，再加一筆 uptime evidence 寫入 | 驗證 KV **寫入**路徑。**需要 bearer token**——公開豁免是比對路徑的，刻意不涵蓋這個 |
+
+### KV 寫入約是 KV 讀取的 4 倍、D1 探針的 4.5 倍——公開路徑上一筆都不要放
+
+2026-09-05 對 production 實測（Worker 已回到 APAC，#322 修後）：
+D1 `SELECT 1` 約 95ms、KV 讀取約 210ms、每一筆 KV 寫入約 420ms。
+
+公開的 `/api/v1/system/health` 過去每次匿名呼叫要花掉**三筆寫入等級的往返**
+（探針的 put + get + delete，再加 uptime evidence 的 put），端點自報 900–1500ms。
+現在是「一次 KV 讀取」與 D1 探針**並行**，寫入路徑移到需要認證的 `?deep=1`（#324）。
+
+### 每支探針各自計時
+
+`runBasicHealthCheck` 原本兩支檢查都回報 `Date.now() - startTime`，
+而那個 `startTime` 在 D1 查詢**之前**就起算了——D1 花掉的時間會在 KV 的數字裡**再被算一次**。
+#324 量到的「KV 是 D1 的三倍」就是這麼來的：它記錄的 KV 356–421ms 裡，
+有 115–169ms 其實是 D1 探針被重複計入。現在兩支探針並行且各自計時，
+KV 檢查另外帶一個 `probe: "read" | "read-write"` 欄位，讓延遲數字能對上產生它的工作量。
 
 `GET /health` 會轉址到 `/api/v1/monitoring/health`，而且那個回應是裸的
 `{ overall, components }`，**不是**統一的 `{ success, data }` 信封。
@@ -78,7 +96,7 @@ DB 查詢 100ms／500ms、錯誤率 5%／10%、快取命中率 60%／30%。
 | 情境 | 系統行為 | 風險 |
 | --- | --- | --- |
 | 拿 `/info` 當相依健康檢查 | 永遠 200——D1 掛了也一樣 | 🔴 P0 |
-| 用 `/api/v1/system/health` 做高頻輪詢 | 每次一筆 KV 寫入，成本與配額都在燒 | 🟠 P1 |
+| 用 `/api/v1/system/health?deep=1` 做高頻輪詢 | 每次兩筆 KV 寫入，成本與配額都在燒；需要 token，匿名者打不到 | 🟠 P1 |
 | 期待 `/health` 回統一信封 | 它回裸 payload，解析會壞 | 🟡 P2 |
 | 未帶 token 打 `/health/ready`、`/live` | 401 | 🟡 P2 |
 | isolate 沒流量 | 計數器全 0，但探針仍會如實回報相依狀態 | 🔴 P0（已防） |
