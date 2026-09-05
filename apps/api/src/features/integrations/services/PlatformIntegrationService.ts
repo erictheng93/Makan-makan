@@ -76,6 +76,10 @@ export class PlatformIntegrationService {
         .set({
           credentials:
             encryptedCreds as unknown as typeof platformIntegrations.$inferInsert.credentials,
+          // Kept in step with the copy inside `credentials`. The plaintext
+          // column is what the unauthenticated webhook route resolves on, so
+          // letting the two drift would silently orphan the integration (#338).
+          storeId: data.storeId ?? null,
           enabled: true,
           config: {
             autoAcceptOrders: data.autoAcceptOrders ?? false,
@@ -95,6 +99,7 @@ export class PlatformIntegrationService {
         platform,
         credentials:
           encryptedCreds as unknown as typeof platformIntegrations.$inferInsert.credentials,
+        storeId: data.storeId ?? null,
         enabled: true,
         config: {
           autoAcceptOrders: data.autoAcceptOrders ?? false,

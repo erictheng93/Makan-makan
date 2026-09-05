@@ -120,33 +120,22 @@ webhookRoutes.post(
       );
     }
 
-    // Look up integration by platform — filter by enabled, then match storeId from credentials JSON
-    const integrations = await db
+    // Resolve the integration on the plaintext store_id column, so this
+    // unauthenticated route reads one row instead of decrypting every
+    // tenant's credentials to find out which one it belongs to (#338). The
+    // one remaining decryption below is unavoidable: the signing secret this
+    // request has to be checked against is itself inside the ciphertext.
+    const [integration] = await db
       .select()
       .from(platformIntegrations)
       .where(
         and(
           eq(platformIntegrations.platform, "uber_eats"),
           eq(platformIntegrations.enabled, true),
+          eq(platformIntegrations.storeId, storeId),
         ),
-      );
-
-    const integrationService = new PlatformIntegrationService(c.env);
-    let matchedCredentials: { clientSecret?: string; webhookSecret?: string } =
-      {};
-    const integration =
-      (
-        await Promise.all(
-          integrations.map(async (candidate) => {
-            const creds = await integrationService.readStoredCredentials(
-              candidate.credentials,
-            );
-            return creds.storeId === storeId
-              ? { integration: candidate, credentials: creds }
-              : null;
-          }),
-        )
-      ).find((match) => match !== null) ?? null;
+      )
+      .limit(1);
 
     if (!integration) {
       return c.json(
@@ -158,18 +147,35 @@ webhookRoutes.post(
       );
     }
 
+    const integrationService = new PlatformIntegrationService(c.env);
+    const matchedCredentials = await integrationService.readStoredCredentials(
+      integration.credentials,
+    );
+
     // Verify webhook signature
     const adapter = getAdapter("uber_eats");
 
-    matchedCredentials = integration.credentials;
-    const config = integration.integration.config as {
+    const config = integration.config as {
       webhookSecret?: string;
     } | null;
     const webhookSecret =
       matchedCredentials.webhookSecret ??
       config?.webhookSecret ??
-      matchedCredentials.clientSecret ??
-      "";
+      matchedCredentials.clientSecret;
+
+    // No secret means no verification. This used to fall back to "", and an
+    // HMAC keyed on the empty string is one any caller can compute — which
+    // made the signature check a formality for any row stored without a
+    // secret. Refuse instead of accepting a signature that proves nothing.
+    if (!webhookSecret) {
+      return c.json(
+        {
+          success: false,
+          error: { code: "INVALID_SIGNATURE", message: "Invalid signature" },
+        },
+        401,
+      );
+    }
 
     const clonedRequest = new Request(c.req.url, {
       method: c.req.method,
@@ -198,7 +204,7 @@ webhookRoutes.post(
     const [insertedLog] = await db
       .insert(platformWebhookLogs)
       .values({
-        restaurantId: integration.integration.restaurantId,
+        restaurantId: integration.restaurantId,
         platform: "uber_eats",
         eventType,
         platformEventId,
@@ -248,7 +254,7 @@ webhookRoutes.post(
         const result = await orderService.processCancellation(
           "uber_eats",
           payload,
-          integration.integration.restaurantId,
+          integration.restaurantId,
         );
 
         await db
@@ -313,7 +319,7 @@ webhookRoutes.post(
       const orderId = await orderService.processWebhook(
         "uber_eats",
         payload,
-        integration.integration.restaurantId,
+        integration.restaurantId,
       );
 
       await db

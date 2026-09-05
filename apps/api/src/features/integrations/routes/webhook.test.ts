@@ -47,6 +47,10 @@ vi.mock("@makanmasak/database", () => ({
   platformIntegrations: {
     enabled: "enabled",
     platform: "platform",
+    // Must mirror the real schema's columns. The select fixture returns rows
+    // whatever the where clause says, so a column missing here reads as
+    // `undefined` in the query and every assertion still passes.
+    storeId: "storeId",
   },
   platformWebhookLogs: {
     id: "id",
@@ -82,6 +86,7 @@ vi.mock("../services/PlatformOrderService", () => ({
 }));
 
 import routes from "./webhook";
+import { eq } from "drizzle-orm";
 import { platformIntegrations } from "@makanmasak/database";
 import { idempotencyMiddleware } from "../../../middleware/idempotency";
 
@@ -157,6 +162,9 @@ function integration(overrides: Record<string, unknown> = {}) {
     restaurantId: "restaurant-1",
     platform: "uber_eats",
     enabled: true,
+    // Plaintext column the route resolves on, kept in step with the copy
+    // inside the encrypted credentials (#338).
+    storeId: "store-1",
     credentials: { storeId: "store-1" },
     config: { webhookSecret: "configured-secret" },
     ...overrides,
@@ -224,14 +232,9 @@ describe("platform webhook routes", () => {
   });
 
   it("returns not found when no enabled integration matches the store", async () => {
-    mockSelectResults({
-      platformIntegrations: [
-        [
-          integration({ credentials: { storeId: "other-store" } }),
-          integration({ credentials: { storeId: "third-store" } }),
-        ],
-      ],
-    });
+    // The store id is now a WHERE clause, so a miss comes back as no rows
+    // rather than rows this route has to decrypt and sift through.
+    mockSelectResults({ platformIntegrations: [[]] });
 
     const response = await request("/uber-eats", {
       method: "POST",
@@ -244,6 +247,77 @@ describe("platform webhook routes", () => {
     expect(body).toEqual({
       success: false,
       error: { code: "INTEGRATION_NOT_FOUND", message: "Unknown store" },
+    });
+    expect(mocks.adapter.verifyWebhook).not.toHaveBeenCalled();
+  });
+
+  it("decrypts nothing when an unauthenticated request names an unknown store", async () => {
+    // The invariant this whole ticket is about (#338). This route takes no
+    // authentication, so anything it does before the signature check is work
+    // a stranger can command. It used to decrypt every enabled integration's
+    // credentials — every tenant's, not just the caller's — merely to find
+    // which row the payload's store id belonged to.
+    mockSelectResults({ platformIntegrations: [[]] });
+
+    const response = await request("/uber-eats", {
+      method: "POST",
+      body: JSON.stringify(webhookPayload({ store: { id: "not-a-tenant" } })),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    expect(response.status).toBe(404);
+    expect(
+      mocks.integrationService.readStoredCredentials,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("decrypts exactly one integration when the store resolves", async () => {
+    mockSelectResults({ platformIntegrations: [[integration()]] });
+
+    await request("/uber-eats", {
+      method: "POST",
+      body: JSON.stringify(webhookPayload()),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Uber-Signature": "valid",
+      },
+    });
+
+    // One, and only one: the signing secret lives inside the ciphertext, so a
+    // single decryption is unavoidable. What must not come back is a count
+    // that scales with how many integrations the platform has.
+    expect(
+      mocks.integrationService.readStoredCredentials,
+    ).toHaveBeenCalledOnce();
+
+    // And the single row came from the database narrowing on the store, not
+    // from this route reading every row and picking one.
+    expect(eq).toHaveBeenCalledWith(platformIntegrations.storeId, "store-1");
+  });
+
+  it("refuses a signature when the integration stores no webhook secret", async () => {
+    // An HMAC keyed on "" is one any caller can compute, so falling back to it
+    // turned the signature check into a formality for such a row.
+    mockSelectResults({
+      platformIntegrations: [
+        [integration({ credentials: { storeId: "store-1" }, config: {} })],
+      ],
+    });
+
+    const response = await request("/uber-eats", {
+      method: "POST",
+      body: JSON.stringify(webhookPayload()),
+      headers: {
+        "Content-Type": "application/json",
+        "X-Uber-Signature": "anything",
+      },
+    });
+    const body = await json(response);
+
+    expect(response.status).toBe(401);
+    expect(body).toEqual({
+      success: false,
+      error: { code: "INVALID_SIGNATURE", message: "Invalid signature" },
     });
     expect(mocks.adapter.verifyWebhook).not.toHaveBeenCalled();
   });

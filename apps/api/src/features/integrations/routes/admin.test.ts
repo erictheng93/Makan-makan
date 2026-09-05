@@ -243,9 +243,16 @@ describe("integrations admin routes", () => {
   });
 
   it("connects, updates, and disconnects supported integrations", async () => {
+    // The real request shape. This used to send `{ credentials: { token } }`,
+    // which `connect()` never reads — every field it does read was undefined,
+    // so the test asserted the route forwards a body the service ignores.
     let response = await request("/restaurant-1/uber_eats/connect", {
       method: "POST",
-      body: JSON.stringify({ credentials: { token: "secret" } }),
+      body: JSON.stringify({
+        clientId: "client-1",
+        clientSecret: "secret-1",
+        storeId: "store-1",
+      }),
     });
     let body = await json(response);
 
@@ -254,7 +261,11 @@ describe("integrations admin routes", () => {
     expect(mocks.integrationService.connect).toHaveBeenCalledWith(
       "restaurant-1",
       "uber_eats",
-      { credentials: { token: "secret" } },
+      expect.objectContaining({
+        clientId: "client-1",
+        clientSecret: "secret-1",
+        storeId: "store-1",
+      }),
     );
     expect(body.data).toEqual({ platform: "uber_eats", connected: true });
 
@@ -306,7 +317,17 @@ describe("integrations admin routes", () => {
     for (const [path, init] of [
       [
         "/restaurant-1/foodpanda/connect",
-        { method: "POST", body: JSON.stringify({}) },
+        {
+          method: "POST",
+          // A well-formed body, so this asserts the platform is refused
+          // rather than the body — connect validates before it looks at the
+          // platform, so an empty body here would 400 and prove nothing.
+          body: JSON.stringify({
+            clientId: "client-1",
+            clientSecret: "secret-1",
+            storeId: "store-1",
+          }),
+        },
       ],
       [
         "/restaurant-1/foodpanda",
@@ -325,6 +346,28 @@ describe("integrations admin routes", () => {
     expect(mocks.integrationService.connect).not.toHaveBeenCalled();
     expect(mocks.integrationService.updateConfig).not.toHaveBeenCalled();
     expect(mocks.menuSyncService.syncMenu).not.toHaveBeenCalled();
+  });
+
+  it("refuses to connect without a client id, secret and store id", async () => {
+    // Each of these produced a row that broke something downstream and said
+    // nothing at the time (#338): no storeId means no incoming webhook can
+    // ever resolve to this integration, and no clientSecret used to leave the
+    // webhook signature check keyed on the empty string.
+    for (const body of [
+      {},
+      { clientId: "client-1", clientSecret: "secret-1" },
+      { clientId: "client-1", storeId: "store-1" },
+      { clientId: "client-1", clientSecret: "   ", storeId: "store-1" },
+    ]) {
+      const response = await request("/restaurant-1/uber_eats/connect", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+
+      expect(response.status).toBe(400);
+    }
+
+    expect(mocks.integrationService.connect).not.toHaveBeenCalled();
   });
 
   it("triggers menu sync and lists platform orders", async () => {

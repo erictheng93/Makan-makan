@@ -1,7 +1,9 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import { drizzle } from "drizzle-orm/d1";
 import { eq, and, desc } from "drizzle-orm";
 import { platformWebhookLogs } from "@makanmasak/database";
+import { validateBody } from "../../../middleware/validation";
 import type {
   PlatformType,
   ConnectPlatformRequest,
@@ -106,25 +108,45 @@ adminRoutes.get("/:restaurantId/:platform", async (c) => {
   return c.json({ data: integration });
 });
 
-// POST /:restaurantId/:platform/connect — connect platform
-adminRoutes.post("/:restaurantId/:platform/connect", async (c) => {
-  const restaurantId = c.req.param("restaurantId");
-  const platform = c.req.param("platform") as PlatformType;
-  const body = await c.req.json<ConnectPlatformRequest>();
-
-  if (!isPlatformAdapterSupported(platform)) {
-    throw new ApiError(
-      "INTEGRATION_NOT_AVAILABLE",
-      `${platform} integration is not available yet`,
-      501,
-    );
-  }
-
-  const service = new PlatformIntegrationService(c.env);
-  const integration = await service.connect(restaurantId, platform, body);
-
-  return c.json({ data: integration }, 201);
+/**
+ * The admin UI already refuses a blank clientId, clientSecret or storeId, but
+ * the route accepted whatever JSON arrived. Two things went wrong when it did:
+ * a row with no secret made the webhook signature check a formality (it keyed
+ * the HMAC on ""), and a row with no storeId can never be matched by an
+ * incoming webhook at all. The server has no reason to be more permissive than
+ * its own form (#338).
+ */
+const connectPlatformSchema = z.object({
+  clientId: z.string().trim().min(1),
+  clientSecret: z.string().trim().min(1),
+  storeId: z.string().trim().min(1),
+  autoAcceptOrders: z.boolean().optional(),
+  menuSyncEnabled: z.boolean().optional(),
 });
+
+// POST /:restaurantId/:platform/connect — connect platform
+adminRoutes.post(
+  "/:restaurantId/:platform/connect",
+  validateBody(connectPlatformSchema),
+  async (c) => {
+    const restaurantId = c.req.param("restaurantId");
+    const platform = c.req.param("platform") as PlatformType;
+    const body = c.get("validatedBody") as ConnectPlatformRequest;
+
+    if (!isPlatformAdapterSupported(platform)) {
+      throw new ApiError(
+        "INTEGRATION_NOT_AVAILABLE",
+        `${platform} integration is not available yet`,
+        501,
+      );
+    }
+
+    const service = new PlatformIntegrationService(c.env);
+    const integration = await service.connect(restaurantId, platform, body);
+
+    return c.json({ data: integration }, 201);
+  },
+);
 
 // PUT /:restaurantId/:platform — update config
 adminRoutes.put("/:restaurantId/:platform", async (c) => {
