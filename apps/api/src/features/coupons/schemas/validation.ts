@@ -111,7 +111,13 @@ export const createTemplateSchema = z.object({
   isSystemTemplate: z.boolean().optional(),
 });
 
-export const updateTemplateSchema = createTemplateSchema.partial();
+// Same decision as `updateCouponSchema` above: an update must never be able to
+// re-home the row into another restaurant, so `restaurantId` is dropped from the
+// partial and re-declared as unacceptable rather than merely optional.
+export const updateTemplateSchema = createTemplateSchema
+  .omit({ restaurantId: true })
+  .partial()
+  .extend({ restaurantId: z.never().optional() });
 
 // Common parameter schemas
 export const idParamSchema = z.object({
