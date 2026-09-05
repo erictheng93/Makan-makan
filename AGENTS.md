@@ -43,4 +43,4 @@ Unless the user explicitly asks to create a new branch or open a pull request, m
 
 ## Multi-Role Access System
 
-Roles are the integers 0–5, defined in `apps/api/src/shared/constants/index.ts` and listed with their scopes in `CLAUDE.md`, "Multi-Role Access System".
+Roles are the integers 0-5, defined in `apps/api/src/shared/constants/index.ts` and listed with their scopes in `CLAUDE.md`, "Multi-Role Access System".
