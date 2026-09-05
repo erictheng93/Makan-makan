@@ -3609,6 +3609,7 @@ const viVN: Messages = {
     attendance: {
       title: "Chấm công hôm nay",
       totalActive: "Nhân viên hoạt động",
+      scheduled: "Có ca hôm nay",
       present: "Có mặt",
       onLeave: "Nghỉ phép",
       absent: "Vắng mặt",

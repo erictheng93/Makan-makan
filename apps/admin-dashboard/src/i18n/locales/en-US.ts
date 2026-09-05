@@ -3601,6 +3601,7 @@ const enUS: Messages = {
     attendance: {
       title: "Today's Attendance",
       totalActive: "Active Staff",
+      scheduled: "Rostered Today",
       present: "Present",
       onLeave: "On Leave",
       absent: "Absent",

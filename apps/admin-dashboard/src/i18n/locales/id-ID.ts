@@ -3623,6 +3623,7 @@ const idID: Messages = {
     attendance: {
       title: "Kehadiran Hari Ini",
       totalActive: "Staf Aktif",
+      scheduled: "Terjadwal Hari Ini",
       present: "Hadir",
       onLeave: "Cuti",
       absent: "Tidak Hadir",

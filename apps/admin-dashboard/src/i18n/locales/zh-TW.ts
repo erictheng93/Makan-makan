@@ -3655,6 +3655,7 @@ const zhTWCore = {
     attendance: {
       title: "今日出勤",
       totalActive: "在職人數",
+      scheduled: "今日排班",
       present: "已到班",
       onLeave: "請假",
       absent: "缺席",

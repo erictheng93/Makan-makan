@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <!-- Quick Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
       <div
         v-for="stat in attendanceStats"
         :key="stat.label"
@@ -225,6 +225,9 @@ watch(
 // stale until the clocked-in list is refetched.
 const refreshAttendance = () => {
   employeeList.fetchClockedIn();
+  // The roster rows carry clockInTime, which is what the present/absent counts
+  // are derived from — refetching only the clocked-in list would leave them stale.
+  employeeList.fetchTodaySchedules();
 };
 
 const clockedInEmployees = employeeList.clockedInList;
@@ -241,27 +244,69 @@ const onLeaveEmployees = computed(() => {
     }));
 });
 
+/**
+ * Attendance is measured against today's roster, not against headcount.
+ *
+ * The old denominator was every active employee, so a five-person shop that
+ * rosters two could never exceed 40% and the three people who were never due
+ * in were counted as absent. The numerator was `currentlyWorking`, which is
+ * "clocked in and not yet out" — an instantaneous value, so every shop read
+ * 0% after closing. Neither number moved when a shift was added to the roster.
+ */
 const attendanceStats = computed(() => {
-  const total = employeeList.users.value.filter((u) => u.isActive).length;
-  const working = employeeList.stats.value.currentlyWorking;
-  const onLeave = employeeList.stats.value.onLeaveToday;
-  const absent = Math.max(0, total - working - onLeave);
-  const rate = total > 0 ? Math.round((working / total) * 100) : 0;
+  const totalActive = employeeList.users.value.filter((u) => u.isActive).length;
+
+  // A cancelled shift is not an attendance obligation, so it leaves the
+  // denominator. Everything else rostered for today stays in it.
+  const rostered = employeeList.todaySchedules.value.filter(
+    (schedule) => schedule.status !== "cancelled",
+  );
+  const rosteredIds = new Set(rostered.map((s) => String(s.employeeId)));
+  const scheduled = rosteredIds.size;
+
+  // Present for the day means "clocked in at some point", so someone who has
+  // already clocked out still counts. That is the difference from the
+  // currently-working list rendered below.
+  const presentIds = new Set(
+    rostered.filter((s) => s.clockInTime).map((s) => String(s.employeeId)),
+  );
+  const present = presentIds.size;
+
+  const onLeaveIds = new Set(
+    employeeList.usersWithStatus.value
+      .filter((u) => u.leaveStatus?.isOnLeave)
+      .map((u) => String(u.id)),
+  );
+
+  // Absent means "was due in and did not come". Approved leave is not absence,
+  // and neither is having no shift today.
+  const absent = [...rosteredIds].filter(
+    (id) => !presentIds.has(id) && !onLeaveIds.has(id),
+  ).length;
+
+  // With nobody rostered there is no rate to report. 0% would read as a
+  // failure rather than as "no shifts today".
+  const rate = scheduled > 0 ? Math.round((present / scheduled) * 100) : null;
 
   return [
     {
       label: t("employees.attendance.totalActive"),
-      value: total,
+      value: totalActive,
+      valueClass: "text-[#1C1C1E]",
+    },
+    {
+      label: t("employees.attendance.scheduled"),
+      value: scheduled,
       valueClass: "text-[#1C1C1E]",
     },
     {
       label: t("employees.attendance.present"),
-      value: working,
+      value: present,
       valueClass: "text-emerald-600",
     },
     {
       label: t("employees.attendance.onLeave"),
-      value: onLeave,
+      value: onLeaveIds.size,
       valueClass: "text-amber-600",
     },
     {
@@ -271,8 +316,13 @@ const attendanceStats = computed(() => {
     },
     {
       label: t("employees.attendance.rate"),
-      value: `${rate}%`,
-      valueClass: rate >= 80 ? "text-emerald-600" : "text-amber-600",
+      value: rate === null ? "—" : `${rate}%`,
+      valueClass:
+        rate === null
+          ? "text-[#1C1C1E]/30"
+          : rate >= 80
+            ? "text-emerald-600"
+            : "text-amber-600",
     },
   ];
 });
@@ -304,5 +354,6 @@ onMounted(() => {
   // Refresh clocked-in data specifically
   employeeList.fetchClockedIn();
   employeeList.fetchTodayLeaves();
+  employeeList.fetchTodaySchedules();
 });
 </script>

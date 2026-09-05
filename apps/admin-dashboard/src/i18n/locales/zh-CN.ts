@@ -3536,6 +3536,7 @@ const zhCN: Messages = {
     attendance: {
       title: "今日出勤",
       totalActive: "在职人数",
+      scheduled: "今日排班",
       present: "已到班",
       onLeave: "请假",
       absent: "缺席",

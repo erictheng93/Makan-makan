@@ -3606,6 +3606,7 @@ const jaJP: Messages = {
     attendance: {
       title: "本日の出勤状況",
       totalActive: "在籍スタッフ",
+      scheduled: "本日のシフト",
       present: "出勤",
       onLeave: "休暇",
       absent: "欠勤",

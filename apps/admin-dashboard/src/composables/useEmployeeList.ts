@@ -16,11 +16,13 @@ import { mapApiUser, type ApiUser } from "@/types/api-user";
 // Module-level shared state — all callers share the same data
 const users = ref<Employee[]>([]);
 const clockedInList = ref<EmployeeSchedule[]>([]);
+const todaySchedules = ref<EmployeeSchedule[]>([]);
 const todayLeaveRequests = ref<
   Array<{ employeeId: number; leaveTypeName: string; endDate: string }>
 >([]);
 const isLoading = ref(false);
 const clockedInLoading = ref(false);
+const schedulesLoading = ref(false);
 const leaveLoading = ref(false);
 const error = ref<string | null>(null);
 
@@ -139,6 +141,50 @@ export function useEmployeeList() {
     }
   };
 
+  /**
+   * Today's roster — who was *supposed* to work, which is the only honest
+   * denominator for an attendance rate. Headcount is not: a five-person shop
+   * that rosters two people can never exceed 40%.
+   *
+   * The date is the local one, matching ClockInOutPanel, because that is what
+   * decides which schedule row a person can clock into. `toISOString()` would
+   * name the previous day between local midnight and 08:00 in GMT+8.
+   */
+  const fetchTodaySchedules = async () => {
+    const restaurantId = authStore.restaurantId;
+    if (!restaurantId) return;
+    schedulesLoading.value = true;
+    try {
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      const collected: EmployeeSchedule[] = [];
+      // One restaurant-day fits in a page or two. The loop exists so a large
+      // roster is counted rather than silently truncated at the API's 100-row
+      // ceiling — an undercounted denominator would inflate the rate.
+      for (let page = 1; page <= 10; page += 1) {
+        const response = await schedulingService.getSchedules({
+          restaurantId,
+          startDate: today,
+          endDate: today,
+          page,
+          limit: 100,
+        });
+        collected.push(...response.data);
+        if (
+          response.data.length === 0 ||
+          collected.length >= response.pagination.total
+        ) {
+          break;
+        }
+      }
+      todaySchedules.value = collected;
+    } catch (e) {
+      console.error("Failed to fetch today schedules:", e);
+    } finally {
+      schedulesLoading.value = false;
+    }
+  };
+
   const fetchTodayLeaves = async () => {
     const restaurantId = authStore.restaurantId;
     if (!restaurantId) return;
@@ -172,6 +218,7 @@ export function useEmployeeList() {
     // Fire-and-forget for secondary data
     fetchClockedIn();
     fetchTodayLeaves();
+    fetchTodaySchedules();
   };
 
   // CRUD
@@ -224,8 +271,10 @@ export function useEmployeeList() {
     usersWithStatus,
     stats,
     clockedInList,
+    todaySchedules,
     isLoading,
     clockedInLoading,
+    schedulesLoading,
     leaveLoading,
     error,
 
@@ -234,6 +283,7 @@ export function useEmployeeList() {
     fetchUsers,
     fetchClockedIn,
     fetchTodayLeaves,
+    fetchTodaySchedules,
     createUser,
     updateUser,
     toggleUserStatus,
