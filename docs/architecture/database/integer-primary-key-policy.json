@@ -34,7 +34,7 @@
   {
     "tableName": "coupon_distributions",
     "schemaFile": "packages/database/src/schema/coupons.ts",
-    "line": 196,
+    "line": 198,
     "category": "leaf_local",
     "migrationPlan": "retain",
     "rationale": "Distribution rows are internal history under coupon identity."
@@ -42,7 +42,7 @@
   {
     "tableName": "coupon_templates",
     "schemaFile": "packages/database/src/schema/coupons.ts",
-    "line": 242,
+    "line": 244,
     "category": "legacy_domain",
     "migrationPlan": "migrate_to_uuid_v7",
     "rationale": "Coupon template rows are reusable domain entities."
@@ -50,7 +50,7 @@
   {
     "tableName": "coupon_usage",
     "schemaFile": "packages/database/src/schema/coupons.ts",
-    "line": 141,
+    "line": 143,
     "category": "join_edge",
     "migrationPlan": "retain",
     "rationale": "Usage rows are edges between coupons, orders, and users."
