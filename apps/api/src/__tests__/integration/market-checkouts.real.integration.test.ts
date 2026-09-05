@@ -1123,7 +1123,12 @@ describe("Market checkouts API - real integration", () => {
       .from(orders)
       .where(eq(orders.id, childRows[0].orderId))
       .get();
-    expect(paidChildOrder?.paymentStatus).toBe("paid");
+    // orders.payment_status and market_checkout_sessions.payment_status are
+    // deliberately different vocabularies. ORDER_PAYMENT_STATUSES has no
+    // "paid" member, so writing it made the value read back as pending —
+    // that was #311, fixed in c096a0f7. The session assertions above keep
+    // saying "paid" because that table really does use it.
+    expect(paidChildOrder?.paymentStatus).toBe("completed");
     expect(paidChildOrder?.paymentMethod).toBe("cash");
 
     const updatedShift = await testApp.testDb.drizzle
