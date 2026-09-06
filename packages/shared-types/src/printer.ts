@@ -176,6 +176,12 @@ export interface ReceiptSummary {
   discount?: DiscountInfo;
   serviceCharge?: ServiceChargeInfo;
   tip?: number;
+  /**
+   * 外送費。自 #295 起它已計入 `total`，所以收據上必須看得到 —— 否則
+   * 小計加稅對不上總額，那筆差額在紙上沒有出處（#348）。
+   * 非外送單與 0 元一律不印。
+   */
+  deliveryFee?: number;
   total: number;
   payment: PaymentInfo[];
   change?: number;
@@ -432,6 +438,14 @@ export interface PrintRequest {
 export interface OrderData {
   id: string;
   tableNumber?: string;
+  /**
+   * 外送單的送達資訊。`print/routes.ts` 的 `requestForReceipt` 送的就是這三個
+   * 欄位，宣告在這裡是為了讓型別描述實際的線上格式 —— print-agent 收到
+   * `req.body` 後只是 cast 成 PrintRequest，沒有 runtime schema 會補這個缺。
+   */
+  deliveryAddress?: string;
+  deliveryPhone?: string;
+  deliveryFee?: number;
   items: {
     name: string;
     quantity: number;

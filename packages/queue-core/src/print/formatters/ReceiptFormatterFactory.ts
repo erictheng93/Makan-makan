@@ -34,6 +34,7 @@ export interface ReceiptData {
     tableNumber?: string;
     deliveryAddress?: string;
     deliveryPhone?: string;
+    deliveryFee?: number;
     createdAt?: string | number | Date;
     items?: ReceiptOrderItem[];
     subtotal?: number;
@@ -254,6 +255,7 @@ export class TWReceiptFormatter extends BaseReceiptFormatter {
             taxableAmount: subtotal,
           },
         ],
+        deliveryFee: order?.deliveryFee,
         total: order?.total || 0,
         payment: payment
           ? [
@@ -369,6 +371,7 @@ export class MYReceiptFormatter extends BaseReceiptFormatter {
             taxableAmount: subtotal,
           },
         ],
+        deliveryFee: order?.deliveryFee,
         total: order?.total || 0,
         payment: payment
           ? [
@@ -484,6 +487,7 @@ export class VNReceiptFormatter extends BaseReceiptFormatter {
             taxableAmount: subtotal,
           },
         ],
+        deliveryFee: order?.deliveryFee,
         total,
         payment: payment
           ? [

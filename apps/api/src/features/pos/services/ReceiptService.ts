@@ -396,6 +396,9 @@ export class ReceiptService {
       tableNumber: null as string | null,
       deliveryAddress: delivery?.address ?? null,
       deliveryPhone: delivery?.phone ?? null,
+      // `delivery_info.deliveryFee` 自 #295 起是伺服器端寫入的權威金額，且已
+      // 計入 totalAmount。收據要印得出來，總額才有交代（#348）。
+      deliveryFee: delivery?.deliveryFee ?? 0,
       items: items.map((item: OrderItemRow) => ({
         name: item.itemSnapshot?.name ?? null,
         quantity: item.quantity,

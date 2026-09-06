@@ -138,6 +138,7 @@ function requestForReceipt(
           typeof content.deliveryPhone === "string"
             ? content.deliveryPhone
             : undefined,
+        deliveryFee: Number(content.deliveryFee ?? 0),
         items: Array.isArray(content.items)
           ? content.items.map((item: Record<string, unknown>) => ({
               name: String(item.name ?? "Item"),

@@ -375,6 +375,18 @@ export class CommandBuilder {
       );
     }
 
+    // 外送費計入 total（#295），所以它必須在 TOTAL 之前自成一行，否則小計加稅
+    // 對不上總額，那筆差額在紙上沒有出處（#348）。
+    if (content.summary.deliveryFee && content.summary.deliveryFee > 0) {
+      builder.addRaw(
+        ESCPOSCommands.textColumns(
+          "Delivery Fee:",
+          CommandBuilder.formatPrice(content.summary.deliveryFee),
+          width,
+        ),
+      );
+    }
+
     if (content.summary.tip && content.summary.tip > 0) {
       builder.addRaw(
         ESCPOSCommands.textColumns(

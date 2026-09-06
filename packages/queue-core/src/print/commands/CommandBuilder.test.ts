@@ -89,5 +89,36 @@ describe("CommandBuilder.fromPrintContent", () => {
 
     expect(commands).not.toContain("Delivery:");
     expect(commands).not.toContain("Delivery Tel:");
+    expect(commands).not.toContain("Delivery Fee:");
+  });
+
+  // 外送費計入 total（#295），所以少了這一行，收據上的小計加稅就對不上總額
+  // —— 那筆差額對顧客是「亂收錢」，對收銀是一筆對不起來的帳（#348）。
+  it("itemises the delivery fee so the printed lines add up to the total", () => {
+    const content = createPrintContent();
+    content.summary.deliveryFee = 5;
+    content.summary.total = 267.5;
+
+    const commands = CommandBuilder.fromPrintContent(content).buildESCPOS();
+
+    expect(commands).toContain("Delivery Fee:");
+    expect(commands).toContain("5.00");
+
+    const amount = (label: string) =>
+      Number(
+        new RegExp(`${label}\\s+(\\d+\\.\\d{2})`).exec(commands)?.[1] ?? NaN,
+      );
+    expect(
+      amount("Subtotal:") + amount("營業稅:") + amount("Delivery Fee:"),
+    ).toBeCloseTo(amount("TOTAL:"), 2);
+  });
+
+  it("omits a zero delivery fee rather than printing a 0.00 line", () => {
+    const content = createPrintContent();
+    content.summary.deliveryFee = 0;
+
+    expect(
+      CommandBuilder.fromPrintContent(content).buildESCPOS(),
+    ).not.toContain("Delivery Fee:");
   });
 });

@@ -284,6 +284,8 @@ describe("ReceiptService", () => {
     ).toMatchObject({
       deliveryAddress: "台中市西屯區台灣大道三段99號",
       deliveryPhone: "0912345678",
+      // 這筆已經含在 totalAmount 裡（#295），收據要印得出來才有交代（#348）。
+      deliveryFee: 5,
     });
   });
 
@@ -307,7 +309,11 @@ describe("ReceiptService", () => {
 
     expect(
       JSON.parse((mutations.inserted[0] as { content: string }).content),
-    ).toMatchObject({ deliveryAddress: null, deliveryPhone: null });
+    ).toMatchObject({
+      deliveryAddress: null,
+      deliveryPhone: null,
+      deliveryFee: 0,
+    });
   });
 
   it("rejects missing orders before inserting receipts", async () => {

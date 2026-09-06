@@ -75,6 +75,29 @@ describe("ReceiptFormattingService", () => {
     ]);
   });
 
+  // 三個國別 formatter 各自組自己的 summary，任何一個漏掉外送費，那一國的
+  // 收據就會小計加稅對不上總額（#348）。
+  it("carries the delivery fee and address through every region's formatter", async () => {
+    const service = new ReceiptFormattingService();
+
+    for (const country of ["TW", "MY", "VN"] as const) {
+      const request = createReceiptRequest();
+      request.country = country;
+      request.data.order.deliveryAddress = "台中市西屯區台灣大道三段99號";
+      request.data.order.deliveryPhone = "0912345678";
+      request.data.order.deliveryFee = 5;
+      request.data.order.total = 267.5;
+
+      const receipt = await service.formatReceipt(request);
+
+      expect(receipt.summary.deliveryFee).toBe(5);
+      expect(receipt.header.transactionInfo.deliveryAddress).toBe(
+        "台中市西屯區台灣大道三段99號",
+      );
+      expect(receipt.header.transactionInfo.deliveryPhone).toBe("0912345678");
+    }
+  });
+
   it("generates Taiwan receipt numbers without Math.random", async () => {
     vi.setSystemTime(new Date("2026-06-07T00:00:00.000Z"));
     vi.spyOn(crypto, "randomUUID").mockReturnValue(
